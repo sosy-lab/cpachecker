@@ -60,10 +60,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
@@ -358,26 +356,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       }
     }
 
-    for (Pair<Variable, FormulaList> f : resultSSA.allFunctions()) {
-      Variable name = f.getFirst();
-      FormulaList args = f.getSecond();
-      int i1 = ssa1.getIndex(name.getName(), args);
-      int i2 = ssa2.getIndex(name.getName(), args);
-
-      if (i1 > i2 && i1 > 1) {
-        // i2:smaller, i1:bigger
-        // => need correction term for i2
-        BooleanFormula t = makeSSAMerger(name, args, Math.max(i2, 1), i1);
-        mt2 = bfmgr.and(mt2, t);
-
-      } else if (i1 < i2 && i2 > 1) {
-        // i1:smaller, i2:bigger
-        // => need correction term for i1
-        BooleanFormula t = makeSSAMerger(name, args, Math.max(i1, 1), i2);
-        mt1 = bfmgr.and(mt1, t);
-      }
-    }
-
     return Pair.of(Pair.of(mt1, mt2), resultSSA);
   }
 
@@ -444,24 +422,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
                                                   pts1);
         }
 
-        mergeFormula1 = bfmgr.and(mergeFormula1, mergeFormula);
-      }
-    }
-
-    for (final Pair<Variable, FormulaList> term : resultSSA.allFunctions()) {
-      final Variable symbol = term.getFirst();
-      final FormulaList arguments = term.getSecond();
-      final int index1 = ssa1.getIndex(symbol.getName(), arguments);
-      final int index2 = ssa2.getIndex(symbol.getName(), arguments);
-      if (index1 > index2 && index1 > 1 && index2 > 0) {
-        // i2:smaller, i1:bigger
-        // => need correction term for i2
-        final BooleanFormula mergeFormula = makeSSAMerger(symbol, arguments, index2, index1);
-        mergeFormula2 = bfmgr.and(mergeFormula2, mergeFormula);
-      } else if (index1 < index2 && index2 > 1 && index1 > 0) {
-        // i1:smaller, i2:bigger
-        // => need correction term for i1
-        final BooleanFormula mergeFormula = makeSSAMerger(symbol, arguments, index1, index2);
         mergeFormula1 = bfmgr.and(mergeFormula1, mergeFormula);
       }
     }
@@ -642,28 +602,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     FormulaType<?> t = converter.getFormulaTypeFromCType(type);
     return makeMerger(name, iSmaller, iBigger,
         fmgr.makeVariable(t, name, iSmaller));
-  }
-
-  private BooleanFormula makeSSAMerger(Variable var,
-      FormulaList args, int iSmaller, int iBigger) {
-    assert iSmaller < iBigger;
-
-    FormulaType<?> t = converter.getFormulaTypeFromCType(var.getType());
-    Formula initialFunc = ffmgr.createFuncAndCall(var.getName(), iSmaller, t, fromList(args));
-    //BooleanFormula intialFunc = fmgr.makeUIF(name, args, iSmaller);
-    BooleanFormula result = bfmgr.makeBoolean(true);
-
-    for (int i = iSmaller+1; i <= iBigger; ++i) {
-      //BooleanFormula currentFunc = fmgr.makeUIF(name, args, i);
-      Formula currentFunc = ffmgr.createFuncAndCall(var.getName(), i, t, fromList(args));
-      BooleanFormula e = fmgr.makeEqual(currentFunc, initialFunc);
-      result = bfmgr.and(result, e);
-    }
-    return result;
-  }
-
-  private List<Formula> fromList(FormulaList pArgs) {
-    return ((AbstractFormulaList)pArgs).getTerms();
   }
 
   @Override

@@ -92,7 +92,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BitvectorFormulaManagerView;
@@ -423,25 +422,6 @@ public class CtoFormulaConverter {
     checkSsaSavedType(name, type, ssa);
 
     ssa.setIndex(name, type, idx);
-  }
-
-  /**
-   * Produces a fresh new SSA index for the left-hand side of an assignment
-   * and updates the SSA map.
-   */
-  static int makeLvalIndex(String varName, CType type, FormulaList args, SSAMapBuilder ssa) {
-    int idx = ssa.getIndex(varName, args);
-    if (idx > 0) {
-      idx = idx+1;
-    } else {
-      idx = VARIABLE_UNINITIALIZED; // AG - IMPORTANT!!! We must start from 2 and
-      // not from 1, because this is an assignment,
-      // so the SSA index must be fresh. If we use 1
-      // here, we will have troubles later when
-      // shifting indices
-    }
-    ssa.setIndex(varName, args, type, idx);
-    return idx;
   }
 
   /**
