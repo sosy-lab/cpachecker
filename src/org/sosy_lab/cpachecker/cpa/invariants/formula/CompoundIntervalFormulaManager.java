@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import com.google.common.collect.FluentIterable;
 
 
-public enum CompoundStateFormulaManager {
+public enum CompoundIntervalFormulaManager {
 
   /**
    * The invariants formula manager singleton instance.
@@ -102,15 +102,33 @@ public enum CompoundStateFormulaManager {
     return definitelyImplies(FluentIterable.from(pFormulas).toSet(), pFormula, true, newMap, false);
   }
 
-  private static boolean definitelyImplies(Collection<InvariantsFormula<CompoundInterval>> pFormulas, InvariantsFormula<CompoundInterval> pFormula, boolean pExtend, Map<String, InvariantsFormula<CompoundInterval>> pEnvironment, boolean pEnvironmentComplete) {
+  /**
+   * Tries to prove that the information base implies the given formula. The
+   * information base is given as a combination of formulas and environment
+   * data, because the formulas are more generic but the environment may
+   * represent some data more efficiently.
+   *
+   * @param pInformationBaseFormulas the information base as formulas.
+   * @param pFormula the formula that is checked for being implied by the
+   * information base.
+   * @param pExtend whether or not the information base should be further
+   * extended by splitting the formulas into their conjunctive parts.
+   * @param pInformationBaseEnvironment the information base as an environment.
+   * @param pEnvironmentComplete whether or not the environment already
+   * contains all information that can be gained from the formulas information
+   * base.
+   * @return {@code true} if the information base definitely implies the given
+   * formula.
+   */
+  private static boolean definitelyImplies(Collection<InvariantsFormula<CompoundInterval>> pInformationBaseFormulas, InvariantsFormula<CompoundInterval> pFormula, boolean pExtend, Map<String, InvariantsFormula<CompoundInterval>> pInformationBaseEnvironment, boolean pEnvironmentComplete) {
     final Collection<InvariantsFormula<CompoundInterval>> formulas;
     if (pExtend) {
       formulas = new HashSet<>();
-      for (InvariantsFormula<CompoundInterval> formula : pFormulas) {
+      for (InvariantsFormula<CompoundInterval> formula : pInformationBaseFormulas) {
         formulas.addAll(formula.accept(SPLIT_CONJUNCTIONS_VISITOR));
       }
     } else {
-      formulas = pFormulas;
+      formulas = pInformationBaseFormulas;
     }
 
     // If any of the conjunctive parts is a disjunction, check try each disjunctive part
@@ -118,7 +136,7 @@ public enum CompoundStateFormulaManager {
       Collection<InvariantsFormula<CompoundInterval>> disjunctions = formula.accept(SPLIT_DISJUNCTIONS_VISITOR);
       if (disjunctions.size() > 1) {
         ArrayList<InvariantsFormula<CompoundInterval>> newFormulas = new ArrayList<>(formulas);
-        Map<String, InvariantsFormula<CompoundInterval>> newBaseEnvironment = new HashMap<>(pEnvironment);
+        Map<String, InvariantsFormula<CompoundInterval>> newBaseEnvironment = new HashMap<>(pInformationBaseEnvironment);
         newFormulas.remove(formula);
         for (InvariantsFormula<CompoundInterval> disjunctivePart : disjunctions) {
           Collection<InvariantsFormula<CompoundInterval>> conjunctivePartsOfDisjunctivePart = disjunctivePart.accept(SPLIT_CONJUNCTIONS_VISITOR);
@@ -133,7 +151,7 @@ public enum CompoundStateFormulaManager {
     }
 
     // Build the environment defined by the assumptions and check whether it contradicts or implies the proposed implication
-    Map<String, InvariantsFormula<CompoundInterval>> tmpEnvironment = pEnvironment;
+    Map<String, InvariantsFormula<CompoundInterval>> tmpEnvironment = pInformationBaseEnvironment;
     PushAssumptionToEnvironmentVisitor patev = new PushAssumptionToEnvironmentVisitor(FORMULA_EVALUATION_VISITOR, tmpEnvironment);
     if (!pEnvironmentComplete) {
       for (InvariantsFormula<CompoundInterval> leftFormula : formulas) {
@@ -146,30 +164,41 @@ public enum CompoundStateFormulaManager {
       return true;
     }
 
+    return definitelyImplies(formulas, tmpEnvironment, pFormula);
+  }
+
+  public static boolean definitelyImplies(final Map<String, InvariantsFormula<CompoundInterval>> pCompleteEnvironment,
+      final InvariantsFormula<CompoundInterval> pFormula) {
+    return definitelyImplies(Collections.<InvariantsFormula<CompoundInterval>>emptyList(), pCompleteEnvironment, pFormula);
+  }
+
+  private static boolean definitelyImplies(final Collection<InvariantsFormula<CompoundInterval>> pExtendedFormulas,
+      final Map<String, InvariantsFormula<CompoundInterval>> pCompleteEnvironment,
+      final InvariantsFormula<CompoundInterval> pFormula) {
     // Build the environment defined by the proposed implication and check for contradictions
     Map<String, InvariantsFormula<CompoundInterval>> tmpEnvironment2 = new HashMap<>();
-    CachingEvaluationVisitor<CompoundInterval> cachingEvaluationVisitor = new CachingEvaluationVisitor<>(tmpEnvironment, FORMULA_EVALUATION_VISITOR);
+    CachingEvaluationVisitor<CompoundInterval> cachingEvaluationVisitor = new CachingEvaluationVisitor<>(pCompleteEnvironment, FORMULA_EVALUATION_VISITOR);
     outer:
     for (InvariantsFormula<CompoundInterval> formula2Part : pFormula.accept(SPLIT_CONJUNCTIONS_VISITOR)) {
-      if (!formulas.contains(formula2Part)) {
+      if (!pExtendedFormulas.contains(formula2Part)) {
         Collection<InvariantsFormula<CompoundInterval>> disjunctions = formula2Part.accept(SPLIT_DISJUNCTIONS_VISITOR);
         if (disjunctions.size() > 1) {
           for (InvariantsFormula<CompoundInterval> disjunctionPart : disjunctions) {
-            if (definitelyImplies(formulas, disjunctionPart, false, pEnvironment, true)) {
+            if (definitelyImplies(pExtendedFormulas, disjunctionPart, false, pCompleteEnvironment, true)) {
               continue outer;
             }
           }
         }
-        if (!tmpEnvironment.isEmpty() && formula2Part.accept(CONTAINS_ONLY_ENV_INFO_VISITOR)) {
+        if (!pCompleteEnvironment.isEmpty() && formula2Part.accept(CONTAINS_ONLY_ENV_INFO_VISITOR)) {
           tmpEnvironment2.clear();
           Set<String> varNames = formula2Part.accept(COLLECT_VARS_VISITOR);
-          if (!tmpEnvironment.keySet().containsAll(varNames)) {
+          if (!pCompleteEnvironment.keySet().containsAll(varNames)) {
             return false;
           }
-          patev = new PushAssumptionToEnvironmentVisitor(FORMULA_EVALUATION_VISITOR, tmpEnvironment2);
+          PushAssumptionToEnvironmentVisitor patev = new PushAssumptionToEnvironmentVisitor(FORMULA_EVALUATION_VISITOR, tmpEnvironment2);
           formula2Part.accept(patev, CompoundInterval.logicalTrue());
           for (String varName : varNames) {
-            InvariantsFormula<CompoundInterval> leftFormula = tmpEnvironment.get(varName);
+            InvariantsFormula<CompoundInterval> leftFormula = pCompleteEnvironment.get(varName);
             InvariantsFormula<CompoundInterval> rightFormula = tmpEnvironment2.get(varName);
             CompoundInterval leftValue = leftFormula == null ? CompoundInterval.top() : leftFormula.accept(cachingEvaluationVisitor);
             CompoundInterval rightValue = rightFormula == null ? CompoundInterval.top() : rightFormula.accept(FORMULA_EVALUATION_VISITOR, tmpEnvironment2);
@@ -679,7 +708,7 @@ public enum CompoundStateFormulaManager {
           otherValue = p2.getOperand1();
         }
         if (otherValue != null) {
-          newValue = CompoundStateFormulaManager.INSTANCE.union(value, p2.getOperand2());
+          newValue = CompoundIntervalFormulaManager.INSTANCE.union(value, p2.getOperand2());
           newValue = newValue.accept(new PartialEvaluator(), FORMULA_EVALUATION_VISITOR);
           CompoundInterval val = evaluate(newValue);
           if (val.isTop() && newValue instanceof Constant<?>) {

@@ -77,7 +77,7 @@ public class GuessAssumptionVisitor extends DefaultFormulaVisitor<CompoundInterv
   }
 
   private Set<InvariantsFormula<CompoundInterval>> guess(InvariantsFormula<CompoundInterval> pOperand1, InvariantsFormula<CompoundInterval> pOperand2) {
-    CompoundStateFormulaManager ifm = CompoundStateFormulaManager.INSTANCE;
+    CompoundIntervalFormulaManager ifm = CompoundIntervalFormulaManager.INSTANCE;
     Set<InvariantsFormula<CompoundInterval>> guesses = new HashSet<>();
     InvariantsFormula<CompoundInterval> equation = ifm.equal(pOperand1, pOperand2);
     guesses.add(equation);

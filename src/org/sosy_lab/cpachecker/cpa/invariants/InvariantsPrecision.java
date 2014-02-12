@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import java.util.ArrayDeque;
 import java.util.Collections;
+import java.util.Queue;
 import java.util.Set;
 
 import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState.AbstractEdgeBasedAbstractionStrategyFactory;
@@ -79,7 +82,7 @@ public class InvariantsPrecision implements Precision {
       Set<String> pInterestingVariables, int pMaximumFormulaDepth,
       boolean pUseBinaryVariableInterrelations,
       AbstractEdgeBasedAbstractionStrategyFactory pEdgeBasedAbstractionStrategyFactory) {
-    this(pRelevantEdges == null ? null : ImmutableSet.<CFAEdge>copyOf(pRelevantEdges),
+    this(asImmutableRelevantEdges(pRelevantEdges),
         ImmutableSet.<InvariantsFormula<CompoundInterval>>copyOf(pInterestingAssumptions),
         ImmutableSet.<String>copyOf(pInterestingVariables),
         pMaximumFormulaDepth,
@@ -159,6 +162,22 @@ public class InvariantsPrecision implements Precision {
 
   public AbstractEdgeBasedAbstractionStrategyFactory getEdgeBasedAbstractionStrategyFactory() {
     return this.edgeBasedAbstractionStrategyFactory;
+  }
+
+  private static ImmutableSet<CFAEdge> asImmutableRelevantEdges(Set<CFAEdge> pRelevantEdges) {
+    if (pRelevantEdges == null) {
+      return null;
+    }
+    ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
+    Queue<CFAEdge> waitlist = new ArrayDeque<>(pRelevantEdges);
+    while (!waitlist.isEmpty()) {
+      CFAEdge relevantEdge = waitlist.poll();
+      builder.add(relevantEdge);
+      if (relevantEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
+        builder.addAll(((MultiEdge) relevantEdge));
+      }
+    }
+    return builder.build();
   }
 
 }

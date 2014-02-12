@@ -267,7 +267,7 @@ public class ExplicitPrecision implements Precision {
      *
      * @param otherPrecision the precision to join with
      */
-    abstract void join(RefinablePrecision otherPrecision);
+    public abstract void join(RefinablePrecision otherPrecision);
 
     /**
      * This method returns a set of variables that are candidates for being abstracted.

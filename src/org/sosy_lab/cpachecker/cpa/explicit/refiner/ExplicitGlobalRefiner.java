@@ -90,6 +90,13 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
   @Option(description="checkForRepeatedRefinements")
   private boolean checkForRepeatedRefinements = true;
 
+  @Option(description="when to export the interpolation tree"
+      + "\nNEVER:   never export the interpolation tree"
+      + "\nFINAL:   export the interpolation tree once after each refinement"
+      + "\nALWAYD:  export the interpolation tree once after each interpolation, i.e. multiple times per refinmenet",
+      values={"NEVER", "FINAL", "ALWAYS"})
+  private String exportInterpolationTree = "NEVER";
+
   ExplicitInterpolationBasedExplicitRefiner interpolatingRefiner;
   ExplictFeasibilityChecker checker;
 
@@ -146,8 +153,10 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
 
     InterpolationTree itpTree = new InterpolationTree(targets);
 
-    int i = 0;
+    Deque<Pair<ARGState, ARGState>> refinementRoots = new ArrayDeque<>();
     Deque<ARGState> interpolationRoots = new ArrayDeque<>(Collections.singleton(((ARGState)pReached.getFirstState())));
+
+    int i = 0;
     while(!interpolationRoots.isEmpty()) {
       i++;
       ARGState currentRoot = interpolationRoots.pop();
@@ -174,36 +183,69 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
       else {
         Map<ARGState, ExplicitValueInterpolant> itps = interpolatingRefiner.performInterpolation(errorPath, initialItp);
 
+        // TODO: refinement-roots should be queried from interpolation tree, along with set of error locations
+        // in the successor-relation of these refinement roots (to obtain new precision for ref.-root)
         for(Map.Entry<ARGState, ExplicitValueInterpolant> itp : itps.entrySet()) {
           if(!itp.getValue().isTrivial()) {
-            itpTree.updateRefinementRoot(itp.getKey());
+            refinementRoots.addLast(Pair.of(itp.getKey(), errorPath.getLast().getFirst()));
+            break;
           }
         }
 
         itpTree.addInterpolants(itps);
 
-        //itpTree.exportToDot(totalRefinements, i);
+        if(exportInterpolationTree.equals("ALWAYS")) {
+          itpTree.exportToDot(totalRefinements, i);
+        }
+
         logger.log(Level.FINEST, "itp done");
       }
-
-      i++;
     }
 
-    // TODO: join precisions for all target states (for all target states "below" refinement root), and refine that prec.
-    final Precision precision                 = pReached.getPrecision(pReached.getLastState());
-    final ExplicitPrecision originalPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
-    final ExplicitPrecision refinedPrecision  = new ExplicitPrecision(originalPrecision, itpTree.extractPrecisionIncrement());
+    if(exportInterpolationTree.equals("FINAL") && !exportInterpolationTree.equals("ALWAYS")) {
+      itpTree.exportToDot(totalRefinements, i);
+    }
 
     ARGReachedSet reached = new ARGReachedSet(pReached);
+
     if(doLazyAbstraction) {
-      // TODO: non-lazy lazy-abstraction
-      if(itpTree.getRefinementRoot().getParents().isEmpty()) {
-        reached.removeSubtree(((ARGState)pReached.getFirstState()).getChildren().iterator().next(), refinedPrecision, ExplicitPrecision.class);
+      Deque<Pair<ARGState, ExplicitPrecision>> refRootsWithPrec = new ArrayDeque<>();
+      while(!refinementRoots.isEmpty()) {
+        Pair<ARGState, ARGState> temRoot = refinementRoots.removeLast();
+        final Precision precision                 = pReached.getPrecision(temRoot.getSecond());
+        final ExplicitPrecision originalPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
+        final ExplicitPrecision refinedPrecision  = new ExplicitPrecision(originalPrecision, itpTree.extractPrecisionIncrement());
+
+        refRootsWithPrec.addFirst(Pair.of(temRoot.getFirst(), refinedPrecision));
       }
-      else {
-        reached.removeSubtree(itpTree.getRefinementRoot(), refinedPrecision, ExplicitPrecision.class);
+
+      while(!refRootsWithPrec.isEmpty()) {
+        Pair<ARGState, ExplicitPrecision> rRoot = refRootsWithPrec.removeLast();
+        // is ARGRoot -> use child
+        if(rRoot.getFirst().getParents().isEmpty()) {
+          reached.removeSubtree(rRoot.getFirst().getChildren().iterator().next(), rRoot.getSecond(), ExplicitPrecision.class);
+        } else {
+          reached.removeSubtree(rRoot.getFirst(), rRoot.getSecond(), ExplicitPrecision.class);
+        }
       }
-    } else {
+    }
+
+    // refinement root is child of ARG-root
+    else {
+
+      ExplicitPrecision refinedPrecision = null;
+
+      // just take any target state prec is original prec
+      final ExplicitPrecision originalPrec = Precisions.extractPrecisionByType(pReached.getPrecision(targets.get(0)), ExplicitPrecision.class);
+      for(ARGState target : targets) {
+        // get prec of each target state
+        ExplicitPrecision targetPrec = Precisions.extractPrecisionByType(pReached.getPrecision(target), ExplicitPrecision.class);
+
+        // join it with the original one
+        originalPrec.getRefinablePrecision().join(targetPrec.getRefinablePrecision());
+      }
+      refinedPrecision = new ExplicitPrecision(originalPrec, itpTree.extractPrecisionIncrement());
+
       reached.removeSubtree(((ARGState)pReached.getFirstState()).getChildren().iterator().next(), refinedPrecision, ExplicitPrecision.class);
     }
 
@@ -338,11 +380,6 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     private Map<ARGState, ExplicitValueInterpolant> interpolants = new HashMap<>();
 
     /**
-     * the current refinement root
-     */
-    private ARGState refinementRoot = null;
-
-    /**
      * the root of the tree
      */
     private ARGState root = null;
@@ -354,7 +391,6 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
      */
     private InterpolationTree(Collection<ARGState> targetStates) {
       buildTree(targetStates);
-      initializeRefinementRoot();
     }
 
     /**
@@ -378,20 +414,6 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
           root = currentState;
         }
       }
-    }
-
-    private void initializeRefinementRoot() {
-      ARGState currentState = root;
-      while (successorRelation.get(currentState).iterator().hasNext()) {
-        if(successorRelation.get(currentState).size() > 1) {
-          refinementRoot = currentState;
-          return;
-        }
-
-        currentState = successorRelation.get(currentState).iterator().next();
-      }
-
-      refinementRoot = currentState;
     }
 
     public boolean isValidInterpolationRoot(ARGState currentRoot) {
@@ -496,27 +518,6 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
      */
     private ExplicitValueInterpolant getInitialItp(ARGState root) {
       return interpolants.get(predecessorRelation.get(root));
-    }
-
-    /**
-     * This method updates the refinement root to the given state, if necessary, i.e.,
-     * if is a predecessor of the current one.
-     *
-     * @param newRoot the refinement root candidate
-     */
-    private void updateRefinementRoot(ARGState newRoot) {
-      if(refinementRoot == null || newRoot.isOlderThan(refinementRoot)) {
-        refinementRoot = newRoot;
-      }
-    }
-
-    /**
-     * This method returns the refinement root.
-     *
-     * @return the current refinement root
-     */
-    private ARGState getRefinementRoot() {
-      return refinementRoot;
     }
 
     /**
