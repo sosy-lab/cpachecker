@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.math.BigInteger;
-
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula.RationalFormula;
 
 /**
  * This interface represents the Rational-Theory

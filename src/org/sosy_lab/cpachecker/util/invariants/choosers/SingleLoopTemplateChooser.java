@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.util.invariants.templates.TemplateUIF;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateVariable;
 import org.sosy_lab.cpachecker.util.invariants.templates.TermForm;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula.RationalFormula;
 
 
 public class SingleLoopTemplateChooser implements TemplateChooser {

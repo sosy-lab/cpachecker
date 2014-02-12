@@ -23,18 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
-import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.*;
-import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolUtil.isNumber;
-
-import java.math.BigDecimal;
 import java.math.BigInteger;
-
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractNumeralFormulaManager;
-
-import com.google.common.collect.ImmutableList;
 
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
