@@ -174,7 +174,6 @@ class CFAFunctionBuilder extends ASTVisitor {
   private final LogManager logger;
   private final CheckBindingVisitor checkBinding;
   private final Sideassignments sideAssignmentStack;
-  private final CSourceOriginMapping sourceMapping;
 
   private boolean encounteredAsm = false;
 
@@ -182,16 +181,12 @@ class CFAFunctionBuilder extends ASTVisitor {
       + "or leave them uninitialized.")
   private boolean initializeAllVariables = false;
 
-  public CFAFunctionBuilder(Configuration config, LogManager pLogger, FunctionScope pScope,
-      MachineModel pMachine, String pStaticVariablePrefix,
-      Sideassignments pSideAssignmentStack, CSourceOriginMapping pSourceMapping)
-          throws InvalidConfigurationException {
-
+  public CFAFunctionBuilder(Configuration config, LogManager pLogger, FunctionScope pScope, MachineModel pMachine, String staticVariablePrefix, Sideassignments sideAssignmentStack) throws InvalidConfigurationException {
     config.inject(this);
 
     logger = pLogger;
     scope = pScope;
-    astCreator = new ASTConverter(config, pScope, pLogger, pMachine, pStaticVariablePrefix, false, pSideAssignmentStack, pSourceMapping);
+    astCreator = new ASTConverter(config, pScope, pLogger, pMachine, staticVariablePrefix, false, sideAssignmentStack);
     checkBinding = new CheckBindingVisitor(pLogger);
     expressionSimplificator = new ExpressionSimplificationVisitor(pMachine, pLogger);
     binExprBuilder = new CBinaryExpressionBuilder(pMachine, pLogger);
@@ -201,8 +196,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     shouldVisitParameterDeclarations = true;
     shouldVisitProblems = true;
     shouldVisitStatements = true;
-    sideAssignmentStack = pSideAssignmentStack;
-    sourceMapping = pSourceMapping;
+    this.sideAssignmentStack = sideAssignmentStack;
   }
 
   FunctionEntryNode getStartNode() {
