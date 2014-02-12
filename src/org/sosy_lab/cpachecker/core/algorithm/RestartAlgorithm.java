@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,6 +40,7 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -348,7 +349,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     ConfigurableProgramAnalysis cpa;
     Algorithm algorithm;
 
-    Configuration.Builder singleConfigBuilder = Configuration.builder();
+    ConfigurationBuilder singleConfigBuilder = Configuration.builder();
     singleConfigBuilder.copyFrom(globalConfig);
     singleConfigBuilder.clearOption("restartAlgorithm.configFiles");
     singleConfigBuilder.clearOption("analysis.restartAfterUnknown");

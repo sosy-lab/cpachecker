@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,13 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import java.util.ArrayDeque;
 import java.util.Collections;
+import java.util.Queue;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState.AbstractEdgeBasedAbstractionStrategyFactory;
+import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState.EdgeBasedAbstractionStrategyFactories;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 
 
@@ -38,7 +48,10 @@ public class InvariantsPrecision implements Precision {
   public static final InvariantsPrecision NONE = new InvariantsPrecision(
       Collections.<CFAEdge>emptySet(),
       Collections.<InvariantsFormula<CompoundInterval>>emptySet(),
-      Collections.<String>emptySet(), 0, false, false) {
+      Collections.<String>emptySet(),
+      0,
+      false,
+      EdgeBasedAbstractionStrategyFactories.ALWAYS) {
 
     @Override
     public boolean isRelevant(CFAEdge pEdge) {
@@ -62,36 +75,47 @@ public class InvariantsPrecision implements Precision {
 
   private final boolean useBinaryVariableInterrelations;
 
-  private final boolean useAbstractEvaluation;
+  private final AbstractEdgeBasedAbstractionStrategyFactory edgeBasedAbstractionStrategyFactory;
 
   public InvariantsPrecision(Set<CFAEdge> pRelevantEdges,
       Set<InvariantsFormula<CompoundInterval>> pInterestingAssumptions,
       Set<String> pInterestingVariables, int pMaximumFormulaDepth,
       boolean pUseBinaryVariableInterrelations,
-      boolean pUseAbstractEvaluation) {
-    this(pRelevantEdges == null ? null : ImmutableSet.<CFAEdge>copyOf(pRelevantEdges),
+      AbstractEdgeBasedAbstractionStrategyFactory pEdgeBasedAbstractionStrategyFactory) {
+    this(asImmutableRelevantEdges(pRelevantEdges),
         ImmutableSet.<InvariantsFormula<CompoundInterval>>copyOf(pInterestingAssumptions),
         ImmutableSet.<String>copyOf(pInterestingVariables),
         pMaximumFormulaDepth,
         pUseBinaryVariableInterrelations,
-        pUseAbstractEvaluation);
+        pEdgeBasedAbstractionStrategyFactory);
   }
 
   public InvariantsPrecision(ImmutableSet<CFAEdge> pRelevantEdges,
       ImmutableSet<InvariantsFormula<CompoundInterval>> pInterestingAssumptions,
       ImmutableSet<String> pInterestingVariables, int pMaximumFormulaDepth,
       boolean pUseBinaryVariableInterrelations,
-      boolean pUseAbstractEvaluation) {
+      AbstractEdgeBasedAbstractionStrategyFactory pEdgeBasedAbstractionStrategyFactory) {
     this.relevantEdges = pRelevantEdges;
     this.interestingAssumptions = pInterestingAssumptions;
     this.interestingVariables = pInterestingVariables;
     this.maximumFormulaDepth = pMaximumFormulaDepth;
     this.useBinaryVariableInterrelations = pUseBinaryVariableInterrelations;
-    this.useAbstractEvaluation = pUseAbstractEvaluation;
+    this.edgeBasedAbstractionStrategyFactory = pEdgeBasedAbstractionStrategyFactory;
   }
 
   public boolean isRelevant(CFAEdge pEdge) {
-    return this.relevantEdges == null || this.relevantEdges.contains(pEdge);
+    if (pEdge instanceof MultiEdge) {
+      MultiEdge multiEdge = (MultiEdge) pEdge;
+      return FluentIterable.from(multiEdge).anyMatch(new Predicate<CFAEdge>() {
+
+        @Override
+        public boolean apply(@Nullable CFAEdge pArg0) {
+          return isRelevant(pArg0);
+        }
+
+      });
+    }
+    return pEdge != null && (this.relevantEdges == null || this.relevantEdges.contains(pEdge));
   }
 
   public Set<InvariantsFormula<CompoundInterval>> getInterestingAssumptions() {
@@ -136,8 +160,24 @@ public class InvariantsPrecision implements Precision {
     return this.useBinaryVariableInterrelations;
   }
 
-  public boolean isUsingAbstractEvaluation() {
-    return this.useAbstractEvaluation;
+  public AbstractEdgeBasedAbstractionStrategyFactory getEdgeBasedAbstractionStrategyFactory() {
+    return this.edgeBasedAbstractionStrategyFactory;
+  }
+
+  private static ImmutableSet<CFAEdge> asImmutableRelevantEdges(Set<CFAEdge> pRelevantEdges) {
+    if (pRelevantEdges == null) {
+      return null;
+    }
+    ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
+    Queue<CFAEdge> waitlist = new ArrayDeque<>(pRelevantEdges);
+    while (!waitlist.isEmpty()) {
+      CFAEdge relevantEdge = waitlist.poll();
+      builder.add(relevantEdge);
+      if (relevantEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
+        builder.addAll(((MultiEdge) relevantEdge));
+      }
+    }
+    return builder.build();
   }
 
 }

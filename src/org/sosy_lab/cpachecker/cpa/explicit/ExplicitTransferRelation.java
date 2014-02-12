@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -381,9 +381,9 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       return element;
 
     } else if ((truthValue && value.equals(new ExplicitNumericValue(1L))) || (!truthValue && value.equals(new ExplicitNumericValue(0L)))) {
-      // we do not know more than before, and the assumption is fulfilled,
-      // so return the old state
-      return state;
+      // we do not know more than before, and the assumption is fulfilled, so return a copy of the old state
+      // we need to return a copy, otherwise precision adjustment might reset too much information, even on the original state
+      return state.clone();
 
     } else {
       // assumption not fulfilled

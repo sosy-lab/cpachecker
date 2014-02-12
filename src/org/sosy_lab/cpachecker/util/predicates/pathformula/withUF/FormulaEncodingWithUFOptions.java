@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -76,6 +76,14 @@ public class FormulaEncodingWithUFOptions extends FormulaEncodingOptions {
   @Option(description = "Ignore variables that are not relevant for reachability properties.")
   private boolean ignoreIrrelevantVariables = true;
 
+  @Option(description = "When a string literal initializer is encountered, initialize the contents of the char array "
+                      + "with the contents of the string literal instead of just assigning a fresh non-det address "
+                      + "to it")
+  private boolean handleStringLiteralInitializers = false;
+
+  @Option(description = "If disabled, all implicitly initialized fields and elements are treated as non-dets")
+  private boolean handleImplicitInitialization = true;
+
   public FormulaEncodingWithUFOptions(Configuration config) throws InvalidConfigurationException {
     super(config);
     config.inject(this, FormulaEncodingWithUFOptions.class);
@@ -135,5 +143,13 @@ public class FormulaEncodingWithUFOptions extends FormulaEncodingOptions {
 
   public boolean ignoreIrrelevantVariables() {
     return ignoreIrrelevantVariables;
+  }
+
+  public boolean handleStringLiteralInitializers() {
+    return handleStringLiteralInitializers;
+  }
+
+  public boolean handleImplicitInitialization() {
+    return handleImplicitInitialization;
   }
 }

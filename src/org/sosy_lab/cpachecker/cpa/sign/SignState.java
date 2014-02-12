@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.sign;
 
-import com.google.common.base.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithTargetVariable;
@@ -31,6 +30,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Sets;
@@ -83,6 +83,12 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
 
   public boolean isSubsetOf(SignState pSuperset) {
     if (pSuperset.equals(this) || pSuperset.equals(TOP)) { return true; }
+    if (stateBeforeEnteredFunction.isPresent()) {
+      if (!pSuperset.stateBeforeEnteredFunction.isPresent()
+          || pSuperset.stateBeforeEnteredFunction.get() != stateBeforeEnteredFunction.get()) { return false; }
+    } else {
+      if (pSuperset.stateBeforeEnteredFunction.isPresent()) { return false; }
+    }
     // is subset if for every variable all sign assumptions are considered in pSuperset
     for (String varIdent : Sets.union(signMap.keySet(), pSuperset.signMap.keySet())) {
       if (!signMap.getSignForVariable(varIdent).isSubsetOf(pSuperset.signMap.getSignForVariable(varIdent))) { return false; }

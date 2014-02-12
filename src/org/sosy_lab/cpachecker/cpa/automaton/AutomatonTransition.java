@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,8 +48,8 @@ class AutomatonTransition {
   // The order of triggers, assertions and (more importantly) actions is preserved by the parser.
   private final AutomatonBoolExpr trigger;
   private final AutomatonBoolExpr assertion;
-  private final List<CStatement> assumption;
-  private final List<AutomatonAction> actions;
+  private final ImmutableList<CStatement> assumption;
+  private final ImmutableList<AutomatonAction> actions;
 
 
   /**
@@ -233,7 +233,7 @@ class AutomatonTransition {
     return true;
   }
 
-  public List<CStatement> getAssumptions() {
+  public ImmutableList<CStatement> getAssumptions() {
     return assumption;
   }
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,9 +39,7 @@ import org.sosy_lab.cpachecker.appengine.entity.Job;
 public interface JobRunner {
 
   /**
-   * Runs the given job and return the given job instance.
-   * So it is possible to look at the job instance properties after the call
-   * to see e.g. if the status has changed.
+   * Runs the given job and returns the given job instance.
    *
    * @param job The job to run.
    * @return The job instance that was to be run.

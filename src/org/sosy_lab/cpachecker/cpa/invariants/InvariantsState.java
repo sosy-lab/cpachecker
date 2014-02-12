@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,6 +34,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -132,9 +133,9 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   private final VariableRelationSet<CompoundInterval> assumptions;
 
   /**
-   * The edges already visited.
+   * The edge based abstraction strategy used.
    */
-  private final ImmutableSet<CFAEdge> visitedEdges;
+  private final EdgeBasedAbstractionStrategy edgeBasedAbstractionStrategy;
 
   /**
    * The variables selected for this analysis.
@@ -152,7 +153,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
   private final Set<InvariantsFormula<CompoundInterval>> collectedInterestingAssumptions;
 
-  private Collection<InvariantsFormula<CompoundInterval>> environmentAndAssumptions = null;
+  private Iterable<InvariantsFormula<CompoundInterval>> environmentAndAssumptions = null;
 
   private volatile int hash = 0;
 
@@ -166,7 +167,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    */
   public InvariantsState(boolean pUseBitvectors, VariableSelection<CompoundInterval> pVariableSelection,
       InvariantsPrecision pPrecision) {
-    this(pUseBitvectors, pVariableSelection, ImmutableSet.<CFAEdge>of(), pPrecision);
+    this(pUseBitvectors, pVariableSelection, pPrecision.getEdgeBasedAbstractionStrategyFactory().getAbstractionStrategy(), pPrecision);
   }
 
   /**
@@ -176,13 +177,13 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    *
    * @param pUseBitvectors the flag indicating whether or not to use bit vectors for representing states.
    * @param pVariableSelection the selected variables.
-   * @param pVisitedEdges the edges already visited.
+   * @param pEdgeBasedAbstractionStrategy the edge based abstraction strategy used.
    * @param pPrecision the precision of the state.
    */
   private InvariantsState(boolean pUseBitvectors, VariableSelection<CompoundInterval> pVariableSelection,
-      ImmutableSet<CFAEdge> pVisitedEdges,
+      EdgeBasedAbstractionStrategy pEdgeBasedAbstractionStrategy,
       InvariantsPrecision pPrecision) {
-    this.visitedEdges = pVisitedEdges;
+    this.edgeBasedAbstractionStrategy = pEdgeBasedAbstractionStrategy;
     this.environment = new NonRecursiveEnvironment();
     this.assumptions = new VariableRelationSet<>();
     this.partialEvaluator = new PartialEvaluator(this.environment);
@@ -195,7 +196,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   /**
    * Creates a new state from the given state properties.
    *
-   * @param pVisitedEdges the edges already visited previously.
+   * @param pEdgeBasedAbstractionStrategy the edge based abstraction strategy.
    * @param pAssumptions the current assumptions.
    * @param pVariableRelations the currently known relations between variables.
    * @param pEnvironment the current environment.
@@ -203,12 +204,13 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    * @param pInterestingAssumptions
    * @return a new state from the given state properties.
    */
-  private static InvariantsState from(ImmutableSet<CFAEdge> pVisitedEdges, Set<? extends InvariantsFormula<CompoundInterval>> pAssumptions,
+  private static InvariantsState from(EdgeBasedAbstractionStrategy pEdgeBasedAbstractionStrategy,
+      Set<? extends InvariantsFormula<CompoundInterval>> pAssumptions,
       Map<String, InvariantsFormula<CompoundInterval>> pEnvironment,
       boolean pUseBitvectors, VariableSelection<CompoundInterval> pVariableSelection,
       Set<InvariantsFormula<CompoundInterval>> pCollectedInterestingAssumptions,
       InvariantsPrecision pPrecision) {
-    InvariantsState result = new InvariantsState(pUseBitvectors, pVariableSelection, pVisitedEdges, pPrecision);
+    InvariantsState result = new InvariantsState(pUseBitvectors, pVariableSelection, pEdgeBasedAbstractionStrategy, pPrecision);
     if (!result.assumeInternal(pAssumptions, result.getFormulaResolver())) { return null; }
     if (!result.assumeInternal(pCollectedInterestingAssumptions, result.getFormulaResolver())) { return null; }
     result.environment.putAll(pEnvironment);
@@ -227,7 +229,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       for (String varName : this.environment.keySet()) {
         String prefix = pArray + "[";
         if (varName.startsWith(prefix)) {
-          String subscriptValueStr = varName.replace(prefix, "").replace("]", "");
+          String subscriptValueStr = varName.replace(prefix, "").replaceAll("].*", "");
           if (subscriptValueStr.equals("*") || value.contains(new BigInteger(subscriptValueStr))) {
             result = result.assign(varName, TOP, pEdge, ignoreEdge);
           }
@@ -301,7 +303,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       if (this.environment == newEnvironment && !assumptionsChanged) {
         return this;
       }
-      return from(visitedEdges, newAssumptions, newEnvironment,
+      return from(edgeBasedAbstractionStrategy, newAssumptions, newEnvironment,
           useBitvectors, variableSelection,
           Collections.<InvariantsFormula<CompoundInterval>>emptySet(),
           precision);
@@ -315,10 +317,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       return this;
     }
 
-    ImmutableSet<CFAEdge> visitedEdges =
-        this.visitedEdges.contains(pEdge) ? this.visitedEdges : ImmutableSet.<CFAEdge>builder().addAll(this.visitedEdges).add(pEdge).build();
-
-    final InvariantsState result = new InvariantsState(useBitvectors, newVariableSelection, visitedEdges, precision);
+    final InvariantsState result = new InvariantsState(useBitvectors, newVariableSelection, edgeBasedAbstractionStrategy.addVisitedEdge(pEdge), precision);
 
     /*
      * A variable is newly assigned, so the appearances of this variable
@@ -352,8 +351,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     // Try to add the assumptions; if it turns out that they are false, the state is bottom
     if (!updateAssumptions(result, replaceVisitor, pValue, pVarName, pEdge)) { return null; }
 
-    result.assumeInternal(CompoundStateFormulaManager.INSTANCE.equal(variable, pValue), getFormulaResolver(pEdge));
-
     if (!result.collectInterestingAssumptions(CompoundStateFormulaManager.INSTANCE.equal(variable, pValue.accept(replaceVisitor)))) {
       return null;
     }
@@ -375,7 +372,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     if (environment.isEmpty() && assumptions.isEmpty() && collectedInterestingAssumptions.isEmpty()) {
       return this;
     }
-    return new InvariantsState(useBitvectors, variableSelection, visitedEdges, precision);
+    return new InvariantsState(useBitvectors, variableSelection, edgeBasedAbstractionStrategy, precision);
   }
 
   private InvariantsFormula<CompoundInterval> trim(InvariantsFormula<CompoundInterval> pFormula) {
@@ -391,14 +388,18 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    *
    * @return the environment as a set equations of the variables with their values.
    */
-  public Set<InvariantsFormula<CompoundInterval>> getEnvironmentAsAssumptions() {
+  private Set<InvariantsFormula<CompoundInterval>> getEnvironmentAsAssumptions() {
     Set<InvariantsFormula<CompoundInterval>> environmentalAssumptions = new HashSet<>();
     CompoundStateFormulaManager ifm = CompoundStateFormulaManager.INSTANCE;
+
+    List<InvariantsFormula<CompoundInterval>> atomic = new ArrayList<>(1);
+    Deque<InvariantsFormula<CompoundInterval>> toCheck = new ArrayDeque<>(1);
     for (Map.Entry<String, InvariantsFormula<CompoundInterval>> entry : this.environment.entrySet()) {
       InvariantsFormula<CompoundInterval> variable = ifm.asVariable(entry.getKey());
 
-      List<InvariantsFormula<CompoundInterval>> atomic = new ArrayList<>();
-      Deque<InvariantsFormula<CompoundInterval>> toCheck = new ArrayDeque<>();
+      atomic.clear();
+      toCheck.clear();
+
       toCheck.add(entry.getValue());
       while (!toCheck.isEmpty()) {
         InvariantsFormula<CompoundInterval> current = toCheck.poll();
@@ -430,19 +431,22 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    * iterable.
    */
   public Iterable<InvariantsFormula<CompoundInterval>> getAssumptionsAndEnvironment() {
-    return Iterables.concat(this.assumptions, this.collectedInterestingAssumptions, new Iterable<InvariantsFormula<CompoundInterval>>() {
+    if (this.environmentAndAssumptions == null) {
+      this.environmentAndAssumptions = Iterables.concat(this.assumptions, this.collectedInterestingAssumptions, new Iterable<InvariantsFormula<CompoundInterval>>() {
 
-      private Iterable<InvariantsFormula<CompoundInterval>> lazyInner = null;
+        private Iterable<InvariantsFormula<CompoundInterval>> lazyInner = null;
 
-      @Override
-      public Iterator<InvariantsFormula<CompoundInterval>> iterator() {
-        if (lazyInner == null) {
-          lazyInner = getEnvironmentAsAssumptions();
+        @Override
+        public Iterator<InvariantsFormula<CompoundInterval>> iterator() {
+          if (lazyInner == null) {
+            lazyInner = getEnvironmentAsAssumptions();
+          }
+          return lazyInner.iterator();
         }
-        return lazyInner.iterator();
-      }
 
-    });
+      });
+    }
+    return this.environmentAndAssumptions;
   }
 
   /**
@@ -454,6 +458,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    * @param pReplaceVisitor the replace visitor used to transform the assumptions correct in this state to assumptions correct in the new state.
    * @param pNewValue the new value of the assigned variable.
    * @param pVarName the name of the assigned variable.
+   *
    * @return <code>true</code> if the transfer of assumptions results in a valid state, <code>false</code> if it is bottom.
    */
   private boolean updateAssumptions(InvariantsState pTargetState, ReplaceVisitor<CompoundInterval> pReplaceVisitor,
@@ -676,10 +681,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       return this;
     }
 
-    ImmutableSet<CFAEdge> visitedEdges =
-        this.visitedEdges.contains(pEdge) ? this.visitedEdges : ImmutableSet.<CFAEdge>builder().addAll(this.visitedEdges).add(pEdge).build();
-
-    InvariantsState result = from(visitedEdges, assumptions, environment, useBitvectors,
+    InvariantsState result = from(edgeBasedAbstractionStrategy.addVisitedEdge(pEdge), assumptions, environment, useBitvectors,
         newVariableSelection, collectedInterestingAssumptions, precision);
     if (result != null) {
       if (!result.assumeInternal(assumption, evaluator)) { return null; }
@@ -778,12 +780,13 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   /**
    * Checks whether or not the given edge may be evaluated exactly any further.
    *
-   * @param edge the edge to evaluate.
+   * @param pEdge the edge to evaluate.
+   *
    * @return <code>true</code> if the given edge has any exact evaluations left, <code>false</code>
    * otherwise.
    */
-  public boolean mayEvaluate(CFAEdge edge) {
-    return !this.precision.isUsingAbstractEvaluation() || !this.visitedEdges.contains(edge);
+  private boolean mayEvaluate(CFAEdge pEdge) {
+    return !edgeBasedAbstractionStrategy.useAbstraction(pEdge);
   }
 
   /**
@@ -791,7 +794,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    *
    * @return the assumptions made in this state.
    */
-  public Set<? extends InvariantsFormula<CompoundInterval>> getAssumptions() {
+  private Set<? extends InvariantsFormula<CompoundInterval>> getAssumptions() {
     return Collections.unmodifiableSet(this.assumptions);
   }
 
@@ -809,7 +812,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    *
    * @return the flag indicating whether or not to use bit vectors to represent the states.
    */
-  public boolean getUseBitvectors() {
+  private boolean getUseBitvectors() {
     return useBitvectors;
   }
 
@@ -818,21 +821,9 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     if (pElement2 == null) {
       return false;
     }
-    // Only states with equal information regarding interesting assumptions and environment may be combined
-    if (!collectedInterestingAssumptions.equals(pElement2.collectedInterestingAssumptions)) {
-      return false;
-    }
-    // Only two checks remain to test for equality:
-    if (assumptions.equals(pElement2.assumptions)
-        && environment.equals(pElement2.environment)) {
-      return true;
-    }
     // Perform the implication check (if this state definitely implies the other one, it is less than or equal to it)
-    if (environmentAndAssumptions == null) {
-      environmentAndAssumptions = FluentIterable.from(getAssumptionsAndEnvironment()).toSet();
-    }
     for (InvariantsFormula<CompoundInterval> rightAssumption : pElement2.getAssumptionsAndEnvironment()) {
-      if (!CompoundStateFormulaManager.definitelyImplies(environmentAndAssumptions, rightAssumption, this.environment)) {
+      if (!CompoundStateFormulaManager.definitelyImplies(getAssumptionsAndEnvironment(), rightAssumption, this.environment)) {
         return false;
       }
     }
@@ -840,11 +831,19 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   }
 
   private boolean environmentsEqualWithRespectToInterestingVariables(InvariantsState pElement2) {
-    for (String interestingVariable : precision.getInterestingVariables()) {
-      InvariantsFormula<CompoundInterval> left = environment.get(interestingVariable);
-      InvariantsFormula<CompoundInterval> right = pElement2.environment.get(interestingVariable);
-      if (left != right && (left == null || !left.equals(right))) {
-        return false;
+    Set<String> checkedVariables = new HashSet<>();
+    Queue<String> waitlist = new ArrayDeque<>(precision.getInterestingVariables());
+    while (!waitlist.isEmpty()) {
+      String variableName = waitlist.poll();
+      if (checkedVariables.add(variableName)) {
+        InvariantsFormula<CompoundInterval> left = environment.get(variableName);
+        InvariantsFormula<CompoundInterval> right = pElement2.environment.get(variableName);
+        if (left != right && (left == null || !left.equals(right))) {
+          return false;
+        }
+        if (left != null) {
+          waitlist.addAll(left.accept(COLLECT_VARS_VISITOR));
+        }
       }
     }
     return true;
@@ -866,14 +865,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     } else if (element2.isLessThanOrEqualTo(element1)) {
       result = element1;
     } else {
-      final ImmutableSet<CFAEdge> resultVisitedEdges;
-      if (element1.visitedEdges.isEmpty()) {
-        resultVisitedEdges = element2.visitedEdges;
-      } else if (element2.visitedEdges.isEmpty()) {
-        resultVisitedEdges = element1.visitedEdges;
-      } else {
-        resultVisitedEdges = ImmutableSet.<CFAEdge>builder().addAll(element1.visitedEdges).addAll(element2.visitedEdges).build();
-      }
+      final EdgeBasedAbstractionStrategy edgeBasedAbstractionStrategy = element1.edgeBasedAbstractionStrategy.join(element2.edgeBasedAbstractionStrategy);
 
       Map<String, InvariantsFormula<CompoundInterval>> resultEnvironment = new NonRecursiveEnvironment();
 
@@ -932,7 +924,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
       VariableSelection<CompoundInterval> resultVariableSelection = element1.variableSelection.join(element2.variableSelection);
 
-      result = InvariantsState.from(resultVisitedEdges, resultAssumptions,
+      result = InvariantsState.from(edgeBasedAbstractionStrategy, resultAssumptions,
           resultEnvironment, element1.getUseBitvectors(), resultVariableSelection,
           collectedInterestingAssumptions, precision);
 
@@ -952,7 +944,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    * the given assumption as true.
    *
    * @param pAssumption the additional assumption to consider.
-   * @return <code>true</code> if the state is not obviously unsound afterwards.
+   * @return <code>true</code> if the state is not obviously bottom afterwards.
    */
   private boolean collectInterestingAssumptions(InvariantsFormula<CompoundInterval> pAssumption) {
     if (precision.getInterestingAssumptions().isEmpty()) {
@@ -982,6 +974,160 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
   public InvariantsPrecision getPrecision() {
     return this.precision;
+  }
+
+  static interface EdgeBasedAbstractionStrategy {
+
+    public boolean useAbstraction(CFAEdge pEdge);
+
+    public EdgeBasedAbstractionStrategy addVisitedEdge(CFAEdge pEdge);
+
+    public EdgeBasedAbstractionStrategy join(EdgeBasedAbstractionStrategy pStrategy);
+
+  }
+
+  static interface AbstractEdgeBasedAbstractionStrategyFactory {
+
+    public EdgeBasedAbstractionStrategy getAbstractionStrategy();
+
+  }
+
+  private static enum BasicAbstractionStrategies implements EdgeBasedAbstractionStrategy {
+
+    ALWAYS {
+
+      @Override
+      public boolean useAbstraction(CFAEdge pEdge) {
+        return true;
+      }
+
+      @Override
+      public EdgeBasedAbstractionStrategy addVisitedEdge(CFAEdge pEdge) {
+        return this;
+      }
+
+      @Override
+      public EdgeBasedAbstractionStrategy join(EdgeBasedAbstractionStrategy pStrategy) {
+        return this;
+      }
+
+    },
+
+    NEVER {
+
+      @Override
+      public boolean useAbstraction(CFAEdge pEdge) {
+        return false;
+      }
+
+      @Override
+      public EdgeBasedAbstractionStrategy addVisitedEdge(CFAEdge pEdge) {
+        return this;
+      }
+
+      @Override
+      public EdgeBasedAbstractionStrategy join(EdgeBasedAbstractionStrategy pStrategy) {
+        if (pStrategy == this) {
+          return this;
+        }
+        return pStrategy.join(this);
+      }
+
+    };
+
+  }
+
+  static enum EdgeBasedAbstractionStrategyFactories implements AbstractEdgeBasedAbstractionStrategyFactory {
+
+    ALWAYS {
+
+      @Override
+      public EdgeBasedAbstractionStrategy getAbstractionStrategy() {
+        return BasicAbstractionStrategies.ALWAYS;
+      }
+
+    },
+
+    VISITED_EDGES {
+
+      @Override
+      public EdgeBasedAbstractionStrategy getAbstractionStrategy() {
+        class VisitedEdgesBasedAbstractionStrategy implements EdgeBasedAbstractionStrategy {
+
+          private final ImmutableSet<CFAEdge> visitedEdges;
+
+          private VisitedEdgesBasedAbstractionStrategy() {
+            this(ImmutableSet.<CFAEdge>of());
+          }
+
+          private VisitedEdgesBasedAbstractionStrategy(ImmutableSet<CFAEdge> pVisitedEdges) {
+            this.visitedEdges = pVisitedEdges;
+          }
+
+          @Override
+          public boolean useAbstraction(CFAEdge pEdge) {
+            return visitedEdges.contains(pEdge);
+          }
+
+          @Override
+          public EdgeBasedAbstractionStrategy addVisitedEdge(CFAEdge pEdge) {
+            if (visitedEdges.contains(pEdge)) {
+              return this;
+            }
+            return new VisitedEdgesBasedAbstractionStrategy(ImmutableSet.<CFAEdge>builder().addAll(visitedEdges).add(pEdge).build());
+          }
+
+          @Override
+          public EdgeBasedAbstractionStrategy join(EdgeBasedAbstractionStrategy pStrategy) {
+            if (pStrategy == BasicAbstractionStrategies.NEVER || pStrategy == this) {
+              return this;
+            }
+            if (pStrategy instanceof VisitedEdgesBasedAbstractionStrategy) {
+              VisitedEdgesBasedAbstractionStrategy other = (VisitedEdgesBasedAbstractionStrategy) pStrategy;
+              if (this.visitedEdges == other.visitedEdges || other.visitedEdges.containsAll(this.visitedEdges)) {
+                return other;
+              }
+              if (this.visitedEdges.containsAll(other.visitedEdges)) {
+                return this;
+              }
+              final ImmutableSet<CFAEdge> edges =
+                  ImmutableSet.<CFAEdge>builder().addAll(visitedEdges).addAll(other.visitedEdges).build();
+              return new VisitedEdgesBasedAbstractionStrategy(edges);
+            }
+            return BasicAbstractionStrategies.ALWAYS;
+          }
+
+          @Override
+          public boolean equals(Object pO) {
+            if (this == pO) {
+              return true;
+            }
+            if (pO instanceof VisitedEdgesBasedAbstractionStrategy) {
+              return visitedEdges.equals(((VisitedEdgesBasedAbstractionStrategy) pO).visitedEdges);
+            }
+            return false;
+          }
+
+          @Override
+          public int hashCode() {
+            return visitedEdges.hashCode();
+          }
+
+        }
+        return new VisitedEdgesBasedAbstractionStrategy();
+      }
+
+    },
+
+    NEVER {
+
+      @Override
+      public EdgeBasedAbstractionStrategy getAbstractionStrategy() {
+        return BasicAbstractionStrategies.NEVER;
+      }
+
+    };
+
   }
 
 }

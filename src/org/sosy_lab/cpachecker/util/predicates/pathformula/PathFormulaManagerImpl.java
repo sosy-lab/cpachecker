@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -57,20 +57,18 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CToFormulaWithUFConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.PointerAliasHandling;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.CToFormulaWithUFConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.FormulaEncodingWithUFOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PathFormulaWithUF;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
@@ -79,6 +77,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.
 
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
+import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -96,9 +95,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Option(description = "Handle aliasing of pointers. "
       + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
   private boolean handlePointerAliasing = true;
-
-  @Option(description = "Encode pointer aliasing information with uninterpreted functions (more precise) if pointer aliasing is handled.")
-  private boolean pointerAnalysisWithUFs = false;
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
@@ -118,53 +114,47 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Option(description="add special information to formulas about non-deterministic functions")
   private boolean useNondetFlags = false;
 
+  @Deprecated
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
       Configuration config, LogManager pLogger, MachineModel pMachineModel)
           throws InvalidConfigurationException {
-    this(pFmgr, config, pLogger, null, pMachineModel);
+    this(pFmgr, config, pLogger, pMachineModel, Optional.<VariableClassification>absent());
   }
 
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
-      Configuration config, LogManager pLogger, CFA pCFA)
+      Configuration config, LogManager pLogger, CFA pCfa)
           throws InvalidConfigurationException {
-    this(pFmgr, config, pLogger, pCFA, pCFA.getMachineModel());
+    this(pFmgr, config, pLogger, pCfa.getMachineModel(), pCfa.getVarClassification());
   }
 
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
-      Configuration config, LogManager pLogger, CFA pCfa, MachineModel pMachineModel)
+      Configuration config, LogManager pLogger, MachineModel pMachineModel,
+      Optional<VariableClassification> pVariableClassification)
           throws InvalidConfigurationException {
     config.inject(this, PathFormulaManagerImpl.class);
-
-    if (pointerAnalysisWithUFs && !handlePointerAliasing) {
-      pLogger.log(Level.WARNING, "Ignoring option cpa.predicate.pointerAnalysisWithUFs because cpa.predicate.handlePointerAliasing is disabled, possibly imprecise analysis!");
-      pointerAnalysisWithUFs = false;
-    }
 
     fmgr = pFmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
     ffmgr = fmgr.getFunctionFormulaManager();
     logger = pLogger;
 
-    converter = createConverter(pFmgr, config, pLogger, pMachineModel, pCfa);
+    converter = createConverter(pFmgr, config, pLogger, pMachineModel, pVariableClassification);
 
-    if (!pointerAnalysisWithUFs) {
+    if (!handlePointerAliasing) {
       NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);
+      logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
     } else {
       NONDET_FORMULA_TYPE = ((CToFormulaWithUFConverter) converter).getFormulaTypeFromCType(NONDET_TYPE, null);
     }
   }
 
   private CtoFormulaConverter createConverter(FormulaManagerView pFmgr, Configuration config, LogManager pLogger,
-      MachineModel pMachineModel, CFA pCFA) throws InvalidConfigurationException {
+      MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification)
+          throws InvalidConfigurationException {
     if (handlePointerAliasing) {
-      if (pointerAnalysisWithUFs) {
-        assert pCFA != null : "Pointer analysis with UF requires CFA for VariableClassification";
-        final FormulaEncodingWithUFOptions options = new FormulaEncodingWithUFOptions(config);
-        return new CToFormulaWithUFConverter(options, pFmgr, pCFA, pLogger);
-      } else {
-        final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
-        return new PointerAliasHandling(options, config, pFmgr, pMachineModel, pLogger);
-      }
+      final FormulaEncodingWithUFOptions options = new FormulaEncodingWithUFOptions(config);
+      return new CToFormulaWithUFConverter(options, pFmgr, pMachineModel, pVariableClassification, pLogger);
+
     } else {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       return new CtoFormulaConverter(options, pFmgr, pMachineModel, pLogger);
@@ -215,7 +205,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Override
   public PathFormula makeEmptyPathFormula() {
-    if (!pointerAnalysisWithUFs) {
+    if (!handlePointerAliasing) {
       return new PathFormula(bfmgr.makeBoolean(true), SSAMap.emptySSAMap(), 0);
     } else {
       return ((CToFormulaWithUFConverter)converter).makeEmptyPathFormula();
@@ -224,7 +214,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Override
   public PathFormula makeEmptyPathFormula(PathFormula oldFormula) {
-    if (!pointerAnalysisWithUFs) {
+    if (!handlePointerAliasing) {
       return new PathFormula(bfmgr.makeBoolean(true), oldFormula.getSsa(), 0);
     } else {
       return new PathFormulaWithUF(bfmgr.makeBoolean(true),
@@ -235,7 +225,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Override
   public PathFormula makeNewPathFormula(PathFormula oldFormula, SSAMap m) {
-    if (!pointerAnalysisWithUFs) {
+    if (!handlePointerAliasing) {
       return new PathFormula(oldFormula.getFormula(), m, oldFormula.getLength());
     } else {
       return new PathFormulaWithUF(oldFormula.getFormula(),
@@ -253,7 +243,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final SSAMap ssa1 = pathFormula1.getSsa();
     final SSAMap ssa2 = pathFormula2.getSsa();
 
-    if (!pointerAnalysisWithUFs) {
+    if (!handlePointerAliasing) {
       final Pair<Pair<BooleanFormula, BooleanFormula>, SSAMap> mergeResult = mergeSSAMaps(ssa2, ssa1);
 
       // Do not swap these two lines, that makes a huge difference in performance!
@@ -291,7 +281,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     SSAMap ssa = pPathFormula.getSsa();
     BooleanFormula otherFormula =  fmgr.instantiate(pOtherFormula, ssa);
     BooleanFormula resultFormula = bfmgr.and(pPathFormula.getFormula(), otherFormula);
-    if (!pointerAnalysisWithUFs) {
+    if (!handlePointerAliasing) {
       return new PathFormula(resultFormula, ssa, pPathFormula.getLength());
     } else {
       final PointerTargetSet pts = ((PathFormulaWithUF) pPathFormula).getPointerTargetSet();
@@ -354,26 +344,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       }
     }
 
-    for (Pair<Variable, FormulaList> f : resultSSA.allFunctions()) {
-      Variable name = f.getFirst();
-      FormulaList args = f.getSecond();
-      int i1 = ssa1.getIndex(name.getName(), args);
-      int i2 = ssa2.getIndex(name.getName(), args);
-
-      if (i1 > i2 && i1 > 1) {
-        // i2:smaller, i1:bigger
-        // => need correction term for i2
-        BooleanFormula t = makeSSAMerger(name, args, Math.max(i2, 1), i1);
-        mt2 = bfmgr.and(mt2, t);
-
-      } else if (i1 < i2 && i2 > 1) {
-        // i1:smaller, i2:bigger
-        // => need correction term for i1
-        BooleanFormula t = makeSSAMerger(name, args, Math.max(i1, 1), i2);
-        mt1 = bfmgr.and(mt1, t);
-      }
-    }
-
     return Pair.of(Pair.of(mt1, mt2), resultSSA);
   }
 
@@ -390,76 +360,56 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     BooleanFormula mergeFormula2 = bfmgr.makeBoolean(true);
 
     for (final Triple<String, Integer, Integer> symbolDifference : symbolDifferences) {
-      if (symbolDifference.getSecond() != null && symbolDifference.getThird() != null) {
-        final String symbolName = symbolDifference.getFirst();
-        final int index1 = symbolDifference.getSecond();
-        final int index2 = symbolDifference.getThird();
+      final String symbolName = symbolDifference.getFirst();
+      final int index1 = Objects.firstNonNull(symbolDifference.getSecond(), 1);
+      final int index2 = Objects.firstNonNull(symbolDifference.getThird(), 1);
 
-        BooleanFormula mergeFormula = bfmgr.makeBoolean(true);
-        if (index1 > index2 && index1 > 1) {
-          // i2:smaller, i1:bigger
-          // => need correction term for i2
-
-          if (useNondetFlags && index2 > 0 && symbolName.equals(NONDET_FLAG_VARIABLE)) {
-            mergeFormula = makeNondetFlagMerger(index2, index1);
-          } else if (index2 > 0 && !symbolName.startsWith(CToFormulaWithUFConverter.UF_NAME_PREFIX)) {
-            mergeFormula = makeNondetMiddleVariableMerger(symbolName,
-                                                          resultSSA.getType(symbolName),
-                                                          index2,
-                                                          index1,
-                                                          pts2);
-          } else if (index2 > 0) {
-            final CType symbolType = resultSSA.getType(symbolName);
-            mergeFormula = makeNondetMiddleUFMerger(CToFormulaWithUFConverter.getUFName(symbolType),
-                                                    symbolType,
-                                                    index2,
-                                                    index1,
-                                                    pts2);
-          }
-
-          mergeFormula2 = bfmgr.and(mergeFormula2, mergeFormula);
-
-        } else if (index2 > 1) {
-          assert index1 < index2;
-          // i1:smaller, i2:bigger
-          // => need correction term for i1
-
-          if (useNondetFlags && index1 > 0 && symbolName.equals(NONDET_FLAG_VARIABLE)) {
-            mergeFormula = makeNondetFlagMerger(index1, index2);
-          } else if (index1 > 0 && !symbolName.startsWith(CToFormulaWithUFConverter.UF_NAME_PREFIX)) {
-            mergeFormula = makeNondetMiddleVariableMerger(symbolName,
-                                                          resultSSA.getType(symbolName),
-                                                          index1,
-                                                          index2,
-                                                          pts1);
-          } else if (index2 > 0) {
-            final CType symbolType = resultSSA.getType(symbolName);
-            mergeFormula = makeNondetMiddleUFMerger(CToFormulaWithUFConverter.getUFName(symbolType),
-                                                    symbolType,
-                                                    index1,
-                                                    index2,
-                                                    pts1);
-          }
-
-          mergeFormula1 = bfmgr.and(mergeFormula1, mergeFormula);
-        }
-      }
-    }
-
-    for (final Pair<Variable, FormulaList> term : resultSSA.allFunctions()) {
-      final Variable symbol = term.getFirst();
-      final FormulaList arguments = term.getSecond();
-      final int index1 = ssa1.getIndex(symbol.getName(), arguments);
-      final int index2 = ssa2.getIndex(symbol.getName(), arguments);
-      if (index1 > index2 && index1 > 1 && index2 > 0) {
+      BooleanFormula mergeFormula = bfmgr.makeBoolean(true);
+      if (index1 > index2 && index1 > 1) {
         // i2:smaller, i1:bigger
         // => need correction term for i2
-        final BooleanFormula mergeFormula = makeSSAMerger(symbol, arguments, index2, index1);
+
+        if (useNondetFlags && index2 > 0 && symbolName.equals(NONDET_FLAG_VARIABLE)) {
+          mergeFormula = makeNondetFlagMerger(index2, index1);
+        } else if (index2 > 0 && !symbolName.startsWith(CToFormulaWithUFConverter.UF_NAME_PREFIX)) {
+          mergeFormula = makeNondetMiddleVariableMerger(symbolName,
+                                                        resultSSA.getType(symbolName),
+                                                        index2,
+                                                        index1,
+                                                        pts2);
+        } else if (index2 > 0) {
+          final CType symbolType = resultSSA.getType(symbolName);
+          mergeFormula = makeNondetMiddleUFMerger(CToFormulaWithUFConverter.getUFName(symbolType),
+                                                  symbolType,
+                                                  index2,
+                                                  index1,
+                                                  pts2);
+        }
+
         mergeFormula2 = bfmgr.and(mergeFormula2, mergeFormula);
-      } else if (index1 < index2 && index2 > 1 && index1 > 0) {
+
+      } else if (index2 > 1) {
+        assert index1 < index2;
         // i1:smaller, i2:bigger
         // => need correction term for i1
-        final BooleanFormula mergeFormula = makeSSAMerger(symbol, arguments, index1, index2);
+
+        if (useNondetFlags && index1 > 0 && symbolName.equals(NONDET_FLAG_VARIABLE)) {
+          mergeFormula = makeNondetFlagMerger(index1, index2);
+        } else if (index1 > 0 && !symbolName.startsWith(CToFormulaWithUFConverter.UF_NAME_PREFIX)) {
+          mergeFormula = makeNondetMiddleVariableMerger(symbolName,
+                                                        resultSSA.getType(symbolName),
+                                                        index1,
+                                                        index2,
+                                                        pts1);
+        } else if (index2 > 0) {
+          final CType symbolType = resultSSA.getType(symbolName);
+          mergeFormula = makeNondetMiddleUFMerger(CToFormulaWithUFConverter.getUFName(symbolType),
+                                                  symbolType,
+                                                  index1,
+                                                  index2,
+                                                  pts1);
+        }
+
         mergeFormula1 = bfmgr.and(mergeFormula1, mergeFormula);
       }
     }
@@ -640,28 +590,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     FormulaType<?> t = converter.getFormulaTypeFromCType(type);
     return makeMerger(name, iSmaller, iBigger,
         fmgr.makeVariable(t, name, iSmaller));
-  }
-
-  private BooleanFormula makeSSAMerger(Variable var,
-      FormulaList args, int iSmaller, int iBigger) {
-    assert iSmaller < iBigger;
-
-    FormulaType<?> t = converter.getFormulaTypeFromCType(var.getType());
-    Formula initialFunc = ffmgr.createFuncAndCall(var.getName(), iSmaller, t, fromList(args));
-    //BooleanFormula intialFunc = fmgr.makeUIF(name, args, iSmaller);
-    BooleanFormula result = bfmgr.makeBoolean(true);
-
-    for (int i = iSmaller+1; i <= iBigger; ++i) {
-      //BooleanFormula currentFunc = fmgr.makeUIF(name, args, i);
-      Formula currentFunc = ffmgr.createFuncAndCall(var.getName(), i, t, fromList(args));
-      BooleanFormula e = fmgr.makeEqual(currentFunc, initialFunc);
-      result = bfmgr.and(result, e);
-    }
-    return result;
-  }
-
-  private List<Formula> fromList(FormulaList pArgs) {
-    return ((AbstractFormulaList)pArgs).getTerms();
   }
 
   @Override

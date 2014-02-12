@@ -9,16 +9,16 @@
       <div class="panel-title">${msg.status}</div>
     </div>
     <div class="panel-body">
-      <table class="table-condensed">
+      <table class="table table-condensed">
         <tr>
           <td>${msg.status}</td>
           <td>
             <#if job.status == "PENDING">
             <span class="label label-default">${job.status}</span>
-            <a href="/jobs/${job.key}">${msg.statusRefresh}</a>
+            <a href="/tasks/${job.key}">${msg.statusRefresh}</a>
             <#elseif job.status == "RUNNING">
             <span class="label label-info">${job.status}</span>
-            <a href="/jobs/${job.key}">${msg.statusRefresh}</a>
+            <a href="/tasks/${job.key}">${msg.statusRefresh}</a>
             <#elseif job.status == "TIMEOUT">
             <span class="label label-danger">${job.status}</span>
             <#elseif job.status == "ERROR">
@@ -32,6 +32,12 @@
         <tr>
         	<td>${msg.statusMessage}</td>
         	<td>${job.statusMessage}</td>
+        </tr>
+        </#if>
+        <#if (job.retries > 0 )>
+        <tr>
+        	<td>${msg.retries}</td>
+        	<td>${job.retries}</td>
         </tr>
         </#if>
         <#if job.resultOutcome??>
@@ -75,30 +81,41 @@
         <#if job.specification??>
         <tr>
           <td>${msg.specification}</td>
-          <td>${job.specification}</td>
+          <td>${job.specification?html}</td>
         </tr>
         </#if>
         <#if job.configuration??>
         <tr>
           <td>${msg.configuration}</td>
-          <td>${job.configuration}</td>
+          <td>${job.configuration?html}</td>
         </tr>
         </#if>
         <#if job.sourceFileName??>
         <tr>
           <td>${msg.sourceFileName}</td>
-          <td>${job.sourceFileName}</td>
+          <td>${job.sourceFileName?html}</td>
+        </tr>
+        </#if>
+        <#if job.instanceType??>
+        <tr>
+          <td>${msg.instanceType}</td>
+          <td>${job.instanceType}</td>
         </tr>
         </#if>
         <#if job.options?? >
         <tr>
           <td>${msg.options}</td>
           <td>
-          	<ul class="list-unstyled">
-          	<#list job.options?keys as option>
-          		<li>${option} = ${job.options[option]}</li>
-          	</#list>
-          	</ul>
+            <table class="table-condensed">
+              <tbody>
+                <#list job.options?keys as option>
+                <tr>
+                  <td>${option}</td>
+                  <td>${job.options[option]?html}</td>
+                </tr>
+                </#list>
+              </tbody>
+            </table>
           </td>
         </tr>
         </#if>
@@ -106,35 +123,56 @@
         <tr>
           <td>${msg.statistic}</td>
           <td>
-          	<ul class="list-unstyled">
+            <table class="table-condensed">
           	<#if job.statistic.startTime?has_content>
-          		<li>${msg.startTime}: ${(job.statistic.startTime/1000)?number_to_datetime}</li>
+              <tr>
+          		  <td>${msg.startTime}</td>
+                <td>${(job.statistic.startTime/1000)?number_to_datetime}</td>
+              </tr>
           	</#if>
           	<#if job.statistic.endTime?has_content>
-          		<li>${msg.endTime}: ${(job.statistic.endTime/1000)?number_to_datetime}</li>
+              <tr>
+          		  <td>${msg.endTime}</td>
+                <td>${(job.statistic.endTime/1000)?number_to_datetime}</td>
+              </tr>
           	</#if>
           	<#if job.statistic.latency?has_content>
-          		<li>${msg.latency}: ${job.statistic.latency/1000000} ${msg.seconds}</li>
+              <tr>
+          		  <td>${msg.latency}</td>
+                <td>${job.statistic.latency/1000000} ${msg.seconds}</td>
+              </tr>
           	</#if>
           	<#if job.statistic.pendingTime?has_content>
-          		<li>${msg.pendingTime}: ${job.statistic.pendingTime/1000000} ${msg.seconds}</li>
+              <tr>
+          		  <td>${msg.pendingTime}</td>
+                <td>${job.statistic.pendingTime/1000000} ${msg.seconds}</td>
+              </tr>
           	</#if>
           	<#if job.statistic.mcyclesInSeconds?has_content>
-          		<li>${msg.machineCyclesInSeconds}: ${job.statistic.mcyclesInSeconds} ${msg.seconds}</li>
+              <tr>
+          		  <td>${msg.machineCyclesInSeconds}</td>
+                <td>${job.statistic.mcyclesInSeconds} ${msg.seconds}</td>
+              </tr>
           	</#if>
           	<#if (job.statistic.cost > 0)>
-          		<li>${msg.estimatedCosts}: ${job.statistic.cost?string("##.##")} USD</li>
+              <tr>
+          		  <td>${msg.estimatedCosts}</td>
+                <td>${job.statistic.cost?string("##.##")} USD</td>
+              </tr>
           	</#if>
           	<#if job.statistic.host?has_content>
-          		<li>${msg.host}: ${job.statistic.host}</li>
+              <tr>
+          		  <td>${msg.host}</td>
+                <td>${job.statistic.host}</td>
+              </tr>
           	</#if>
-          	</ul>
+          	</table>
           </td>
         </tr>
         </#if>
       </table>
       <hr />
-      <form action="/jobs/${job.key}?method=delete" method="post" style="display:inline">
+      <form action="/tasks/${job.key}?method=delete" method="post" style="display:inline">
       	<button type="submit" class="btn btn-sm btn-danger"><span class="glyphicon glyphicon-trash"></span> ${msg.delete}</button>
       </form>
     </div>
@@ -148,10 +186,9 @@
     </div>
     <div class="panel-body">
       <ul>
-        <#list files as file>
-          <#assign name = file.path?substring(file.path?last_index_of("/")+1)>
+        <#list files?sort_by("name") as file>
           <li>
-            <a href="/jobs/${job.key}/files/${file.key}">${name}</a>
+            <a href="/tasks/${job.key}/files/${file.key}">${file.name?html}</a>
           </li>
         </#list>
       </ul>

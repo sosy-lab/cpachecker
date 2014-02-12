@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -59,13 +59,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 
-class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
+public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
 
-  protected final CtoFormulaConverter conv;
-  protected final CFAEdge       edge;
-  protected final String        function;
-  protected final SSAMapBuilder ssa;
-  protected final Constraints   constraints;
+  final CtoFormulaConverter conv;
+  final CFAEdge       edge;
+  final String        function;
+  final SSAMapBuilder ssa;
+  final Constraints   constraints;
 
   public ExpressionToFormulaVisitor(CtoFormulaConverter pCtoFormulaConverter, CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
     conv = pCtoFormulaConverter;

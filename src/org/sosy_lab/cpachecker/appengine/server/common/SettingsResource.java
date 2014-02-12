@@ -1,10 +1,3 @@
-package org.sosy_lab.cpachecker.appengine.server.common;
-import java.io.IOException;
-
-import org.restlet.representation.Representation;
-import org.restlet.resource.Get;
-
-
 /*
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
@@ -28,6 +21,13 @@ import org.restlet.resource.Get;
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
+package org.sosy_lab.cpachecker.appengine.server.common;
+
+import java.io.IOException;
+
+import org.restlet.representation.Representation;
+import org.restlet.resource.Get;
+
 
 public interface SettingsResource {
 

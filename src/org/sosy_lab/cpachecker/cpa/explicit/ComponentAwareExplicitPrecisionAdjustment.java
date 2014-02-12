@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,12 +29,12 @@ import java.io.PrintStream;
 import java.util.Collection;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
 import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 import org.sosy_lab.cpachecker.cpa.composite.CompositePrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
-import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.AssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
@@ -141,9 +140,6 @@ public class ComponentAwareExplicitPrecisionAdjustment extends CompositePrecisio
     assert (composite.getWrappedStates().size() == precision.getPrecisions().size());
 
     int indexOfExplicitState = getIndexOfExplicitState(composite);
-    if (indexOfExplicitState == -1) {
-      throw new CPAException("The ComponentAwareExplicitPrecisionAdjustment needs an ExplicitState");
-    }
 
     ImmutableList.Builder<AbstractState> outElements  = ImmutableList.builder();
     ImmutableList.Builder<Precision> outPrecisions    = ImmutableList.builder();
@@ -158,14 +154,14 @@ public class ComponentAwareExplicitPrecisionAdjustment extends CompositePrecisio
 
       // enforce thresholds for explicit element, by incorporating information from reached set and path condition element
       if (i == indexOfExplicitState) {
-        ExplicitState explicitState                 = (ExplicitState)oldState;
-        ExplicitPrecision explicitPrecision         = (ExplicitPrecision)oldPrecision;
-        LocationState location                      = AbstractStates.extractStateByType(composite, LocationState.class);
-        AssignmentsInPathConditionState assignments = AbstractStates.extractStateByType(composite, AssignmentsInPathConditionState.class);
+        ExplicitState explicitState                   = (ExplicitState)oldState;
+        ExplicitPrecision explicitPrecision           = (ExplicitPrecision)oldPrecision;
+        LocationState location                        = AbstractStates.extractStateByType(composite, LocationState.class);
+        UniqueAssignmentsInPathConditionState assigns = AbstractStates.extractStateByType(composite, UniqueAssignmentsInPathConditionState.class);
 
         // compute the abstraction based on the explicit-value precision, unless assignment information is available
         // then, this is dealt with during enforcement of the path thresholds, see below
-        if(assignments == null) {
+        if(assigns == null) {
           totalEnforceAbstraction.start();
           explicitState = enforceAbstraction(explicitState, location, explicitPrecision);
           totalEnforceAbstraction.stop();
@@ -178,7 +174,7 @@ public class ComponentAwareExplicitPrecisionAdjustment extends CompositePrecisio
 
         // compute the abstraction for assignment thresholds
         totalEnforcePathThreshold.start();
-        Pair<ExplicitState, ExplicitPrecision> result = enforcePathThreshold(explicitState, explicitPrecision, assignments);
+        Pair<ExplicitState, ExplicitPrecision> result = enforcePathThreshold(explicitState, explicitPrecision, assigns);
         totalEnforcePathThreshold.stop();
 
         outElements.add(result.getFirst());
@@ -300,19 +296,30 @@ public class ComponentAwareExplicitPrecisionAdjustment extends CompositePrecisio
    * @param assignments the assignment information
    * @return the abstracted explicit state
    */
-  private Pair<ExplicitState, ExplicitPrecision> enforcePathThreshold(ExplicitState state, ExplicitPrecision precision, AssignmentsInPathConditionState assignments) {
+  private Pair<ExplicitState, ExplicitPrecision> enforcePathThreshold(ExplicitState state,
+      ExplicitPrecision precision,
+      UniqueAssignmentsInPathConditionState assignments) {
     if (assignments != null) {
-      if (assignments instanceof UniqueAssignmentsInPathConditionState) {
-        UniqueAssignmentsInPathConditionState unique = (UniqueAssignmentsInPathConditionState)assignments;
-        unique.addAssignment(state);
-      }
 
       // forget the value for all variables that exceed their threshold
       for (MemoryLocation memoryLocation: state.getDelta()) {
-        if (assignments.variableExceedsSoftThreshold(memoryLocation.getAsSimpleString())) {
-          if(!precision.isTracking(memoryLocation)
-              || assignments.variableExceedsHardThreshold(memoryLocation.getAsSimpleString())) {
+        // current memory location is already in (refineable) precision, so check against hard threshold
+        if(precision.isTracking(memoryLocation)) {
+          if(assignments.wouldExceedHardThreshold(state, memoryLocation)) {
             state.forget(memoryLocation);
+          }
+          else {
+            assignments.updateAssignmentInformation(memoryLocation, state.getValueFor(memoryLocation));
+          }
+        }
+
+        // otherwise, check against soft threshold
+        else {
+          if(assignments.wouldExceedSoftThreshold(state, memoryLocation)) {
+            state.forget(memoryLocation);
+          }
+          else {
+            assignments.updateAssignmentInformation(memoryLocation, state.getValueFor(memoryLocation));
           }
         }
       }

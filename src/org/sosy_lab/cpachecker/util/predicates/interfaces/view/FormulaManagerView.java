@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -62,7 +62,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing.ReplacingFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -772,12 +771,7 @@ public class FormulaManagerView {
             assert name != null;
 
             if (ufCanBeLvalue(name)) {
-              final int idx;
-              if (ufIndexDependsOnArgs(name)) {
-                idx = ssa.getIndex(name, new AbstractFormulaList(newargs));
-              } else {
-                idx = ssa.getIndex(name);
-              }
+              final int idx = ssa.getIndex(name);
               if (idx > 0) {
                 // ok, the variable has an instance in the SSA, replace it
                 newt = unsafeManager.replaceArgsAndName(tt, makeName(name, idx), newargs);
@@ -803,10 +797,6 @@ public class FormulaManagerView {
 
   private boolean ufCanBeLvalue(String name) {
     return name.startsWith("*");
-  }
-
-  private boolean ufIndexDependsOnArgs(final String name) {
-    return !name.startsWith("*");
   }
 
   public <T extends Formula> T uninstantiate(T pF) {

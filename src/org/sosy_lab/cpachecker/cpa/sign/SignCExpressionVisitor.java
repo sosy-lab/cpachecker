@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,19 +27,26 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 
@@ -65,16 +72,32 @@ public class SignCExpressionVisitor
 
   @Override
   public SIGN visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCodeException {
+    // TODO possibly treat typedef types differently
     // e.g. x = non_det() where non_det is extern, unknown function allways assume returns any value
-    if(pIastFunctionCallExpression.getExpressionType() instanceof CSimpleType){
-      return SIGN.ALL;
-    }
+    if (pIastFunctionCallExpression.getExpressionType() instanceof CSimpleType
+        || pIastFunctionCallExpression.getExpressionType() instanceof CTypedefType) { return SIGN.ALL; }
     return null;
   }
 
   @Override
   protected SIGN visitDefault(CExpression pExp) throws UnrecognizedCodeException {
     throw new UnrecognizedCodeException("unsupported code found", edgeOfExpr);
+  }
+
+  @Override
+  public SIGN visit(CCastExpression e) throws UnrecognizedCodeException {
+    return e.getOperand().accept(this); // TODO correct?
+  }
+
+  @Override
+  public SIGN visit(CFieldReference e) throws UnrecognizedCodeException {
+    return state.getSignMap().getSignForVariable(transferRel.getScopedVariableName(e));
+  }
+
+  @Override
+  public SIGN visit(CArraySubscriptExpression e) throws UnrecognizedCodeException {
+    // TODO possibly may become preciser
+    return SIGN.ALL;
   }
 
   @Override
@@ -110,6 +133,9 @@ public class SignCExpressionVisitor
     case DIVIDE:
       result = evaluateDivideOperator(pLeft, pRight);
       break;
+    case BINARY_AND:
+      result = evaluateAndOperator(pLeft, pRight);
+      break;
     default:
       throw new UnsupportedCCodeException(
           "Not supported", edgeOfExpr);
@@ -139,6 +165,16 @@ public class SignCExpressionVisitor
       return SIGN.MINUS;
     }
     return SIGN.ZERO;
+  }
+
+  @Override
+  public SIGN visit(CStringLiteralExpression e) throws UnrecognizedCodeException {
+    return SIGN.ALL;
+  }
+
+  @Override
+  public SIGN visit(CCharLiteralExpression e) throws UnrecognizedCodeException {
+    return SIGN.ALL;
   }
 
   @Override
@@ -245,8 +281,24 @@ public class SignCExpressionVisitor
 
   private SIGN evaluateDivideOperator(SIGN left, SIGN right) throws UnsupportedCCodeException {
     if(right == SIGN.ZERO) {
-      throw new UnsupportedCCodeException("Dividing by zero is not supported", edgeOfExpr);
+      transferRel.logger.log(Level.WARNING, "Possibly dividing by zero", edgeOfExpr);
+      return SIGN.ALL;
     }
     return evaluateMulOperator(left, right);
+  }
+
+
+  // assumes that indicator bit for negative numbers is 1
+  private SIGN evaluateAndOperator(SIGN left, SIGN right) {
+    if(left == SIGN.ZERO || right == SIGN.ZERO) {
+      return SIGN.ZERO;
+    }
+    if(left == SIGN.PLUS || right == SIGN.PLUS) {
+      return SIGN.PLUS0;
+    }
+    if(left == SIGN.MINUS && right == SIGN.MINUS) {
+      return SIGN.MINUS0;
+    }
+    return SIGN.EMPTY;
   }
 }

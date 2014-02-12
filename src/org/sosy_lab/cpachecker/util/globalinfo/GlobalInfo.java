@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 
 
@@ -55,9 +56,8 @@ public class GlobalInfo {
     cfaInfo = new CFAInfo(cfa);
   }
 
-  public CFAInfo getCFAInfo() {
-    Preconditions.checkState(cfaInfo != null);
-    return cfaInfo;
+  public Optional<CFAInfo> getCFAInfo() {
+    return Optional.fromNullable(cfaInfo);
   }
 
   public void storeAutomaton(Automaton automaton) {

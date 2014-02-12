@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,8 +44,11 @@ import org.restlet.ext.servlet.ServletUtils;
 import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.appengine.common.FreemarkerUtil;
 import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner;
+import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner.InstanceType;
 import org.sosy_lab.cpachecker.appengine.common.JobRunner;
 import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
 import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
@@ -103,8 +106,8 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
           case "disableExportStatistics":
             options.setOption("statistics.export", "false");
             break;
-          case "logUsedOptions":
-            options.setOption("log.usedOptions.export", "true");
+          case "dumpConfig":
+            options.setOption("configuration.dumpFile", "UsedConfiguration.properties");
             break;
           case "logLevel":
             options.setOption("log.level", value);
@@ -114,6 +117,9 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
             break;
           case "wallTime":
             options.setOption("limits.time.wall", value);
+            break;
+          case "instanceType":
+            options.setOption("gae.instanceType", value);
             break;
           case "programText":
             if (program == null || program.isEmpty()) {
@@ -147,7 +153,7 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
 
     if (errors.size() == 0) {
       getResponse().setStatus(Status.SUCCESS_CREATED);
-      redirectSeeOther("/jobs/"+createdJob.getKey());
+      redirectSeeOther("/tasks/" + createdJob.getKey());
       return getResponseEntity();
     }
 
@@ -203,7 +209,7 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
         return new StringRepresentation(mapper.writeValueAsString(errors), MediaType.APPLICATION_JSON);
       } else {
         getResponse().setStatus(Status.SUCCESS_CREATED);
-        getResponse().setLocationRef("/jobs/"+createdJob.getKey());
+        getResponse().setLocationRef("/tasks/" + createdJob.getKey());
         return new StringRepresentation(mapper.writeValueAsString(createdJob), MediaType.APPLICATION_JSON);
       }
     } catch (JsonProcessingException e) {
@@ -262,7 +268,11 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
     }
 
     if (createdJob.getConfiguration() != null) {
-      if (!DefaultOptions.getConfigurations().contains(createdJob.getConfiguration())) {
+      try {
+        if (!DefaultOptions.getConfigurations().contains(createdJob.getConfiguration())) {
+          errors.add("error.configurationNotFound");
+        }
+      } catch (IOException e) {
         errors.add("error.configurationNotFound");
       }
     }
@@ -279,19 +289,37 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
       }
     }
 
+    if (createdJob.getOptions().containsKey("gae.instanceType")) {
+      try {
+        InstanceType.valueOf(createdJob.getOptions().get("gae.instanceType"));
+      } catch (IllegalArgumentException e) {
+        errors.add("error.invalidInstanceType");
+      }
+    }
+
     if (errors.size() == 0) {
       try {
         JobFileDAO.save(program);
         createdJob.addFile(program);
         JobDAO.save(createdJob);
-        JobRunner jobRunner = new GAETaskQueueJobRunner();
-        createdJob = jobRunner.run(createdJob);
       } catch (IOException e) {
         if (e.getCause() instanceof RequestTooLargeException) {
           errors.add("error.programTooLarge");
         } else {
           errors.add("error.couldNotUpload");
         }
+      }
+    }
+
+    if (errors.size() == 0) {
+      try {
+        Configuration config = Configuration.builder()
+            .setOptions(createdJob.getOptions())
+            .build();
+        JobRunner jobRunner = new GAETaskQueueJobRunner(config);
+        jobRunner.run(createdJob);
+      } catch (InvalidConfigurationException e) {
+        errors.add("error.invalidConfiguration");
       }
     }
 

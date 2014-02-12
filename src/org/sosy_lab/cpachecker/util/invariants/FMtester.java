@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
@@ -80,7 +79,7 @@ public class FMtester {
       FormulaManagerView emgr = new FormulaManagerView(fmgr, config, logger);
       //
 
-      pfmgr = new PathFormulaManagerImpl(emgr, config, logger, MachineModel.LINUX32);
+      pfmgr = new PathFormulaManagerImpl(emgr, config, logger, cfa);
     } catch (Exception e) {
       System.err.println(e.getMessage());
     }

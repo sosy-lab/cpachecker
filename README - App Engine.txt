@@ -17,16 +17,16 @@ To install the necessary JARs run the following command. Please be aware that
 the App Engine SDK will be downloaded which might take a while since it is about
 140M in size.
 
-ant -f gae-build.xml gae-install
+ant -f gae-build.xml install
 
 Afterwards you need to add the following JARs to the classpath:
 lib/gae/*.jar
-lib/appengine-java-sdk-1.8.8/lib/user/*.jar
-lib/appengine-java-sdk-1.8.8/lib/impl/appengine-api.jar
-lib/appengine-java-sdk-1.8.8/lib/impl/appengine-api-stubs.jar
-lib/appengine-java-sdk-1.8.8/lib/impl/appengine-api-labs.jar
-lib/appengine-java-sdk-1.8.8/lib/shared/servlet-api.jar
-lib/appengine-java-sdk-1.8.8/lib/testing/appengine-testing.jar
+lib/appengine-java-sdk-1.8.9/lib/user/*.jar
+lib/appengine-java-sdk-1.8.9/lib/impl/appengine-api.jar
+lib/appengine-java-sdk-1.8.9/lib/impl/appengine-api-stubs.jar
+lib/appengine-java-sdk-1.8.9/lib/impl/appengine-api-labs.jar
+lib/appengine-java-sdk-1.8.9/lib/shared/servlet-api.jar
+lib/appengine-java-sdk-1.8.9/lib/testing/appengine-testing.jar
 
 Also all App Engine related source code is excluded from the classpath by
 default. Therefore you need to remove "org/sosy_lab/cpachecker/appengine/"
@@ -36,8 +36,9 @@ from the exclusion list.
 Compiling and Running
 =====================
 
-To compile run one of the following commands. The first one will only compile
-the classes while the second one will also fire up a web server.
+To compile run one of the following commands. The first one (default task) will
+compile the classes and fire up a web server. The second one will only compile
+the classes.
 
-ant -f gae-build.xml gae-compile
-ant -f gae-build.xml gae-runserver
+ant -f gae-build.xml
+ant -f gae-build.xml compile

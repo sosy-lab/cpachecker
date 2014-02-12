@@ -17,6 +17,16 @@ if __name__ == "__main__":
 import benchmark.util as Util
 import benchmark.tools.template
 
+REQUIRED_PATHS = [
+                  "lib/java/runtime",
+                  "lib/JavaParser",
+                  "lib/*.jar",
+                  "lib/native",
+                  "scripts",
+                  "cpachecker.jar",
+                  "config",
+                  ]
+
 class Tool(benchmark.tools.template.BaseTool):
 
     def getExecutable(self):
@@ -39,7 +49,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
     def getProgrammFiles(self, executable):
         executableDir = os.path.join(os.path.dirname(executable),"../")
-        return [os.path.join(executableDir, path) for path in ["lib", "scripts", "cpachecker.jar", "config"]]
+        return Util.flatten(Util.expandFileNamePattern(path, executableDir) for path in REQUIRED_PATHS)
 
 
     def getWorkingDirectory(self, executable):
@@ -101,10 +111,11 @@ class Tool(benchmark.tools.template.BaseTool):
         return 'CPAchecker'
 
 
-    def getCmdline(self, executable, options, sourcefile):
+    def getCmdline(self, executable, options, sourcefile, propertyfile=None):
         if ("-stats" not in options):
             options = options + ["-stats"]
-        return [executable] + options + [sourcefile]
+        spec = ["-spec", propertyfile] if propertyfile is not None else []
+        return [executable] + options + spec + [sourcefile]
 
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
@@ -177,7 +188,7 @@ class Tool(benchmark.tools.template.BaseTool):
                     newStatus = result.STR_FALSE_LABEL
                     match = re.match('.* Violation of propert[a-z]* (.*) found by chosen configuration.*', line)
                     if match:
-                        newStatus = newStatus + '(' + match.group(1) + ')'
+                        newStatus = STR_FALSE + '(' + match.group(1) + ')'
                 else:
                     newStatus = result.STR_UNKNOWN if not status.startswith('ERROR') else None
                 if newStatus:

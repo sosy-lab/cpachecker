@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -46,6 +46,10 @@ public class OctagonManager {
   /* num copy */
   public static void num_set(NumArray n1, NumArray n2) {
     J_num_set(n1.getArray(), n2.getArray());
+  }
+
+  public static Octagon set_bounds(Octagon oct, int pos, NumArray lower, NumArray upper) {
+    return new Octagon(J_set_bounds(oct.getOctId(), pos, lower.getArray(), upper.getArray(), false));
   }
 
   /* set int */
@@ -231,20 +235,34 @@ public class OctagonManager {
 
   public static String print(Octagon oct, BiMap<Integer, String> map) {
     StringBuilder str = new StringBuilder();
-    int size = dimension(oct);
+    int dimension = dimension(oct);
     long pointer = oct.getOctId();
     str.append(map.values() + "\n");
-    str.append("octagon (id: " + pointer + ") (size: " + size + ")\n");
+    str.append("Octagon (id: " + pointer + ") (dimension: " + dimension + ")\n");
     if (isEmpty(oct)) {
       str.append("[Empty]\n");
       return str.toString();
     }
-    for (int i = 0; i < size*2; i++) {
-      for (int j = 0; j < size*2; j++) {
-        str.append(J_getValueFor(pointer, i, j) + ", ");
+
+    NumArray lower = OctagonManager.init_num_t(1);
+    NumArray upper = OctagonManager.init_num_t(1);
+
+    for (int i = 0; i < map.size(); i++) {
+      str.append(map.get(i) + " -> [");
+      J_get_bounds(oct.getOctId(), i, upper.getArray(), lower.getArray());
+      if (J_num_infty(lower.getArray(), 0)) {
+        str.append("-INFINITY, ");
+      } else {
+        str.append(J_num_get_int(lower.getArray(), 0)*-1 + ", ");
       }
-      str.append("\n");
+      if (J_num_infty(upper.getArray(), 0)) {
+        str.append("INFINITY]\n");
+      } else {
+        str.append(J_num_get_int(upper.getArray(), 0) + "]\n");
+      }
     }
+    J_num_clear_n(lower.getArray(), 1);
+    J_num_clear_n(upper.getArray(), 1);
     return str.toString();
   }
 

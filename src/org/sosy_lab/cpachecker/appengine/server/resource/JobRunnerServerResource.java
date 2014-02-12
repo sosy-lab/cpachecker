@@ -40,14 +40,16 @@ import org.restlet.representation.Representation;
 import org.restlet.util.Series;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.concurrency.Threads;
+import org.sosy_lab.common.configuration.AbstractConfigurationBuilderFactory;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.Configuration.Builder;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.FileLogFormatter;
+import org.sosy_lab.cpachecker.appengine.common.GAEConfigurationBuilder;
 import org.sosy_lab.cpachecker.appengine.common.JobMappingThreadFactory;
 import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
 import org.sosy_lab.cpachecker.appengine.entity.DefaultOptions;
@@ -63,6 +65,8 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
+import com.google.appengine.api.LifecycleManager;
+import com.google.appengine.api.LifecycleManager.ShutdownHook;
 import com.google.apphosting.api.ApiProxy;
 import com.google.common.base.Charsets;
 import com.google.common.io.FileWriteMode;
@@ -91,6 +95,8 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     Form requestValues = new Form(entity);
     job = JobDAO.load(requestValues.getFirstValue("jobKey"));
 
+    if (job == null) { return; }
+
     JobMappingThreadFactory.registerJobWithThread(job, Thread.currentThread());
     Threads.setThreadFactory(new JobMappingThreadFactory());
 
@@ -100,9 +106,10 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     @SuppressWarnings("unchecked")
     Series<Header> headers = (Series<Header>) getRequestAttributes().get("org.restlet.http.headers");
     int retries = Integer.valueOf(headers.getFirstValue("X-AppEngine-TaskRetryCount"));
-    job.setStatistic(null); // clear any stats so if this is a retry it have get proper stats
+    JobDAO.reset(job); // clear for case of retry
     job.setRetries(retries);
-    job.setRequestID((String) ApiProxy.getCurrentEnvironment().getAttributes().get("com.google.appengine.runtime.request_log_id"));
+    job.setRequestID((String) ApiProxy.getCurrentEnvironment().getAttributes()
+        .get("com.google.appengine.runtime.request_log_id"));
     job.setExecutionDate(new Date());
     job.setStatus(Status.RUNNING);
     JobDAO.save(job);
@@ -112,6 +119,7 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     dumpConfiguration();
 
     ShutdownRequestListener listener = new ShutdownRequestListener() {
+
       @Override
       public void shutdownRequested(final String reason) {
         log(Level.WARNING, "Task timed out. Trying to rescue results.", reason);
@@ -140,8 +148,8 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
             break;
           } catch (Exception e) {
             log(Level.WARNING, "Error while trying to rescue results.", e);
+            retries++;
           }
-          retries++;
         } while (retries < 3);
 
         shutdownComplete = true;
@@ -149,7 +157,15 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     };
 
     final ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
-    shutdownNotifier.registerAndCheckImmediately(listener);
+    shutdownNotifier.register(listener);
+
+    ShutdownHook shutdownHook = new ShutdownHook() {
+      @Override
+      public void shutdown() {
+        shutdownNotifier.requestShutdown("The backend is shutting down.");
+      }
+    };
+    LifecycleManager.getInstance().setShutdownHook(shutdownHook);
 
     final CPAchecker cpaChecker = new CPAchecker(config, logManager, shutdownNotifier);
 
@@ -159,6 +175,7 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
      * allows for setting the jobs status and potentially saving results.
      */
     cpaCheckerThread = Threads.newThread(new Runnable() {
+
       @Override
       public void run() {
         try {
@@ -179,6 +196,7 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     });
 
     UncaughtExceptionHandler handler = new UncaughtExceptionHandler() {
+
       @Override
       public void uncaughtException(Thread t, Throwable e) {
         doCatch(e);
@@ -224,6 +242,8 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     // set status OK to pretend everything went fine so that the task will not be re-tried.
     getResponse().setStatus(org.restlet.data.Status.SUCCESS_OK);
 
+    Throwable originalThrowable = e;
+
     if (e.getCause() != null) {
       e = e.getCause();
     }
@@ -254,7 +274,7 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     }
 
     try {
-      saveStackTrace(e);
+      saveStackTrace(originalThrowable);
       setResult();
       job.setTerminationDate(new Date());
       JobDAO.save(job);
@@ -300,7 +320,7 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
   private void dumpConfiguration() throws IOException {
     if (configDumped) { return; }
 
-    if (outputEnabled && config != null) {
+    if (config != null && config.getProperty("configuration.dumpFile") != null && !config.getProperty("configuration.dumpFile").equals("")) {
       Path configurationDumpFile = Paths.get(config.getProperty("configuration.dumpFile"));
       if (configurationDumpFile != null) {
         configurationDumpFile.asCharSink(Charsets.UTF_8).write(config.asPropertiesString());
@@ -346,19 +366,26 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
   }
 
   private void buildConfiguration() throws IOException, InvalidConfigurationException {
-    Builder configurationBuilder = Configuration.builder();
+    Configuration.setBuilderFactory(new AbstractConfigurationBuilderFactory() {
+      @Override
+      public ConfigurationBuilder getBuilder() {
+        return new GAEConfigurationBuilder();
+      }
+    });
+
+    ConfigurationBuilder configurationBuilder = Configuration.builder();
     configurationBuilder.setOptions(DefaultOptions.getDefaultOptions());
 
     if (job.getConfiguration() != null) {
       configurationBuilder.loadFromFile(Paths.get("WEB-INF", "configurations", job.getConfiguration()));
     }
     configurationBuilder
-        .loadFromFile(Paths.get("WEB-INF", "default-options.properties"))
         .setOption("analysis.programNames", job.getSourceFileName())
         .setOptions(job.getOptions());
     if (job.getSpecification() != null) {
       configurationBuilder.setOption("specification", "WEB-INF/specifications/" + job.getSpecification());
     }
+
     Configuration configuration = configurationBuilder.build();
 
     FileTypeConverter fileTypeConverter = new FileTypeConverter(configuration);
@@ -376,8 +403,10 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
 
     @Override
     public void publish(LogRecord pRecord) {}
+
     @Override
     public void flush() {}
+
     @Override
     public void close() throws SecurityException {}
   }

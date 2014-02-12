@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -89,6 +89,7 @@ class CmdLineArguments {
 
   private static final Pattern SPECIFICATION_FILES_PATTERN = DEFAULT_CONFIG_FILES_PATTERN;
   private static final String SPECIFICATION_FILES_TEMPLATE = "config/specification/%s.spc";
+  private static final String REACHABILITY_SPECIFICATION_FILE = "config/specification/sv-comp.spc";
 
   private static final Pattern PROPERTY_FILE_PATTERN = Pattern.compile("(.)+\\.prp");
 
@@ -357,15 +358,15 @@ class CmdLineArguments {
                                                PropertyType.VALID_FREE,
                                                PropertyType.VALID_MEMTRACK))) {
                 putIfNotExistent(options, "memorysafety.check", "true");
+                newValue = null;
 
               } else if (properties.equals(EnumSet.of(PropertyType.REACHABILITY))) {
-                // no change needed
+                newValue = REACHABILITY_SPECIFICATION_FILE;
 
               } else {
                 System.err.println("Checking for the properties " + properties + " is currently not supported by CPAchecker.");
                 System.exit(0);
               }
-              newValue = null;
             }
 
             else {

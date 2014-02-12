@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,6 +33,7 @@ public class CNumericTypes {
   private CNumericTypes() { }
 
   // type constants
+  public final static CSimpleType BOOL          = new CSimpleType(false, false, CBasicType.BOOL, false, false, false, false, false, false, false);
   public final static CSimpleType CHAR          = new CSimpleType(false, false, CBasicType.CHAR, false, false, false, false, false, false, false);
   public static final CSimpleType SIGNED_CHAR   = new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
   public final static CSimpleType INT           = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);

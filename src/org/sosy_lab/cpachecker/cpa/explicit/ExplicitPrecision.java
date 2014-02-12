@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -67,8 +67,8 @@ public class ExplicitPrecision implements Precision {
   private int reachedSetThreshold = -1;
 
   @Option(values={"location", "scope"},
-		  description = "whether to track relevant variables only at the exact program location (sharing=location), " +
-		  		"or within their respective (function-/global-) scope (sharing=scoped).")
+      description = "whether to track relevant variables only at the exact program location (sharing=location), " +
+          "or within their respective (function-/global-) scope (sharing=scoped).")
   private String sharing = "scope";
 
   @Option(description = "ignore boolean variables. if this option is used, "
@@ -211,7 +211,7 @@ public class ExplicitPrecision implements Precision {
 
     else {
       throw new InternalError("Wrong value for precison sharing strategy given (was " + sharing + ")," +
-      		"or allowed options out-dated.");
+          "or allowed options out-dated.");
     }
   }
 
@@ -267,7 +267,7 @@ public class ExplicitPrecision implements Precision {
      *
      * @param otherPrecision the precision to join with
      */
-    abstract void join(RefinablePrecision otherPrecision);
+    public abstract void join(RefinablePrecision otherPrecision);
 
     /**
      * This method returns a set of variables that are candidates for being abstracted.

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -144,14 +144,19 @@ public class ARGStatistics implements Statistics {
   private boolean dumpErrorPathImmediately = false;
 
   private final ARGCPA cpa;
+  private final Configuration config;
 
   private Writer refinementGraphUnderlyingWriter = null;
   private ARGToDotWriter refinementGraphWriter = null;
+  private ARGPathExport witnessExporter = null;
 
   public ARGStatistics(Configuration config, ARGCPA cpa) throws InvalidConfigurationException {
+    this.cpa = cpa;
+    this.config = config;
+
     config.inject(this);
 
-    this.cpa = cpa;
+    witnessExporter = new ARGPathExport(config);
 
     if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null) {
       exportARG = false;
@@ -324,17 +329,6 @@ public class ARGStatistics implements Statistics {
       }
     });
 
-    writeErrorPathFile(errorPathAutomatonGraphmlFile, cexIndex, new Appender() {
-      @Override
-      public void appendTo(Appendable pAppendable) throws IOException {
-        ARGPathExport exporter = new ARGPathExport();
-        exporter.writePath(pAppendable, rootState,
-            ARGUtils.CHILDREN_OF_STATE,
-            Predicates.in(pathElements),
-            isTargetPathEdge);
-      }
-    });
-
     if (counterexample != null) {
       if (counterexample.getTargetPathModel() != null) {
         writeErrorPathFile(errorPathAssignment, cexIndex, counterexample.getTargetPathModel());
@@ -346,6 +340,17 @@ public class ARGStatistics implements Statistics {
         }
       }
     }
+
+    writeErrorPathFile(errorPathAutomatonGraphmlFile, cexIndex, new Appender() {
+      @Override
+      public void appendTo(Appendable pAppendable) throws IOException {
+        witnessExporter.writePath(pAppendable, rootState,
+            ARGUtils.CHILDREN_OF_STATE,
+            Predicates.in(pathElements),
+            isTargetPathEdge,
+            counterexample);
+      }
+    });
   }
 
   private Appender createErrorPathWithVariableAssignmentInformation(

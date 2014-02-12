@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,18 +30,19 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -51,6 +52,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -60,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
@@ -76,6 +79,7 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
@@ -341,7 +345,7 @@ public class CFACreator {
         }
       }
 
-      final FunctionEntryNode mainFunction;
+      FunctionEntryNode mainFunction;
 
       switch (language) {
       case JAVA:
@@ -353,6 +357,7 @@ public class CFACreator {
       default:
         throw new AssertionError();
       }
+      assert mainFunction != null;
 
 
       MutableCFA cfa = new MutableCFA(machineModel, c.getFunctions(), c.getCFANodes(), mainFunction, language);
@@ -361,7 +366,7 @@ public class CFACreator {
 
       // check the CFA of each function
       for (String functionName : cfa.getAllFunctionNames()) {
-        assert CFACheck.check(cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName));
+        assert CFACheck.check(cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName), false);
       }
       stats.checkTime.stop();
 
@@ -385,6 +390,41 @@ public class CFACreator {
       if (language == Language.C && fptrCallEdges) {
         CFunctionPointerResolver fptrResolver = new CFunctionPointerResolver(cfa, c.getGlobalDeclarations(), config, logger);
         fptrResolver.resolveFunctionPointers();
+      }
+
+      // Transform dummy loops into edges to termination nodes
+      List<CFANode> toAdd = new ArrayList<>(1);
+      for (CFANode node : cfa.getAllNodes()) {
+        Set<CFANode> visited = new HashSet<>();
+        Queue<CFANode> waitlist = new ArrayDeque<>();
+        waitlist.offer(node);
+        visited.add(node);
+        while (!waitlist.isEmpty()) {
+          CFANode current = waitlist.poll();
+          for (CFAEdge leavingBlankEdge : CFAUtils.leavingEdges(current).filter(BlankEdge.class).toList()) {
+            CFANode succ = leavingBlankEdge.getSuccessor();
+            if (succ == node) {
+              leavingBlankEdge.getPredecessor().removeLeavingEdge(leavingBlankEdge);
+              leavingBlankEdge.getSuccessor().removeEnteringEdge(leavingBlankEdge);
+              CFANode terminationNode = new CFATerminationNode(node.getLineNumber(), node.getFunctionName());
+              BlankEdge terminationEdge =
+                  new BlankEdge(leavingBlankEdge.getRawStatement(),
+                      leavingBlankEdge.getLineNumber(),
+                      leavingBlankEdge.getPredecessor(),
+                      terminationNode,
+                      leavingBlankEdge.getDescription());
+              terminationEdge.getPredecessor().addLeavingEdge(terminationEdge);
+              terminationEdge.getSuccessor().addEnteringEdge(terminationEdge);
+              toAdd.add(terminationNode);
+            }
+            if (visited.add(succ)) {
+              waitlist.offer(succ);
+            }
+          }
+        }
+      }
+      for (CFANode nodeToAdd : toAdd) {
+        cfa.addNode(nodeToAdd);
       }
 
       // THIRD, do read-only post-processings on each single function CFA
@@ -457,6 +497,8 @@ public class CFACreator {
       if (transformIntoSingleLoop) {
         stats.processingTime.start();
         immutableCFA = CFASingleLoopTransformation.getSingleLoopTransformation(logger, config).apply(cfa);
+        mainFunction = immutableCFA.getMainFunction();
+        assert mainFunction != null;
         stats.processingTime.stop();
       } else {
         immutableCFA = cfa.makeImmutableCFA(loopStructure, varClassification);
@@ -464,7 +506,7 @@ public class CFACreator {
 
       // check the super CFA starting at the main function
       stats.checkTime.start();
-      assert CFACheck.check(mainFunction, null);
+      assert CFACheck.check(mainFunction, null, cfaReduction != null);
       stats.checkTime.stop();
 
       if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))

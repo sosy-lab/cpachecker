@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner.InstanceType;
 import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
@@ -67,7 +68,8 @@ public class Job {
     ERROR
   }
 
-  @Id private Long id;
+  @Id
+  private Long id;
   // ID to identify the associated request with the App Engine log file
   private String requestID;
   private Date creationDate;
@@ -80,14 +82,17 @@ public class Job {
   private String sourceFileName;
   private String queueName;
   private String taskName;
+  private InstanceType instanceType;
   private int retries;
   private Result resultOutcome;
   private String resultMessage;
-  @EmbedMap private Map<String, String> options = new HashMap<>();
+  @EmbedMap
+  private Map<String, String> options = new HashMap<>();
   private List<Ref<JobFile>> files = new CopyOnWriteArrayList<>();
   private Ref<JobStatistic> statistic;
 
-  @Ignore private boolean optionsEscaped = false;
+  @Ignore
+  private boolean optionsEscaped = false;
 
   public Job() {
     init();
@@ -119,37 +124,29 @@ public class Job {
     return executionDate;
   }
 
-
   public void setExecutionDate(Date pExecutionDate) {
     executionDate = pExecutionDate;
   }
-
 
   public Date getTerminationDate() {
     return terminationDate;
   }
 
-
   public void setTerminationDate(Date pTerminationDate) {
     terminationDate = pTerminationDate;
   }
-
 
   public Status getStatus() {
     return status;
   }
 
-
   public void setStatus(Status pStatus) {
     status = pStatus;
   }
 
-
-
   public String getStatusMessage() {
     return statusMessage;
   }
-
 
   public void setStatusMessage(String pStatusMessage) {
     statusMessage = pStatusMessage;
@@ -162,7 +159,6 @@ public class Job {
     return options;
   }
 
-
   public void setOptions(Map<String, String> pOptions) {
     options = pOptions;
   }
@@ -170,7 +166,8 @@ public class Job {
   /**
    * Since dots (.) must not be part of a key they are escaped upon saving.
    */
-  @OnSave void escapeOptionKeys() {
+  @OnSave
+  void escapeOptionKeys() {
     Map<String, String> escapedMap = new HashMap<>();
     for (String key : options.keySet()) {
       escapedMap.put(key.replace(".", "\\"), options.get(key));
@@ -183,7 +180,8 @@ public class Job {
    * Since dots (.) must not be part of a key they were escaped upon saving
    * and therefore need to be unescaped after loading.
    */
-  @OnLoad void unescapeOptionKeys() {
+  @OnLoad
+  void unescapeOptionKeys() {
     unescapeOptions();
   }
 
@@ -200,17 +198,13 @@ public class Job {
     return specification;
   }
 
-
   public void setSpecification(String pSpecification) {
     specification = pSpecification;
   }
 
-
-
   public String getConfiguration() {
     return configuration;
   }
-
 
   public void setConfiguration(String pConfiguration) {
     configuration = pConfiguration;
@@ -228,11 +222,9 @@ public class Job {
     return id;
   }
 
-
   public void setId(Long pId) {
     id = pId;
   }
-
 
   public Date getCreationDate() {
     return creationDate;
@@ -278,6 +270,14 @@ public class Job {
 
   public void setTaskName(String pTaskName) {
     taskName = pTaskName;
+  }
+
+  public InstanceType getInstanceType() {
+    return instanceType;
+  }
+
+  public void setInstanceType(InstanceType pInstanceType) {
+    instanceType = pInstanceType;
   }
 
   public int getRetries() {

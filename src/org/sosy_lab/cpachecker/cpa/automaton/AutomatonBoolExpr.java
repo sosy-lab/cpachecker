@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,8 +38,9 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
@@ -245,6 +246,8 @@ interface AutomatonBoolExpr extends AutomatonExpression {
   static abstract class TokenAwareAutomatonBoolExpr implements AutomatonBoolExpr {
     protected boolean handleAsEpsilonEdge(CFAEdge edge) {
       if (edge instanceof BlankEdge) {
+        return true;
+      } else if (edge instanceof CFunctionReturnEdge) {
         return true;
       } else if (edge instanceof CDeclarationEdge) {
         CDeclarationEdge declEdge = (CDeclarationEdge) edge;

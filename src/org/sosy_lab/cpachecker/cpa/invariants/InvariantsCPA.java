@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,6 +38,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -71,6 +72,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState.EdgeBasedAbstractionStrategyFactories;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundStateFormulaManager;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
@@ -126,8 +128,8 @@ public class InvariantsCPA extends AbstractCPA {
     @Option(description="whether or not to use a bit vector formula manager when extracting invariant approximations from states.")
     private boolean useBitvectors = false;
 
-    @Option(description="whether or not to use abstract evaluation to ensure termination when the merge operator is SEP or the limit for interesting variables or predicates is positive.")
-    private boolean useAbstractEvaluation = true;
+    @Option(description="controls whether to use abstract evaluation always, never, or only on already previously visited edges.")
+    private EdgeBasedAbstractionStrategyFactories edgeBasedAbstractionStrategyFactory = EdgeBasedAbstractionStrategyFactories.VISITED_EDGES;
 
   }
 
@@ -202,7 +204,7 @@ public class InvariantsCPA extends AbstractCPA {
     boolean determineTargetLocations = options.analyzeTargetPathsOnly || options.interestingPredicatesLimit != 0 || options.interestingVariableLimit != 0;
     if (determineTargetLocations) {
       try {
-        Configuration.Builder configurationBuilder = Configuration.builder();
+        ConfigurationBuilder configurationBuilder = Configuration.builder();
         configurationBuilder.setOption("output.disable", "true");
         configurationBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPA");
         String specification = config.getProperty("specification");
@@ -299,7 +301,7 @@ public class InvariantsCPA extends AbstractCPA {
           InvariantsFormula<CompoundInterval> assumption = ((CAssumeEdge) edge).getExpression().accept(etfv);
           relevantVariables.addAll(assumption.accept(COLLECT_VARS_VISITOR));
         } catch (UnrecognizedCCodeException e) {
-          this.logManager.logException(Level.SEVERE, e, "Found unrecognized C code on an edge. Cannot specify relevant variables explicitly. Considering all variables as relevant.");
+          this.logManager.logException(Level.WARNING, e, "Found unrecognized C code on an edge. Cannot specify relevant variables explicitly. Considering all variables as relevant.");
           specifyRelevantVariables = false;
         }
       }
@@ -329,7 +331,7 @@ public class InvariantsCPA extends AbstractCPA {
         ImmutableSet.copyOf(limit(interestingVariables, options.interestingVariableLimit)),
         options.maximumFormulaDepth,
         options.useBinaryVariableInterrelations,
-        options.useAbstractEvaluation);
+        options.edgeBasedAbstractionStrategyFactory);
 
     initialPrecisionMap.put(pNode, precision);
 

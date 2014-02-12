@@ -44,14 +44,7 @@ CORELIMIT = runexecutor.CORELIMIT
 SOFTTIMELIMIT = 'softtimelimit'
 HARDTIMELIMIT = 'hardtimelimit'
 
-
-def getOptionsFromXML(optionsTag):
-    '''
-    This function searches for options in a tag
-    and returns a list with command-line arguments.
-    '''
-    return Util.toSimpleList((option.get("name"), option.text)
-               for option in optionsTag.findall("option"))
+PROPERTY_TAG = "propertyfile"
 
 
 def substituteVars(oldList, runSet, sourcefile=None):
@@ -63,16 +56,16 @@ def substituteVars(oldList, runSet, sourcefile=None):
     benchmark = runSet.benchmark
 
     # list with tuples (key, value): 'key' is replaced by 'value'
-    keyValueList = [('${benchmark_name}', benchmark.name),
-                    ('${benchmark_date}', benchmark.date),
-                    ('${benchmark_path}', os.path.dirname(benchmark.benchmarkFile)),
-                    ('${benchmark_path_abs}', os.path.abspath(os.path.dirname(benchmark.benchmarkFile))),
-                    ('${benchmark_file}', os.path.basename(benchmark.benchmarkFile)),
+    keyValueList = [('${benchmark_name}',     benchmark.name),
+                    ('${benchmark_date}',     benchmark.date),
+                    ('${benchmark_path}',     benchmark.baseDir),
+                    ('${benchmark_path_abs}', os.path.abspath(benchmark.baseDir)),
+                    ('${benchmark_file}',     os.path.basename(benchmark.benchmarkFile)),
                     ('${benchmark_file_abs}', os.path.abspath(os.path.basename(benchmark.benchmarkFile))),
-                    ('${logfile_path}',   os.path.dirname(runSet.logFolder)),
-                    ('${logfile_path_abs}', os.path.abspath(runSet.logFolder)),
+                    ('${logfile_path}',       os.path.dirname(runSet.logFolder)),
+                    ('${logfile_path_abs}',   os.path.abspath(runSet.logFolder)),
                     ('${rundefinition_name}', runSet.realName if runSet.realName else ''),
-                    ('${test_name}',      runSet.realName if runSet.realName else '')]
+                    ('${test_name}',          runSet.realName if runSet.realName else '')]
 
     if sourcefile:
         keyValueList.append(('${sourcefile_name}', os.path.basename(sourcefile)))
@@ -110,8 +103,9 @@ class Benchmark:
         """
         logging.debug("I'm loading the benchmark {0}.".format(benchmarkFile))
 
-        self.config = config        
+        self.config = config
         self.benchmarkFile = benchmarkFile
+        self.baseDir = os.path.dirname(self.benchmarkFile)
 
         # get benchmark-name
         self.name = os.path.basename(benchmarkFile)[:-4] # remove ending ".xml"
@@ -139,8 +133,11 @@ class Benchmark:
             sys.exit('The module for "{0}" does not define the necessary class.'.format(toolName))
 
         self.toolName = self.tool.getName()
-        self.executable = self.tool.getExecutable()
-        self.toolVersion = self.tool.getVersion(self.executable)
+        self.toolVersion = ''
+        self.executable = ''
+        if not config.appengine:
+            self.executable = self.tool.getExecutable()
+            self.toolVersion = self.tool.getVersion(self.executable)
 
         logging.debug("The tool to be benchmarked is {0}.".format(str(self.toolName)))
 
@@ -191,8 +188,9 @@ class Benchmark:
         if not os.path.isdir(self.logFolder):
             os.makedirs(self.logFolder)
 
-        # get global options
-        self.options = getOptionsFromXML(rootTag)
+        # get global options and propertyFiles
+        self.options = Util.getListFromXML(rootTag)
+        self.propertyFiles = Util.getListFromXML(rootTag, tag=PROPERTY_TAG, attributes=[])
 
         # get columns
         self.columns = Benchmark.loadColumns(rootTag.find("columns"))
@@ -201,13 +199,12 @@ class Benchmark:
         globalSourcefilesTags = rootTag.findall("sourcefiles")
 
         # get required files
-        self._requiredFiles = []
-        baseDir = os.path.dirname(self.benchmarkFile)
+        self._requiredFiles = set()
         for requiredFilesTag in rootTag.findall('requiredfiles'):
-            requiredFiles = Util.expandFileNamePattern(requiredFilesTag.text, baseDir)
+            requiredFiles = Util.expandFileNamePattern(requiredFilesTag.text, self.baseDir)
             if not requiredFiles:
                 logging.warning('Pattern {0} in requiredfiles tag did not match any file.'.format(requiredFilesTag.text))
-            self._requiredFiles.extend(requiredFiles)
+            self._requiredFiles = self._requiredFiles.union(requiredFiles)
 
         # get requirements
         self.requirements = Requirements(rootTag.findall("require"), self.rlimits, config.cloudCPUModel)
@@ -234,7 +231,12 @@ class Benchmark:
 
 
     def requiredFiles(self):
-        return self._requiredFiles + self.tool.getProgrammFiles(self.executable)
+        return self._requiredFiles.union(self.tool.getProgrammFiles(self.executable))
+
+
+    def addRequiredFile(self, filename=None):
+        if filename is not None:
+            self._requiredFiles.add(filename)
 
 
     def workingDirectory(self):
@@ -292,7 +294,8 @@ class RunSet:
             self.logFolder += self.realName + "."
 
         # get all run-set-specific options from rundefinitionTag
-        self.options = benchmark.options + getOptionsFromXML(rundefinitionTag)
+        self.options = benchmark.options + Util.getListFromXML(rundefinitionTag)
+        self.propertyFiles = benchmark.propertyFiles + Util.getListFromXML(rundefinitionTag, tag=PROPERTY_TAG, attributes=[])
 
         # get all runs, a run contains one sourcefile with options
         self.blocks = self.extractRunsFromXML(globalSourcefilesTags + rundefinitionTag.findall("sourcefiles"))
@@ -335,7 +338,6 @@ class RunSet:
         '''
         # runs are structured as sourcefile sets, one set represents one sourcefiles tag
         blocks = []
-        baseDir = os.path.dirname(self.benchmark.benchmarkFile)
 
         for index, sourcefilesTag in enumerate(sourcefilesTagList):
             sourcefileSetName = sourcefilesTag.get("name")
@@ -345,14 +347,15 @@ class RunSet:
                     continue
 
             # get list of filenames
-            sourcefiles = self.getSourcefilesFromXML(sourcefilesTag, baseDir)
+            sourcefiles = self.getSourcefilesFromXML(sourcefilesTag, self.benchmark.baseDir)
 
             # get file-specific options for filenames
-            fileOptions = getOptionsFromXML(sourcefilesTag)
+            fileOptions = Util.getListFromXML(sourcefilesTag)
+            propertyFiles = Util.getListFromXML(sourcefilesTag, tag=PROPERTY_TAG, attributes=[])
 
             currentRuns = []
             for sourcefile in sourcefiles:
-                currentRuns.append(Run(sourcefile, fileOptions, self))
+                currentRuns.append(Run(sourcefile, fileOptions, self, propertyFiles))
 
             blocks.append(SourcefileSet(sourcefileSetName, index, currentRuns))
         return blocks
@@ -457,26 +460,60 @@ class SourcefileSet():
         self.runs = runs
 
 
+loggedMissingPropertyFiles = set()
+
+
 class Run():
     """
     A Run contains one sourcefile and options.
     """
 
-    def __init__(self, sourcefile, fileOptions, runSet):
+    def __init__(self, sourcefile, fileOptions, runSet, propertyFiles=[]):
         self.sourcefile = sourcefile
         self.runSet = runSet
-        self.benchmark = runSet.benchmark
         self.specificOptions = fileOptions # options that are specific for this run
         self.logFile = runSet.logFolder + os.path.basename(sourcefile) + ".log"
-        
+
         # lets reduce memory-consumption: if 2 lists are equal, do not use the second one
         self.options = runSet.options + fileOptions if fileOptions else runSet.options # all options to be used when executing this run
         substitutedOptions = substituteVars(self.options, runSet, sourcefile)
         if substitutedOptions != self.options: self.options = substitutedOptions # for less memory again
 
+        # get propertyfile for Run: if available, use the last one
+        if propertyFiles:
+            self.propertyfile = propertyFiles[-1]
+        elif runSet.propertyFiles:
+            self.propertyfile = runSet.propertyFiles[-1]
+        else:
+            self.propertyfile = None
+
+        # replace run-specific stuff in the propertyfile and add it to the set of required files
+        if self.propertyfile is None:
+            if not self.propertyfile in loggedMissingPropertyFiles:
+                loggedMissingPropertyFiles.add(self.propertyfile)
+                logging.warning('No propertyfile specified. Results will be handled as UNKNOWN.')
+        else:
+            # we check two cases: direct filename or user-defined substitution, one of them must be a 'file'
+            # TODO: do we need the second case? it is equal to previous used option "-spec ${sourcefile_path}/ALL.prp"
+            expandedPropertyFiles = Util.expandFileNamePattern(self.propertyfile, self.runSet.benchmark.baseDir)
+            substitutedPropertyfiles = substituteVars([self.propertyfile], runSet, sourcefile)
+            assert len(substitutedPropertyfiles) == 1
+            
+            if expandedPropertyFiles:
+                self.propertyfile = expandedPropertyFiles[0] # take only the first one
+            elif substitutedPropertyfiles and os.path.isfile(substitutedPropertyfiles[0]):
+                self.propertyfile = substitutedPropertyfiles[0]
+            else:
+                if not self.propertyfile in loggedMissingPropertyFiles:
+                    loggedMissingPropertyFiles.add(self.propertyfile)
+                    logging.warning('Pattern {0} in propertyfile tag did not match any file. It will be ignored.'.format(self.propertyfile))
+                self.propertyfile = None
+
+            self.runSet.benchmark.addRequiredFile(self.propertyfile)
+
         # Copy columns for having own objects in run
         # (we need this for storing the results in them).
-        self.columns = [Column(c.text, c.title, c.numberOfDigits) for c in self.benchmark.columns]
+        self.columns = [Column(c.text, c.title, c.numberOfDigits) for c in self.runSet.benchmark.columns]
 
         # dummy values, for output in case of interrupt
         self.status = ""
@@ -488,35 +525,15 @@ class Run():
 
 
     def getCmdline(self):
-        args = self.benchmark.tool.getCmdline(self.benchmark.executable, self.options, self.sourcefile)
+        args = self.runSet.benchmark.tool.getCmdline(self.runSet.benchmark.executable, self.options, self.sourcefile, self.propertyfile)
         args = [os.path.expandvars(arg) for arg in args]
         args = [os.path.expanduser(arg) for arg in args]
         return args;
 
 
-    def getPropFile(self):
-        # get prp-file from options
-        prpfile = None
-        for option in self.options:
-            if option.endswith('.prp'):
-                assert prpfile == None
-                prpfile = option
-                break
-
-        #if prpfile is None and not logPrpfileOnlyOnce:
-        #    logging.warn("Could not find propertyfile in options. This will be logged only once!")
-
-        # prpfile is relative to toolWorkingDir, we need it relativ to currentWorkingDir
-        if prpfile is not None:
-            prpfile = os.path.join(self.benchmark.tool.getWorkingDirectory(self.benchmark.executable), prpfile)
-            assert os.path.isfile(prpfile)
-
-        return prpfile
-
-
     def afterExecution(self, returnvalue, output, forceTimeout=False):
 
-        rlimits = self.benchmark.rlimits
+        rlimits = self.runSet.benchmark.rlimits
         isTimeout = forceTimeout or self._isTimeout()
 
         # calculation: returnvalue == (returncode * 256) + returnsignal
@@ -524,10 +541,11 @@ class Run():
         returnsignal = returnvalue & 0x7F
         returncode = returnvalue >> 8
         logging.debug("My subprocess returned {0}, code {1}, signal {2}.".format(returnvalue, returncode, returnsignal))
-        self.status = self.benchmark.tool.getStatus(returncode, returnsignal, output, isTimeout)
-        self.category = result.getResultCategory(self.sourcefile, self.status, self.getPropFile())
-        self.benchmark.tool.addColumnValues(output, self.columns)
+        self.status = self.runSet.benchmark.tool.getStatus(returncode, returnsignal, output, isTimeout)
+        self.category = result.getResultCategory(self.sourcefile, self.status, self.propertyfile)
+        self.runSet.benchmark.tool.addColumnValues(output, self.columns)
 
+        
         # Tools sometimes produce a result even after a timeout.
         # This should not be counted, so we overwrite the result with TIMEOUT
         # here. if this is the case.
@@ -539,14 +557,14 @@ class Run():
         if returnsignal == 9 \
                 and MEMLIMIT in rlimits \
                 and self.memUsage \
-                and int(self.memUsage) >= (rlimits[MEMLIMIT] * 1024 * 1024):
+                and int(self.memUsage) >= (rlimits[MEMLIMIT] * 1024 * 1024 * 0.999):
             self.status = 'OUT OF MEMORY'
             self.category = result.CATEGORY_ERROR
 
 
     def _isTimeout(self):
         ''' try to find out whether the tool terminated because of a timeout '''
-        rlimits = self.benchmark.rlimits
+        rlimits = self.runSet.benchmark.rlimits
         if SOFTTIMELIMIT in rlimits:
             limit = rlimits[SOFTTIMELIMIT]
         elif TIMELIMIT in rlimits:

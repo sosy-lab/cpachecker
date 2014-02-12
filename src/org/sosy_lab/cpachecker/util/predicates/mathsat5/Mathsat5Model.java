@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -209,7 +209,7 @@ class Mathsat5Model {
     // TODO: calculate negative value?
     String term = matcher.group(1);
     String lengthValue = matcher.group(2);
-    long length = Long.valueOf(lengthValue);
+    long length = Long.parseLong(lengthValue);
     Object value;
     if (length < 64) {
       value = Long.valueOf(term);

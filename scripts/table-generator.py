@@ -286,7 +286,7 @@ class RunSetResult():
         self.columns = columns
 
     def getSourceFileNames(self):
-        return [file.get('name') for file in self.filelist if Util.getColumnValue(file, 'status')]
+        return [file.get('name') for file in self.filelist]
 
     def append(self, resultFile, resultElem):
         self.filelist += resultElem.findall('sourcefile')
@@ -634,10 +634,10 @@ def getTableHead(runSetResults, commonFileNamePrefix):
         for key in runSetResult.attributes:
             runSetResult.attributes[key] = Util.prettylist(runSetResult.attributes[key])
 
-    def getRow(rowName, format, collapse=False, onlyIf=None):
+    def getRow(rowName, format, collapse=False, onlyIf=None, default='Unknown'):
         def formatCell(attributes):
             if onlyIf and not onlyIf in attributes:
-                formatStr = 'Unknown'
+                formatStr = default
             else:
                 formatStr = format
             return formatStr.format(**attributes)
@@ -669,6 +669,7 @@ def getTableHead(runSetResults, commonFileNamePrefix):
             'runset':  getRow('Run set', '{name}' if allBenchmarkNamesEqual else '{benchmarkname}.{name}'),
             'branch':  getRow('Branch', '{branch}'),
             'options': getRow('Options', '{options}'),
+            'property':getRow('Propertyfile', '{propertyfiles}', collapse=True, onlyIf='propertyfiles', default=''),
             'title':   titleRow}
 
 
@@ -715,7 +716,7 @@ def getStatsOfRunSet(runResults):
         if column.title == 'status':
             countCorrectTrue, countCorrectFalse, countCorrectProperty, countWrongTrue, countWrongFalse, countWrongProperty = getCategoryCount(statusList)
 
-            sum     = StatValue(len(statusList))
+            sum     = StatValue(len([status for (category, status) in statusList if status]))
             correct = StatValue(countCorrectTrue + countCorrectFalse + countCorrectProperty)
             score   = StatValue(result.SCORE_CORRECT_TRUE   * countCorrectTrue + \
                                 result.SCORE_CORRECT_FALSE * countCorrectFalse + \

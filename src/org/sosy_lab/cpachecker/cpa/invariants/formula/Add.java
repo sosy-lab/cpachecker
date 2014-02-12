@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -76,14 +76,10 @@ public class Add<ConstantType> extends AbstractFormula<ConstantType> implements 
     }
     if (o instanceof Add) {
       Add<?> other = (Add<?>) o;
-      return getSummand1().equals(other.getSummand1()) && getSummand2().equals(other.getSummand2()) || getSummand1().equals(other.getSummand2()) && getSummand2().equals(other.getSummand1());
+      return getSummand1().equals(other.getSummand1()) && getSummand2().equals(other.getSummand2())
+          || getSummand1().equals(other.getSummand2()) && getSummand2().equals(other.getSummand1());
     }
     return false;
-  }
-
-  @Override
-  protected int hashCodeInternal() {
-    return getSummand1().hashCode() + getSummand2().hashCode();
   }
 
   @Override
@@ -100,6 +96,11 @@ public class Add<ConstantType> extends AbstractFormula<ConstantType> implements 
   public <ReturnType, ParamType> ReturnType accept(
       ParameterizedInvariantsFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
+  }
+
+  @Override
+  public int hashCode() {
+    return getSummand1().hashCode() + getSummand2().hashCode();
   }
 
   /**

@@ -15,7 +15,7 @@ class Tool(benchmark.tools.template.BaseTool):
         return 'Feaver'
 
 
-    def getCmdline(self, executable, options, sourcefile):
+    def getCmdline(self, executable, options, sourcefile, propertyfile):
         # create tmp-files for feaver, feaver needs special error-labels
         self.prepSourcefile = _prepareSourcefile(sourcefile)
 

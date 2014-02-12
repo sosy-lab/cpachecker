@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -153,11 +153,9 @@ public class CFAReduction {
                .toSet();
 
     } catch (CPAException e) {
-      logger.log(Level.WARNING, "Error during CFA reduction, using full CFA");
-      logger.logDebugException(e);
+      logger.logUserException(Level.WARNING, e, "Error during CFA reduction, using full CFA");
     } catch (InvalidConfigurationException e) {
-      logger.log(Level.WARNING, "Error during CFA reduction, using full CFA");
-      logger.logDebugException(e);
+      logger.logUserException(Level.WARNING, e, "Invalid configuration used for CFA reduction, using full CFA");
     }
     return cfa.getAllNodes();
   }

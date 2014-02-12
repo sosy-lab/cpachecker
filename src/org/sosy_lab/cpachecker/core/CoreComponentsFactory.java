@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -96,7 +96,7 @@ public class CoreComponentsFactory {
       description="restart the analysis using a different configuration after unknown result")
   private boolean useRestartingAlgorithm = false;
 
-  @Option(name="predicatedAnalysis",
+  @Option(name="algorithm.predicatedAnalysis",
       description="use a predicated analysis which proves if the program satisfies a specified property"
           + " with the help of a PredicateCPA to separate differnt program paths")
   private boolean usePredicatedAnalysisAlgorithm = false;

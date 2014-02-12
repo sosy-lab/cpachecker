@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -95,9 +95,16 @@ public class CallstackTransferRelation implements TransferRelation {
     }
     case AssumeEdge: {
       CallstackState element = (CallstackState) pElement;
+      String predecessorFunctionName = pCfaEdge.getPredecessor().getFunctionName();
       String successorFunctionName = pCfaEdge.getSuccessor().getFunctionName();
-      if (!successorFunctionName.equals(element.getCurrentFunction())
-          && pCfaEdge instanceof CFASingleLoopTransformation.ProgramCounterValueAssumeEdge) {
+      boolean successorIsInCallstackContext = successorFunctionName.equals(element.getCurrentFunction());
+      boolean isArtificialPCVEdge = pCfaEdge instanceof CFASingleLoopTransformation.ProgramCounterValueAssumeEdge;
+      boolean isSuccessorAritificialPCNode = successorFunctionName.equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+      boolean isPredecessorAritificialPCNode = predecessorFunctionName.equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+      boolean isFunctionTransition = !successorFunctionName.equals(predecessorFunctionName);
+      if (!successorIsInCallstackContext
+          && ((!isSuccessorAritificialPCNode && isArtificialPCVEdge)
+              || isPredecessorAritificialPCNode && isFunctionTransition)) {
         /*
          * This edge is syntactically reachable, but makes no sense from this
          * state, as it would change function without passing a function entry

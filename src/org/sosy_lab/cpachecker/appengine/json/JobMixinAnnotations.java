@@ -27,6 +27,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner.InstanceType;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 import org.sosy_lab.cpachecker.appengine.entity.JobStatistic;
@@ -46,26 +47,28 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 public abstract class JobMixinAnnotations {
 
-  @JsonAutoDetect(getterVisibility=Visibility.NONE,fieldVisibility=Visibility.NONE)
+  @JsonAutoDetect(getterVisibility = Visibility.NONE, fieldVisibility = Visibility.NONE)
   public abstract class KeyOnly extends Job {
+
     @Override
     @JsonProperty
     public abstract String getKey();
   }
 
   public abstract class Minimal extends KeyOnly {
+
     @JsonProperty
-    @JsonFormat(timezone="UTC",pattern="yyyy-MM-dd'T'HH:mm:ss.SSS")
+    @JsonFormat(timezone = "UTC", pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
     Date creationDate;
 
     @JsonProperty
     @JsonInclude(Include.ALWAYS)
-    @JsonFormat(timezone="UTC",pattern="yyyy-MM-dd'T'HH:mm:ss.SSS")
+    @JsonFormat(timezone = "UTC", pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
     Date executionDate;
 
     @JsonProperty
     @JsonInclude(Include.ALWAYS)
-    @JsonFormat(timezone="UTC",pattern="yyyy-MM-dd'T'HH:mm:ss.SSS")
+    @JsonFormat(timezone = "UTC", pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
     Date terminationDate;
 
     @JsonProperty
@@ -77,6 +80,7 @@ public abstract class JobMixinAnnotations {
   }
 
   public abstract class Full extends Minimal {
+
     @JsonProperty
     @JsonInclude(Include.ALWAYS)
     String statusMessage;
@@ -92,6 +96,10 @@ public abstract class JobMixinAnnotations {
     @JsonProperty
     @JsonInclude(Include.ALWAYS)
     String sourceFileName;
+
+    @JsonProperty
+    @JsonInclude(Include.ALWAYS)
+    InstanceType instanceType;
 
     @JsonProperty
     int retries;

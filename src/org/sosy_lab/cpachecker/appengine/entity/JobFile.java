@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -46,13 +46,19 @@ import com.googlecode.objectify.annotation.Parent;
 @Entity
 public class JobFile {
 
-  @Id private Long id;
-  @Parent private  Ref<Job> job;
-  @Index private String path;
-  @Index private String name;
+  @Id
+  private Long id;
+  @Parent
+  private Ref<Job> job;
+  @Index
+  private String path;
+  @Index
+  private String name;
   private String content;
-  @Ignore private Writer contentWriter;
-  @Ignore private ByteArrayOutputStream contentOutputStream;
+  @Ignore
+  private Writer contentWriter;
+  @Ignore
+  private ByteArrayOutputStream contentOutputStream;
 
   public JobFile() {
     init();
@@ -143,13 +149,15 @@ public class JobFile {
   /**
    * Flushes the content output stream before saving and sets the content to its contents.
    */
-  @OnSave void flushOuputStream() {
+  @OnSave
+  void flushOuputStream() {
     if (contentOutputStream != null && contentOutputStream.size() > 0) {
       content = contentOutputStream.toString();
     }
   }
 
-  @OnSave void storeName() {
+  @OnSave
+  void storeName() {
     name = getName();
   }
 

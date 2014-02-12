@@ -3,7 +3,8 @@
 <div class="container">
 
 <div class="row">
-  <form action="/jobs" method="POST" enctype="multipart/form-data">
+
+  <form action="/tasks" method="POST" enctype="multipart/form-data">
     <div class="col-md-6">
       <div class="panel panel-default">
         <div class="panel-heading">
@@ -31,7 +32,13 @@
               <option value="">${msg.noSpec}</option>
               <option value="" disabled>-------------------</option>
               <#list specifications?sort as specification>
-                <option value="${specification}">${specification}</option>
+              	<#assign name = specification?substring(0, specification?last_index_of("."))>
+                <#if specification == "default.spc">
+                  <#assign selected = "selected">
+                <#else>
+                  <#assign selected = "">
+                </#if>
+                <option value="${specification}" ${selected}>${name}</option>
               </#list>
             </select>
           </div>
@@ -45,7 +52,8 @@
               <option value="">${msg.noConfig}</option>
               <option value="" disabled>-------------------</option>
               <#list configurations?sort as configuration>
-                <option value="${configuration}">${configuration}</option>
+              	<#assign name = configuration?substring(0, configuration?last_index_of("."))>
+                <option value="${configuration}">${name}</option>
               </#list>
             </select>
           </div>
@@ -65,6 +73,7 @@
             <label for="programText" class="control-label">${msg.programText}</label>
             <textarea name="programText" id="programText" rows="3" class="form-control"></textarea>
           </div>
+          <span class="help-block">${msg.submissionDisclaimer}</span>
           <button type="submit" class="btn btn-primary">${msg.submitJob}</button>
         </div>
       </div>
@@ -87,8 +96,8 @@
             </label>
           </div>
           <div class="checkbox">
-            <label for="logUsedOptions" class="control-label">
-              <input type="checkbox" name="logUsedOptions" id="logUsedOptions" value="log.usedOptions.export"> ${msg.logUsedOptions}
+            <label for="dumpConfig" class="control-label">
+              <input type="checkbox" name="dumpConfig" id="dumpConfig" value="configuration.dumpFile"> ${msg.dumpConfig}
             </label>
           </div>
           <div class="form-group">
@@ -98,10 +107,10 @@
               <option value="FINEST">FINEST</option>
               <option value="FINER">FINER</option>
               <option value="FINE">FINE</option>
-              <option value="INFO">INFO</option>
+              <option value="INFO" selected>INFO</option>
               <option value="WARNING">WARNING</option>
               <option value="SEVERE">SEVERE</option>
-              <option value="OFF" selected>OFF</option>
+              <option value="OFF">OFF</option>
             </select>
           </div>
           <div class="form-group">
@@ -112,28 +121,40 @@
             </select>
           </div>
           <div class="form-group">
+            <label for="instanceType" class="control-label">${msg.instanceType}</label>
+            <select name="instanceType" id="instanceType" class="form-control input-sm">
+              <option value="FRONTEND" selcted>FRONTEND</option>
+              <option value="BACKEND">BACKEND</option>
+            </select>
+          </div>
+          <div class="form-group">
             <label for="wallTime" class="control-label">${msg.wallTime}</label>
             <span class="help-block">${msg.wallTimeInfo}</span>
             <input type="text" name="wallTime" id="wallTime" class="form-control input-sm" value="${allowedOptions['limits.time.wall']}" />
           </div>
         </div>
       </div>
+    </div>
+  </form>
+</div>
 
-      <div class="panel panel-default">
+<hr>
+
+<div class="row">
+  
+  <div class="col-md-12">
+    <div class="panel panel-default">
         <div class="panel-heading">
-          <div class="panel-title">${msg.presetOptions}</div>
+          <div class="panel-title">${msg.unsupportedFeatures}</div>
         </div>
         <div class="panel-body">
-          <p>${msg.presetOptionsDescription}</p>
-          <ul class="list-unstyled">
-          <#list defaultOptions?keys as option>
-            <li>${option} = ${defaultOptions[option]}</li>
-          </#list>
+          <p>${msg.unsupportedFeaturesDescription}</p>
+          <ul>
+            ${msg.unsupportedFeaturesListItems}
           </ul>
         </div>
       </div>
-    </div>
-  </form>
+  </div>
 </div>
 
 <#include "_footer.ftl">

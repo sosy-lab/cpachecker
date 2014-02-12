@@ -29,9 +29,15 @@ import org.sosy_lab.cpachecker.appengine.entity.JobStatistic;
 
 import com.googlecode.objectify.Key;
 
-
+/**
+ * This class provides methods for loading, saving and deletion of {@link JobStatistic}
+ * instances.
+ */
 public class JobStatisticDAO {
 
+  /**
+   * @see #load(Key)
+   */
   public static JobStatistic load(String key) {
     try {
       Key<JobStatistic> statsKey = Key.create(key);
@@ -41,10 +47,22 @@ public class JobStatisticDAO {
     }
   }
 
+  /**
+   * Returns the statistic with the given key.
+   *
+   * @param key The key of the desired statistic
+   *
+   * @return The statistic or null if it cannot be found
+   */
   public static JobStatistic load(Key<JobStatistic> key) {
     return ofy().load().key(key).now();
   }
 
+  /**
+   * Saves the given statistic.
+   *
+   * @param stats The statistic to save
+   */
   public static void save(JobStatistic stats) {
     ofy().save().entity(stats).now();
   }

@@ -38,15 +38,18 @@ from . import util as Util
 
 # colors for column status in terminal
 USE_COLORS = True
-COLOR_GREEN = "\033[32;1m{0}\033[m"
-COLOR_RED = "\033[31;1m{0}\033[m"
-COLOR_ORANGE = "\033[33;1m{0}\033[m"
+COLOR_GREEN   = "\033[32;1m{0}\033[m"
+COLOR_RED     = "\033[31;1m{0}\033[m"
+COLOR_ORANGE  = "\033[33;1m{0}\033[m"
 COLOR_MAGENTA = "\033[35;1m{0}\033[m"
 COLOR_DEFAULT = "{0}"
+UNDERLINE     = "\033[4m{0}\033[0m"
+
 COLOR_DIC = {result.CATEGORY_CORRECT: COLOR_GREEN,
              result.CATEGORY_WRONG:   COLOR_RED,
-             result.CATEGORY_UNKNOWN:   COLOR_ORANGE,
-             result.CATEGORY_ERROR:     COLOR_MAGENTA,
+             result.CATEGORY_UNKNOWN: COLOR_ORANGE,
+             result.CATEGORY_ERROR:   COLOR_MAGENTA,
+             result.CATEGORY_MISSING: COLOR_DEFAULT,
              None: COLOR_DEFAULT}
 
 LEN_OF_STATUS = 22
@@ -129,7 +132,7 @@ class OutputHandler:
         self.XMLHeader.set(TIMELIMIT, timelimit if timelimit else '-')
         self.XMLHeader.set(CORELIMIT, corelimit if corelimit else '-')
 
-        if not self.benchmark.config.cloud:
+        if not self.benchmark.config.cloud and not self.benchmark.config.appengine:
             # store systemInfo in XML
             self.storeSystemInfo(opSystem, cpuModel, numberOfCores, maxFrequency, memory, hostname)
 
@@ -338,9 +341,10 @@ class OutputHandler:
         runSetInfo = "\n\n"
         if runSet.name:
             runSetInfo += runSet.name + "\n"
-        runSetInfo += "Run set {0} of {1} with options: {2}\n\n".format(
+        runSetInfo += "Run set {0} of {1} with options '{2}' and propertyfile '{3}'\n\n".format(
                 runSet.index, len(self.benchmark.runSets),
-                " ".join(runSet.options))
+                " ".join(runSet.options),
+                " ".join(runSet.propertyFiles))
 
         titleLine = self.createOutputLine("sourcefile", "status", "cpu time",
                             "wall time", self.benchmark.columns, True)
@@ -492,6 +496,7 @@ class OutputHandler:
         # copy benchmarkinfo, limits, columntitles, systeminfo from XMLHeader
         runsElem = Util.getCopyOfXMLElem(self.XMLHeader)
         runsElem.set("options", " ".join(runSet.options))
+        runsElem.set("propertyfiles", " ".join(runSet.propertyFiles))
         if blockname is not None:
             runsElem.set("block", blockname)
             runsElem.set("name", ((runSet.realName + ".") if runSet.realName else "") + blockname)

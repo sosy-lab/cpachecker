@@ -31,7 +31,7 @@
 
     <path id="CPAchecker.classpath">
         <pathelement location="${class.dir}"/>
-        <fileset dir="lib" includes="*.jar" excludes="appengine-java-sdk-1.8.8/**,gae/**"/>
+        <fileset dir="lib" includes="*.jar" excludes="appengine-*/**,gae/**"/>
         <fileset dir="lib/JavaParser" includes="*.jar"/>
         <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar"/>
     </path>
@@ -44,11 +44,13 @@
     <condition property="os" value="windows">
         <os family="windows"/>
     </condition>
-    <target name="init">
+    <target name="init" depends="create-version-file">
         <echo message="Building ${ant.project.name} ${version}"/>
         <mkdir dir="${class.dir}/org/sosy_lab/cpachecker"/>
-        <echo message="${version}" file="${class.dir}/org/sosy_lab/cpachecker/VERSION.txt"/>
     </target>
+	<target name="create-version-file">
+		<echo message="${version}" file="${class.dir}/org/sosy_lab/cpachecker/VERSION.txt"/>
+	</target>
     <target name="clean">
         <delete includeEmptyDirs="true">
             <fileset dir="." includes="${class.dir}/** cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
@@ -238,4 +240,55 @@
 
     <target description="Run all tests" depends="unit-tests, benchmark-tests" name="tests"/>
 
+
+    <!-- Targets for running FindBugs on CPAchecker.
+         These need a locally installed FindBugs,
+         and you need to pass -Dfindbugs.home=<PATH_TO_FINDBUGS> to ant.
+    -->
+    <target name="run-findbugs" depends="jar">
+        <delete file="FindBugs.html"/>
+        <taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask" classpath="${findbugs.home}/lib/findbugs.jar"/>
+        <findbugs home="${findbugs.home}"
+                output="xml:withMessages"
+                outputFile="FindBugs.xml"
+                excludeFilter=".settings/FindBugs.exclude.xml"
+                warningsProperty="findbugs.warnings">
+            <auxClasspath refid="CPAchecker.classpath" />
+            <sourcePath path="${source.dir}" />
+            <class location="cpachecker.jar" />
+        </findbugs>
+    </target>
+
+    <target name="findbugs-report" if="findbugs.warnings">
+        <echo>FindBugs found warnings, generating report.</echo>
+        <xslt in="FindBugs.xml" out="FindBugs.html" style="${findbugs.home}/src/xsl/fancy.xsl"/>
+    </target>
+
+    <target name="findbugs" depends="run-findbugs, findbugs-report"
+        description="Run FindBugs and generate report."/>
+
+    <target name="run-findbugs-diff" depends="jar">
+        <delete file="FindBugs.diff.html"/>
+        <taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask" classpath="${findbugs.home}/lib/findbugs.jar"/>
+        <findbugs home="${findbugs.home}"
+                output="xml:withMessages"
+                outputFile="FindBugs.diff.xml"
+                excludeFilter=".settings/FindBugs.exclude.xml"
+                warningsProperty="findbugs.newwarnings"
+                baselineBugs="FindBugs.known.xml">
+            <auxClasspath refid="CPAchecker.classpath" />
+            <sourcePath path="${source.dir}" />
+            <class location="cpachecker.jar" />
+        </findbugs>
+    </target>
+
+    <target name="findbugs-diff-report" if="findbugs.newwarnings">
+        <echo>FindBugs found new warnings, generating report.</echo>
+        <xslt in="FindBugs.diff.xml" out="FindBugs.diff.html" style="${findbugs.home}/src/xsl/fancy.xsl"/>
+    </target>
+
+    <target name="findbugs-diff" depends="run-findbugs-diff, findbugs-diff-report"
+        description="Run FindBugs and generate report with newly found warnings."/>
+
+    <target name="findbugs-full" depends="findbugs, findbugs-diff"/>
 </project>

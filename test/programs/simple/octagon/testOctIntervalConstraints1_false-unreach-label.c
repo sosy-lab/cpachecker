@@ -5,8 +5,10 @@ void __VERIFIER_assert(int cond) {
   return;
 }
 
+extern unsigned int __VERIFIER_nondet_uint();
+
 int main(void) {
-  int a = __VERIFIER_nondet_uint();
+  unsigned int a = __VERIFIER_nondet_uint();
 
   __VERIFIER_assert(a > 0); 
 

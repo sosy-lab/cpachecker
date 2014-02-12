@@ -36,6 +36,8 @@ import java.util.Properties;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 
+import com.google.common.base.Charsets;
+
 /**
  * Represents the options that may be set by a client.
  * Setting options not defined by this class might cause the application
@@ -49,22 +51,33 @@ import org.sosy_lab.common.io.Paths;
  */
 public class DefaultOptions {
 
-  private static Map<String, String> allowedOptions;
+  private static Map<String, String> allowedOptions = new HashMap<>();
+  private static List<String> unsupportedConfigurations;
   private Map<String, String> usedOptions = new HashMap<>();
+  private String originalWalltimeLimit;
+
+  static {
+    allowedOptions.put("analysis.machineModel", "Linux32");
+    allowedOptions.put("output.disable", "false");
+    allowedOptions.put("statistics.export", "true");
+    allowedOptions.put("configuration.dumpFile", "");
+    allowedOptions.put("log.level", "OFF");
+    allowedOptions.put("limits.time.wall", "540s"); // 9 minutes
+    allowedOptions.put("gae.instanceType", "FRONTEND");
+
+    /*
+     * CPAs that do not work:
+     * cpa.chc.CHCCPA
+     * cpa.ldd.LDDAbstractionCPA
+     * cpa.octagon.OctagonCPA
+     * cpa.seplogic.SeplogicCPA
+     */
+  }
 
   /**
    * Returns the allowed options and their default values.
    */
   public static Map<String, String> getDefaultOptions() {
-    if (allowedOptions == null) {
-      allowedOptions = new HashMap<>();
-      allowedOptions.put("analysis.machineModel", "Linux32");
-      allowedOptions.put("output.disable", "false");
-      allowedOptions.put("statistics.export", "true");
-      allowedOptions.put("log.usedOptions.export", "false");
-      allowedOptions.put("log.level", "OFF");
-      allowedOptions.put("limits.time.wall", "540s"); // 9 minutes
-    }
     return allowedOptions;
   }
 
@@ -77,9 +90,7 @@ public class DefaultOptions {
    * @return True, if the option will be used, false otherwise.
    */
   public boolean setOption(String key, String value) {
-    if (!getDefaultOptions().containsKey(key)) {
-      return false;
-    }
+    if (!getDefaultOptions().containsKey(key)) { return false; }
 
     if (!getDefaultOptions().get(key).equals(value)) {
 
@@ -88,22 +99,31 @@ public class DefaultOptions {
         value = value.toUpperCase();
       }
 
-      // walltime must not be negative or too large
       if (key.equals("limits.time.wall")) {
-        int defaultValue;
-        int newValue;
-        try {
-          String cleanDefault = getDefault("limits.time.wall").replaceAll("[^0-9]*$", "");
-          String cleanValue = value.replaceAll("[^0-9]*$", "");
-          defaultValue = Integer.parseInt(cleanDefault);
-          newValue = Integer.parseInt(cleanValue);
+        // walltime must not be negative or too large on frontend instances
+        if (!getUsedOptions().containsKey("gae.instanceType")
+            || !getUsedOptions().get("gae.instanceType").equals("BACKEND")) {
+          originalWalltimeLimit = value;
+          int defaultValue;
+          int newValue;
+          try {
+            String cleanDefault = getDefault("limits.time.wall").replaceAll("[^0-9]*$", "");
+            String cleanValue = value.replaceAll("[^0-9]*$", "");
+            defaultValue = Integer.parseInt(cleanDefault);
+            newValue = Integer.parseInt(cleanValue);
 
-          if (newValue < 0 || newValue > defaultValue) {
+            if (newValue < 0 || newValue > defaultValue) {
+              value = getDefault("limits.time.wall");
+            }
+          } catch (NumberFormatException e) {
             value = getDefault("limits.time.wall");
           }
-        } catch (NumberFormatException e) {
-          value = getDefault("limits.time.wall");
         }
+      }
+
+      // backends can run forever. so recover a previously overwritten wall time limit
+      if (key.equals("gae.instanceType") && value.equals("BACKEND") && originalWalltimeLimit != null) {
+        usedOptions.put("limits.time.wall", originalWalltimeLimit);
       }
 
       usedOptions.put(key, value);
@@ -145,6 +165,21 @@ public class DefaultOptions {
   }
 
   /**
+   * Returns a list of configuration files that are known not to work on Google
+   * App Engine.
+   *
+   * @return A list of unsupported configuration files.
+   */
+  public static List<String> getUnsupportedConfigurations() throws IOException {
+    if (unsupportedConfigurations == null) {
+      unsupportedConfigurations = Paths.get("WEB-INF", "unsupported-configurations.txt")
+          .asCharSource(Charsets.UTF_8).readLines();
+    }
+
+    return unsupportedConfigurations;
+  }
+
+  /**
    * Returns options that will always be set and cannot be changed.
    *
    * @return The immutable options
@@ -156,7 +191,6 @@ public class DefaultOptions {
     try (InputStream in = Paths.get("WEB-INF", "default-options.properties").asByteSource().openStream()) {
       properties.load(in);
     }
-
 
     for (String key : properties.stringPropertyNames()) {
       options.put(key, properties.getProperty(key));
@@ -210,7 +244,7 @@ public class DefaultOptions {
    *
    * @return The available configuration files.
    */
-  public static List<String> getConfigurations() {
+  public static List<String> getConfigurations() throws IOException {
     Path configurationDir = Paths.get("WEB-INF/configurations");
     File[] files = configurationDir.toFile().listFiles(new FilenameFilter() {
 
@@ -225,6 +259,8 @@ public class DefaultOptions {
     for (File file : files) {
       configurations.add(file.getName());
     }
+
+    configurations.removeAll(getUnsupportedConfigurations());
     return configurations;
   }
 }

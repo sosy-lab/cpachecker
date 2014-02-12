@@ -30,39 +30,17 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.eclipse.cdt.internal.core.parser.scanner.Token;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectingVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.FileLocationCollectingVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -83,6 +61,18 @@ import com.google.common.collect.Sets;
 public class TokenCollector {
 
   private static Map<String, Set<Integer>> variableRelatedTokens = Maps.newHashMap();
+  private static Map<Integer, Token> tokenNumberToTokenMap = Maps.newHashMap();
+  private static Map<Integer, Integer> tokenNumberToLineNumberMap = Maps.newHashMap();
+
+  public static Set<String> matchTokenNumbersToTokenStrings(final Set<Integer> tokenNumbers) {
+    return Collections.emptySet();
+  }
+
+  public static void storeTokenInformation(final Token token, final int lineNumber, final int tokenNumber) {
+    tokenNumberToTokenMap.put(tokenNumber, token);
+    tokenNumberToLineNumberMap.put(tokenNumber, lineNumber);
+  }
+
 
   private static void collectLine (final SortedSet<Integer> target, final FileLocation loc, boolean overApproximateTokens) {
     if (loc != null) {
@@ -102,208 +92,162 @@ public class TokenCollector {
     }
   }
 
-  private static class TokenCollectingVisitor implements CStatementVisitor<Void, RuntimeException>,
-      CInitializerVisitor<Void, RuntimeException>, CExpressionVisitor<Void, RuntimeException> {
-
-    public final TreeSet<Integer> result = Sets.newTreeSet();
-
-    private final boolean overApproximateTokens;
-
-    public TokenCollectingVisitor(boolean overApproximateTokens) {
-      this.overApproximateTokens = overApproximateTokens;
+  private static void collectRowAndCol (final SortedSet<RowAndColumn> target, final FileLocation loc, boolean overApproximateTokens) {
+    if (loc != null) {
+      target.add(new RowAndColumn(loc.getStartingLineNumber(), loc.getNodeOffset()));
     }
-
-    private void addFromLoc (final FileLocation loc) {
-      collectLine(result, loc, overApproximateTokens);
-    }
-
-    @Override
-    public Void visit(CArraySubscriptExpression pE) throws RuntimeException {
-      addFromLoc(pE.getFileLocation());
-      pE.getArrayExpression().accept(this);
-      pE.getSubscriptExpression().accept(this);
-      return null;
-    }
-
-    @Override
-    public Void visit(CBinaryExpression pE) throws RuntimeException {
-      addFromLoc(pE.getFileLocation());
-      pE.getOperand1().accept(this);
-      pE.getOperand2().accept(this);
-      return null;
-    }
-
-    @Override
-    public Void visit(CCastExpression pE) throws RuntimeException {
-      addFromLoc(pE.getFileLocation());
-      pE.getOperand().accept(this);
-      return null;
-    }
-
-    @Override
-    public Void visit(CComplexCastExpression pE) throws RuntimeException {
-      addFromLoc(pE.getFileLocation());
-      pE.getOperand().accept(this);
-      return null;
-    }
-
-    @Override
-    public Void visit(CFieldReference pE) throws RuntimeException {
-      addFromLoc(pE.getFileLocation());
-      pE.getFieldOwner().accept(this);
-      return null;
-    }
-
-    @Override
-    public Void visit(CPointerExpression pE) throws RuntimeException {
-      addFromLoc(pE.getFileLocation());
-      pE.getOperand().accept(this);
-      return null;
-    }
-
-    @Override
-    public Void visit(CUnaryExpression pE) throws RuntimeException {
-      addFromLoc(pE.getFileLocation());
-      pE.getOperand().accept(this);
-      return null;
-    }
-
-    @Override
-    public Void visit(CInitializerExpression pE) throws RuntimeException {
-      addFromLoc(pE.getFileLocation());
-      pE.getExpression().accept(this);
-      return null;
-    }
-
-    @Override
-    public Void visit(CInitializerList pI) throws RuntimeException {
-      addFromLoc(pI.getFileLocation());
-      for (CInitializer i: pI.getInitializers()) {
-        addFromLoc(i.getFileLocation());
-        i.accept(this);
-      }
-      return null;
-    }
-
-    @Override
-    public Void visit(CDesignatedInitializer pI) throws RuntimeException {
-      addFromLoc(pI.getFileLocation());
-      return null;
-    }
-
-    @Override
-    public Void visit(CExpressionAssignmentStatement pS) throws RuntimeException {
-      addFromLoc(pS.getFileLocation());
-      pS.getLeftHandSide().accept(this);
-      pS.getRightHandSide().accept(this);
-      return null;
-    }
-
-    @Override
-    public Void visit(CExpressionStatement pS) throws RuntimeException {
-      addFromLoc(pS.getFileLocation());
-      pS.getExpression().accept(this);
-      return null;
-    }
-
-    @Override
-    public Void visit(CFunctionCallAssignmentStatement pS) throws RuntimeException {
-      addFromLoc(pS.getFileLocation());
-      pS.getLeftHandSide().accept(this);
-      pS.getRightHandSide().getFunctionNameExpression().accept(this);
-      for (CExpression expr : pS.getRightHandSide().getParameterExpressions()) {
-        expr.accept(this);
-      }
-      return null;
-    }
-
-    @Override
-    public Void visit(CFunctionCallStatement pS) throws RuntimeException {
-      addFromLoc(pS.getFileLocation());
-      return null;
-    }
-
-    @Override
-    public Void visit(CIdExpression pE) throws RuntimeException {
-      addFromLoc(pE.getFileLocation());
-      return null;
-    }
-
-    @Override
-    public Void visit(CCharLiteralExpression pE) throws RuntimeException {
-      addFromLoc(pE.getFileLocation());
-      return null;
-    }
-
-    @Override
-    public Void visit(CFloatLiteralExpression pE) throws RuntimeException {
-      if (pE.getFileLocation() != null) {
-        addFromLoc(pE.getFileLocation());
-      }
-      return null;
-    }
-
-    @Override
-    public Void visit(CIntegerLiteralExpression pE) throws RuntimeException {
-      if (pE.getFileLocation() != null) {
-        addFromLoc(pE.getFileLocation());
-      }
-      return null;
-    }
-
-    @Override
-    public Void visit(CStringLiteralExpression pE) throws RuntimeException {
-      addFromLoc(pE.getFileLocation());
-      return null;
-    }
-
-    @Override
-    public Void visit(CTypeIdExpression pE) throws RuntimeException {
-      addFromLoc(pE.getFileLocation());
-      return null;
-    }
-
-    @Override
-    public Void visit(CTypeIdInitializerExpression pE) throws RuntimeException {
-      addFromLoc(pE.getFileLocation());
-      return null;
-    }
-
-    @Override
-    public Void visit(CImaginaryLiteralExpression pE) throws RuntimeException {
-      addFromLoc(pE.getFileLocation());
-      return null;
-    }
-
-    public Set<Integer> collectTokensFrom(CExpression astNode) {
-      astNode.accept(this);
-      return result;
-    }
-
-    public Set<Integer> collectTokensFrom(CStatement astNode) {
-      astNode.accept(this);
-      return result;
-    }
-
-    public Set<Integer> collectTokensFrom(CInitializer astNode) {
-      astNode.accept(this);
-      return result;
-    }
-
   }
 
   public static Set<Integer> collectTokensFrom(CAstNode astNode, boolean overApproximateTokens) {
-    TokenCollectingVisitor visitor = new TokenCollectingVisitor(overApproximateTokens);
+    final TreeSet<Integer> result = Sets.newTreeSet();
+    Set<FileLocation> locs = collectFileLocationsFrom(astNode);
 
-    if (astNode instanceof CStatement) {
-      return visitor.collectTokensFrom((CStatement) astNode);
-    } else if (astNode instanceof CExpression) {
-      return visitor.collectTokensFrom((CExpression) astNode);
-    } else if (astNode instanceof CInitializer) {
-      return visitor.collectTokensFrom((CInitializer) astNode);
+    for (FileLocation l: locs) {
+      collectLine(result, l, overApproximateTokens);
     }
 
-    return Collections.emptySet();
+    return result;
+  }
+
+  public static class RowAndColumn implements Comparable<RowAndColumn>{
+    public final int row;
+    public final int column;
+
+    public RowAndColumn(int row, int col) {
+      this.row = row;
+      this.column = col;
+    }
+
+    @Override
+    public String toString() {
+      return row + ":" + column;
+    }
+
+    @Override
+    public int compareTo(RowAndColumn pO) {
+      if ((pO.row == this.row) && (pO.column == this.column)) {
+        return 0;
+      } else {
+        if (pO.row == this.row) {
+          if (pO.column > this.column) {
+            return 1;
+          } else {
+            return -1;
+          }
+        } else if (pO.row > this.row) {
+          return 1;
+        } else {
+          return -1;
+        }
+      }
+    }
+  }
+
+  public static synchronized Set<RowAndColumn> collectRowsAndColsFrom(CAstNode astNode, boolean overApproximateTokens) {
+    final TreeSet<RowAndColumn> result = Sets.newTreeSet();
+    Set<FileLocation> locs = collectFileLocationsFrom(astNode);
+
+    for (FileLocation l: locs) {
+      RowAndColumn rc = new RowAndColumn(l.getStartingLineNumber(), l.getNodeOffset());
+      result.add(rc);
+    }
+
+    return result;
+  }
+
+  public static synchronized Set<FileLocation> collectFileLocationsFrom(CAstNode astNode) {
+    final FileLocationCollectingVisitor visitor = new FileLocationCollectingVisitor();
+    Set<FileLocation> locs = Collections.emptySet();
+
+    if (astNode instanceof CStatement) {
+      locs = visitor.collectTokensFrom((CStatement) astNode);
+    } else if (astNode instanceof CExpression) {
+      locs = visitor.collectTokensFrom((CExpression) astNode);
+    } else if (astNode instanceof CInitializer) {
+      locs = visitor.collectTokensFrom((CInitializer) astNode);
+    }
+
+    return locs;
+  }
+
+  public static synchronized Set<RowAndColumn> getRowsAndColsFromCFAEdge(CFAEdge pEdge, boolean overApproximateTokens) {
+    final TreeSet<RowAndColumn> result = Sets.newTreeSet();
+    final Deque<CFAEdge> edges = Queues.newArrayDeque();
+    final Deque<CAstNode> astNodes = Queues.newArrayDeque();
+
+//    if (overApproximateTokens) {
+//      Set<String> variables = getEdgeVariableNames(pEdge);
+//      for (String variable: variables) {
+//        if (variable.contains("__CPA")) {
+//          Set<Integer> tokens = variableRelatedTokens.get(variable);
+//          if (tokens != null) {
+//            result.addAll(tokens);
+//          } else {
+//            result.addAll(Collections.<Integer>emptySet());
+//          }
+//        }
+//      }
+//    }
+
+    edges.add(pEdge);
+
+    while (!edges.isEmpty()) {
+      CFAEdge edge = edges.pop();
+      CFANode startNode = edge.getPredecessor();
+      CFANode endNode = edge.getSuccessor();
+
+      switch (edge.getEdgeType()) {
+      case MultiEdge:
+        edges.addAll(((MultiEdge) edge).getEdges());
+      break;
+      case AssumeEdge:
+        CAssumeEdge assumeEdge = ((CAssumeEdge) edge);
+        astNodes.add(assumeEdge.getExpression());
+      break;
+      case CallToReturnEdge:
+        CFunctionSummaryEdge fnSumEdge = (CFunctionSummaryEdge) edge;
+        result.addAll(collectRowsAndColsFrom(fnSumEdge.getExpression(), overApproximateTokens));
+        result.addAll(collectRowsAndColsFrom(fnSumEdge.getExpression().getFunctionCallExpression().getFunctionNameExpression(), overApproximateTokens));
+        collectRowAndCol(result, fnSumEdge.getExpression().getFileLocation(), overApproximateTokens);
+        collectRowAndCol(result, fnSumEdge.getExpression().getFunctionCallExpression().getFileLocation(), overApproximateTokens);
+        astNodes.addAll(fnSumEdge.getExpression().getFunctionCallExpression().getParameterExpressions());
+      break;
+      case DeclarationEdge:
+        CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
+        collectRowAndCol(result, decl.getFileLocation(), overApproximateTokens);
+        if (decl instanceof CVariableDeclaration) {
+          CVariableDeclaration varDecl = (CVariableDeclaration) decl;
+          if (varDecl.getInitializer() != null) {
+            result.addAll(collectRowsAndColsFrom(varDecl.getInitializer(), overApproximateTokens));
+          }
+        }
+      break;
+      case FunctionCallEdge:
+        if (edge.getPredecessor().getLeavingSummaryEdge() != null) {
+          edges.add(edge.getPredecessor().getLeavingSummaryEdge());
+        }
+        astNodes.addAll(((CFunctionCallEdge) edge).getArguments());
+      break ;
+      case FunctionReturnEdge:
+      break;
+      case ReturnStatementEdge:
+        CExpression expr = ((CReturnStatementEdge) edge).getExpression();
+        if (expr != null) {
+          astNodes.add(expr);
+        }
+      break;
+      case StatementEdge:
+        result.addAll(collectRowsAndColsFrom(((CStatementEdge) edge).getStatement(), overApproximateTokens));
+      break;
+      }
+
+      while(!astNodes.isEmpty()) {
+        CAstNode node = astNodes.pop();
+        result.addAll(collectRowsAndColsFrom(node, overApproximateTokens));
+      }
+    }
+
+    return result;
   }
 
   public static synchronized Set<Integer> getTokensFromCFAEdge(CFAEdge pEdge, boolean overApproximateTokens) {
@@ -385,8 +329,9 @@ public class TokenCollector {
       break;
       case ReturnStatementEdge:
         CExpression expr = ((CReturnStatementEdge) edge).getExpression();
+        result.add(((CReturnStatementEdge) edge).getLineNumber());
         if (expr != null) {
-          result.add(((CReturnStatementEdge) edge).getLineNumber());
+          astNodes.add(expr);
         }
       break;
       case StatementEdge:

@@ -6,7 +6,6 @@
     <include>../programs/induction/*.c</include>
   </sourcefiles>
   <sourcefiles>
-    <option name="-spec">sv-comp</option>
     <include>../programs/benchmarks/ssh-simplified/s3_srvr*.cil.c</include>
     <include>../programs/benchmarks/ssh/s3_srvr*.cil.c</include>
   </sourcefiles>
@@ -15,6 +14,8 @@
   <option name="-bmc-induction"/>
   <option name="-setprop">bmc.invariantGenerationConfigFile=config/explicitAnalysis-no-cbmc.properties</option>
   <option name="-heap">1200M</option>
+
+  <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
 
   <rundefinition name="k1">
     <option name="-setprop">cpa.loopstack.maxLoopIterations=1</option>

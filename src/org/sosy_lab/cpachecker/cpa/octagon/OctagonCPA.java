@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
 @Options(prefix="cpa.octagon")
-public class OctagonCPA implements ConfigurableProgramAnalysis {
+public final class OctagonCPA implements ConfigurableProgramAnalysis {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(OctagonCPA.class);
@@ -88,7 +88,7 @@ public class OctagonCPA implements ConfigurableProgramAnalysis {
     this.stopOperator = octagonStopOp;
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
 
-    assert (OctagonManager.init());
+    assert OctagonManager.init();
   }
 
   @Override

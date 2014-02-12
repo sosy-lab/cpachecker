@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -337,7 +338,7 @@ public class CFASecondPassBuilder {
     AssumeEdge trueEdge = new CAssumeEdge(edge.getRawStatement(), edge.getLineNumber(),
         edge.getPredecessor(), edge.getSuccessor(), assumeExp, true);
 
-    CFANode elseNode = new CFANode(edge.getLineNumber(), edge.getPredecessor().getFunctionName());
+    CFANode elseNode = new CFATerminationNode(edge.getLineNumber(), edge.getPredecessor().getFunctionName());
     AssumeEdge falseEdge = new CAssumeEdge(edge.getRawStatement(), edge.getLineNumber(),
         edge.getPredecessor(), elseNode, assumeExp, false);
 

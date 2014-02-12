@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -47,8 +47,15 @@ import com.googlecode.objectify.ObjectifyService;
 import com.googlecode.objectify.VoidWork;
 
 
+/**
+ * This class provides methods for loading, saving and deletion of {@link Job}
+ * instances.
+ */
 public class JobDAO {
 
+  /**
+   * @see #load(Key)
+   */
   public static Job load(String key) {
     try {
       Key<Job> jobKey = Key.create(key);
@@ -58,15 +65,36 @@ public class JobDAO {
     }
   }
 
+  /**
+   * Retrieves and returns a job with the given key.
+   *
+   * @param key The key of the desired job
+   * @return The desired job or null if it cannot be found
+   */
   public static Job load(Key<Job> key) {
     Job job = ofy().load().key(key).now();
-    return retrieveAndSetStats(job);
+    return sanitizeStateAndSetStatistics(job);
   }
 
+  /**
+   * Returns a list containing all available jobs.
+   * @return
+   */
   public static List<Job> jobs() {
-    return ofy().load().type(Job.class).list();
+    List<Job> jobs = ofy().load().type(Job.class).list();
+    for (Job job : jobs) {
+      sanitizeStateAndSetStatistics(job);
+    }
+
+    return jobs;
   }
 
+  /**
+   * Saves the given job.
+   *
+   * @param job The job to save
+   * @return The saved job
+   */
   public static Job save(Job job) {
     ofy().save().entity(job).now();
     return job;
@@ -80,6 +108,7 @@ public class JobDAO {
   public static void delete(final Job job) {
     if (job != null) {
       ofy().transact(new VoidWork() {
+
         @Override
         public void vrun() {
           try {
@@ -128,65 +157,114 @@ public class JobDAO {
     }
   }
 
+  /**
+   * Sets the following properties to null. Does not save the job!
+   * <ul>
+   * <li>executionDate</li>
+   * <li>resultMessage</li>
+   * <li>resultOutcome</li>
+   * <li>requestID</li>
+   * <li>statistics</li>
+   * <li>statusMessage</li>
+   * <li>terminationDate</li>
+   * </ul>
+   *
+   * @param job The job to reset
+   * @return The given job
+   */
+  public static Job reset(Job job) {
+    job.setExecutionDate(null);
+    job.setResultMessage(null);
+    job.setResultOutcome(null);
+    job.setRequestID(null);
+    job.setStatistic(null);
+    job.setStatusMessage(null);
+    job.setTerminationDate(null);
+    return job;
+  }
+
+  /**
+   * @see #delete(Job)
+   */
   public static void delete(Key<Job> key) {
     delete(load(key));
   }
 
+  /**
+   * Allocates and returns a key that can be used to identify a job instance.
+   *
+   * @return A key for a job.
+   */
   public static Key<Job> allocateKey() {
     return ObjectifyService.factory().allocateId(Job.class);
   }
 
-  private static Job retrieveAndSetStats(Job job) {
-    if (job == null) {
-      return job;
-    }
+  /**
+   * Retrieves the log entry associated with the given job and uses
+   * the entry together with the job's state to fix the job if it is in an
+   * undefined state.
+   * Also saves any statistics found in the log entry together with the job.
+   *
+   * @param job The job to sanitize.
+   * @return The given job instance
+   */
+  private static Job sanitizeStateAndSetStatistics(Job job) {
+    if (job == null) { return job; }
 
+    // job has started and no statistics were set
     if (job.getRequestID() != null && job.getStatisticReference() == null) {
-      List<String> reqIDs = Collections.singletonList(job.getRequestID());
-      LogQuery query = LogQuery.Builder.withRequestIds(reqIDs);
+      LogQuery query = LogQuery.Builder.withRequestIds(Collections.singletonList(job.getRequestID()));
       for (RequestLogs record : LogServiceFactory.getLogService().fetch(query)) {
         if (record.isFinished()) {
-
-          // clear error file if the job has been retried but now succeeded
-          if (job.getStatus() == Status.DONE && job.getRetries() > 0) {
-            JobFile errorFile = JobFileDAO.loadByName(JobRunnerResource.ERROR_FILE_NAME, job);
-            if (errorFile != null) {
-              JobFileDAO.delete(errorFile);
-            }
-          }
-
-          // Update status if job is done but the status does not reflect this
-          if (job.getStatus() == Status.PENDING
-              || job.getStatus() == Status.RUNNING) {
+          if (job.getStatus() == Status.PENDING || job.getStatus() == Status.RUNNING) {
+            JobDAO.reset(job);
             job.setStatus(Status.ERROR);
-            job.setStatusMessage(String.format("Running the job is done but the status did not reflect this."
-                + "Therefore the status was set to %s.", Status.ERROR));
+            job.setStatusMessage("The task's request has finished but the task's status did not reflect this.");
+          }
 
-            JobFile error = new JobFile(JobRunnerResource.ERROR_FILE_NAME, job);
-            StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.append(record.getCombined());
-            for (AppLogLine line : record.getAppLogLines()) {
-              stringBuilder.append(line.getLogMessage());
-            }
-            error.setContent(stringBuilder.toString());
-            try {
-              JobFileDAO.save(error);
-            } catch (IOException e) {
-              // well, then there will be no explanation about the error.
+          if (record.getStatus() == 500 && job.getStatus() != Status.TIMEOUT && job.getStatus() != Status.DONE) {
+            if (job.getRetries() < JobRunnerResource.MAX_RETRIES) {
+              JobDAO.reset(job);
+              job.setStatus(Status.PENDING);
+              job.setStatusMessage("Waiting for retry. Already failed " + (job.getRetries() + 1) + " times.");
+            } else {
+              JobDAO.reset(job);
+              job.setStatus(Status.ERROR);
+              job.setStatusMessage("The task's request has finished, the task's status did not reflect this and no retries are left");
+
+              JobFile errorFile = JobFileDAO.loadByName(JobRunnerResource.ERROR_FILE_NAME, job);
+              if (errorFile == null) {
+                errorFile = new JobFile(JobRunnerResource.ERROR_FILE_NAME, job);
+              }
+              StringBuilder errorString = new StringBuilder();
+              errorString.append(record.getCombined());
+              for (AppLogLine line : record.getAppLogLines()) {
+                errorString.append(line.getLogMessage());
+              }
+              errorString.append(errorFile.getContent());
+              errorFile.setContent(errorString.toString());
+              try {
+                JobFileDAO.save(errorFile);
+              } catch (IOException e) {
+                // too bad, no information about the error can be saved.
+              }
             }
           }
 
-          JobStatistic stats = new JobStatistic(job);
-          stats.setCost(record.getCost());
-          stats.setHost(record.getHost());
-          stats.setLatency(record.getLatencyUsec());
-          stats.setEndTime(record.getEndTimeUsec());
-          stats.setStartTime(record.getStartTimeUsec());
-          stats.setPendingTime(record.getPendingTimeUsec());
-          stats.setMcycles(record.getMcycles());
+          if (job.getStatus() == Status.DONE || job.getStatus() == Status.ERROR || job.getStatus() == Status.TIMEOUT) {
+            JobStatistic stats = new JobStatistic(job);
+            stats.setCost(record.getCost());
+            stats.setHost(record.getHost());
+            stats.setLatency(record.getLatencyUsec());
+            stats.setEndTime(record.getEndTimeUsec());
+            stats.setStartTime(record.getStartTimeUsec());
+            stats.setPendingTime(record.getPendingTimeUsec());
+            stats.setMcycles(record.getMcycles());
 
-          JobStatisticDAO.save(stats);
-          job.setStatistic(stats);
+            JobStatisticDAO.save(stats);
+            job.setStatistic(stats);
+          }
+
           job = save(job);
         }
       }
