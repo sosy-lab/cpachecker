@@ -61,7 +61,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
  *                         // (but their addresses can be different!)
  *   </pre>
  */
- public class DeferredAllocationPool {
+ class DeferredAllocationPool {
 
   private DeferredAllocationPool(final PersistentList<String> pointerVariables,
                                  final boolean isZeroing,

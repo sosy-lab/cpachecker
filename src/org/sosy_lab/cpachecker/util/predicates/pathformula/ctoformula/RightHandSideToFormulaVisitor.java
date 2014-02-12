@@ -52,11 +52,11 @@ import com.google.common.base.Charsets;
 class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula, UnrecognizedCCodeException>
                                      implements CRightHandSideVisitor<Formula, UnrecognizedCCodeException> {
 
-  protected final CtoFormulaConverter conv;
-  protected final CFAEdge       edge;
-  protected final String        function;
-  protected final SSAMapBuilder ssa;
-  protected final Constraints   constraints;
+  final CtoFormulaConverter conv;
+  final CFAEdge       edge;
+  final String        function;
+  final SSAMapBuilder ssa;
+  final Constraints   constraints;
 
   public RightHandSideToFormulaVisitor(ExpressionToFormulaVisitor pDelegate) {
     super(pDelegate);

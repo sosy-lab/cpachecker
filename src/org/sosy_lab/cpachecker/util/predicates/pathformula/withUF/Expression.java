@@ -30,9 +30,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Location.UnaliasedLocation;
 
-public abstract class Expression {
-  public static abstract class Location extends Expression {
-    public static class AliasedLocation extends Location {
+abstract class Expression {
+  static abstract class Location extends Expression {
+    static class AliasedLocation extends Location {
 
       private AliasedLocation(final Formula address) {
         this.address = address;
@@ -50,7 +50,7 @@ public abstract class Expression {
       private final Formula address;
     }
 
-    public static class UnaliasedLocation extends Location {
+    static class UnaliasedLocation extends Location {
 
       private UnaliasedLocation(final String variableName) {
         this.variableName = variableName;
@@ -97,8 +97,8 @@ public abstract class Expression {
     }
   }
 
-  public static class Value extends Expression {
-    public static class Nondet extends Value {
+  static class Value extends Expression {
+    static class Nondet extends Value {
       private Nondet() {
         super(null);
       }
@@ -202,5 +202,5 @@ public abstract class Expression {
 
   public abstract Kind getKind();
 
-  public static enum Kind {ALIASED_LOCATION, UNALIASED_LOCATION, DET_VALUE, NONDET}
+  static enum Kind {ALIASED_LOCATION, UNALIASED_LOCATION, DET_VALUE, NONDET}
 }

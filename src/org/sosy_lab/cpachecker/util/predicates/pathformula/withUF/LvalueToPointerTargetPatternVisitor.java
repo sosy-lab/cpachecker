@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetS
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
 
 
-public class LvalueToPointerTargetPatternVisitor
+class LvalueToPointerTargetPatternVisitor
 extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeException> {
 
   public LvalueToPointerTargetPatternVisitor(final CToFormulaWithUFConverter conv,

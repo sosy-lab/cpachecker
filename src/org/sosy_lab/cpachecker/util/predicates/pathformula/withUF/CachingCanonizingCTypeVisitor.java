@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 
-public class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeException> {
+class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeException> {
 
   private class CTypeTransformerVisitor implements CTypeVisitor<CType, RuntimeException> {
 

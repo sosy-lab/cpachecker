@@ -94,7 +94,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 
-public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
+class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
                                              implements CStatementVisitor<BooleanFormula, UnrecognizedCCodeException>,
                                                         CRightHandSideVisitor<Expression, UnrecognizedCCodeException> {
 
