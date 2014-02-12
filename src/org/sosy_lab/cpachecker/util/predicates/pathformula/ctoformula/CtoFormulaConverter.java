@@ -109,7 +109,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoF
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -133,15 +132,6 @@ public class CtoFormulaConverter {
   static final Map<String, String> UNSUPPORTED_FUNCTIONS
       = ImmutableMap.of("pthread_create", "threads");
 
-  static Predicate<String> startsWith(final String pPrefix) {
-    return new Predicate<String>() {
-        @Override
-        public boolean apply(String pVariable) {
-          return pVariable.startsWith(pPrefix);
-        }
-      };
-  }
-
   //names for special variables needed to deal with functions
   private static final String VAR_RETURN_NAME = "__retval__";
 
@@ -149,8 +139,6 @@ public class CtoFormulaConverter {
   private int expands = 0;
 
   private static final String FIELD_VARIABLE = "__field_of__";
-  @VisibleForTesting
-  static final Predicate<String> IS_FIELD_VARIABLE = startsWith(FIELD_VARIABLE);
 
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of(
       "printf", "printk"
@@ -451,10 +439,10 @@ public class CtoFormulaConverter {
   private Formula resolveFields(String name, CType type, SSAMapBuilder ssa, boolean makeFreshIndex) {
     // Resolve Fields
 
-    if (!IS_FIELD_VARIABLE.apply(name)) {
+    if (!isFieldVariable(name)) {
       int idx = getIndex(name, type, ssa, makeFreshIndex);
 
-      assert !IS_FIELD_VARIABLE.apply(name)
+      assert !isFieldVariable(name)
         : "Never make variables for field! Always use the underlaying bitvector! Fieldvariable-Names are only used as intermediate step!";
       return fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, idx);
     }
@@ -526,12 +514,17 @@ public class CtoFormulaConverter {
           "__end";
   }
 
+  @VisibleForTesting
+  static boolean isFieldVariable(String var) {
+    return var.startsWith(FIELD_VARIABLE);
+  }
+
   /**
    * Takes a field variable name and returns the name and offset of the associated
    * struct variable.
    */
   static Pair<String, Pair<Integer, Integer>> removeFieldVariable(String fieldVariable) {
-    assert (IS_FIELD_VARIABLE.apply(fieldVariable));
+    assert isFieldVariable(fieldVariable);
 
     String name = fieldVariable.substring(FIELD_VARIABLE.length(), fieldVariable.lastIndexOf("__in__"));
     String msbLsbString =

@@ -37,7 +37,7 @@ public class CtoFormulaConverterTest {
 
     String fieldName = CtoFormulaConverter.makeFieldVariableName(name, msb_lsb, emptyMap);
 
-    Assert.assertTrue("Expected field as output", CtoFormulaConverter.IS_FIELD_VARIABLE.apply(fieldName));
+    Assert.assertTrue("Expected field as output", CtoFormulaConverter.isFieldVariable(fieldName));
 
     Pair<String, Pair<Integer, Integer>> data = CtoFormulaConverter.removeFieldVariable(fieldName);
 
