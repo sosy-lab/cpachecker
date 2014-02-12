@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -82,11 +82,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Location;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Value;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.DeferredAllocationPool;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.StatementToFormulaVisitor;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Location;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Value;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
 
@@ -651,7 +651,7 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
                            e);
       functionName = "<func>{" +
                      CtoFormulaConverter.scoped(CtoFormulaConverter.exprToVarName(functionNameExpression),
-                                                getDelegate().function) +
+                                                function) +
                      "}";
     }
 

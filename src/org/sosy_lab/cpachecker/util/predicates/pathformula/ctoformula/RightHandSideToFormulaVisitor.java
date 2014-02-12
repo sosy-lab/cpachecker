@@ -156,7 +156,7 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
     }
   }
 
-  Formula handleExternModelFunction(CFunctionCallExpression fexp, List<CExpression> parameters) {
+  public Formula handleExternModelFunction(CFunctionCallExpression fexp, List<CExpression> parameters) {
     assert (parameters.size()>0): "No external model given!";
     // the parameter comes in C syntax (with ")
     String filename = parameters.get(0).toASTString().replaceAll("\"", "");

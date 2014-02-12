@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -40,6 +40,7 @@ import org.eclipse.cdt.internal.core.dom.parser.c.CFunctionType;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -90,20 +91,20 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Location;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Location.AliasedLocation;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Location.UnaliasedLocation;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Value;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.FormulaEncodingWithUFOptions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PathFormulaWithUF;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Location;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Value;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Location.AliasedLocation;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTarget;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
@@ -114,6 +115,19 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 public class CToFormulaWithUFConverter extends CtoFormulaConverter {
+
+  // Overrides just for visibility in other classes of this package
+
+  @SuppressWarnings("hiding")
+  final LogManagerWithoutDuplicates logger = super.logger;
+  @SuppressWarnings("hiding")
+  final FormulaManagerView fmgr = super.fmgr;
+  @SuppressWarnings("hiding")
+  final BooleanFormulaManagerView bfmgr = super.bfmgr;
+  @SuppressWarnings("hiding")
+  final FunctionFormulaManagerView ffmgr = super.ffmgr;
+  @SuppressWarnings("hiding")
+  final MachineModel machineModel = super.machineModel;
 
   public CToFormulaWithUFConverter(final FormulaEncodingWithUFOptions pOptions,
                                    final FormulaManagerView formulaManagerView,
@@ -146,7 +160,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   @Override
   @Deprecated
-  int makeFreshIndex(final String name, final CType type, final SSAMapBuilder ssa) {
+  protected int makeFreshIndex(final String name, final CType type, final SSAMapBuilder ssa) {
     throw new UnsupportedOperationException("Use more specific methods instead");
   }
 
@@ -179,7 +193,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   @Override
-  Variable scopedIfNecessary(CIdExpression var, SSAMapBuilder ssa, String function) {
+  protected Variable scopedIfNecessary(CIdExpression var, SSAMapBuilder ssa, String function) {
     return Variable.create(var.getDeclaration().getQualifiedName(),
                            PointerTargetSet.simplifyType(var.getExpressionType()));
   }
@@ -200,7 +214,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   @Override
-  int getIndex(final String name, final CType type, final SSAMapBuilder ssa) {
+  protected int getIndex(final String name, final CType type, final SSAMapBuilder ssa) {
     int index = ssa.getIndex(name);
     if (index <= 0) {
       logger.log(Level.ALL, "WARNING: Auto-instantiating variable:", name);
@@ -220,14 +234,14 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   @Override
   @Deprecated
-  Formula makeConstant(final String name, final CType type, final SSAMapBuilder ssa) {
+  protected Formula makeConstant(final String name, final CType type, final SSAMapBuilder ssa) {
     // throw new UnsupportedOperationException("Use the method with pts argument instead");
     return super.makeConstant(name, type, ssa);
   }
 
   @Override
   @Deprecated
-  Formula makeConstant(final Variable var, final SSAMapBuilder ssa) {
+  protected Formula makeConstant(final Variable var, final SSAMapBuilder ssa) {
     throw new UnsupportedOperationException("Use the method with pts argument instead");
   }
 
@@ -243,13 +257,13 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   @Override
   @Deprecated
-  Formula makeVariable(final String name, final CType type, final SSAMapBuilder ssa) {
+  protected Formula makeVariable(final String name, final CType type, final SSAMapBuilder ssa) {
     throw new UnsupportedOperationException("Use the method with pts argument instead");
   }
 
   @Override
   @Deprecated
-  Formula makeVariable(final Variable var, final SSAMapBuilder ssa) {
+  protected Formula makeVariable(final Variable var, final SSAMapBuilder ssa) {
     throw new UnsupportedOperationException("Use the method with pts argument instead");
   }
 
@@ -267,7 +281,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   @Override
   @Deprecated
-  Formula makeFreshVariable(final String name, final CType type, final SSAMapBuilder ssa) {
+  protected Formula makeFreshVariable(final String name, final CType type, final SSAMapBuilder ssa) {
     // throw new UnsupportedOperationException("Use the method with pts argument instead");
     return super.makeFreshVariable(name, type, ssa);
   }
@@ -1559,12 +1573,41 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   static final String SCOPE_SEPARATOR = CtoFormulaConverter.scoped("", "");
 
-  private static final String RETURN_VARIABLE_NAME;
-
-  static {
-    final String scopedReturnVariable = CtoFormulaConverter.getReturnVarName("");
-    RETURN_VARIABLE_NAME = scopedReturnVariable.substring(SCOPE_SEPARATOR.length());
-  }
+  private static final String RETURN_VARIABLE_NAME = VAR_RETURN_NAME;
 
   private static final Map<CType, String> ufNameCache = new IdentityHashMap<>();
+
+
+  // Overrides just for visibility in other classes of this package
+
+  @Override
+  protected CType getPromotedCType(CType pT) {
+    return super.getPromotedCType(pT);
+  }
+
+  @Override
+  protected CType getReturnType(CFunctionCallExpression pFuncCallExp, CFAEdge pEdge) throws UnrecognizedCCodeException {
+    return super.getReturnType(pFuncCallExp, pEdge);
+  }
+
+  @Override
+  protected <T extends Formula> T ifTrueThenOneElseZero(FormulaType<T> pType, BooleanFormula pCond) {
+    return super.ifTrueThenOneElseZero(pType, pCond);
+  }
+
+  @Override
+  protected CExpression makeCastFromArrayToPointerIfNecessary(CExpression pExp, CType pTargetType) {
+    return super.makeCastFromArrayToPointerIfNecessary(pExp, pTargetType);
+  }
+
+  @Override
+  protected <T extends Formula> BooleanFormula toBooleanFormula(T pF) {
+    return super.toBooleanFormula(pF);
+  }
+
+  @Override
+  protected Formula makeCast(CType pFromType, CType pToType, Formula pFormula, CFAEdge pEdge)
+      throws UnrecognizedCCodeException {
+    return super.makeCast(pFromType, pToType, pFormula, pEdge);
+  }
 }

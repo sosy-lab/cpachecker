@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -61,12 +61,12 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Location;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Location.AliasedLocation;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Location.UnaliasedLocation;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Value;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExpressionToFormulaVisitor;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Location;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Value;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Location.AliasedLocation;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
 
 import com.google.common.collect.ImmutableList;
@@ -274,7 +274,7 @@ public class ExpressionToFormulaWithUFVisitor
         return Value.ofValue(conv.makeConstant(variable, pts));
       }
     } else {
-      variable = conv.scopedIfNecessary(e, ssa, delegate.function);
+      variable = conv.scopedIfNecessary(e, ssa, function);
       final Formula address = conv.makeConstant(PointerTargetSet.getBaseName(variable.getName()),
                                                 PointerTargetSet.getBaseType(resultType),
                                                 pts);
@@ -394,7 +394,7 @@ public class ExpressionToFormulaWithUFVisitor
                                          oldBaseVariable,
                                          initializedFields,
                                          ssa,
-                                         delegate.constraints,
+                                         constraints,
                                          pts);
           if (ssa.getIndex(oldBaseVariable.getName()) != CToFormulaWithUFConverter.VARIABLE_UNSET) {
             ssa.deleteVariable(oldBaseVariable.getName());
@@ -403,7 +403,7 @@ public class ExpressionToFormulaWithUFVisitor
                                 oldBaseVariable.getType(),
                                 pts.isPreparedBase(newBaseVariable.getName()),
                                 false,
-                                delegate.constraints,
+                                constraints,
                                 pts);
           sharedBases.add(Pair.of(newBaseVariable.getName(), oldBaseVariable.getType()));
           return visit(e);

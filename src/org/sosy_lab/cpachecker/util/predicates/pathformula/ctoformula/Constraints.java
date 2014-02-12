@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
  * This class tracks constraints which are created during AST traversal but
  * cannot be applied at the time of creation.
  */
-class Constraints {
+public class Constraints {
 
   private final BooleanFormulaManagerView bfmgr;
 
@@ -42,11 +42,11 @@ class Constraints {
   /**
    * @param pCtoFormulaConverter
    */
-  Constraints(BooleanFormulaManagerView pBfmgr) {
+  public Constraints(BooleanFormulaManagerView pBfmgr) {
     bfmgr = pBfmgr;
   }
 
-  void addConstraint(BooleanFormula pCo) {
+  public void addConstraint(BooleanFormula pCo) {
     constraints.add(pCo);
   }
 
