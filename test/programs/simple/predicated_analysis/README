@@ -19,7 +19,7 @@ Benchmark programs:
   * demo/demo2: paper example
   * list_statistics: computes statistical mean, variance of values stored in a list, checks for Division By Zero
   * harmonic_mean: computes harmonic mean of values stored in a list, checks for Division By Zero
-  *
+  * fraction: simulation of fraction reduction, gcd computation abstracted, checks for Division By Zero
 - Uninitialized Variables Analysis: programs taken from SV-COMP Benchmark (systemc), checks if uninitialized variables are used (type state)
   * kundu_uninit_a
   * kundu_uninit_b

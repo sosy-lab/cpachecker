@@ -1,0 +1,29 @@
+(set-info :source |printed by MathSAT|)
+(declare-fun |main::frac$d| () Real)
+(define-fun .def_81 () Bool (= |main::frac$d| (to_real 0)))
+(declare-fun |reduceFraction::frac$d| () Real)
+(define-fun .def_84 () Bool (= |reduceFraction::frac$d| (to_real 0)))
+(declare-fun |gcd::y| () Real)
+(define-fun .def_87 () Bool (= |gcd::y| (to_real 0)))
+
+gcd N0:
+(assert .def_81)
+(assert false)
+
+gcd N1:
+(assert .def_81)
+(assert .def_87)
+
+reduceFraction N13:
+(assert .def_81)
+(assert .def_84)
+
+reduceFraction N15:
+(assert .def_81)
+
+main N35:
+(assert .def_81)
+
+main N40:
+(assert .def_81)
+
