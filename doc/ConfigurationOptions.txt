@@ -705,23 +705,8 @@ cpa.explicit.refiner.avoidAssumes = false
 # refinement root
 cpa.explicit.refiner.checkForRepeatedRefinements = true
 
-# whether or not to stop interpolation, when no increment was obtained from
-# the last error trace that was interpolated
-cpa.explicit.refiner.checkOnEmptyIncrement = false
-
-# perform check, and potential cut-off if incremental precision is found to
-# be enough
-cpa.explicit.refiner.checkOnIncrementalPrec = false
-
-# perform check on relevance of error path
-cpa.explicit.refiner.checkOnRelevance = false
-
 # whether or not to do lazy-abstraction
 cpa.explicit.refiner.doLazyAbstraction = true
-
-# the order in which error paths should be refined
-cpa.explicit.refiner.errorPathOrder = "DEFAULT"
-  allowed values: [DEFAULT, ZIGZAG]
 
 # use heuristic to extract a precision from the CFA statically on first
 # refinement
@@ -956,9 +941,6 @@ cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.smt2"
 # Handle field access via extract and concat instead of new variables.
 cpa.predicate.handleFieldAccess = false
 
-# Handle field aliasing formulas.
-cpa.predicate.handleFieldAliasing = false
-
 # If disabled, all implicitly initialized fields and elements are treated as
 # non-dets
 cpa.predicate.handleImplicitInitialization = true
@@ -1058,13 +1040,6 @@ cpa.predicate.nondetFunctions = {
 # Regexp pattern for functions that should be considered as giving a
 # non-deterministic return value (c.f. cpa.predicate.nondedFunctions)
 cpa.predicate.nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-zA-Z0-9_]*"
-
-# Handle field aliasing formulas.
-cpa.predicate.omitNonPointerInFieldAliasing = true
-
-# Encode pointer aliasing information with uninterpreted functions (more
-# precise) if pointer aliasing is handled.
-cpa.predicate.pointerAnalysisWithUFs = true
 
 # Where to apply the found predicates to?
 cpa.predicate.precision.sharing = LOCATION

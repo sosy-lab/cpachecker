@@ -38,7 +38,6 @@ public class CtoFormulaConverterTest {
     String fieldName = CtoFormulaConverter.makeFieldVariableName(name, msb_lsb, emptyMap);
 
     Assert.assertTrue("Expected field as output", CtoFormulaConverter.IS_FIELD_VARIABLE.apply(fieldName));
-    Assert.assertFalse("Expected no PtrMask as output", PointerAliasHandling.POINTER_VARIABLE.matcher(fieldName).matches());
 
     Pair<String, Pair<Integer, Integer>> data = CtoFormulaConverter.removeFieldVariable(fieldName);
 
@@ -46,20 +45,6 @@ public class CtoFormulaConverterTest {
     Assert.assertTrue("Output data should match the input data", data.getSecond().equals(msb_lsb));
 
     return fieldName;
-  }
-
-  private String rawPtrTest(String name) {
-
-    String ptrName = PointerAliasHandling.makePointerMaskName(name, 1, emptyMap);
-
-    Assert.assertTrue("Expected PtrMask as output", PointerAliasHandling.POINTER_VARIABLE.matcher(ptrName).matches());
-    Assert.assertFalse("Expected no Field as output", CtoFormulaConverter.IS_FIELD_VARIABLE.apply(ptrName));
-
-    String data = PointerAliasHandling.removePointerMask(ptrName);
-
-    Assert.assertTrue("Output name should match the input name", data.equals(name));
-
-    return ptrName;
   }
 
   /**
@@ -71,41 +56,5 @@ public class CtoFormulaConverterTest {
     String name = "varName";
     Pair<Integer, Integer> msb_lsb = Pair.of(3, 7);
     rawFieldTest(name, msb_lsb);
-  }
-
-
-  /**
-   * This method tests if the creation of variablenames for fields works propery
-   * @throws Exception
-   */
-  @Test
-  public void testPtrField() throws Exception {
-    String name = "varName";
-    Pair<Integer, Integer> msb_lsb = Pair.of(3, 7);
-
-    String ptrMask = rawPtrTest(name);
-    rawFieldTest(ptrMask, msb_lsb);
-  }
-
-  /**
-   * This method tests if the creation of variablenames for fields works propery
-   * @throws Exception
-   */
-  @Test
-  public void testSimplePtr() throws Exception {
-    String name = "varName";
-    rawPtrTest(name);
-  }
-
-  /**
-   * This method tests if the creation of variablenames for fields works propery
-   * @throws Exception
-   */
-  @Test
-  public void testFieldPtr() throws Exception {
-    String name = "varName";
-    Pair<Integer, Integer> msb_lsb = Pair.of(3, 7);
-    String fieldName = rawFieldTest(name, msb_lsb);
-    rawPtrTest(fieldName);
   }
 }

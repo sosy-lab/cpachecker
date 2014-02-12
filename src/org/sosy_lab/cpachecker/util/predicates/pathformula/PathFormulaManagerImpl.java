@@ -69,7 +69,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CToFormulaWithUFConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.PointerAliasHandling;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.FormulaEncodingWithUFOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PathFormulaWithUF;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
@@ -96,9 +95,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Option(description = "Handle aliasing of pointers. "
       + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
   private boolean handlePointerAliasing = true;
-
-  @Option(description = "Encode pointer aliasing information with uninterpreted functions (more precise) if pointer aliasing is handled.")
-  private boolean pointerAnalysisWithUFs = true;
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
@@ -137,11 +133,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           throws InvalidConfigurationException {
     config.inject(this, PathFormulaManagerImpl.class);
 
-    if (pointerAnalysisWithUFs && !handlePointerAliasing) {
-      pLogger.log(Level.WARNING, "Ignoring option cpa.predicate.pointerAnalysisWithUFs because cpa.predicate.handlePointerAliasing is disabled, possibly imprecise analysis!");
-      pointerAnalysisWithUFs = false;
-    }
-
     fmgr = pFmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
     ffmgr = fmgr.getFunctionFormulaManager();
@@ -149,7 +140,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     converter = createConverter(pFmgr, config, pLogger, pMachineModel, pVariableClassification);
 
-    if (!pointerAnalysisWithUFs) {
+    if (!handlePointerAliasing) {
       NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);
     } else {
       NONDET_FORMULA_TYPE = ((CToFormulaWithUFConverter) converter).getFormulaTypeFromCType(NONDET_TYPE, null);
@@ -160,13 +151,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification)
           throws InvalidConfigurationException {
     if (handlePointerAliasing) {
-      if (pointerAnalysisWithUFs) {
-        final FormulaEncodingWithUFOptions options = new FormulaEncodingWithUFOptions(config);
-        return new CToFormulaWithUFConverter(options, pFmgr, pMachineModel, pVariableClassification, pLogger);
-      } else {
-        final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
-        return new PointerAliasHandling(options, config, pFmgr, pMachineModel, pLogger);
-      }
+      final FormulaEncodingWithUFOptions options = new FormulaEncodingWithUFOptions(config);
+      return new CToFormulaWithUFConverter(options, pFmgr, pMachineModel, pVariableClassification, pLogger);
+
     } else {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       return new CtoFormulaConverter(options, pFmgr, pMachineModel, pLogger);
@@ -217,7 +204,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Override
   public PathFormula makeEmptyPathFormula() {
-    if (!pointerAnalysisWithUFs) {
+    if (!handlePointerAliasing) {
       return new PathFormula(bfmgr.makeBoolean(true), SSAMap.emptySSAMap(), 0);
     } else {
       return ((CToFormulaWithUFConverter)converter).makeEmptyPathFormula();
@@ -226,7 +213,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Override
   public PathFormula makeEmptyPathFormula(PathFormula oldFormula) {
-    if (!pointerAnalysisWithUFs) {
+    if (!handlePointerAliasing) {
       return new PathFormula(bfmgr.makeBoolean(true), oldFormula.getSsa(), 0);
     } else {
       return new PathFormulaWithUF(bfmgr.makeBoolean(true),
@@ -237,7 +224,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Override
   public PathFormula makeNewPathFormula(PathFormula oldFormula, SSAMap m) {
-    if (!pointerAnalysisWithUFs) {
+    if (!handlePointerAliasing) {
       return new PathFormula(oldFormula.getFormula(), m, oldFormula.getLength());
     } else {
       return new PathFormulaWithUF(oldFormula.getFormula(),
@@ -255,7 +242,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final SSAMap ssa1 = pathFormula1.getSsa();
     final SSAMap ssa2 = pathFormula2.getSsa();
 
-    if (!pointerAnalysisWithUFs) {
+    if (!handlePointerAliasing) {
       final Pair<Pair<BooleanFormula, BooleanFormula>, SSAMap> mergeResult = mergeSSAMaps(ssa2, ssa1);
 
       // Do not swap these two lines, that makes a huge difference in performance!
@@ -293,7 +280,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     SSAMap ssa = pPathFormula.getSsa();
     BooleanFormula otherFormula =  fmgr.instantiate(pOtherFormula, ssa);
     BooleanFormula resultFormula = bfmgr.and(pPathFormula.getFormula(), otherFormula);
-    if (!pointerAnalysisWithUFs) {
+    if (!handlePointerAliasing) {
       return new PathFormula(resultFormula, ssa, pPathFormula.getLength());
     } else {
       final PointerTargetSet pts = ((PathFormulaWithUF) pPathFormula).getPointerTargetSet();
