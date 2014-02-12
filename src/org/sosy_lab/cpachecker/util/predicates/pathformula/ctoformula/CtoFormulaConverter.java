@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -1134,18 +1133,6 @@ public class CtoFormulaConverter {
     throw new IllegalArgumentException("Assignment between different types");
   }
 
-  void warnToComplex(CAstNode node) {
-    if (logger.wouldBeLogged(Level.FINEST)) {
-      if (options.handleFieldAccess()) {
-        logfOnce(Level.FINEST, node,
-            "Ignoring pointer aliasing because statement is too complex, please simplify");
-      } else {
-        logfOnce(Level.FINEST, node,
-            "Ignoring pointer aliasing because statement is too complex, please simplify or enable handleFieldAccess and handleFieldAliasing");
-      }
-    }
-  }
-
   <T extends Formula> T ifTrueThenOneElseZero(FormulaType<T> type, BooleanFormula pCond) {
     T one = fmgr.makeNumber(type, 1);
     T zero = fmgr.makeNumber(type, 0);
@@ -1175,10 +1162,6 @@ public class CtoFormulaConverter {
 
   private BooleanFormula makePredicate(CExpression exp, boolean isTrue, CFAEdge edge,
       String function, SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
-
-    if (IndirectionVisitor.getIndirectionLevel(exp) > supportedIndirectionLevel) {
-      warnToComplex(exp);
-    }
 
     Formula f = exp.accept(getCExpressionVisitor(edge, function, ssa, constraints));
     BooleanFormula result = toBooleanFormula(f);
@@ -1340,58 +1323,6 @@ public class CtoFormulaConverter {
       return removeCast(((CCastExpression) exp).getOperand());
     }
     return exp;
-  }
-
-  /**
-   * Indicates which level of indirection is supported.
-   * This should stay 1 unless you know what you are doing.
-   * The main reason for this limit is that we would have to emit a lot more formulas for every additional level.
-   */
-  protected final int supportedIndirectionLevel = 1;
-
-  /**
-   * Returns true when we are able to produce a variable<CType> from this expression.
-   * With this method we are able to control which expressions we handle and
-   * which we just create variables for.
-   * @param exp the expression.
-   * @param level the current level of indirection.
-   * @return true if we can create a variable from this expression.
-   */
-  boolean isSupportedExpression(CExpression exp, int level) {
-    if (level > supportedIndirectionLevel) {
-      return false;
-    }
-
-    if (exp instanceof CIdExpression) {
-      return true;
-    } else if (options.handleFieldAccess() && exp instanceof CFieldReference) {
-      CFieldReference fexp = (CFieldReference)exp;
-      return isSupportedExpression(getRealFieldOwner(fexp), level);
-    } else if (exp instanceof CCastExpression) {
-      CCastExpression cexp = (CCastExpression)exp;
-      return isSupportedExpression(cexp.getOperand(), level);
-    } else if (exp instanceof CUnaryExpression) {
-      CUnaryExpression uexp = (CUnaryExpression)exp;
-      UnaryOperator op = uexp.getOperator();
-      return
-          (op == UnaryOperator.AMPER) &&
-          isSupportedExpression(uexp.getOperand(), level + 1);
-    } else if (exp instanceof CPointerExpression) {
-      return isSupportedExpression(((CPointerExpression)exp).getOperand(), level +1);
-    }
-
-    return false;
-  }
-
-  /**
-   * Returns true when we are able to produce a variable<CType> from this expression.
-   * With this method we are able to control which expressions we handle and
-   * which we just create variables for.
-   * @param exp the expression
-   * @return true if we can create a variable from this expression.
-   */
-  boolean isSupportedExpression(CExpression exp) {
-    return isSupportedExpression(exp, 0);
   }
 
   /**
