@@ -26,23 +26,15 @@ package org.sosy_lab.cpachecker.appengine.entity;
 import com.google.appengine.api.log.RequestLogs;
 import com.google.appengine.api.quota.QuotaService;
 import com.google.appengine.api.quota.QuotaServiceFactory;
-import com.googlecode.objectify.Key;
-import com.googlecode.objectify.Ref;
-import com.googlecode.objectify.annotation.Entity;
-import com.googlecode.objectify.annotation.Id;
-import com.googlecode.objectify.annotation.Parent;
+import com.googlecode.objectify.annotation.Embed;
 
 /**
  * This class represents the statistics generated when the associated job was run.
  * @see RequestLogs
  */
-@Entity
+@Embed
 public class JobStatistic {
 
-  @Id
-  Long id;
-  @Parent
-  Ref<Job> job;
   private double cost;
   private String host;
   private long latency;
@@ -50,28 +42,6 @@ public class JobStatistic {
   private long startTime;
   private long pendingTime;
   private long mCycles;
-
-  public JobStatistic() {}
-
-  public JobStatistic(Job job) {
-    setJob(job);
-  }
-
-  public String getKey() {
-    return Key.create(job.getKey(), JobStatistic.class, getId()).getString();
-  }
-
-  public Long getId() {
-    return id;
-  }
-
-  public Job getJob() {
-    return job.get();
-  }
-
-  public void setJob(Job pJob) {
-    job = Ref.create(pJob);
-  }
 
   /**
    * Returns the estimated cost in US Dollars.

@@ -36,10 +36,13 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.googlecode.objectify.Ref;
 
 /**
  * This class contains a set of classes that are used to mixin annotations
@@ -121,5 +124,12 @@ public abstract class JobMixinAnnotations {
     @JsonInclude(Include.ALWAYS)
     @Override
     public abstract JobStatistic getStatistic();
+  }
+
+  @JsonAutoDetect(setterVisibility = Visibility.PUBLIC_ONLY)
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public abstract class FromJSONAPI {
+    @JsonIgnore
+    Ref<JobFile> program;
   }
 }

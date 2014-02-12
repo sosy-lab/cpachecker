@@ -39,8 +39,6 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.google.common.base.CharMatcher;
 
 
 public class SettingsServerResource extends WadlServerResource implements SettingsResource {
@@ -48,11 +46,8 @@ public class SettingsServerResource extends WadlServerResource implements Settin
   @Override
   public Representation getSettingsAsJson() throws IOException {
     ObjectMapper mapper = new ObjectMapper();
-    mapper.enable(SerializationFeature.INDENT_OUTPUT);
-
     Map<String, Object> settings = new HashMap<>();
-    String timeLimit = CharMatcher.DIGIT.retainFrom(DefaultOptions.getDefault("limits.time.wall"));
-    settings.put("timeLimit", timeLimit);
+    settings.put("timeLimit", DefaultOptions.DEFAUL_WALLTIME_LIMIT);
     settings.put("retries", String.valueOf(JobRunnerResource.MAX_RETRIES));
     settings.put("errorFileName", JobRunnerResource.ERROR_FILE_NAME);
     settings.put("statisticsFileName", DefaultOptions.getImmutableOptions().get("statistics.file"));

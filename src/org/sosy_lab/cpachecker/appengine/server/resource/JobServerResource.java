@@ -91,7 +91,7 @@ public class JobServerResource extends WadlServerResource implements JobResource
     ObjectMapper mapper = new ObjectMapper();
     mapper.enable(SerializationFeature.INDENT_OUTPUT);
     mapper.addMixInAnnotations(Job.class, JobMixinAnnotations.Full.class);
-    mapper.addMixInAnnotations(JobStatistic.class, JobStatisticMixinAnnotations.Minimal.class);
+    mapper.addMixInAnnotations(JobStatistic.class, JobStatisticMixinAnnotations.Full.class);
     mapper.addMixInAnnotations(JobFile.class, JobFileMixinAnnotations.Minimal.class);
 
     try {

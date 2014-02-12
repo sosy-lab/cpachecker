@@ -26,10 +26,15 @@ package org.sosy_lab.cpachecker.appengine.dao;
 import static com.googlecode.objectify.ObjectifyService.ofy;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
+import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner;
+import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner.InstanceType;
+import org.sosy_lab.cpachecker.appengine.entity.DefaultOptions;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.Job.Status;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
@@ -42,6 +47,7 @@ import com.google.appengine.api.log.LogServiceFactory;
 import com.google.appengine.api.log.RequestLogs;
 import com.google.appengine.api.taskqueue.Queue;
 import com.google.appengine.api.taskqueue.QueueFactory;
+import com.google.apphosting.api.ApiProxy.RequestTooLargeException;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
 import com.googlecode.objectify.VoidWork;
@@ -121,30 +127,24 @@ public class JobDAO {
              */
           }
 
-          if (job.getFiles() != null && job.getFiles().size() > 0) {
-            ofy().delete().entities(job.getFiles()).now();
-          }
-
-          if (job.getStatistic() != null) {
-            ofy().delete().entity(job.getStatistic()).now();
-          }
-
-          ofy().delete().entities(job).now();
+          JobFileDAO.deleteAll(job);
+          ofy().delete().entity(job).now();
         }
       });
     }
   }
 
   /**
-   * Deletes all jobs, job files and purges the task queue.
+   * Deletes 500 jobs and job files at once and purges the task queue.
+   * This method needs to be called multiple times since huge amounts of entities
+   * in the data store cannot be deleted at once.
    */
   public static void deleteAll() {
-    List<Key<Job>> jobKeys = ofy().load().type(Job.class).keys().list();
+    List<Key<Job>> jobKeys = ofy().load().type(Job.class).limit(500).keys().list();
+    List<Key<JobFile>> fileKeys = ofy().load().type(JobFile.class).limit(500).keys().list();
+
     ofy().delete().keys(jobKeys).now();
-    List<Key<JobFile>> fileKeys = ofy().load().type(JobFile.class).keys().list();
     ofy().delete().keys(fileKeys).now();
-    List<Key<JobStatistic>> statKeys = ofy().load().type(JobStatistic.class).keys().list();
-    ofy().delete().keys(statKeys).now();
 
     try {
       Queue queue = QueueFactory.getQueue(GAETaskQueueJobRunner.QUEUE_NAME);
@@ -155,6 +155,78 @@ public class JobDAO {
        * since tasks will disappear anyway after they've been run.
        */
     }
+  }
+
+  /**
+   * Creates a new task from the given task an program.
+   *
+   * @param job The job
+   * @param program The program
+   * @return A pair with the first member being a list of errors and the second member being the created job
+   */
+  @SuppressWarnings("unchecked")
+  public static List<String> create(Job job, JobFile program) {
+    // merge existing errors
+    List<String> errors = new ArrayList<>();
+
+    if (job.getSpecification() == null && job.getConfiguration() == null) {
+      errors.add("error.specOrConfigMissing");
+    }
+
+    if (job.getSpecification() != null) {
+      if (!DefaultOptions.getSpecifications().contains(job.getSpecification())) {
+        errors.add("error.specificationNotFound");
+      }
+    }
+
+    if (job.getConfiguration() != null) {
+      try {
+        if (!DefaultOptions.getConfigurations().contains(job.getConfiguration())) {
+          errors.add("error.configurationNotFound");
+        }
+      } catch (IOException e) {
+        errors.add("error.configurationNotFound");
+      }
+    }
+
+    if (program.getContent() == null || program.getContent().equals("")) {
+      errors.add("error.noProgram");
+    }
+
+    if (job.getOptions().containsKey("log.level")) {
+      try {
+        Level.parse(job.getOptions().get("log.level"));
+      } catch (IllegalArgumentException e) {
+        errors.add("error.invalidLogLevel");
+      }
+    }
+
+    if (job.getOptions().containsKey("gae.instanceType")) {
+      try {
+        InstanceType.valueOf(job.getOptions().get("gae.instanceType"));
+      } catch (IllegalArgumentException e) {
+        errors.add("error.invalidInstanceType");
+      }
+    }
+
+    if (errors.size() == 0) {
+      try {
+        job.setId(allocateKey().getId());
+        program.setJob(job);
+
+        JobFileDAO.save(program);
+        job.setProgram(program);
+        JobDAO.save(job);
+      } catch (IOException e) {
+        if (e.getCause() instanceof RequestTooLargeException) {
+          errors.add("error.programTooLarge");
+        } else {
+          errors.add("error.couldNotUpload");
+        }
+      }
+    }
+
+    return errors;
   }
 
   /**
@@ -211,8 +283,40 @@ public class JobDAO {
   private static Job sanitizeStateAndSetStatistics(Job job) {
     if (job == null) { return job; }
 
+    /*
+     * Handle the case where the task has never started but no retries are left
+     * due to internal errors on behalf of GAE.
+     */
+    if (job.getRequestID() == null && job.getStatus() == Status.PENDING) {
+      Date now = new Date();
+      LogQuery query = LogQuery.Builder
+          .withStartTimeMillis(job.getCreationDate().getTime())
+          .endTimeMillis(now.getTime());
+
+      int amountOfDetectedRecords = 0;
+      RequestLogs lastRecord = null;
+      for (RequestLogs record : LogServiceFactory.getLogService().fetch(query)) {
+        if (record.isFinished()
+            && record.getTaskName() != null
+            && record.getStatus() == 500
+            && record.getTaskName().equals(job.getTaskName())) {
+          amountOfDetectedRecords = amountOfDetectedRecords + 1;
+          lastRecord = record;
+        }
+      }
+
+      // retry count is 0-indexed, therefore e.g. 2 records for MAX_RETRIES == 1
+      if (amountOfDetectedRecords > JobRunnerResource.MAX_RETRIES) {
+        JobDAO.reset(job);
+        job.setStatus(Status.ERROR);
+        job.setStatusMessage("The task's request has finished, the task's status did not reflect this and no retries are left");
+        job.setRequestID(lastRecord.getRequestId());
+        save(job);
+      }
+    }
+
     // job has started and no statistics were set
-    if (job.getRequestID() != null && job.getStatisticReference() == null) {
+    if (job.getRequestID() != null && job.getStatistic() == null) {
       LogQuery query = LogQuery.Builder.withRequestIds(Collections.singletonList(job.getRequestID()));
       for (RequestLogs record : LogServiceFactory.getLogService().fetch(query)) {
         if (record.isFinished()) {
@@ -252,7 +356,7 @@ public class JobDAO {
           }
 
           if (job.getStatus() == Status.DONE || job.getStatus() == Status.ERROR || job.getStatus() == Status.TIMEOUT) {
-            JobStatistic stats = new JobStatistic(job);
+            JobStatistic stats = new JobStatistic();
             stats.setCost(record.getCost());
             stats.setHost(record.getHost());
             stats.setLatency(record.getLatencyUsec());
@@ -261,7 +365,6 @@ public class JobDAO {
             stats.setPendingTime(record.getPendingTimeUsec());
             stats.setMcycles(record.getMcycles());
 
-            JobStatisticDAO.save(stats);
             job.setStatistic(stats);
           }
 

@@ -27,7 +27,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner.InstanceType;
 import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
@@ -39,6 +38,7 @@ import com.googlecode.objectify.annotation.EmbedMap;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
 import com.googlecode.objectify.annotation.Ignore;
+import com.googlecode.objectify.annotation.Index;
 import com.googlecode.objectify.annotation.OnLoad;
 import com.googlecode.objectify.annotation.OnSave;
 
@@ -75,11 +75,11 @@ public class Job {
   private Date creationDate;
   private Date executionDate;
   private Date terminationDate;
+  @Index
   private Status status;
   private String statusMessage;
   private String specification;
   private String configuration;
-  private String sourceFileName;
   private String queueName;
   private String taskName;
   private InstanceType instanceType;
@@ -88,8 +88,8 @@ public class Job {
   private String resultMessage;
   @EmbedMap
   private Map<String, String> options = new HashMap<>();
-  private List<Ref<JobFile>> files = new CopyOnWriteArrayList<>();
-  private Ref<JobStatistic> statistic;
+  private Ref<JobFile> program;
+  private JobStatistic statistic;
 
   @Ignore
   private boolean optionsEscaped = false;
@@ -160,7 +160,9 @@ public class Job {
   }
 
   public void setOptions(Map<String, String> pOptions) {
-    options = pOptions;
+    DefaultOptions defaultOptions = new DefaultOptions();
+    defaultOptions.setOptions(pOptions);
+    options = defaultOptions.getOptions();
   }
 
   /**
@@ -210,12 +212,12 @@ public class Job {
     configuration = pConfiguration;
   }
 
-  public String getSourceFileName() {
-    return sourceFileName;
+  public JobFile getProgram() {
+    return program.get();
   }
 
-  public void setSourceFileName(String pSourceFileName) {
-    sourceFileName = pSourceFileName;
+  public void setProgram(JobFile program) {
+    this.program = Ref.create(program);
   }
 
   public Long getId() {
@@ -230,10 +232,6 @@ public class Job {
     return creationDate;
   }
 
-  public List<Ref<JobFile>> getFiles() {
-    return files;
-  }
-
   /**
    * Returns the file with an ID of the given path.
    *
@@ -246,14 +244,6 @@ public class Job {
 
   public List<JobFile> getFilesLoaded() {
     return JobFileDAO.files(this);
-  }
-
-  public void addFile(JobFile file) {
-    files.add(Ref.create(file));
-  }
-
-  public void removeFile(JobFile file) {
-    files.remove(Ref.create(file));
   }
 
   public String getQueueName() {
@@ -304,19 +294,11 @@ public class Job {
     resultMessage = pResultMessage;
   }
 
-  public Ref<JobStatistic> getStatisticReference() {
+  public JobStatistic getStatistic() {
     return statistic;
   }
 
-  public JobStatistic getStatistic() {
-    return (statistic == null) ? null : statistic.get();
-  }
-
   public void setStatistic(JobStatistic pStatistic) {
-    if (pStatistic == null) {
-      statistic = null;
-    } else {
-      statistic = Ref.create(pStatistic);
-    }
+    statistic = pStatistic;
   }
 }

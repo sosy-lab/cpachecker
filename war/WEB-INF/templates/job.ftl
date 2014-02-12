@@ -93,7 +93,7 @@
         <#if job.sourceFileName??>
         <tr>
           <td>${msg.sourceFileName}</td>
-          <td>${job.sourceFileName?html}</td>
+          <td>${job.program.name?html}</td>
         </tr>
         </#if>
         <#if job.instanceType??>

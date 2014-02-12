@@ -54,29 +54,25 @@ public class JobFile {
   private String path;
   @Index
   private String name;
-  private String content;
+  private String content = "";
   @Ignore
   private Writer contentWriter;
   @Ignore
   private ByteArrayOutputStream contentOutputStream;
 
-  public JobFile() {
-    init();
-  }
+  public JobFile() {}
 
   public JobFile(String path) {
     setPath(path);
-    init();
+  }
+
+  public JobFile(Job job) {
+    setJob(job);
   }
 
   public JobFile(String path, Job job) {
     setPath(path);
-    this.job = Ref.create(job);
-    init();
-  }
-
-  private void init() {
-    content = "";
+    setJob(job);
   }
 
   public String getKey() {

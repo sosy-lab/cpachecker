@@ -31,7 +31,6 @@ import org.restlet.routing.Router;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
-import org.sosy_lab.cpachecker.appengine.entity.JobStatistic;
 import org.sosy_lab.cpachecker.appengine.server.resource.JobFileServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.JobRunnerServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.JobServerResource;
@@ -46,6 +45,7 @@ import com.googlecode.objectify.ObjectifyService;
 import freemarker.log.Logger;
 
 public class CPAcheckerApplication extends WadlApplication {
+
 
   @Override
   public Restlet createInboundRoot() {
@@ -89,6 +89,5 @@ public class CPAcheckerApplication extends WadlApplication {
   static {
     ObjectifyService.register(Job.class);
     ObjectifyService.register(JobFile.class);
-    ObjectifyService.register(JobStatistic.class);
   }
 }

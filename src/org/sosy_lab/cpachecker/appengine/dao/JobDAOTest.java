@@ -28,54 +28,67 @@ import static org.junit.Assert.*;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.appengine.common.DatabaseTest;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
-import org.sosy_lab.cpachecker.appengine.entity.Job.Status;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
-import org.sosy_lab.cpachecker.appengine.entity.JobStatistic;
 
 import com.googlecode.objectify.Key;
 
 
 public class JobDAOTest extends DatabaseTest {
 
-  @Test
-  public void shouldSaveJob() {
-    Job job = new Job();
-    JobDAO.save(job);
+  private Job job;
 
-    assertTrue(job.getId() != null);
+  @Override
+  public void setUp() {
+    super.setUp();
+    job = new Job();
+    JobDAO.save(job);
   }
 
   @Test
-  public void shouldLoadJob() throws Exception {
-    Job job = new Job();
-    JobDAO.save(job);
+  public void shouldLoadJobByString() throws Exception {
     Job loaded = JobDAO.load(job.getKey());
-
     assertEquals(job, loaded);
   }
 
   @Test
-  public void shouldDeleteJob() throws Exception {
-    Job job = new Job(1L);
-    job.setStatus(Status.DONE);
+  public void shouldLoadJobByKey() throws Exception {
+    Key<Job> key = Key.create(job);
+    Job loaded = JobDAO.load(key);
+    assertEquals(job, loaded);
+  }
 
-    JobFile file = new JobFile("", job);
-    JobFileDAO.save(file);
-    job.addFile(file);
+  @Test
+  public void shouldLoadAllJobs() throws Exception {
+    JobDAO.save(new Job());
+    assertEquals(2, JobDAO.jobs().size());
+  }
 
-    JobStatistic stats = new JobStatistic(job);
-    JobStatisticDAO.save(stats);
-    job.setStatistic(stats);
-
+  @Test
+  public void shouldSaveJob() throws Exception {
+    Job job = new Job();
     JobDAO.save(job);
 
-    Key<Job> jobKey = Key.create(job);
-    Key<JobFile> fileKey = Key.create(file);
-    Key<JobStatistic> statsKey = Key.create(stats);
+    assertNotNull(job.getId());
+  }
+
+  @Test
+  public void shouldDeleteJob() throws Exception {
+    JobFile file = new JobFile("", job);
+    JobFileDAO.save(file);
+
+    String keyJob = job.getKey();
+    String keyFile = file.getKey();
+
     JobDAO.delete(job);
 
-    assertNull(JobDAO.load(jobKey));
-    assertNull(JobFileDAO.load(fileKey));
-    assertNull(JobStatisticDAO.load(statsKey));
+    assertNull(JobDAO.load(keyJob));
+    assertNull(JobFileDAO.load(keyFile));
+  }
+
+  @Test
+  public void shouldDeleteAllJobs() throws Exception {
+    JobDAO.save(new Job());
+    JobDAO.deleteAll();
+    assertTrue(JobDAO.jobs().isEmpty());
   }
 }

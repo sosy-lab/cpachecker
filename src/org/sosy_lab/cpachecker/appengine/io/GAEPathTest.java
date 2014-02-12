@@ -63,7 +63,6 @@ public class GAEPathTest extends DatabaseTest {
     } catch (IOException e) {
       fail(e.getMessage());
     }
-    job.addFile(file);
     JobDAO.save(job);
 
     path = new GAEPath("test.tmp", job);
@@ -73,7 +72,7 @@ public class GAEPathTest extends DatabaseTest {
   public void shouldDeleteFile() throws Exception {
     path.delete();
 
-    assertEquals(0, job.getFiles().size());
+    assertNull(JobFileDAO.loadByName("test.tmp", job));
   }
 
   @Test

@@ -48,42 +48,32 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.appengine.common.FreemarkerUtil;
 import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner;
-import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner.InstanceType;
-import org.sosy_lab.cpachecker.appengine.common.JobRunner;
 import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
-import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
 import org.sosy_lab.cpachecker.appengine.entity.DefaultOptions;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
+import org.sosy_lab.cpachecker.appengine.json.JobFileMixinAnnotations;
 import org.sosy_lab.cpachecker.appengine.json.JobMixinAnnotations;
-import org.sosy_lab.cpachecker.appengine.json.JobsResourceJSONModule;
 import org.sosy_lab.cpachecker.appengine.server.common.JobsResource;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.google.apphosting.api.ApiProxy.RequestTooLargeException;
 import com.google.common.base.Charsets;
 
 
 public class JobsServerResource extends WadlServerResource implements JobsResource {
 
-  private static String DEFAULT_FILENAME = "program.c";
-
-  private Job createdJob = null;
-
   @Override
   public Representation createJobFromHtml(Representation input) throws IOException {
-    DefaultOptions options = new DefaultOptions();
-    Map<String, Object> settings = new HashMap<>();
+    Map<String, String> options = new HashMap<>();
+    Job job = new Job();
+    JobFile program = new JobFile();
     List<String> errors = new ArrayList<>();
-    String program = null;
 
     ServletFileUpload upload = new ServletFileUpload();
-
     try {
       FileItemIterator iter = upload.getItemIterator(ServletUtils.getRequest(getRequest()));
       while (iter.hasNext()) {
@@ -94,73 +84,82 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
           switch (item.getFieldName()) {
           case "specification":
             value = (value.equals("")) ? null : value;
-            settings.put("specification", value);
+            job.setSpecification(value);
             break;
           case "configuration":
             value = (value.equals("")) ? null : value;
-            settings.put("configuration", value);
+            job.setConfiguration(value);
             break;
           case "disableOutput":
-            options.setOption("output.disable", "true");
+            options.put("output.disable", "true");
             break;
           case "disableExportStatistics":
-            options.setOption("statistics.export", "false");
+            options.put("statistics.export", "false");
             break;
           case "dumpConfig":
-            options.setOption("configuration.dumpFile", "UsedConfiguration.properties");
+            options.put("configuration.dumpFile", "UsedConfiguration.properties");
             break;
           case "logLevel":
-            options.setOption("log.level", value);
+            options.put("log.level", value);
             break;
           case "machineModel":
-            options.setOption("analysis.machineModel", value);
+            options.put("analysis.machineModel", value);
             break;
           case "wallTime":
-            options.setOption("limits.time.wall", value);
+            options.put("limits.time.wall", value);
             break;
           case "instanceType":
-            options.setOption("gae.instanceType", value);
+            options.put("gae.instanceType", value);
             break;
           case "programText":
-            if (program == null || program.isEmpty()) {
-              settings.put("sourceFileName", DEFAULT_FILENAME);
-              program = value;
+            if (program.getContent().isEmpty()) {
+              program.setPath("program.c");
+              program.setContent(value);
             }
             break;
           }
         }
         else {
-          if (program == null || program.isEmpty()) {
-            settings.put("sourceFileName", item.getName());
+          if (program.getContent().isEmpty()) {
             // files will always be treated as text/plain
             StringWriter writer = new StringWriter();
             IOUtils.copy(stream, writer, Charsets.UTF_8);
-            program = writer.toString();
+            program.setPath(item.getName());
+            program.setContent(writer.toString());
           }
         }
       }
     } catch (FileUploadException | IOException e) {
       getLogger().log(Level.WARNING, "Could not upload program file.", e);
-
       errors.add("error.couldNotUpload");
-      settings.put("errors", errors);
     }
 
-    settings.put("programText", program);
-    settings.put("options", options.getUsedOptions());
+    job.setOptions(options);
 
-    errors = createJob(settings);
+    if (errors.size() == 0) {
+      errors = JobDAO.create(job, program);
+    }
+
+    if (errors != null && errors.size() == 0) {
+      try {
+        Configuration config = Configuration.builder()
+            .setOptions(job.getOptions()).build();
+        new GAETaskQueueJobRunner(config).run(job);
+      } catch (InvalidConfigurationException e) {
+        errors.add("error.invalidConfiguration");
+      }
+    }
 
     if (errors.size() == 0) {
       getResponse().setStatus(Status.SUCCESS_CREATED);
-      redirectSeeOther("/tasks/" + createdJob.getKey());
+      redirectSeeOther("/tasks/" + job.getKey());
       return getResponseEntity();
     }
 
     getResponse().setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
     return FreemarkerUtil.templateBuilder()
         .context(getContext())
-        .addData("job", createdJob)
+        .addData("job", job)
         .addData("errors", errors)
         .addData("allowedOptions", DefaultOptions.getDefaultOptions())
         .addData("defaultOptions", DefaultOptions.getImmutableOptions())
@@ -183,12 +182,17 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
   @Override
   public Representation createJobFromJson(Representation entity) {
     ObjectMapper mapper = new ObjectMapper();
-    mapper.registerModule(new JobsResourceJSONModule());
+    mapper.addMixInAnnotations(Job.class, JobMixinAnnotations.FromJSONAPI.class);
+    mapper.addMixInAnnotations(JobFile.class, JobFileMixinAnnotations.FromJSONAPI.class);
+
     List<String> errors = new ArrayList<>();
-    Map<String, Object> settings = new HashMap<>();
+    Job job = new Job();
+    JobFile program = new JobFile();
     try {
       if (entity != null) {
-        settings = mapper.readValue(entity.getStream(), new TypeReference<Map<String, Object>>() {});
+        String json = entity.getText();
+        job = mapper.readValue(json, Job.class);
+        program = mapper.readValue(json, JobFile.class);
       }
     } catch (JsonParseException e) {
       errors.add("error.jsonNotWellFormed");
@@ -200,7 +204,17 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
 
     // do not attempt to create job if there are no useful settings
     if (errors.size() == 0) {
-      errors = createJob(settings);
+      errors = JobDAO.create(job, program);
+    }
+
+    if (errors != null && errors.size() == 0) {
+      try {
+        Configuration config = Configuration.builder()
+            .setOptions(job.getOptions()).build();
+        new GAETaskQueueJobRunner(config).run(job);
+      } catch (InvalidConfigurationException e) {
+        errors.add("error.invalidConfiguration");
+      }
     }
 
     try {
@@ -209,8 +223,8 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
         return new StringRepresentation(mapper.writeValueAsString(errors), MediaType.APPLICATION_JSON);
       } else {
         getResponse().setStatus(Status.SUCCESS_CREATED);
-        getResponse().setLocationRef("/tasks/" + createdJob.getKey());
-        return new StringRepresentation(mapper.writeValueAsString(createdJob), MediaType.APPLICATION_JSON);
+        getResponse().setLocationRef("/tasks/" + job.getKey());
+        return getResponseEntity();
       }
     } catch (JsonProcessingException e) {
       return null;
@@ -228,102 +242,6 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
     } catch (JsonProcessingException e) {
       return null;
     }
-  }
-
-  /**
-   * Creates a new job from the given settings.
-   *
-   * @param settings The settings.
-   * @return A list of errors if any occurred, an empty list otherwise.
-   */
-  @SuppressWarnings("unchecked")
-  private List<String> createJob(Map<String, Object> settings) {
-    // merge existing errors
-    List<String> errors = new ArrayList<>();
-    if (settings.get("errors") != null) {
-      errors.addAll((List<String>) settings.get("errors"));
-    }
-
-    createdJob = new Job(JobDAO.allocateKey().getId());
-    createdJob.setSpecification((String) settings.get("specification"));
-    createdJob.setConfiguration((String) settings.get("configuration"));
-    if (settings.get("options") != null) {
-      createdJob.setOptions((Map<String, String>) settings.get("options"));
-    }
-
-    String fileName = (String) settings.get("sourceFileName");
-    fileName = (fileName == null || fileName.equals("")) ? DEFAULT_FILENAME : fileName;
-    createdJob.setSourceFileName(fileName);
-    JobFile program = new JobFile(createdJob.getSourceFileName(), createdJob);
-    program.setContent((String) settings.get("programText"));
-
-    if (createdJob.getSpecification() == null && createdJob.getConfiguration() == null) {
-      errors.add("error.specOrConfigMissing");
-    }
-
-    if (createdJob.getSpecification() != null) {
-      if (!DefaultOptions.getSpecifications().contains(createdJob.getSpecification())) {
-        errors.add("error.specificationNotFound");
-      }
-    }
-
-    if (createdJob.getConfiguration() != null) {
-      try {
-        if (!DefaultOptions.getConfigurations().contains(createdJob.getConfiguration())) {
-          errors.add("error.configurationNotFound");
-        }
-      } catch (IOException e) {
-        errors.add("error.configurationNotFound");
-      }
-    }
-
-    if (program.getContent() == null || program.getContent().equals("")) {
-      errors.add("error.noProgram");
-    }
-
-    if (createdJob.getOptions().containsKey("log.level")) {
-      try {
-        Level.parse(createdJob.getOptions().get("log.level"));
-      } catch (IllegalArgumentException e) {
-        errors.add("error.invalidLogLevel");
-      }
-    }
-
-    if (createdJob.getOptions().containsKey("gae.instanceType")) {
-      try {
-        InstanceType.valueOf(createdJob.getOptions().get("gae.instanceType"));
-      } catch (IllegalArgumentException e) {
-        errors.add("error.invalidInstanceType");
-      }
-    }
-
-    if (errors.size() == 0) {
-      try {
-        JobFileDAO.save(program);
-        createdJob.addFile(program);
-        JobDAO.save(createdJob);
-      } catch (IOException e) {
-        if (e.getCause() instanceof RequestTooLargeException) {
-          errors.add("error.programTooLarge");
-        } else {
-          errors.add("error.couldNotUpload");
-        }
-      }
-    }
-
-    if (errors.size() == 0) {
-      try {
-        Configuration config = Configuration.builder()
-            .setOptions(createdJob.getOptions())
-            .build();
-        JobRunner jobRunner = new GAETaskQueueJobRunner(config);
-        jobRunner.run(createdJob);
-      } catch (InvalidConfigurationException e) {
-        errors.add("error.invalidConfiguration");
-      }
-    }
-
-    return errors;
   }
 
   @Override

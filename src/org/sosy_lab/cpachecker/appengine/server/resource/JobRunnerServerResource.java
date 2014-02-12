@@ -83,7 +83,6 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
   private Thread cpaCheckerThread;
   private volatile CPAcheckerResult result;
 
-  private boolean outputEnabled = false;
   private boolean configDumped = false;
   private boolean statsDumped = false;
   private boolean logDumped = false;
@@ -179,7 +178,7 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
       @Override
       public void run() {
         try {
-          result = cpaChecker.run(job.getSourceFileName());
+          result = cpaChecker.run(job.getProgram().getPath());
         } catch (Exception e) {
           if (e.getClass().getSimpleName().equals("RuntimeException")) {
             /* RuntimeException might be thrown if the thread is interrupted and
@@ -380,7 +379,7 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
       configurationBuilder.loadFromFile(Paths.get("WEB-INF", "configurations", job.getConfiguration()));
     }
     configurationBuilder
-        .setOption("analysis.programNames", job.getSourceFileName())
+        .setOption("analysis.programNames", job.getProgram().getName())
         .setOptions(job.getOptions());
     if (job.getSpecification() != null) {
       configurationBuilder.setOption("specification", "WEB-INF/specifications/" + job.getSpecification());
@@ -395,7 +394,6 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
         .addConverter(FileOption.class, fileTypeConverter)
         .build();
 
-    outputEnabled = (config.getProperty("output.disable").equals("false"));
     Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
   }
 

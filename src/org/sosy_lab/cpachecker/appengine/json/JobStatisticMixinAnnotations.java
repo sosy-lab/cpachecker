@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.appengine.json;
 
-import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobStatistic;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -34,24 +33,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public abstract class JobStatisticMixinAnnotations {
 
   @JsonAutoDetect(getterVisibility = Visibility.NONE, fieldVisibility = Visibility.NONE)
-  public abstract class Minimal extends JobStatistic {
-
-    @Override
-    @JsonProperty
-    public abstract String getKey();
-
+  public abstract class Full extends JobStatistic {
     @JsonProperty
     long latency;
 
     @JsonProperty
     String host;
-
-    @Override
-    @JsonProperty("CPUTime")
-    public abstract double getMcyclesInSeconds();
-  }
-
-  public abstract class Full extends Minimal {
 
     @JsonProperty
     double cost;
@@ -62,8 +49,8 @@ public abstract class JobStatisticMixinAnnotations {
     @JsonProperty
     long pendingTime;
 
-    @JsonProperty
     @Override
-    public abstract Job getJob();
+    @JsonProperty("CPUTime")
+    public abstract double getMcyclesInSeconds();
   }
 }

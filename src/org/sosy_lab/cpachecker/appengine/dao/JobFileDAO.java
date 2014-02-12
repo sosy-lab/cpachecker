@@ -77,14 +77,6 @@ public class JobFileDAO {
   }
 
   /**
-   * @see #loadByPath(String, Job)
-   */
-  public static JobFile loadByPath(String path, String parentKey) {
-    Job parent = JobDAO.load(parentKey);
-    return loadByPath(path, parent);
-  }
-
-  /**
    * Returns the file that has the given name.
    *
    * @param name The name of the file
@@ -139,15 +131,26 @@ public class JobFileDAO {
    * @param file The file to delete
    */
   public static void delete(final JobFile file) {
-    final Job parent = file.getJob();
-    parent.removeFile(file);
-
     ofy().transact(new VoidWork() {
 
       @Override
       public void vrun() {
-        ofy().save().entity(parent).now();
+        ofy().save().entity(file.getJob()).now();
         ofy().delete().entity(file).now();
+      }
+    });
+  }
+
+  /**
+   * Deletes all files associated with the given job.
+   *
+   * @param parent The job that is associated with the files to be deleted
+   */
+  public static void deleteAll(final Job parent) {
+    ofy().transact(new VoidWork() {
+      @Override
+      public void vrun() {
+        ofy().delete().entities(files(parent)).now();
       }
     });
   }
