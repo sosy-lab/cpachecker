@@ -358,6 +358,7 @@
 <column title="Analysis time">Time for Analysis</column>
 <column title="numAbs">Number of abstractions</column>
 <column title="#Refine">Number of refinements</column>
-<column title="memory">Total process virtual memory</column>
+<column title="memory heap">Used heap memory</column>
+<column title="memory non-heap">Used non-heap memory</column>
 </columns>
 </benchmark>
