@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.notNull;
+import static com.google.common.collect.Iterators.*;
 
 import java.io.Serializable;
 import java.util.AbstractMap.SimpleImmutableEntry;
@@ -464,11 +465,13 @@ public class SSAMap implements Serializable {
 
     // Now copy the rest of the mappings from s2 (e2 and it2).
     // For s1 this is not necessary.
-    if (e2 != null) {
-      result = result.putAndCopy(e2.getKey(), e2.getValue());
-    }
-    while (it2.hasNext()) {
-      e2 = it2.next();
+    Iterator<Map.Entry<K, V>> rest =
+        (e2 != null)
+        ? concat(singletonIterator(e2), it2)
+        : it2;
+
+    while (rest.hasNext()) {
+      e2 = rest.next();
       result = result.putAndCopy(e2.getKey(), e2.getValue());
     }
 
