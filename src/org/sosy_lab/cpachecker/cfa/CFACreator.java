@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
@@ -81,7 +82,6 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.VariableClassification;
-import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -97,108 +97,107 @@ import com.google.common.collect.Iterables;
 public class CFACreator {
 
   private static final String JAVA_MAIN_METHOD_CFA_SUFFIX = "_main_String[]";
+
   public static final String VALID_C_FUNCTION_NAME_PATTERN = "[_a-zA-Z][_a-zA-Z0-9]*";
 
-  @Option(
-      name = "parser.usePreprocessor",
-      description = "For C files, run the preprocessor on them before parsing. "
-          +
-          "Note that all file numbers printed by CPAchecker will refer to the pre-processed file, not the original input file.")
+  @Option(name="parser.usePreprocessor",
+      description="For C files, run the preprocessor on them before parsing. " +
+                  "Note that all file numbers printed by CPAchecker will refer to the pre-processed file, not the original input file.")
   private boolean usePreprocessor = false;
 
-  @Option(name = "parser.transformTokensToLines",
-      description = "Preprocess the given C files before parsing: Put every single token onto a new line. "
-          + "Then the line number corresponds to the token number.")
+  @Option(name="parser.transformTokensToLines",
+      description="Preprocess the given C files before parsing: Put every single token onto a new line. "
+      + "Then the line number corresponds to the token number.")
   private boolean transformTokensToLines = false;
 
-  @Option(name = "analysis.entryFunction", regexp = "^" + VALID_C_FUNCTION_NAME_PATTERN + "$",
-      description = "entry function")
+  @Option(name="analysis.entryFunction", regexp="^" + VALID_C_FUNCTION_NAME_PATTERN + "$",
+      description="entry function")
   private String mainFunctionName = "main";
 
-  @Option(name = "analysis.machineModel",
+  @Option(name="analysis.machineModel",
       description = "the machine model, which determines the sizes of types like int")
   private MachineModel machineModel = MachineModel.LINUX32;
 
-  @Option(name = "analysis.interprocedural",
-      description = "run interprocedural analysis")
+  @Option(name="analysis.interprocedural",
+      description="run interprocedural analysis")
   private boolean interprocedural = true;
 
-  @Option(name = "analysis.functionPointerCalls",
-      description = "create all potential function pointer call edges")
+  @Option(name="analysis.functionPointerCalls",
+      description="create all potential function pointer call edges")
   private boolean fptrCallEdges = true;
 
-  @Option(name = "analysis.useGlobalVars",
-      description = "add declarations for global variables before entry function")
+  @Option(name="analysis.useGlobalVars",
+      description="add declarations for global variables before entry function")
   private boolean useGlobalVars = true;
 
-  @Option(name = "analysis.simplifyExpressions",
-      description = "simplify pure numeral expressions like '1+2' to '3'")
+  @Option(name="analysis.simplifyExpressions",
+      description="simplify pure numeral expressions like '1+2' to '3'")
   private boolean simplifyExpressions = false;
 
-  @Option(name = "cfa.useMultiEdges",
-      description = "combine sequences of simple edges into a single edge")
+  @Option(name="cfa.useMultiEdges",
+      description="combine sequences of simple edges into a single edge")
   private boolean useMultiEdges = false;
 
-  @Option(name = "cfa.removeIrrelevantForSpecification",
-      description = "remove paths from CFA that cannot lead to a specification violation")
+  @Option(name="cfa.removeIrrelevantForSpecification",
+      description="remove paths from CFA that cannot lead to a specification violation")
   private boolean removeIrrelevantForSpecification = false;
 
-  @Option(name = "cfa.export",
-      description = "export CFA as .dot file")
+  @Option(name="cfa.export",
+      description="export CFA as .dot file")
   private boolean exportCfa = true;
 
-  @Option(name = "cfa.exportPerFunction",
-      description = "export individual CFAs for function as .dot files")
+  @Option(name="cfa.exportPerFunction",
+      description="export individual CFAs for function as .dot files")
   private boolean exportCfaPerFunction = true;
 
-  @Option(name = "cfa.callgraph.export",
-      description = "dump a simple call graph")
+  @Option(name="cfa.callgraph.export",
+      description="dump a simple call graph")
   private boolean exportFunctionCalls = true;
 
-  @Option(name = "cfa.callgraph.file",
-      description = "file name for call graph as .dot file")
+  @Option(name="cfa.callgraph.file",
+      description="file name for call graph as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportFunctionCallsFile = Paths.get("functionCalls.dot");
 
-  @Option(name = "cfa.file",
-      description = "export CFA as .dot file")
+  @Option(name="cfa.file",
+      description="export CFA as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportCfaFile = Paths.get("cfa.dot");
 
-  @Option(name = "cfa.checkNullPointers",
-      description = "while this option is activated, before each use of a "
+  @Option(name="cfa.checkNullPointers",
+      description="while this option is activated, before each use of a "
           + "PointerExpression, or a dereferenced field access the expression is "
           + "checked if it is 0")
   private boolean checkNullPointers = false;
 
-  @Option(name = "cfa.expandFunctionPointerArrayAssignments",
-      description = "When a function pointer array element is written with a variable as index, "
+  @Option(name="cfa.expandFunctionPointerArrayAssignments",
+      description="When a function pointer array element is written with a variable as index, "
           + "create a series of if-else edges with explicit indizes instead.")
   private boolean expandFunctionPointerArrayAssignments = false;
 
-  @Option(name = "cfa.transformIntoSingleLoop",
-      description = "This option causes the control flow automaton to be "
-          + "transformed into the automaton of an equivalent program with one "
-          + "single loop and an artificial program counter.")
+  @Option(name="cfa.transformIntoSingleLoop",
+      description="This option causes the control flow automaton to be "
+        + "transformed into the automaton of an equivalent program with one "
+        + "single loop and an artificial program counter.")
   private boolean transformIntoSingleLoop = false;
 
-  @Option(description = "C or Java?")
+  @Option(description="C or Java?")
   private Language language = Language.C;
 
   private final LogManager logger;
   private final Parser parser;
   private final CFAReduction cfaReduction;
 
-  private static class CFACreatorStatistics extends AbstractStatistics {
+  private static class CFACreatorStatistics implements Statistics {
 
     private final Timer parserInstantiationTime = new Timer();
     private final Timer totalTime = new Timer();
+    private Timer parsingTime;
+    private Timer conversionTime;
     private final Timer checkTime = new Timer();
     private final Timer processingTime = new Timer();
     private final Timer pruningTime = new Timer();
     private final Timer exportTime = new Timer();
-    private Timer parsingTime;
-    private Timer conversionTime;
 
     @Override
     public String getName() {
@@ -207,37 +206,42 @@ public class CFACreator {
 
     @Override
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
-      put(out, 1, "Time for loading C parser", parserInstantiationTime);
-
-      put(out, 1, "Time for CFA construction", totalTime);
-      put(out,  2, "Time for parsing C file", parsingTime);
-      put(out,  2, "Time for AST to CFA", conversionTime);
-      put(out,  2, "Time for CFA sanity check", checkTime);
-      put(out,  2, "Time for post-processing", processingTime);
-
+      out.println("  Time for loading C parser:  " + parserInstantiationTime);
+      out.println("  Time for CFA construction:  " + totalTime);
+      out.println("    Time for parsing C file:  " + parsingTime);
+      out.println("    Time for AST to CFA:      " + conversionTime);
+      out.println("    Time for CFA sanity check:" + checkTime);
+      out.println("    Time for post-processing: " + processingTime);
       if (pruningTime.getNumberOfIntervals() > 0) {
-        put(out, 2, "Time for CFA pruning", pruningTime);
+        out.println("    Time for CFA pruning:     " + pruningTime);
       }
-
       if (exportTime.getNumberOfIntervals() > 0) {
-        put(out, 2, "Time for CFA export", exportTime);
+        out.println("    Time for CFA export:      " + exportTime);
       }
     }
-
   }
 
   private final CFACreatorStatistics stats = new CFACreatorStatistics();
   private final Configuration config;
 
-  private Parser createParser() throws InvalidConfigurationException {
+  public CFACreator(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier)
+          throws InvalidConfigurationException {
+    config.inject(this);
+    this.config = config;
+
+    this.logger = logger;
+
+    stats.parserInstantiationTime.start();
+
     switch (language) {
     case JAVA:
-      return EclipseParsers.getJavaParser(logger, config);
+      parser = EclipseParsers.getJavaParser(logger, config);
+      break;
     case C:
       CParser outerParser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machineModel);
 
       if (transformTokensToLines) {
-        outerParser = new CParserWithLocationExtractor(outerParser);
+        outerParser = new CParserWithTokenizer(outerParser);
       }
 
       if (usePreprocessor) {
@@ -245,37 +249,23 @@ public class CFACreator {
         outerParser = new CParserWithPreprocessor(outerParser, preprocessor);
       }
 
-      return outerParser;
+      parser = outerParser;
+
+      break;
     default:
       throw new AssertionError();
     }
-  }
 
-  private Parser createdAndInitParser(ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
-    stats.parserInstantiationTime.start();
-
-    Parser parser = createParser();
     stats.parsingTime = parser.getParseTime();
     stats.conversionTime = parser.getCFAConstructionTime();
-
-    stats.parserInstantiationTime.stop();
-
-    return parser;
-  }
-
-  public CFACreator(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier)
-      throws InvalidConfigurationException {
-    config.inject(this);
-
-    this.config = config;
-    this.logger = logger;
-    this.parser = createdAndInitParser(pShutdownNotifier);
 
     if (removeIrrelevantForSpecification) {
       cfaReduction = new CFAReduction(config, logger, pShutdownNotifier);
     } else {
       cfaReduction = null;
     }
+
+    stats.parserInstantiationTime.stop();
   }
 
   /**
@@ -289,7 +279,7 @@ public class CFACreator {
    * @throws InterruptedException
    */
   public CFA parseFileAndCreateCFA(List<String> sourceFiles)
-      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+          throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
     Preconditions.checkArgument(!sourceFiles.isEmpty(), "At least one source file must be provided!");
 
@@ -320,15 +310,16 @@ public class CFACreator {
         // when there is more than one file which should be evaluated, the
         // programdenotations are separated from each other and a prefix for
         // static variables is generated
-        if (language != Language.C) { throw new InvalidConfigurationException(
-            "Multiple program files not supported for languages other than C."); }
+        if (language != Language.C) {
+          throw new InvalidConfigurationException("Multiple program files not supported for languages other than C.");
+        }
 
         List<Pair<String, String>> programFragments = new ArrayList<>();
         int counter = 0;
         String staticVarPrefix;
         for (String fileName : sourceFiles) {
           String[] tmp = fileName.split("/");
-          staticVarPrefix = tmp[tmp.length - 1].replaceAll("\\W", "_") + "__" + counter + "__";
+          staticVarPrefix = tmp[tmp.length-1].replaceAll("\\W", "_") + "__" + counter + "__";
 
           /*
            * The program file has to parsed as String since Google App Engine does not allow
@@ -338,7 +329,7 @@ public class CFACreator {
           programFragments.add(Pair.of(code, staticVarPrefix));
         }
 
-        c = ((CParser) parser).parseFile(programFragments);
+        c = ((CParser)parser).parseFile(programFragments);
       }
 
       logger.log(Level.FINE, "Parser Finished");
@@ -397,8 +388,7 @@ public class CFACreator {
 
       // add function pointer edges
       if (language == Language.C && fptrCallEdges) {
-        CFunctionPointerResolver fptrResolver =
-            new CFunctionPointerResolver(cfa, c.getGlobalDeclarations(), config, logger);
+        CFunctionPointerResolver fptrResolver = new CFunctionPointerResolver(cfa, c.getGlobalDeclarations(), config, logger);
         fptrResolver.resolveFunctionPointers();
       }
 
@@ -486,22 +476,19 @@ public class CFACreator {
         stats.pruningTime.stop();
 
         if (cfa.isEmpty()) {
-          logger
-              .log(
-                  Level.INFO,
-                  "No states which violate the specification are syntactically reachable from the function "
-                      + mainFunction.getFunctionName()
-                      + ", analysis not necessary. "
-                      + "If you want to run the analysis anyway, set the option cfa.removeIrrelevantForSpecification to false.");
+          logger.log(Level.INFO, "No states which violate the specification are syntactically reachable from the function " + mainFunction.getFunctionName()
+                + ", analysis not necessary. "
+                + "If you want to run the analysis anyway, set the option cfa.removeIrrelevantForSpecification to false.");
 
           return ImmutableCFA.empty(machineModel, language);
         }
       }
 
       // Get information about variables, needed for some analysis.
-      final Optional<VariableClassification> varClassification = loopStructure.isPresent()
+      final Optional<VariableClassification> varClassification
+          = loopStructure.isPresent()
           ? Optional.of(new VariableClassification(cfa, config, logger, loopStructure.get()))
-          : Optional.<VariableClassification> absent();
+          : Optional.<VariableClassification>absent();
 
       stats.processingTime.stop();
 
@@ -545,7 +532,9 @@ public class CFACreator {
     // try specified function
     FunctionEntryNode mainFunction = cfas.get(mainFunctionName);
 
-    if (mainFunction != null) { return mainFunction; }
+    if (mainFunction != null) {
+      return mainFunction;
+    }
 
     if (!mainFunctionName.equals("main")) {
       // function explicitly given by user, but not found
@@ -557,8 +546,9 @@ public class CFACreator {
 
     mainFunction = cfas.get(mainClassName + JAVA_MAIN_METHOD_CFA_SUFFIX);
 
-    if (mainFunction == null) { throw new InvalidConfigurationException(
-        "No main method in given main class found, please specify one."); }
+    if (mainFunction == null) {
+      throw new InvalidConfigurationException("No main method in given main class found, please specify one.");
+    }
 
     return mainFunction;
   }
@@ -586,7 +576,9 @@ public class CFACreator {
     // try specified function
     FunctionEntryNode mainFunction = cfas.get(mainFunctionName);
 
-    if (mainFunction != null) { return mainFunction; }
+    if (mainFunction != null) {
+      return mainFunction;
+    }
 
     if (!mainFunctionName.equals("main")) {
       // function explicitly given by user, but not found
@@ -610,7 +602,9 @@ public class CFACreator {
       mainFunction = cfas.get(baseFilename);
     }
 
-    if (mainFunction == null) { throw new InvalidConfigurationException("No entry function found, please specify one."); }
+    if (mainFunction == null) {
+      throw new InvalidConfigurationException("No entry function found, please specify one.");
+    }
     return mainFunction;
   }
 
@@ -638,7 +632,9 @@ public class CFACreator {
    * Insert nodes for global declarations after first node of CFA.
    */
   public static void insertGlobalDeclarations(final MutableCFA cfa, List<Pair<IADeclaration, String>> globalVars) {
-    if (globalVars.isEmpty()) { return; }
+    if (globalVars.isEmpty()) {
+      return;
+    }
 
     if (cfa.getLanguage() == Language.C) {
       addDefaultInitializers(globalVars);
@@ -684,9 +680,7 @@ public class CFACreator {
     }
 
     // and a blank edge connecting the declarations with the second node of CFA
-    be =
-        new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode,
-            firstEdge.getDescription());
+    be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode, firstEdge.getDescription());
     addToCFA(be);
   }
 
@@ -700,7 +694,7 @@ public class CFACreator {
     Set<String> initializedVariables = new HashSet<>();
     for (Pair<IADeclaration, String> p : globalVars) {
       if (p.getFirst() instanceof AVariableDeclaration) {
-        AVariableDeclaration v = (AVariableDeclaration) p.getFirst();
+        AVariableDeclaration v = (AVariableDeclaration)p.getFirst();
         if (v.getInitializer() != null) {
           initializedVariables.add(v.getName());
         }
@@ -717,7 +711,7 @@ public class CFACreator {
       Pair<IADeclaration, String> p = iterator.next();
 
       if (p.getFirst() instanceof AVariableDeclaration) {
-        CVariableDeclaration v = (CVariableDeclaration) p.getFirst();
+        CVariableDeclaration v = (CVariableDeclaration)p.getFirst();
         assert v.isGlobal();
         String name = v.getName();
 
@@ -737,16 +731,16 @@ public class CFACreator {
           // and there is no initializer later in the file.
           CInitializer initializer = CDefaults.forType(v.getType(), v.getFileLocation());
           v = new CVariableDeclaration(v.getFileLocation(),
-              v.isGlobal(),
-              v.getCStorageClass(),
-              v.getType(),
-              v.getName(),
-              v.getOrigName(),
-              v.getQualifiedName(),
-              initializer);
+                                       v.isGlobal(),
+                                       v.getCStorageClass(),
+                                       v.getType(),
+                                       v.getName(),
+                                       v.getOrigName(),
+                                       v.getQualifiedName(),
+                                       initializer);
 
           previouslyInitializedVariables.add(name);
-          p = Pair.<IADeclaration, String> of(v, p.getSecond());
+          p = Pair.<IADeclaration, String>of(v, p.getSecond());
           iterator.set(p); // replace declaration
         }
       }
@@ -756,7 +750,6 @@ public class CFACreator {
   private void exportCFAAsync(final CFA cfa) {
     // execute asynchronously, this may take several seconds for large programs on slow disks
     Threads.newThread(new Runnable() {
-
       @Override
       public void run() {
         // running the following in parallel is thread-safe
@@ -775,7 +768,7 @@ public class CFACreator {
         DOTBuilder.generateDOT(w, cfa);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
-            "Could not write CFA to dot file");
+          "Could not write CFA to dot file");
         // continue with analysis
       }
     }
@@ -787,7 +780,7 @@ public class CFACreator {
         DOTBuilder2.writeReport(cfa, outdir);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
-            "Could not write CFA to dot and json file");
+          "Could not write CFA to dot and json file");
         // continue with analysis
       }
     }
