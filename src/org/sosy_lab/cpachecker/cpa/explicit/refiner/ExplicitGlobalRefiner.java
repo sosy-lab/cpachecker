@@ -151,12 +151,12 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     while(!interpolationRoots.isEmpty()) {
       i++;
       ARGState currentRoot = interpolationRoots.pop();
-      
+
       if(!itpTree.isValidInterpolationRoot(currentRoot)) {
         logger.log(Level.FINEST, "itp of predecessor ", currentRoot.getStateId(), " is already false ... go ahead");
         continue;
       }
-      
+
       ARGPath errorPath = itpTree.getNextErrorPath(currentRoot, interpolationRoots);
 
       ExplicitValueInterpolant initialItp = itpTree.getInitialItp(errorPath.getFirst().getFirst());
@@ -182,7 +182,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
 
         itpTree.addInterpolants(itps);
 
-        //itpTree.exportItpTree(refinementCalls, i);
+        //itpTree.exportToDot(totalRefinements, i);
         logger.log(Level.FINEST, "itp done");
       }
 
@@ -313,8 +313,8 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
       interpolatingRefiner.printStatistics(out, pResult, pReached);
     }
   }
-  
-  
+
+
 
   /**
    * This class represents an interpolation tree, i.e. a set of states connected through a successor-predecessor-relation.
@@ -326,12 +326,12 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
      * the predecessor relation of the states contained in this tree
      */
     private Map<ARGState, ARGState> predecessorRelation = Maps.newHashMap();
-    
+
     /**
      * the successor relation of the states contained in this tree
      */
     private SetMultimap<ARGState, ARGState> successorRelation = LinkedHashMultimap.create();
-    
+
     /**
      * the mapping from state to the identified interpolants
      */
@@ -341,7 +341,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
      * the current refinement root
      */
     private ARGState refinementRoot = null;
-    
+
     /**
      * the root of the tree
      */
@@ -349,7 +349,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
 
     /**
      * This method acts as constructor of the interpolation tree.
-     * 
+     *
      * @param targetStates the set of target states from which to build the interpolation tree
      */
     private InterpolationTree(Collection<ARGState> targetStates) {
@@ -373,7 +373,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
           predecessorRelation.put(currentState, parentState);
           successorRelation.put(parentState, currentState);
         }
-        
+
         else if(root == null) {
           root = currentState;
         }
@@ -387,7 +387,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
           refinementRoot = currentState;
           return;
         }
-        
+
         currentState = successorRelation.get(currentState).iterator().next();
       }
 
@@ -396,11 +396,11 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
 
     public boolean isValidInterpolationRoot(ARGState currentRoot) {
       ARGState predecessor = predecessorRelation.get(currentRoot);
-      
+
       if(!interpolants.containsKey(predecessor)) {
         return true;
       }
-      
+
       if(!interpolants.get(predecessor).isFalse()) {
         return true;
       }
@@ -410,7 +410,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
 
     /**
      * The method exports the current representation to a *.dot file.
-     * 
+     *
      * @param refinementCnt the current refinement counter
      * @param iteration the current iteration of the current refinement
      * TODO: writes to disk, no good!
@@ -450,7 +450,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
 
     /**
      * This method returns the next error path for interpolation.
-     * 
+     *
      * @param current the current root of the error path to retrieve for a subsequent interpolation
      * @param interpolationRoots the stack of interpolation roots
      * @return the next error path for a subsequent interpolation
@@ -480,7 +480,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     /**
      * This method returns a CFA edge from the current state to its next successor.
      * TODO: always picks first, no good!
-     * 
+     *
      * @param state the state for which to obtain an edge to its successor.
      * @return the edge to the successor
      */
@@ -490,7 +490,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
 
     /**
      * This method returns the interpolant to be used for interpolation starting at the given state.
-     * 
+     *
      * @param root the state for which to obtain the initial interpolant
      * @return the initial interpolant for the given state
      */
@@ -501,7 +501,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     /**
      * This method updates the refinement root to the given state, if necessary, i.e.,
      * if is a predecessor of the current one.
-     * 
+     *
      * @param newRoot the refinement root candidate
      */
     private void updateRefinementRoot(ARGState newRoot) {
@@ -512,7 +512,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
 
     /**
      * This method returns the refinement root.
-     * 
+     *
      * @return the current refinement root
      */
     private ARGState getRefinementRoot() {
@@ -520,22 +520,22 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     }
 
     /**
-     * THis method updates the mapping from states to interpolants.
-     * 
+     * This method updates the mapping from states to interpolants.
+     *
      * @param newItps the new mapping to add
      */
     private void addInterpolants(Map<ARGState, ExplicitValueInterpolant> newItps) {
       interpolants.putAll(newItps);
     }
-    
+
     /**
      * This method extracts the precision increment for the interpolation tree.
-     * 
+     *
      * @return the precision increment
      */
     private Multimap<CFANode, MemoryLocation> extractPrecisionIncrement() {
       Multimap<CFANode, MemoryLocation> globalIncrement = HashMultimap.create();
-      
+
       for(Map.Entry<ARGState, ExplicitValueInterpolant> itp : interpolants.entrySet()) {
         for(MemoryLocation memoryLocation : itp.getValue().getMemoryLocations()) {
           globalIncrement.put(getEdgeToSuccessor(itp.getKey()).getSuccessor(), memoryLocation);
