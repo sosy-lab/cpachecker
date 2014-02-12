@@ -21,36 +21,22 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.appengine.json;
+package org.sosy_lab.cpachecker.appengine.server.common;
 
-import org.sosy_lab.cpachecker.appengine.entity.JobStatistic;
+import org.restlet.representation.Representation;
+import org.restlet.representation.Variant;
+import org.restlet.resource.Delete;
+import org.restlet.resource.Get;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
+public interface TaskResource {
 
-public abstract class JobStatisticMixinAnnotations {
+  @Get("html")
+  public Representation taskAsHtml();
 
-  @JsonAutoDetect(getterVisibility = Visibility.NONE, fieldVisibility = Visibility.NONE)
-  public abstract class Full extends JobStatistic {
-    @JsonProperty
-    long latency;
+  @Get("json")
+  public Representation taskAsJson();
 
-    @JsonProperty
-    String host;
-
-    @JsonProperty
-    double cost;
-    @JsonProperty
-    long endTime;
-    @JsonProperty
-    long startTime;
-    @JsonProperty
-    long pendingTime;
-
-    @Override
-    @JsonProperty("CPUTime")
-    public abstract double getMcyclesInSeconds();
-  }
+  @Delete
+  public Representation deleteTask(Variant variant);
 }

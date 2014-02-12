@@ -37,42 +37,42 @@ import java.nio.charset.Charset;
 import org.junit.Test;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.appengine.common.DatabaseTest;
-import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
-import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
-import org.sosy_lab.cpachecker.appengine.entity.Job;
-import org.sosy_lab.cpachecker.appengine.entity.JobFile;
+import org.sosy_lab.cpachecker.appengine.dao.TaskDAO;
+import org.sosy_lab.cpachecker.appengine.dao.TaskFileDAO;
+import org.sosy_lab.cpachecker.appengine.entity.Task;
+import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 
 import com.google.common.io.FileWriteMode;
 
 
 public class GAEPathTest extends DatabaseTest {
 
-  private Job job;
-  private JobFile file;
+  private Task task;
+  private TaskFile file;
   private Path path;
 
   @Override
   public void setUp() {
     super.setUp();
 
-    job = new Job(1L);
-    file = new JobFile("test.tmp", job);
+    task = new Task(1L);
+    file = new TaskFile("test.tmp", task);
     file.setContent("lorem ipsum dolor sit amet");
     try {
-      JobFileDAO.save(file);
+      TaskFileDAO.save(file);
     } catch (IOException e) {
       fail(e.getMessage());
     }
-    JobDAO.save(job);
+    TaskDAO.save(task);
 
-    path = new GAEPath("test.tmp", job);
+    path = new GAEPath("test.tmp", task);
   }
 
   @Test
   public void shouldDeleteFile() throws Exception {
     path.delete();
 
-    assertNull(JobFileDAO.loadByName("test.tmp", job));
+    assertNull(TaskFileDAO.loadByName("test.tmp", task));
   }
 
   @Test
@@ -141,14 +141,14 @@ public class GAEPathTest extends DatabaseTest {
 
   @Test
   public void shouldBeFile() throws Exception {
-    Path path = new GAEPath("foo.bar", job);
+    Path path = new GAEPath("foo.bar", task);
 
     assertTrue(path.isFile());
   }
 
   @Test
   public void shouldNotBeFile() throws Exception {
-    Path path = new GAEPath("foo", job);
+    Path path = new GAEPath("foo", task);
 
     assertFalse(path.isFile());
   }

@@ -29,11 +29,11 @@ import com.google.appengine.api.quota.QuotaServiceFactory;
 import com.googlecode.objectify.annotation.Embed;
 
 /**
- * This class represents the statistics generated when the associated job was run.
+ * This class represents the statistics generated when the associated {@link Task} was run.
  * @see RequestLogs
  */
 @Embed
-public class JobStatistic {
+public class TaskStatistic {
 
   private double cost;
   private String host;
@@ -60,7 +60,7 @@ public class JobStatistic {
   }
 
   /**
-   * Returns the host that processed the job.
+   * Returns the host that processed the {@link Task}.
    * @return The host
    */
   public String getHost() {
@@ -68,7 +68,7 @@ public class JobStatistic {
   }
 
   /**
-   * Sets the host that processed the job.
+   * Sets the host that processed the {@link Task}.
    * @param pHost The host
    */
   public void setHost(String pHost) {
@@ -76,7 +76,7 @@ public class JobStatistic {
   }
 
   /**
-   * The time that was needed to process the job in microseconds.
+   * The time that was needed to process the {@link Task} in microseconds.
    * @return The latency in microseconds
    */
   public long getLatency() {
@@ -84,7 +84,7 @@ public class JobStatistic {
   }
 
   /**
-   * Sets the time needed to process the job.
+   * Sets the time needed to process the {@link Task}.
    * @param pLatency The latency in microseconds
    */
   public void setLatency(long pLatency) {
@@ -92,7 +92,7 @@ public class JobStatistic {
   }
 
   /**
-   * Returns the time when the job was done processing.
+   * Returns the time when the {@link Task} was done processing.
    * @return The end time in microseconds since the Unix epoch
    */
   public long getEndTime() {
@@ -100,7 +100,7 @@ public class JobStatistic {
   }
 
   /**
-   * Sets the time when the job was done processing.
+   * Sets the time when the {@link Task} was done processing.
    * @param pEndTime The end time in microseconds since the Unix epoch
    */
   public void setEndTime(long pEndTime) {
@@ -108,7 +108,7 @@ public class JobStatistic {
   }
 
   /**
-   * Returns the time when the job started to be processed.
+   * Returns the time when the {@link Task} started to be processed.
    * @return The start time in microseconds since the Unix epoch
    */
   public long getStartTime() {
@@ -116,7 +116,7 @@ public class JobStatistic {
   }
 
   /**
-   * Sets the time when the job started to be processed.
+   * Sets the time when the {@link Task} started to be processed.
    * @param pStartTime The start time in microseconds since the Unix epoch
    */
   public void setStartTime(long pStartTime) {
@@ -124,7 +124,7 @@ public class JobStatistic {
   }
 
   /**
-   * Returns the time the job was pending before it was processed.
+   * Returns the time the {@link Task} was pending before it was processed.
    * @return The pending time in microseconds
    */
   public long getPendingTime() {
@@ -132,7 +132,7 @@ public class JobStatistic {
   }
 
   /**
-   * Sets the time the job was pending before it was processed.
+   * Sets the time the {@link Task} was pending before it was processed.
    * @param pPendingTime The pending time in microseconds
    */
   public void setPendingTime(long pPendingTime) {
@@ -140,7 +140,7 @@ public class JobStatistic {
   }
 
   /**
-   * Returns the number of machine cycles used to process the job.
+   * Returns the number of machine cycles used to process the {@link Task}.
    * @return The number of machine cycles
    */
   public long getMcycles() {
@@ -148,7 +148,7 @@ public class JobStatistic {
   }
 
   /**
-   * Sets the number of machine cycles used to process the job.
+   * Sets the number of machine cycles used to process the {@link Task}.
    * @param pMCycles The machine cycles
    */
   public void setMcycles(long pMCycles) {
@@ -160,7 +160,7 @@ public class JobStatistic {
    * machine cycles.
    * @see QuotaService#convertMegacyclesToCpuSeconds(long)
    *
-   * @return The CPU seconds used to process the job
+   * @return The CPU seconds used to process the {@link Task}
    */
   public double getMcyclesInSeconds() {
     return QuotaServiceFactory.getQuotaService().convertMegacyclesToCpuSeconds(getMcycles());

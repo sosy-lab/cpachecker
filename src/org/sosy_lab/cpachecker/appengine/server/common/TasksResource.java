@@ -23,11 +23,28 @@
  */
 package org.sosy_lab.cpachecker.appengine.server.common;
 
-import org.restlet.representation.Representation;
-import org.restlet.resource.Get;
+import java.io.IOException;
 
-public interface JobStatisticResource {
+import org.restlet.representation.Representation;
+import org.restlet.resource.Delete;
+import org.restlet.resource.Get;
+import org.restlet.resource.Post;
+
+
+public interface TasksResource {
+
+  @Get("html")
+  public Representation tasksAsHtml();
+
+  @Post("multipart:html")
+  public Representation createTaskFromHtml(Representation input) throws IOException;
 
   @Get("json")
-  public Representation statsAsJson();
+  public Representation tasksAsJson();
+
+  @Post("json")
+  public Representation createTaskFromJson(Representation input);
+
+  @Delete
+  public void deleteAll();
 }

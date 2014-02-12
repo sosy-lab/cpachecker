@@ -21,17 +21,36 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.appengine.server.common;
+package org.sosy_lab.cpachecker.appengine.json;
 
-import org.restlet.representation.Representation;
-import org.restlet.resource.Post;
+import org.sosy_lab.cpachecker.appengine.entity.TaskStatistic;
+
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 
-public interface JobRunnerResource {
+public abstract class TaskStatisticMixinAnnotations {
 
-  public static final String ERROR_FILE_NAME = "ERROR.txt";
-  public static final int MAX_RETRIES = 1; // see queue.xml
+  @JsonAutoDetect(getterVisibility = Visibility.NONE, fieldVisibility = Visibility.NONE)
+  public abstract class Full extends TaskStatistic {
+    @JsonProperty
+    long latency;
 
-  @Post
-  public void runJob(Representation entity) throws Exception;
+    @JsonProperty
+    String host;
+
+    @JsonProperty
+    double cost;
+    @JsonProperty
+    long endTime;
+    @JsonProperty
+    long startTime;
+    @JsonProperty
+    long pendingTime;
+
+    @Override
+    @JsonProperty("CPUTime")
+    public abstract double getMcyclesInSeconds();
+  }
 }

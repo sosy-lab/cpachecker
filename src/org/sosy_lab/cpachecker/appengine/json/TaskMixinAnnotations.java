@@ -27,10 +27,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner.InstanceType;
-import org.sosy_lab.cpachecker.appengine.entity.Job;
-import org.sosy_lab.cpachecker.appengine.entity.JobFile;
-import org.sosy_lab.cpachecker.appengine.entity.JobStatistic;
+import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueTaskRunner.InstanceType;
+import org.sosy_lab.cpachecker.appengine.entity.Task;
+import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
+import org.sosy_lab.cpachecker.appengine.entity.TaskStatistic;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -46,12 +46,13 @@ import com.googlecode.objectify.Ref;
 
 /**
  * This class contains a set of classes that are used to mixin annotations
- * with a {@link ObjectMapper} to control serialization/deserialization of a {@link Job} bean.
+ * with a {@link ObjectMapper} to control serialization/deserialization
+ * of a {@link Task} bean.
  */
-public abstract class JobMixinAnnotations {
+public abstract class TaskMixinAnnotations {
 
   @JsonAutoDetect(getterVisibility = Visibility.NONE, fieldVisibility = Visibility.NONE)
-  public abstract class KeyOnly extends Job {
+  public abstract class KeyOnly extends Task {
 
     @Override
     @JsonProperty
@@ -118,18 +119,18 @@ public abstract class JobMixinAnnotations {
     @JsonProperty("files")
     @JsonInclude(Include.ALWAYS)
     @Override
-    public abstract List<JobFile> getFilesLoaded();
+    public abstract List<TaskFile> getFilesLoaded();
 
     @JsonProperty
     @JsonInclude(Include.ALWAYS)
     @Override
-    public abstract JobStatistic getStatistic();
+    public abstract TaskStatistic getStatistic();
   }
 
   @JsonAutoDetect(setterVisibility = Visibility.PUBLIC_ONLY)
   @JsonIgnoreProperties(ignoreUnknown = true)
   public abstract class FromJSONAPI {
     @JsonIgnore
-    Ref<JobFile> program;
+    Ref<TaskFile> program;
   }
 }

@@ -29,27 +29,27 @@ import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.resource.ResourceException;
-import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
-import org.sosy_lab.cpachecker.appengine.entity.Job;
-import org.sosy_lab.cpachecker.appengine.entity.JobStatistic;
-import org.sosy_lab.cpachecker.appengine.json.JobMixinAnnotations;
-import org.sosy_lab.cpachecker.appengine.json.JobStatisticMixinAnnotations;
-import org.sosy_lab.cpachecker.appengine.server.common.JobStatisticResource;
+import org.sosy_lab.cpachecker.appengine.dao.TaskDAO;
+import org.sosy_lab.cpachecker.appengine.entity.Task;
+import org.sosy_lab.cpachecker.appengine.entity.TaskStatistic;
+import org.sosy_lab.cpachecker.appengine.json.TaskMixinAnnotations;
+import org.sosy_lab.cpachecker.appengine.json.TaskStatisticMixinAnnotations;
+import org.sosy_lab.cpachecker.appengine.server.common.TaskStatisticResource;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
 
-public class JobStatisticServerResource extends WadlServerResource implements JobStatisticResource {
+public class TaskStatisticServerResource extends WadlServerResource implements TaskStatisticResource {
 
-  private JobStatistic stats = null;
+  private TaskStatistic stats = null;
 
   @Override
   protected void doInit() throws ResourceException {
     super.doInit();
 
-    stats = JobDAO.load(getAttribute("jobKey")).getStatistic();
+    stats = TaskDAO.load(getAttribute("taskKey")).getStatistic();
 
     if (stats == null) {
       getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND);
@@ -61,8 +61,8 @@ public class JobStatisticServerResource extends WadlServerResource implements Jo
   public Representation statsAsJson() {
     ObjectMapper mapper = new ObjectMapper();
     mapper.enable(SerializationFeature.INDENT_OUTPUT);
-    mapper.addMixInAnnotations(Job.class, JobMixinAnnotations.KeyOnly.class);
-    mapper.addMixInAnnotations(JobStatistic.class, JobStatisticMixinAnnotations.Full.class);
+    mapper.addMixInAnnotations(Task.class, TaskMixinAnnotations.KeyOnly.class);
+    mapper.addMixInAnnotations(TaskStatistic.class, TaskStatisticMixinAnnotations.Full.class);
 
     try {
       return new StringRepresentation(mapper.writeValueAsString(stats), MediaType.APPLICATION_JSON);

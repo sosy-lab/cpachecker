@@ -6,10 +6,10 @@
   <div class="col-md-12">
     <div class="panel panel-default">
       <div class="panel-heading">
-        <div class="panel-title">${msg.allJobs}</div>
+        <div class="panel-title">${msg.allTasks}</div>
       </div>
       <div class="panel-body">
-        <table class="table table-bordered table-condensed table-hover table-jobs">
+        <table class="table table-bordered table-condensed table-hover table-tasks">
             <tr>
               <th>${msg.creationDate}</th>
               <th>${msg.status}</th>
@@ -18,28 +18,28 @@
             </tr>
           </thead>
           <tbody>
-          <#list jobs?sort_by("creationDate")?reverse as job>
+          <#list tasks?sort_by("creationDate")?reverse as task>
 
-          <#if job.status == "PENDING">
+          <#if task.status == "PENDING">
             <#assign statusLabel = "default">
-          <#elseif job.status == "RUNNING">
+          <#elseif task.status == "RUNNING">
             <#assign statusLabel = "info">
-          <#elseif job.status == "ABORTED">
+          <#elseif task.status == "ABORTED">
             <#assign statusLabel = "warning">
-          <#elseif job.status == "TIMEOUT">
+          <#elseif task.status == "TIMEOUT">
             <#assign statusLabel = "danger">
-          <#elseif job.status == "ERROR">
+          <#elseif task.status == "ERROR">
             <#assign statusLabel = "danger">
           <#else>
             <#assign statusLabel = "success">
           </#if>
 
-          <#if job.resultOutcome??>
-            <#if job.resultOutcome == "NOT_YET_STARTED">
+          <#if task.resultOutcome??>
+            <#if task.resultOutcome == "NOT_YET_STARTED">
               <#assign outcomeLabel = "default">
-            <#elseif job.resultOutcome == "UNKNOWN">
+            <#elseif task.resultOutcome == "UNKNOWN">
               <#assign outcomeLabel = "warning">
-            <#elseif job.resultOutcome == "FALSE">
+            <#elseif task.resultOutcome == "FALSE">
               <#assign outcomeLabel = "danger">
             <#else>
               <#assign outcomeLabel = "success">
@@ -48,24 +48,24 @@
 
           <tr>
             <td>
-              <a href="/tasks/${job.key}" class="hover-decorate">${job.creationDate?string("yyyy-MM-dd @ HH:mm:ss")}</a>
+              <a href="/tasks/${task.key}" class="hover-decorate">${task.creationDate?string("yyyy-MM-dd @ HH:mm:ss")}</a>
             </td>
             <td>
-              <a href="/tasks/${job.key}">
-                <span class="label label-${statusLabel}">${job.status}</span>
+              <a href="/tasks/${task.key}">
+                <span class="label label-${statusLabel}">${task.status}</span>
               </a>
             </td>
             <td>
-              <a href="/tasks/${job.key}">
-              <#if job.resultOutcome??>
-                <span class="label label-${outcomeLabel}">${job.resultOutcome}</span>
+              <a href="/tasks/${task.key}">
+              <#if task.resultOutcome??>
+                <span class="label label-${outcomeLabel}">${task.resultOutcome}</span>
               <#else>
                 &nbsp;
               </#if>
               </a>
             </td>
             <td>
-              <form action="/tasks/${job.key}?method=delete" method="post" style="display:inline">
+              <form action="/tasks/${task.key}?method=delete" method="post" style="display:inline">
             	 <button type="submit" class="btn btn-xs btn-danger"><span class="glyphicon glyphicon-trash"></span> ${msg.delete}</button>
               </form>
             </td>

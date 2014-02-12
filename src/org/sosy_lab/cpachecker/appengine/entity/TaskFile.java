@@ -32,7 +32,7 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 
 import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
+import org.sosy_lab.cpachecker.appengine.dao.TaskFileDAO;
 
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.Ref;
@@ -44,12 +44,12 @@ import com.googlecode.objectify.annotation.OnSave;
 import com.googlecode.objectify.annotation.Parent;
 
 @Entity
-public class JobFile {
+public class TaskFile {
 
   @Id
   private Long id;
   @Parent
-  private Ref<Job> job;
+  private Ref<Task> task;
   @Index
   private String path;
   @Index
@@ -60,35 +60,35 @@ public class JobFile {
   @Ignore
   private ByteArrayOutputStream contentOutputStream;
 
-  public JobFile() {}
+  public TaskFile() {}
 
-  public JobFile(String path) {
+  public TaskFile(String path) {
     setPath(path);
   }
 
-  public JobFile(Job job) {
-    setJob(job);
+  public TaskFile(Task task) {
+    setTask(task);
   }
 
-  public JobFile(String path, Job job) {
+  public TaskFile(String path, Task task) {
     setPath(path);
-    setJob(job);
+    setTask(task);
   }
 
   public String getKey() {
-    return Key.create(job.getKey(), JobFile.class, getId()).getString();
+    return Key.create(task.getKey(), TaskFile.class, getId()).getString();
   }
 
   public Long getId() {
     return id;
   }
 
-  public Job getJob() {
-    return job.get();
+  public Task getTask() {
+    return task.get();
   }
 
-  public void setJob(Job pJob) {
-    job = Ref.create(pJob);
+  public void setTask(Task pTask) {
+    task = Ref.create(pTask);
   }
 
   public String getName() {
@@ -158,20 +158,20 @@ public class JobFile {
   }
 
   /**
-   * A ByteArrayOuputStream that saves the given JobFile instance on calling close()
+   * A ByteArrayOuputStream that saves the given {@link TaskFile} instance on calling close()
    */
   public class SaveOnCloseByteArrayOutputStream extends ByteArrayOutputStream {
 
-    private JobFile file;
+    private TaskFile file;
 
-    public SaveOnCloseByteArrayOutputStream(JobFile file) {
+    public SaveOnCloseByteArrayOutputStream(TaskFile file) {
       this.file = file;
     }
 
     @Override
     public void close() throws IOException {
       super.close();
-      JobFileDAO.save(file);
+      TaskFileDAO.save(file);
     }
   }
 }

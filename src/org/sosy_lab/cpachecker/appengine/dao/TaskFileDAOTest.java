@@ -27,107 +27,107 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 import org.sosy_lab.cpachecker.appengine.common.DatabaseTest;
-import org.sosy_lab.cpachecker.appengine.entity.Job;
-import org.sosy_lab.cpachecker.appengine.entity.JobFile;
+import org.sosy_lab.cpachecker.appengine.entity.Task;
+import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 
 import com.googlecode.objectify.Key;
 
 
-public class JobFileDAOTest extends DatabaseTest {
+public class TaskFileDAOTest extends DatabaseTest {
 
-  private Job job;
+  private Task task;
 
   @Override
   public void setUp() {
     super.setUp();
-    job = new Job();
-    JobDAO.save(job);
+    task = new Task();
+    TaskDAO.save(task);
   }
 
   @Test
   public void shouldLoadByString() throws Exception {
-    JobFile file = new JobFile("test", job);
-    JobFileDAO.save(file);
-    JobFile loaded = JobFileDAO.load(file.getKey());
+    TaskFile file = new TaskFile("test", task);
+    TaskFileDAO.save(file);
+    TaskFile loaded = TaskFileDAO.load(file.getKey());
 
     assertEquals(file, loaded);
   }
 
   @Test
   public void shouldLoadByKey() throws Exception {
-    JobFile file = new JobFile("test", job);
-    JobFileDAO.save(file);
-    Key<JobFile> key = Key.create(file.getKey());
-    JobFile loaded = JobFileDAO.load(key);
+    TaskFile file = new TaskFile("test", task);
+    TaskFileDAO.save(file);
+    Key<TaskFile> key = Key.create(file.getKey());
+    TaskFile loaded = TaskFileDAO.load(key);
 
     assertEquals(file, loaded);
   }
 
   @Test
   public void shouldLoadByPath() throws Exception {
-    JobFile file = new JobFile("test", job);
-    JobFileDAO.save(file);
-    JobFile loaded = JobFileDAO.loadByPath("test", job);
+    TaskFile file = new TaskFile("test", task);
+    TaskFileDAO.save(file);
+    TaskFile loaded = TaskFileDAO.loadByPath("test", task);
 
     assertEquals(file, loaded);
   }
 
   @Test
-  public void shouldLoadByNameAndJob() throws Exception {
-    JobFile file = new JobFile("foo/test.txt", job);
-    JobFileDAO.save(file);
-    JobFile loaded = JobFileDAO.loadByName("test.txt", job);
+  public void shouldLoadByNameAndTask() throws Exception {
+    TaskFile file = new TaskFile("foo/test.txt", task);
+    TaskFileDAO.save(file);
+    TaskFile loaded = TaskFileDAO.loadByName("test.txt", task);
 
     assertEquals(file, loaded);
   }
 
   @Test
-  public void shouldLoadByNameAndJobKeyString() throws Exception {
-    JobFile file = new JobFile("foo/test.txt", job);
-    JobFileDAO.save(file);
-    JobFile loaded = JobFileDAO.loadByName("test.txt", job.getKey());
+  public void shouldLoadByNameAndTaskKeyString() throws Exception {
+    TaskFile file = new TaskFile("foo/test.txt", task);
+    TaskFileDAO.save(file);
+    TaskFile loaded = TaskFileDAO.loadByName("test.txt", task.getKey());
 
     assertEquals(file, loaded);
   }
 
   @Test
   public void shouldLoadAllFiles() throws Exception {
-    JobFile file = new JobFile("testA.txt", job);
-    JobFileDAO.save(file);
-    file = new JobFile("testB.txt", job);
-    JobFileDAO.save(file);
+    TaskFile file = new TaskFile("testA.txt", task);
+    TaskFileDAO.save(file);
+    file = new TaskFile("testB.txt", task);
+    TaskFileDAO.save(file);
 
-    assertEquals(2, JobFileDAO.files(job).size());
+    assertEquals(2, TaskFileDAO.files(task).size());
   }
 
   @Test
   public void shouldSave() throws Exception {
-    JobFile file = new JobFile("test", job);
-    JobFileDAO.save(file);
+    TaskFile file = new TaskFile("test", task);
+    TaskFileDAO.save(file);
 
     assertNotNull(file.getId());
   }
 
   @Test
   public void shouldDelete() throws Exception {
-    JobFile file = new JobFile("test", job);
-    JobFileDAO.save(file);
+    TaskFile file = new TaskFile("test", task);
+    TaskFileDAO.save(file);
 
     String key = file.getKey();
-    JobFileDAO.delete(file);
+    TaskFileDAO.delete(file);
 
-    assertNull(JobFileDAO.load(key));
+    assertNull(TaskFileDAO.load(key));
   }
 
   @Test
   public void shouldDeleteAll() throws Exception {
-    JobFile file = new JobFile("testA.txt", job);
-    JobFileDAO.save(file);
-    file = new JobFile("testB.txt", job);
-    JobFileDAO.save(file);
+    TaskFile file = new TaskFile("testA.txt", task);
+    TaskFileDAO.save(file);
+    file = new TaskFile("testB.txt", task);
+    TaskFileDAO.save(file);
 
-    JobFileDAO.deleteAll(job);
+    TaskFileDAO.deleteAll(task);
 
-    assertTrue(JobFileDAO.files(job).isEmpty());
+    assertTrue(TaskFileDAO.files(task).isEmpty());
   }
 }

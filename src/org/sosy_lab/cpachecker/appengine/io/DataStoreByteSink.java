@@ -27,7 +27,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
 
-import org.sosy_lab.cpachecker.appengine.entity.JobFile;
+import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 
 import com.google.common.io.ByteSink;
 import com.google.common.io.FileWriteMode;
@@ -35,10 +35,10 @@ import com.google.common.io.FileWriteMode;
 
 public class DataStoreByteSink extends ByteSink {
 
-  private JobFile file;
+  private TaskFile file;
   private FileWriteMode[] mode;
 
-  public DataStoreByteSink(JobFile file, FileWriteMode... mode) {
+  public DataStoreByteSink(TaskFile file, FileWriteMode... mode) {
     this.file = file;
     this.mode = mode;
   }

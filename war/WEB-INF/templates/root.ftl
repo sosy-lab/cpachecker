@@ -74,7 +74,7 @@
             <textarea name="programText" id="programText" rows="3" class="form-control"></textarea>
           </div>
           <span class="help-block">${msg.submissionDisclaimer}</span>
-          <button type="submit" class="btn btn-primary">${msg.submitJob}</button>
+          <button type="submit" class="btn btn-primary">${msg.submitTask}</button>
         </div>
       </div>
     </div>

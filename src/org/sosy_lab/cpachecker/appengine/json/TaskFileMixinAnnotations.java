@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.appengine.json;
 
-import org.sosy_lab.cpachecker.appengine.entity.Job;
-import org.sosy_lab.cpachecker.appengine.entity.JobFile;
+import org.sosy_lab.cpachecker.appengine.entity.Task;
+import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
@@ -36,12 +36,13 @@ import com.googlecode.objectify.Ref;
 
 /**
  * This class contains a set of classes that are used to mixin annotations
- * with a {@link ObjectMapper} to control serialization/deserialization of a {@link JobFile} bean.
+ * with a {@link ObjectMapper} to control serialization/deserialization of a
+ * {@link TaskFile} bean.
  */
-public abstract class JobFileMixinAnnotations {
+public abstract class TaskFileMixinAnnotations {
 
   @JsonAutoDetect(getterVisibility = Visibility.NONE, fieldVisibility = Visibility.NONE)
-  public abstract class Minimal extends JobFile {
+  public abstract class Minimal extends TaskFile {
 
     @JsonProperty
     @Override
@@ -59,14 +60,14 @@ public abstract class JobFileMixinAnnotations {
 
     @JsonProperty
     @Override
-    public abstract Job getJob();
+    public abstract Task getTask();
   }
 
   @JsonAutoDetect(setterVisibility = Visibility.PUBLIC_ONLY)
   @JsonIgnoreProperties(ignoreUnknown = true)
   public abstract class FromJSONAPI {
     @JsonIgnore
-    Ref<Job> job;
+    Ref<Task> task;
 
     @JsonProperty(value = "sourceFileName")
     String path;

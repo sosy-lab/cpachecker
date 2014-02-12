@@ -28,8 +28,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner.InstanceType;
-import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
+import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueTaskRunner.InstanceType;
+import org.sosy_lab.cpachecker.appengine.dao.TaskFileDAO;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
 import com.googlecode.objectify.Key;
@@ -43,27 +43,27 @@ import com.googlecode.objectify.annotation.OnLoad;
 import com.googlecode.objectify.annotation.OnSave;
 
 @Entity
-public class Job {
+public class Task {
 
   public enum Status {
     /**
-     * The job has not yet been started.
+     * The {@link Task} has not yet been started.
      */
     PENDING,
     /**
-     * The job is currently being run.
+     * The {@link Task} is currently being run.
      */
     RUNNING,
     /**
-     * The job has successfully been run.
+     * The {@link Task} has successfully been run.
      */
     DONE,
     /**
-     * The execution of the job timed out.
+     * The execution of the {@link Task} timed out.
      */
     TIMEOUT,
     /**
-     * An error has occurred while running the job.
+     * An error has occurred while running the {@link Task}.
      */
     ERROR
   }
@@ -88,17 +88,17 @@ public class Job {
   private String resultMessage;
   @EmbedMap
   private Map<String, String> options = new HashMap<>();
-  private Ref<JobFile> program;
-  private JobStatistic statistic;
+  private Ref<TaskFile> program;
+  private TaskStatistic statistic;
 
   @Ignore
   private boolean optionsEscaped = false;
 
-  public Job() {
+  public Task() {
     init();
   }
 
-  public Job(Long id) {
+  public Task(Long id) {
     init();
     this.id = id;
   }
@@ -109,7 +109,7 @@ public class Job {
   }
 
   public String getKey() {
-    return Key.create(Job.class, getId()).getString();
+    return Key.create(Task.class, getId()).getString();
   }
 
   public String getRequestID() {
@@ -212,11 +212,11 @@ public class Job {
     configuration = pConfiguration;
   }
 
-  public JobFile getProgram() {
+  public TaskFile getProgram() {
     return program.get();
   }
 
-  public void setProgram(JobFile program) {
+  public void setProgram(TaskFile program) {
     this.program = Ref.create(program);
   }
 
@@ -238,12 +238,12 @@ public class Job {
    * @param path The file's path.
    * @return The file or null if the file cannot be found
    */
-  public JobFile getFile(String path) {
-    return JobFileDAO.loadByPath(path, this);
+  public TaskFile getFile(String path) {
+    return TaskFileDAO.loadByPath(path, this);
   }
 
-  public List<JobFile> getFilesLoaded() {
-    return JobFileDAO.files(this);
+  public List<TaskFile> getFilesLoaded() {
+    return TaskFileDAO.files(this);
   }
 
   public String getQueueName() {
@@ -294,11 +294,11 @@ public class Job {
     resultMessage = pResultMessage;
   }
 
-  public JobStatistic getStatistic() {
+  public TaskStatistic getStatistic() {
     return statistic;
   }
 
-  public void setStatistic(JobStatistic pStatistic) {
+  public void setStatistic(TaskStatistic pStatistic) {
     statistic = pStatistic;
   }
 }

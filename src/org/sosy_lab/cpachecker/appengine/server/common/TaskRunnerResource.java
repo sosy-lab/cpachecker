@@ -21,29 +21,17 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.appengine.common;
+package org.sosy_lab.cpachecker.appengine.server.common;
 
-import org.sosy_lab.cpachecker.appengine.entity.Job;
+import org.restlet.representation.Representation;
+import org.restlet.resource.Post;
 
-/**
- * Interface for classes that are able to run a verification job.
- * Running the job does not need to be immediate. A job runner implementation may
- * also delay the run.
- * Examples are:
- * - Asynchronous runner
- * - Synchronous runner
- * - Task Queue runner
- * - Remote runner
- * - ...
- */
-public interface JobRunner {
 
-  /**
-   * Runs the given job and returns the given job instance.
-   *
-   * @param job The job to run.
-   * @return The job instance that was to be run.
-   */
-  public Job run(Job job);
+public interface TaskRunnerResource {
 
+  public static final String ERROR_FILE_NAME = "ERROR.txt";
+  public static final int MAX_RETRIES = 1; // see queue.xml
+
+  @Post
+  public void runTask(Representation entity) throws Exception;
 }

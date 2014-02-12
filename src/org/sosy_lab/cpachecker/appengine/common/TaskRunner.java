@@ -21,22 +21,29 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.appengine.server.common;
+package org.sosy_lab.cpachecker.appengine.common;
 
-import org.restlet.representation.Representation;
-import org.restlet.representation.Variant;
-import org.restlet.resource.Delete;
-import org.restlet.resource.Get;
+import org.sosy_lab.cpachecker.appengine.entity.Task;
 
+/**
+ * Interface for classes that are able to run a verification {@link Task}.
+ * Running the {@link Task} does not need to be immediate. An implementation of
+ * this interface might also delay the run.
+ * Examples are:
+ * - Asynchronous runner
+ * - Synchronous runner
+ * - Task Queue runner
+ * - Remote runner
+ * - ...
+ */
+public interface TaskRunner {
 
-public interface JobResource {
+  /**
+   * Runs the given {@link Task} and returns it.
+   *
+   * @param task The {@link Task} to run.
+   * @return The {@link Task} that was run.
+   */
+  public Task run(Task task);
 
-  @Get("html")
-  public Representation jobAsHtml();
-
-  @Get("json")
-  public Representation jobAsJson();
-
-  @Delete
-  public Representation deleteJob(Variant variant);
 }

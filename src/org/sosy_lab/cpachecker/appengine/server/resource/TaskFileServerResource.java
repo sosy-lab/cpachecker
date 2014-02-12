@@ -29,29 +29,29 @@ import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.resource.ResourceException;
-import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
-import org.sosy_lab.cpachecker.appengine.entity.Job;
-import org.sosy_lab.cpachecker.appengine.entity.JobFile;
-import org.sosy_lab.cpachecker.appengine.json.JobFileMixinAnnotations;
-import org.sosy_lab.cpachecker.appengine.json.JobMixinAnnotations;
-import org.sosy_lab.cpachecker.appengine.server.common.JobFileResource;
+import org.sosy_lab.cpachecker.appengine.dao.TaskFileDAO;
+import org.sosy_lab.cpachecker.appengine.entity.Task;
+import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
+import org.sosy_lab.cpachecker.appengine.json.TaskFileMixinAnnotations;
+import org.sosy_lab.cpachecker.appengine.json.TaskMixinAnnotations;
+import org.sosy_lab.cpachecker.appengine.server.common.TaskFileResource;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
 
-public class JobFileServerResource extends WadlServerResource implements JobFileResource {
+public class TaskFileServerResource extends WadlServerResource implements TaskFileResource {
 
-  private JobFile file = null;
+  private TaskFile file = null;
 
   @Override
   protected void doInit() throws ResourceException {
     super.doInit();
 
-    file = JobFileDAO.load(getAttribute("fileKey"));
+    file = TaskFileDAO.load(getAttribute("fileKey"));
     if (file == null) {
-      file = JobFileDAO.loadByName(getAttribute("fileKey"), getAttribute("jobKey"));
+      file = TaskFileDAO.loadByName(getAttribute("fileKey"), getAttribute("taskKey"));
     }
 
     if (file == null) {
@@ -70,8 +70,8 @@ public class JobFileServerResource extends WadlServerResource implements JobFile
   public Representation fileAsJson() {
     ObjectMapper mapper = new ObjectMapper();
     mapper.enable(SerializationFeature.INDENT_OUTPUT);
-    mapper.addMixInAnnotations(Job.class, JobMixinAnnotations.KeyOnly.class);
-    mapper.addMixInAnnotations(JobFile.class, JobFileMixinAnnotations.Full.class);
+    mapper.addMixInAnnotations(Task.class, TaskMixinAnnotations.KeyOnly.class);
+    mapper.addMixInAnnotations(TaskFile.class, TaskFileMixinAnnotations.Full.class);
 
     try {
       return new StringRepresentation(mapper.writeValueAsString(file), MediaType.APPLICATION_JSON);

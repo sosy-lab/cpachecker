@@ -26,9 +26,9 @@ package org.sosy_lab.cpachecker.appengine.io;
 import java.nio.charset.Charset;
 
 import org.sosy_lab.common.io.FileSystemPath;
-import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
-import org.sosy_lab.cpachecker.appengine.entity.Job;
-import org.sosy_lab.cpachecker.appengine.entity.JobFile;
+import org.sosy_lab.cpachecker.appengine.dao.TaskFileDAO;
+import org.sosy_lab.cpachecker.appengine.entity.Task;
+import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 
 import com.google.common.io.ByteSink;
 import com.google.common.io.ByteSource;
@@ -39,40 +39,40 @@ import com.google.common.io.FileWriteMode;
 /**
  * This class extends a {@link FileSystemPath} and makes it work on Google App
  * Engine. GAE does not allow writes to the file system and therefore any method
- * that would do so is adapted to redirect writes to a fitting means.
+ * that would do so is adapted to redirect writes to a fitting facility.
  */
 public class GAEPath extends FileSystemPath {
 
-  private JobFile jobFile = null;
+  private TaskFile taskFile = null;
 
   /**
-   * Constructs a new instance that depends on the given job.
+   * Constructs a new instance that depends on the given {@link Task}.
    *
    * @see FileSystemPath#FileSystemPath(String, String...)
-   * @param job The job this instance depends on
+   * @param task The {@link Task} this instance depends on
    */
-  public GAEPath(String path, Job job, String... more) {
+  public GAEPath(String path, Task task, String... more) {
     super(path, more);
 
     if (isFile()) {
       try {
         if (!super.exists()) {
-          jobFile = job.getFile(getPath());
+          taskFile = task.getFile(getPath());
         }
       } catch (Exception e) {
         // if super.exists() fails because it accesses the file system
-        jobFile = job.getFile(getPath());
+        taskFile = task.getFile(getPath());
       }
     }
 
-    if (jobFile == null) {
-      jobFile = new JobFile(getPath(), job);
+    if (taskFile == null) {
+      taskFile = new TaskFile(getPath(), task);
     }
   }
 
   @Override
   public ByteSink asByteSink(FileWriteMode... mode) {
-    return new DataStoreByteSink(jobFile, mode);
+    return new DataStoreByteSink(taskFile, mode);
   }
 
   /**
@@ -85,12 +85,12 @@ public class GAEPath extends FileSystemPath {
       return super.asByteSource();
     }
 
-    return new DataStoreByteSource(jobFile);
+    return new DataStoreByteSource(taskFile);
   }
 
   @Override
   public CharSink asCharSink(Charset charset, FileWriteMode... mode) {
-    return new DataStoreCharSink(jobFile, charset, mode);
+    return new DataStoreCharSink(taskFile, charset, mode);
   }
 
   /**
@@ -103,7 +103,7 @@ public class GAEPath extends FileSystemPath {
       return super.asCharSource(charset);
     }
 
-    return new DataStoreCharSource(jobFile, charset);
+    return new DataStoreCharSource(taskFile, charset);
   }
 
   /**
@@ -111,7 +111,7 @@ public class GAEPath extends FileSystemPath {
    */
   @Override
   public boolean delete() {
-    JobFileDAO.delete(jobFile);
+    TaskFileDAO.delete(taskFile);
     return true;
   }
 

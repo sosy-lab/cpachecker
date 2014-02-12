@@ -47,14 +47,14 @@ import org.restlet.representation.StringRepresentation;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.appengine.common.FreemarkerUtil;
-import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner;
-import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
+import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueTaskRunner;
+import org.sosy_lab.cpachecker.appengine.dao.TaskDAO;
 import org.sosy_lab.cpachecker.appengine.entity.DefaultOptions;
-import org.sosy_lab.cpachecker.appengine.entity.Job;
-import org.sosy_lab.cpachecker.appengine.entity.JobFile;
-import org.sosy_lab.cpachecker.appengine.json.JobFileMixinAnnotations;
-import org.sosy_lab.cpachecker.appengine.json.JobMixinAnnotations;
-import org.sosy_lab.cpachecker.appengine.server.common.JobsResource;
+import org.sosy_lab.cpachecker.appengine.entity.Task;
+import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
+import org.sosy_lab.cpachecker.appengine.json.TaskFileMixinAnnotations;
+import org.sosy_lab.cpachecker.appengine.json.TaskMixinAnnotations;
+import org.sosy_lab.cpachecker.appengine.server.common.TasksResource;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -64,13 +64,13 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.base.Charsets;
 
 
-public class JobsServerResource extends WadlServerResource implements JobsResource {
+public class TasksServerResource extends WadlServerResource implements TasksResource {
 
   @Override
-  public Representation createJobFromHtml(Representation input) throws IOException {
+  public Representation createTaskFromHtml(Representation input) throws IOException {
     Map<String, String> options = new HashMap<>();
-    Job job = new Job();
-    JobFile program = new JobFile();
+    Task task = new Task();
+    TaskFile program = new TaskFile();
     List<String> errors = new ArrayList<>();
 
     ServletFileUpload upload = new ServletFileUpload();
@@ -84,11 +84,11 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
           switch (item.getFieldName()) {
           case "specification":
             value = (value.equals("")) ? null : value;
-            job.setSpecification(value);
+            task.setSpecification(value);
             break;
           case "configuration":
             value = (value.equals("")) ? null : value;
-            job.setConfiguration(value);
+            task.setConfiguration(value);
             break;
           case "disableOutput":
             options.put("output.disable", "true");
@@ -134,17 +134,17 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
       errors.add("error.couldNotUpload");
     }
 
-    job.setOptions(options);
+    task.setOptions(options);
 
     if (errors.size() == 0) {
-      errors = JobDAO.create(job, program);
+      errors = TaskDAO.create(task, program);
     }
 
     if (errors != null && errors.size() == 0) {
       try {
         Configuration config = Configuration.builder()
-            .setOptions(job.getOptions()).build();
-        new GAETaskQueueJobRunner(config).run(job);
+            .setOptions(task.getOptions()).build();
+        new GAETaskQueueTaskRunner(config).run(task);
       } catch (InvalidConfigurationException e) {
         errors.add("error.invalidConfiguration");
       }
@@ -152,14 +152,14 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
 
     if (errors.size() == 0) {
       getResponse().setStatus(Status.SUCCESS_CREATED);
-      redirectSeeOther("/tasks/" + job.getKey());
+      redirectSeeOther("/tasks/" + task.getKey());
       return getResponseEntity();
     }
 
     getResponse().setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
     return FreemarkerUtil.templateBuilder()
         .context(getContext())
-        .addData("job", job)
+        .addData("task", task)
         .addData("errors", errors)
         .addData("allowedOptions", DefaultOptions.getDefaultOptions())
         .addData("defaultOptions", DefaultOptions.getImmutableOptions())
@@ -170,29 +170,29 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
   }
 
   @Override
-  public Representation jobsAsHtml() {
-    List<Job> jobs = JobDAO.jobs();
+  public Representation tasksAsHtml() {
+    List<Task> tasks = TaskDAO.tasks();
     return FreemarkerUtil.templateBuilder()
         .context(getContext())
-        .templateName("jobs.ftl")
-        .addData("jobs", jobs)
+        .templateName("tasks.ftl")
+        .addData("tasks", tasks)
         .build();
   }
 
   @Override
-  public Representation createJobFromJson(Representation entity) {
+  public Representation createTaskFromJson(Representation entity) {
     ObjectMapper mapper = new ObjectMapper();
-    mapper.addMixInAnnotations(Job.class, JobMixinAnnotations.FromJSONAPI.class);
-    mapper.addMixInAnnotations(JobFile.class, JobFileMixinAnnotations.FromJSONAPI.class);
+    mapper.addMixInAnnotations(Task.class, TaskMixinAnnotations.FromJSONAPI.class);
+    mapper.addMixInAnnotations(TaskFile.class, TaskFileMixinAnnotations.FromJSONAPI.class);
 
     List<String> errors = new ArrayList<>();
-    Job job = new Job();
-    JobFile program = new JobFile();
+    Task task = new Task();
+    TaskFile program = new TaskFile();
     try {
       if (entity != null) {
         String json = entity.getText();
-        job = mapper.readValue(json, Job.class);
-        program = mapper.readValue(json, JobFile.class);
+        task = mapper.readValue(json, Task.class);
+        program = mapper.readValue(json, TaskFile.class);
       }
     } catch (JsonParseException e) {
       errors.add("error.jsonNotWellFormed");
@@ -202,16 +202,15 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
       errors.add("error.requestBodyNotRead");
     }
 
-    // do not attempt to create job if there are no useful settings
     if (errors.size() == 0) {
-      errors = JobDAO.create(job, program);
+      errors = TaskDAO.create(task, program);
     }
 
     if (errors != null && errors.size() == 0) {
       try {
         Configuration config = Configuration.builder()
-            .setOptions(job.getOptions()).build();
-        new GAETaskQueueJobRunner(config).run(job);
+            .setOptions(task.getOptions()).build();
+        new GAETaskQueueTaskRunner(config).run(task);
       } catch (InvalidConfigurationException e) {
         errors.add("error.invalidConfiguration");
       }
@@ -223,7 +222,7 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
         return new StringRepresentation(mapper.writeValueAsString(errors), MediaType.APPLICATION_JSON);
       } else {
         getResponse().setStatus(Status.SUCCESS_CREATED);
-        getResponse().setLocationRef("/tasks/" + job.getKey());
+        getResponse().setLocationRef("/tasks/" + task.getKey());
         return getResponseEntity();
       }
     } catch (JsonProcessingException e) {
@@ -232,13 +231,13 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
   }
 
   @Override
-  public Representation jobsAsJson() {
+  public Representation tasksAsJson() {
     ObjectMapper mapper = new ObjectMapper();
     mapper.enable(SerializationFeature.INDENT_OUTPUT);
-    mapper.addMixInAnnotations(Job.class, JobMixinAnnotations.Minimal.class);
+    mapper.addMixInAnnotations(Task.class, TaskMixinAnnotations.Minimal.class);
 
     try {
-      return new StringRepresentation(mapper.writeValueAsString(JobDAO.jobs()), MediaType.APPLICATION_JSON);
+      return new StringRepresentation(mapper.writeValueAsString(TaskDAO.tasks()), MediaType.APPLICATION_JSON);
     } catch (JsonProcessingException e) {
       return null;
     }
@@ -246,6 +245,6 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
 
   @Override
   public void deleteAll() {
-    JobDAO.deleteAll();
+    TaskDAO.deleteAll();
   }
 }

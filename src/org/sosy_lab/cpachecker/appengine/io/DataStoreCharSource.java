@@ -29,17 +29,17 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.Charset;
 
-import org.sosy_lab.cpachecker.appengine.entity.JobFile;
+import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 
 import com.google.common.io.CharSource;
 
 
 public class DataStoreCharSource extends CharSource {
 
-  private JobFile file;
+  private TaskFile file;
   private Charset charset;
 
-  public DataStoreCharSource(JobFile file, Charset charset) {
+  public DataStoreCharSource(TaskFile file, Charset charset) {
     this.file = file;
     this.charset = charset;
   }

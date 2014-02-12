@@ -33,50 +33,50 @@ import org.restlet.representation.StringRepresentation;
 import org.restlet.representation.Variant;
 import org.restlet.resource.ResourceException;
 import org.sosy_lab.cpachecker.appengine.common.FreemarkerUtil;
-import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
-import org.sosy_lab.cpachecker.appengine.entity.Job;
-import org.sosy_lab.cpachecker.appengine.entity.JobFile;
-import org.sosy_lab.cpachecker.appengine.entity.JobStatistic;
-import org.sosy_lab.cpachecker.appengine.json.JobFileMixinAnnotations;
-import org.sosy_lab.cpachecker.appengine.json.JobMixinAnnotations;
-import org.sosy_lab.cpachecker.appengine.json.JobStatisticMixinAnnotations;
-import org.sosy_lab.cpachecker.appengine.server.common.JobResource;
+import org.sosy_lab.cpachecker.appengine.dao.TaskDAO;
+import org.sosy_lab.cpachecker.appengine.entity.Task;
+import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
+import org.sosy_lab.cpachecker.appengine.entity.TaskStatistic;
+import org.sosy_lab.cpachecker.appengine.json.TaskFileMixinAnnotations;
+import org.sosy_lab.cpachecker.appengine.json.TaskMixinAnnotations;
+import org.sosy_lab.cpachecker.appengine.json.TaskStatisticMixinAnnotations;
+import org.sosy_lab.cpachecker.appengine.server.common.TaskResource;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
 
-public class JobServerResource extends WadlServerResource implements JobResource {
+public class TaskServerResource extends WadlServerResource implements TaskResource {
 
-  private Job job;
+  private Task task;
 
   @Override
   protected void doInit() throws ResourceException {
     super.doInit();
-    job = JobDAO.load(getAttribute("jobKey"));
+    task = TaskDAO.load(getAttribute("taskKey"));
 
-    if (job == null) {
+    if (task == null) {
       getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND);
       getResponse().commit();
     }
   }
 
   @Override
-  public Representation jobAsHtml() {
-    List<JobFile> files = job.getFilesLoaded();
+  public Representation taskAsHtml() {
+    List<TaskFile> files = task.getFilesLoaded();
 
     return FreemarkerUtil.templateBuilder()
         .context(getContext())
-        .addData("job", job)
+        .addData("task", task)
         .addData("files", files)
-        .templateName("job.ftl")
+        .templateName("task.ftl")
         .build();
   }
 
   @Override
-  public Representation deleteJob(Variant variant) {
-    JobDAO.delete(job);
+  public Representation deleteTask(Variant variant) {
+    TaskDAO.delete(task);
     getResponse().setStatus(Status.SUCCESS_OK);
 
     // only send redirect if it is a browser call
@@ -87,15 +87,15 @@ public class JobServerResource extends WadlServerResource implements JobResource
   }
 
   @Override
-  public Representation jobAsJson() {
+  public Representation taskAsJson() {
     ObjectMapper mapper = new ObjectMapper();
     mapper.enable(SerializationFeature.INDENT_OUTPUT);
-    mapper.addMixInAnnotations(Job.class, JobMixinAnnotations.Full.class);
-    mapper.addMixInAnnotations(JobStatistic.class, JobStatisticMixinAnnotations.Full.class);
-    mapper.addMixInAnnotations(JobFile.class, JobFileMixinAnnotations.Minimal.class);
+    mapper.addMixInAnnotations(Task.class, TaskMixinAnnotations.Full.class);
+    mapper.addMixInAnnotations(TaskStatistic.class, TaskStatisticMixinAnnotations.Full.class);
+    mapper.addMixInAnnotations(TaskFile.class, TaskFileMixinAnnotations.Minimal.class);
 
     try {
-      return new StringRepresentation(mapper.writeValueAsString(job), MediaType.APPLICATION_JSON);
+      return new StringRepresentation(mapper.writeValueAsString(task), MediaType.APPLICATION_JSON);
     } catch (JsonProcessingException e) {
       return null;
     }
