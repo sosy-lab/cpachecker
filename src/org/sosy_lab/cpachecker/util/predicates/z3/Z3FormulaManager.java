@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBitv
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractRationalFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractNumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
 
@@ -58,7 +58,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
       AbstractUnsafeFormulaManager<Long> pUnsafeManager,
       AbstractFunctionFormulaManager<Long> pFunctionManager,
       AbstractBooleanFormulaManager<Long> pBooleanManager,
-      AbstractRationalFormulaManager<Long> pNumericManager,
+      AbstractNumeralFormulaManager<Long> pNumericManager,
       AbstractBitvectorFormulaManager<Long> pBitpreciseManager,
       Z3SmtLogger smtLogger, Configuration config) throws InvalidConfigurationException {
 
@@ -110,13 +110,10 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
     long boolSort = mk_bool_sort(context);
     inc_ref(context, sort_to_ast(context, boolSort));
 
-    long numeralSort;
-    if (useIntegers) {
-      numeralSort = mk_int_sort(context);
-    } else {
-      numeralSort = mk_real_sort(context);
-    }
-    inc_ref(context, sort_to_ast(context, numeralSort));
+    long integerSort = mk_int_sort(context);
+    inc_ref(context, sort_to_ast(context, integerSort));
+    long realSort = mk_real_sort(context);
+    inc_ref(context, sort_to_ast(context, realSort));
 
     // create logger for variables and set initial options in this logger,
     // note: logger for the solvers are created later,
@@ -133,18 +130,24 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
 //    smtLogger.logBracket("set-logic QF_UFLRA");
 
 
-    Z3FormulaCreator creator = new Z3FormulaCreator(context, boolSort, numeralSort, smtLogger);
+    Z3FormulaCreator creator = new Z3FormulaCreator(context, boolSort, integerSort, realSort, smtLogger);
 
     // Create managers
     Z3UnsafeFormulaManager unsafeManager = new Z3UnsafeFormulaManager(creator);
     Z3FunctionFormulaManager functionTheory = new Z3FunctionFormulaManager(creator, unsafeManager, smtLogger);
     Z3BooleanFormulaManager booleanTheory = new Z3BooleanFormulaManager(creator);
-    Z3RationalFormulaManager rationalTheory = new Z3RationalFormulaManager(creator, functionTheory);
+    Z3NumeralFormulaManager numeralTheory;
+    if (useIntegers) {
+      numeralTheory = new Z3IntegerFormulaManager(creator, functionTheory);
+    } else {
+      numeralTheory = new Z3RationalFormulaManager(creator, functionTheory);
+    }
+
     Z3BitvectorFormulaManager bitvectorTheory = new Z3BitvectorFormulaManager(creator);
 
     Z3FormulaManager instance = new Z3FormulaManager(
         unsafeManager, functionTheory, booleanTheory,
-        rationalTheory, bitvectorTheory, smtLogger, config);
+        numeralTheory, bitvectorTheory, smtLogger, config);
     return instance;
   }
 

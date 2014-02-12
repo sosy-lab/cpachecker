@@ -482,6 +482,7 @@ class SmtInterpolEnvironment {
     }
   }
 
+  /** returns a number of type INT or REAL */
   public Term numeral(BigInteger num) {
     try {
       return script.numeral(num);
@@ -490,6 +491,7 @@ class SmtInterpolEnvironment {
     }
   }
 
+  /** returns a number of type INT or REAL */
   public Term numeral(String num) {
     try {
       return script.numeral(num);
@@ -498,6 +500,7 @@ class SmtInterpolEnvironment {
     }
   }
 
+  /** returns a number of type REAL */
   public Term decimal(String num) {
     try {
       return script.decimal(num);
@@ -506,6 +509,7 @@ class SmtInterpolEnvironment {
     }
   }
 
+  /** returns a number of type REAL */
   public Term decimal(BigDecimal num) {
     try {
       return script.decimal(num);

@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBitv
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractRationalFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractNumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.FormulaCreator;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.TerminationTest;
@@ -107,7 +107,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> impleme
       AbstractUnsafeFormulaManager<Long> unsafeManager,
       AbstractFunctionFormulaManager<Long> pFunctionManager,
       AbstractBooleanFormulaManager<Long> pBooleanManager,
-      AbstractRationalFormulaManager<Long> pNumericManager,
+      AbstractNumeralFormulaManager<Long> pNumericManager,
       AbstractBitvectorFormulaManager<Long> pBitpreciseManager,
       Mathsat5Settings pSettings,
       final ShutdownNotifier pShutdownNotifier) {

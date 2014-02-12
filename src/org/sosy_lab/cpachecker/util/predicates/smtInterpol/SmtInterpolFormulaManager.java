@@ -62,7 +62,7 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
       SmtInterpolUnsafeFormulaManager pUnsafeManager,
       SmtInterpolFunctionFormulaManager pFunctionManager,
       SmtInterpolBooleanFormulaManager pBooleanManager,
-      SmtInterpolRationalFormulaManager pNumericManager) {
+      SmtInterpolNumeralFormulaManager pNumericManager) {
     super(pUnsafeManager, pFunctionManager, pBooleanManager, pNumericManager, null);
     this.creator = checkNotNull((SmtInterpolFormulaCreator)getFormulaCreator());
     this.env = creator.getEnv();
@@ -74,15 +74,20 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
     Logics logic = pUseIntegers ? Logics.QF_UFLIA : Logics.QF_UFLIRA;
     SmtInterpolEnvironment env = new SmtInterpolEnvironment(config, logic, logger, pShutdownNotifier);
 
-    Type type = pUseIntegers ? Type.INT : Type.REAL;
-    final Sort t = env.sort(type);
-    SmtInterpolFormulaCreator creator = new SmtInterpolFormulaCreator(env, env.sort(Type.BOOL), t);
+    final Sort integerType = env.sort(Type.INT);
+    final Sort realType = env.sort(Type.REAL);
+    SmtInterpolFormulaCreator creator = new SmtInterpolFormulaCreator(env, env.sort(Type.BOOL), integerType, realType);
 
     // Create managers
     SmtInterpolUnsafeFormulaManager unsafeManager = new SmtInterpolUnsafeFormulaManager(creator);
     SmtInterpolFunctionFormulaManager functionTheory = new SmtInterpolFunctionFormulaManager(creator, unsafeManager);
     SmtInterpolBooleanFormulaManager booleanTheory = new SmtInterpolBooleanFormulaManager(creator, env.getTheory());
-    SmtInterpolRationalFormulaManager rationalTheory = new SmtInterpolRationalFormulaManager(creator, functionTheory, pUseIntegers);
+    SmtInterpolNumeralFormulaManager rationalTheory;
+    if (pUseIntegers) {
+      rationalTheory = new SmtInterpolIntegerFormulaManager(creator, functionTheory);
+    } else {
+      rationalTheory = new SmtInterpolRationalFormulaManager(creator, functionTheory);
+    }
     return new SmtInterpolFormulaManager(unsafeManager, functionTheory, booleanTheory, rationalTheory);
   }
 

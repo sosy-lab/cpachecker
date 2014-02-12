@@ -23,17 +23,26 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
-import de.uni_freiburg.informatik.ultimate.logic.Sort;
-import de.uni_freiburg.informatik.ultimate.logic.Term;
+import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.*;
+import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolUtil.isNumber;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractNumeralFormulaManager;
+
+import com.google.common.collect.ImmutableList;
+
+import de.uni_freiburg.informatik.ultimate.logic.Sort;
+import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 
-class SmtInterpolRationalFormulaManager extends SmtInterpolNumeralFormulaManager {
+class SmtInterpolIntegerFormulaManager extends SmtInterpolNumeralFormulaManager {
 
-  SmtInterpolRationalFormulaManager(
+  SmtInterpolIntegerFormulaManager(
           SmtInterpolFormulaCreator pCreator,
           SmtInterpolFunctionFormulaManager pFunctionManager) {
     super(pCreator, pFunctionManager);
@@ -41,22 +50,22 @@ class SmtInterpolRationalFormulaManager extends SmtInterpolNumeralFormulaManager
 
   @Override
   protected Term makeNumberImpl(long i) {
-    return getCreator().getEnv().decimal(BigDecimal.valueOf(i));
+    return getCreator().getEnv().numeral(BigInteger.valueOf(i));
   }
 
   @Override
   protected Term makeNumberImpl(BigInteger pI) {
-    return getCreator().getEnv().decimal(new BigDecimal(pI));
+    return getCreator().getEnv().numeral(pI);
   }
 
   @Override
   protected Term makeNumberImpl(String pI) {
-    return getCreator().getEnv().decimal(pI);
+    return getCreator().getEnv().numeral(pI);
   }
 
   @Override
   protected Term makeVariableImpl(String varName) {
-    Sort t = getCreator().getRealType();
+    Sort t = getCreator().getIntegerType();
     return getCreator().makeVariable(t, varName);
   }
 }

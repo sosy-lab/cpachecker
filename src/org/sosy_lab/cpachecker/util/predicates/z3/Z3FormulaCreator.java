@@ -39,9 +39,10 @@ public class Z3FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
   public Z3FormulaCreator(
       long pEnv,
       long pBoolType,
-      long pNumberType,
+      long pIntegerType,
+      long pRealType,
       Z3SmtLogger smtLogger) {
-    super(pEnv, pBoolType, pNumberType);
+    super(pEnv, pBoolType, pIntegerType, pRealType);
 
     this.smtLogger = smtLogger;
   }

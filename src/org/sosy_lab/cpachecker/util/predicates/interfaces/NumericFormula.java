@@ -21,23 +21,13 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.z3;
+package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
-import java.math.BigInteger;
 
-import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.mk_int64;
-import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.mk_numeral;
+public interface NumericFormula extends Formula {
 
-public class Z3RationalFormulaManager extends Z3NumeralFormulaManager {
+  public interface IntegerFormula extends NumericFormula {};
 
-  public Z3RationalFormulaManager(
-          Z3FormulaCreator pCreator,
-          Z3FunctionFormulaManager pFunctionManager) {
-    super(pCreator, pFunctionManager);
-  }
+  public interface RationalFormula extends NumericFormula {};
 
-  @Override
-  protected long getNumeralType() {
-    return getCreator().getRealType();
-  }
 }

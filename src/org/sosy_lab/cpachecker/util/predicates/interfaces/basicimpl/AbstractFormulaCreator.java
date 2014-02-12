@@ -40,7 +40,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 public abstract class AbstractFormulaCreator<TFormulaInfo, TType, TEnv> implements FormulaCreator<TFormulaInfo> {
 
   private final TType boolType;
-  private final TType numberType;
+  private final TType integerType;
+  private final TType realType;
   private final TEnv environment;
 
   public TEnv getEnv() {
@@ -50,10 +51,12 @@ public abstract class AbstractFormulaCreator<TFormulaInfo, TType, TEnv> implemen
   protected AbstractFormulaCreator(
       TEnv env,
       TType boolType,
-      TType numberType
+      TType pIntegerType,
+      TType pRealType
       ) {
     this.boolType = boolType;
-    this.numberType = numberType;
+    this.integerType = pIntegerType;
+    this.realType = pRealType;
     this.environment = env;
   }
 
@@ -86,8 +89,12 @@ public abstract class AbstractFormulaCreator<TFormulaInfo, TType, TEnv> implemen
     return boolType;
   }
 
-  public TType getNumberType() {
-    return numberType;
+  public TType getIntegerType() {
+    return integerType;
+  }
+
+  public TType getRealType() {
+    return realType;
   }
 
   protected abstract TFormulaInfo makeVariable(TType type, String varName) ;

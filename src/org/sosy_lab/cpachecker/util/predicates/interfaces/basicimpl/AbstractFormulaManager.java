@@ -41,7 +41,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaMan
 
   private final AbstractBooleanFormulaManager<TFormulaInfo> booleanManager;
 
-  private final AbstractRationalFormulaManager<TFormulaInfo> rationalManager;
+  private final AbstractNumeralFormulaManager<TFormulaInfo> rationalManager;
 
   private final AbstractBitvectorFormulaManager<TFormulaInfo> bitvectorManager;
 
@@ -63,7 +63,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaMan
       AbstractUnsafeFormulaManager<TFormulaInfo> unsafeManager,
       AbstractFunctionFormulaManager<TFormulaInfo> functionManager,
       AbstractBooleanFormulaManager<TFormulaInfo> booleanManager,
-      AbstractRationalFormulaManager<TFormulaInfo> rationalManager,
+      AbstractNumeralFormulaManager<TFormulaInfo> rationalManager,
       AbstractBitvectorFormulaManager<TFormulaInfo> bitvectorManager) {
     if (functionManager == null || booleanManager == null || unsafeManager == null) {
       throw new IllegalArgumentException("boolean, function and unsafe manager instances have to be valid!");
@@ -117,7 +117,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaMan
     return AbstractFormulaManager.getInterfaceHelper(pInstance);
   }
   @Override
-  public AbstractRationalFormulaManager<TFormulaInfo> getRationalFormulaManager() {
+  public AbstractNumeralFormulaManager<TFormulaInfo> getRationalFormulaManager() {
     if (rationalManager == null) {
       throw new UnsupportedOperationException();
     }

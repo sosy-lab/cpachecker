@@ -28,9 +28,9 @@ import java.math.BigInteger;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.mk_int64;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.mk_numeral;
 
-public class Z3RationalFormulaManager extends Z3NumeralFormulaManager {
+public class Z3IntegerFormulaManager extends Z3NumeralFormulaManager {
 
-  public Z3RationalFormulaManager(
+  public Z3IntegerFormulaManager(
           Z3FormulaCreator pCreator,
           Z3FunctionFormulaManager pFunctionManager) {
     super(pCreator, pFunctionManager);
@@ -38,6 +38,6 @@ public class Z3RationalFormulaManager extends Z3NumeralFormulaManager {
 
   @Override
   protected long getNumeralType() {
-    return getCreator().getRealType();
+    return getCreator().getIntegerType();
   }
 }

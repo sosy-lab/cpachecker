@@ -31,12 +31,12 @@ import java.math.BigInteger;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractRationalFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractNumeralFormulaManager;
 
 import com.google.common.collect.ImmutableList;
 
 
-class Mathsat5RationalFormulaManager extends AbstractRationalFormulaManager<Long> {
+class Mathsat5RationalFormulaManager extends AbstractNumeralFormulaManager<Long> {
 
   private final Mathsat5FunctionType<RationalFormula> multUfDecl;
   private final Mathsat5FunctionType<RationalFormula> divUfDecl;
@@ -91,7 +91,7 @@ class Mathsat5RationalFormulaManager extends AbstractRationalFormulaManager<Long
 
   @Override
   public Long makeVariableImpl(String var) {
-    long numberType = creator.getNumberType();
+    long numberType = creator.getRealType();
     return creator.makeVariable(numberType, var);
   }
 

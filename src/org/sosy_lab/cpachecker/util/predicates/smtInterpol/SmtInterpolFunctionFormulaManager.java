@@ -65,8 +65,10 @@ class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaManager<T
     Sort t;
     if (formulaType.isBooleanType()) {
       t = creator.getBoolType();
+    } else if (formulaType.isIntegerType()) {
+      t = creator.getIntegerType();
     } else if (formulaType.isRationalType()) {
-      t = creator.getNumberType();
+      t = creator.getRealType();
     } else if (formulaType.isBitvectorType()) {
       FormulaType.BitvectorType bitPreciseType = (FormulaType.BitvectorType) formulaType;
       t = creator.getBittype(bitPreciseType.getSize());
