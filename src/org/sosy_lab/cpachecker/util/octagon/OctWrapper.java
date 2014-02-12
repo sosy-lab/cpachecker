@@ -55,6 +55,8 @@ class OctWrapper {
 
   static native void J_num_clear_n(long n, int size); // call void num_clear_n (num_t* a, size_t n) and oct_mm_free(c) afterwards
 
+  static native void J_get_bounds(long n, int pos, long upperBound, long lowerBound); // void get_bounds(oct * m, var_t k, num_t *up, num_t *down)
+  static native long J_set_bounds(long n, int pos, long upperBound, long lowerBound, boolean dest); // void set_bounds(oct * m, var_t k, num_t *up, num_t *down)
 
   /* Octagon handling functions */
 
