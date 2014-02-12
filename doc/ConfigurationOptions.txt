@@ -487,8 +487,8 @@ cpa.automaton.inputFile = no default value
 # adding a new value to the state can be done from 0 to N or from N to 0
 cpa.bdd.addIncreasing = false
 
-# default bitsize for values and vars
-cpa.bdd.bitsize = 32
+# max bitsize for values and vars, initial value
+cpa.bdd.bitsize = 64
 
 # use a smaller bitsize for all vars, that have only intEqual values
 cpa.bdd.compressIntEqual = true
@@ -504,7 +504,7 @@ cpa.bdd.initBitsIncreasing = true
 cpa.bdd.initBitwise = true
 
 # declare vars partitionwise
-cpa.bdd.initPartitions = true
+cpa.bdd.initPartitions = Ordered = true
 
 # declare partitions ordered
 cpa.bdd.initPartitionsOrdered = true
@@ -707,6 +707,14 @@ cpa.explicit.refiner.checkForRepeatedRefinements = true
 
 # whether or not to do lazy-abstraction
 cpa.explicit.refiner.doLazyAbstraction = true
+
+# when to export the interpolation tree
+# NEVER:   never export the interpolation tree
+# FINAL:   export the interpolation tree once after each refinement
+# ALWAYD:  export the interpolation tree once after each interpolation, i.e.
+# multiple times per refinmenet
+cpa.explicit.refiner.exportInterpolationTree = "NEVER"
+  allowed values: [NEVER, FINAL, ALWAYS]
 
 # use heuristic to extract a precision from the CFA statically on first
 # refinement
