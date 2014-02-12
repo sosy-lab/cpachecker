@@ -51,7 +51,7 @@ public class Z3Model {
     this.mgr = mgr;
     this.z3context = z3context;
     this.z3solver = z3solver;
-    Preconditions.checkArgument(mgr.getContext() == z3context);
+    Preconditions.checkArgument(mgr.getEnvironment() == z3context);
   }
 
   private TermType toZ3Type(long sort) {

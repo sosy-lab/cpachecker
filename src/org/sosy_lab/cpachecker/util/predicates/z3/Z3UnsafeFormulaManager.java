@@ -56,7 +56,7 @@ public class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, L
 
   @Override
   public Formula encapsulateUnsafe(Long pL) {
-    return creator.encapsulateUnsafe(pL);
+    return new Z3Formula(z3context, pL);
   }
 
   @Override

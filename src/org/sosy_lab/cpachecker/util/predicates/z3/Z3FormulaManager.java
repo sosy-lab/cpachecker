@@ -34,15 +34,9 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBitvectorFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.*;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractNumeralFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
-
-import com.google.common.base.Preconditions;
 
 @Options(prefix = "cpa.predicate.solver.z3")
 public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
@@ -50,11 +44,11 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
   @Option(description = "simplify formulas when they are asserted in a solver.")
   boolean simplifyFormulas = false;
 
-  private final long z3context;
-  private final Z3FormulaCreator creator;
   private final Z3SmtLogger z3smtLogger;
 
   private Z3FormulaManager(
+      long z3context,
+      Z3FormulaCreator pFormulaCreator,
       AbstractUnsafeFormulaManager<Long, Long, Long> pUnsafeManager,
       AbstractFunctionFormulaManager<Long, Long, Long> pFunctionManager,
       AbstractBooleanFormulaManager<Long, Long, Long> pBooleanManager,
@@ -62,13 +56,8 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
       AbstractBitvectorFormulaManager<Long, Long, Long> pBitpreciseManager,
       Z3SmtLogger smtLogger, Configuration config) throws InvalidConfigurationException {
 
-    super(pUnsafeManager, pFunctionManager, pBooleanManager, pNumericManager, pBitpreciseManager);
-
+    super(z3context, pFormulaCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pNumericManager, pBitpreciseManager);
     config.inject(this);
-
-    this.creator = (Z3FormulaCreator) getFormulaCreator();
-    assert creator != null;
-    this.z3context = creator.getEnv();
     this.z3smtLogger = smtLogger;
   }
 
@@ -146,6 +135,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
     Z3BitvectorFormulaManager bitvectorTheory = new Z3BitvectorFormulaManager(creator);
 
     Z3FormulaManager instance = new Z3FormulaManager(
+        context, creator,
         unsafeManager, functionTheory, booleanTheory,
         numeralTheory, bitvectorTheory, smtLogger, config);
     return instance;
@@ -162,7 +152,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
     long[] decl_symbols = new long[0];
     long[] decls = new long[0];
 
-    long e = parse_smtlib2_string(z3context, str, sort_symbols, sorts, decl_symbols, decls);
+    long e = parse_smtlib2_string(getEnvironment(), str, sort_symbols, sorts, decl_symbols, decls);
 
     return encapsulate(BooleanFormula.class, e);
   }
@@ -192,18 +182,13 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
 
           @Override
           public String toString() {
-            return ast_to_string(z3context, expr);
+            return ast_to_string(getEnvironment(), expr);
           }
         });
   }
 
-  public long getContext() {
-    Preconditions.checkState(z3context != 0);
-    return z3context;
-  }
-
   private <T extends Formula> T encapsulateExpr(Class<T> pClazz, long t) {
-    return creator.encapsulate(pClazz, t);
+    return getFormulaCreator().encapsulate(pClazz, t);
   }
 
   protected <T extends Formula> T encapsulate(Class<T> pClazz, long t) {
@@ -225,5 +210,4 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
   public Z3SmtLogger getSmtLogger() {
     return new Z3SmtLogger(z3smtLogger);
   }
-
 }

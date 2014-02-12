@@ -45,7 +45,7 @@ class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Lo
 
   @Override
   public Formula encapsulateUnsafe(Long pL) {
-    return creator.encapsulateUnsafe(pL);
+    return new Mathsat5Formula(pL);
   }
 
   @Override

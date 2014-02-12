@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractForm
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractNumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.FormulaCreator;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.TerminationTest;
 
 import com.google.common.base.Splitter;
@@ -91,9 +90,6 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
   }
 
   private final LogManager logger;
-
-  private final Mathsat5FormulaCreator formulaCreator;
-  private final long mathsatEnv;
   private final long mathsatConfig;
   private final Mathsat5Settings settings;
   private static final AtomicInteger logfileCounter = new AtomicInteger(0);
@@ -104,6 +100,8 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
   private Mathsat5FormulaManager(
       LogManager pLogger,
       long pMathsatConfig,
+      long pEnv,
+      Mathsat5FormulaCreator creator,
       AbstractUnsafeFormulaManager<Long, Long, Long> unsafeManager,
       AbstractFunctionFormulaManager<Long, Long, Long> pFunctionManager,
       AbstractBooleanFormulaManager<Long, Long, Long> pBooleanManager,
@@ -112,14 +110,9 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
       Mathsat5Settings pSettings,
       final ShutdownNotifier pShutdownNotifier) {
 
-    super(unsafeManager, pFunctionManager, pBooleanManager, pNumericManager, pBitpreciseManager);
-    FormulaCreator<Long> creator = getFormulaCreator();
-    if (!(creator instanceof Mathsat5FormulaCreator)) {
-      throw new IllegalArgumentException("the formel-creator has to be a Mathsat5FormulaCreator instance!");
-    }
-    formulaCreator = (Mathsat5FormulaCreator) getFormulaCreator();
+    super(pEnv, creator, unsafeManager, pFunctionManager, pBooleanManager, pNumericManager, pBitpreciseManager);
+
     mathsatConfig = pMathsatConfig;
-    mathsatEnv = formulaCreator.getEnv();
     settings = pSettings;
     logger = checkNotNull(pLogger);
 
@@ -161,7 +154,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
     final long msatEnv = msat_create_env(msatConf);
 
     // Create Mathsat5FormulaCreator
-    Mathsat5FormulaCreator creator = new Mathsat5FormulaCreator(msatEnv, useIntegers);
+    Mathsat5FormulaCreator creator = new Mathsat5FormulaCreator(msatEnv);
 
     // Create managers
     Mathsat5UnsafeFormulaManager unsafeManager = new Mathsat5UnsafeFormulaManager(creator);
@@ -170,18 +163,18 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
     Mathsat5RationalFormulaManager rationalTheory = new Mathsat5RationalFormulaManager(creator, functionTheory, useIntegers);
     Mathsat5BitvectorFormulaManager bitvectorTheory  = Mathsat5BitvectorFormulaManager.create(creator);
 
-    return new Mathsat5FormulaManager(logger, msatConf,
+    return new Mathsat5FormulaManager(logger, msatConf, msatEnv, creator,
         unsafeManager, functionTheory, booleanTheory,
         rationalTheory, bitvectorTheory, settings, pShutdownNotifier);
   }
 
   BooleanFormula encapsulateBooleanFormula(long t) {
-    return formulaCreator.encapsulate(BooleanFormula.class, t);
+    return getFormulaCreator().encapsulate(BooleanFormula.class, t);
   }
 
   @Override
   public BooleanFormula parse(String pS) throws IllegalArgumentException {
-    long f = msat_from_smtlib2(mathsatEnv, pS);
+    long f = msat_from_smtlib2(getEnvironment(), pS);
     return encapsulateBooleanFormula(f);
   }
 
@@ -192,7 +185,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
         new Object() {
           @Override
           public String toString() {
-            return msat_to_smtlib2(mathsatEnv, f);
+            return msat_to_smtlib2(getEnvironment(), f);
           }
         });
   }
@@ -224,7 +217,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
     }
 
     if (shared) {
-      env = msat_create_shared_env(cfg, this.mathsatEnv);
+      env = msat_create_shared_env(cfg, this.getEnvironment());
     } else {
       env = msat_create_env(cfg);
     }
@@ -236,14 +229,10 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
     return msat_set_termination_test(env, terminationTest);
   }
 
-  long getMsatEnv() {
-    return mathsatEnv;
-  }
-
   @Override
   public void close() {
     logger.log(Level.FINER, "Freeing Mathsat environment");
-    msat_destroy_env(mathsatEnv);
+    msat_destroy_env(getEnvironment());
     msat_destroy_config(mathsatConfig);
   }
 }

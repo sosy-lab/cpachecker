@@ -23,11 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
-import java.math.BigInteger;
-
-import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.mk_int64;
-import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.mk_numeral;
-
 public class Z3IntegerFormulaManager extends Z3NumeralFormulaManager {
 
   public Z3IntegerFormulaManager(
