@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -207,46 +208,26 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     }
 
     ARGReachedSet reached = new ARGReachedSet(pReached);
+    
+    Collection<ARGState> roots = itpTree.obtainRefinementRoots();
 
-    if(doLazyAbstraction) {
-      Deque<Pair<ARGState, ExplicitPrecision>> refRootsWithPrec = new ArrayDeque<>();
-      while(!refinementRoots.isEmpty()) {
-        Pair<ARGState, ARGState> temRoot = refinementRoots.removeLast();
-        final Precision precision                 = pReached.getPrecision(temRoot.getSecond());
-        final ExplicitPrecision originalPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
-        final ExplicitPrecision refinedPrecision  = new ExplicitPrecision(originalPrecision, itpTree.extractPrecisionIncrement());
+    for(ARGState root : roots) {
+      Collection<ARGState> targetsReachableFromRoot = itpTree.getTargetStatesFor(root);
 
-        refRootsWithPrec.addFirst(Pair.of(temRoot.getFirst(), refinedPrecision));
-      }
-
-      while(!refRootsWithPrec.isEmpty()) {
-        Pair<ARGState, ExplicitPrecision> rRoot = refRootsWithPrec.removeLast();
-        // is ARGRoot -> use child
-        if(rRoot.getFirst().getParents().isEmpty()) {
-          reached.removeSubtree(rRoot.getFirst().getChildren().iterator().next(), rRoot.getSecond(), ExplicitPrecision.class);
-        } else {
-          reached.removeSubtree(rRoot.getFirst(), rRoot.getSecond(), ExplicitPrecision.class);
-        }
-      }
-    }
-
-    // refinement root is child of ARG-root
-    else {
-
-      ExplicitPrecision refinedPrecision = null;
-
-      // just take any target state prec is original prec
-      final ExplicitPrecision originalPrec = Precisions.extractPrecisionByType(pReached.getPrecision(targets.get(0)), ExplicitPrecision.class);
-      for(ARGState target : targets) {
-        // get prec of each target state
+      // get first prec. make it initial one
+      final ExplicitPrecision inital = Precisions.extractPrecisionByType(pReached.getPrecision(targetsReachableFromRoot.iterator().next()), ExplicitPrecision.class);
+      for(ARGState target : targetsReachableFromRoot) {
         ExplicitPrecision targetPrec = Precisions.extractPrecisionByType(pReached.getPrecision(target), ExplicitPrecision.class);
 
         // join it with the original one
-        originalPrec.getRefinablePrecision().join(targetPrec.getRefinablePrecision());
+        inital.getRefinablePrecision().join(targetPrec.getRefinablePrecision());
       }
-      refinedPrecision = new ExplicitPrecision(originalPrec, itpTree.extractPrecisionIncrement());
+      final ExplicitPrecision refinedPrecision = new ExplicitPrecision(inital, itpTree.extractPrecisionIncrement(root));
 
-      reached.removeSubtree(((ARGState)pReached.getFirstState()).getChildren().iterator().next(), refinedPrecision, ExplicitPrecision.class);
+      if(root.getParents().isEmpty()) {
+        root = root.getChildren().iterator().next();
+      }
+      reached.removeSubtree(root, refinedPrecision, ExplicitPrecision.class);
     }
 
     totalTime.stop();
@@ -393,6 +374,56 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
       buildTree(targetStates);
     }
 
+    public Collection<ARGState> obtainRefinementRoots() {
+      if(!doLazyAbstraction) {
+        return new HashSet<>(Collections.singleton(root));
+      }
+      
+      Collection<ARGState> refinementRoots = new HashSet<>();
+      
+      Deque<ARGState> todo = new ArrayDeque<>(Collections.singleton(root));
+      while (!todo.isEmpty()) {
+        final ARGState currentState = todo.removeFirst();
+        
+        if (isNonTrivialInterpolantAvailable(currentState)) {
+          refinementRoots.add(currentState);
+          continue;
+        }
+        
+        Set<ARGState> successors = successorRelation.get(currentState);
+        todo.addAll(successors);
+      }
+
+      return refinementRoots;
+    }
+
+    public Collection<ARGState> getTargetStatesFor(ARGState predecessor) {
+      Collection<ARGState> targetStates = new HashSet<>();
+      
+      Deque<ARGState> todo = new ArrayDeque<>(Collections.singleton(predecessor));
+      while (!todo.isEmpty()) {
+        final ARGState currentState = todo.removeFirst();
+        
+        if (currentState.isTarget()) {
+          targetStates.add(currentState);
+          continue;
+        }
+        
+        Set<ARGState> successors = successorRelation.get(currentState);
+        todo.addAll(successors);
+      }
+
+      return targetStates;
+    }
+
+    /**
+     * @param currentState
+     * @return
+     */
+    private boolean isNonTrivialInterpolantAvailable(final ARGState currentState) {
+      return interpolants.containsKey(currentState) && !interpolants.get(currentState).isTrivial();
+    }
+
     /**
      * @param targetStates
      */
@@ -401,7 +432,6 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
 
       while (!todo.isEmpty()) {
         final ARGState currentState = todo.removeFirst();
-        assert currentState.mayCover();
 
         if(currentState.getParents().iterator().hasNext()) {
           ARGState parentState = currentState.getParents().iterator().next();
@@ -533,17 +563,26 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
      * This method extracts the precision increment for the interpolation tree.
      *
      * @return the precision increment
-     */
-    private Multimap<CFANode, MemoryLocation> extractPrecisionIncrement() {
-      Multimap<CFANode, MemoryLocation> globalIncrement = HashMultimap.create();
-
-      for(Map.Entry<ARGState, ExplicitValueInterpolant> itp : interpolants.entrySet()) {
-        for(MemoryLocation memoryLocation : itp.getValue().getMemoryLocations()) {
-          globalIncrement.put(getEdgeToSuccessor(itp.getKey()).getSuccessor(), memoryLocation);
+     */    
+    private Multimap<CFANode, MemoryLocation> extractPrecisionIncrement(ARGState refinmentRoot) {
+      Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
+    
+      Deque<ARGState> todo = new ArrayDeque<>(Collections.singleton(refinmentRoot));
+      while (!todo.isEmpty()) {
+        final ARGState currentState = todo.removeFirst();
+        
+        if (interpolants.containsKey(currentState) && !interpolants.get(currentState).isTrivial()) {
+          ExplicitValueInterpolant itp = interpolants.get(currentState);
+          for(MemoryLocation memoryLocation : itp.getMemoryLocations()) {
+            increment.put(getEdgeToSuccessor(currentState).getSuccessor(), memoryLocation);
+          }
         }
+        
+        Set<ARGState> successors = successorRelation.get(currentState);
+        todo.addAll(successors);
       }
-
-      return globalIncrement;
+  
+      return increment;
     }
   }
 }
