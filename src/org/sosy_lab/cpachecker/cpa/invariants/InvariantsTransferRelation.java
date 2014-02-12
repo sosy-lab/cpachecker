@@ -60,7 +60,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundStateFormulaManager;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaManager;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor.VariableNameExtractor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvaluationVisitor;
@@ -141,15 +141,13 @@ public enum InvariantsTransferRelation implements TransferRelation {
     // Create a formula representing the edge expression
     InvariantsFormula<CompoundInterval> expressionFormula = expression.accept(getExpressionToFormulaVisitor(pEdge));
 
-    Collection<InvariantsFormula<CompoundInterval>> informationBase = FluentIterable.from(pElement.getAssumptionsAndEnvironment()).toList();
-
     /*
      * If the expression definitely evaluates to false when truth is assumed or
      * the expression definitely evaluates to true when falsehood is assumed,
      * the state is unreachable.
      */
-    if (pEdge.getTruthAssumption() && CompoundStateFormulaManager.definitelyImplies(informationBase, CompoundStateFormulaManager.INSTANCE.logicalNot(expressionFormula))
-        || !pEdge.getTruthAssumption() && CompoundStateFormulaManager.definitelyImplies(informationBase, expressionFormula)) {
+    if (pEdge.getTruthAssumption() && pElement.definitelyImplies(CompoundIntervalFormulaManager.INSTANCE.logicalNot(expressionFormula))
+        || !pEdge.getTruthAssumption() && pElement.definitelyImplies(expressionFormula)) {
       return null;
     }
 
@@ -158,7 +156,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
      * If truth is assumed, any non-zero value, otherwise zero.
      */
     if (!pEdge.getTruthAssumption()) {
-      expressionFormula = CompoundStateFormulaManager.INSTANCE.logicalNot(expressionFormula);
+      expressionFormula = CompoundIntervalFormulaManager.INSTANCE.logicalNot(expressionFormula);
     }
     InvariantsState result = pElement.assume(expressionFormula, pEdge);
     return result;
@@ -182,7 +180,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
       value = init.accept(getExpressionToFormulaVisitor(pEdge));
 
     } else {
-      value = CompoundStateFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
+      value = CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
     }
     if (value.toString().contains("[*]")) {
       value = toConstant(value, pElement);
@@ -225,7 +223,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
   }
 
   private static InvariantsFormula<CompoundInterval> toConstant(InvariantsFormula<CompoundInterval> pFormula, InvariantsState pState) {
-    return CompoundStateFormulaManager.INSTANCE.asConstant(evaluate(pFormula, pState));
+    return CompoundIntervalFormulaManager.INSTANCE.asConstant(evaluate(pFormula, pState));
   }
 
   private InvariantsState handleStatement(InvariantsState pElement, CStatementEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCCodeException {
@@ -236,13 +234,13 @@ public enum InvariantsTransferRelation implements TransferRelation {
       CExpression leftHandSide = assignment.getLeftHandSide();
       CRightHandSide rightHandSide = assignment.getRightHandSide();
       InvariantsFormula<CompoundInterval> value = assignment.getRightHandSide().accept(etfv);
-      if (CompoundStateFormulaManager.isDefinitelyTop(value) && rightHandSide instanceof CFunctionCallExpression) {
+      if (CompoundIntervalFormulaManager.isDefinitelyTop(value) && rightHandSide instanceof CFunctionCallExpression) {
         CFunctionCallExpression cFunctionCallExpression = (CFunctionCallExpression) rightHandSide;
         CExpression functionNameExpression = cFunctionCallExpression.getFunctionNameExpression();
         if (functionNameExpression instanceof CIdExpression) {
           CIdExpression idExpression = (CIdExpression) functionNameExpression;
           if (idExpression.getName().equals("__VERIFIER_nondet_uint")) {
-            value = CompoundStateFormulaManager.INSTANCE.asConstant(CompoundInterval.zero().extendToPositiveInfinity());
+            value = CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.zero().extendToPositiveInfinity());
           }
         }
       }
@@ -301,7 +299,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
 
       String returnValueName = scope(RETURN_VARIABLE_BASE_NAME, calledFunctionName);
 
-      InvariantsFormula<CompoundInterval> value = CompoundStateFormulaManager.INSTANCE.asVariable(returnValueName);
+      InvariantsFormula<CompoundInterval> value = CompoundIntervalFormulaManager.INSTANCE.asVariable(returnValueName);
 
       // expression is an assignment operation, e.g. a = g(b);
       if (expression instanceof CFunctionCallAssignmentStatement) {

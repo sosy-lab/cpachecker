@@ -251,7 +251,7 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
   }
 
   private ValueFormulaType getValueFormula(long pValue, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    return CompoundStateFormulaManager.INSTANCE.asConstant(CompoundInterval.singleton(pValue)).accept(getValueVisitor(), pEnvironment);
+    return CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.singleton(pValue)).accept(getValueVisitor(), pEnvironment);
   }
 
   @Override

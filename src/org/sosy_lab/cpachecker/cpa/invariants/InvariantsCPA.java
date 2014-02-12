@@ -74,7 +74,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState.EdgeBasedAbstractionStrategyFactories;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundStateFormulaManager;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaManager;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor.VariableNameExtractor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
@@ -477,7 +477,7 @@ public class InvariantsCPA extends AbstractCPA {
       CExpression init = ((CInitializerExpression)decl.getInitializer()).getExpression();
       value = init.accept(InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(pEdge));
     } else {
-      value = CompoundStateFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
+      value = CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
     }
 
     if (pRelevantVariables.contains(varName)) {
@@ -545,7 +545,7 @@ public class InvariantsCPA extends AbstractCPA {
 
       String returnValueName = InvariantsTransferRelation.scope(InvariantsTransferRelation.RETURN_VARIABLE_BASE_NAME, calledFunctionName);
 
-      InvariantsFormula<CompoundInterval> value = CompoundStateFormulaManager.INSTANCE.asVariable(returnValueName);
+      InvariantsFormula<CompoundInterval> value = CompoundIntervalFormulaManager.INSTANCE.asVariable(returnValueName);
 
       // expression is an assignment operation, e.g. a = g(b);
       if (expression instanceof CFunctionCallAssignmentStatement) {
