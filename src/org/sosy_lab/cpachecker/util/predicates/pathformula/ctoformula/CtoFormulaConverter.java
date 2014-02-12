@@ -269,14 +269,6 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  static boolean hasRepresentableDereference(Variable v) {
-    return isRepresentableType(dereferencedType(v.getType()));
-  }
-
-  static boolean hasRepresentableDereference(CExpression e) {
-    return isRepresentableType(dereferencedType(e.getExpressionType()));
-  }
-
   /** prefixes function to variable name
   * Call only if you are sure you have a local variable!
   */

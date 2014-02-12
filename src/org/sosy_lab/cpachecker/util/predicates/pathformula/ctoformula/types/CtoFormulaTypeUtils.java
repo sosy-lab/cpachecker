@@ -89,7 +89,7 @@ public class CtoFormulaTypeUtils {
     }
   }
 
-  public static CType dereferencedType(CType t) {
+  private static CType dereferencedType(CType t) {
 
     if (t instanceof CFieldTrackType) {
       return new CFieldDereferenceTrackType(dereferencedType(((CFieldTrackType) t).getType()), t);
@@ -123,21 +123,6 @@ public class CtoFormulaTypeUtils {
       fieldOwner = new CPointerExpression(null, dereferencedType, fieldOwner);
     }
     return fieldOwner;
-  }
-
-  public static boolean isIndirectFieldReference(CFieldReference fexp) {
-    return fexp.isPointerDereference()
-        || fexp.getFieldOwner() instanceof CPointerExpression;
-  }
-
-  public static CType makePointerType(CType pType) {
-    if (pType instanceof CFieldDereferenceTrackType) {
-      return ((CFieldDereferenceTrackType) pType).getReferencingFieldType();
-    }
-    if (pType instanceof CDereferenceType) {
-      return ((CDereferenceType) pType).getType();
-    }
-    return new CPointerType(false, false, pType);
   }
 
   /**
@@ -194,17 +179,5 @@ public class CtoFormulaTypeUtils {
     }
 
     throw new IllegalArgumentException("No DereferenceType!");
-  }
-
-  public static boolean isPointerType(CType pType) {
-    return pType instanceof CPointerType;
-  }
-
-  private static final RepresentabilityCTypeVisitor representabilityCTypeVisitor
-    = new RepresentabilityCTypeVisitor();
-
-  // Checks if there is some formula type to represent the C type
-  public static boolean isRepresentableType(CType pType) {
-    return pType.accept(representabilityCTypeVisitor);
   }
 }
