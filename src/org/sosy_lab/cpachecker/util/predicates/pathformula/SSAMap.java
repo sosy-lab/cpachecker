@@ -472,7 +472,14 @@ public class SSAMap implements Serializable {
 
     while (rest.hasNext()) {
       e2 = rest.next();
-      result = result.putAndCopy(e2.getKey(), e2.getValue());
+      K key = e2.getKey();
+      V value2 = e2.getValue();
+
+      result = result.putAndCopy(key, value2);
+
+      if (collectDifferences != null) {
+        collectDifferences.add(Triple.<K,V,V>of(key, null, value2));
+      }
     }
 
     assert result.size() >= Math.max(s1.size(), s2.size());
