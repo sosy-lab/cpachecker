@@ -32,9 +32,6 @@ import java.util.Vector;
 
 import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaList;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 public class TemplateSumList extends TemplateFormulaList {
 
@@ -202,14 +199,6 @@ public class TemplateSumList extends TemplateFormulaList {
         sums[i].prefixVariables(prefix);
       }
     }
-  }
-
-  public FormulaList translate(FormulaManagerView fmgr) {
-    Formula[] lf = new Formula[sums.length];
-    for (int i = 0; i < sums.length; i++) {
-      lf[i] = (sums[i].translate(fmgr));
-    }
-    return new AbstractFormulaList(lf);
   }
 
 //------------------------------------------------------------------

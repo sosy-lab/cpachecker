@@ -86,14 +86,6 @@ public interface UnsafeFormulaManager {
   String getName(Formula f);
 
   /**
-   * Replaces the name and the arguments of the given formula
-   * @param f
-   * @param newName
-   * @param args
-   * @return
-   */
-  Formula replaceArgsAndName(Formula f, String newName, Formula[] args);
-  /**
   * Replaces the arguments of the given formula
   * @param f
   * @param args

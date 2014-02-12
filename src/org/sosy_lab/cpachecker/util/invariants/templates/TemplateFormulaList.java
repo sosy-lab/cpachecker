@@ -26,9 +26,8 @@ package org.sosy_lab.cpachecker.util.invariants.templates;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 
-public class TemplateFormulaList implements FormulaList {
+public class TemplateFormulaList {
 
   private Formula[] formulas;
 

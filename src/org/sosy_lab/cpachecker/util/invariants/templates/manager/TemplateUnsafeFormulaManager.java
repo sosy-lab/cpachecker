@@ -216,11 +216,6 @@ public class TemplateUnsafeFormulaManager implements UnsafeFormulaManager {
   }
 
   @Override
-  public Formula replaceArgsAndName(Formula pF, String pNewName, Formula[] pArgs) {
-    return null;
-  }
-
-  @Override
   public Formula replaceArgs(Formula pF, Formula[] pArgs) {
     if (pF instanceof TemplateTerm) {
       TemplateTerm tt = (TemplateTerm)pF;
