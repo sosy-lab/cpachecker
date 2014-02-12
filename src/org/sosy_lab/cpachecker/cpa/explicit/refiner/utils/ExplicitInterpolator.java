@@ -70,7 +70,7 @@ public class ExplicitInterpolator {
   @Option(description="whether or not to use use-definition information from the error paths" +
       "to optimize the interpolation process")
   private boolean applyUseDefInformation = true;
-    
+
   /**
    * the shutdownNotifier in use
    */
@@ -95,7 +95,7 @@ public class ExplicitInterpolator {
    * the collector to get the use-definition information from an error trace
    */
   private final AssumptionClosureCollector assumeCollector;
-  
+
   /**
    * the set of relevant variables found by the collector
    */
@@ -122,9 +122,9 @@ public class ExplicitInterpolator {
   public ExplicitInterpolator(final Configuration pConfig,final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
           throws InvalidConfigurationException {
-    
+
     pConfig.inject(this);
-    
+
 
     try {
       shutdownNotifier  = pShutdownNotifier;
@@ -134,7 +134,7 @@ public class ExplicitInterpolator {
       transfer          = new ExplicitTransferRelation(Configuration.builder().build(), pLogger, pCfa);
       precision         = new ExplicitPrecision("", Configuration.builder().build(),
           Optional.<VariableClassification>absent());
-      
+
       initializeLoopInformation();
     }
     catch (InvalidConfigurationException e) {
@@ -156,7 +156,7 @@ public class ExplicitInterpolator {
       final int pOffset,
       final ExplicitValueInterpolant pInputInterpolant) throws CPAException, InterruptedException {
     numberOfInterpolations = 0;
-    
+
     if(pErrorPath.get(pOffset).getEdgeType() == CFAEdgeType.BlankEdge) {
       return pInputInterpolant;
     }
@@ -178,22 +178,22 @@ public class ExplicitInterpolator {
     if (initialSuccessor.getSize() > 1 && !isRemainingPathFeasible(remainingErrorPath, new ExplicitState())) {
       return ExplicitValueInterpolant.TRUE;
     }
-    
-    Map<MemoryLocation, Long> rawInterpolant = new HashMap<>();
+
+    Map<MemoryLocation, ExplicitValueBase> rawInterpolant = new HashMap<>();
     for (MemoryLocation currentMemoryLocation : determineInterpolationCandidates(initialSuccessor)) {
       shutdownNotifier.shutdownIfNecessary();
       ExplicitState successor = initialSuccessor.clone();
 
       // remove the value of the current and all already-found-to-be-irrelevant variables from the successor
       successor.forget(currentMemoryLocation);
-      for (Map.Entry<MemoryLocation, Long> interpolantVariable : rawInterpolant.entrySet()) {
+      for (Map.Entry<MemoryLocation, ExplicitValueBase> interpolantVariable : rawInterpolant.entrySet()) {
         if (interpolantVariable.getValue() == null) {
           successor.forget(interpolantVariable.getKey());
         }
       }
 
       // check if the remaining path now becomes feasible,
-      // and mark variables as relevant or irrelevant 
+      // and mark variables as relevant or irrelevant
       if (isRemainingPathFeasible(remainingErrorPath, successor)) {
         rawInterpolant.put(currentMemoryLocation, initialSuccessor.getValueFor(currentMemoryLocation));
       } else {
@@ -206,18 +206,18 @@ public class ExplicitInterpolator {
 
   /**
    * This method returns the final interpolant.
-   * 
+   *
    * @param interpolant the interpolant to finalize
    * @return the final interpolant
    */
-  private ExplicitValueInterpolant creatFinalInterpolant(Map<MemoryLocation, Long> interpolant) {
+  private ExplicitValueInterpolant creatFinalInterpolant(Map<MemoryLocation, ExplicitValueBase> interpolant) {
     // interpolant might still contain null-mappings, indicating now-irrelevant memory locations, so remove these
-    for(Iterator<Map.Entry<MemoryLocation, Long>> it = interpolant.entrySet().iterator(); it.hasNext(); ) {
+    for(Iterator<Map.Entry<MemoryLocation, ExplicitValueBase>> it = interpolant.entrySet().iterator(); it.hasNext(); ) {
       if(it.next().getValue() == null) {
         it.remove();
       }
     }
-    
+
     return new ExplicitValueInterpolant(interpolant);
   }
 
@@ -304,16 +304,16 @@ public class ExplicitInterpolator {
 
   /**
    * This method checks if through the initial edge, memory locations in the use-def chain got changed.
-   * 
+   *
    * @param pErrorPath the error current path
    * @param initialState the initial state
    * @param initialSuccessor the immediate successor of the initial state
-   * @return true, if memory locations in the use-def chain got changed, else false 
+   * @return true, if memory locations in the use-def chain got changed, else false
    */
   private boolean isUseDefInformationAffected(final List<CFAEdge> pErrorPath,
       ExplicitState initialState, ExplicitState initialSuccessor) {
     relevantVariables = assumeCollector.obtainUseDefInformation(pErrorPath);
-    
+
     boolean isUseDefInformationAffected = false;
     for(MemoryLocation memoryLocation : initialState.getDifference(initialSuccessor)) {
       if(relevantVariables.contains(memoryLocation.getAsSimpleString())) {
@@ -322,7 +322,7 @@ public class ExplicitInterpolator {
         initialSuccessor.forget(memoryLocation.getAsSimpleString());
       }
     }
-    
+
     return isUseDefInformationAffected;
   }
 

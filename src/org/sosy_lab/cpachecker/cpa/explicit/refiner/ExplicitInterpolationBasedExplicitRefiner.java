@@ -358,7 +358,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     /**
      * the variable assignment of the interpolant
      */
-    private final Map<MemoryLocation, Long> assignment;
+    private final Map<MemoryLocation, ExplicitValueBase> assignment;
 
     /**
      * the interpolant representing "true"
@@ -368,7 +368,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     /**
      * the interpolant representing "false"
      */
-    public static final ExplicitValueInterpolant FALSE = new ExplicitValueInterpolant((Map<MemoryLocation, Long>)null);
+    public static final ExplicitValueInterpolant FALSE = new ExplicitValueInterpolant((Map<MemoryLocation, ExplicitValueBase>)null);
 
     /**
      * Contructor for a new, empty interpolant, i.e. the interpolant representing "true"
@@ -382,7 +382,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
      *
      * @param pAssignment the variable assignment to be represented by the interpolant
      */
-    public ExplicitValueInterpolant(Map<MemoryLocation, Long> pAssignment) {
+    public ExplicitValueInterpolant(Map<MemoryLocation, ExplicitValueBase> pAssignment) {
       assignment = pAssignment;
     }
 

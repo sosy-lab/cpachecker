@@ -52,9 +52,9 @@ public class ExplicitTargetChecker {
     errorVarRep = MemoryLocation.valueOf(errorVar);
   }
 
-  public boolean isTarget(PersistentMap<MemoryLocation, Long> pConstantsMap) {
-    Long value = pConstantsMap.get(errorVarRep);
-    if (value == null || value != allowedValue) { return true; }
+  public boolean isTarget(PersistentMap<MemoryLocation, ExplicitValueBase> pConstantsMap) {
+    ExplicitValueBase value = pConstantsMap.get(errorVarRep);
+    if (value == null || !value.equals(allowedValue)) { return true; }
     return false;
   }
 
