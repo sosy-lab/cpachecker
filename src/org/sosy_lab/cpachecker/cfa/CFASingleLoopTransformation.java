@@ -423,8 +423,16 @@ public class CFASingleLoopTransformation {
               ProgramCounterValueAssignmentEdge programCounterValueAssignmentEdge =
                   (ProgramCounterValueAssignmentEdge) potentialPCValueAssignmentEdge;
               if (programCounterValueAssignmentEdge.getProgramCounterValue() == pcValue) {
-                // Fix the function summary edge
                 FunctionSummaryEdge newSummaryEdge = (FunctionSummaryEdge) copyCFAEdgeWithNewNodes(oldSummaryEdge, oldSummaryEdge.getPredecessor(), potentialNewSummarySuccessor, pGlobalNewToOld);
+                // Fix function summary statement edges
+                for (CFunctionSummaryStatementEdge edge : CFAUtils.leavingEdges(oldSummaryEdge.getPredecessor()).filter(CFunctionSummaryStatementEdge.class)) {
+                  if (edge.getPredecessor() != newSummaryEdge.getPredecessor() || edge.getSuccessor() != newSummaryEdge.getSuccessor()) {
+                    removeFromNodes(edge);
+                    CFAEdge newEdge = copyCFAEdgeWithNewNodes(edge, newSummaryEdge.getPredecessor(), newSummaryEdge.getSuccessor(), pGlobalNewToOld);
+                    addToNodes(newEdge);
+                  }
+                }
+                // Fix the function summary edge
                 removeSummaryEdgeFromNodes(oldSummaryEdge);
                 oldSummaryEdge = newSummaryEdge.getPredecessor().getLeavingSummaryEdge();
                 if (oldSummaryEdge != null) {
@@ -436,14 +444,6 @@ public class CFASingleLoopTransformation {
                   removeSummaryEdgeFromNodes(oldSummaryEdge);
                 }
                 newSummaryEdge.getSuccessor().addEnteringSummaryEdge(newSummaryEdge);
-                // Fix function summary statement edges
-                for (CFunctionSummaryStatementEdge edge : CFAUtils.leavingEdges(oldSummaryEdge.getPredecessor()).filter(CFunctionSummaryStatementEdge.class)) {
-                  if (edge.getPredecessor() != newSummaryEdge.getPredecessor() || edge.getSuccessor() != newSummaryEdge.getSuccessor()) {
-                    removeFromNodes(edge);
-                    CFAEdge newEdge = copyCFAEdgeWithNewNodes(edge, newSummaryEdge.getPredecessor(), newSummaryEdge.getSuccessor(), pGlobalNewToOld);
-                    addToNodes(newEdge);
-                  }
-                }
                 break;
               }
             }
