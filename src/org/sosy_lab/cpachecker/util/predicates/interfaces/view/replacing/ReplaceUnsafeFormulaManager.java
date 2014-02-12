@@ -99,6 +99,14 @@ public class ReplaceUnsafeFormulaManager implements UnsafeFormulaManager {
   }
 
   @Override
+  public Formula replaceArgsAndName(Formula pF, String pNewName, Formula[] pArgs) {
+    return rawUnsafeManager.replaceArgsAndName(
+        replaceManager.unwrap(pF),
+        pNewName,
+        unwrapArgs(pArgs));
+  }
+
+  @Override
   public Formula replaceArgs(Formula pF, Formula[] pArgs) {
     return rawUnsafeManager.replaceArgs(
         replaceManager.unwrap(pF),
