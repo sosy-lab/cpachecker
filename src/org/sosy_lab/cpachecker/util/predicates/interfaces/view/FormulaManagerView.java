@@ -764,7 +764,27 @@ public class FormulaManagerView {
 
         if (childrenDone) {
           toProcess.pop();
-          Formula newt = unsafeManager.replaceArgs(tt, newargs);
+          Formula newt;
+
+          if (unsafeManager.isUF(tt)) {
+            String name = unsafeManager.getName(tt);
+            assert name != null;
+
+            if (ufCanBeLvalue(name)) {
+              final int idx = ssa.getIndex(name);
+              if (idx > 0) {
+                // ok, the variable has an instance in the SSA, replace it
+                newt = unsafeManager.replaceArgsAndName(tt, makeName(name, idx), newargs);
+              } else {
+                newt = unsafeManager.replaceArgs(tt, newargs);
+              }
+            } else {
+              newt = unsafeManager.replaceArgs(tt, newargs);
+            }
+          } else {
+            newt = unsafeManager.replaceArgs(tt, newargs);
+          }
+
           cache.put(tt, newt);
         }
       }
@@ -773,6 +793,10 @@ public class FormulaManagerView {
     Formula result = cache.get(f);
     assert result != null;
     return unsafeManager.typeFormula(manager.getFormulaType(f), result);
+  }
+
+  private boolean ufCanBeLvalue(String name) {
+    return name.startsWith("*");
   }
 
   public <T extends Formula> T uninstantiate(T pF) {
@@ -835,7 +859,22 @@ public class FormulaManagerView {
 
         if (childrenDone) {
           toProcess.pop();
-          Formula newt = unsafeManager.replaceArgs(tt, newargs);
+          Formula newt;
+          if (unsafeManager.isUF(tt)) {
+            String name = unsafeManager.getName(tt);
+            assert name != null;
+
+            if (ufCanBeLvalue(name)) {
+              name = parseName(name).getFirst();
+
+              newt = unsafeManager.replaceArgsAndName(tt, name, newargs);
+            } else {
+              newt = unsafeManager.replaceArgs(tt, newargs);
+            }
+          } else {
+            newt = unsafeManager.replaceArgs(tt, newargs);
+          }
+
           cache.put(tt, newt);
         }
       }
