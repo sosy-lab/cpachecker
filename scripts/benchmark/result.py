@@ -38,7 +38,7 @@ CATEGORY_MISSING = 'missing'
 
 STR_TRUE = 'true'
 STR_UNKNOWN = 'unknown'
-STR_FALSE = 'false'
+STR_FALSE = 'false' # only for special cases. STR_FALSE is no official result, because property is missing
 
 STR_FALSE_LABEL =       'false(label)'
 STR_FALSE_TERMINATION = 'false(termination)'
