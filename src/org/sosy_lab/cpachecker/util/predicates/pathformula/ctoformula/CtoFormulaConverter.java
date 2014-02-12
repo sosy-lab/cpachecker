@@ -563,7 +563,7 @@ public class CtoFormulaConverter {
    * @param function The function where rightHandSide should be evaluated in.
    * @return the new Formula (lhs = rhs)
    */
-  protected BooleanFormula makeAssignment(String leftName, CType leftType,
+  private BooleanFormula makeAssignment(String leftName, CType leftType,
       CExpression rightHandSide,
       String function, SSAMapBuilder ssa, CFAEdge edge, Constraints constraints) throws UnrecognizedCCodeException {
 
@@ -896,7 +896,7 @@ public class CtoFormulaConverter {
     }
   }
 
-  protected BooleanFormula makeDeclaration(
+  private BooleanFormula makeDeclaration(
       CDeclarationEdge edge, String function, SSAMapBuilder ssa,
       Constraints constraints) throws CPATransferException {
 
@@ -952,7 +952,7 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  protected BooleanFormula makeExitFunction(CFunctionSummaryEdge ce, String function,
+  private BooleanFormula makeExitFunction(CFunctionSummaryEdge ce, String function,
       SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
 
     CFunctionCall retExp = ce.getExpression();
@@ -1195,18 +1195,18 @@ public class CtoFormulaConverter {
     return bfmgr.and(f, constraints.get());
   }
 
-  protected StatementToFormulaVisitor getStatementVisitor(CFAEdge pEdge, String pFunction,
+  private StatementToFormulaVisitor getStatementVisitor(CFAEdge pEdge, String pFunction,
       SSAMapBuilder pSsa, Constraints pConstraints) {
     ExpressionToFormulaVisitor ev = getCExpressionVisitor(pEdge, pFunction, pSsa, pConstraints);
     return new StatementToFormulaVisitor(ev);
   }
 
-  protected ExpressionToFormulaVisitor getCExpressionVisitor(CFAEdge pEdge, String pFunction,
+  private ExpressionToFormulaVisitor getCExpressionVisitor(CFAEdge pEdge, String pFunction,
       SSAMapBuilder pSsa, Constraints pCo) {
     return new ExpressionToFormulaVisitor(this, pEdge, pFunction, pSsa, pCo);
   }
 
-  protected LvalueVisitor getLvalueVisitor(CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
+  private LvalueVisitor getLvalueVisitor(CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
     return new LvalueVisitor(this, pEdge, pFunction, pSsa, pCo);
   }
 
