@@ -53,7 +53,7 @@
 	</target>
     <target name="clean">
         <delete includeEmptyDirs="true">
-            <fileset dir="." includes="${class.dir}/** cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
+            <fileset dir="." includes="${class.dir}/** war/WEB-INF/classes war/WEB-INF/lib cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
             <fileset dir="src/org/sosy_lab/cpachecker/util/predicates/smtInterpol" includes="Parser.java Lexer.java LexerSymbols.java"/>
         </delete>
 

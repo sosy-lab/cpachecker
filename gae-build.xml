@@ -1,51 +1,62 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project basedir="." default="runserver" name="CPAchecker on Google App Engine">
+<project basedir="." default="server" name="CPAchecker on Google App Engine" xmlns:ivy="antlib:org.apache.ivy.ant">
+	
+	<!-- use this to set the SDK version -->
+	<property name="gae-sdk.name" value="appengine-java-sdk-1.8.9" />
 
-	<property name="ivy.lib.dir" value="${basedir}/lib/java" />
-	<property name="debuglevel" value="source,lines,vars" />
-	<property name="source.dir" value="${basedir}/src" />
 	<property name="specification.dir" value="${basedir}/config/specification" />
 	<property name="configuration.dir" value="${basedir}/config" />
-
-	<property name="gae-sdk.name" value="appengine-java-sdk-1.8.9" />
 
 	<property name="lib.dir" value="${basedir}/lib" />
 	<property name="lib.dir.gae" value="${lib.dir}/gae" />
 	<mkdir dir="${lib.dir.gae}" />
 
-	<property name="class.dir" value="war/WEB-INF/classes" />
+	<property name="war.dir" value="${basedir}/war" />
+	<property name="class.dir" value="${war.dir}/WEB-INF/classes" />
+	<mkdir dir="${class.dir}" />
 
 	<property name="gae-sdk.dir" location="${lib.dir}/${gae-sdk.name}" />
-	<property name="gae-classes.dir" location="war/WEB-INF/classes" />
 	<property name="gae-dev.port" value="8888" />
+	<property name="gae-dev.host" value="localhost" />
 	<property name="gae-dev.debugport" value="9999" />
-
+	
 	<import file="${gae-sdk.dir}/config/user/ant-macros.xml" optional="true" />
 	<import file="build.xml" as="cpachecker" prefixSeparator="-" />
-
+	
 	<path id="gae.classpath">
 		<pathelement path="${class.dir}" />
 		<fileset dir="${lib.dir}">
 			<include name="*.jar" />
+			<include name="JavaParser/*.jar" />
 		</fileset>
-		<fileset dir="${lib.dir}/java">
+		<fileset dir="${ivy.lib.dir}">
 			<include name="**/*.jar" />
 		</fileset>
-		<fileset dir="war/WEB-INF/lib">
+		<fileset dir="${lib.dir.gae}">
 			<include name="**/*.jar" />
 		</fileset>
 		<fileset dir="${gae-sdk.dir}/lib">
 			<include name="shared/**/*.jar" />
-		</fileset>
-		<fileset dir="${lib.dir}/${gae-sdk.name}">
-			<include name="lib/impl/appengine-api*.jar" />
-		</fileset>
-		<fileset dir="${lib.dir}/${gae-sdk.name}">
-			<include name="lib/testing/appengine-testing.jar" />
+			<include name="impl/appengine-api*.jar" />
+			<include name="testing/appengine-testing.jar" />
 		</fileset>
 	</path>
+	
+	<target name="resolve-dependencies" depends="load-ivy, update-contrib, cpachecker-resolve-dependencies" unless="ivy.disable">
+		<ivy:resolve file="lib/ivy-gae.xml" conf="build, runtime, test" log="download-only"/>
+		<ivy:retrieve sync="true" overwriteMode="different" pattern="${lib.dir.gae}/[conf]/[artifact](-[classifier]).[ext]"/>
+	</target>
+	
+	<available file="${lib.dir.gae}-contrib" property="ivy.contrib.present"/>
+	<target name="update-contrib" if="ivy.contrib.present">
+		<antcall target="install-contrib"/>
+	 </target>
+	<target name="install-contrib" depends="load-ivy" description="Retrieve sources and docs for external libraries." unless="ivy.disable">
+		<ivy:resolve file="lib/ivy-gae.xml" conf="contrib" log="download-only"/>
+		<ivy:retrieve sync="true" pattern="${lib.dir.gae}-contrib/[artifact](-[classifier]).[ext]"/>
+	 </target>
 
-	<target name="tests" depends="compile" description="Runs all JUnit tests.">
+	<target name="tests" depends="build" description="Runs all JUnit tests.">
 		<property name="test.report.dir" value="output" />
 		<mkdir dir="${test.report.dir}" />
 		<junit fork="true" printSummary="true" showOutput="false" haltonfailure="true">
@@ -63,52 +74,28 @@
 		</junit>
 	</target>
 
-	<target name="install" depends="getjars,getsdk,unzipsdk" description="Downloads all necessary files and setup the classpath." />
-
 	<target name="getsdk" description="Downloads the Google App Engine SDK.">
 		<get dest="${lib.dir}" src="http://googleappengine.googlecode.com/files/${gae-sdk.name}.zip" usetimestamp="true" verbose="true" />
-		<property name="gae-sdk-downloaded" value="true" />
 	</target>
 
-	<target name="getjars" description="Downloads all necessary JARs.">
-		<get dest="${lib.dir.gae}" src="http://maven.restlet.org/org/restlet/gae/org.restlet/2.1.6/org.restlet-2.1.6.jar" usetimestamp="true" verbose="true" />
-		<get dest="${lib.dir.gae}" src="http://maven.restlet.org/org/restlet/gae/org.restlet.ext.fileupload/2.1.6/org.restlet.ext.fileupload-2.1.6.jar" usetimestamp="true" verbose="true" />
-		<get dest="${lib.dir.gae}" src="http://maven.restlet.org/org/restlet/gae/org.restlet.ext.freemarker/2.1.6/org.restlet.ext.freemarker-2.1.6.jar" usetimestamp="true" verbose="true" />
-		<get dest="${lib.dir.gae}" src="http://maven.restlet.org/org/restlet/gae/org.restlet.ext.servlet/2.1.6/org.restlet.ext.servlet-2.1.6.jar" usetimestamp="true" verbose="true" />
-		<get dest="${lib.dir.gae}" src="http://maven.restlet.org/org/restlet/gae/org.restlet.ext.wadl/2.1.6/org.restlet.ext.wadl-2.1.6.jar" usetimestamp="true" verbose="true" />
-		<get dest="${lib.dir.gae}" src="http://maven.restlet.org/org/restlet/gae/org.restlet.ext.xml/2.1.6/org.restlet.ext.xml-2.1.6.jar" usetimestamp="true" verbose="true" />
-		<get dest="${lib.dir.gae}" src="http://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/core/jackson-core/2.3.1/jackson-core-2.3.1.jar" usetimestamp="true" verbose="true">
-			<mapper type="merge" to="jackson-core-2.3.1.jar" />
-		</get>
-		<get dest="${lib.dir.gae}" src="http://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/core/jackson-annotations/2.3.0/jackson-annotations-2.3.0.jar" usetimestamp="true" verbose="true">
-			<mapper type="merge" to="jackson-annotations-2.3.0.jar" />
-		</get>
-		<get dest="${lib.dir.gae}" src="http://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/core/jackson-databind/2.3.1/jackson-databind-2.3.1.jar" usetimestamp="true" verbose="true">
-			<mapper type="merge" to="jackson-databind-2.3.1.jar" />
-		</get>
-		<get dest="${lib.dir.gae}" src="http://repo1.maven.org/maven2/com/googlecode/objectify/objectify/4.0b3/objectify-4.0b3.jar" usetimestamp="true" verbose="true" />
-		<get dest="${lib.dir.gae}" src="http://repo1.maven.org/maven2/com/googlecode/objectify/objectify/4.0b3/objectify-4.0b3-javadoc.jar" usetimestamp="true" verbose="true" />
-		<get dest="${lib.dir.gae}" src="http://repo1.maven.org/maven2/org/freemarker/freemarker-gae/2.3.20/freemarker-gae-2.3.20.jar" usetimestamp="true" verbose="true" />
-		<get dest="${lib.dir.gae}" src="http://repo1.maven.org/maven2/commons-fileupload/commons-fileupload/1.3/commons-fileupload-1.3.jar" usetimestamp="true" verbose="true" />
-		<get dest="${lib.dir.gae}" src="http://repo1.maven.org/maven2/commons-io/commons-io/2.4/commons-io-2.4.jar" usetimestamp="true" verbose="true" />
+	<available file="${lib.dir}/${gae-sdk.name}" property="gae-sdk.expanded"/>
+	<target name="unzipsdk" description="Unzips the Google App Engine SDK." depends="getsdk" unless="gae-sdk.expanded">
+		<unzip src="${lib.dir}/${gae-sdk.name}.zip" dest="${lib.dir}" />
 	</target>
 
-	<target name="unzipsdk" description="Unzips the Google App Engine SDK." depends="getsdk" if="gae-sdk-downloaded">
-		<unzip src="${lib.dir}/${gae-sdk.name}.zip" dest="${lib.dir}">
-		</unzip>
-	</target>
-
-	<target name="copyjars" description="Copies all JARs to the WAR.">
-		<copy todir="war/WEB-INF/lib" flatten="true">
-			<fileset dir="${ivy.lib.dir}">
-				<include name="runtime/*.jar" />
-			</fileset>
-			<fileset dir="lib">
+	<target name="copy-jars" depends="resolve-dependencies" description="Copies all necessary JARs to the war directory.">
+		<copy todir="${war.dir}/WEB-INF/lib" flatten="true">
+			<fileset dir="${lib.dir}">
 				<include name="*.jar" />
 				<include name="JavaParser/*.jar" />
 			</fileset>
+			<fileset dir="${ivy.lib.dir}">
+				<include name="runtime/*.jar" />
+				<include name="build/*.jar" />
+			</fileset>
 			<fileset dir="${lib.dir.gae}">
-				<include name="*.jar" />
+				<include name="runtime/*.jar" />
+				<include name="build/*.jar" />
 			</fileset>
 			<fileset dir="${gae-sdk.dir}">
 				<include name="lib/user/**/*.jar" />
@@ -116,16 +103,16 @@
 		</copy>
 	</target>
 
-	<target name="copyspecifications" description="Copies all specifications to the WAR.">
-		<copy todir="war/WEB-INF/specifications" flatten="true">
+	<target name="copy-specifications" description="Copies all specifications to the war directory.">
+		<copy todir="${war.dir}/WEB-INF/specifications" flatten="true">
 			<fileset dir="${specification.dir}">
 				<include name="*.spc" />
 			</fileset>
 		</copy>
 	</target>
 
-	<target name="copyconfigurations" description="Copies all configurations to the WAR.">
-		<copy todir="war/WEB-INF/configurations">
+	<target name="copy-configurations" description="Copies all configurations to the war directory.">
+		<copy todir="${war.dir}/WEB-INF/configurations">
 			<fileset dir="${configuration.dir}">
 				<include name="**/*.properties" />
 				<exclude name="**/*.spc" />
@@ -133,28 +120,34 @@
 		</copy>
 	</target>
 
-	<target name="compile" depends="copyjars,copyspecifications,copyconfigurations,create-version-files" description="Compiles Java source and copies other source files to the WAR.">
-		<mkdir dir="${gae-classes.dir}" />
-		<copy todir="${gae-classes.dir}">
-			<fileset dir="src">
+	<target name="build" depends="resolve-dependencies,getsdk,unzipsdk,copy-jars,copy-specifications,copy-configurations,create-version-files,build-subprojects" description="Builds the project.">
+		<copy todir="${class.dir}">
+			<fileset dir="${source.dir}">
 				<exclude name="**/*.java" />
 			</fileset>
 		</copy>
-		<javac debug="true" debuglevel="${debuglevel}" includeAntRuntime="false" destdir="${gae-classes.dir}" encoding="UTF-8">
-			<src path="${source.dir}" />
-			<classpath refid="gae.classpath" />
-			<exclude name="**/*Test.java" />
+		<depend srcdir="${source.dir}" destdir="${class.dir}" />
+		<echo message="Compiling CPAchecker for Google App Engine"/>
+		<javac debug="true"
+			debuglevel="${debuglevel}"
+			includeAntRuntime="false"
+			destdir="${class.dir}"
+			source="${source.format}"
+			target="${class.format}"
+			encoding="UTF-8">
+			<src path="${source.dir}"/>
+			<classpath refid="gae.classpath"/>
 		</javac>
 	</target>
 
-	<target name="runserver" depends="compile" description="Starts the development server.">
-		<dev_appserver war="war" port="${gae-dev.port}" />
+	<target name="server" depends="build" description="Starts the development server.">
+		<dev_appserver war="${war.dir}" port="${gae-dev.port}" address="${gae-dev.host}" />
 	</target>
 
 	<target name="create-version-files" depends="cpachecker-create-version-file" description="Creates files containing the respective versions of CPAchecker and CPAchecker on GAE.">
 		<exec executable="svnversion" outputproperty="gae.version" failonerror="false" failifexecutionfails="false" logError="false" error="/dev/null">
 			<env key="LANG" value="C" />
 		</exec>
-		<echo message="${gae.version}" file="war/WEB-INF/VERSION.txt" />
+		<echo message="${gae.version}" file="${war.dir}/WEB-INF/VERSION.txt" />
 	</target>
 </project>
