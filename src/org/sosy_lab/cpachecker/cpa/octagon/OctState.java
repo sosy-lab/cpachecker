@@ -131,7 +131,7 @@ public class OctState implements AbstractState {
   }
 
   protected int isLessOrEquals(OctState state) {
-    assert isEmpty() : "Empty states should not occur here!";
+    assert !isEmpty() : "Empty states should not occur here!";
 
     if (variableToIndexMap.equals(state.variableToIndexMap)) {
       return OctagonManager.isIncludedInLazy(octagon, state.octagon);
@@ -139,12 +139,29 @@ public class OctState implements AbstractState {
 
       logger.log(Level.FINEST, "----------\n" + variableToIndexMap.keySet() + "\n"+ state.variableToIndexMap.keySet());
       if (variableToIndexMap.keySet().containsAll(state.variableToIndexMap.keySet())) {
-        Octagon newOct = OctagonManager.copy(octagon);
-        newOct = OctagonManager.removeDimension(newOct, variableToIndexMap.size()-state.variableToIndexMap.size());
-        return OctagonManager.isIncludedInLazy(newOct, state.octagon);
+        return OctagonManager.isIncludedInLazy(shrinkToSize(state).octagon, state.octagon);
       } else {
         return 2;
       }
+    }
+  }
+
+  /**
+   * This method forgets some information about previously catched variables, this
+   * is necessary for isLessOrEquals, or the union operator, be careful using it
+   * in other ways (Variables removed from the OctState cannot be referenced anymore
+   * by the OctTransferrelation)
+   * @param oct the octagon which has the preferred size, instead of just using
+   *             an int, the OctState is the parameter, so we can check if the variables
+   *             are matching if not an Exception is thrown
+   * @return
+   */
+  public OctState shrinkToSize(OctState oct) {
+    if (variableToIndexMap.keySet().containsAll(oct.variableToIndexMap.keySet())) {
+      Octagon newOct =  OctagonManager.removeDimension(octagon, variableToIndexMap.size()-oct.variableToIndexMap.size());
+      return new OctState(newOct, oct.variableToIndexMap, logger);
+    } else {
+      throw new AssertionError("Shrinking of OctState with a not compatible OctState.");
     }
   }
 

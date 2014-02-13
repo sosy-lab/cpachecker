@@ -88,12 +88,26 @@ class OctDomain implements AbstractDomain {
   public AbstractState join(AbstractState element1, AbstractState element2) {
     OctState octEl1 = (OctState) element1;
     OctState octEl2 = (OctState) element2;
+
+    if (octEl1.sizeOfVariables() > octEl2.sizeOfVariables()) {
+      octEl1 = octEl1.shrinkToSize(octEl2);
+    } else if (octEl2.sizeOfVariables() > octEl1.sizeOfVariables()) {
+      octEl2 = octEl2.shrinkToSize(octEl1);
+    }
+
     Octagon newOctagon = OctagonManager.union(octEl1.getOctagon(), octEl2.getOctagon());
     BiMap<String, Integer> newMap =
       octEl1.sizeOfVariables() > octEl2.sizeOfVariables()? octEl1.getVariableToIndexMap() : octEl2.getVariableToIndexMap();
 
-      // TODO should it be null
-      return new OctState(newOctagon, newMap, logger);
+    OctState newState = new OctState(newOctagon, newMap, logger);
+    if (newState.equals(element1)) {
+      return element1;
+    } else if (newState.equals(element2)) {
+      return element2;
+    } else {
+      return newState;
+    }
+
       // TODO add widening
       //    return LibraryAccess.widening(octEl1, octEl2);
   }
