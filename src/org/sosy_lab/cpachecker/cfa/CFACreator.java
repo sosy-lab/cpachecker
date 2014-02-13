@@ -242,12 +242,8 @@ public class CFACreator {
     case C:
       CParser outerParser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machineModel);
 
-      if (transformTokensToLines) {
-        outerParser = new CParserWithLocationMapper(outerParser);
-        CSourceOriginMapping.INSTANCE.setHasOneInputLinePerToken(true);
-      } else {
-        CSourceOriginMapping.INSTANCE.setHasOneInputLinePerToken(false);
-      }
+      outerParser = new CParserWithLocationMapper(outerParser, transformTokensToLines);
+      CSourceOriginMapping.INSTANCE.setHasOneInputLinePerToken(transformTokensToLines);
 
       if (usePreprocessor) {
         CPreprocessor preprocessor = new CPreprocessor(config, logger);
@@ -308,7 +304,7 @@ public class CFACreator {
         if (usePreprocessor) {
           c = parser.parseFile(sourceFileName);
         } else {
-          String code = Paths.get(sourceFileName).asCharSource(Charset.defaultCharset()).read();
+          char[] code = Paths.get(sourceFileName).asCharSource(Charset.defaultCharset()).read().toCharArray();
           c = parser.parseString(sourceFileName, code);
         }
       } else {
@@ -330,7 +326,7 @@ public class CFACreator {
            * The program file has to parsed as String since Google App Engine does not allow
            * writes to the file system and therefore the input file is stored elsewhere.
            */
-          String code = Paths.get(fileName).asCharSource(Charset.defaultCharset()).read();
+          char[] code = Paths.get(fileName).asCharSource(Charset.defaultCharset()).read().toCharArray();
           programFragments.add(new FileContentToParse(fileName, code, staticVarPrefix));
         }
 

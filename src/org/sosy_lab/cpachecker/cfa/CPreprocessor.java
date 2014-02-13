@@ -58,7 +58,7 @@ public class CPreprocessor {
     logger = pLogger;
   }
 
-  public String preprocess(String file) throws CParserException, InterruptedException {
+  public char[] preprocess(String file) throws CParserException, InterruptedException {
     // create command line
     List<String> argList = Lists.newArrayList(Splitter.on(CharMatcher.WHITESPACE).omitEmptyStrings().split(preprocessor));
     argList.add(file);
@@ -80,9 +80,9 @@ public class CPreprocessor {
       }
 
       if (executor.buffer == null) {
-        return "";
+        return "".toCharArray();
       }
-      return executor.buffer.toString();
+      return executor.buffer.toString().toCharArray();
 
     } catch (IOException e) {
       throw new CParserException("Preprocessor failed", e);

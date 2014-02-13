@@ -29,7 +29,6 @@ import org.eclipse.cdt.core.parser.IncludeFileContentProvider;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.cpachecker.cfa.CParser.Dialect;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.AbstractEclipseCParser.StubScannerInfo;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
@@ -45,8 +44,8 @@ public class EclipseCDT7Parser extends AbstractEclipseCParser<FileContent> {
   }
 
   @Override
-  protected FileContent wrapCode(String pFilename, String pCode) {
-    return FileContent.create(pFilename, pCode.toCharArray());
+  protected FileContent wrapCode(String pFilename, char[] pCode) {
+    return FileContent.create(pFilename, pCode);
   }
 
   @Override

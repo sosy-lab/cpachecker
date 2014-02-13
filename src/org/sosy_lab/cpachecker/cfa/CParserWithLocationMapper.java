@@ -48,9 +48,11 @@ import com.google.common.collect.Lists;
 public class CParserWithLocationMapper implements CParser {
 
   private final CParser realParser;
+  private final boolean tokenizeCode;
 
-  public CParserWithLocationMapper(CParser pRealParser) {
+  public CParserWithLocationMapper(CParser pRealParser, boolean pTokenizeCode) {
     this.realParser = pRealParser;
+    this.tokenizeCode = pTokenizeCode;
   }
 
 //  public static void main(String[] args) throws CParserException {
@@ -62,11 +64,11 @@ public class CParserWithLocationMapper implements CParser {
 
   @Override
   public ParseResult parseFile(String pFilename) throws ParserException, IOException, InvalidConfigurationException, InterruptedException {
-    StringBuilder tokenizedCode = tokenizeSourcefile(pFilename);
-    return realParser.parseString(pFilename, tokenizedCode.toString());
+    char[] tokenizedCode = tokenizeSourcefile(pFilename);
+    return realParser.parseString(pFilename, tokenizedCode.toString().toCharArray());
   }
 
-  private StringBuilder tokenizeSourcefile(String pFilename) throws CParserException {
+  private char[] tokenizeSourcefile(String pFilename) throws CParserException {
     StringBuffer code = new StringBuffer();
     try (BufferedReader br = new BufferedReader(new FileReader(pFilename))) {
       String line;
@@ -78,13 +80,11 @@ public class CParserWithLocationMapper implements CParser {
       throw new CParserException("Error reading input program file", e);
     }
 
-    return tokenizeCode(pFilename, code.toString().toCharArray());
+    return processCode(pFilename, code.toString().toCharArray());
   }
 
-  private StringBuilder tokenizeCode(String fileName, char[] pCode) throws CParserException {
+  private char[] processCode(String fileName, char[] pCode) throws CParserException {
     StringBuilder tokenizedCode = new StringBuilder();
-
-    CSourceOriginMapping.INSTANCE.setHasOneInputLinePerToken(true);
 
     LexerOptions options = new LexerOptions();
     ILexerLog log = ILexerLog.NULL;
@@ -134,9 +134,11 @@ public class CParserWithLocationMapper implements CParser {
             }
           }
         } else if (!token.getImage().trim().isEmpty()) {
-          tokenNumber += 1;
-          tokenizedCode.append(token);
-          tokenizedCode.append(System.lineSeparator());
+          if (tokenizeCode) {
+            tokenNumber += 1;
+            tokenizedCode.append(token);
+            tokenizedCode.append(System.lineSeparator());
+          }
         }
 
       }
@@ -147,7 +149,7 @@ public class CParserWithLocationMapper implements CParser {
       throw new CParserException("Tokenizing failed", e);
     }
 
-    return tokenizedCode;
+    return tokenizeCode ? tokenizedCode.toString().toCharArray() : pCode;
   }
 
   private void putRangeMapping(String originFilename, int fromLine, int toLine, int deltaToOrigin) {
@@ -155,10 +157,10 @@ public class CParserWithLocationMapper implements CParser {
   }
 
   @Override
-  public ParseResult parseString(String pFilename, String pCode) throws ParserException, InvalidConfigurationException {
-    StringBuilder tokenizedCode = tokenizeCode(pFilename, pCode.toCharArray());
+  public ParseResult parseString(String pFilename, char[] pCode) throws ParserException, InvalidConfigurationException {
+    char[] tokenizedCode = processCode(pFilename, pCode);
 
-    return realParser.parseString(pFilename, tokenizedCode.toString());
+    return realParser.parseString(pFilename, tokenizedCode);
   }
 
   @Override
@@ -177,8 +179,8 @@ public class CParserWithLocationMapper implements CParser {
 
     List<FileContentToParse> programFragments = new ArrayList<>(pFilenames.size());
     for (FileToParse f : pFilenames) {
-      String programCode = tokenizeSourcefile(f.fileName).toString();
-      if (programCode.isEmpty()) {
+      char[] programCode = tokenizeSourcefile(f.fileName);
+      if (programCode.length == 0) {
         throw new CParserException("Tokenizer returned empty program");
       }
       programFragments.add(new FileContentToParse(f.fileName, programCode, f.staticVariablePrefix));
@@ -192,8 +194,8 @@ public class CParserWithLocationMapper implements CParser {
 
     List<FileContentToParse> tokenizedFragments = new ArrayList<>(pCode.size());
     for (FileContentToParse f : pCode) {
-      String programCode = tokenizeCode(f.fileName, f.fileContent.toCharArray()).toString();
-      if (programCode.isEmpty()) {
+      char[] programCode = processCode(f.fileName, f.fileContent);
+      if (programCode.length == 0) {
         throw new CParserException("Tokenizer returned empty program");
       }
       tokenizedFragments.add(new FileContentToParse(f.fileName, programCode, f.staticVariablePrefix));
@@ -203,12 +205,12 @@ public class CParserWithLocationMapper implements CParser {
   }
 
   @Override
-  public CAstNode parseSingleStatement(String pCode) throws CParserException, InvalidConfigurationException {
+  public CAstNode parseSingleStatement(char[] pCode) throws CParserException, InvalidConfigurationException {
     return realParser.parseSingleStatement(pCode);
   }
 
   @Override
-  public List<CAstNode> parseStatements(String pCode) throws CParserException, InvalidConfigurationException {
+  public List<CAstNode> parseStatements(char[] pCode) throws CParserException, InvalidConfigurationException {
     return realParser.parseStatements(pCode);
   }
 }

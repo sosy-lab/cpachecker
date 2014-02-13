@@ -57,7 +57,7 @@ public interface Parser {
    * @return The CFA.
    * @throws ParserException If parser or CFA builder cannot handle the C code.
    */
-  ParseResult parseString(String filename, String code) throws ParserException, InvalidConfigurationException;
+  ParseResult parseString(String filename, char[] code) throws ParserException, InvalidConfigurationException;
 
   /**
    * Return a timer that measured the time needed for parsing.

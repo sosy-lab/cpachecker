@@ -94,7 +94,7 @@ abstract class AbstractEclipseCParser<T> implements CParser {
     }
   }
 
-  protected abstract T wrapCode(String pFilename, String pCode);
+  protected abstract T wrapCode(String pFilename, char[] pCode);
 
   protected abstract T wrapFile(String pFilename) throws IOException;
 
@@ -135,7 +135,7 @@ abstract class AbstractEclipseCParser<T> implements CParser {
    * This method parses a single string, where no prefix for static variables is needed.
    */
   @Override
-  public ParseResult parseString(String pFilename, String pCode) throws CParserException, InvalidConfigurationException {
+  public ParseResult parseString(String pFilename, char[] pCode) throws CParserException, InvalidConfigurationException {
 
     IASTTranslationUnit unit = parse(wrapCode(pFilename, pCode));
     String prefix = "";
@@ -145,7 +145,7 @@ abstract class AbstractEclipseCParser<T> implements CParser {
   }
 
   @Override
-  public CAstNode parseSingleStatement(String pCode) throws CParserException, InvalidConfigurationException {
+  public CAstNode parseSingleStatement(char[] pCode) throws CParserException, InvalidConfigurationException {
     // parse
     IASTTranslationUnit ast = parse(wrapCode("", pCode));
 
@@ -174,7 +174,7 @@ abstract class AbstractEclipseCParser<T> implements CParser {
   }
 
   @Override
-  public List<CAstNode> parseStatements(String pCode) throws CParserException, InvalidConfigurationException {
+  public List<CAstNode> parseStatements(char[] pCode) throws CParserException, InvalidConfigurationException {
     // parse
     IASTTranslationUnit ast = parse(wrapCode("", pCode));
 

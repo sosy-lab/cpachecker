@@ -295,7 +295,7 @@ public class EclipseJavaParser implements Parser {
   }
 
   @Override
-  public ParseResult parseString(String pFilename, String pCode) throws JParserException {
+  public ParseResult parseString(String pFilename, char[] pCode) throws JParserException {
 
     throw new JParserException("Function not yet implemented");
   }
