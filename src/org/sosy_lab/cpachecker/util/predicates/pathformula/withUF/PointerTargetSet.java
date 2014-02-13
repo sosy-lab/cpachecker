@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.*;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes.VOID;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.MapMerger.mergeSortedMaps;
 
 import java.io.Serializable;
 import java.math.BigInteger;
@@ -64,6 +65,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.MapMerger;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.MapMerger.ConflictHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTarget;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
 
@@ -763,9 +766,9 @@ public class PointerTargetSet implements Serializable {
                 Pair<PersistentSortedMap<String, CType>, PersistentSortedMap<String, CType>>>
     mergeWith(final PointerTargetSet other) {
 
-    final ConflictHandler<CType> baseUnitingConflictHandler = new ConflictHandler<CType>() {
+    final ConflictHandler<String, CType> baseUnitingConflictHandler = new ConflictHandler<String, CType>() {
       @Override
-      public CType resolveConflict(final CType type1, final CType type2) {
+      public CType resolveConflict(final String key, final CType type1, final CType type2) {
         if (isFakeBaseType(type1)) {
           return type2;
         } else if (isFakeBaseType(type2)) {
@@ -825,13 +828,13 @@ public class PointerTargetSet implements Serializable {
     final Triple<PersistentSortedMap<CompositeField, Boolean>,
                  PersistentSortedMap<CompositeField, Boolean>,
                  PersistentSortedMap<CompositeField, Boolean>> mergedFields =
-      !reverseFields ? mergeSortedSets(fields, other.fields, PointerTargetSet.<Boolean>failOnConflict()) :
-                      mergeSortedSets(other.fields, fields, PointerTargetSet.<Boolean>failOnConflict());
+      !reverseFields ? mergeSortedSets(fields, other.fields, MapMerger.<CompositeField, Boolean>getExceptionOnConflictHandler()) :
+                      mergeSortedSets(other.fields, fields, MapMerger.<CompositeField, Boolean>getExceptionOnConflictHandler());
 
     final boolean reverseTargets = other.targets.size() > targets.size();
     final PersistentSortedMap<String, PersistentList<PointerTarget>> mergedTargets =
-      !reverseTargets ? mergeSortedMaps(targets, other.targets,PointerTargetSet.<PointerTarget>mergeOnConflict()) :
-                        mergeSortedMaps(other.targets, targets, PointerTargetSet.<PointerTarget>mergeOnConflict());
+      !reverseTargets ? mergeSortedMaps(targets, other.targets,PointerTargetSet.<String, PointerTarget>mergeOnConflict()) :
+                        mergeSortedMaps(other.targets, targets, PointerTargetSet.<String, PointerTarget>mergeOnConflict());
 
     final PointerTargetSetBuilder builder1 = new PointerTargetSetBuilder(emptyPointerTargetSet(
                                                                                machineModel,
@@ -859,10 +862,10 @@ public class PointerTargetSet implements Serializable {
 
     final Map<DeferredAllocationPool, DeferredAllocationPool> mergedDeferredAllocationPools = new HashMap<>();
     final boolean reverseDeferredAllocations = other.deferredAllocations.size() > deferredAllocations.size();
-    final ConflictHandler<DeferredAllocationPool> deferredAllocationMergingConflictHandler =
-      new ConflictHandler<DeferredAllocationPool>() {
+    final ConflictHandler<String, DeferredAllocationPool> deferredAllocationMergingConflictHandler =
+      new ConflictHandler<String, DeferredAllocationPool>() {
       @Override
-      public DeferredAllocationPool resolveConflict(DeferredAllocationPool a, DeferredAllocationPool b) {
+      public DeferredAllocationPool resolveConflict(String key, DeferredAllocationPool a, DeferredAllocationPool b) {
         final DeferredAllocationPool result = a.mergeWith(b);
         final DeferredAllocationPool oldResult = mergedDeferredAllocationPools.get(result);
         if (oldResult == null) {
@@ -916,8 +919,8 @@ public class PointerTargetSet implements Serializable {
                                                  other.getNextBaseAddressInequality(fakeBaseName, other.lastBase));
     }
 
-    final ConflictHandler<PersistentList<PointerTarget>> conflictHandler =
-                                                           PointerTargetSet.<PointerTarget>destructiveMergeOnConflict();
+    final ConflictHandler<String, PersistentList<PointerTarget>> conflictHandler =
+                                                           PointerTargetSet.<String, PointerTarget>destructiveMergeOnConflict();
 
     final PointerTargetSet result  =
       new PointerTargetSet(machineModel,
@@ -956,7 +959,7 @@ public class PointerTargetSet implements Serializable {
                                                              PersistentSortedMap<K, V>> mergeSortedSets(
     final PersistentSortedMap<K, V> set1,
     final PersistentSortedMap<K, V> set2,
-    final ConflictHandler<V> conflictHandler) {
+    final ConflictHandler<K, V> conflictHandler) {
 
     PersistentSortedMap<K, V> fromSet1 = PathCopyingPersistentTreeMap.<K, V>of();
     PersistentSortedMap<K, V> fromSet2 = PathCopyingPersistentTreeMap.<K, V>of();
@@ -1002,7 +1005,7 @@ public class PointerTargetSet implements Serializable {
         final V value2 = e2.getValue();
 
         if (!value1.equals(value2)) {
-          union = union.putAndCopy(key, conflictHandler.resolveConflict(value1, value2));
+          union = union.putAndCopy(key, conflictHandler.resolveConflict(key, value1, value2));
         }
         // Forward both iterators
         e1 = null;
@@ -1031,113 +1034,20 @@ public class PointerTargetSet implements Serializable {
     return Triple.of(fromSet1, fromSet2, union);
   }
 
-  /**
-   * Merge two PersistentSortedMaps.
-   * The result has all key-value pairs where the key is only in one of the map,
-   * those which are identical in both map,
-   * and for those keys that have a different value in both maps a handler is called,
-   * and the result is put in the resulting map.
-   * @param map1 The first map.
-   * @param map2 The second map.
-   * @param conflictHandler The handler that is called for a key with two different values.
-   * @return
-   */
-  private static <K extends Comparable<? super K>, V> PersistentSortedMap<K, V> mergeSortedMaps(
-    final PersistentSortedMap<K, V> map1,
-    final PersistentSortedMap<K, V> map2,
-    final ConflictHandler<V> conflictHandler) {
-
-    // map1 is the bigger one, so we use it as the base.
-    PersistentSortedMap<K, V> result = map1;
-
-    final Iterator<Map.Entry<K, V>> it1 = map1.entrySet().iterator();
-    final Iterator<Map.Entry<K, V>> it2 = map2.entrySet().iterator();
-
-    Map.Entry<K, V> e1 = null;
-    Map.Entry<K, V> e2 = null;
-
-    // This loop iterates synchronously through both sets
-    // by trying to keep the keys equal.
-    // If one iterator fails behind, the other is not forwarded until the first catches up.
-    // The advantage of this is it is in O(n log(n))
-    // (n iterations, log(n) per update).
-    while ((e1 != null || it1.hasNext()) && (e2 != null || it2.hasNext())) {
-      if (e1 == null) {
-        e1 = it1.next();
-      }
-      if (e2 == null) {
-        e2 = it2.next();
-      }
-
-      final int flag = e1.getKey().compareTo(e2.getKey());
-
-      if (flag < 0) {
-        // e1 < e2
-        // forward e1 until it catches up with e2
-        e1 = null;
-      } else if (flag > 0) {
-        // e1 > e2
-        // e2 is not in map
-        assert !result.containsKey(e2.getKey());
-        result = result.putAndCopy(e2.getKey(), e2.getValue());
-        // forward e2 until it catches up with e1
-        e2 = null;
-      } else {
-        // e1 == e2
-        final K key = e1.getKey();
-        final V value1 = e1.getValue();
-        final V value2 = e2.getValue();
-
-        if (!value1.equals(value2)) {
-          result = result.putAndCopy(key, conflictHandler.resolveConflict(value1, value2));
-        }
-        // forward both iterators
-        e1 = null;
-        e2 = null;
-      }
-    }
-
-    // Now copy the rest of the mappings from s2.
-    // For s1 this is not necessary.
-    while (e2 != null || it2.hasNext()) {
-      if (e2 == null) {
-        e2 = it2.next();
-      }
-      result = result.putAndCopy(e2.getKey(), e2.getValue());
-      e2 = null;
-    }
-
-    assert result.size() >= Math.max(map1.size(), map2.size());
-    return result;
-  }
-
-  private static interface ConflictHandler<V> {
-    public V resolveConflict(V value1, V value2);
-  }
-
-  private static <T> ConflictHandler<PersistentList<T>> mergeOnConflict() {
-    return new ConflictHandler<PersistentList<T>>() {
+  private static <K, T> ConflictHandler<K, PersistentList<T>> mergeOnConflict() {
+    return new ConflictHandler<K, PersistentList<T>>() {
       @Override
-      public PersistentList<T> resolveConflict(PersistentList<T> list1, PersistentList<T> list2) {
+      public PersistentList<T> resolveConflict(K key, PersistentList<T> list1, PersistentList<T> list2) {
         return DeferredAllocationPool.mergeLists(list1, list2);
       }
     };
   }
 
-  private static <T> ConflictHandler<PersistentList<T>> destructiveMergeOnConflict() {
-    return new ConflictHandler<PersistentList<T>>() {
+  private static <K, T> ConflictHandler<K, PersistentList<T>> destructiveMergeOnConflict() {
+    return new ConflictHandler<K, PersistentList<T>>() {
       @Override
-      public PersistentList<T> resolveConflict(PersistentList<T> list1, PersistentList<T> list2) {
+      public PersistentList<T> resolveConflict(K key, PersistentList<T> list1, PersistentList<T> list2) {
         return list1.withAll(list2);
-      }
-    };
-  }
-
-  private static <T> ConflictHandler<T> failOnConflict() {
-    return new ConflictHandler<T>() {
-      @Override
-      public T resolveConflict(T o1, T o2) {
-        throw new UnsupportedOperationException("merging unsupported, values must be equal:" + o1 + " == " + o2);
       }
     };
   }
