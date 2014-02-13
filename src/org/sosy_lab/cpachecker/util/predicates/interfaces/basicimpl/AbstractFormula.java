@@ -29,7 +29,7 @@ import java.io.Serializable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 
 /**
  *
@@ -90,11 +90,11 @@ class BooleanFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> imp
 }
 
 /**
- * Simple NumericFormula implementation.
+ * Simple NumeralFormula implementation.
  */
 @SuppressWarnings("serial")
-class NumericFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements NumericFormula {
-  public NumericFormulaImpl(TFormulaInfo pTerm) {
+class NumeralFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements NumeralFormula {
+  public NumeralFormulaImpl(TFormulaInfo pTerm) {
     super(pTerm);
   }
 }

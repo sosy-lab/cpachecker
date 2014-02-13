@@ -30,6 +30,7 @@ import java.math.BigInteger;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractNumeralFormulaManager;
 
 import com.google.common.collect.ImmutableList;
@@ -51,7 +52,7 @@ abstract class Mathsat5NumeralFormulaManager extends AbstractNumeralFormulaManag
 
     this.mathsatEnv = pCreator.getEnv();
     this.functionManager = functionManager;
-    FormulaType formulaType = getFormulaType();
+    FormulaType<NumeralFormula> formulaType = getFormulaType();
     multUfDecl = functionManager.createFunction(MultUfName, formulaType, formulaType, formulaType);
     divUfDecl = functionManager.createFunction(DivUfName, formulaType, formulaType, formulaType);
     modUfDecl = functionManager.createFunction(ModUfName, formulaType, formulaType, formulaType);

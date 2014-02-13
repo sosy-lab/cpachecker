@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.util.assumptions;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 /**
@@ -56,8 +56,8 @@ public enum PreventingHeuristic {
    */
   public BooleanFormula getFormula(FormulaManagerView fmgr, long thresholdValue) {
     NumeralFormulaManager nfmgr = fmgr.getNumeralFormulaManager();
-    final NumericFormula number = nfmgr.makeNumber(thresholdValue);
-    final NumericFormula var = nfmgr.makeVariable(predicateString);
+    final NumeralFormula number = nfmgr.makeNumber(thresholdValue);
+    final NumeralFormula var = nfmgr.makeVariable(predicateString);
     // TODO better idea?
     return nfmgr.equal(var, number);
   }

@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view.wrapping;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 
 
@@ -35,13 +35,13 @@ public class WrappingNumeralFormulaManagerView extends NumeralFormulaManagerView
   }
 
   @Override
-  public NumeralFormulaView wrapInView(NumericFormula pFormula) {
+  public NumeralFormulaView wrapInView(NumeralFormula pFormula) {
     return new NumeralFormulaView(pFormula, this);
   }
 
 
   @Override
-  public NumericFormula extractFromView(NumericFormula pFormula) {
+  public NumeralFormula extractFromView(NumeralFormula pFormula) {
     return ((NumeralFormulaView)pFormula).getWrapped();
   }
 }

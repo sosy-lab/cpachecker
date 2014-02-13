@@ -28,7 +28,7 @@ import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator;
 
 
@@ -63,7 +63,7 @@ class Mathsat5FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
     Mathsat5Formula f;
     if (pClazz == BitvectorFormula.class) {
       f = new Mathsat5BitvectorFormula(pTerm);
-    } else if (pClazz == NumericFormula.class) {
+    } else if (pClazz == NumeralFormula.class) {
       f = new Mathsat5IntegerFormula(pTerm);
     } else if (pClazz == BooleanFormula.class) {
       f = new Mathsat5BooleanFormula(pTerm);

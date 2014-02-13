@@ -29,48 +29,48 @@ import java.math.BigInteger;
  * This interface represents the Numeral-Theory
  */
 public interface NumeralFormulaManager {
-  public NumericFormula makeNumber(long pI);
-  public NumericFormula makeNumber(BigInteger pI);
-  public NumericFormula makeNumber(String pI);
+  public NumeralFormula makeNumber(long pI);
+  public NumeralFormula makeNumber(BigInteger pI);
+  public NumeralFormula makeNumber(String pI);
 
-  public NumericFormula makeVariable(String pVar);
+  public NumeralFormula makeVariable(String pVar);
 
-  public FormulaType<NumericFormula> getFormulaType();
+  public FormulaType<NumeralFormula> getFormulaType();
 
-  // ----------------- Arithmetic relations, return type NumericFormula -----------------
+  // ----------------- Arithmetic relations, return type NumeralFormula -----------------
 
-  public NumericFormula negate(NumericFormula number);
-  public boolean isNegate(NumericFormula number);
+  public NumeralFormula negate(NumeralFormula number);
+  public boolean isNegate(NumeralFormula number);
 
-  public NumericFormula add(NumericFormula number1, NumericFormula number2);
-  public boolean isAdd(NumericFormula number);
+  public NumeralFormula add(NumeralFormula number1, NumeralFormula number2);
+  public boolean isAdd(NumeralFormula number);
 
-  public NumericFormula subtract(NumericFormula number1, NumericFormula number2);
-  public boolean isSubtract(NumericFormula number);
+  public NumeralFormula subtract(NumeralFormula number1, NumeralFormula number2);
+  public boolean isSubtract(NumeralFormula number);
 
-  public NumericFormula divide(NumericFormula number1, NumericFormula number2);
-  public boolean isDivide(NumericFormula number);
+  public NumeralFormula divide(NumeralFormula number1, NumeralFormula number2);
+  public boolean isDivide(NumeralFormula number);
 
-  public NumericFormula modulo(NumericFormula number1, NumericFormula number2);
-  public boolean isModulo(NumericFormula number);
+  public NumeralFormula modulo(NumeralFormula number1, NumeralFormula number2);
+  public boolean isModulo(NumeralFormula number);
 
-  public NumericFormula multiply(NumericFormula number1, NumericFormula number2);
-  public boolean isMultiply(NumericFormula number);
+  public NumeralFormula multiply(NumeralFormula number1, NumeralFormula number2);
+  public boolean isMultiply(NumeralFormula number);
 
   // ----------------- Numeric relations, return type BooleanFormula -----------------
 
-  public BooleanFormula equal(NumericFormula number1, NumericFormula number2);
+  public BooleanFormula equal(NumeralFormula number1, NumeralFormula number2);
   public boolean isEqual(BooleanFormula number);
 
-  public BooleanFormula greaterThan(NumericFormula number1, NumericFormula number2);
+  public BooleanFormula greaterThan(NumeralFormula number1, NumeralFormula number2);
   public boolean isGreaterThan(BooleanFormula number);
 
-  public BooleanFormula greaterOrEquals(NumericFormula number1, NumericFormula number2);
+  public BooleanFormula greaterOrEquals(NumeralFormula number1, NumeralFormula number2);
   public boolean isGreaterOrEquals(BooleanFormula number);
 
-  public BooleanFormula lessThan(NumericFormula number1, NumericFormula number2);
+  public BooleanFormula lessThan(NumeralFormula number1, NumeralFormula number2);
   public boolean isLessThan(BooleanFormula number);
 
-  public BooleanFormula lessOrEquals(NumericFormula number1, NumericFormula number2);
+  public BooleanFormula lessOrEquals(NumeralFormula number1, NumeralFormula number2);
   public boolean isLessOrEquals(BooleanFormula number);
 }

@@ -45,8 +45,8 @@ import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Joiner;
@@ -452,8 +452,8 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     BooleanFormula formula = bfmgr.makeBoolean(true);
 
     for (Map.Entry<MemoryLocation, Long> entry : constantsMap.entrySet()) {
-      NumericFormula var = nfmgr.makeVariable(entry.getKey().getAsSimpleString());
-      NumericFormula val = nfmgr.makeNumber(entry.getValue());
+      NumeralFormula var = nfmgr.makeVariable(entry.getKey().getAsSimpleString());
+      NumeralFormula val = nfmgr.makeNumber(entry.getValue());
       formula = bfmgr.and(formula, nfmgr.equal(var, val));
     }
 

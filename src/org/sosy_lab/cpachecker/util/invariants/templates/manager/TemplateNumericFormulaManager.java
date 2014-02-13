@@ -29,24 +29,24 @@ import org.sosy_lab.cpachecker.util.invariants.templates.TemplateNumber;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateTerm;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula;
 
 
 abstract class TemplateNumericFormulaManager implements NumeralFormulaManager {
 
-  private FormulaType<NumericFormula> type;
+  private FormulaType<NumeralFormula> type;
   private TemplateNumericBaseFormulaManager baseManager;
   private TemplateFormulaManager manager;
 
-  public TemplateNumericFormulaManager(TemplateFormulaManager manager, FormulaType<NumericFormula> pType) {
+  public TemplateNumericFormulaManager(TemplateFormulaManager manager, FormulaType<NumeralFormula> pType) {
     this.manager = manager;
     this.type = pType;
     baseManager = new TemplateNumericBaseFormulaManager();
   }
 
   @Override
-  public NumericFormula makeNumber(long pI) {
+  public NumeralFormula makeNumber(long pI) {
     TemplateNumber N = new TemplateNumber(type, (int) pI);
     TemplateTerm T = new TemplateTerm(type);
     T.setCoefficient(N);
@@ -54,87 +54,87 @@ abstract class TemplateNumericFormulaManager implements NumeralFormulaManager {
   }
 
   @Override
-  public NumericFormula makeNumber(BigInteger pI) {
+  public NumeralFormula makeNumber(BigInteger pI) {
     return makeNumber(pI.longValue());
   }
 
   @Override
-  public NumericFormula makeNumber(String pI) {
+  public NumeralFormula makeNumber(String pI) {
     return makeNumber(Long.parseLong(pI));
   }
 
   @Override
-  public NumericFormula makeVariable(String pVar) {
+  public NumeralFormula makeVariable(String pVar) {
     return manager.makeVariable(type, pVar, null);
   }
 
   @Override
-  public FormulaType<NumericFormula> getFormulaType() {
+  public FormulaType<NumeralFormula> getFormulaType() {
     return type;
   }
 
   @Override
-  public NumericFormula negate(NumericFormula pNumber) {
-    return (NumericFormula) baseManager.negate(pNumber);
+  public NumeralFormula negate(NumeralFormula pNumber) {
+    return (NumeralFormula) baseManager.negate(pNumber);
   }
 
   @Override
-  public boolean isNegate(NumericFormula pNumber) {
+  public boolean isNegate(NumeralFormula pNumber) {
     return baseManager.isNegate(pNumber);
   }
 
   @Override
-  public NumericFormula add(NumericFormula pNumber1, NumericFormula pNumber2) {
-    return (NumericFormula) baseManager.add(pNumber1, pNumber1);
+  public NumeralFormula add(NumeralFormula pNumber1, NumeralFormula pNumber2) {
+    return (NumeralFormula) baseManager.add(pNumber1, pNumber1);
   }
 
   @Override
-  public boolean isAdd(NumericFormula pNumber) {
+  public boolean isAdd(NumeralFormula pNumber) {
     return baseManager.isAdd(pNumber);
   }
 
   @Override
-  public NumericFormula subtract(NumericFormula pNumber1, NumericFormula pNumber2) {
-    return (NumericFormula) baseManager.subtract(pNumber1, pNumber1);
+  public NumeralFormula subtract(NumeralFormula pNumber1, NumeralFormula pNumber2) {
+    return (NumeralFormula) baseManager.subtract(pNumber1, pNumber1);
   }
 
   @Override
-  public boolean isSubtract(NumericFormula pNumber) {
+  public boolean isSubtract(NumeralFormula pNumber) {
     return baseManager.isSubtract(pNumber);
   }
 
   @Override
-  public NumericFormula divide(NumericFormula pNumber1, NumericFormula pNumber2) {
-    return (NumericFormula) baseManager.divide(pNumber1, pNumber2);
+  public NumeralFormula divide(NumeralFormula pNumber1, NumeralFormula pNumber2) {
+    return (NumeralFormula) baseManager.divide(pNumber1, pNumber2);
   }
 
   @Override
-  public boolean isDivide(NumericFormula pNumber) {
+  public boolean isDivide(NumeralFormula pNumber) {
     return baseManager.isDivide(pNumber);
   }
 
   @Override
-  public NumericFormula modulo(NumericFormula pNumber1, NumericFormula pNumber2) {
-    return (NumericFormula) baseManager.modulo(pNumber1, pNumber1);
+  public NumeralFormula modulo(NumeralFormula pNumber1, NumeralFormula pNumber2) {
+    return (NumeralFormula) baseManager.modulo(pNumber1, pNumber1);
   }
 
   @Override
-  public boolean isModulo(NumericFormula pNumber) {
+  public boolean isModulo(NumeralFormula pNumber) {
     return baseManager.isModulo(pNumber);
   }
 
   @Override
-  public NumericFormula multiply(NumericFormula pNumber1, NumericFormula pNumber2) {
-    return (NumericFormula) baseManager.multiply(pNumber1, pNumber2);
+  public NumeralFormula multiply(NumeralFormula pNumber1, NumeralFormula pNumber2) {
+    return (NumeralFormula) baseManager.multiply(pNumber1, pNumber2);
   }
 
   @Override
-  public boolean isMultiply(NumericFormula pNumber) {
+  public boolean isMultiply(NumeralFormula pNumber) {
     return baseManager.isMultiply(pNumber);
   }
 
   @Override
-  public BooleanFormula equal(NumericFormula pNumber1, NumericFormula pNumber2) {
+  public BooleanFormula equal(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     return baseManager.equal(pNumber1, pNumber2);
   }
 
@@ -144,7 +144,7 @@ abstract class TemplateNumericFormulaManager implements NumeralFormulaManager {
   }
 
   @Override
-  public BooleanFormula greaterThan(NumericFormula pNumber1, NumericFormula pNumber2) {
+  public BooleanFormula greaterThan(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     return baseManager.greaterThan(pNumber1, pNumber2);
   }
 
@@ -154,7 +154,7 @@ abstract class TemplateNumericFormulaManager implements NumeralFormulaManager {
   }
 
   @Override
-  public BooleanFormula greaterOrEquals(NumericFormula pNumber1, NumericFormula pNumber2) {
+  public BooleanFormula greaterOrEquals(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     return baseManager.greaterOrEquals(pNumber1, pNumber2);
   }
 
@@ -164,7 +164,7 @@ abstract class TemplateNumericFormulaManager implements NumeralFormulaManager {
   }
 
   @Override
-  public BooleanFormula lessThan(NumericFormula pNumber1, NumericFormula pNumber2) {
+  public BooleanFormula lessThan(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     return baseManager.lessThan(pNumber1, pNumber2);
   }
 
@@ -174,7 +174,7 @@ abstract class TemplateNumericFormulaManager implements NumeralFormulaManager {
   }
 
   @Override
-  public BooleanFormula lessOrEquals(NumericFormula pNumber1, NumericFormula pNumber2) {
+  public BooleanFormula lessOrEquals(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     return baseManager.lessOrEquals(pNumber1, pNumber2);
   }
 

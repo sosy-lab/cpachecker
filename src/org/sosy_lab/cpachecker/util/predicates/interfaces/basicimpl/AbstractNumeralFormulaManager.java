@@ -46,8 +46,8 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
     return getFormulaCreator().extractInfo(pNumber);
   }
 
-  protected NumericFormula wrap(TFormulaInfo pTerm) {
-    return getFormulaCreator().encapsulate(NumericFormula.class, pTerm);
+  protected NumeralFormula wrap(TFormulaInfo pTerm) {
+    return getFormulaCreator().encapsulate(NumeralFormula.class, pTerm);
   }
 
   protected BooleanFormula wrapBool(TFormulaInfo pTerm) {
@@ -55,31 +55,31 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
   }
 
   @Override
-  public NumericFormula makeNumber(long i) {
+  public NumeralFormula makeNumber(long i) {
     return wrap(makeNumberImpl(i));
   }
   protected abstract TFormulaInfo makeNumberImpl(long i);
 
   @Override
-  public NumericFormula makeNumber(BigInteger i) {
+  public NumeralFormula makeNumber(BigInteger i) {
     return wrap(makeNumberImpl(i));
   }
   protected abstract TFormulaInfo makeNumberImpl(BigInteger i);
 
   @Override
-  public NumericFormula makeNumber(String i) {
+  public NumeralFormula makeNumber(String i) {
     return wrap(makeNumberImpl(i));
   }
   protected abstract TFormulaInfo makeNumberImpl(String i);
 
   @Override
-  public NumericFormula makeVariable(String pVar) {
+  public NumeralFormula makeVariable(String pVar) {
     return wrap(makeVariableImpl(pVar));
   }
   protected abstract TFormulaInfo makeVariableImpl(String i);
 
   @Override
-  public NumericFormula negate(NumericFormula pNumber) {
+  public NumeralFormula negate(NumeralFormula pNumber) {
     TFormulaInfo param1 = extractInfo(pNumber);
     return wrap(negate(param1));
   }
@@ -90,7 +90,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
 
 
   @Override
-  public NumericFormula add(NumericFormula pNumber1, NumericFormula pNumber2) {
+  public NumeralFormula add(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
@@ -100,7 +100,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
   protected abstract TFormulaInfo add(TFormulaInfo pParam1, TFormulaInfo pParam2);
 
   @Override
-  public NumericFormula subtract(NumericFormula pNumber1, NumericFormula pNumber2) {
+  public NumeralFormula subtract(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
@@ -111,7 +111,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
 
 
   @Override
-  public NumericFormula divide(NumericFormula pNumber1, NumericFormula pNumber2) {
+  public NumeralFormula divide(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
@@ -122,7 +122,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
 
 
   @Override
-  public NumericFormula modulo(NumericFormula pNumber1, NumericFormula pNumber2) {
+  public NumeralFormula modulo(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
@@ -133,7 +133,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
 
 
   @Override
-  public NumericFormula multiply(NumericFormula pNumber1, NumericFormula pNumber2) {
+  public NumeralFormula multiply(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
@@ -144,7 +144,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
 
 
   @Override
-  public BooleanFormula equal(NumericFormula pNumber1, NumericFormula pNumber2) {
+  public BooleanFormula equal(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
@@ -155,7 +155,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
 
 
   @Override
-  public BooleanFormula greaterThan(NumericFormula pNumber1, NumericFormula pNumber2) {
+  public BooleanFormula greaterThan(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
@@ -166,7 +166,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
 
 
   @Override
-  public BooleanFormula greaterOrEquals(NumericFormula pNumber1, NumericFormula pNumber2) {
+  public BooleanFormula greaterOrEquals(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
@@ -176,7 +176,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
   protected abstract TFormulaInfo greaterOrEquals(TFormulaInfo pParam1, TFormulaInfo pParam2) ;
 
   @Override
-  public BooleanFormula lessThan(NumericFormula pNumber1, NumericFormula pNumber2) {
+  public BooleanFormula lessThan(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
@@ -187,7 +187,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
 
 
   @Override
-  public BooleanFormula lessOrEquals(NumericFormula pNumber1, NumericFormula pNumber2) {
+  public BooleanFormula lessOrEquals(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
@@ -197,14 +197,14 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
   protected abstract TFormulaInfo lessOrEquals(TFormulaInfo pParam1, TFormulaInfo pParam2);
 
   @Override
-  public boolean isNegate(NumericFormula pNumber) {
+  public boolean isNegate(NumeralFormula pNumber) {
     TFormulaInfo param = extractInfo(pNumber);
     return isNegate(param);
   }
   protected abstract boolean isNegate(TFormulaInfo pParam) ;
 
   @Override
-  public boolean isAdd(NumericFormula pNumber) {
+  public boolean isAdd(NumeralFormula pNumber) {
     TFormulaInfo param = extractInfo(pNumber);
     return isAdd(param);
   }
@@ -212,7 +212,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
 
 
   @Override
-  public boolean isSubtract(NumericFormula pNumber) {
+  public boolean isSubtract(NumeralFormula pNumber) {
     TFormulaInfo param = extractInfo(pNumber);
     return isSubtract(param);
   }
@@ -221,7 +221,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
 
 
   @Override
-  public boolean isDivide(NumericFormula pNumber) {
+  public boolean isDivide(NumeralFormula pNumber) {
     TFormulaInfo param = extractInfo(pNumber);
     return isDivide(param);
   }
@@ -229,7 +229,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
 
 
   @Override
-  public boolean isModulo(NumericFormula pNumber) {
+  public boolean isModulo(NumeralFormula pNumber) {
     TFormulaInfo param = extractInfo(pNumber);
     return isModulo(param);
   }
@@ -238,7 +238,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
 
 
   @Override
-  public boolean isMultiply(NumericFormula pNumber) {
+  public boolean isMultiply(NumeralFormula pNumber) {
     TFormulaInfo param = extractInfo(pNumber);
     return isMultiply(param);
   }

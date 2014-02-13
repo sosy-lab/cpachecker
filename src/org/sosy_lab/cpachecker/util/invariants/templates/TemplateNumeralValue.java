@@ -25,13 +25,13 @@ package org.sosy_lab.cpachecker.util.invariants.templates;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 
-public abstract class TemplateNumericValue extends TemplateFormula implements NumericFormula, BitvectorFormula {
+public abstract class TemplateNumeralValue extends TemplateFormula implements NumeralFormula, BitvectorFormula {
 
   private FormulaType<?> myType;
 
-  TemplateNumericValue(FormulaType<?> myType) {
+  TemplateNumeralValue(FormulaType<?> myType) {
     this.myType = myType;
   }
 
@@ -40,6 +40,6 @@ public abstract class TemplateNumericValue extends TemplateFormula implements Nu
     return myType;
   }
 
-  public abstract TemplateNumericValue withFormulaType(FormulaType<?> newType);
+  public abstract TemplateNumeralValue withFormulaType(FormulaType<?> newType);
 
 }

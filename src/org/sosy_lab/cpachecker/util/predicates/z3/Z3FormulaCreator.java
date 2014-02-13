@@ -29,7 +29,7 @@ import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator;
 
 public class Z3FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
@@ -69,7 +69,7 @@ public class Z3FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
     Z3Formula f;
     if (pClazz == BitvectorFormula.class) {
       f = new Z3BitvectorFormula(getEnv(), pTerm);
-    } else if (pClazz == NumericFormula.class) {
+    } else if (pClazz == NumeralFormula.class) {
       f = new Z3NumeralFormula(getEnv(), pTerm);
     } else if (pClazz == BooleanFormula.class) {
       f = new Z3BooleanFormula(getEnv(), pTerm);
