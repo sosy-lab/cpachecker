@@ -877,13 +877,13 @@ public class PointerTargetSet implements Serializable {
         }
       }
     };
-    final PersistentSortedMap<String, DeferredAllocationPool> mergedDeferredAllocations =
+    PersistentSortedMap<String, DeferredAllocationPool> mergedDeferredAllocations =
       !reverseDeferredAllocations ?
         mergeSortedMaps(deferredAllocations, other.deferredAllocations, deferredAllocationMergingConflictHandler) :
         mergeSortedMaps(other.deferredAllocations, deferredAllocations, deferredAllocationMergingConflictHandler);
     for (final DeferredAllocationPool merged : mergedDeferredAllocationPools.keySet()) {
       for (final String pointerVariable : merged.getPointerVariables()) {
-        deferredAllocations = deferredAllocations.putAndCopy(pointerVariable, merged);
+        mergedDeferredAllocations = mergedDeferredAllocations.putAndCopy(pointerVariable, merged);
       }
     }
 
