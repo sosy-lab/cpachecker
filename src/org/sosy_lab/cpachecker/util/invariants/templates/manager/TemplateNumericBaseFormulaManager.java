@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.util.invariants.templates.TemplateNumericValue;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateSum;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula;
 
 
 public class TemplateNumericBaseFormulaManager {
@@ -50,7 +50,7 @@ public class TemplateNumericBaseFormulaManager {
   }
 
   public Formula add(Formula pF1, Formula pF2) {
-    RationalFormula F = null;
+    NumericFormula F = null;
     try {
       TemplateSum s1 = (TemplateSum) pF1;
       TemplateSum s2 = (TemplateSum) pF2;

@@ -28,14 +28,14 @@ import java.math.BigInteger;
 /**
  * This interface represents the Numeral-Theory
  */
-public interface NumeralFormulaManager<T extends NumericFormula> {
+public interface NumeralFormulaManager {
   public NumericFormula makeNumber(long pI);
   public NumericFormula makeNumber(BigInteger pI);
   public NumericFormula makeNumber(String pI);
 
   public NumericFormula makeVariable(String pVar);
 
-  public FormulaType<T> getFormulaType();
+  public FormulaType<NumericFormula> getFormulaType();
 
   // ----------------- Arithmetic relations, return type NumericFormula -----------------
 

@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 import java.math.BigInteger;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula.RationalFormula;
 
 /**
  * This AbstractNumericFormulaManager allows you to implement the Rational-Theory by
@@ -47,8 +46,8 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
     return getFormulaCreator().extractInfo(pNumber);
   }
 
-  protected RationalFormula wrap(TFormulaInfo pTerm) {
-    return getFormulaCreator().encapsulate(RationalFormula.class, pTerm);
+  protected NumericFormula wrap(TFormulaInfo pTerm) {
+    return getFormulaCreator().encapsulate(NumericFormula.class, pTerm);
   }
 
   protected BooleanFormula wrapBool(TFormulaInfo pTerm) {
@@ -56,25 +55,25 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
   }
 
   @Override
-  public RationalFormula makeNumber(long i) {
+  public NumericFormula makeNumber(long i) {
     return wrap(makeNumberImpl(i));
   }
   protected abstract TFormulaInfo makeNumberImpl(long i);
 
   @Override
-  public RationalFormula makeNumber(BigInteger i) {
+  public NumericFormula makeNumber(BigInteger i) {
     return wrap(makeNumberImpl(i));
   }
   protected abstract TFormulaInfo makeNumberImpl(BigInteger i);
 
   @Override
-  public RationalFormula makeNumber(String i) {
+  public NumericFormula makeNumber(String i) {
     return wrap(makeNumberImpl(i));
   }
   protected abstract TFormulaInfo makeNumberImpl(String i);
 
   @Override
-  public RationalFormula makeVariable(String pVar) {
+  public NumericFormula makeVariable(String pVar) {
     return wrap(makeVariableImpl(pVar));
   }
   protected abstract TFormulaInfo makeVariableImpl(String i);

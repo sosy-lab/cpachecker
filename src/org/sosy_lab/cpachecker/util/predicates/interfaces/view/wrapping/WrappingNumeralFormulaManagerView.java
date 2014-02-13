@@ -28,9 +28,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 
 
-public class WrappingNumeralFormulaManagerView<T extends NumericFormula> extends NumeralFormulaManagerView<T> {
+public class WrappingNumeralFormulaManagerView extends NumeralFormulaManagerView {
 
-  public WrappingNumeralFormulaManagerView(NumeralFormulaManager<T> pManager) {
+  public WrappingNumeralFormulaManagerView(NumeralFormulaManager pManager) {
     super(pManager);
   }
 

@@ -25,9 +25,9 @@ package org.sosy_lab.cpachecker.util.invariants.templates;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula;
 
-public abstract class TemplateNumericValue extends TemplateFormula implements RationalFormula, BitvectorFormula {
+public abstract class TemplateNumericValue extends TemplateFormula implements NumericFormula, BitvectorFormula {
 
   private FormulaType<?> myType;
 

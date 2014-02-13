@@ -27,7 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula;
 
 /**
  * Simplifies building a solver from the specific theories.
@@ -108,8 +108,8 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
     Class<?> c ;
     if (instance instanceof BooleanFormula) {
       c = BooleanFormula.class;
-    } else if (instance instanceof RationalFormula) {
-      c = RationalFormula.class;
+    } else if (instance instanceof NumericFormula) {
+      c = NumericFormula.class;
     } else if (instance instanceof BitvectorFormula) {
       c = BitvectorFormula.class;
     } else {
@@ -176,7 +176,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
     FormulaType<?> t;
     if (clazz==BooleanFormula.class) {
       t = booleanManager.getFormulaType();
-    } else if (clazz == RationalFormula.class) {
+    } else if (clazz == NumericFormula.class) {
       t = numeralManager.getFormulaType();
     } else if (clazz == BitvectorFormula.class) {
       int size = bitvectorManager.getLength((BitvectorFormula)formula);

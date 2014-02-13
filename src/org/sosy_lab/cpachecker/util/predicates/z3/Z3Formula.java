@@ -25,8 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula.IntegerFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 public class Z3Formula implements Formula {
@@ -70,16 +69,9 @@ class Z3BitvectorFormula extends Z3Formula implements BitvectorFormula {
   }
 }
 
-class Z3IntegerFormula extends Z3Formula implements IntegerFormula {
+class Z3NumeralFormula extends Z3Formula implements NumericFormula {
 
-  public Z3IntegerFormula(long z3context, long z3expr) {
-    super(z3context, z3expr);
-  }
-}
-
-class Z3RationalFormula extends Z3Formula implements RationalFormula {
-
-  public Z3RationalFormula(long z3context, long z3expr) {
+  public Z3NumeralFormula(long z3context, long z3expr) {
     super(z3context, z3expr);
   }
 }

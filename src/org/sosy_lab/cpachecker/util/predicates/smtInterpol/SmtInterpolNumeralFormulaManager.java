@@ -30,7 +30,6 @@ import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractNumeralFormulaManager;
 
 import com.google.common.collect.ImmutableList;
@@ -53,7 +52,7 @@ abstract class SmtInterpolNumeralFormulaManager extends AbstractNumeralFormulaMa
     env = pCreator.getEnv();
     functionManager = pFunctionManager;
 
-    FormulaType formulaType = getFormulaType();
+    FormulaType<NumericFormula> formulaType = getFormulaType();
     multUfDecl = functionManager.createFunction(MultUfName, formulaType, formulaType, formulaType);
     divUfDecl = functionManager.createFunction(DivUfName, formulaType, formulaType, formulaType);
     modUfDecl = functionManager.createFunction(ModUfName, formulaType, formulaType, formulaType);

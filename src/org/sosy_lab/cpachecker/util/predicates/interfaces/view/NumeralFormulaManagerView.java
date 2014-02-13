@@ -31,13 +31,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula;
 
 
-public class NumeralFormulaManagerView<T extends NumericFormula>
+public class NumeralFormulaManagerView
         extends BaseManagerView<NumericFormula>
-        implements NumeralFormulaManager<T> {
+        implements NumeralFormulaManager {
 
-  private NumeralFormulaManager<T> manager;
+  private NumeralFormulaManager manager;
 
-  public NumeralFormulaManagerView(NumeralFormulaManager<T> pManager) {
+  public NumeralFormulaManagerView(NumeralFormulaManager pManager) {
     this.manager = pManager;
   }
 
@@ -174,7 +174,7 @@ public class NumeralFormulaManagerView<T extends NumericFormula>
   }
 
   @Override
-  public FormulaType<T> getFormulaType() {
+  public FormulaType<NumericFormula> getFormulaType() {
     return manager.getFormulaType();
   }
 

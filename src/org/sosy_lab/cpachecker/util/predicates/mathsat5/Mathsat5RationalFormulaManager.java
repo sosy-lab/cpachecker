@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula;
 
 class Mathsat5RationalFormulaManager extends Mathsat5NumeralFormulaManager {
 
@@ -43,7 +43,7 @@ class Mathsat5RationalFormulaManager extends Mathsat5NumeralFormulaManager {
   }
 
   @Override
-  public FormulaType<RationalFormula> getFormulaType() {
+  public FormulaType<NumericFormula> getFormulaType() {
     return FormulaType.RationalType;
   }
 

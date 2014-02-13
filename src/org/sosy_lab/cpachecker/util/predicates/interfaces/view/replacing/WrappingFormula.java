@@ -81,20 +81,11 @@ final class WrappingBitvectorFormula<TWrap extends Formula>
   }
 }
 
-final class WrappingRationalFormula<TWrap extends Formula>
-    extends WrappingFormula<TWrap, RationalFormula>
-    implements RationalFormula {
+final class WrappingNumeralFormula<TWrap extends Formula>
+    extends WrappingFormula<TWrap, NumericFormula>
+    implements NumericFormula {
 
-  WrappingRationalFormula(FormulaType<RationalFormula> type, TWrap pToWrap) {
-    super(type, pToWrap);
-  }
-}
-
-final class WrappingIntegerFormula<TWrap extends Formula>
-    extends WrappingFormula<TWrap, IntegerFormula>
-    implements RationalFormula {
-
-  WrappingIntegerFormula(FormulaType<IntegerFormula> type, TWrap pToWrap) {
+  WrappingNumeralFormula(FormulaType<NumericFormula> type, TWrap pToWrap) {
     super(type, pToWrap);
   }
 }
