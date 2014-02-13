@@ -33,6 +33,8 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
@@ -74,6 +76,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.FormulaEncodin
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PathFormulaWithUF;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTarget;
 
 import com.google.common.base.Function;
@@ -110,6 +113,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private final BooleanFormulaManagerView bfmgr;
   private final FunctionFormulaManagerView ffmgr;
   private final CtoFormulaConverter converter;
+  private final @Nullable PointerTargetSetManager ptsManager;
   private final LogManager logger;
 
   @Option(description="add special information to formulas about non-deterministic functions")
@@ -139,26 +143,20 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     ffmgr = fmgr.getFunctionFormulaManager();
     logger = pLogger;
 
-    converter = createConverter(pFmgr, config, pLogger, pMachineModel, pVariableClassification);
-
-    if (!handlePointerAliasing) {
-      NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);
-      logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
-    } else {
-      NONDET_FORMULA_TYPE = ((CToFormulaWithUFConverter) converter).getFormulaTypeFromCType(NONDET_TYPE, null);
-    }
-  }
-
-  private CtoFormulaConverter createConverter(FormulaManagerView pFmgr, Configuration config, LogManager pLogger,
-      MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification)
-          throws InvalidConfigurationException {
     if (handlePointerAliasing) {
       final FormulaEncodingWithUFOptions options = new FormulaEncodingWithUFOptions(config);
-      return new CToFormulaWithUFConverter(options, pFmgr, pMachineModel, pVariableClassification, pLogger);
+      CToFormulaWithUFConverter ufConverter = new CToFormulaWithUFConverter(options, pFmgr, pMachineModel, pVariableClassification, pLogger);
+      NONDET_FORMULA_TYPE = ufConverter.getFormulaTypeFromCType(NONDET_TYPE, null);
+      converter = ufConverter;
+      ptsManager = new PointerTargetSetManager(options, pMachineModel, pFmgr);
 
     } else {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
-      return new CtoFormulaConverter(options, pFmgr, pMachineModel, pLogger);
+      converter = new CtoFormulaConverter(options, pFmgr, pMachineModel, pLogger);
+      NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);
+      ptsManager = null;
+
+      logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
     }
   }
 
@@ -418,7 +416,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final Triple<PointerTargetSet,
                  BooleanFormula,
                  Pair<PersistentSortedMap<String, CType>, PersistentSortedMap<String, CType>>>
-      ptsMergeResult = pts1.mergeWith(pts2);
+      ptsMergeResult = ptsManager.merge(pts1, pts2);
 
     final List<Pair<CCompositeType, String>> sharedFields = new ArrayList<>();
     for (final Map.Entry<String, CType> baseFromPTS1 : ptsMergeResult.getThird().getFirst().entrySet()) {

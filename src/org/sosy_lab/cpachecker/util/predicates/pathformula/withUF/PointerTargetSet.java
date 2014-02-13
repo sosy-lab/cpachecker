@@ -27,11 +27,8 @@ import static com.google.common.base.Objects.firstNonNull;
 import static com.google.common.base.Preconditions.*;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes.VOID;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.MapMerger.*;
 
 import java.io.Serializable;
-import java.math.BigInteger;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,8 +37,6 @@ import java.util.SortedSet;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
@@ -53,20 +48,16 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.MapMerger;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.MapMerger.ConflictHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTarget;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultiset;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
 
@@ -80,7 +71,7 @@ public class PointerTargetSet implements Serializable {
    * keep the set of currently tracked fields in rather simple way (no special-case merging is required).
    * </p>
    */
-  private static class CompositeField implements Comparable<CompositeField> {
+  public static class CompositeField implements Comparable<CompositeField> {
     private CompositeField(final String compositeType, final String fieldName) {
       this.compositeType = compositeType;
       this.fieldName = fieldName;
@@ -339,7 +330,7 @@ public class PointerTargetSet implements Serializable {
       }
       bases = bases.putAndCopy(name, type); // To get proper inequalities
       final BooleanFormula nextInequality = getNextBaseAddressInequality(name, lastBase);
-      bases = bases.putAndCopy(name, getFakeBaseType(getSize(type))); // To prevent adding spurious targets when merging
+      bases = bases.putAndCopy(name, PointerTargetSetManager.getFakeBaseType(getSize(type))); // To prevent adding spurious targets when merging
       lastBase = name;
       return nextInequality;
     }
@@ -460,7 +451,7 @@ public class PointerTargetSet implements Serializable {
       fields = fields.removeAndCopy(field);
     }
 
-    private void setFields(PersistentSortedMap<CompositeField, Boolean> fields) {
+    void setFields(PersistentSortedMap<CompositeField, Boolean> fields) {
       checkState(this.fields.isEmpty());
       this.fields = checkNotNull(fields);
     }
@@ -578,10 +569,6 @@ public class PointerTargetSet implements Serializable {
     return deferredAllocations.containsKey(pointerVariable);
   }
 
-  private static final String getUnitedFieldBaseName(final int index) {
-    return UNITED_BASE_FIELD_NAME_PREFIX + index;
-  }
-
   public FormulaType<?> getPointerType() {
     return pointerType;
   }
@@ -603,7 +590,7 @@ public class PointerTargetSet implements Serializable {
   }
 
   public boolean isActualBase(final String name) {
-    return bases.containsKey(name) && !isFakeBaseType(bases.get(name));
+    return bases.containsKey(name) && !PointerTargetSetManager.isFakeBaseType(bases.get(name));
   }
 
   public boolean isPreparedBase(final String name) {
@@ -634,206 +621,6 @@ public class PointerTargetSet implements Serializable {
                                 formulaManager);
   }
 
-  public Triple<PointerTargetSet,
-                BooleanFormula,
-                Pair<PersistentSortedMap<String, CType>, PersistentSortedMap<String, CType>>>
-    mergeWith(final PointerTargetSet other) {
-
-    final ConflictHandler<String, CType> baseUnitingConflictHandler = new ConflictHandler<String, CType>() {
-      @Override
-      public CType resolveConflict(final String key, final CType type1, final CType type2) {
-        if (isFakeBaseType(type1)) {
-          return type2;
-        } else if (isFakeBaseType(type2)) {
-          return type1;
-        }
-        int currentFieldIndex = 0;
-        final ImmutableList.Builder<CCompositeTypeMemberDeclaration> membersBuilder =
-          ImmutableList.<CCompositeTypeMemberDeclaration>builder();
-        if (type1 instanceof CCompositeType) {
-          final CCompositeType compositeType1 = (CCompositeType) type1;
-          if (compositeType1.getKind() == ComplexTypeKind.UNION &&
-              !compositeType1.getMembers().isEmpty() &&
-              compositeType1.getMembers().get(0).getName().equals(getUnitedFieldBaseName(0))) {
-            membersBuilder.addAll(compositeType1.getMembers());
-            currentFieldIndex += compositeType1.getMembers().size();
-          } else {
-            membersBuilder.add(new CCompositeTypeMemberDeclaration(compositeType1,
-                                                                   getUnitedFieldBaseName(currentFieldIndex++)));
-          }
-        } else {
-          membersBuilder.add(new CCompositeTypeMemberDeclaration(type1,
-                                                                 getUnitedFieldBaseName(currentFieldIndex++)));
-        }
-        if (type2 instanceof CCompositeType) {
-          final CCompositeType compositeType2 = (CCompositeType) type2;
-          if (compositeType2.getKind() == ComplexTypeKind.UNION &&
-              !compositeType2.getMembers().isEmpty() &&
-              compositeType2.getMembers().get(0).getName().equals(getUnitedFieldBaseName(0))) {
-            for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType2.getMembers()) {
-              membersBuilder.add(new CCompositeTypeMemberDeclaration(memberDeclaration.getType(),
-                                                                     getUnitedFieldBaseName(currentFieldIndex++)));
-            }
-          } else {
-            membersBuilder.add(new CCompositeTypeMemberDeclaration(compositeType2,
-                                                                   getUnitedFieldBaseName(currentFieldIndex++)));
-          }
-        } else {
-          membersBuilder.add(new CCompositeTypeMemberDeclaration(type2,
-                                                                 getUnitedFieldBaseName(currentFieldIndex++)));
-        }
-        return new CCompositeType(false,
-                                  false,
-                                  ComplexTypeKind.UNION,
-                                  membersBuilder.build(),
-                                  UNITED_BASE_UNION_TAG_PREFIX + type1.toString().replace(' ', '_') + "_and_" +
-                                                                 type2.toString().replace(' ', '_'));
-      }
-    };
-    final boolean reverseBases = other.bases.size() > bases.size();
-    Triple<PersistentSortedMap<String, CType>,
-           PersistentSortedMap<String, CType>,
-           PersistentSortedMap<String, CType>> mergedBases =
-      !reverseBases ? mergeSortedSets(bases, other.bases, baseUnitingConflictHandler) :
-                      mergeSortedSets(other.bases, bases, baseUnitingConflictHandler);
-
-    final boolean reverseFields = other.fields.size() > fields.size();
-    final Triple<PersistentSortedMap<CompositeField, Boolean>,
-                 PersistentSortedMap<CompositeField, Boolean>,
-                 PersistentSortedMap<CompositeField, Boolean>> mergedFields =
-      !reverseFields ? mergeSortedSets(fields, other.fields, MapMerger.<CompositeField, Boolean>getExceptionOnConflictHandler()) :
-                      mergeSortedSets(other.fields, fields, MapMerger.<CompositeField, Boolean>getExceptionOnConflictHandler());
-
-    final boolean reverseTargets = other.targets.size() > targets.size();
-    final PersistentSortedMap<String, PersistentList<PointerTarget>> mergedTargets =
-      !reverseTargets ? mergeSortedMaps(targets, other.targets,PointerTargetSet.<String, PointerTarget>mergeOnConflict()) :
-                        mergeSortedMaps(other.targets, targets, PointerTargetSet.<String, PointerTarget>mergeOnConflict());
-
-    final PointerTargetSetBuilder builder1 = new PointerTargetSetBuilder(emptyPointerTargetSet(
-                                                                               machineModel,
-                                                                               options,
-                                                                               formulaManager)),
-                                  builder2 = new PointerTargetSetBuilder(emptyPointerTargetSet(
-                                                                               machineModel,
-                                                                               options,
-                                                                               formulaManager));
-    if (reverseBases == reverseFields) {
-      builder1.setFields(mergedFields.getFirst());
-      builder2.setFields(mergedFields.getSecond());
-    } else {
-      builder1.setFields(mergedFields.getSecond());
-      builder2.setFields(mergedFields.getFirst());
-    }
-
-    for (final Map.Entry<String, CType> entry : mergedBases.getSecond().entrySet()) {
-      builder1.addBase(entry.getKey(), entry.getValue());
-    }
-
-    for (final Map.Entry<String, CType> entry : mergedBases.getFirst().entrySet()) {
-      builder2.addBase(entry.getKey(), entry.getValue());
-    }
-
-    final Map<DeferredAllocationPool, DeferredAllocationPool> mergedDeferredAllocationPools = new HashMap<>();
-    final boolean reverseDeferredAllocations = other.deferredAllocations.size() > deferredAllocations.size();
-    final ConflictHandler<String, DeferredAllocationPool> deferredAllocationMergingConflictHandler =
-      new ConflictHandler<String, DeferredAllocationPool>() {
-      @Override
-      public DeferredAllocationPool resolveConflict(String key, DeferredAllocationPool a, DeferredAllocationPool b) {
-        final DeferredAllocationPool result = a.mergeWith(b);
-        final DeferredAllocationPool oldResult = mergedDeferredAllocationPools.get(result);
-        if (oldResult == null) {
-          mergedDeferredAllocationPools.put(result, result);
-          return result;
-        } else {
-          final DeferredAllocationPool newResult = oldResult.mergeWith(result);
-          mergedDeferredAllocationPools.put(newResult, newResult);
-          return newResult;
-        }
-      }
-    };
-    PersistentSortedMap<String, DeferredAllocationPool> mergedDeferredAllocations =
-      !reverseDeferredAllocations ?
-        mergeSortedMaps(deferredAllocations, other.deferredAllocations, deferredAllocationMergingConflictHandler) :
-        mergeSortedMaps(other.deferredAllocations, deferredAllocations, deferredAllocationMergingConflictHandler);
-    for (final DeferredAllocationPool merged : mergedDeferredAllocationPools.keySet()) {
-      for (final String pointerVariable : merged.getPointerVariables()) {
-        mergedDeferredAllocations = mergedDeferredAllocations.putAndCopy(pointerVariable, merged);
-      }
-    }
-
-    final String lastBase;
-    final BooleanFormula basesMergeFormula;
-    if (this.lastBase == null && other.lastBase == null ||
-        this.lastBase != null && (other.lastBase == null || this.lastBase.equals(other.lastBase))) {
-      // The next check doesn't really hold anymore due to possible base unions, but these cases are suspicious
-      assert this.lastBase == null ||
-             other.lastBase == null ||
-             isFakeBaseType(bases.get(this.lastBase)) ||
-             isFakeBaseType(other.bases.get(other.lastBase)) ||
-             bases.get(this.lastBase).equals(other.bases.get(other.lastBase));
-      lastBase = this.lastBase;
-      basesMergeFormula = formulaManager.getBooleanFormulaManager().makeBoolean(true);
-      // Nothing to do, as there were no divergence with regard to base allocations
-    } else if (this.lastBase == null && other.lastBase != null) {
-      lastBase = other.lastBase;
-      basesMergeFormula = formulaManager.getBooleanFormulaManager().makeBoolean(true);
-    } else {
-      final CType fakeBaseType = getFakeBaseType(0);
-      final String fakeBaseName = FAKE_ALLOC_FUNCTION_NAME +
-                                  CToFormulaWithUFConverter.getUFName(fakeBaseType) +
-                                  CToFormulaWithUFConverter.FRESH_INDEX_SEPARATOR +
-                                  PointerTargetSetBuilder.getNextDynamicAllocationIndex();
-      mergedBases =
-        Triple.of(mergedBases.getFirst(),
-                  mergedBases.getSecond(),
-                  mergedBases.getThird().putAndCopy(fakeBaseName, fakeBaseType));
-      lastBase = fakeBaseName;
-      basesMergeFormula = formulaManager.makeAnd(this.getNextBaseAddressInequality(fakeBaseName, this.lastBase),
-                                                 other.getNextBaseAddressInequality(fakeBaseName, other.lastBase));
-    }
-
-    final ConflictHandler<String, PersistentList<PointerTarget>> conflictHandler =
-                                                           PointerTargetSet.<String, PointerTarget>destructiveMergeOnConflict();
-
-    final PointerTargetSet result  =
-      new PointerTargetSet(machineModel,
-                           sizeofVisitor,
-                           options,
-                           mergedBases.getThird(),
-                           lastBase,
-                           mergedFields.getThird(),
-                           mergedDeferredAllocations,
-                           mergeSortedMaps(
-                             mergeSortedMaps(mergedTargets,
-                                             builder1.targets,
-                                             conflictHandler),
-                             builder2.targets,
-                             conflictHandler),
-                           formulaManager);
-    return Triple.of(result,
-                     basesMergeFormula,
-                     !reverseBases ? Pair.of(mergedBases.getFirst(), mergedBases.getSecond()) :
-                                     Pair.of(mergedBases.getSecond(), mergedBases.getFirst()));
-  }
-
-  private static <K, T> ConflictHandler<K, PersistentList<T>> mergeOnConflict() {
-    return new ConflictHandler<K, PersistentList<T>>() {
-      @Override
-      public PersistentList<T> resolveConflict(K key, PersistentList<T> list1, PersistentList<T> list2) {
-        return DeferredAllocationPool.mergeLists(list1, list2);
-      }
-    };
-  }
-
-  private static <K, T> ConflictHandler<K, PersistentList<T>> destructiveMergeOnConflict() {
-    return new ConflictHandler<K, PersistentList<T>>() {
-      @Override
-      public PersistentList<T> resolveConflict(K key, PersistentList<T> list1, PersistentList<T> list2) {
-        return list1.withAll(list2);
-      }
-    };
-  }
-
   @Override
   public String toString() {
     return joiner.join(bases.entrySet()) + " " + joiner.join(fields.entrySet());
@@ -856,7 +643,7 @@ public class PointerTargetSet implements Serializable {
     }
   }
 
-  private PointerTargetSet(final MachineModel machineModel,
+  PointerTargetSet(final MachineModel machineModel,
                            final CSizeofVisitor sizeofVisitor,
                            final FormulaEncodingWithUFOptions options,
                            final PersistentSortedMap<String, CType> bases,
@@ -890,16 +677,6 @@ public class PointerTargetSet implements Serializable {
    */
   public PointerTargetSetBuilder builder() {
     return new PointerTargetSetBuilder(this);
-  }
-
-  private static final CType getFakeBaseType(int size) {
-    return CTypeUtils.simplifyType(new CArrayType(false, false, CNumericTypes.VOID, new CIntegerLiteralExpression(null,
-                                                                                        CNumericTypes.SIGNED_CHAR,
-                                                                                        BigInteger.valueOf(size))));
-  }
-
-  private static final boolean isFakeBaseType(final CType type) {
-    return type instanceof CArrayType && ((CArrayType) type).getType().equals(VOID);
   }
 
   private static final Joiner joiner = Joiner.on(" ");
@@ -952,10 +729,6 @@ public class PointerTargetSet implements Serializable {
   // The counter that guarantees a unique name for each allocated memory region.
   private static int dynamicAllocationCounter = 0;
 
-  private static final String UNITED_BASE_UNION_TAG_PREFIX = "__VERIFIER_base_union_of_";
-  private static final String UNITED_BASE_FIELD_NAME_PREFIX = "__VERIFIER_united_base_field";
-
-  private static final String FAKE_ALLOC_FUNCTION_NAME = "__VERIFIER_fake_alloc";
   private static final String BASE_PREFIX = "__ADDRESS_OF_";
 
   private static final long serialVersionUID = 2102505458322248624L;
