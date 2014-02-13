@@ -172,8 +172,22 @@ public class MapMerger {
       }
     }
 
+    // Now we would copy the rest of the mappings from s1 (e1 and it1),
+    // but we don't need them as s1 was the base of result.
+    if (collectDifferences != null) {
+      Iterator<Map.Entry<K, V>> rest =
+          (e1 != null)
+          ? concat(singletonIterator(e1), it1)
+          : it1;
+
+      while (rest.hasNext()) {
+        e1 = rest.next();
+
+        collectDifferences.add(Triple.<K,V,V>of(e1.getKey(), e1.getValue(), null));
+      }
+    }
+
     // Now copy the rest of the mappings from s2 (e2 and it2).
-    // For s1 this is not necessary.
     Iterator<Map.Entry<K, V>> rest =
         (e2 != null)
         ? concat(singletonIterator(e2), it2)
