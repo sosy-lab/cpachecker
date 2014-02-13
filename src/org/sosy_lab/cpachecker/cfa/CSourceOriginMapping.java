@@ -90,7 +90,7 @@ public enum CSourceOriginMapping {
     }
 
     Integer lineDelta = lineDeltaMapping.get(inputLine);
-    String originFileName = lineToFilenameMapping.get(analysisCodeLine);
+    String originFileName = lineToFilenameMapping.get(inputLine);
 
     if (inputLine == null || lineDelta == null || originFileName == null) {
       throw new NoOriginMappingAvailable("Mapping source code line to its origin is not possible due to missing mappings!");

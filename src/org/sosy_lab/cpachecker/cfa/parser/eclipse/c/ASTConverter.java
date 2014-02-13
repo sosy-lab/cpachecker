@@ -1764,8 +1764,9 @@ class ASTConverter {
       startingLineInOrigin = l.getStartingLineNumber();
     }
 
-    return new FileLocation(l.getEndingLineNumber(), originFileName, l.getNodeLength(), l.getNodeOffset(),
-        l.getStartingLineNumber(), startingLineInOrigin);
+    return new FileLocation(l.getEndingLineNumber(), originFileName,
+        l.getNodeLength(), l.getNodeOffset(),
+        startingLineInInput, startingLineInOrigin);
   }
 
   static String convert(IASTName n) {
