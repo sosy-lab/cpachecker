@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.sosy_lab.common.io.Path;
@@ -133,8 +134,8 @@ public class DefaultOptions {
    * @param options The options to set
    */
   public void setOptions(Map<String, String> options) {
-    for (String option : options.keySet()) {
-      setOption(option, options.get(option));
+    for (Entry<String, String> entry : options.entrySet()) {
+      setOption(entry.getKey(), entry.getValue());
     }
   }
 

@@ -104,7 +104,7 @@ public class TaskRunnerServerResource extends WadlServerResource implements Task
 
     @SuppressWarnings("unchecked")
     Series<Header> headers = (Series<Header>) getRequestAttributes().get("org.restlet.http.headers");
-    int retries = Integer.valueOf(headers.getFirstValue("X-AppEngine-TaskRetryCount"));
+    int retries = Integer.parseInt(headers.getFirstValue("X-AppEngine-TaskRetryCount"));
     TaskDAO.reset(task); // clear for case of retry
     task.setRetries(retries);
     task.setRequestID((String) ApiProxy.getCurrentEnvironment().getAttributes()
@@ -397,7 +397,7 @@ public class TaskRunnerServerResource extends WadlServerResource implements Task
     Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
   }
 
-  private class DummyHandler extends Handler {
+  private static class DummyHandler extends Handler {
 
     @Override
     public void publish(LogRecord pRecord) {}
