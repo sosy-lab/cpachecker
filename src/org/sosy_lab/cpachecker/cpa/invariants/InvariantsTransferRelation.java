@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaManager;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.Constant;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor.VariableNameExtractor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvaluationVisitor;
@@ -178,12 +179,12 @@ public enum InvariantsTransferRelation implements TransferRelation {
     if (decl.getInitializer() != null && decl.getInitializer() instanceof CInitializerExpression) {
       CExpression init = ((CInitializerExpression)decl.getInitializer()).getExpression();
       value = init.accept(getExpressionToFormulaVisitor(pEdge));
+      if (!(value instanceof Constant<?>) && value.toString().contains("[*]")) {
+        value = toConstant(value, pElement);
+      }
 
     } else {
       value = CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
-    }
-    if (value.toString().contains("[*]")) {
-      value = toConstant(value, pElement);
     }
 
     return pElement.assign(false, varName, value, pEdge);
@@ -208,7 +209,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
           return getVarName(pCExpression, pEdge, pEdge.getPredecessor().getFunctionName(), pElement);
         }
       }));
-      if (value.toString().contains("[*]")) {
+      if (!(value instanceof Constant<?>) && value.toString().contains("[*]")) {
         value = toConstant(value, pElement);
       }
       String formalParam = scope(param.getFirst(), pEdge.getSuccessor().getFunctionName());
