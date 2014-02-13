@@ -136,7 +136,7 @@ public class PointerTargetSet implements Serializable {
     private final String fieldName;
   }
 
-  public static class CSizeofVisitor extends BaseSizeofVisitor
+  private static class CSizeofVisitor extends BaseSizeofVisitor
                                      implements CTypeVisitor<Integer, IllegalArgumentException> {
 
     public CSizeofVisitor(final MachineModel machineModel,
@@ -188,20 +188,6 @@ public class PointerTargetSet implements Serializable {
     } else {
       return cType.accept(sizeofVisitor);
     }
-  }
-
-  /**
-   * The method is used to speed up member offset computation for declared composite types.
-   * @param compositeType
-   * @param memberName
-   * @return
-   */
-  public int getOffset(CCompositeType compositeType, final String memberName) {
-    compositeType = (CCompositeType) CTypeUtils.simplifyType(compositeType);
-    assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
-    final Multiset<String> multiset = offsets.get(compositeType);
-    assert multiset != null : "For handling undeclared composites used PointerTargetSetBuilder instead!";
-    return multiset.count(memberName);
   }
 
   public Iterable<PointerTarget> getMatchingTargets(final CType type,
@@ -501,7 +487,7 @@ public class PointerTargetSet implements Serializable {
       this.fields = checkNotNull(fields);
     }
 
-    public void addDeferredAllocation(final String pointerVariable,
+    private void addDeferredAllocation(final String pointerVariable,
                                       final boolean isZeroing,
                                       final CIntegerLiteralExpression size,
                                       final String baseVariable) {
@@ -565,7 +551,12 @@ public class PointerTargetSet implements Serializable {
       return dynamicAllocationCounter++;
     }
 
-    @Override
+    /**
+     * The method is used to speed up member offset computation for declared composite types.
+     * @param compositeType
+     * @param memberName
+     * @return
+     */
     public int getOffset(CCompositeType compositeType, final String memberName) {
       compositeType = (CCompositeType) CTypeUtils.simplifyType(compositeType);
       assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
