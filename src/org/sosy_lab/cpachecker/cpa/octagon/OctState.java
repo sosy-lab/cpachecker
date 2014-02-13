@@ -131,10 +131,7 @@ public class OctState implements AbstractState {
   }
 
   protected int isLessOrEquals(OctState state) {
-    // TODO is this right???
-    if (isEmpty()) {
-      return 1;
-    }
+    assert isEmpty() : "Empty states should not occur here!";
 
     if (variableToIndexMap.equals(state.variableToIndexMap)) {
       return OctagonManager.isIncludedInLazy(octagon, state.octagon);
