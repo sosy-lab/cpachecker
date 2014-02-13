@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.util.assumptions;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula.RationalFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 /**
@@ -55,9 +55,9 @@ public enum PreventingHeuristic {
    * threshold value which was exceeded.
    */
   public BooleanFormula getFormula(FormulaManagerView fmgr, long thresholdValue) {
-    RationalFormulaManager nfmgr = fmgr.getRationalFormulaManager();
-    final RationalFormula number = nfmgr.makeNumber(thresholdValue);
-    final RationalFormula var = nfmgr.makeVariable(predicateString);
+    NumeralFormulaManager nfmgr = fmgr.getNumeralFormulaManager();
+    final NumericFormula number = nfmgr.makeNumber(thresholdValue);
+    final NumericFormula var = nfmgr.makeVariable(predicateString);
     // TODO better idea?
     return nfmgr.equal(var, number);
   }

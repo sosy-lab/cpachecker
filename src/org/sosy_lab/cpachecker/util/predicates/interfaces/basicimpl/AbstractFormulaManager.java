@@ -26,11 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.common.Appender;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula.RationalFormula;
 
 /**
@@ -41,7 +37,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
 
   private final AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv> booleanManager;
 
-  private final AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv> rationalManager;
+  private final AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv> numeralManager;
 
   private final AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv> bitvectorManager;
 
@@ -58,7 +54,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
    * @param unsafeManager the unsafe manager
    * @param functionManager the function theory
    * @param booleanManager the boolean theory
-   * @param rationalManager the rational theory
+   * @param numeralManager the rational theory
    * @param bitvectorManager the bitvector theory
    */
   protected AbstractFormulaManager(
@@ -67,7 +63,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
       AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> unsafeManager,
       AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> functionManager,
       AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv> booleanManager,
-      AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv> rationalManager,
+      AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv> numeralManager,
       AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv> bitvectorManager) {
     if (functionManager == null || booleanManager == null || unsafeManager == null) {
       throw new IllegalArgumentException("boolean, function and unsafe manager instances have to be valid!");
@@ -77,7 +73,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
 
     this.booleanManager = booleanManager;
 
-    this.rationalManager = rationalManager;
+    this.numeralManager = numeralManager;
 
     this.bitvectorManager = bitvectorManager;
 
@@ -90,7 +86,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
     if (booleanManager.getFormulaCreator() != formulaCreator
         || unsafeManager.getFormulaCreator() != formulaCreator
         || functionManager.getFormulaCreator() != formulaCreator
-        || (rationalManager != null && rationalManager.getFormulaCreator() != formulaCreator)
+        || (numeralManager != null && numeralManager.getFormulaCreator() != formulaCreator)
         || (bitvectorManager != null && bitvectorManager.getFormulaCreator() != formulaCreator)
         ) {
       throw new IllegalArgumentException("The creator instances must match across the managers!");
@@ -128,11 +124,11 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
     return AbstractFormulaManager.getInterfaceHelper(pInstance);
   }
   @Override
-  public AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv> getRationalFormulaManager() {
-    if (rationalManager == null) {
+  public AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv> getNumeralFormulaManager() {
+    if (numeralManager == null) {
       throw new UnsupportedOperationException();
     }
-    return rationalManager;
+    return numeralManager;
   }
 
   @Override
@@ -181,7 +177,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
     if (clazz==BooleanFormula.class) {
       t = booleanManager.getFormulaType();
     } else if (clazz == RationalFormula.class) {
-      t = rationalManager.getFormulaType();
+      t = numeralManager.getFormulaType();
     } else if (clazz == BitvectorFormula.class) {
       int size = bitvectorManager.getLength((BitvectorFormula)formula);
       t = bitvectorManager.getFormulaType(size);

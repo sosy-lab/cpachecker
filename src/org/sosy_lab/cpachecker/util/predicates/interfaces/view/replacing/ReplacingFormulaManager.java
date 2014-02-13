@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula.RationalFormula;
 
 import com.google.common.base.Function;
@@ -83,7 +82,7 @@ public class ReplacingFormulaManager implements FormulaManager {
       bitvectorTheory =
           new ReplaceBitvectorWithRationalAndFunctionTheory(
               this,
-              rawFormulaManager.getRationalFormulaManager(),
+              rawFormulaManager.getNumeralFormulaManager(),
               rawFormulaManager.getFunctionFormulaManager(),
               ignoreExtractConcat);
       replacedBitvectorTheory = true;
@@ -133,8 +132,8 @@ public class ReplacingFormulaManager implements FormulaManager {
   }
 
   @Override
-  public RationalFormulaManager getRationalFormulaManager() {
-    return rawFormulaManager.getRationalFormulaManager();
+  public NumeralFormulaManager getNumeralFormulaManager() {
+    return rawFormulaManager.getNumeralFormulaManager();
   }
 
   @Override

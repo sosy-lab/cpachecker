@@ -44,12 +44,7 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBitvectorFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractNumeralFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.TerminationTest;
 
 import com.google.common.base.Splitter;
@@ -102,11 +97,11 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
       long pMathsatConfig,
       long pEnv,
       Mathsat5FormulaCreator creator,
-      AbstractUnsafeFormulaManager<Long, Long, Long> unsafeManager,
-      AbstractFunctionFormulaManager<Long, Long, Long> pFunctionManager,
-      AbstractBooleanFormulaManager<Long, Long, Long> pBooleanManager,
-      AbstractNumeralFormulaManager<Long, Long, Long> pNumericManager,
-      AbstractBitvectorFormulaManager<Long, Long, Long> pBitpreciseManager,
+      Mathsat5UnsafeFormulaManager unsafeManager,
+      Mathsat5FunctionFormulaManager pFunctionManager,
+      Mathsat5BooleanFormulaManager pBooleanManager,
+      Mathsat5NumeralFormulaManager pNumericManager,
+      Mathsat5BitvectorFormulaManager pBitpreciseManager,
       Mathsat5Settings pSettings,
       final ShutdownNotifier pShutdownNotifier) {
 
@@ -160,7 +155,12 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
     Mathsat5UnsafeFormulaManager unsafeManager = new Mathsat5UnsafeFormulaManager(creator);
     Mathsat5FunctionFormulaManager functionTheory = new Mathsat5FunctionFormulaManager(creator, unsafeManager);
     Mathsat5BooleanFormulaManager booleanTheory = Mathsat5BooleanFormulaManager.create(creator);
-    Mathsat5RationalFormulaManager rationalTheory = new Mathsat5RationalFormulaManager(creator, functionTheory, useIntegers);
+    Mathsat5NumeralFormulaManager rationalTheory;
+    if (useIntegers) {
+      rationalTheory = new Mathsat5IntegerFormulaManager(creator, functionTheory);
+    } else {
+      rationalTheory = new Mathsat5RationalFormulaManager(creator, functionTheory);
+    }
     Mathsat5BitvectorFormulaManager bitvectorTheory  = Mathsat5BitvectorFormulaManager.create(creator);
 
     return new Mathsat5FormulaManager(logger, msatConf, msatEnv, creator,

@@ -32,9 +32,9 @@ import org.sosy_lab.common.Appender;
 public interface FormulaManager {
 
   /**
-   * Returns the Rational-Theory.
+   * Returns the Numeral-Theory. This can be an Integer- or a Rational-Theory.
    */
-  RationalFormulaManager getRationalFormulaManager();
+  NumeralFormulaManager getNumeralFormulaManager();
 
   /**
    * Returns the Boolean-Theory.

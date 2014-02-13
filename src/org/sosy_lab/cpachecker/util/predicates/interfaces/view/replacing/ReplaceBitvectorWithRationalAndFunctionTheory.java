@@ -32,23 +32,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula.RationalFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 
 import com.google.common.base.Function;
 
 
 public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorFormulaManager {
 
-  private final RationalFormulaManager rationalFormulaManager;
+  private final NumeralFormulaManager rationalFormulaManager;
   private final FunctionFormulaManager functionManager;
   private final ReplacingFormulaManager replaceManager;
   private final FunctionFormulaType<RationalFormula> bitwiseAndUfDecl;
@@ -62,7 +56,7 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
 
   public ReplaceBitvectorWithRationalAndFunctionTheory(
       ReplacingFormulaManager pReplacingFormulaManager,
-      RationalFormulaManager pRationalFormulaManager,
+      NumeralFormulaManager pRationalFormulaManager,
       FunctionFormulaManager rawFunctionManager,
       final boolean ignoreExtractConcat) {
     replaceManager = pReplacingFormulaManager;
@@ -148,23 +142,23 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
 
   @Override
   public BitvectorFormula makeBitvector(int pLength, long pI) {
-    RationalFormula number = rationalFormulaManager.makeNumber(pI);
+    NumericFormula number = rationalFormulaManager.makeNumber(pI);
     return wrap(getFormulaType(pLength), number);
   }
 
   @Override
   public BitvectorFormula makeBitvector(int pLength, BigInteger pI) {
-    RationalFormula number = rationalFormulaManager.makeNumber(pI);
+    NumericFormula number = rationalFormulaManager.makeNumber(pI);
     return wrap(getFormulaType(pLength), number);
   }
 
   @Override
   public BitvectorFormula makeBitvector(int pLength, String pI) {
-    RationalFormula number = rationalFormulaManager.makeNumber(pI);
+    NumericFormula number = rationalFormulaManager.makeNumber(pI);
     return wrap(getFormulaType(pLength), number);
   }
 
-  private BitvectorFormula wrap(FormulaType<BitvectorFormula> pFormulaType, RationalFormula number) {
+  private BitvectorFormula wrap(FormulaType<BitvectorFormula> pFormulaType, NumericFormula number) {
     return replaceManager.wrap(pFormulaType, number);
   }
 

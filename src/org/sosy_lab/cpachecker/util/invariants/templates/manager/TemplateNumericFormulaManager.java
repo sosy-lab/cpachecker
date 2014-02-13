@@ -29,24 +29,24 @@ import org.sosy_lab.cpachecker.util.invariants.templates.TemplateNumber;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateTerm;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula.RationalFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula;
 
 
-public class TemplateNumericFormulaManager implements RationalFormulaManager {
+abstract class TemplateNumericFormulaManager<T extends NumericFormula> implements NumeralFormulaManager {
 
-  private FormulaType<RationalFormula> type;
+  private FormulaType<T> type;
   private TemplateNumericBaseFormulaManager baseManager;
   private TemplateFormulaManager manager;
 
-  public TemplateNumericFormulaManager(TemplateFormulaManager manager) {
-    type = FormulaType.RationalType;
+  public TemplateNumericFormulaManager(TemplateFormulaManager manager, FormulaType<T> pType) {
     this.manager = manager;
+    this.type = pType;
     baseManager = new TemplateNumericBaseFormulaManager();
   }
 
   @Override
-  public RationalFormula makeNumber(long pI) {
+  public NumericFormula makeNumber(long pI) {
     TemplateNumber N = new TemplateNumber(type, (int) pI);
     TemplateTerm T = new TemplateTerm(type);
     T.setCoefficient(N);
@@ -54,87 +54,87 @@ public class TemplateNumericFormulaManager implements RationalFormulaManager {
   }
 
   @Override
-  public RationalFormula makeNumber(BigInteger pI) {
+  public NumericFormula makeNumber(BigInteger pI) {
     return makeNumber(pI.longValue());
   }
 
   @Override
-  public RationalFormula makeNumber(String pI) {
+  public NumericFormula makeNumber(String pI) {
     return makeNumber(Long.parseLong(pI));
   }
 
   @Override
-  public RationalFormula makeVariable(String pVar) {
+  public NumericFormula makeVariable(String pVar) {
     return manager.makeVariable(type, pVar, null);
   }
 
   @Override
-  public FormulaType<RationalFormula> getFormulaType() {
+  public FormulaType<T> getFormulaType() {
     return type;
   }
 
   @Override
-  public RationalFormula negate(RationalFormula pNumber) {
-    return (RationalFormula) baseManager.negate(pNumber);
+  public NumericFormula negate(NumericFormula pNumber) {
+    return (NumericFormula) baseManager.negate(pNumber);
   }
 
   @Override
-  public boolean isNegate(RationalFormula pNumber) {
+  public boolean isNegate(NumericFormula pNumber) {
     return baseManager.isNegate(pNumber);
   }
 
   @Override
-  public RationalFormula add(RationalFormula pNumber1, RationalFormula pNumber2) {
-    return (RationalFormula) baseManager.add(pNumber1, pNumber1);
+  public NumericFormula add(NumericFormula pNumber1, NumericFormula pNumber2) {
+    return (NumericFormula) baseManager.add(pNumber1, pNumber1);
   }
 
   @Override
-  public boolean isAdd(RationalFormula pNumber) {
+  public boolean isAdd(NumericFormula pNumber) {
     return baseManager.isAdd(pNumber);
   }
 
   @Override
-  public RationalFormula subtract(RationalFormula pNumber1, RationalFormula pNumber2) {
-    return (RationalFormula) baseManager.subtract(pNumber1, pNumber1);
+  public NumericFormula subtract(NumericFormula pNumber1, NumericFormula pNumber2) {
+    return (NumericFormula) baseManager.subtract(pNumber1, pNumber1);
   }
 
   @Override
-  public boolean isSubtract(RationalFormula pNumber) {
+  public boolean isSubtract(NumericFormula pNumber) {
     return baseManager.isSubtract(pNumber);
   }
 
   @Override
-  public RationalFormula divide(RationalFormula pNumber1, RationalFormula pNumber2) {
-    return (RationalFormula) baseManager.divide(pNumber1, pNumber2);
+  public NumericFormula divide(NumericFormula pNumber1, NumericFormula pNumber2) {
+    return (NumericFormula) baseManager.divide(pNumber1, pNumber2);
   }
 
   @Override
-  public boolean isDivide(RationalFormula pNumber) {
+  public boolean isDivide(NumericFormula pNumber) {
     return baseManager.isDivide(pNumber);
   }
 
   @Override
-  public RationalFormula modulo(RationalFormula pNumber1, RationalFormula pNumber2) {
-    return (RationalFormula) baseManager.modulo(pNumber1, pNumber1);
+  public NumericFormula modulo(NumericFormula pNumber1, NumericFormula pNumber2) {
+    return (NumericFormula) baseManager.modulo(pNumber1, pNumber1);
   }
 
   @Override
-  public boolean isModulo(RationalFormula pNumber) {
+  public boolean isModulo(NumericFormula pNumber) {
     return baseManager.isModulo(pNumber);
   }
 
   @Override
-  public RationalFormula multiply(RationalFormula pNumber1, RationalFormula pNumber2) {
-    return (RationalFormula) baseManager.multiply(pNumber1, pNumber2);
+  public NumericFormula multiply(NumericFormula pNumber1, NumericFormula pNumber2) {
+    return (NumericFormula) baseManager.multiply(pNumber1, pNumber2);
   }
 
   @Override
-  public boolean isMultiply(RationalFormula pNumber) {
+  public boolean isMultiply(NumericFormula pNumber) {
     return baseManager.isMultiply(pNumber);
   }
 
   @Override
-  public BooleanFormula equal(RationalFormula pNumber1, RationalFormula pNumber2) {
+  public BooleanFormula equal(NumericFormula pNumber1, NumericFormula pNumber2) {
     return baseManager.equal(pNumber1, pNumber2);
   }
 
@@ -144,7 +144,7 @@ public class TemplateNumericFormulaManager implements RationalFormulaManager {
   }
 
   @Override
-  public BooleanFormula greaterThan(RationalFormula pNumber1, RationalFormula pNumber2) {
+  public BooleanFormula greaterThan(NumericFormula pNumber1, NumericFormula pNumber2) {
     return baseManager.greaterThan(pNumber1, pNumber2);
   }
 
@@ -154,7 +154,7 @@ public class TemplateNumericFormulaManager implements RationalFormulaManager {
   }
 
   @Override
-  public BooleanFormula greaterOrEquals(RationalFormula pNumber1, RationalFormula pNumber2) {
+  public BooleanFormula greaterOrEquals(NumericFormula pNumber1, NumericFormula pNumber2) {
     return baseManager.greaterOrEquals(pNumber1, pNumber2);
   }
 
@@ -164,7 +164,7 @@ public class TemplateNumericFormulaManager implements RationalFormulaManager {
   }
 
   @Override
-  public BooleanFormula lessThan(RationalFormula pNumber1, RationalFormula pNumber2) {
+  public BooleanFormula lessThan(NumericFormula pNumber1, NumericFormula pNumber2) {
     return baseManager.lessThan(pNumber1, pNumber2);
   }
 
@@ -174,7 +174,7 @@ public class TemplateNumericFormulaManager implements RationalFormulaManager {
   }
 
   @Override
-  public BooleanFormula lessOrEquals(RationalFormula pNumber1, RationalFormula pNumber2) {
+  public BooleanFormula lessOrEquals(NumericFormula pNumber1, NumericFormula pNumber2) {
     return baseManager.lessOrEquals(pNumber1, pNumber2);
   }
 

@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.RationalFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 
 public class TFtester {
 
@@ -39,7 +39,7 @@ public class TFtester {
     TemplateFormulaManager tfm = new TemplateFormulaManager();
 
     FormulaManagerView view = new FormulaManagerView(tfm);
-    RationalFormulaManagerView nfmgr = view.getRationalFormulaManager();
+    NumeralFormulaManagerView nfmgr = view.getNumeralFormulaManager();
     BooleanFormulaManagerView bfmgr = view.getBooleanFormulaManager();
     FormulaType<RationalFormula> type = FormulaType.RationalType;
     RationalFormula a1 = view.makeVariable(type, "a", 1);

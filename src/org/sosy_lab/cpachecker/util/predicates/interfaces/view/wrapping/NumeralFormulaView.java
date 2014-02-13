@@ -23,26 +23,17 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view.wrapping;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula.RationalFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.RationalFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 
 
-public class WrappingRationalFormulaManagerView extends RationalFormulaManagerView {
+public class NumeralFormulaView extends FormulaView<NumericFormula> implements NumericFormula {
 
-  public WrappingRationalFormulaManagerView(RationalFormulaManager pManager) {
-    super(pManager);
+  //private NumericFormulaManagerView manager;
 
+  public NumeralFormulaView(NumericFormula pWrapped, NumeralFormulaManagerView pView) {
+    super(pWrapped, pView.getViewManager());
+    //this.manager = pView;
   }
 
-  @Override
-  public RationalFormulaView wrapInView(RationalFormula pFormula) {
-    return new RationalFormulaView(pFormula, this);
-  }
-
-
-  @Override
-  public RationalFormula extractFromView(RationalFormula pFormula) {
-    return ((RationalFormulaView)pFormula).getWrapped();
-  }
 }

@@ -27,6 +27,8 @@ import java.math.BigInteger;
 
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula.IntegerFormula;
 
 
 class SmtInterpolIntegerFormulaManager extends SmtInterpolNumeralFormulaManager {
@@ -35,6 +37,11 @@ class SmtInterpolIntegerFormulaManager extends SmtInterpolNumeralFormulaManager 
           SmtInterpolFormulaCreator pCreator,
           SmtInterpolFunctionFormulaManager pFunctionManager) {
     super(pCreator, pFunctionManager);
+  }
+
+  @Override
+  public FormulaType<IntegerFormula> getFormulaType() {
+    return FormulaType.IntegerType;
   }
 
   @Override

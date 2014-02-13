@@ -21,26 +21,15 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.z3;
+package org.sosy_lab.cpachecker.util.invariants.templates.manager;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula.RationalFormula;
 
-public class Z3RationalFormulaManager extends Z3NumeralFormulaManager {
 
-  public Z3RationalFormulaManager(
-          Z3FormulaCreator pCreator,
-          Z3FunctionFormulaManager pFunctionManager) {
-    super(pCreator, pFunctionManager);
-  }
+public class TemplateRationalFormulaManager extends TemplateNumericFormulaManager<RationalFormula> {
 
-  @Override
-  public FormulaType<RationalFormula> getFormulaType() {
-    return FormulaType.RationalType;
-  }
-
-  @Override
-  protected long getNumeralType() {
-    return getFormulaCreator().getRealType();
+  public TemplateRationalFormulaManager(TemplateFormulaManager manager) {
+    super(manager, FormulaType.RationalType);
   }
 }

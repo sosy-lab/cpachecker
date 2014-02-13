@@ -23,12 +23,20 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula.IntegerFormula;
+
 public class Z3IntegerFormulaManager extends Z3NumeralFormulaManager {
 
   public Z3IntegerFormulaManager(
           Z3FormulaCreator pCreator,
           Z3FunctionFormulaManager pFunctionManager) {
     super(pCreator, pFunctionManager);
+  }
+
+  @Override
+  public FormulaType<IntegerFormula> getFormulaType() {
+    return FormulaType.IntegerType;
   }
 
   @Override

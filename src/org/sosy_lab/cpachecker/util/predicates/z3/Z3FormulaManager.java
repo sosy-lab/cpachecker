@@ -34,6 +34,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.*;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractNumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
@@ -49,11 +50,11 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
   private Z3FormulaManager(
       long z3context,
       Z3FormulaCreator pFormulaCreator,
-      AbstractUnsafeFormulaManager<Long, Long, Long> pUnsafeManager,
-      AbstractFunctionFormulaManager<Long, Long, Long> pFunctionManager,
-      AbstractBooleanFormulaManager<Long, Long, Long> pBooleanManager,
-      AbstractNumeralFormulaManager<Long, Long, Long> pNumericManager,
-      AbstractBitvectorFormulaManager<Long, Long, Long> pBitpreciseManager,
+      Z3UnsafeFormulaManager pUnsafeManager,
+      Z3FunctionFormulaManager pFunctionManager,
+      Z3BooleanFormulaManager pBooleanManager,
+      Z3NumeralFormulaManager pNumericManager,
+      Z3BitvectorFormulaManager pBitpreciseManager,
       Z3SmtLogger smtLogger, Configuration config) throws InvalidConfigurationException {
 
     super(z3context, pFormulaCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pNumericManager, pBitpreciseManager);

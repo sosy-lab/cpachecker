@@ -27,15 +27,8 @@ import org.sosy_lab.common.Appender;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormula;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateTerm;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateVariable;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 
 public class TemplateFormulaManager implements FormulaManager {
 
@@ -57,7 +50,7 @@ public class TemplateFormulaManager implements FormulaManager {
   }
 
   private void init() {
-    nfmgr = new TemplateNumericFormulaManager(this);
+    nfmgr = new TemplateRationalFormulaManager(this);
     bfmgr = new TemplateBooleanFormulaManager(this);
     efmgr = new TemplateBitvectorFormulaManager(this);
     ffmgr = new TemplateFunctionFormulaManager(this);
@@ -70,7 +63,7 @@ public class TemplateFormulaManager implements FormulaManager {
   }
 
   @Override
-  public RationalFormulaManager getRationalFormulaManager() {
+  public NumeralFormulaManager getNumeralFormulaManager() {
     return nfmgr;
   }
 
