@@ -459,7 +459,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     boolean complexType = decl.getType() instanceof JClassOrInterfaceType || decl.getType() instanceof JArrayType;
 
 
-    if (!complexType  && (missingInformationRightJExpression != null || initialValue != null)) {
+    if (!complexType  && (missingInformationRightJExpression != null || initialValue != ExplicitValueBase.ExplicitUnknownValue.getInstance())) {
       if (missingFieldVariableObject) {
         fieldNameAndInitialValue = Pair.of(varName, initialValue);
       } else if (missingInformationRightJExpression == null) {
@@ -733,12 +733,12 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       ExplicitValueBase rightValue                 = rVarInBinaryExp.accept(this);
 
       if ((binaryOperator == BinaryOperator.EQUALS && truthValue) || (binaryOperator == BinaryOperator.NOT_EQUALS && !truthValue)) {
-        if (leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp)) {
+        if (leftValue == ExplicitValueBase.ExplicitUnknownValue.getInstance() &&  rightValue != ExplicitValueBase.ExplicitUnknownValue.getInstance() && isAssignable(lVarInBinaryExp)) {
           MemoryLocation leftVariableLocation = getMemoryLocation(lVarInBinaryExp);
           assignableState.assignConstant(leftVariableLocation, rightValue);
         }
 
-        else if (rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp)) {
+        else if (rightValue == ExplicitValueBase.ExplicitUnknownValue.getInstance() && leftValue != ExplicitValueBase.ExplicitUnknownValue.getInstance() && isAssignable(rVarInBinaryExp)) {
           MemoryLocation rightVariableName = getMemoryLocation(rVarInBinaryExp);
           assignableState.assignConstant(rightVariableName, leftValue);
         }
@@ -1003,7 +1003,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
     if (expression instanceof JRightHandSide) {
 
-      final ExplicitValueBase value = null; // TODO ((JRightHandSide) expression).accept(evv);
+      final ExplicitValueBase value = ExplicitValueBase.ExplicitUnknownValue.getInstance(); // TODO ((JRightHandSide) expression).accept(evv);
 
       if (evv.hasMissingFieldAccessInformation() || evv.hasMissingEnumComparisonInformation()) {
         missingInformationRightJExpression = (JRightHandSide) expression;
