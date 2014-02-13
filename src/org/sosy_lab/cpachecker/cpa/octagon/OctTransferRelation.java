@@ -193,10 +193,6 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
       }
     }
 
-    for (OctState st : successors) {
-      postProcessing(st);
-    }
-
     resetInfo();
 
     return successors;
