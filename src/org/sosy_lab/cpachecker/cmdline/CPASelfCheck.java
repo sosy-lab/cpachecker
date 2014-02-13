@@ -130,7 +130,7 @@ public class CPASelfCheck {
                 + "}\n";
 
     CParser parser = CParser.Factory.getParser(config, logManager, CParser.Factory.getDefaultOptions(), MachineModel.LINUX32);
-    ParseResult cfas = parser.parseString(code);
+    ParseResult cfas = parser.parseString("", code);
     MutableCFA cfa = new MutableCFA(MachineModel.LINUX32, cfas.getFunctions(), cfas.getCFANodes(), cfas.getFunctions().get("main"), Language.C);
     return cfa.makeImmutableCFA(Optional.<ImmutableMultimap<String, Loop>>absent(),
         Optional.<VariableClassification>absent());

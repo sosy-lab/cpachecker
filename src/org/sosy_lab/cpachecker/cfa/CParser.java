@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.util.List;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -48,6 +47,25 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
  */
 public interface CParser extends Parser {
 
+  public static class FileToParse {
+    public final String fileName;
+    public final String staticVariablePrefix;
+
+    public FileToParse(String pFileName, String pStaticVariablePrefix) {
+      this.fileName = pFileName;
+      this.staticVariablePrefix = pStaticVariablePrefix;
+    }
+  }
+
+  public static class FileContentToParse extends FileToParse {
+    public final String fileContent;
+
+    public FileContentToParse(String pFileName, String pFileContent, String pStaticVariablePrefix) {
+      super(pFileName, pStaticVariablePrefix);
+      this.fileContent = pFileContent;
+    }
+  }
+
   /**
    * Parse the content of files into a single CFA.
    *
@@ -59,7 +77,7 @@ public interface CParser extends Parser {
    * @throws InterruptedException
    * @throws ParserException If parser or CFA builder cannot handle the C code.
    */
-  ParseResult parseFile(List<Pair<String, String>> filenames) throws CParserException, IOException, InvalidConfigurationException, InterruptedException;
+  ParseResult parseFile(List<FileToParse> filenames) throws CParserException, IOException, InvalidConfigurationException, InterruptedException;
 
   /**
    * Parse the content of Strings into a single CFA.
@@ -70,7 +88,7 @@ public interface CParser extends Parser {
    * @return The CFA.
    * @throws ParserException If parser or CFA builder cannot handle the C code.
    */
-  ParseResult parseString(List<Pair<String, String>> code) throws CParserException, InvalidConfigurationException;
+  ParseResult parseString(List<FileContentToParse> code) throws CParserException, InvalidConfigurationException;
 
   /**
    * Method for parsing a string that contains exactly one function with exactly

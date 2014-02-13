@@ -39,7 +39,6 @@ import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -47,6 +46,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.Parser;
@@ -295,7 +295,7 @@ public class EclipseJavaParser implements Parser {
   }
 
   @Override
-  public ParseResult parseString(String pCode) throws JParserException {
+  public ParseResult parseString(String pFilename, String pCode) throws JParserException {
 
     throw new JParserException("Function not yet implemented");
   }
