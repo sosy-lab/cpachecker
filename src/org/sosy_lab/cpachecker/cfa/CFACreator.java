@@ -53,6 +53,7 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.CParser.FileContentToParse;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -224,11 +225,12 @@ public class CFACreator {
   private final CFACreatorStatistics stats = new CFACreatorStatistics();
   private final Configuration config;
 
-  public CFACreator(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier)
+  public CFACreator(Configuration config, LogManager logger,
+      ShutdownNotifier pShutdownNotifier)
           throws InvalidConfigurationException {
     config.inject(this);
-    this.config = config;
 
+    this.config = config;
     this.logger = logger;
 
     stats.parserInstantiationTime.start();
@@ -241,7 +243,7 @@ public class CFACreator {
       CParser outerParser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machineModel);
 
       if (transformTokensToLines) {
-        outerParser = new CParserWithTokenizer(outerParser);
+        outerParser = new CParserWithLocationMapper(outerParser);
       }
 
       if (usePreprocessor) {
@@ -304,7 +306,7 @@ public class CFACreator {
           c = parser.parseFile(sourceFileName);
         } else {
           String code = Paths.get(sourceFileName).asCharSource(Charset.defaultCharset()).read();
-          c = parser.parseString(code);
+          c = parser.parseString(sourceFileName, code);
         }
       } else {
         // when there is more than one file which should be evaluated, the
@@ -314,7 +316,7 @@ public class CFACreator {
           throw new InvalidConfigurationException("Multiple program files not supported for languages other than C.");
         }
 
-        List<Pair<String, String>> programFragments = new ArrayList<>();
+        List<FileContentToParse> programFragments = new ArrayList<>();
         int counter = 0;
         String staticVarPrefix;
         for (String fileName : sourceFiles) {
@@ -326,10 +328,10 @@ public class CFACreator {
            * writes to the file system and therefore the input file is stored elsewhere.
            */
           String code = Paths.get(fileName).asCharSource(Charset.defaultCharset()).read();
-          programFragments.add(Pair.of(code, staticVarPrefix));
+          programFragments.add(new FileContentToParse(fileName, code, staticVarPrefix));
         }
 
-        c = ((CParser)parser).parseFile(programFragments);
+        c = ((CParser)parser).parseString(programFragments);
       }
 
       logger.log(Level.FINE, "Parser Finished");

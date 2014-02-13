@@ -58,7 +58,7 @@ import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 
 
-public class TokenCollector {
+public class SourceLocationMapper {
 
   private static Map<String, Set<Integer>> variableRelatedTokens = Maps.newHashMap();
   private static Map<Integer, Token> tokenNumberToTokenMap = Maps.newHashMap();
@@ -72,7 +72,6 @@ public class TokenCollector {
     tokenNumberToTokenMap.put(tokenNumber, token);
     tokenNumberToLineNumberMap.put(tokenNumber, lineNumber);
   }
-
 
   private static void collectLine (final SortedSet<Integer> target, final FileLocation loc, boolean overApproximateTokens) {
     if (loc != null) {
@@ -89,12 +88,6 @@ public class TokenCollector {
       } else {
         target.add(loc.getStartingLineNumber());
       }
-    }
-  }
-
-  private static void collectRowAndCol (final SortedSet<RowAndColumn> target, final FileLocation loc, boolean overApproximateTokens) {
-    if (loc != null) {
-      target.add(new RowAndColumn(loc.getStartingLineNumber(), loc.getNodeOffset()));
     }
   }
 
@@ -165,86 +158,79 @@ public class TokenCollector {
       locs = visitor.collectTokensFrom((CExpression) astNode);
     } else if (astNode instanceof CInitializer) {
       locs = visitor.collectTokensFrom((CInitializer) astNode);
+    } else if (astNode instanceof CDeclaration) {
+      locs = visitor.collectTokensFrom((CDeclaration) astNode);
     }
 
     return locs;
   }
 
-  public static synchronized Set<RowAndColumn> getRowsAndColsFromCFAEdge(CFAEdge pEdge, boolean overApproximateTokens) {
-    final TreeSet<RowAndColumn> result = Sets.newTreeSet();
+  public static synchronized Set<CAstNode> getAstNodesFromCfaEdge(CFAEdge pEdge) {
+    final Set<CAstNode> result = Sets.newHashSet();
     final Deque<CFAEdge> edges = Queues.newArrayDeque();
-    final Deque<CAstNode> astNodes = Queues.newArrayDeque();
-
-//    if (overApproximateTokens) {
-//      Set<String> variables = getEdgeVariableNames(pEdge);
-//      for (String variable: variables) {
-//        if (variable.contains("__CPA")) {
-//          Set<Integer> tokens = variableRelatedTokens.get(variable);
-//          if (tokens != null) {
-//            result.addAll(tokens);
-//          } else {
-//            result.addAll(Collections.<Integer>emptySet());
-//          }
-//        }
-//      }
-//    }
 
     edges.add(pEdge);
 
     while (!edges.isEmpty()) {
       CFAEdge edge = edges.pop();
-      CFANode startNode = edge.getPredecessor();
-      CFANode endNode = edge.getSuccessor();
 
       switch (edge.getEdgeType()) {
       case MultiEdge:
         edges.addAll(((MultiEdge) edge).getEdges());
       break;
       case AssumeEdge:
-        CAssumeEdge assumeEdge = ((CAssumeEdge) edge);
-        astNodes.add(assumeEdge.getExpression());
+        result.add(((CAssumeEdge) edge).getExpression());
       break;
       case CallToReturnEdge:
         CFunctionSummaryEdge fnSumEdge = (CFunctionSummaryEdge) edge;
-        result.addAll(collectRowsAndColsFrom(fnSumEdge.getExpression(), overApproximateTokens));
-        result.addAll(collectRowsAndColsFrom(fnSumEdge.getExpression().getFunctionCallExpression().getFunctionNameExpression(), overApproximateTokens));
-        collectRowAndCol(result, fnSumEdge.getExpression().getFileLocation(), overApproximateTokens);
-        collectRowAndCol(result, fnSumEdge.getExpression().getFunctionCallExpression().getFileLocation(), overApproximateTokens);
-        astNodes.addAll(fnSumEdge.getExpression().getFunctionCallExpression().getParameterExpressions());
+        result.add(fnSumEdge.getExpression());
+        result.add(fnSumEdge.getExpression().getFunctionCallExpression());
+        result.add(fnSumEdge.getExpression().getFunctionCallExpression().getFunctionNameExpression());
+        result.addAll(fnSumEdge.getExpression().getFunctionCallExpression().getParameterExpressions());
       break;
       case DeclarationEdge:
-        CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
-        collectRowAndCol(result, decl.getFileLocation(), overApproximateTokens);
-        if (decl instanceof CVariableDeclaration) {
-          CVariableDeclaration varDecl = (CVariableDeclaration) decl;
-          if (varDecl.getInitializer() != null) {
-            result.addAll(collectRowsAndColsFrom(varDecl.getInitializer(), overApproximateTokens));
-          }
-        }
+        result.add(((CDeclarationEdge) edge).getDeclaration());
       break;
       case FunctionCallEdge:
         if (edge.getPredecessor().getLeavingSummaryEdge() != null) {
           edges.add(edge.getPredecessor().getLeavingSummaryEdge());
         }
-        astNodes.addAll(((CFunctionCallEdge) edge).getArguments());
+        result.addAll(((CFunctionCallEdge) edge).getArguments());
       break ;
       case FunctionReturnEdge:
       break;
       case ReturnStatementEdge:
         CExpression expr = ((CReturnStatementEdge) edge).getExpression();
         if (expr != null) {
-          astNodes.add(expr);
+          result.add(expr);
         }
       break;
       case StatementEdge:
-        result.addAll(collectRowsAndColsFrom(((CStatementEdge) edge).getStatement(), overApproximateTokens));
+        result.add(((CStatementEdge) edge).getStatement());
       break;
       }
+    }
 
-      while(!astNodes.isEmpty()) {
-        CAstNode node = astNodes.pop();
-        result.addAll(collectRowsAndColsFrom(node, overApproximateTokens));
-      }
+    return result;
+  }
+
+  public static synchronized Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge) {
+    final Set<FileLocation> result = Sets.newHashSet();
+
+    final Set<CAstNode> astNodes = getAstNodesFromCfaEdge(pEdge);
+    for (CAstNode n: astNodes) {
+      result.addAll(collectFileLocationsFrom(n));
+    }
+
+    return result;
+  }
+
+  public static synchronized Set<RowAndColumn> getRowsAndColsFromCFAEdge(CFAEdge pEdge, boolean overApproximateTokens) {
+    final TreeSet<RowAndColumn> result = Sets.newTreeSet();
+    final Set<CAstNode> astNodes = getAstNodesFromCfaEdge(pEdge);
+
+    for (CAstNode n: astNodes) {
+      result.addAll(collectRowsAndColsFrom(n, overApproximateTokens));
     }
 
     return result;

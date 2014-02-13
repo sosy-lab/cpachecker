@@ -23,19 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 
+public interface CSimpleDeclarationVisitor<R, X extends Exception> extends CExpressionVisitor<R, X> {
 
+  R visit(CFunctionDeclaration pDecl) throws X;
 
+  R visit(CComplexTypeDeclaration pDecl) throws X;
 
-/**
- * This interface represents all sorts of top-level declarations (i.e., declarations
- * not nested inside another type declaration).
- * This excludes for examples function parameter declarations and struct members.
- * It includes local and global variables and types, as well as functions.
- */
-public interface CDeclaration extends  CSimpleDeclaration, IADeclaration {
+  R visit(CTypeDeclaration pDecl) throws X;
 
+  R visit(CVariableDeclaration pDecl) throws X;
 
+  R visit(CParameterDeclaration pDecl) throws X;
+
+  R visit(CEnumerator pDecl) throws X;
 
 }

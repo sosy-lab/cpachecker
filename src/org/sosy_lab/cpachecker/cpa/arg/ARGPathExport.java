@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nullable;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.sosy_lab.common.Pair;
@@ -42,6 +43,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
@@ -60,7 +62,8 @@ import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.core.Model.CFAPathWithAssignments;
 import org.sosy_lab.cpachecker.core.Model.CFAPathWithAssignments.CFAEdgeWithAssignments;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.TokenCollector;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.SourceLocationMapper;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphType;
@@ -75,6 +78,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Queues;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.Sets;
@@ -94,6 +98,9 @@ public class ARGPathExport {
 
   @Option(description="Verification witness: Include the token numbers of the operations on the transitions?")
   boolean exportTokenNumbers = true;
+
+  @Option(description="Verification witness: Include the (starting) line numbers of the operations on the transitions?")
+  boolean exportLineNumbers = true;
 
   @Option(description="Verification witness: Include the sourcecode of the operations?")
   boolean exportSourcecode = true;
@@ -207,14 +214,43 @@ public class ARGPathExport {
       final Predicate<? super Pair<ARGState, ARGState>> pathEdges,
       CounterexampleInfo pCounterExample)
       throws IOException {
-    WitnessWriter writer = new WitnessWriter();
+    String defaultFileName = getInitialFileName(rootState);
+    WitnessWriter writer = new WitnessWriter(defaultFileName);
     writer.writePath(sb, rootState, successorFunction, displayedElements, pathEdges, pCounterExample);
+  }
+
+  private String getInitialFileName(ARGState s) {
+    CFANode initialLoc = AbstractStates.extractLocation(s);
+    Deque<CFANode> worklist = Queues.newArrayDeque();
+    worklist.push(initialLoc);
+
+    while (!worklist.isEmpty()) {
+      CFANode l = worklist.pop();
+      for (CFAEdge e: CFAUtils.leavingEdges(l)) {
+        Set<FileLocation> fileLocations = SourceLocationMapper.getFileLocationsFromCfaEdge(e);
+        if (fileLocations.size() > 0) {
+          String fileName = fileLocations.iterator().next().getFileName();
+          if (fileName != null) {
+            return fileName;
+          }
+        }
+        worklist.push(e.getSuccessor());
+      }
+    }
+
+    throw new RuntimeException("Could not determine file name based on abstract state!");
   }
 
   private class WitnessWriter {
     private final Multimap<String, AggregatedTargetNode> sourceToTargetMap = HashMultimap.create();
     private final Multimap<String, AggregatedTargetNode> targetToSourceMap = HashMultimap.create();
     private final Map<String, Element> delayedNodes = Maps.newHashMap();
+
+    private final String defaultSourcefileName;
+
+    public WitnessWriter(@Nullable String defaultSourcefileName) {
+      this.defaultSourcefileName = defaultSourcefileName;
+    }
 
     private boolean isNodeRepresentingOneOf(Collection<AggregatedTargetNode> targets, String nodeId) {
       for (AggregatedTargetNode t : targets) {
@@ -333,8 +369,19 @@ public class ARGPathExport {
         }
 
         if (exportTokenNumbers) {
-          Set<Integer> tokens = TokenCollector.getTokensFromCFAEdge(edge, false);
+          Set<Integer> tokens = SourceLocationMapper.getTokensFromCFAEdge(edge, false);
           desc.put(KeyDef.TOKENS, tokensToText(tokens));
+        }
+
+        if (exportLineNumbers) {
+          Set<FileLocation> locations = SourceLocationMapper.getFileLocationsFromCfaEdge(edge);
+          if (locations.size() > 0) {
+            FileLocation l = locations.iterator().next();
+            if (!l.getFileName().equals(defaultSourcefileName)) {
+              desc.put(KeyDef.ORIGINFILE, l.getFileName());
+            }
+            desc.put(KeyDef.ORIGINLINE, Integer.toString(l.getStartingLineInOrigin()));
+          }
         }
 
         if (exportSourcecode) {
@@ -355,6 +402,8 @@ public class ARGPathExport {
       doc.appendNewKeyDef(KeyDef.SOURCECODELANGUAGE, null);
       doc.appendNewKeyDef(KeyDef.TOKENS, null);
       doc.appendNewKeyDef(KeyDef.TOKENSNEGATED, "false");
+      doc.appendNewKeyDef(KeyDef.ORIGINLINE, null);
+      doc.appendNewKeyDef(KeyDef.ORIGINFILE, defaultSourcefileName);
       doc.appendNewKeyDef(KeyDef.NODETYPE, AutomatonGraphmlCommon.defaultNodeType.text);
       for (NodeFlag f : NodeFlag.values()) {
         doc.appendNewKeyDef(f.key, "false");

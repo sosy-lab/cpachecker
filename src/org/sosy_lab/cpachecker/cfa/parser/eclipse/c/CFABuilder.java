@@ -119,10 +119,12 @@ class CFABuilder extends ASTVisitor {
   private IASTTranslationUnit ast = null;
   private Sideassignments sideAssignmentStack = null;
 
-  public CFABuilder(Configuration config, LogManager pLogger, MachineModel pMachine) throws InvalidConfigurationException {
+  public CFABuilder(Configuration pConfig, LogManager pLogger,
+      MachineModel pMachine) throws InvalidConfigurationException {
+
     logger = pLogger;
     machine = pMachine;
-    this.config = config;
+    config = pConfig;
 
     checkBinding = new CheckBindingVisitor(pLogger);
 
@@ -503,34 +505,7 @@ class CFABuilder extends ASTVisitor {
 
     for (Pair<List<IASTFunctionDefinition>, Pair<String, GlobalScope>> pair : functionDeclarations) {
       for (IASTFunctionDefinition declaration : pair.getFirst()) {
-
-        FunctionScope localScope = new FunctionScope(functions,
-                                                     types,
-                                                     typedefs,
-                                                     globalVars,
-                                                     renamedTypes.get(pair.getSecond().getFirst()));
-        CFAFunctionBuilder functionBuilder;
-
-        try {
-          functionBuilder = new CFAFunctionBuilder(config, logger, localScope, machine, pair.getSecond().getFirst(), sideAssignmentStack);
-        } catch (InvalidConfigurationException e) {
-          throw new CFAGenerationRuntimeException("Invalid configuration");
-        }
-
-        declaration.accept(functionBuilder);
-
-        FunctionEntryNode startNode = functionBuilder.getStartNode();
-        String functionName = startNode.getFunctionName();
-
-        if (cfas.containsKey(functionName)) {
-          throw new CFAGenerationRuntimeException("Duplicate function " + functionName);
-        }
-        cfas.put(functionName, startNode);
-        cfaNodes.putAll(functionName, functionBuilder.getCfaNodes());
-        globalDeclarations.addAll(functionBuilder.getGlobalDeclarations());
-
-        encounteredAsm |= functionBuilder.didEncounterAsm();
-        functionBuilder.finish();
+        handleFunctionDefinition(functions, types, typedefs, globalVars, pair, declaration);
       }
     }
 
@@ -539,6 +514,41 @@ class CFABuilder extends ASTVisitor {
     }
 
     return new ParseResult(cfas, cfaNodes, globalDeclarations, Language.C);
+  }
+
+  private void handleFunctionDefinition(ImmutableMap<String, CFunctionDeclaration> functions,
+      ImmutableMap<String, CComplexTypeDeclaration> types, ImmutableMap<String, CTypeDefDeclaration> typedefs,
+      ImmutableMap<String, CSimpleDeclaration> globalVars,
+      Pair<List<IASTFunctionDefinition>, Pair<String, GlobalScope>> pair,
+      IASTFunctionDefinition declaration) {
+
+    FunctionScope localScope = new FunctionScope(functions,
+                                                 types,
+                                                 typedefs,
+                                                 globalVars,
+                                                 renamedTypes.get(pair.getSecond().getFirst()));
+    CFAFunctionBuilder functionBuilder;
+
+    try {
+      functionBuilder = new CFAFunctionBuilder(config, logger, localScope, machine, pair.getSecond().getFirst(), sideAssignmentStack);
+    } catch (InvalidConfigurationException e) {
+      throw new CFAGenerationRuntimeException("Invalid configuration");
+    }
+
+    declaration.accept(functionBuilder);
+
+    FunctionEntryNode startNode = functionBuilder.getStartNode();
+    String functionName = startNode.getFunctionName();
+
+    if (cfas.containsKey(functionName)) {
+      throw new CFAGenerationRuntimeException("Duplicate function " + functionName);
+    }
+    cfas.put(functionName, startNode);
+    cfaNodes.putAll(functionName, functionBuilder.getCfaNodes());
+    globalDeclarations.addAll(functionBuilder.getGlobalDeclarations());
+
+    encounteredAsm |= functionBuilder.didEncounterAsm();
+    functionBuilder.finish();
   }
 
   private ParseResult createMultipleFileCFA() {
@@ -592,33 +602,7 @@ class CFABuilder extends ASTVisitor {
         }
         localTypes.putAll(pair.getSecond().getSecond().getTypes());
 
-        FunctionScope localScope = new FunctionScope(functions,
-                                                     ImmutableMap.copyOf(localTypes),
-                                                     typedefs,
-                                                     globalVars,
-                                                     renamedTypes.get(pair.getSecond().getFirst()));
-        CFAFunctionBuilder functionBuilder;
-
-        try {
-          functionBuilder = new CFAFunctionBuilder(config, logger, localScope, machine, pair.getSecond().getFirst(), sideAssignmentStack);
-        } catch (InvalidConfigurationException e) {
-          throw new CFAGenerationRuntimeException("Invalid configuration");
-        }
-
-        declaration.accept(functionBuilder);
-
-        FunctionEntryNode startNode = functionBuilder.getStartNode();
-        String functionName = startNode.getFunctionName();
-
-        if (cfas.containsKey(functionName)) {
-          throw new CFAGenerationRuntimeException("Duplicate function " + functionName);
-        }
-        cfas.put(functionName, startNode);
-        cfaNodes.putAll(functionName, functionBuilder.getCfaNodes());
-        globalDeclarations.addAll(functionBuilder.getGlobalDeclarations());
-
-        encounteredAsm |= functionBuilder.didEncounterAsm();
-        functionBuilder.finish();
+        handleFunctionDefinition(functions, ImmutableMap.copyOf(localTypes), typedefs, globalVars, pair, declaration);
       }
     }
 

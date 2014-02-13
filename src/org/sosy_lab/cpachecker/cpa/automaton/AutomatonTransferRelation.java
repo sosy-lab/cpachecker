@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState.AutomatonUnknownState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.TokenCollector;
+import org.sosy_lab.cpachecker.util.SourceLocationMapper;
 import org.sosy_lab.cpachecker.util.statistics.StatIntHist;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
@@ -200,7 +200,7 @@ class AutomatonTransferRelation implements TransferRelation {
     }
 
     if (collectTokenInformation) {
-      TokenCollector.getKnownToEdge(edge);
+      SourceLocationMapper.getKnownToEdge(edge);
     }
 
     if (state.getInternalState().getTransitions().isEmpty()) {
@@ -311,7 +311,7 @@ class AutomatonTransferRelation implements TransferRelation {
       if (collectTokenInformation) {
         stateNewCounters.addNoMatchTokens(state.getTokensSinceLastMatch());
         if (edge.getEdgeType() != CFAEdgeType.DeclarationEdge) {
-          stateNewCounters.addNoMatchTokens(TokenCollector.getTokensFromCFAEdge(edge, true));
+          stateNewCounters.addNoMatchTokens(SourceLocationMapper.getTokensFromCFAEdge(edge, true));
         }
       }
       return Collections.singleton(stateNewCounters);

@@ -181,12 +181,14 @@ class CFAFunctionBuilder extends ASTVisitor {
       + "or leave them uninitialized.")
   private boolean initializeAllVariables = false;
 
-  public CFAFunctionBuilder(Configuration config, LogManager pLogger, FunctionScope pScope, MachineModel pMachine, String staticVariablePrefix, Sideassignments sideAssignmentStack) throws InvalidConfigurationException {
+  public CFAFunctionBuilder(Configuration config, LogManager pLogger, FunctionScope pScope,
+      MachineModel pMachine, String staticVariablePrefix,
+      Sideassignments pSideAssignmentStack) throws InvalidConfigurationException {
     config.inject(this);
 
     logger = pLogger;
     scope = pScope;
-    astCreator = new ASTConverter(config, pScope, pLogger, pMachine, staticVariablePrefix, false, sideAssignmentStack);
+    astCreator = new ASTConverter(config, pScope, pLogger, pMachine, staticVariablePrefix, false, pSideAssignmentStack);
     checkBinding = new CheckBindingVisitor(pLogger);
     expressionSimplificator = new ExpressionSimplificationVisitor(pMachine, pLogger);
     binExprBuilder = new CBinaryExpressionBuilder(pMachine, pLogger);
@@ -196,9 +198,8 @@ class CFAFunctionBuilder extends ASTVisitor {
     shouldVisitParameterDeclarations = true;
     shouldVisitProblems = true;
     shouldVisitStatements = true;
-    this.sideAssignmentStack = sideAssignmentStack;
+    sideAssignmentStack = pSideAssignmentStack;
   }
-
   FunctionEntryNode getStartNode() {
     checkState(cfa != null);
     return cfa;

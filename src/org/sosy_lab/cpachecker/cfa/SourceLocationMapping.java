@@ -21,21 +21,13 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast.c;
+package org.sosy_lab.cpachecker.cfa;
 
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
-
-
-
-
-/**
- * This interface represents all sorts of top-level declarations (i.e., declarations
- * not nested inside another type declaration).
- * This excludes for examples function parameter declarations and struct members.
- * It includes local and global variables and types, as well as functions.
- */
-public interface CDeclaration extends  CSimpleDeclaration, IADeclaration {
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 
-
+public interface SourceLocationMapping {
+  public String getDefinedInFilename(CFAEdge pEdge);
+  public Pair<String, Integer> getStartinglineNumberBeforePreprocessing();
 }

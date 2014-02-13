@@ -27,9 +27,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -54,11 +53,11 @@ class CParserWithPreprocessor implements CParser {
     if (programCode.isEmpty()) {
       throw new CParserException("Preprocessor returned empty program");
     }
-    return realParser.parseString(programCode);
+    return realParser.parseString(pFilename, programCode);
   }
 
   @Override
-  public ParseResult parseString(String pCode) throws ParserException, InvalidConfigurationException {
+  public ParseResult parseString(String pFilename, String pCode) throws ParserException, InvalidConfigurationException {
     // TODO
     throw new UnsupportedOperationException();
   }
@@ -74,23 +73,23 @@ class CParserWithPreprocessor implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(List<Pair<String, String>> pFilenames) throws CParserException, IOException,
+  public ParseResult parseFile(List<FileToParse> pFilenames) throws CParserException, IOException,
       InvalidConfigurationException, InterruptedException {
 
-    List<Pair<String, String>> programs = new ArrayList<>(pFilenames.size());
-    for (Pair<String, String> p : pFilenames) {
-      String programCode = preprocessor.preprocess(p.getFirst());
+    List<FileContentToParse> programs = new ArrayList<>(pFilenames.size());
+    for (FileToParse p : pFilenames) {
+      String programCode = preprocessor.preprocess(p.fileName);
       if (programCode.isEmpty()) {
         throw new CParserException("Preprocessor returned empty program");
       }
-      programs.add(Pair.of(programCode, p.getSecond()));
+      programs.add(new FileContentToParse(p.fileName, programCode, p.staticVariablePrefix));
     }
     return realParser.parseString(programs);
   }
 
   @Override
-  public ParseResult parseString(List<Pair<String, String>> pCode) throws CParserException,
-      InvalidConfigurationException {
+  public ParseResult parseString(List<FileContentToParse> pCode)
+      throws CParserException, InvalidConfigurationException {
     // TODO
     throw new UnsupportedOperationException();
   }

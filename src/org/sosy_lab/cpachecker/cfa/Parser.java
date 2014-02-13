@@ -25,8 +25,8 @@ package org.sosy_lab.cpachecker.cfa;
 
 import java.io.IOException;
 
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
@@ -57,7 +57,7 @@ public interface Parser {
    * @return The CFA.
    * @throws ParserException If parser or CFA builder cannot handle the C code.
    */
-  ParseResult parseString(String code) throws ParserException, InvalidConfigurationException;
+  ParseResult parseString(String filename, String code) throws ParserException, InvalidConfigurationException;
 
   /**
    * Return a timer that measured the time needed for parsing.
