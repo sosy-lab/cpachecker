@@ -46,7 +46,6 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
@@ -56,10 +55,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
@@ -139,19 +136,6 @@ public class PointerTargetSet implements Serializable {
     private final String fieldName;
   }
 
-  /**
-   * Return the length of an array if statically given, or null.
-   */
-  public static Integer getArrayLength(CArrayType t) {
-
-    final CExpression arrayLength = t.getLength();
-    if (arrayLength instanceof CIntegerLiteralExpression) {
-      return ((CIntegerLiteralExpression)arrayLength).getValue().intValue();
-    }
-
-    return null;
-  }
-
   public static class CSizeofVisitor extends BaseSizeofVisitor
                                      implements CTypeVisitor<Integer, IllegalArgumentException> {
 
@@ -163,7 +147,7 @@ public class PointerTargetSet implements Serializable {
 
     @Override
     public Integer visit(final CArrayType t) throws IllegalArgumentException {
-      Integer length = getArrayLength(t);
+      Integer length = CTypeUtils.getArrayLength(t);
 
       if (length == null) {
         length = options.defaultArrayLength();
@@ -176,95 +160,16 @@ public class PointerTargetSet implements Serializable {
     private final FormulaEncodingWithUFOptions options;
   }
 
-  /**
-   * The method is used to check if a composite type contains array as this means it can't be encoded as a bunch of
-   * variables.
-   * @param type any type to check, but normally a composite type
-   * @return whether the {@code type} contains array
-   */
-  public static boolean containsArray(CType type) {
-    type = simplifyType(type);
-    if (type instanceof CArrayType) {
-      return true;
-    } else if (type instanceof CCompositeType) {
-      final CCompositeType compositeType = (CCompositeType) type;
-      assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite!";
-      for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-        if (containsArray(memberDeclaration.getType())) {
-          return true;
-        }
-      }
-      return false;
-    } else {
-      return false;
-    }
-  }
-
-  /**
-   * <p>
-   * The method returns the type of a base variable by the type of the given memory location.
-   * </p>
-   * <p>
-   * Here we need special handling for arrays as their base variables are handled as pointers to their first
-   * (zeroth) elements.
-   * </p>
-   * @param type The type of the memory location
-   * @return The type of the base variable
-   */
-  public static CType getBaseType(CType type) {
-    type = simplifyType(type);
-    if (!(type instanceof CArrayType)) {
-      return new CPointerType(false, false, type);
-    } else {
-      return new CPointerType(false, false, ((CArrayType) type).getType());
-    }
-  }
-
   public static String getBaseName(final String name){
     return BASE_PREFIX + name;
   }
 
-  public static boolean isBaseName(final String name) {
+  static boolean isBaseName(final String name) {
     return name.startsWith(BASE_PREFIX);
   }
 
-  public static String getBase(final String baseName) {
+  static String getBase(final String baseName) {
     return baseName.replaceFirst(BASE_PREFIX, "");
-  }
-
-  /**
-   * <p>
-   * The method should be used everywhere the type of any expression is determined. This is because the encoding uses
-   * types for naming of the UFs as well as for over-approximating points-to sets (may-aliases). To make the encoding
-   * precise enough the types should correspond to actually different types (requiring explicit casts to be
-   * converted to one another), so {@link CCompositeType}s, corresponding  {@link CElaboratedType}s and
-   * {@link CTypedefType}s shouldn't be distinguished and are converted to the same canonical type by this method.
-   * </p>
-   * <p>
-   * This method will also perform {@code const} and {@code volatile} modifiers elimination.
-   * </p>
-   * @param type The type obtained form the CFA
-   * @return The corresponding simplfied canonical type
-   */
-  public static CType simplifyType(final @Nonnull CType type) {
-    return type.accept(typeVisitor);
-  }
-
-  /**
-   * The method is used in two cases:
-   * <ul>
-   * <li>
-   * by {@link CToFormulaWithUFConverter#getUFName(CType)} to get the UF name corresponding to the given type.
-   * </li>
-   * <li>
-   * to convert {@link CType}s to strings in order to use them as keys in a {@link PathCopyingPersistentTreeMap}.
-   * </li>
-   * </ul>
-   * @param type The type
-   * @return The string representation of the type
-   */
-  public static String typeToString(final CType type) {
-    return simplifyType(type).toString();
   }
 
   /**
@@ -273,7 +178,7 @@ public class PointerTargetSet implements Serializable {
    * @return
    */
   public int getSize(CType cType) {
-    cType = simplifyType(cType);
+    cType = CTypeUtils.simplifyType(cType);
     if (cType instanceof CCompositeType) {
       if (sizes.contains(cType)) {
         return sizes.count(cType);
@@ -292,7 +197,7 @@ public class PointerTargetSet implements Serializable {
    * @return
    */
   public int getOffset(CCompositeType compositeType, final String memberName) {
-    compositeType = (CCompositeType) simplifyType(compositeType);
+    compositeType = (CCompositeType) CTypeUtils.simplifyType(compositeType);
     assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
     final Multiset<String> multiset = offsets.get(compositeType);
     assert multiset != null : "For handling undeclared composites used PointerTargetSetBuilder instead!";
@@ -310,7 +215,7 @@ public class PointerTargetSet implements Serializable {
   }
 
   public PersistentList<PointerTarget> getAllTargets(final CType type) {
-    return firstNonNull(targets.get(typeToString(type)),
+    return firstNonNull(targets.get(CTypeUtils.typeToString(type)),
                         PersistentLinkedList.<PointerTarget>of());
   }
 
@@ -342,7 +247,7 @@ public class PointerTargetSet implements Serializable {
      * @param compositeType
      */
     public void addCompositeType(CCompositeType compositeType) {
-      compositeType = (CCompositeType) simplifyType(compositeType);
+      compositeType = (CCompositeType) CTypeUtils.simplifyType(compositeType);
       if (offsets.containsKey(compositeType)) {
         // Support for empty structs though it's a GCC extension
         assert sizes.contains(compositeType) || Integer.valueOf(0).equals(compositeType.accept(sizeofVisitor)) :
@@ -360,7 +265,7 @@ public class PointerTargetSet implements Serializable {
       int offset = 0;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         members.setCount(memberDeclaration.getName(), offset);
-        final CType memberType = simplifyType(memberDeclaration.getType());
+        final CType memberType = CTypeUtils.simplifyType(memberDeclaration.getType());
         final CCompositeType memberCompositeType;
         if (memberType instanceof CCompositeType) {
           memberCompositeType = (CCompositeType) memberType;
@@ -396,7 +301,7 @@ public class PointerTargetSet implements Serializable {
                            final CType containerType,
                            final int properOffset,
                            final int containerOffset) {
-      final String type = typeToString(targetType);
+      final String type = CTypeUtils.typeToString(targetType);
       PersistentList<PointerTarget> targetsForType = firstNonNull(targets.get(type),
                                                                   PersistentLinkedList.<PointerTarget>of());
       targets = targets.putAndCopy(type, targetsForType.with(new PointerTarget(base,
@@ -424,11 +329,11 @@ public class PointerTargetSet implements Serializable {
                             final @Nullable CType containerType,
                             final int properOffset,
                             final int containerOffset) {
-      final CType cType = simplifyType(currentType);
+      final CType cType = CTypeUtils.simplifyType(currentType);
       assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type:" + cType;
       if (cType instanceof CArrayType) {
         final CArrayType arrayType = (CArrayType) cType;
-        Integer length = getArrayLength(arrayType);
+        Integer length = CTypeUtils.getArrayLength(arrayType);
         if (length == null) {
           length = options.defaultArrayLength();
         } else if (length > options.maxArrayLength()) {
@@ -442,7 +347,7 @@ public class PointerTargetSet implements Serializable {
       } else if (cType instanceof CCompositeType) {
         final CCompositeType compositeType = (CCompositeType) cType;
         assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
-        final String type = typeToString(compositeType);
+        final String type = CTypeUtils.typeToString(compositeType);
         addCompositeType(compositeType);
         int offset = 0;
         for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
@@ -459,7 +364,7 @@ public class PointerTargetSet implements Serializable {
     }
 
     public BooleanFormula prepareBase(final String name, CType type) {
-      type = simplifyType(type);
+      type = CTypeUtils.simplifyType(type);
       if (bases.containsKey(name)) {
         // The base has already been added
         return formulaManager.getBooleanFormulaManager().makeBoolean(true);
@@ -472,7 +377,7 @@ public class PointerTargetSet implements Serializable {
     }
 
     public boolean shareBase(final String name, CType type) {
-      type = simplifyType(type);
+      type = CTypeUtils.simplifyType(type);
 //      Preconditions.checkArgument(bases.containsKey(name),
 //                                  "The base should be prepared beforehead with prepareBase()");
 
@@ -492,7 +397,7 @@ public class PointerTargetSet implements Serializable {
      * @return
      */
     public Pair<Boolean, BooleanFormula> addBase(final String name, CType type) {
-      type = simplifyType(type);
+      type = CTypeUtils.simplifyType(type);
       if (bases.containsKey(name)) {
         // The base has already been added
         return Pair.of(true, formulaManager.getBooleanFormulaManager().makeBoolean(true));
@@ -508,7 +413,7 @@ public class PointerTargetSet implements Serializable {
     }
 
     public boolean tracksField(final CCompositeType compositeType, final String fieldName) {
-      return fields.containsKey(CompositeField.of(typeToString(compositeType), fieldName));
+      return fields.containsKey(CompositeField.of(CTypeUtils.typeToString(compositeType), fieldName));
     }
 
     /**
@@ -528,11 +433,11 @@ public class PointerTargetSet implements Serializable {
                             final int containerOffset,
                             final String composite,
                             final String memberName) {
-      final CType cType = simplifyType(currentType);
+      final CType cType = CTypeUtils.simplifyType(currentType);
       assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type:" + cType;
       if (cType instanceof CArrayType) {
         final CArrayType arrayType = (CArrayType) cType;
-        Integer length = getArrayLength(arrayType);
+        Integer length = CTypeUtils.getArrayLength(arrayType);
         if (length == null) {
           length = options.defaultArrayLength();
         } else if (length > options.maxArrayLength()) {
@@ -547,7 +452,7 @@ public class PointerTargetSet implements Serializable {
       } else if (cType instanceof CCompositeType) {
         final CCompositeType compositeType = (CCompositeType) cType;
         assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
-        final String type = typeToString(compositeType);
+        final String type = CTypeUtils.typeToString(compositeType);
         int offset = 0;
         final boolean isTargetComposite = type.equals(composite);
         for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
@@ -566,7 +471,7 @@ public class PointerTargetSet implements Serializable {
     }
 
     public boolean addField(final CCompositeType composite, final String fieldName) {
-      final String type = typeToString(composite);
+      final String type = CTypeUtils.typeToString(composite);
       final CompositeField field = CompositeField.of(type, fieldName);
       if (fields.containsKey(field)) {
         return true; // The field has already been added
@@ -586,7 +491,7 @@ public class PointerTargetSet implements Serializable {
      * @param fieldName
      */
     public void shallowRemoveField(final CCompositeType composite, final String fieldName) {
-      final String type = typeToString(composite);
+      final String type = CTypeUtils.typeToString(composite);
       final CompositeField field = CompositeField.of(type, fieldName);
       fields = fields.removeAndCopy(field);
     }
@@ -662,7 +567,7 @@ public class PointerTargetSet implements Serializable {
 
     @Override
     public int getOffset(CCompositeType compositeType, final String memberName) {
-      compositeType = (CCompositeType) simplifyType(compositeType);
+      compositeType = (CCompositeType) CTypeUtils.simplifyType(compositeType);
       assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
       Multiset<String> multiset = offsets.get(compositeType);
       if (multiset == null) {
@@ -737,7 +642,7 @@ public class PointerTargetSet implements Serializable {
   }
 
   public boolean isBase(final String name, CType type) {
-    type = simplifyType(type);
+    type = CTypeUtils.simplifyType(type);
     final CType baseType = bases.get(name);
     return baseType != null && baseType.equals(type);
   }
@@ -1019,7 +924,7 @@ public class PointerTargetSet implements Serializable {
   }
 
   private static final CType getFakeBaseType(int size) {
-    return simplifyType(new CArrayType(false, false, CNumericTypes.VOID, new CIntegerLiteralExpression(null,
+    return CTypeUtils.simplifyType(new CArrayType(false, false, CNumericTypes.VOID, new CIntegerLiteralExpression(null,
                                                                                         CNumericTypes.SIGNED_CHAR,
                                                                                         BigInteger.valueOf(size))));
   }
@@ -1045,8 +950,6 @@ public class PointerTargetSet implements Serializable {
    */
   private static final Multiset<CCompositeType> sizes = HashMultiset.create();
   private static final Map<CCompositeType, Multiset<String>> offsets = new HashMap<>();
-
-  private static final CachingCanonizingCTypeVisitor typeVisitor = new CachingCanonizingCTypeVisitor(true, true);
 
   // The following fields are modified in the derived class only
 

@@ -139,8 +139,8 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
     @Override
     public PointerTargetPattern visit(final CIdExpression e) throws UnrecognizedCCodeException {
       final Variable variable = conv.scopedIfNecessary(e, null, null);
-      final CType expressionType = PointerTargetSet.simplifyType(e.getExpressionType());
-      if (!pts.isBase(variable.getName(), expressionType) && !PointerTargetSet.containsArray(expressionType)) {
+      final CType expressionType = CTypeUtils.simplifyType(e.getExpressionType());
+      if (!pts.isBase(variable.getName(), expressionType) && !CTypeUtils.containsArray(expressionType)) {
         return null;
       } else {
         return new PointerTargetPattern(variable.getName(), 0, 0);
@@ -183,7 +183,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
     if (result == null) {
       result = new PointerTargetPattern();
     }
-    CType containerType = PointerTargetSet.simplifyType(arrayExpression.getExpressionType());
+    CType containerType = CTypeUtils.simplifyType(arrayExpression.getExpressionType());
     if (containerType instanceof CArrayType || containerType instanceof CPointerType) {
       final CType elementType;
       if (containerType instanceof CPointerType) {
@@ -219,7 +219,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
     final CExpression ownerExpression = e.getFieldOwner();
     final PointerTargetPattern result = ownerExpression.accept(this);
     if (result != null) {
-      final CType containerType = PointerTargetSet.simplifyType(ownerExpression.getExpressionType());
+      final CType containerType = CTypeUtils.simplifyType(ownerExpression.getExpressionType());
       if (containerType instanceof CCompositeType) {
         assert  ((CCompositeType) containerType).getKind() != ComplexTypeKind.ENUM : "Enums are not composites!";
         result.shift(containerType, pts.getOffset((CCompositeType) containerType, e.getFieldName()));
@@ -236,7 +236,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
   public PointerTargetPattern visit(final CIdExpression e) throws UnrecognizedCCodeException {
     final Variable variable = conv.scopedIfNecessary(e, null, null);
     if (!pts.isActualBase(variable.getName()) &&
-        !PointerTargetSet.containsArray(PointerTargetSet.simplifyType(e.getExpressionType()))) {
+        !CTypeUtils.containsArray(CTypeUtils.simplifyType(e.getExpressionType()))) {
       return null;
     } else {
       return new PointerTargetPattern(variable.getName(), 0, 0);
@@ -263,7 +263,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
   @Override
   public PointerTargetPattern visit(final CPointerExpression e) throws UnrecognizedCCodeException {
     final CExpression operand = e.getOperand();
-    final CType type = PointerTargetSet.simplifyType(operand.getExpressionType());
+    final CType type = CTypeUtils.simplifyType(operand.getExpressionType());
     final PointerTargetPattern result = e.getOperand().accept(pointerVisitor);
     if (type instanceof CPointerType) {
       if (result != null) {

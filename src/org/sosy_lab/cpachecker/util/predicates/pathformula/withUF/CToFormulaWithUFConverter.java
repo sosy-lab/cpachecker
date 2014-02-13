@@ -152,7 +152,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     if (result != null) {
       return result;
     } else {
-      result = UF_NAME_PREFIX + PointerTargetSet.typeToString(type).replace(' ', '_');
+      result = UF_NAME_PREFIX + CTypeUtils.typeToString(type).replace(' ', '_');
       ufNameCache.put(type, result);
       return result;
     }
@@ -195,16 +195,16 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   @Override
   protected Variable scopedIfNecessary(CIdExpression var, SSAMapBuilder ssa, String function) {
     return Variable.create(var.getDeclaration().getQualifiedName(),
-                           PointerTargetSet.simplifyType(var.getExpressionType()));
+                           CTypeUtils.simplifyType(var.getExpressionType()));
   }
 
   private void checkSsaSavedType(final String name, final CType type, final SSAMapBuilder ssa) {
     CType ssaSavedType = ssa.getType(name);
     if (ssaSavedType != null) {
-      ssaSavedType = PointerTargetSet.simplifyType(ssaSavedType);
+      ssaSavedType = CTypeUtils.simplifyType(ssaSavedType);
     }
     if (ssaSavedType != null &&
-        !ssaSavedType.equals(PointerTargetSet.simplifyType(type))) {
+        !ssaSavedType.equals(CTypeUtils.simplifyType(type))) {
       logger.logf(Level.FINEST,
                   "Variable %s was found with multiple types! (Type1: %s, Type2: %s)",
                   name,
@@ -313,7 +313,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                          final Formula address,
                          final SSAMapBuilder ssa,
                          final PointerTargetSetBuilder pts) {
-    type = PointerTargetSet.simplifyType(type);
+    type = CTypeUtils.simplifyType(type);
     final String ufName = getUFName(type);
     final int index = getIndex(ufName, type, ssa);
     final FormulaType<?> returnType = getFormulaTypeFromCType(type, pts);
@@ -364,12 +364,12 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         if (isRelevantField(compositeType, memberDeclaration.getName(), pts)) {
           pts.addField(compositeType, memberDeclaration.getName());
-          final CType memberType = PointerTargetSet.simplifyType(memberDeclaration.getType());
+          final CType memberType = CTypeUtils.simplifyType(memberDeclaration.getType());
           addAllFields(memberType, pts);
         }
       }
     } else if (type instanceof CArrayType) {
-      final CType elementType = PointerTargetSet.simplifyType(((CArrayType) type).getType());
+      final CType elementType = CTypeUtils.simplifyType(((CArrayType) type).getType());
       addAllFields(elementType, pts);
     }
   }
@@ -400,7 +400,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                          final @Nullable ErrorConditions errorConditions,
                          final PointerTargetSetBuilder pts)
   throws UnrecognizedCCodeException {
-    final CType baseType = PointerTargetSet.getBaseType(type);
+    final CType baseType = CTypeUtils.getBaseType(type);
     final Formula result = makeConstant(PointerTargetSet.getBaseName(base), baseType, pts);
     if (isZeroing) {
       final BooleanFormula initialization = makeAssignment(
@@ -429,7 +429,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                  final SSAMapBuilder ssa,
                                  final Constraints constraints,
                                  final PointerTargetSetBuilder pts) throws UnrecognizedCCodeException {
-    final CType baseType = PointerTargetSet.simplifyType(base.getType());
+    final CType baseType = CTypeUtils.simplifyType(base.getType());
     if (baseType instanceof CArrayType) {
       throw new UnrecognizedCCodeException("Array access can't be encoded as a varaible", cfaEdge);
     } else if (baseType instanceof CCompositeType) {
@@ -438,7 +438,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       int offset = 0;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final String memberName = memberDeclaration.getName();
-        final CType memberType = PointerTargetSet.simplifyType(memberDeclaration.getType());
+        final CType memberType = CTypeUtils.simplifyType(memberDeclaration.getType());
         final Variable newBase = Variable.create(base.getName() + FIELD_NAME_SEPARATOR + memberName,
                                                  memberType);
         if (hasIndex(newBase.getName(), newBase.getType(), ssa) &&
@@ -464,7 +464,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   boolean isCompositeType(CType type) {
-    type = PointerTargetSet.simplifyType(type);
+    type = CTypeUtils.simplifyType(type);
     assert !(type instanceof CElaboratedType) : "Unresolved elaborated type";
     assert !(type instanceof CCompositeType) || ((CCompositeType) type).getKind() == ComplexTypeKind.STRUCT ||
                                                 ((CCompositeType) type).getKind() == ComplexTypeKind.UNION :
@@ -588,11 +588,11 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   public static CType implicitCastToPointer(CType type) {
-    type = PointerTargetSet.simplifyType(type);
+    type = CTypeUtils.simplifyType(type);
     if (type instanceof CArrayType) {
       return new CPointerType(false,
                               false,
-                              PointerTargetSet.simplifyType(((CArrayType) type).getType()));
+                              CTypeUtils.simplifyType(((CArrayType) type).getType()));
     } else if (type instanceof CFunctionType) {
       return new CPointerType(false, false, type);
     } else {
@@ -622,7 +622,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     // case of initialization assignments)
     assert rvalue != null || !useOldSSAIndices || updatedTypes != null; // otherwise the call is useless
 
-    lvalueType = PointerTargetSet.simplifyType(lvalueType);
+    lvalueType = CTypeUtils.simplifyType(lvalueType);
 
     if (lvalue.isAliased() && !isSimpleType(lvalueType) && updatedTypes == null) {
       updatedTypes = new HashSet<>();
@@ -688,7 +688,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                          final @Nonnull SSAMapBuilder ssa,
                                          final @Nonnull Constraints constraints,
                                          final @Nonnull PointerTargetSetBuilder pts) {
-    lvalueType = PointerTargetSet.simplifyType(lvalueType);
+    lvalueType = CTypeUtils.simplifyType(lvalueType);
     final int size = pts.getSize(lvalueType);
     if (isSimpleType(lvalueType)) {
       Preconditions.checkArgument(startAddress != null,
@@ -720,9 +720,9 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                   "Start address is mandatory for semiexact pointer target patterns");
       // For semiexact retention constraints we need the first element type of the composite
       if (lvalueType instanceof CArrayType) {
-        lvalueType = PointerTargetSet.simplifyType(((CArrayType) lvalueType).getType());
+        lvalueType = CTypeUtils.simplifyType(((CArrayType) lvalueType).getType());
       } else { // CCompositeType
-        lvalueType = PointerTargetSet.simplifyType(((CCompositeType) lvalueType).getMembers().get(0).getType());
+        lvalueType = CTypeUtils.simplifyType(((CCompositeType) lvalueType).getMembers().get(0).getType());
       }
       addSemiexactRetentionConstraints(pattern, lvalueType, startAddress, size, typesToRetain,
                                        ssa, constraints, pts);
@@ -752,7 +752,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final Formula offsetFormula = fmgr.makeNumber(voidPointerFormulaType, offset);
       final AliasedLocation newRvalue = Location.ofAddress(fmgr.makePlus(rvalue.asAliasedLocation().getAddress(),
                                                            offsetFormula));
-      final CType newRvalueType = PointerTargetSet.simplifyType(((CArrayType) rvalueType).getType());
+      final CType newRvalueType = CTypeUtils.simplifyType(((CArrayType) rvalueType).getType());
       return Pair.of(newRvalue, newRvalueType);
     }
     case DET_VALUE: {
@@ -773,7 +773,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                                final int offset,
                                                                final String memberName,
                                                                final CType memberType) {
-    final CType newLvalueType = PointerTargetSet.simplifyType(memberType);
+    final CType newLvalueType = CTypeUtils.simplifyType(memberType);
     if (lvalue.isAliased()) {
       final Formula offsetFormula = fmgr.makeNumber(voidPointerFormulaType, offset);
       final AliasedLocation newLvalue = Location.ofAddress(fmgr.makePlus(lvalue.asAliased().getAddress(),
@@ -794,7 +794,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                                  final CType rvalueType,
                                                                  final CType memberType) {
     // Support both structure assignment and initialization with a value (or nondet)
-    final CType newLvalueType = PointerTargetSet.simplifyType(memberType);
+    final CType newLvalueType = CTypeUtils.simplifyType(memberType);
     switch (rvalue.getKind()) {
     case ALIASED_LOCATION: {
       final Formula offsetFormula = fmgr.makeNumber(voidPointerFormulaType, offset);
@@ -831,15 +831,15 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                    final @Nullable ErrorConditions errorConditions,
                                                    final @Nonnull PointerTargetSetBuilder pts)
   throws UnrecognizedCCodeException {
-    lvalueType = PointerTargetSet.simplifyType(lvalueType);
-    rvalueType = PointerTargetSet.simplifyType(rvalueType);
+    lvalueType = CTypeUtils.simplifyType(lvalueType);
+    rvalueType = CTypeUtils.simplifyType(rvalueType);
     BooleanFormula result;
 
     if (lvalueType instanceof CArrayType) {
       Preconditions.checkArgument(lvalue.isAliased(),
                                   "Array elements are always aliased (i.e. can't be encoded with variables)");
       final CArrayType lvalueArrayType = (CArrayType) lvalueType;
-      final CType lvalueElementType = PointerTargetSet.simplifyType(lvalueArrayType.getType());
+      final CType lvalueElementType = CTypeUtils.simplifyType(lvalueArrayType.getType());
 
       // There are only two cases of assignment to an array
       Preconditions.checkArgument(
@@ -849,16 +849,16 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         // Only possible from another array of the same type
         rvalue.asLocation().isAliased() &&
         rvalueType instanceof CArrayType &&
-        PointerTargetSet.simplifyType(((CArrayType) rvalueType).getType()).equals(lvalueElementType),
+        CTypeUtils.simplifyType(((CArrayType) rvalueType).getType()).equals(lvalueElementType),
         "Array assignment only possible from an array of the same type");
 
-      Integer length = PointerTargetSet.getArrayLength(lvalueArrayType);
+      Integer length = CTypeUtils.getArrayLength(lvalueArrayType);
       // Try to fix the length if it's unknown (or too big)
       // Also ignore the tail part of very long arrays to avoid very large formulae (imprecise!)
       if (length == null || length > options.maxArrayLength()) {
         final Integer rLength;
         if (rvalue.isLocation() &&
-            (rLength = PointerTargetSet.getArrayLength((CArrayType) rvalueType)) != null &&
+            (rLength = CTypeUtils.getArrayLength((CArrayType) rvalueType)) != null &&
             rLength <= options.maxArrayLength()) {
           length = rLength;
         } else {
@@ -896,13 +896,13 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
           // Initialization with a value (possibly nondet), useful for stack declarations and memset implementation
           rvalue.isValue() && isSimpleType(rvalueType) ||
           // Structure assignment
-          PointerTargetSet.simplifyType(rvalueType).equals(lvalueType),
+          CTypeUtils.simplifyType(rvalueType).equals(lvalueType),
           "Structure assignment only possible from a structure of the same type");
       result = bfmgr.makeBoolean(true);
       int offset = 0;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : lvalueCompositeType.getMembers()) {
         final String memberName = memberDeclaration.getName();
-        final CType newLvalueType = PointerTargetSet.simplifyType(memberDeclaration.getType());
+        final CType newLvalueType = CTypeUtils.simplifyType(memberDeclaration.getType());
         // Optimizing away the assignments from uninitialized fields
         if (isRelevantField(lvalueCompositeType, memberName, pts) &&
              (!lvalue.isAliased() || // Assignment to a variable, no profit in optimizing it
@@ -967,8 +967,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                          final @Nullable ErrorConditions errorConditions,
                                                          final @Nonnull PointerTargetSetBuilder pts)
   throws UnrecognizedCCodeException {
-    lvalueType = PointerTargetSet.simplifyType(lvalueType);
-    rvalueType = PointerTargetSet.simplifyType(rvalueType);
+    lvalueType = CTypeUtils.simplifyType(lvalueType);
+    rvalueType = CTypeUtils.simplifyType(rvalueType);
     rvalueType = implicitCastToPointer(rvalueType); // Arrays and functions are implicitly converted to pointers
 
     Preconditions.checkArgument(isSimpleType(lvalueType),
@@ -1034,7 +1034,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   private static List<CCharLiteralExpression> expandStringLiteral(final CStringLiteralExpression e,
                                                                   final CArrayType type) {
-    Integer length = PointerTargetSet.getArrayLength(type);
+    Integer length = CTypeUtils.getArrayLength(type);
     final String s = e.getContentString();
     if (length == null) {
       length = s.length() + 1;
@@ -1105,7 +1105,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   static List<CExpressionAssignmentStatement> expandAssignmentList(
                                                 final CVariableDeclaration declaration,
                                                 final List<CExpressionAssignmentStatement> explicitAssignments) {
-    final CType variableType = PointerTargetSet.simplifyType(declaration.getType());
+    final CType variableType = CTypeUtils.simplifyType(declaration.getType());
     final CLeftHandSide lhs = new CIdExpression(declaration.getFileLocation(),
                                                 variableType,
                                                 declaration.getName(),
@@ -1124,11 +1124,11 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                            final CLeftHandSide lhs,
                                            final Set<String> alreadyAssigned,
                                            final List<CExpressionAssignmentStatement> defaultAssignments) {
-    type = PointerTargetSet.simplifyType(type);
+    type = CTypeUtils.simplifyType(type);
     if (type instanceof CArrayType) {
       final CArrayType arrayType = (CArrayType) type;
-      final CType elementType = PointerTargetSet.simplifyType(arrayType.getType());
-      final Integer length = PointerTargetSet.getArrayLength(arrayType);
+      final CType elementType = CTypeUtils.simplifyType(arrayType.getType());
+      final Integer length = CTypeUtils.getArrayLength(arrayType);
       if (length != null) {
         for (int i = 0; i < length; i++) {
           final CLeftHandSide newLhs = new CArraySubscriptExpression(
@@ -1229,7 +1229,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final CFunctionDeclaration functionDeclaration = ((CFunctionEntryNode) returnEdge.getSuccessor()
                                                                                        .getEntryNode())
                                                                                          .getFunctionDefinition();
-      final CType returnType = PointerTargetSet.simplifyType(functionDeclaration.getType().getReturnType());
+      final CType returnType = CTypeUtils.simplifyType(functionDeclaration.getType().getReturnType());
       final CVariableDeclaration returnVariableDeclaration =
         new CVariableDeclaration(functionDeclaration.getFileLocation(),
                                  false,
@@ -1247,7 +1247,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                              returnVariableDeclaration),
                                            resultExpression);
       final BooleanFormula result = assignment.accept(statementVisitor);
-      statementVisitor.declareSharedBase(returnVariableDeclaration, PointerTargetSet.containsArray(returnType));
+      statementVisitor.declareSharedBase(returnVariableDeclaration, CTypeUtils.containsArray(returnType));
       return result;
     }
   }
@@ -1272,7 +1272,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   throws CPATransferException {
 
     if (declarationEdge.getDeclaration() instanceof CTypeDeclaration) {
-      final CType declarationType = PointerTargetSet.simplifyType(
+      final CType declarationType = CTypeUtils.simplifyType(
                                       ((CTypeDeclaration) declarationEdge.getDeclaration()).getType());
       if (declarationType instanceof CCompositeType) {
         statementVisitor.declareCompositeType((CCompositeType) declarationType);
@@ -1290,7 +1290,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     // makeFreshIndex(variableName, declaration.getType(), ssa); // TODO: Make sure about
                                                                  // correctness of SSA indices without this trick!
 
-    CType declarationType = PointerTargetSet.simplifyType(declaration.getType());
+    CType declarationType = CTypeUtils.simplifyType(declaration.getType());
 
     if (!isRelevantVariable(declaration.getQualifiedName()) &&
         !isAddressedVariable(declaration.getQualifiedName())) {
@@ -1301,7 +1301,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
     if (errorConditions != null) {
       final Formula address = makeConstant(PointerTargetSet.getBaseName(declaration.getQualifiedName()),
-                                           PointerTargetSet.getBaseType(declarationType), pts);
+                                           CTypeUtils.getBaseType(declarationType), pts);
       constraints.addConstraint(fmgr.makeEqual(makeBaseAddressOfTerm(address), address));
     }
 
@@ -1361,7 +1361,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         result = bfmgr.makeBoolean(true);
       }
 
-      if (PointerTargetSet.containsArray(declarationType)) {
+      if (CTypeUtils.containsArray(declarationType)) {
         addPreFilledBase(declaration.getQualifiedName(), declarationType, true, false, constraints, pts);
       }
 
@@ -1380,7 +1380,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
       final BooleanFormula result = statementVisitor.handleInitializationAssignments(lhs, assignments);
 
-      if (PointerTargetSet.containsArray(declarationType)) {
+      if (CTypeUtils.containsArray(declarationType)) {
         addPreFilledBase(declaration.getQualifiedName(), declarationType, true, false, constraints, pts);
       }
 
@@ -1429,14 +1429,14 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     BooleanFormula result = bfmgr.makeBoolean(true);
     for (CParameterDeclaration formalParameter : parameters) {
       final CExpression argument = arguments.get(i++);
-      final CType parameterType = PointerTargetSet.simplifyType(formalParameter.getType());
+      final CType parameterType = CTypeUtils.simplifyType(formalParameter.getType());
       final CExpressionAssignmentStatement assignmentStatement = new CExpressionAssignmentStatement(
         argument.getFileLocation(),
         new CIdExpression(argument.getFileLocation(), parameterType, formalParameter.getName(), formalParameter),
         argument);
       final BooleanFormula assignment = assignmentStatement.accept(statementVisitor);
       result = bfmgr.and(result, assignment);
-      statementVisitor.declareSharedBase(formalParameter, PointerTargetSet.containsArray(parameterType));
+      statementVisitor.declareSharedBase(formalParameter, CTypeUtils.containsArray(parameterType));
     }
 
     return result;
