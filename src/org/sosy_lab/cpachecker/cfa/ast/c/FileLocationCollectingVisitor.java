@@ -31,8 +31,11 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import com.google.common.collect.Sets;
 
 
-public class FileLocationCollectingVisitor implements CStatementVisitor<Set<FileLocation>, RuntimeException>,
-  CInitializerVisitor<Set<FileLocation>, RuntimeException>, CExpressionVisitor<Set<FileLocation>, RuntimeException> {
+public class FileLocationCollectingVisitor implements
+  CStatementVisitor<Set<FileLocation>, RuntimeException>,
+  CInitializerVisitor<Set<FileLocation>, RuntimeException>,
+  CSimpleDeclarationVisitor<Set<FileLocation>, RuntimeException>,
+  CExpressionVisitor<Set<FileLocation>, RuntimeException> {
 
   @Override
   public Set<FileLocation> visit(CArraySubscriptExpression pE) throws RuntimeException {
@@ -174,12 +177,57 @@ public class FileLocationCollectingVisitor implements CStatementVisitor<Set<File
     return astNode.accept(this);
   }
 
+  public Set<FileLocation> collectTokensFrom(CDeclaration astNode) {
+    return astNode.accept(this);
+  }
+
   public Set<FileLocation> collectTokensFrom(CStatement astNode) {
     return astNode.accept(this);
   }
 
   public Set<FileLocation> collectTokensFrom(CInitializer astNode) {
     return astNode.accept(this);
+  }
+
+  @Override
+  public Set<FileLocation> visit(CFunctionDeclaration astNode) throws RuntimeException {
+    Set<FileLocation> result = Sets.newHashSet();
+    result.add(astNode.getFileLocation());
+    for (CParameterDeclaration expr : astNode.getParameters()) {
+      result.addAll(expr.accept(this));
+    }
+    return result;
+  }
+
+  @Override
+  public Set<FileLocation> visit(CTypeDeclaration astNode) throws RuntimeException {
+    return Collections.singleton(astNode.getFileLocation());
+  }
+
+  @Override
+  public Set<FileLocation> visit(CVariableDeclaration astNode) throws RuntimeException {
+    Set<FileLocation> result = Sets.newHashSet();
+    result.add(astNode.getFileLocation());
+    if (astNode.getInitializer() != null) {
+      result.addAll(astNode.getInitializer().accept(this));
+    }
+    return result;
+  }
+
+  @Override
+  public Set<FileLocation> visit(CComplexTypeDeclaration pDecl) throws RuntimeException {
+    return Collections.singleton(pDecl.getFileLocation());
+  }
+
+  @Override
+  public Set<FileLocation> visit(CParameterDeclaration pDecl) throws RuntimeException {
+    return Collections.singleton(pDecl.getFileLocation());
+  }
+
+  @Override
+  public Set<FileLocation> visit(org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator pDecl)
+      throws RuntimeException {
+    return Collections.singleton(pDecl.getFileLocation());
   }
 
 }

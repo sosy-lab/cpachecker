@@ -36,4 +36,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
  */
 public interface CDeclaration extends  CSimpleDeclaration, IADeclaration {
 
+
+
 }

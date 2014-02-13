@@ -49,7 +49,7 @@ public class CPreprocessor {
                       "The source file name will be appended to this string. " +
                       "The preprocessor needs to print the output to stdout.")
 
-  private String preprocessor = "cpp -P"; // -P  Inhibit generation of linemarkers (this make problems when running a tokenizer)
+  private String preprocessor = "cpp"; // -P  Inhibit generation of linemarkers (this make problems when running a tokenizer)
 
   private final LogManager logger;
 
@@ -58,7 +58,7 @@ public class CPreprocessor {
     logger = pLogger;
   }
 
-  public String preprocess(String file) throws CParserException, InterruptedException {
+  public char[] preprocess(String file) throws CParserException, InterruptedException {
     // create command line
     List<String> argList = Lists.newArrayList(Splitter.on(CharMatcher.WHITESPACE).omitEmptyStrings().split(preprocessor));
     argList.add(file);
@@ -80,9 +80,9 @@ public class CPreprocessor {
       }
 
       if (executor.buffer == null) {
-        return "";
+        return "".toCharArray();
       }
-      return executor.buffer.toString();
+      return executor.buffer.toString().toCharArray();
 
     } catch (IOException e) {
       throw new CParserException("Preprocessor failed", e);

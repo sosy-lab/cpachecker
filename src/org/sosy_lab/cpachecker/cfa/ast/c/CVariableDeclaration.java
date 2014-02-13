@@ -136,5 +136,10 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
     return Objects.equals(other.cStorageClass, cStorageClass);
   }
 
+  @Override
+  public <R, X extends Exception> R accept(CSimpleDeclarationVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
+
 
 }

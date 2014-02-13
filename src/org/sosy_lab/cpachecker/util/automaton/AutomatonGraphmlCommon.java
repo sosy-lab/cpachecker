@@ -51,9 +51,9 @@ public class AutomatonGraphmlCommon {
   public final static String SINK_NODE_ID = "sink";
 
   public enum KeyDef {
-    ASSUMPTION("assumption", "node", "assumption", "string"),
     INVARIANT("invariant", "node", "invariant", "string"),
     NAMED("named", "node", "namedValue", "string"),
+
     NODETYPE("nodetype", "node", "nodeType", "string"),
 
     ISFRONTIERNODE("frontier","node","isFrontierNode","boolean"),
@@ -65,8 +65,12 @@ public class AutomatonGraphmlCommon {
 
     SOURCECODE("sourcecode", "edge", "sourcecode", "string"),
     TOKENS("tokens", "edge", "tokenSet", "string"),
+    SOURCEFILE("sourcefile", "edge", "sourceFile", "string"),
+    ORIGINLINE("originline", "edge", "lineNumberInOrigin", "int"),
+    ORIGINFILE("originfile", "edge", "originFileName", "string"),
     LINECOLS("lineCols", "edge", "lineColSet", "string"),
     TOKENSNEGATED("negated", "edge", "negativeCase", "string"),
+    ASSUMPTION("assumption", "edge", "assumption", "string"),
 
     FUNCTIONENTRY("enterFunction", "edge", "enterFunction", "string"),
     FUNCTIONEXIT("returnFrom", "edge", "returnFromFunction", "string");

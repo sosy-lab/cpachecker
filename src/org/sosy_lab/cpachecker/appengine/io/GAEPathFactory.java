@@ -33,54 +33,54 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.io.AbstractPathFactory;
 import org.sosy_lab.common.io.FileSystemPath;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.cpachecker.appengine.entity.Job;
+import org.sosy_lab.cpachecker.appengine.entity.Task;
 
 /**
  * This class is {@link AbstractPathFactory} that is specifically tailored to
  * work on Google App Engine. The {@link Path} instances it creates depend on a
- * {@link Job} instance.
+ * {@link Task} instance.
  */
 public class GAEPathFactory implements AbstractPathFactory {
 
-  private Job job;
-  private Map<Thread, Job> threadJobMap;
+  private Task task;
+  private Map<Thread, Task> threadTaskMap;
 
   /**
-   * Creates an instance that depends on the given {@link Job} when it creates
+   * Creates an instance that depends on the given {@link Task} when it creates
    * {@link Path} instances.
    *
-   * @param job The job to use when creating Path instances
+   * @param task The {@link Task} to use when creating {@link Path} instances
    */
-  public GAEPathFactory(Job job) {
-    this.job = checkNotNull(job);
+  public GAEPathFactory(Task task) {
+    this.task = checkNotNull(task);
   }
 
   /**
-   * Creates an instance that uses the given map to retrieve a {@link Job}
+   * Creates an instance that uses the given {@link Map} to retrieve a {@link Task}
    * instance when a {@link Path} instance is created.
    *
-   * @param map A map to retrieve the dependent Job from.
+   * @param map A {@link Map} to retrieve the dependent {@link Task} from.
    */
-  public GAEPathFactory(Map<Thread, Job> map) {
-    threadJobMap = checkNotNull(map);
+  public GAEPathFactory(Map<Thread, Task> map) {
+    threadTaskMap = checkNotNull(map);
   }
 
   /**
-   * Usually returns a {@link GAEPath} that depends on a {@link Job} set via one of
-   * the constructors. If no Job can be resolved a {@link FileSystemPath} instance
-   * is returned instead.
+   * Usually returns a {@link GAEPath} that depends on a {@link Task} set via one of
+   * the constructors. If no {@link Task} can be resolved a
+   * {@link FileSystemPath} instance will be returned instead.
    */
   @Override
   public Path getPath(@Nullable String path, @Nullable String... more) {
-    Job jobForPath = job;
-    if (jobForPath == null) {
-      jobForPath = threadJobMap.get(Thread.currentThread()); //JobMappingThreadFactory.getJob(Thread.currentThread());
+    Task taskForPath = task;
+    if (taskForPath == null) {
+      taskForPath = threadTaskMap.get(Thread.currentThread());
     }
 
-    if (jobForPath == null) {
+    if (taskForPath == null) {
       return new FileSystemPath(path, more);
     } else {
-      return new GAEPath(path, jobForPath, more);
+      return new GAEPath(path, taskForPath, more);
     }
   }
 

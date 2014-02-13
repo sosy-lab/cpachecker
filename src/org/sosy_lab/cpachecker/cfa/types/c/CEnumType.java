@@ -32,6 +32,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclarations;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclarationVisitor;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -195,6 +196,12 @@ public final class CEnumType implements CComplexType {
       return getName()
           + (hasValue() ? " = " + String.valueOf(value) : "");
     }
+
+    @Override
+    public <R, X extends Exception> R accept(CSimpleDeclarationVisitor<R, X> pV) throws X {
+      return pV.visit(this);
+    }
+
   }
 
 

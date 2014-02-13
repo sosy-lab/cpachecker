@@ -129,7 +129,7 @@ class ExpressionToFormulaWithUFVisitor
     // -- fixed-length arrays for which the aliased location of the first element is returned here
     // -- pointers implicitly converted to arrays for which either the aliased or unaliased location of the *pointer*
     //    is returned
-    final CType baseType = PointerTargetSet.simplifyType(e.getArrayExpression().getExpressionType());
+    final CType baseType = CTypeUtils.simplifyType(e.getArrayExpression().getExpressionType());
     // Fixed-length arrays
     // TODO: Check if fixed-sized arrays and pointers can be clearly distinguished this way
     if (baseType instanceof CArrayType && ((CArrayType) baseType).getLength() != null) {
@@ -141,9 +141,9 @@ class ExpressionToFormulaWithUFVisitor
     // Now we should always have the aliased location of the first array element
     assert base.isAliasedLocation();
 
-    final CType elementType = PointerTargetSet.simplifyType(e.getExpressionType());
+    final CType elementType = CTypeUtils.simplifyType(e.getExpressionType());
     final CExpression subscript = e.getSubscriptExpression();
-    final CType subscriptType = PointerTargetSet.simplifyType(subscript.getExpressionType());
+    final CType subscriptType = CTypeUtils.simplifyType(subscript.getExpressionType());
     final Formula index = conv.makeCast(subscriptType,
                                         CPointerType.POINTER_TO_VOID,
                                         asValueFormula(subscript.accept(this), subscriptType),
@@ -159,7 +159,7 @@ class ExpressionToFormulaWithUFVisitor
   static CFieldReference eliminateArrow(final CFieldReference e, final CFAEdge edge)
   throws UnrecognizedCCodeException {
     if (e.isPointerDereference()) {
-      final CType fieldOwnerType = PointerTargetSet.simplifyType(e.getFieldOwner().getExpressionType());
+      final CType fieldOwnerType = CTypeUtils.simplifyType(e.getFieldOwner().getExpressionType());
       if (fieldOwnerType instanceof CPointerType) {
         return new CFieldReference(e.getFileLocation(),
                                    e.getExpressionType(),
@@ -189,7 +189,7 @@ class ExpressionToFormulaWithUFVisitor
       }
       return UnaliasedLocation.ofVariableName(variableName);
     } else {
-      final CType fieldOwnerType = PointerTargetSet.simplifyType(e.getFieldOwner().getExpressionType());
+      final CType fieldOwnerType = CTypeUtils.simplifyType(e.getFieldOwner().getExpressionType());
       if (fieldOwnerType instanceof CCompositeType) {
         final AliasedLocation base = e.getFieldOwner().accept(this).asAliasedLocation();
 
@@ -224,7 +224,7 @@ class ExpressionToFormulaWithUFVisitor
 
   @Override
   public Expression visit(final CCastExpression e) throws UnrecognizedCCodeException {
-    final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
+    final CType resultType = CTypeUtils.simplifyType(e.getExpressionType());
     final CExpression operand = conv.makeCastFromArrayToPointerIfNecessary(e.getOperand(), resultType);
 
     final Expression result = operand.accept(this);
@@ -240,7 +240,7 @@ class ExpressionToFormulaWithUFVisitor
       }
     }
 
-    final CType operandType = PointerTargetSet.simplifyType(operand.getExpressionType());
+    final CType operandType = CTypeUtils.simplifyType(operand.getExpressionType());
     if (CToFormulaWithUFConverter.isSimpleType(resultType)) {
       return Value.ofValue(conv.makeCast(operandType, resultType, asValueFormula(result, operandType), edge));
     } else if (CTypes.withoutConst(resultType).equals(CTypes.withoutConst(operandType))) {
@@ -262,7 +262,7 @@ class ExpressionToFormulaWithUFVisitor
   @Override
   public Expression visit(final CIdExpression e) throws UnrecognizedCCodeException {
     Variable variable = e.accept(baseVisitor);
-    final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
+    final CType resultType = CTypeUtils.simplifyType(e.getExpressionType());
     if (variable != null) {
       if (!(e.getDeclaration() instanceof CFunctionDeclaration)) {
         final String variableName = variable.getName();
@@ -276,7 +276,7 @@ class ExpressionToFormulaWithUFVisitor
     } else {
       variable = conv.scopedIfNecessary(e, ssa, function);
       final Formula address = conv.makeConstant(PointerTargetSet.getBaseName(variable.getName()),
-                                                PointerTargetSet.getBaseType(resultType),
+                                                CTypeUtils.getBaseType(resultType),
                                                 pts);
       return AliasedLocation.ofAddress(address);
     }
@@ -293,7 +293,7 @@ class ExpressionToFormulaWithUFVisitor
 
   private Value handleSizeof(final CExpression e, final CType type) throws UnrecognizedCCodeException {
     return Value.ofValue(
-             conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(PointerTargetSet.simplifyType(e.getExpressionType()),
+             conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(CTypeUtils.simplifyType(e.getExpressionType()),
                                                                pts),
                                   pts.getSize(type)));
   }
@@ -306,8 +306,8 @@ class ExpressionToFormulaWithUFVisitor
   @Override
   public Value visit(final CUnaryExpression e) throws UnrecognizedCCodeException {
     final CExpression operand = e.getOperand();
-    final CType operandType = PointerTargetSet.simplifyType(operand.getExpressionType());
-    final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
+    final CType operandType = CTypeUtils.simplifyType(operand.getExpressionType());
+    final CType resultType = CTypeUtils.simplifyType(e.getExpressionType());
     final UnaryOperator operator = e.getOperator();
     switch (e.getOperator()) {
     case MINUS:
@@ -343,7 +343,7 @@ class ExpressionToFormulaWithUFVisitor
     }
 
     case SIZEOF:
-      return handleSizeof(e, PointerTargetSet.simplifyType(operand.getExpressionType()));
+      return handleSizeof(e, CTypeUtils.simplifyType(operand.getExpressionType()));
     case AMPER:
       if (!(resultType instanceof CFunctionType)) {
         final Variable baseVariable = operand.accept(baseVisitor);
@@ -363,10 +363,10 @@ class ExpressionToFormulaWithUFVisitor
               isDeref = true;
             }
             if (isDeref) {
-              final CPointerType pointerType = (CPointerType)PointerTargetSet.simplifyType(fieldOwner.getExpressionType());
+              final CPointerType pointerType = (CPointerType)CTypeUtils.simplifyType(fieldOwner.getExpressionType());
               final Formula base = asSafeValueFormula(fieldOwner.accept(this), pointerType);
               final String fieldName = field.getFieldName();
-              final CCompositeType compositeType = (CCompositeType)PointerTargetSet.simplifyType(pointerType.getType());
+              final CCompositeType compositeType = (CCompositeType)CTypeUtils.simplifyType(pointerType.getType());
               usedFields.add(Pair.of(compositeType, fieldName));
               final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType,
                                                           pts.getOffset(compositeType, fieldName));
@@ -386,7 +386,7 @@ class ExpressionToFormulaWithUFVisitor
         } else {
           final Variable oldBaseVariable = baseVisitor.getLastBase();
           final Variable newBaseVariable = oldBaseVariable.withType(
-            PointerTargetSet.getBaseType(oldBaseVariable.getType()));
+            CTypeUtils.getBaseType(oldBaseVariable.getType()));
           final Formula baseAddress = conv.makeConstant(
             newBaseVariable.withName(PointerTargetSet.getBaseName(oldBaseVariable.getName())), pts);
           conv.addValueImportConstraints(edge,
@@ -419,7 +419,7 @@ class ExpressionToFormulaWithUFVisitor
   @Override
   public AliasedLocation visit(final CPointerExpression e) throws UnrecognizedCCodeException {
     final CExpression operand = e.getOperand();
-    final CType operandType = PointerTargetSet.simplifyType(operand.getExpressionType());
+    final CType operandType = CTypeUtils.simplifyType(operand.getExpressionType());
     return AliasedLocation.ofAddress(asValueFormula(operand.accept(this), operandType));
   }
 
@@ -431,8 +431,8 @@ class ExpressionToFormulaWithUFVisitor
   @Override
   public Value visit(final CBinaryExpression exp) throws UnrecognizedCCodeException {
     final BinaryOperator op = exp.getOperator();
-    final CType returnType = PointerTargetSet.simplifyType(exp.getExpressionType());
-    final CType calculationType = PointerTargetSet.simplifyType(exp.getCalculationType());
+    final CType returnType = CTypeUtils.simplifyType(exp.getExpressionType());
+    final CType calculationType = CTypeUtils.simplifyType(exp.getCalculationType());
 
     // these operators expect numeric arguments
     final FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType, pts);
@@ -441,8 +441,8 @@ class ExpressionToFormulaWithUFVisitor
     CExpression e2 = exp.getOperand2();
     e1 = conv.makeCastFromArrayToPointerIfNecessary(e1, returnType);
     e2 = conv.makeCastFromArrayToPointerIfNecessary(e2, returnType);
-    final CType t1 = PointerTargetSet.simplifyType(e1.getExpressionType());
-    final CType t2 = PointerTargetSet.simplifyType(e2.getExpressionType());
+    final CType t1 = CTypeUtils.simplifyType(e1.getExpressionType());
+    final CType t2 = CTypeUtils.simplifyType(e2.getExpressionType());
     Formula f1 = asValueFormula(e1.accept(this), t1);
     Formula f2 = asValueFormula(e2.accept(this), t2);
 

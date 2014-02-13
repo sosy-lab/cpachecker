@@ -32,14 +32,25 @@ public final class FileLocation {
   private final int length;
   private final int offset;
   private final int startingLine;
+  private final int startingLineInOrigin;
 
   public FileLocation(int pEndineLine, String pFileName, int pLength,
       int pOffset, int pStartingLine) {
+    this(pEndineLine, pFileName, pLength, pOffset, pStartingLine, pStartingLine);
+  }
+
+  public FileLocation(int pEndineLine, String pFileName, int pLength,
+      int pOffset, int pStartingLine, int pStartingLineInOrigin) {
     endineLine = pEndineLine;
     fileName = pFileName;
     length = pLength;
     offset = pOffset;
     startingLine = pStartingLine;
+    startingLineInOrigin = pStartingLineInOrigin;
+  }
+
+  public int getStartingLineInOrigin() {
+    return startingLineInOrigin;
   }
 
   public int getEndingLineNumber() {

@@ -155,7 +155,7 @@ class AutomatonASTComparator {
    */
   private static CStatement parse(String code, CParser parser) throws InvalidAutomatonException, InvalidConfigurationException {
     try {
-      CAstNode statement = parser.parseSingleStatement(code);
+      CAstNode statement = parser.parseSingleStatement(code.toCharArray());
       if (!(statement instanceof CStatement)) {
         throw new InvalidAutomatonException("Not a valid statement: " + statement.toASTString());
       }
@@ -182,7 +182,7 @@ class AutomatonASTComparator {
   private static List<CStatement> parseBlockOfStatements(String code, CParser parser) throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
     List<CAstNode> statements;
 
-    statements = parser.parseStatements(code);
+    statements = parser.parseStatements(code.toCharArray());
 
     for(CAstNode statement : statements) {
       if(!(statement instanceof CStatement)) {

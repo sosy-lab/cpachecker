@@ -269,7 +269,7 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
                rhsExpression.asUnaliasedLocation().getVariableName().equals(usedPointer.getKey()) &&
                rhsUsedDeferredAllocationPointers.size() == 1 :
                "Wrong assumptions on deferred allocations tracking: rhs is not a single pointer";
-        final CType lhsType = PointerTargetSet.simplifyType(lhs.getExpressionType());
+        final CType lhsType = CTypeUtils.simplifyType(lhs.getExpressionType());
         if (lhsType.equals(CPointerType.POINTER_TO_VOID) &&
             // TODO: is the following isUnaliasedLocation() check really needed?
             ExpressionToFormulaWithUFVisitor.isUnaliasedLocation(lhs) &&
@@ -329,8 +329,8 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
         case GREATER_THAN:
         case LESS_EQUAL:
         case LESS_THAN:
-          final CType operand1Type = PointerTargetSet.simplifyType(binaryExpression.getOperand1().getExpressionType());
-          final CType operand2Type = PointerTargetSet.simplifyType(binaryExpression.getOperand2().getExpressionType());
+          final CType operand1Type = CTypeUtils.simplifyType(binaryExpression.getOperand1().getExpressionType());
+          final CType operand2Type = CTypeUtils.simplifyType(binaryExpression.getOperand2().getExpressionType());
           CType type = null;
           if (ExpressionToFormulaWithUFVisitor.isRevealingType(operand1Type)) {
             type = operand1Type;
@@ -366,8 +366,8 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
                                   final boolean batchMode,
                                   final Set<CType> destroyedTypes)
   throws UnrecognizedCCodeException {
-    final CType lhsType = PointerTargetSet.simplifyType(lhs.getExpressionType());
-    final CType rhsType = rhs != null ? PointerTargetSet.simplifyType(rhs.getExpressionType()) :
+    final CType lhsType = CTypeUtils.simplifyType(lhs.getExpressionType());
+    final CType rhsType = rhs != null ? CTypeUtils.simplifyType(rhs.getExpressionType()) :
                                         CNumericTypes.SIGNED_CHAR;
 
     // RHS handling
@@ -486,7 +486,7 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
 
     @Override
     public Boolean visit(final CFieldReference e) {
-      CType fieldOwnerType = PointerTargetSet.simplifyType(e.getFieldOwner().getExpressionType());
+      CType fieldOwnerType = CTypeUtils.simplifyType(e.getFieldOwner().getExpressionType());
       if (fieldOwnerType instanceof CPointerType) {
         fieldOwnerType = ((CPointerType) fieldOwnerType).getType();
       }
@@ -537,7 +537,7 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
       }
     }
     if (lhsLocation.isAliased()) {
-      conv.finishAssignments(PointerTargetSet.simplifyType(variable.getExpressionType()),
+      conv.finishAssignments(CTypeUtils.simplifyType(variable.getExpressionType()),
                              lhsLocation.asAliased(),
                              variable.accept(lvalueVisitor),
                              updatedTypes,
@@ -550,7 +550,7 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
   throws UnrecognizedCCodeException {
     reset();
 
-    final CType expressionType = PointerTargetSet.simplifyType(e.getExpressionType());
+    final CType expressionType = CTypeUtils.simplifyType(e.getExpressionType());
     BooleanFormula result = conv.toBooleanFormula(asValueFormula(e.accept(this),
                                                                  expressionType));
 
@@ -589,10 +589,10 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
   private static CType getSizeofType(CExpression e) {
     if (e instanceof CUnaryExpression &&
         ((CUnaryExpression) e).getOperator() == UnaryOperator.SIZEOF) {
-      return PointerTargetSet.simplifyType(((CUnaryExpression) e).getOperand().getExpressionType());
+      return CTypeUtils.simplifyType(((CUnaryExpression) e).getOperand().getExpressionType());
     } else if (e instanceof CTypeIdExpression &&
                ((CTypeIdExpression) e).getOperator() == TypeIdOperator.SIZEOF) {
-      return PointerTargetSet.simplifyType(((CTypeIdExpression) e).getType());
+      return CTypeUtils.simplifyType(((CTypeIdExpression) e).getType());
     } else {
       return null;
     }
@@ -601,7 +601,7 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
   @Override
   public Value visit(final CFunctionCallExpression e) throws UnrecognizedCCodeException {
     final CExpression functionNameExpression = e.getFunctionNameExpression();
-    final CType returnType = PointerTargetSet.simplifyType(e.getExpressionType());
+    final CType returnType = CTypeUtils.simplifyType(e.getExpressionType());
     final List<CExpression> parameters = e.getParameterExpressions();
 
     // First let's handle special cases such as assumes, allocations, nondets, external models, etc.
@@ -656,9 +656,9 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
     }
 
     // Pure functions returning composites are unsupported, return a nondet value
-    final CType resultType = PointerTargetSet.simplifyType(conv.getReturnType(e, edge));
+    final CType resultType = CTypeUtils.simplifyType(conv.getReturnType(e, edge));
     if (resultType instanceof CCompositeType ||
-        PointerTargetSet.containsArray(resultType)) {
+        CTypeUtils.containsArray(resultType)) {
       conv.logger.logfOnce(Level.WARNING,
                            "Pure function %s returning a composite is treated as nondet.", e);
       return Value.nondetValue();
@@ -701,11 +701,11 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
       final Iterator<CType> formalParameterTypesIterator = formalParameterTypes.iterator();
       final Iterator<CExpression> parametersIterator = parameters.iterator();
       while (formalParameterTypesIterator.hasNext() && parametersIterator.hasNext()) {
-        final CType formalParameterType = PointerTargetSet.simplifyType(formalParameterTypesIterator.next());
+        final CType formalParameterType = CTypeUtils.simplifyType(formalParameterTypesIterator.next());
         CExpression parameter = parametersIterator.next();
         parameter = conv.makeCastFromArrayToPointerIfNecessary(parameter, formalParameterType);
 
-        final CType actualParameterType = PointerTargetSet.simplifyType(parameter.getExpressionType());
+        final CType actualParameterType = CTypeUtils.simplifyType(parameter.getExpressionType());
         final Formula argument = asValueFormula(parameter.accept(this), actualParameterType);
         arguments.add(conv.makeCast(actualParameterType, formalParameterType, argument, edge));
       }
@@ -840,7 +840,7 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
     }
     Formula address;
     if (newType != null) {
-      final CType newBaseType = PointerTargetSet.getBaseType(newType);
+      final CType newBaseType = CTypeUtils.getBaseType(newType);
       final String newBase = conv.makeAllocVariableName(functionName, newType, newBaseType);
       address =  conv.makeAllocation(conv.options.isSuccessfulZallocFunctionName(functionName),
                                  newType,
@@ -881,7 +881,7 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
 
     if (errorConditions != null) {
       final Formula operand = asValueFormula(parameters.get(0).accept(this),
-                                                 PointerTargetSet.simplifyType(parameters.get(0).getExpressionType()));
+                                                 CTypeUtils.simplifyType(parameters.get(0).getExpressionType()));
       BooleanFormula validFree = conv.fmgr.makeEqual(operand, conv.nullPointer);
 
       for (String base : pts.getAllBases()) {
@@ -902,9 +902,9 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
     if (shareImmediately) {
       conv.addPreFilledBase(declaration.getQualifiedName(), declaration.getType(), false, false, constraints, pts);
     } else if (conv.isAddressedVariable(declaration.getQualifiedName()) ||
-               PointerTargetSet.containsArray(declaration.getType())) {
+               CTypeUtils.containsArray(declaration.getType())) {
       constraints.addConstraint(pts.prepareBase(declaration.getQualifiedName(),
-                                                PointerTargetSet.simplifyType(declaration.getType())));
+                                                CTypeUtils.simplifyType(declaration.getType())));
     }
   }
 
