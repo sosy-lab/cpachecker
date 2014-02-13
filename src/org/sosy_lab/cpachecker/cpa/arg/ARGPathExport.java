@@ -43,6 +43,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -369,8 +370,10 @@ public class ARGPathExport {
         }
 
         if (exportTokenNumbers) {
-          Set<Integer> tokens = SourceLocationMapper.getTokensFromCFAEdge(edge, false);
-          desc.put(KeyDef.TOKENS, tokensToText(tokens));
+          if (CSourceOriginMapping.INSTANCE.getHasOneInputLinePerToken()) {
+            Set<Integer> tokens = SourceLocationMapper.getTokensFromCFAEdge(edge, false);
+            desc.put(KeyDef.TOKENS, tokensToText(tokens));
+          }
         }
 
         if (exportLineNumbers) {
