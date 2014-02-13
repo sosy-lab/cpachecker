@@ -310,7 +310,7 @@ public class CLangSMGTest {
   }
 
   @Test
-  public void ConsistencyViolationDisjunctnessTest() {
+  public void consistencyViolationDisjunctnessTest() {
     CLangSMG smg = getNewCLangSMG64();
     SMGRegion obj = new SMGRegion(8, "label");
 
@@ -338,7 +338,7 @@ public class CLangSMGTest {
   }
 
   @Test
-  public void ConsistencyViolationUnionTest() {
+  public void consistencyViolationUnionTest() {
     CLangSMG smg = getNewCLangSMG64();
     Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
     SMGRegion stack_obj = new SMGRegion(8, "stack_variable");
@@ -359,7 +359,7 @@ public class CLangSMGTest {
   }
 
   @Test
-  public void ConsistencyViolationNullTest() {
+  public void consistencyViolationNullTest() {
 
     CLangSMG smg = getNewCLangSMG64();
 
@@ -377,7 +377,7 @@ public class CLangSMGTest {
    * Identical object in different frames is inconsistent
    */
   @Test
-  public void ConsistencyViolationStackNamespaceTest1() {
+  public void consistencyViolationStackNamespaceTest1() {
     CLangSMG smg = getNewCLangSMG64();
     SMGRegion obj1 = new SMGRegion(8, "label");
 
@@ -393,7 +393,7 @@ public class CLangSMGTest {
    * Two objects with same label (variable name) in different frames are not inconsistent
    */
   @Test
-  public void ConsistencyViolationStackNamespaceTest2() {
+  public void consistencyViolationStackNamespaceTest2() {
     CLangSMG smg = getNewCLangSMG64();
     SMGRegion obj1 = new SMGRegion(8, "label");
     SMGRegion obj2 = new SMGRegion(16, "label");
@@ -409,7 +409,7 @@ public class CLangSMGTest {
    * Two objects with same label (variable name) on stack and global namespace are not inconsistent
    */
   @Test
-  public void ConsistencyViolationStackNamespaceTest3() {
+  public void consistencyViolationStackNamespaceTest3() {
     CLangSMG smg = getNewCLangSMG64();
     SMGRegion obj1 = new SMGRegion(8, "label");
     SMGRegion obj2 = new SMGRegion(16, "label");
