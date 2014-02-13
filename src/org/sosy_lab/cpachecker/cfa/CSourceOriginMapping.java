@@ -35,6 +35,8 @@ public enum CSourceOriginMapping {
   INSTANCE;
 
   public class NoOriginMappingAvailable extends Exception {
+    private static final long serialVersionUID = 1L;
+
     public NoOriginMappingAvailable(String message) {
       super(message);
     }
