@@ -284,7 +284,7 @@ public class PointerTargetSet implements Serializable {
 
     private void addTarget(final String base,
                            final CType targetType,
-                           final CType containerType,
+                           final @Nullable CType containerType,
                            final int properOffset,
                            final int containerOffset) {
       final String type = CTypeUtils.typeToString(targetType);
@@ -298,12 +298,8 @@ public class PointerTargetSet implements Serializable {
     }
 
   /**
-   * <p>
    * Recursively adds pointer targets for every used (tracked) (sub)field of the newly allocated base.
-   * </p>
-   * <p>
-   * Note: the recursion doesn't proceed on unused (untracked) (sub)fields.
-   * </p>
+   * (actual recursive implementation).
    * @param base the name of the newly allocated base variable
    * @param currentType type of the allocated base or the next added pointer target
    * @param containerType either {@code null} or the type of the innermost container of the next added pointer target
@@ -349,6 +345,18 @@ public class PointerTargetSet implements Serializable {
       }
     }
 
+    /**
+     * Recursively adds pointer targets for every used (tracked) (sub)field of the newly allocated base.
+     *
+     * Note: the recursion doesn't proceed on unused (untracked) (sub)fields.
+     *
+     * @param base the name of the newly allocated base variable
+     * @param currentType type of the allocated base or the next added pointer target
+     */
+    private void addTargets(final String name, CType type) {
+      addTargets(name, type, null, 0, 0);
+    }
+
     public BooleanFormula prepareBase(final String name, CType type) {
       type = CTypeUtils.simplifyType(type);
       if (bases.containsKey(name)) {
@@ -367,7 +375,7 @@ public class PointerTargetSet implements Serializable {
 //      Preconditions.checkArgument(bases.containsKey(name),
 //                                  "The base should be prepared beforehead with prepareBase()");
 
-      addTargets(name, type, null, 0, 0);
+      addTargets(name, type);
       bases = bases.putAndCopy(name, type);
 
       lastBase = name;
@@ -386,7 +394,7 @@ public class PointerTargetSet implements Serializable {
         return formulaManager.getBooleanFormulaManager().makeBoolean(true);
       }
 
-      addTargets(name, type, null, 0, 0);
+      addTargets(name, type);
       bases = bases.putAndCopy(name, type);
 
       final BooleanFormula nextInequality = getNextBaseAddressInequality(name, lastBase);
