@@ -65,4 +65,9 @@ public final class CTypeDefDeclaration extends CTypeDeclaration {
 
     return super.equals(obj);
   }
+
+  @Override
+  public <R, X extends Exception> R accept(CSimpleDeclarationVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
 }

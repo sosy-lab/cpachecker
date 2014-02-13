@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  * It is also used stand-alone for the declaration of members of composite types
  * (e.g. structs) and for the declaration of function parameters.
  */
-public interface  CSimpleDeclaration extends IASimpleDeclaration, CAstNode {
+public interface CSimpleDeclaration extends IASimpleDeclaration, CAstNode {
 
   @Override
   public CType getType();
@@ -45,4 +45,6 @@ public interface  CSimpleDeclaration extends IASimpleDeclaration, CAstNode {
    * Get globally unique name of this declaration, qualified with the function name.
    */
   public String getQualifiedName();
+
+  public  <R, X extends Exception> R accept(CSimpleDeclarationVisitor<R, X> v) throws X;
 }
