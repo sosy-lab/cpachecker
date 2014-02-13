@@ -263,7 +263,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
         // Only if BOTH parts produced an environment value, they can be united to a non-top value
         if (value1 != null) {
           InvariantsFormula<CompoundInterval> value2 = entry.getValue();
-          final InvariantsFormula<CompoundInterval> newValueFormula = CompoundStateFormulaManager.INSTANCE.union(value1, value2).accept(new PartialEvaluator(this.environment), evaluationVisitor);
+          final InvariantsFormula<CompoundInterval> newValueFormula = CompoundIntervalFormulaManager.INSTANCE.union(value1, value2).accept(new PartialEvaluator(this.environment), evaluationVisitor);
           if (newValueFormula.accept(this.evaluationVisitor, this.environment).isBottom()) {
             this.cachingEvaluationVisitor.clearCache();
             return false;
@@ -357,7 +357,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
       }
     }
 
-    CompoundStateFormulaManager ifm = CompoundStateFormulaManager.INSTANCE;
+    CompoundIntervalFormulaManager ifm = CompoundIntervalFormulaManager.INSTANCE;
     InvariantsFormula<CompoundInterval> parameter = ifm.asConstant(pParameter);
     return ifm.logicalOr(ifm.equal(pUnion.getOperand1(), parameter), ifm.equal(pUnion.getOperand2(), parameter)).accept(this, CompoundInterval.logicalTrue());
   }
@@ -392,7 +392,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     if (newValue.isTop()) {
       environment.remove(varName);
     } else {
-      CompoundStateFormulaManager ifm = CompoundStateFormulaManager.INSTANCE;
+      CompoundIntervalFormulaManager ifm = CompoundIntervalFormulaManager.INSTANCE;
       environment.put(varName, ifm.asConstant(newValue));
     }
     this.cachingEvaluationVisitor.clearCache();
@@ -409,7 +409,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
   private InvariantsFormula<CompoundInterval> getFromEnvironment(String pVarName) {
     InvariantsFormula<CompoundInterval> result = environment.get(pVarName);
     if (result == null) {
-      return CompoundStateFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
+      return CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
     }
     return result;
   }

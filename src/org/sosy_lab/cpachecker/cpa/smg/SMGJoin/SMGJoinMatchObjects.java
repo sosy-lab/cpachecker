@@ -95,7 +95,7 @@ final class SMGJoinMatchObjects {
       if (hv1.size() > 0 && hv2.size() > 0) {
         Integer v1 = Iterators.getOnlyElement(hv1.iterator()).getValue();
         Integer v2 = Iterators.getOnlyElement(hv2.iterator()).getValue();
-        if (pMapping1.containsKey(v1) && pMapping2.containsKey(v2) && pMapping1.get(v1) != pMapping2.get(v2)){
+        if (pMapping1.containsKey(v1) && pMapping2.containsKey(v2) && !(pMapping1.get(v1).equals(pMapping2.get(v2)))){
           return true;
         }
       }

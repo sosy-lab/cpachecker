@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 public class SMGJoinSubSMGsTest {
 
   SMGJoinSubSMGs jssDefined;
-  SMGJoinSubSMGs jssUndefined;
 
   @Before
   public void setUp() throws SMGInconsistentException {

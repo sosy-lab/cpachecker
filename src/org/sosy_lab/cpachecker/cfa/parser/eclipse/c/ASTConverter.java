@@ -93,6 +93,8 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
+import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping.NoOriginMappingAvailable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
@@ -201,21 +203,23 @@ class ASTConverter {
 
   private static final ContainsProblemTypeVisitor containsProblemTypeVisitor = new ContainsProblemTypeVisitor();
 
-  public ASTConverter(Configuration config, Scope pScope, LogManager pLogger,
-      MachineModel pMachineModel, String staticVariablePrefix,
-      boolean pSimplifyConstExpressions, Sideassignments sideAssignmentStack) throws InvalidConfigurationException {
-    config.inject(this);
-    scope = pScope;
-    logger = pLogger;
-    typeConverter = new ASTTypeConverter(scope, this, staticVariablePrefix);
-    literalConverter = new ASTLiteralConverter(typeConverter, pMachineModel);
-    this.staticVariablePrefix = staticVariablePrefix;
-    this.sideAssignmentStack = sideAssignmentStack;
-    simplifyConstExpressions = pSimplifyConstExpressions;
+  public ASTConverter(Configuration pConfig, Scope pScope, LogManager pLogger,
+      MachineModel pMachineModel, String pStaticVariablePrefix,
+      boolean pSimplifyConstExpressions, Sideassignments pSideAssignmentStack) throws InvalidConfigurationException {
 
-    expressionSimplificator = new ExpressionSimplificationVisitor(pMachineModel, pLogger);
-    nonRecursiveExpressionSimplificator = new NonRecursiveExpressionSimplificationVisitor(pMachineModel, pLogger);
-    binExprBuilder = new CBinaryExpressionBuilder(pMachineModel, pLogger);
+    pConfig.inject(this);
+
+    this.scope = pScope;
+    this.logger = pLogger;
+    this.typeConverter = new ASTTypeConverter(scope, this, pStaticVariablePrefix);
+    this.literalConverter = new ASTLiteralConverter(typeConverter, pMachineModel);
+    this.staticVariablePrefix = pStaticVariablePrefix;
+    this.sideAssignmentStack = pSideAssignmentStack;
+    this.simplifyConstExpressions = pSimplifyConstExpressions;
+
+    this.expressionSimplificator = new ExpressionSimplificationVisitor(pMachineModel, pLogger);
+    this.nonRecursiveExpressionSimplificator = new NonRecursiveExpressionSimplificationVisitor(pMachineModel, pLogger);
+    this.binExprBuilder = new CBinaryExpressionBuilder(pMachineModel, pLogger);
   }
 
   BigInteger parseIntegerLiteral(String s, final IASTNode e) {
@@ -1745,8 +1749,24 @@ class ASTConverter {
       return null;
     }
 
-    return new FileLocation(l.getEndingLineNumber(), l.getFileName(),
-        l.getNodeLength(), l.getNodeOffset(), l.getStartingLineNumber());
+    String originFileName;
+    int startingLineInOrigin;
+    int startingLineInInput = l.getStartingLineNumber();
+
+    Pair<String, Integer> startingInOrigin;
+    try {
+      startingInOrigin = CSourceOriginMapping.INSTANCE.getOriginLineFromAnalysisCodeLine(startingLineInInput);
+
+      originFileName = startingInOrigin.getFirst();
+      startingLineInOrigin = startingInOrigin.getSecond();
+    } catch (NoOriginMappingAvailable e) {
+      originFileName = l.getFileName();
+      startingLineInOrigin = l.getStartingLineNumber();
+    }
+
+    return new FileLocation(l.getEndingLineNumber(), originFileName,
+        l.getNodeLength(), l.getNodeOffset(),
+        startingLineInInput, startingLineInOrigin);
   }
 
   static String convert(IASTName n) {

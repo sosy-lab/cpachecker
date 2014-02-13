@@ -55,7 +55,6 @@ import com.google.common.collect.Lists;
  */
 class CatchAllGlobalTypesVisitor extends ASTVisitor {
 
-
   private final List<String> eliminateableDuplicates = new ArrayList<>();
 
   // Data structure for storing global declarations
@@ -68,22 +67,22 @@ class CatchAllGlobalTypesVisitor extends ASTVisitor {
   private final MachineModel machine;
   private final LogManager logger;
 
-
-  public CatchAllGlobalTypesVisitor(Configuration config, LogManager pLogger, MachineModel pMachine, String staticVariablePrefix, Sideassignments sideAssignmentStack) throws InvalidConfigurationException {
+  public CatchAllGlobalTypesVisitor(Configuration pConfig, LogManager pLogger, MachineModel pMachine,
+      String pStaticVariablePrefix, Sideassignments pSideAssignmentStack) throws InvalidConfigurationException {
     logger = pLogger;
     machine = pMachine;
+
     fileScope = new GlobalScope(new HashMap<String, CSimpleDeclaration>(),
                                 new HashMap<String, CFunctionDeclaration>(),
                                 new HashMap<String, CComplexTypeDeclaration>(),
                                 new HashMap<String, CTypeDefDeclaration>(),
                                 new HashSet<String>());
-    astCreator = new ASTConverter(config, fileScope, logger, machine, staticVariablePrefix, true, sideAssignmentStack);
-
+    astCreator = new ASTConverter(pConfig, fileScope, logger, machine, pStaticVariablePrefix, true, pSideAssignmentStack);
 
     shouldVisitDeclarations = true;
     shouldVisitEnumerators = true;
     shouldVisitTranslationUnit = true;
-    this.sideAssignmentStack = sideAssignmentStack;
+    sideAssignmentStack = pSideAssignmentStack;
   }
 
   public CComplexType lookupType(String qualifiedName) {

@@ -72,9 +72,9 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
     this.transferRelation = new OctTransferRelation(logger);
 
     MergeOperator octagonMergeOp = null;
-    if (mergeType.equals("sep")) {
+    if (mergeType.equals("SEP")) {
       octagonMergeOp = MergeSepOperator.getInstance();
-    } else if (mergeType.equals("join")) {
+    } else if (mergeType.equals("JOIN")) {
       octagonMergeOp = new MergeJoinOperator(octagonDomain);
     } else {
       // default is sep

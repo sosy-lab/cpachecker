@@ -73,8 +73,8 @@ public class SMGTest {
     smg.addObject(obj1);
     smg.addObject(obj2);
 
-    smg.addValue(val1.intValue());
-    smg.addValue(val2.intValue());
+    smg.addValue(val1);
+    smg.addValue(val2);
 
     smg.addPointsToEdge(pt1to1);
 
@@ -139,7 +139,7 @@ public class SMGTest {
     SMGObject third_object = new SMGRegion(16, "object-3");
     Integer third_value = Integer.valueOf(3);
     smg_copy.addObject(third_object);
-    smg_copy.addValue(third_value.intValue());
+    smg_copy.addValue(third_value);
     smg_copy.addHasValueEdge(new SMGEdgeHasValue(mockType, 0, third_object,  third_value));
     smg_copy.addPointsToEdge(new SMGEdgePointsTo(third_value, third_object, 0));
 
@@ -252,14 +252,14 @@ public class SMGTest {
   }
 
   @Test
-  public void ConsistencyViolationValidNullTest() {
+  public void consistencyViolationValidNullTest() {
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
     smg.setValidity(smg.getNullObject(), true);
     Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg));
   }
 
   @Test
-  public void ConsistencyViolationInvalidRegionHasValueTest() {
+  public void consistencyViolationInvalidRegionHasValueTest() {
     smg.setValidity(obj1, false);
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
     smg.setValidity(obj2, false);
@@ -267,7 +267,7 @@ public class SMGTest {
   }
 
   @Test
-  public void ConsistencyViolationFieldConsistency() {
+  public void consistencyViolationFieldConsistency() {
     SMG smg1 = getNewSMG64();
     SMG smg2 = getNewSMG64();
 
@@ -294,7 +294,7 @@ public class SMGTest {
   }
 
   @Test
-  public void ConsistencyViolationHVConsistency() {
+  public void consistencyViolationHVConsistency() {
     SMG smg = getNewSMG64();
 
     SMGObject object_8b = new SMGRegion(8, "object_8b");
@@ -334,7 +334,7 @@ public class SMGTest {
   }
 
   @Test
-  public void ConsistencyViolationPTConsistency() {
+  public void consistencyViolationPTConsistency() {
     SMG smg = getNewSMG64();
 
     SMGObject object_8b = new SMGRegion(8, "object_8b");

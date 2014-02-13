@@ -78,4 +78,10 @@ public final class CParameterDeclaration extends AParameterDeclaration implement
 
     return super.equals(obj);
   }
+
+
+  @Override
+  public <R, X extends Exception> R accept(CSimpleDeclarationVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
 }

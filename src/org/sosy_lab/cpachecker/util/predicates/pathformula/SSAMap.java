@@ -24,18 +24,14 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Iterators.*;
 
 import java.io.Serializable;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.SortedSet;
-
-import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
@@ -49,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.MapMerger.ConflictHandler;
 
 import com.google.common.base.Equivalence;
 import com.google.common.base.Joiner;
@@ -230,7 +227,7 @@ public class SSAMap implements Serializable {
 
     } else {
       differences = new ArrayList<>();
-      vars = merge(s1.vars, s2.vars, Equivalence.equals(),
+      vars = MapMerger.merge(s1.vars, s2.vars, Equivalence.equals(),
           MAXIMUM_ON_CONFLICT, differences);
     }
 
@@ -239,9 +236,7 @@ public class SSAMap implements Serializable {
       varTypes = s1.varTypes;
 
     } else {
-      @SuppressWarnings("unchecked")
-      ConflictHandler<Object, CType> exceptionOnConflict = (ConflictHandler<Object, CType>)EXCEPTION_ON_CONFLICT;
-      varTypes = merge(s1.varTypes, s2.varTypes,
+      varTypes = MapMerger.merge(s1.varTypes, s2.varTypes,
           new Equivalence<CType>() {
             @Override
             protected boolean doEquivalent(CType pA, CType pB) {
@@ -253,144 +248,11 @@ public class SSAMap implements Serializable {
               return pT.hashCode();
             }
           },
-          exceptionOnConflict, null);
+          MapMerger.<Object, CType>getExceptionOnConflictHandler(), null);
     }
 
     return Pair.of(new SSAMap(vars, 0, varTypes), differences);
   }
-
-  /**
-   * Merge two PersistentSortedMaps.
-   * The result has all key-value pairs where the key is only in one of the map,
-   * those which are identical in both map,
-   * and for those keys that have a different value in both maps a handler is called,
-   * and the result is put in the resulting map.
-   * @param s1 The first map.
-   * @param s2 The second map.
-   * @param conflictHandler The handler that is called for a key with two different values.
-   * @param collectDifferences Null or a modifiable list into which keys with different values are put.
-   * @return
-   */
-  private static <K extends Comparable<? super K>, V> PersistentSortedMap<K, V> merge(
-      PersistentSortedMap<K, V> s1, PersistentSortedMap<K, V> s2,
-      Equivalence<? super V> valueEquals,
-      ConflictHandler<? super K, V> conflictHandler,
-      @Nullable List<Triple<K, V, V>> collectDifferences) {
-
-    // s1 is the bigger one, so we use it as the base.
-    PersistentSortedMap<K, V> result = s1;
-
-    Iterator<Map.Entry<K, V>> it1 = s1.entrySet().iterator();
-    Iterator<Map.Entry<K, V>> it2 = s2.entrySet().iterator();
-
-    Map.Entry<K, V> e1 = null;
-    Map.Entry<K, V> e2 = null;
-
-    // This loop iterates synchronously through both sets
-    // by trying to keep the keys equal.
-    // If one iterator falls behind, the other is not forwarded until the first catches up.
-    // The advantage of this is it is in O(n log(n))
-    // (n iterations, log(n) per update).
-    // Invariant: The elements e1 and e2, and all the elements in the iterator
-    //            still need to be handled.
-    while (((e1 != null) || it1.hasNext())
-        && ((e2 != null) || it2.hasNext())) {
-
-      if (e1 == null) {
-        e1 = it1.next();
-      }
-      if (e2 == null) {
-        e2 = it2.next();
-      }
-
-      int comp = e1.getKey().compareTo(e2.getKey());
-
-      if (comp < 0) {
-        // e1 < e2
-
-        K key = e1.getKey();
-        V value1 = e1.getValue();
-
-        if (collectDifferences != null) {
-          collectDifferences.add(Triple.<K,V,V>of(key, value1, null));
-        }
-
-        // forward e1 until e2 catches up
-        e1 = null;
-
-      } else if (comp > 0) {
-        // e1 > e2
-
-        K key = e2.getKey();
-        V value2 = e2.getValue();
-
-        // e2 is not in map
-        assert !result.containsKey(key);
-        result = result.putAndCopy(key, value2);
-
-        if (collectDifferences != null) {
-          collectDifferences.add(Triple.<K,V,V>of(key, null, value2));
-        }
-
-        // forward e2 until e1 catches up
-        e2 = null;
-
-      } else {
-        // e1 == e2
-
-        K key = e1.getKey();
-        V value1 = e1.getValue();
-        V value2 = e2.getValue();
-
-        if (!valueEquals.equivalent(value1, value2)) {
-          V newValue = conflictHandler.resolveConflict(key, value1, value2);
-          result = result.putAndCopy(key, newValue);
-
-          if (collectDifferences != null) {
-            collectDifferences.add(Triple.of(key, value1, value2));
-          }
-        }
-
-        // forward both iterators
-        e1 = null;
-        e2 = null;
-      }
-    }
-
-    // Now copy the rest of the mappings from s2 (e2 and it2).
-    // For s1 this is not necessary.
-    Iterator<Map.Entry<K, V>> rest =
-        (e2 != null)
-        ? concat(singletonIterator(e2), it2)
-        : it2;
-
-    while (rest.hasNext()) {
-      e2 = rest.next();
-      K key = e2.getKey();
-      V value2 = e2.getValue();
-
-      result = result.putAndCopy(key, value2);
-
-      if (collectDifferences != null) {
-        collectDifferences.add(Triple.<K,V,V>of(key, null, value2));
-      }
-    }
-
-    assert result.size() >= Math.max(s1.size(), s2.size());
-
-    return result;
-  }
-
-  private static interface ConflictHandler<K, V> {
-    V resolveConflict(K key, V value1, V value2);
-  }
-
-  private static final ConflictHandler<Object, ?> EXCEPTION_ON_CONFLICT = new ConflictHandler<Object, Object>() {
-    @Override
-    public Void resolveConflict(Object key, Object value1, Object value2) {
-      throw new IllegalArgumentException("Conflicting value when merging maps for key " + key + ": " + value1 + " and " + value2);
-    }
-  };
 
   private static final ConflictHandler<Object, Integer> MAXIMUM_ON_CONFLICT = new ConflictHandler<Object, Integer>() {
     @Override

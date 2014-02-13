@@ -120,11 +120,12 @@ final public class CLangStackFrame {
    */
   @Override
   public String toString() {
-    String to_return = "<";
+    StringBuilder to_return = new StringBuilder("<");
     for (String key : stack_variables.keySet()) {
-      to_return = to_return + " " + stack_variables.get(key);
+      to_return.append(" ").append(stack_variables.get(key));
     }
-    return to_return + " >";
+    to_return.append(" >");
+    return to_return.toString();
   }
 
   /**

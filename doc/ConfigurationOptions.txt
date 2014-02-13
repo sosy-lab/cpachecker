@@ -454,6 +454,10 @@ cpa.arg.witness.exportAssumptions = true
 # Verification witness: Include function calls and function returns?
 cpa.arg.witness.exportFunctionCallsAndReturns = true
 
+# Verification witness: Include the (starting) line numbers of the operations
+# on the transitions?
+cpa.arg.witness.exportLineNumbers = true
+
 # Verification witness: Include the sourcecode of the operations?
 cpa.arg.witness.exportSourcecode = true
 
@@ -1370,7 +1374,7 @@ parser.dialect = GNUC
 # arguments, but won't be expanded by a shell. The source file name will be
 # appended to this string. The preprocessor needs to print the output to
 # stdout.
-parser.preprocessor = "cpp -P"
+parser.preprocessor = "cpp"
 
 # Preprocess the given C files before parsing: Put every single token onto a
 # new line. Then the line number corresponds to the token number.

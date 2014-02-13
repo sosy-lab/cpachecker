@@ -188,7 +188,7 @@ class Tool(benchmark.tools.template.BaseTool):
                     newStatus = result.STR_FALSE_LABEL
                     match = re.match('.* Violation of propert[a-z]* (.*) found by chosen configuration.*', line)
                     if match:
-                        newStatus = STR_FALSE + '(' + match.group(1) + ')'
+                        newStatus = result.STR_FALSE + '(' + match.group(1) + ')'
                 else:
                     newStatus = result.STR_UNKNOWN if not status.startswith('ERROR') else None
                 if newStatus:

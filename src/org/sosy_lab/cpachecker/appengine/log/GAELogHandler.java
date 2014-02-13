@@ -36,8 +36,8 @@ import java.util.logging.StreamHandler;
 /**
  * A log handler implementation that uses a {@link Writer} to save log records.
  * This handler is very similar to {@link StreamHandler} but circumvents calls
- * to a {@link SecurityManager} to avoid problems with setting log level, setting formatter, closing
- * and flushing.
+ * to a {@link SecurityManager} to avoid problems with setting log level,
+ * setting formatter, closing and flushing.
  */
 public class GAELogHandler extends Handler {
 

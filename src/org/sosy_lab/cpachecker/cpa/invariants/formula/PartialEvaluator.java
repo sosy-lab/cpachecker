@@ -45,13 +45,13 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
    * An invariants formula representing the top state.
    */
   private static final InvariantsFormula<CompoundInterval> TOP =
-      CompoundStateFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
+      CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
 
   /**
    * An invariants formula representing the bottom state.
    */
   private static final InvariantsFormula<CompoundInterval> BOTTOM =
-      CompoundStateFormulaManager.INSTANCE.asConstant(CompoundInterval.bottom());
+      CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.bottom());
 
   /**
    * A visitor for compound state invariants formulae used to determine whether
@@ -80,7 +80,7 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
     InvariantsFormula<CompoundInterval> summand2 = pAdd.getSummand2().accept(this, pEvaluationVisitor);
     // If both summands are constants, calculate a new constant
     if (summand1 instanceof Constant<?> && summand2 instanceof Constant<?>) {
-      return CompoundStateFormulaManager.INSTANCE.asConstant(pAdd.accept(pEvaluationVisitor, environment));
+      return CompoundIntervalFormulaManager.INSTANCE.asConstant(pAdd.accept(pEvaluationVisitor, environment));
     }
     // If one of the summands is constant zero, return the other summand
     // If one of the summands is top or bottom, return it
@@ -114,7 +114,7 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
     }
     // If one or both summands change but cannot be further evaluated,
     // return a new addition formula for both
-    return CompoundStateFormulaManager.INSTANCE.add(summand1, summand2);
+    return CompoundIntervalFormulaManager.INSTANCE.add(summand1, summand2);
   }
 
   private static boolean isDefinitelyBottom(InvariantsFormula<CompoundInterval> pFormula) {
@@ -154,24 +154,24 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
     InvariantsFormula<CompoundInterval> operand1 = pAnd.getOperand1().accept(this, pEvaluationVisitor);
     InvariantsFormula<CompoundInterval> operand2 = pAnd.getOperand2().accept(this, pEvaluationVisitor);
     if (operand1 instanceof Constant<?> && operand2 instanceof Constant<?>) {
-      return CompoundStateFormulaManager.INSTANCE.asConstant(pAnd.accept(pEvaluationVisitor, environment));
+      return CompoundIntervalFormulaManager.INSTANCE.asConstant(pAnd.accept(pEvaluationVisitor, environment));
     }
     if (operand1 == pAnd.getOperand1() && operand2 == pAnd.getOperand2()) {
       return pAnd;
     }
-    return CompoundStateFormulaManager.INSTANCE.binaryAnd(operand1, operand2);
+    return CompoundIntervalFormulaManager.INSTANCE.binaryAnd(operand1, operand2);
   }
 
   @Override
   public InvariantsFormula<CompoundInterval> visit(BinaryNot<CompoundInterval> pNot, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
     InvariantsFormula<CompoundInterval> operand = pNot.getFlipped().accept(this, pEvaluationVisitor);
     if (operand instanceof Constant<?>) {
-      return CompoundStateFormulaManager.INSTANCE.asConstant(pNot.accept(pEvaluationVisitor, environment));
+      return CompoundIntervalFormulaManager.INSTANCE.asConstant(pNot.accept(pEvaluationVisitor, environment));
     }
     if (operand == pNot.getFlipped()) {
       return pNot;
     }
-    return CompoundStateFormulaManager.INSTANCE.binaryNot(operand);
+    return CompoundIntervalFormulaManager.INSTANCE.binaryNot(operand);
   }
 
   @Override
@@ -179,12 +179,12 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
     InvariantsFormula<CompoundInterval> operand1 = pOr.getOperand1().accept(this, pEvaluationVisitor);
     InvariantsFormula<CompoundInterval> operand2 = pOr.getOperand2().accept(this, pEvaluationVisitor);
     if (operand1 instanceof Constant<?> && operand2 instanceof Constant<?>) {
-      return CompoundStateFormulaManager.INSTANCE.asConstant(pOr.accept(pEvaluationVisitor, environment));
+      return CompoundIntervalFormulaManager.INSTANCE.asConstant(pOr.accept(pEvaluationVisitor, environment));
     }
     if (operand1 == pOr.getOperand1() && operand2 == pOr.getOperand2()) {
       return pOr;
     }
-    return CompoundStateFormulaManager.INSTANCE.binaryOr(operand1, operand2);
+    return CompoundIntervalFormulaManager.INSTANCE.binaryOr(operand1, operand2);
   }
 
   @Override
@@ -192,12 +192,12 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
     InvariantsFormula<CompoundInterval> operand1 = pXor.getOperand1().accept(this, pEvaluationVisitor);
     InvariantsFormula<CompoundInterval> operand2 = pXor.getOperand2().accept(this, pEvaluationVisitor);
     if (operand1 instanceof Constant<?> && operand2 instanceof Constant<?>) {
-      return CompoundStateFormulaManager.INSTANCE.asConstant(pXor.accept(pEvaluationVisitor, environment));
+      return CompoundIntervalFormulaManager.INSTANCE.asConstant(pXor.accept(pEvaluationVisitor, environment));
     }
     if (operand1 == pXor.getOperand1() && operand2 == pXor.getOperand2()) {
       return pXor;
     }
-    return CompoundStateFormulaManager.INSTANCE.binaryXor(operand1, operand2);
+    return CompoundIntervalFormulaManager.INSTANCE.binaryXor(operand1, operand2);
   }
 
   @Override
@@ -210,7 +210,7 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
     InvariantsFormula<CompoundInterval> numerator = pDivide.getNumerator().accept(this, pEvaluationVisitor);
     InvariantsFormula<CompoundInterval> denominator = pDivide.getDenominator().accept(this, pEvaluationVisitor);
     if (numerator instanceof Constant<?> && denominator instanceof Constant<?>) {
-      return CompoundStateFormulaManager.INSTANCE.asConstant(pDivide.accept(pEvaluationVisitor, environment));
+      return CompoundIntervalFormulaManager.INSTANCE.asConstant(pDivide.accept(pEvaluationVisitor, environment));
     }
     // Division by 1 yields the numerator, by -1 the negated numerator
     if (denominator instanceof Constant<?>) {
@@ -220,14 +220,14 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
         if (value.getValue().equals(BigInteger.ONE)) {
           return numerator;
         } else if (value.getValue().equals(BigInteger.valueOf(-1))) {
-          return CompoundStateFormulaManager.INSTANCE.negate(numerator);
+          return CompoundIntervalFormulaManager.INSTANCE.negate(numerator);
         }
       }
     }
     if (numerator == pDivide.getNumerator() && denominator == pDivide.getDenominator()) {
       return pDivide;
     }
-    return CompoundStateFormulaManager.INSTANCE.divide(numerator, denominator);
+    return CompoundIntervalFormulaManager.INSTANCE.divide(numerator, denominator);
   }
 
   @Override
@@ -235,7 +235,7 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
     InvariantsFormula<CompoundInterval> operand1 = pEqual.getOperand1().accept(this, pEvaluationVisitor);
     InvariantsFormula<CompoundInterval> operand2 = pEqual.getOperand2().accept(this, pEvaluationVisitor);
     if (operand1 instanceof Constant<?> && operand2 instanceof Constant<?>) {
-      return CompoundStateFormulaManager.INSTANCE.asConstant(pEqual.accept(pEvaluationVisitor, environment));
+      return CompoundIntervalFormulaManager.INSTANCE.asConstant(pEqual.accept(pEvaluationVisitor, environment));
     }
     // If one of the operands is bottom, the equation is bottom; if one of them is top, the equation is top
     InvariantsFormula<CompoundInterval> botOrTop = extractBottomOrTop(operand1, operand2);
@@ -266,13 +266,13 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
         return other;
       }
       if (c.isDefinitelyFalse()) {
-        return CompoundStateFormulaManager.INSTANCE.logicalNot(other).accept(this, pEvaluationVisitor);
+        return CompoundIntervalFormulaManager.INSTANCE.logicalNot(other).accept(this, pEvaluationVisitor);
       }
     }
     if (operand1 == pEqual.getOperand1() && operand2 == pEqual.getOperand2()) {
       return pEqual;
     }
-    return CompoundStateFormulaManager.INSTANCE.equal(operand1, operand2);
+    return CompoundIntervalFormulaManager.INSTANCE.equal(operand1, operand2);
   }
 
   @Override
@@ -280,7 +280,7 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
     InvariantsFormula<CompoundInterval> operand1 = pLessThan.getOperand1().accept(this, pEvaluationVisitor);
     InvariantsFormula<CompoundInterval> operand2 = pLessThan.getOperand2().accept(this, pEvaluationVisitor);
     if (operand1 instanceof Constant<?> && operand2 instanceof Constant<?>) {
-      return CompoundStateFormulaManager.INSTANCE.asConstant(pLessThan.accept(pEvaluationVisitor, environment));
+      return CompoundIntervalFormulaManager.INSTANCE.asConstant(pLessThan.accept(pEvaluationVisitor, environment));
     }
     // If one of the operands is bottom, the inequation is bottom; if one of them is top, the inequation is top
     InvariantsFormula<CompoundInterval> botOrTop = extractBottomOrTop(operand1, operand2);
@@ -290,7 +290,7 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
     if (operand1 == pLessThan.getOperand1() && operand2 == pLessThan.getOperand2()) {
       return pLessThan;
     }
-    return CompoundStateFormulaManager.INSTANCE.lessThan(operand1, operand2);
+    return CompoundIntervalFormulaManager.INSTANCE.lessThan(operand1, operand2);
   }
 
   @Override
@@ -298,7 +298,7 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
     InvariantsFormula<CompoundInterval> operand1 = pAnd.getOperand1().accept(this, pEvaluationVisitor);
     InvariantsFormula<CompoundInterval> operand2 = pAnd.getOperand2().accept(this, pEvaluationVisitor);
     if (operand1 instanceof Constant<?> && operand2 instanceof Constant<?>) {
-      return CompoundStateFormulaManager.INSTANCE.asConstant(pAnd.accept(pEvaluationVisitor, environment));
+      return CompoundIntervalFormulaManager.INSTANCE.asConstant(pAnd.accept(pEvaluationVisitor, environment));
     }
     // If one of the operands is false, return false;
     // if one of the operands is true, return the other one
@@ -324,14 +324,14 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
     if (operand1 == pAnd.getOperand1() && operand2 == pAnd.getOperand2()) {
       return pAnd;
     }
-    return CompoundStateFormulaManager.INSTANCE.logicalAnd(operand1, operand2);
+    return CompoundIntervalFormulaManager.INSTANCE.logicalAnd(operand1, operand2);
   }
 
   @Override
   public InvariantsFormula<CompoundInterval> visit(LogicalNot<CompoundInterval> pNot, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
     InvariantsFormula<CompoundInterval> operand = pNot.getNegated().accept(this, pEvaluationVisitor);
     if (operand instanceof Constant<?>) {
-      return CompoundStateFormulaManager.INSTANCE.asConstant(pNot.accept(pEvaluationVisitor, environment));
+      return CompoundIntervalFormulaManager.INSTANCE.asConstant(pNot.accept(pEvaluationVisitor, environment));
     }
     // The negation of a negation yields the inner operand
     if (operand instanceof LogicalNot<?>) {
@@ -342,23 +342,23 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
       LogicalAnd<CompoundInterval> land = (LogicalAnd<CompoundInterval>) operand;
       // If the or-operand is definitely true (the and-operand is definitely false), return true
       if (land.getOperand1().accept(pEvaluationVisitor, this.environment).isDefinitelyFalse()) {
-        return CompoundStateFormulaManager.INSTANCE.asConstant(CompoundInterval.logicalTrue());
+        return CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.logicalTrue());
       }
       if (land.getOperand2().accept(pEvaluationVisitor, this.environment).isDefinitelyFalse()) {
-        return CompoundStateFormulaManager.INSTANCE.asConstant(CompoundInterval.logicalTrue());
+        return CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.logicalTrue());
       }
       // If one of those operands is definitely false (true in the and-representation), return the other one (negated in the and-representation)
       if (land.getOperand1().accept(pEvaluationVisitor, this.environment).isDefinitelyTrue()) {
-        return CompoundStateFormulaManager.INSTANCE.logicalNot(land.getOperand2()).accept(this, pEvaluationVisitor);
+        return CompoundIntervalFormulaManager.INSTANCE.logicalNot(land.getOperand2()).accept(this, pEvaluationVisitor);
       }
       if (land.getOperand2().accept(pEvaluationVisitor, this.environment).isDefinitelyTrue()) {
-        return CompoundStateFormulaManager.INSTANCE.logicalNot(land.getOperand1()).accept(this, pEvaluationVisitor);
+        return CompoundIntervalFormulaManager.INSTANCE.logicalNot(land.getOperand1()).accept(this, pEvaluationVisitor);
       }
     }
     if (operand == pNot.getNegated()) {
       return pNot;
     }
-    return CompoundStateFormulaManager.INSTANCE.logicalNot(operand);
+    return CompoundIntervalFormulaManager.INSTANCE.logicalNot(operand);
   }
 
   @Override
@@ -366,7 +366,7 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
     InvariantsFormula<CompoundInterval> numerator = pModulo.getNumerator().accept(this, pEvaluationVisitor);
     InvariantsFormula<CompoundInterval> denominator = pModulo.getDenominator().accept(this, pEvaluationVisitor);
     if (numerator instanceof Constant<?> && denominator instanceof Constant<?>) {
-      return CompoundStateFormulaManager.INSTANCE.asConstant(pModulo.accept(pEvaluationVisitor, environment));
+      return CompoundIntervalFormulaManager.INSTANCE.asConstant(pModulo.accept(pEvaluationVisitor, environment));
     }
     // If the denominator is 1 or -1, modulo must yield 0
     if (denominator instanceof Constant<?>) {
@@ -374,13 +374,13 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
       CompoundInterval value = c.getValue();
       if (value.isSingleton() && (value.getValue().equals(BigInteger.ONE)
           || value.getValue().equals(BigInteger.valueOf(-1)))) {
-        return CompoundStateFormulaManager.INSTANCE.asConstant(CompoundInterval.singleton(1));
+        return CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.singleton(1));
       }
     }
     if (numerator == pModulo.getNumerator() && denominator == pModulo.getDenominator()) {
       return pModulo;
     }
-    return CompoundStateFormulaManager.INSTANCE.modulo(numerator, denominator);
+    return CompoundIntervalFormulaManager.INSTANCE.modulo(numerator, denominator);
   }
 
   @Override
@@ -388,7 +388,7 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
     InvariantsFormula<CompoundInterval> factor1 = pMultiply.getFactor1().accept(this, pEvaluationVisitor);
     InvariantsFormula<CompoundInterval> factor2 = pMultiply.getFactor2().accept(this, pEvaluationVisitor);
     if (factor1 instanceof Constant<?> && factor2 instanceof Constant<?>) {
-      return CompoundStateFormulaManager.INSTANCE.asConstant(pMultiply.accept(pEvaluationVisitor, environment));
+      return CompoundIntervalFormulaManager.INSTANCE.asConstant(pMultiply.accept(pEvaluationVisitor, environment));
     }
     // Multiplication by 1 yields the other factor,
     // by -1 the negated other factor, by 0 it yields 0.
@@ -409,17 +409,17 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
           return otherFactor;
         }
         if (value.equals(BigInteger.valueOf(-1))) {
-          return CompoundStateFormulaManager.INSTANCE.negate(otherFactor);
+          return CompoundIntervalFormulaManager.INSTANCE.negate(otherFactor);
         }
         if (value.equals(BigInteger.ZERO)) {
-          return CompoundStateFormulaManager.INSTANCE.asConstant(CompoundInterval.singleton(BigInteger.ZERO));
+          return CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.singleton(BigInteger.ZERO));
         }
       }
     }
     if (factor1 == pMultiply.getFactor1() && factor2 == pMultiply.getFactor2()) {
       return pMultiply;
     }
-    return CompoundStateFormulaManager.INSTANCE.multiply(factor1, factor2);
+    return CompoundIntervalFormulaManager.INSTANCE.multiply(factor1, factor2);
   }
 
   @Override
@@ -427,7 +427,7 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
     InvariantsFormula<CompoundInterval> shifted = pShiftLeft.getShifted().accept(this, pEvaluationVisitor);
     InvariantsFormula<CompoundInterval> shiftDistance = pShiftLeft.getShiftDistance().accept(this, pEvaluationVisitor);
     if (shifted instanceof Constant<?> && shiftDistance instanceof Constant<?>) {
-      return CompoundStateFormulaManager.INSTANCE.asConstant(pShiftLeft.accept(pEvaluationVisitor, environment));
+      return CompoundIntervalFormulaManager.INSTANCE.asConstant(pShiftLeft.accept(pEvaluationVisitor, environment));
     }
     // If the shift distance is zero, return the left operand
     if (shiftDistance instanceof Constant<?>) {
@@ -439,7 +439,7 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
     if (shifted == pShiftLeft.getShifted() && shiftDistance == pShiftLeft.getShiftDistance()) {
       return pShiftLeft;
     }
-    return CompoundStateFormulaManager.INSTANCE.shiftLeft(shifted, shiftDistance);
+    return CompoundIntervalFormulaManager.INSTANCE.shiftLeft(shifted, shiftDistance);
   }
 
   @Override
@@ -447,7 +447,7 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
     InvariantsFormula<CompoundInterval> shifted = pShiftRight.getShifted().accept(this, pEvaluationVisitor);
     InvariantsFormula<CompoundInterval> shiftDistance = pShiftRight.getShiftDistance().accept(this, pEvaluationVisitor);
     if (shifted instanceof Constant<?> && shiftDistance instanceof Constant<?>) {
-      return CompoundStateFormulaManager.INSTANCE.asConstant(pShiftRight.accept(pEvaluationVisitor, environment));
+      return CompoundIntervalFormulaManager.INSTANCE.asConstant(pShiftRight.accept(pEvaluationVisitor, environment));
     }
     // If the shift distance is zero, return the left operand
     if (shiftDistance instanceof Constant<?>) {
@@ -459,7 +459,7 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
     if (shifted == pShiftRight.getShifted() && shiftDistance == pShiftRight.getShiftDistance()) {
       return pShiftRight;
     }
-    return CompoundStateFormulaManager.INSTANCE.shiftRight(shifted, shiftDistance);
+    return CompoundIntervalFormulaManager.INSTANCE.shiftRight(shifted, shiftDistance);
   }
 
   @Override
@@ -467,7 +467,7 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
     InvariantsFormula<CompoundInterval> operand1 = pUnion.getOperand1().accept(this, pEvaluationVisitor);
     InvariantsFormula<CompoundInterval> operand2 = pUnion.getOperand2().accept(this, pEvaluationVisitor);
     if (operand1 instanceof Constant<?> && operand2 instanceof Constant<?>) {
-      return CompoundStateFormulaManager.INSTANCE.asConstant(pUnion.accept(pEvaluationVisitor, environment));
+      return CompoundIntervalFormulaManager.INSTANCE.asConstant(pUnion.accept(pEvaluationVisitor, environment));
     }
     // Union with top yields top
     if (operand1.equals(TOP) || operand2.equals(TOP)) {
@@ -505,12 +505,12 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
         Iterator<InvariantsFormula<CompoundInterval>> atomicUnionPartsIterator = atomicUnionParts.iterator();
         result = atomicUnionPartsIterator.next();
         while (atomicUnionPartsIterator.hasNext()) {
-          result = CompoundStateFormulaManager.INSTANCE.union(result, atomicUnionPartsIterator.next());
+          result = CompoundIntervalFormulaManager.INSTANCE.union(result, atomicUnionPartsIterator.next());
         }
       }
       if (!constantPart.isBottom()) {
-        InvariantsFormula<CompoundInterval> constantPartFormula = CompoundStateFormulaManager.INSTANCE.asConstant(constantPart);
-        result = result == null ? constantPartFormula : CompoundStateFormulaManager.INSTANCE.union(result, constantPartFormula);
+        InvariantsFormula<CompoundInterval> constantPartFormula = CompoundIntervalFormulaManager.INSTANCE.asConstant(constantPart);
+        result = result == null ? constantPartFormula : CompoundIntervalFormulaManager.INSTANCE.union(result, constantPartFormula);
       }
       if (result != null) {
         return result;
@@ -520,14 +520,14 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
     if (operand1 == pUnion.getOperand1() && operand2 == pUnion.getOperand2()) {
       return pUnion;
     }
-    return CompoundStateFormulaManager.INSTANCE.union(operand1, operand2);
+    return CompoundIntervalFormulaManager.INSTANCE.union(operand1, operand2);
   }
 
   @Override
   public InvariantsFormula<CompoundInterval> visit(Variable<CompoundInterval> pVariable, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
     CompoundInterval value = pVariable.accept(pEvaluationVisitor, this.environment);
     if (value.isSingleton()) {
-      return CompoundStateFormulaManager.INSTANCE.asConstant(value);
+      return CompoundIntervalFormulaManager.INSTANCE.asConstant(value);
     }
     return pVariable;
   }

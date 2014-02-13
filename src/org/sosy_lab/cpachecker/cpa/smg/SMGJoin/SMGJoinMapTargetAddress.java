@@ -61,7 +61,7 @@ final class SMGJoinMapTargetAddress {
     }
 
     value = SMGValueFactory.getNewValue();
-    smg.addValue(Integer.valueOf(value));
+    smg.addValue(value);
     smg.addPointsToEdge(new SMGEdgePointsTo(value, target, pt.getOffset()));
     mapping1.map(pAddress1, value);
     mapping2.map(pAddress2, value);

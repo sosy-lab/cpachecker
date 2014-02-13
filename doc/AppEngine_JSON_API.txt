@@ -1,7 +1,7 @@
 CPAchecker JSON API
 ===================
 CPAchecker running on Google App Engine exposes a RESTful JSON API to create,
-retrieve and delete jobs and other resources.
+retrieve and delete tasks and other resources.
 
 RESTful
 -------
@@ -93,7 +93,7 @@ Response
 
 # GET /tasks
 ===========
-Returns a list of all jobs that are stored in the datastore.
+Returns a list of all tasks that are stored in the datastore.
 
 Response
 --------
@@ -110,12 +110,12 @@ Response
 
 # POST /tasks
 ============
-Creates a new job.
+Creates a new task.
 
 Request
 -------
 201 Created
-Location: [URI of the created job resource]
+Location: [URI of the created task resource]
 
 Optional:
   - options
@@ -162,18 +162,18 @@ Errors
 
 # DELETE /tasks
 ==============
-Deletes all jobs and their associated files and statistic.
+Deletes all tasks and their associated files and statistic.
 
 
-# GET /tasks/{jobKey}
+# GET /tasks/{taskKey}
 ====================
-Returns the job with the key {jobKey}.
+Returns the task with the key {taskKey}.
 
 Units:
 - creationDate: UTC datetime
 - executionDate: UTC datetime
 - terminationDate: UTC datetime
-- statistic: see GET /job/{jobKey}/statistics
+- statistic: see GET /task/{taskKey}/statistics
 
 Response
 --------
@@ -215,14 +215,14 @@ Response
 
 
 
-# DELETE /tasks/{jobKey}
+# DELETE /tasks/{taskKey}
 =======================
-Deletes the job with the key {jobKey} and all associated files and statistic.
+Deletes the task with the key {taskKey} and all associated files and statistic.
 
 
-# GET /tasks/{jobKey}/statistics
+# GET /tasks/{taskbKey}/statistics
 ==========================
-Returns statistics about the job with the key {jobKey}.
+Returns statistics about the task with the key {taskKey}.
 
 Units:
 - cost: US Dollar
@@ -235,9 +235,6 @@ Units:
 Response
 --------
 {
-  "job" : {
-    "key" : "agZiYS1sYWJyCQsSA0pvYhgDDA"
-  },
   "cost" : 0.0,
   "host" : "",
   "latency" : 2630000,
@@ -250,14 +247,14 @@ Response
 
 
 
-# GET /tasks/{jobKey}/files/{fileKey}
+# GET /tasks/{taskKey}/files/{taskKey}
 ====================================
-Returns the file with the key {fileKey} belonging to the job with the key {jobKey}.
+Returns the file with the key {fileKey} belonging to the task with the key {taskKey}.
 
 Response
 --------
 {
-  "job" : {
+  "task" : {
     "key" : "agZiYS1sYWJyCQsSA0pvYhgDDA"
   },
   "name" : "CPALog.txt",
@@ -268,10 +265,10 @@ Response
 
 
 
-# GET /tasks/{jobKey}/files/{fileName}
+# GET /tasks/{taskKey}/files/{fileName}
 ======================================
-Returns the content of the file with the name {fileName} belonging to the job
-with the key {jobKey}.
+Returns the content of the file with the name {fileName} belonging to the task
+with the key {taskKey}.
 
 Response
 --------

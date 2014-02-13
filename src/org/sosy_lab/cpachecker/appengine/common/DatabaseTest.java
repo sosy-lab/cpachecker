@@ -26,9 +26,8 @@ package org.sosy_lab.cpachecker.appengine.common;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
-import org.sosy_lab.cpachecker.appengine.entity.Job;
-import org.sosy_lab.cpachecker.appengine.entity.JobFile;
-import org.sosy_lab.cpachecker.appengine.entity.JobStatistic;
+import org.sosy_lab.cpachecker.appengine.entity.Task;
+import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 
 import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
@@ -40,9 +39,8 @@ public abstract class DatabaseTest {
   private final LocalServiceTestHelper helper = new LocalServiceTestHelper(new LocalDatastoreServiceTestConfig());
 
   static {
-    ObjectifyService.register(Job.class);
-    ObjectifyService.register(JobFile.class);
-    ObjectifyService.register(JobStatistic.class);
+    ObjectifyService.register(Task.class);
+    ObjectifyService.register(TaskFile.class);
   }
 
   @Before

@@ -289,6 +289,7 @@ public class ExpressionValueVisitorTest {
     checkCast(evv, 4L, 4L, U_LONG_INT);
     checkCast(evv, 2147483649L, 2147483649L, U_LONG_INT);
     checkCast(evv, 4294967300L, 4294967300L, U_LONG_INT);
+    checkCast(evv, -2147483626L, -2147483626L, U_LONG_INT);
 
     // for U_LONG we cannot make tests with negative values or values > Long.Max_Value,
     // because Java-long is too small.
@@ -304,7 +305,7 @@ public class ExpressionValueVisitorTest {
         new CIntegerLiteralExpression(loc, null, BigInteger.valueOf(in)),
         outType);
 
-    // System.out.println(String.format("(%s) %d == %d == %d", outType, in, expectedOut, value));
+    System.out.println(String.format("(%s) %d == %d == %s", outType, in, expectedOut, value.toString()));
 
     // TODO explicitfloat: add floats to the test
     // We know it's of type int since we manually created a CIntegerLiteralExpression

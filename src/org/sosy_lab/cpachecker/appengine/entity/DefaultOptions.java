@@ -37,6 +37,7 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 
 import com.google.common.base.Charsets;
+import com.google.common.collect.Maps;
 
 /**
  * Represents the options that may be set by a client.
@@ -51,19 +52,20 @@ import com.google.common.base.Charsets;
  */
 public class DefaultOptions {
 
-  private static Map<String, String> allowedOptions = new HashMap<>();
+  public static final String DEFAUL_WALLTIME_LIMIT = "540"; // 9 minutes
+
+  private static Map<String, String> defaultOptions = new HashMap<>();
   private static List<String> unsupportedConfigurations;
   private Map<String, String> usedOptions = new HashMap<>();
   private String originalWalltimeLimit;
 
   static {
-    allowedOptions.put("analysis.machineModel", "Linux32");
-    allowedOptions.put("output.disable", "false");
-    allowedOptions.put("statistics.export", "true");
-    allowedOptions.put("configuration.dumpFile", "");
-    allowedOptions.put("log.level", "OFF");
-    allowedOptions.put("limits.time.wall", "540s"); // 9 minutes
-    allowedOptions.put("gae.instanceType", "FRONTEND");
+    defaultOptions.put("analysis.machineModel", "Linux32");
+    defaultOptions.put("output.disable", "false");
+    defaultOptions.put("statistics.export", "true");
+    defaultOptions.put("log.level", "OFF");
+    defaultOptions.put("limits.time.wall", DEFAUL_WALLTIME_LIMIT);
+    defaultOptions.put("gae.instanceType", "FRONTEND");
 
     /*
      * CPAs that do not work:
@@ -75,61 +77,52 @@ public class DefaultOptions {
   }
 
   /**
-   * Returns the allowed options and their default values.
+   * Returns the mutable default options and their according values.
    */
   public static Map<String, String> getDefaultOptions() {
-    return allowedOptions;
+    return defaultOptions;
   }
 
   /**
-   * Sets an option to be used if it is allowed
-   * and if the given value differs from the default value.
+   * Sets an option.
+   * Validates the option that is to be set and makes sure it does not break
+   * any constraints imposed by App Engine.
    *
    * @param key The option to set
    * @param value The value to set
-   * @return True, if the option will be used, false otherwise.
+   * @return True, if the option will be used as is, false if it was altered.
    */
   public boolean setOption(String key, String value) {
-    if (!getDefaultOptions().containsKey(key)) { return false; }
-
-    if (!getDefaultOptions().get(key).equals(value)) {
-
-      // log level needs to be UPPERCASE otherwise we'll have an exception later on
-      if (key.equals("log.level")) {
-        value = value.toUpperCase();
-      }
-
-      if (key.equals("limits.time.wall")) {
-        // walltime must not be negative or too large on frontend instances
-        if (!getUsedOptions().containsKey("gae.instanceType")
-            || !getUsedOptions().get("gae.instanceType").equals("BACKEND")) {
-          originalWalltimeLimit = value;
-          int defaultValue;
-          int newValue;
-          try {
-            String cleanDefault = getDefault("limits.time.wall").replaceAll("[^0-9]*$", "");
-            String cleanValue = value.replaceAll("[^0-9]*$", "");
-            defaultValue = Integer.parseInt(cleanDefault);
-            newValue = Integer.parseInt(cleanValue);
-
-            if (newValue < 0 || newValue > defaultValue) {
-              value = getDefault("limits.time.wall");
-            }
-          } catch (NumberFormatException e) {
-            value = getDefault("limits.time.wall");
-          }
-        }
-      }
-
-      // backends can run forever. so recover a previously overwritten wall time limit
-      if (key.equals("gae.instanceType") && value.equals("BACKEND") && originalWalltimeLimit != null) {
-        usedOptions.put("limits.time.wall", originalWalltimeLimit);
-      }
-
-      usedOptions.put(key, value);
-      return true;
+    // log level needs to be UPPERCASE
+    if (key.equals("log.level")) {
+      value = value.toUpperCase();
     }
 
+    // walltime must not be negative or too large on front-end instances
+    if (key.equals("limits.time.wall")) {
+      if (!getOptions().containsKey("gae.instanceType")
+          || !getOptions().get("gae.instanceType").equals("BACKEND")) {
+        originalWalltimeLimit = value;
+        int newValue;
+        int defaultValue;
+        try {
+          defaultValue = Integer.parseInt(getDefault("limits.time.wall").replaceAll("[^0-9]*$", ""));
+          newValue = Integer.parseInt(value.replaceAll("[^0-9]*$", ""));
+          if (newValue < 0 || newValue > defaultValue) {
+            value = getDefault("limits.time.wall");
+          }
+        } catch (NumberFormatException e) {
+          value = getDefault("limits.time.wall");
+        }
+      }
+    }
+
+    // backends can run forever. so recover a previously overwritten wall time limit
+    if (key.equals("gae.instanceType") && value.equals("BACKEND") && originalWalltimeLimit != null) {
+      usedOptions.put("limits.time.wall", originalWalltimeLimit);
+    }
+
+    usedOptions.put(key, value);
     return false;
   }
 
@@ -150,8 +143,13 @@ public class DefaultOptions {
    *
    * @return The used options
    */
-  public Map<String, String> getUsedOptions() {
-    return usedOptions;
+  public Map<String, String> getOptions() {
+    try {
+      // remove options that will be set by default to prevent clutter
+      return Maps.difference(usedOptions, getImmutableOptions()).entriesOnlyOnLeft();
+    } catch (IOException e) {
+      return usedOptions;
+    }
   }
 
   /**
@@ -176,7 +174,8 @@ public class DefaultOptions {
           .asCharSource(Charsets.UTF_8).readLines();
     }
 
-    return unsupportedConfigurations;
+    // remove the first two lines. they are comments.
+    return unsupportedConfigurations.subList(2, unsupportedConfigurations.size());
   }
 
   /**

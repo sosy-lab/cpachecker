@@ -2,7 +2,7 @@
 CPAchecker is a tool for configurable software verification.
 This file is part of CPAchecker.
 
-Copyright (C) 2007-2013  Dirk Beyer
+Copyright (C) 2007-2014  Dirk Beyer
 All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,7 +38,7 @@ CATEGORY_MISSING = 'missing'
 
 STR_TRUE = 'true'
 STR_UNKNOWN = 'unknown'
-STR_FALSE = 'false'
+STR_FALSE = 'false' # only for special cases. STR_FALSE is no official result, because property is missing
 
 STR_FALSE_LABEL =       'false(label)'
 STR_FALSE_TERMINATION = 'false(termination)'

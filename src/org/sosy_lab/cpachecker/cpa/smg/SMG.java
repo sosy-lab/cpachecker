@@ -256,8 +256,8 @@ public class SMG {
    *
    * @param pValue  Value to add.
    */
-  final public void addValue(int pValue) {
-    values.add(Integer.valueOf(pValue));
+  final public void addValue(Integer pValue) {
+    values.add(pValue);
   }
 
   /**

@@ -7,15 +7,15 @@
   width: 100px;
 }
 
-.table-jobs td a {
+.table-tasks td a {
   display: block;
   text-decoration: none;
 }
 
-.table-jobs tr:hover td a.hover-decorate {
+.table-tasks tr:hover td a.hover-decorate {
   text-decoration: underline;
 }
 
-.table-jobs th, .table-jobs td {
+.table-tasks th, .table-tasks td {
   text-align: center;
 }

@@ -411,7 +411,13 @@ public class CFASingleLoopTransformation {
     for (FunctionCallEdge fce : findEdges(FunctionCallEdge.class, pStartNode)) {
       FunctionEntryNode entryNode = fce.getSuccessor();
       FunctionExitNode exitNode = entryNode.getExitNode();
+      //assert exitNode.getNumEnteringEdges() > 0;
       FunctionSummaryEdge oldSummaryEdge = fce.getSummaryEdge();
+      if (!existsPath(entryNode, exitNode)) {
+        for (CFunctionSummaryStatementEdge edge : CFAUtils.leavingEdges(oldSummaryEdge.getPredecessor()).filter(CFunctionSummaryStatementEdge.class).toList()) {
+          removeFromNodes(edge);
+        }
+      }
       CFANode oldSummarySuccessor = fce.getSummaryEdge().getSuccessor();
       Integer pcValue = pNewSuccessorsToPC.inverse().get(oldSummarySuccessor);
       if (pcValue != null) {
@@ -428,8 +434,10 @@ public class CFASingleLoopTransformation {
                 for (CFunctionSummaryStatementEdge edge : CFAUtils.leavingEdges(oldSummaryEdge.getPredecessor()).filter(CFunctionSummaryStatementEdge.class)) {
                   if (edge.getPredecessor() != newSummaryEdge.getPredecessor() || edge.getSuccessor() != newSummaryEdge.getSuccessor()) {
                     removeFromNodes(edge);
-                    CFAEdge newEdge = copyCFAEdgeWithNewNodes(edge, newSummaryEdge.getPredecessor(), newSummaryEdge.getSuccessor(), pGlobalNewToOld);
-                    addToNodes(newEdge);
+                    if (exitNode.getNumEnteringEdges() > 0) {
+                      CFAEdge newEdge = copyCFAEdgeWithNewNodes(edge, newSummaryEdge.getPredecessor(), newSummaryEdge.getSuccessor(), pGlobalNewToOld);
+                      addToNodes(newEdge);
+                    }
                   }
                 }
                 // Fix the function summary edge
@@ -1441,6 +1449,79 @@ public class CFASingleLoopTransformation {
   }
 
   /**
+   * Checks if a path from the source to the target exists.
+   *
+   * @param pSource the search start node.
+   * @param pTarget the target.
+   *
+   * @return {@code true} if a path from the source to the target exists,
+   * {@code false} otherwise.
+   */
+  private static boolean existsPath(CFANode pSource, CFANode pTarget) {
+    return existsPath(pSource, pTarget, new Function<CFANode, Iterable<? extends CFAEdge>>() {
+
+      @Override
+      @Nullable
+      public Iterable<? extends CFAEdge> apply(@Nullable CFANode pArg0) {
+        if (pArg0 == null) {
+          return Collections.emptySet();
+        }
+        return CFAUtils.leavingEdges(pArg0);
+      }
+
+    });
+  }
+
+  /**
+   * Checks if a path from the source to the target exists, using the given
+   * function to obtain the edges leaving a node.
+   *
+   * @param pSource the search start node.
+   * @param pTarget the target.
+   * @param pGetLeavingEdges the function used to obtain leaving edges and thus
+   * the successors of a node.
+   *
+   * @return {@code true} if a path from the source to the target exists,
+   * {@code false} otherwise.
+   */
+  private static boolean existsPath(CFANode pSource, CFANode pTarget, Function<? super CFANode, Iterable<? extends CFAEdge>> pGetLeavingEdges) {
+    Set<CFANode> visited = new HashSet<>();
+    Queue<CFANode> waitlist = new ArrayDeque<>();
+    Queue<Deque<FunctionSummaryEdge>> callstacks = new ArrayDeque<>();
+    callstacks.offer(new ArrayDeque<FunctionSummaryEdge>());
+    waitlist.offer(pSource);
+    while (!waitlist.isEmpty()) {
+      CFANode current = waitlist.poll();
+      if (current.equals(pTarget)) {
+        return true;
+      }
+      Deque<FunctionSummaryEdge> callstack = callstacks.poll();
+      if (visited.add(current)) {
+        for (CFAEdge leavingEdge : pGetLeavingEdges.apply(current)) {
+          Deque<FunctionSummaryEdge> newCallstack = callstack;
+          if (leavingEdge instanceof FunctionCallEdge) {
+            newCallstack = new ArrayDeque<>(newCallstack);
+            newCallstack.push(((FunctionCallEdge) leavingEdge).getSummaryEdge());
+          } else if (leavingEdge instanceof FunctionReturnEdge) {
+            if (newCallstack.isEmpty()) {
+              continue;
+            }
+            newCallstack = new ArrayDeque<>(newCallstack);
+            FunctionSummaryEdge summaryEdge = newCallstack.pop();
+            if (!summaryEdge.equals(((FunctionReturnEdge) leavingEdge).getSummaryEdge())) {
+              continue;
+            }
+          }
+          CFANode succ = leavingEdge.getSuccessor();
+          waitlist.offer(succ);
+          callstacks.offer(newCallstack);
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
    * Checks if the given edge is a dummy edge.
    *
    * @param pEdge the edge to check.
@@ -1778,48 +1859,30 @@ public class CFASingleLoopTransformation {
      * graph, {@code false} otherwise.
      */
     public boolean introducesLoop(CFAEdge pEdge) {
-      Set<CFANode> visited = new HashSet<>();
-      Queue<CFANode> waitlist = new ArrayDeque<>();
-      Queue<Deque<FunctionSummaryEdge>> callstacks = new ArrayDeque<>();
-      callstacks.offer(new ArrayDeque<FunctionSummaryEdge>());
-      waitlist.offer(pEdge.getSuccessor());
-      while (!waitlist.isEmpty()) {
-        CFANode current = waitlist.poll();
-        if (current.equals(pEdge.getPredecessor())) {
-          return true;
-        }
-        Deque<FunctionSummaryEdge> callstack = callstacks.poll();
-        if (visited.add(current)) {
-          for (CFAEdge leavingEdge : getLeavingEdges(current)) {
-            if (containsEdge(leavingEdge)) {
-              Deque<FunctionSummaryEdge> newCallstack = callstack;
-              if (leavingEdge instanceof FunctionCallEdge) {
-                newCallstack = new ArrayDeque<>(newCallstack);
-                newCallstack.push(((FunctionCallEdge) leavingEdge).getSummaryEdge());
-              } else if (leavingEdge instanceof FunctionReturnEdge) {
-                if (newCallstack.isEmpty()) {
-                  continue;
-                }
-                newCallstack = new ArrayDeque<>(newCallstack);
-                FunctionSummaryEdge summaryEdge = newCallstack.pop();
-                if (!summaryEdge.equals(((FunctionReturnEdge) leavingEdge).getSummaryEdge())) {
-                  continue;
-                }
-              }
-              CFANode succ = leavingEdge.getSuccessor();
-              if (containsNode(succ)) {
-                waitlist.offer(succ);
-                callstacks.offer(newCallstack);
-              }
-            }
+      Function<? super CFANode, Iterable<? extends CFAEdge>> getLeavingEdges = new Function<CFANode, Iterable<? extends CFAEdge>>() {
+
+        @Override
+        @Nullable
+        public Iterable<CFAEdge> apply(@Nullable CFANode pArg0) {
+          if (pArg0 == null) {
+            return Collections.emptySet();
           }
+          return getLeavingEdges(pArg0).filter(new Predicate<CFAEdge>() {
+
+            @Override
+            public boolean apply(@Nullable CFAEdge pArg0) {
+              return pArg0 != null && containsEdge(pArg0) && containsNode(pArg0.getSuccessor());
+            }
+
+          });
         }
-      }
-      return false;
+
+      };
+      return existsPath(pEdge.getSuccessor(), pEdge.getPredecessor(), getLeavingEdges);
     }
 
-    private Iterable<CFAEdge> getLeavingEdges(CFANode pNode) {
-      return Iterables.concat(this.edges.get(pNode), this.uncommittedEdges.get(pNode));
+    private FluentIterable<CFAEdge> getLeavingEdges(CFANode pNode) {
+      return FluentIterable.from(Iterables.concat(this.edges.get(pNode), this.uncommittedEdges.get(pNode)));
     }
 
     /**

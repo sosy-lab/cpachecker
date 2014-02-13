@@ -28,7 +28,7 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 
-import org.sosy_lab.cpachecker.appengine.entity.JobFile;
+import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 
 import com.google.common.io.CharSink;
 import com.google.common.io.FileWriteMode;
@@ -36,11 +36,11 @@ import com.google.common.io.FileWriteMode;
 
 public class DataStoreCharSink extends CharSink {
 
-  private JobFile file;
+  private TaskFile file;
   private Charset charset;
   private FileWriteMode[] mode;
 
-  public DataStoreCharSink(JobFile file, Charset charset, FileWriteMode... mode) {
+  public DataStoreCharSink(TaskFile file, Charset charset, FileWriteMode... mode) {
     this.file = file;
     this.charset = charset;
     this.mode = mode;
