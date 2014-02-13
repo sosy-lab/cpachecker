@@ -362,17 +362,15 @@ public class PointerTargetSet implements Serializable {
       return nextInequality;
     }
 
-    public boolean shareBase(final String name, CType type) {
+    public void shareBase(final String name, CType type) {
       type = CTypeUtils.simplifyType(type);
 //      Preconditions.checkArgument(bases.containsKey(name),
 //                                  "The base should be prepared beforehead with prepareBase()");
 
-      flag = false;
       addTargets(name, type, null, 0, 0);
       bases = bases.putAndCopy(name, type);
 
       lastBase = name;
-      return flag;
     }
 
     /**
@@ -380,22 +378,20 @@ public class PointerTargetSet implements Serializable {
      * (if its a structure/union) or all its elements (if its an array).
      * @param name
      * @param type
-     * @return
      */
-    public Pair<Boolean, BooleanFormula> addBase(final String name, CType type) {
+    public BooleanFormula addBase(final String name, CType type) {
       type = CTypeUtils.simplifyType(type);
       if (bases.containsKey(name)) {
         // The base has already been added
-        return Pair.of(true, formulaManager.getBooleanFormulaManager().makeBoolean(true));
+        return formulaManager.getBooleanFormulaManager().makeBoolean(true);
       }
 
-      flag = false;
       addTargets(name, type, null, 0, 0);
       bases = bases.putAndCopy(name, type);
 
       final BooleanFormula nextInequality = getNextBaseAddressInequality(name, lastBase);
       lastBase = name;
-      return Pair.of(flag, nextInequality);
+      return nextInequality;
     }
 
     public boolean tracksField(final CCompositeType compositeType, final String fieldName) {
@@ -584,7 +580,7 @@ public class PointerTargetSet implements Serializable {
                                   formulaManager);
     }
 
-    private boolean flag; // Used by addBase() and addField() to detect essential additions
+    private boolean flag; // Used by addField() to detect essential additions
 
     private static final long serialVersionUID = 5692271309582052121L;
   }

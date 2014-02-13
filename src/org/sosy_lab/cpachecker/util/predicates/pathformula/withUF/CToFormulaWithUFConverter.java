@@ -381,7 +381,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                         final Constraints constraints,
                         final PointerTargetSetBuilder pts) {
     if (!prepared) {
-      constraints.addConstraint(pts.addBase(base, type).getSecond());
+      constraints.addConstraint(pts.addBase(base, type));
     } else {
       pts.shareBase(base, type);
     }
