@@ -50,7 +50,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetS
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTarget;
 
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Multiset;
 
 
 public class PointerTargetSetManager {
@@ -80,6 +82,16 @@ public class PointerTargetSetManager {
   private final FormulaManagerView formulaManager;
 
   private final CSizeofVisitor sizeofVisitor;
+
+  /*
+   * Use Multiset<String> instead of Map<String, Integer> because it is more
+   * efficient. The integer value is stored as the number of instances of any
+   * element in the Multiset. So instead of calling map.get(key) we just use
+   * Multiset.count(key). This is better because the Multiset internally uses
+   * modifiable integers instead of the immutable Integer class.
+   */
+  private final Multiset<CCompositeType> sizes = HashMultiset.create();
+  private final Map<CCompositeType, Multiset<String>> offsets = new HashMap<>();
 
   public PointerTargetSetManager(FormulaEncodingWithUFOptions pOptions, MachineModel pMachineModel,
       FormulaManagerView pFormulaManager) {
@@ -117,11 +129,11 @@ public class PointerTargetSetManager {
     final PointerTargetSetBuilder builder1 = PointerTargetSet.emptyPointerTargetSet(
                                                                                machineModel,
                                                                                options,
-                                                                               formulaManager).builder(),
+                                                                               formulaManager).builder(this),
                                   builder2 = PointerTargetSet.emptyPointerTargetSet(
                                                                                machineModel,
                                                                                options,
-                                                                               formulaManager).builder();
+                                                                               formulaManager).builder(this);
     if (reverseBases == reverseFields) {
       builder1.setFields(mergedFields.getFirst());
       builder2.setFields(mergedFields.getSecond());
@@ -168,8 +180,8 @@ public class PointerTargetSetManager {
                   mergedBases.getSecond(),
                   mergedBases.getThird().putAndCopy(fakeBaseName, fakeBaseType));
       lastBase = fakeBaseName;
-      basesMergeFormula = formulaManager.makeAnd(pts1.getNextBaseAddressInequality(fakeBaseName, pts1.lastBase),
-                                                 pts2.getNextBaseAddressInequality(fakeBaseName, pts2.lastBase));
+      basesMergeFormula = formulaManager.makeAnd(pts1.getNextBaseAddressInequality(fakeBaseName, pts1.lastBase, this),
+                                                 pts2.getNextBaseAddressInequality(fakeBaseName, pts2.lastBase, this));
     }
 
     final ConflictHandler<String, PersistentList<PointerTarget>> conflictHandler =
@@ -177,7 +189,6 @@ public class PointerTargetSetManager {
 
     final PointerTargetSet result  =
       new PointerTargetSet(machineModel,
-                           sizeofVisitor,
                            options,
                            mergedBases.getThird(),
                            lastBase,
@@ -300,4 +311,95 @@ public class PointerTargetSetManager {
     };
   }
 
+
+  /**
+   * The method is used to speed up {@code sizeof} computation by caching sizes of declared composite types.
+   * @param cType
+   * @return
+   */
+  public int getSize(CType cType) {
+    cType = CTypeUtils.simplifyType(cType);
+    if (cType instanceof CCompositeType) {
+      if (sizes.contains(cType)) {
+        return sizes.count(cType);
+      } else {
+        return cType.accept(sizeofVisitor);
+      }
+    } else {
+      return cType.accept(sizeofVisitor);
+    }
+  }
+
+  /**
+   * The method is used to speed up member offset computation for declared composite types.
+   * @param compositeType
+   * @param memberName
+   * @return
+   */
+  public int getOffset(CCompositeType compositeType, final String memberName) {
+    compositeType = (CCompositeType) CTypeUtils.simplifyType(compositeType);
+    assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
+    Multiset<String> multiset = offsets.get(compositeType);
+    if (multiset == null) {
+      addCompositeTypeToCache(compositeType);
+      multiset = offsets.get(compositeType);
+      assert multiset != null : "Failed adding composite type to cache: " + compositeType;
+    }
+    return multiset.count(memberName);
+  }
+
+  /**
+   * Adds the declared composite type to the cache saving its size as well as the offset of every
+   * member of the composite.
+   * @param compositeType
+   */
+  void addCompositeTypeToCache(CCompositeType compositeType) {
+    compositeType = (CCompositeType) CTypeUtils.simplifyType(compositeType);
+    if (offsets.containsKey(compositeType)) {
+      // Support for empty structs though it's a GCC extension
+      assert sizes.contains(compositeType) || Integer.valueOf(0).equals(compositeType.accept(sizeofVisitor)) :
+        "Illegal state of PointerTargetSet: no size for type:" + compositeType;
+      return; // The type has already been added
+    }
+
+    final Integer size = compositeType.accept(sizeofVisitor);
+
+    assert size != null : "Can't evaluate size of a composite type: " + compositeType;
+
+    assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
+
+    final Multiset<String> members = HashMultiset.create();
+    int offset = 0;
+    for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+      members.setCount(memberDeclaration.getName(), offset);
+      final CType memberType = CTypeUtils.simplifyType(memberDeclaration.getType());
+      final CCompositeType memberCompositeType;
+      if (memberType instanceof CCompositeType) {
+        memberCompositeType = (CCompositeType) memberType;
+        if (memberCompositeType.getKind() == ComplexTypeKind.STRUCT ||
+            memberCompositeType.getKind() == ComplexTypeKind.UNION) {
+          if (!offsets.containsKey(memberCompositeType)) {
+            assert !sizes.contains(memberCompositeType) :
+              "Illegal state of PointerTargetSet: size for type:" + memberCompositeType;
+            addCompositeTypeToCache(memberCompositeType);
+          }
+        }
+      } else {
+        memberCompositeType = null;
+      }
+      if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
+        if (memberCompositeType != null) {
+          offset += sizes.count(memberCompositeType);
+        } else {
+          offset += memberDeclaration.getType().accept(sizeofVisitor);
+        }
+      }
+    }
+
+    assert compositeType.getKind() != ComplexTypeKind.STRUCT || offset == size :
+           "Incorrect sizeof or offset of the last member: " + compositeType;
+
+    sizes.setCount(compositeType, size);
+    offsets.put(compositeType, members);
+  }
 }

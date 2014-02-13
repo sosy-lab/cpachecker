@@ -145,10 +145,10 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     if (handlePointerAliasing) {
       final FormulaEncodingWithUFOptions options = new FormulaEncodingWithUFOptions(config);
-      CToFormulaWithUFConverter ufConverter = new CToFormulaWithUFConverter(options, pFmgr, pMachineModel, pVariableClassification, pLogger);
+      ptsManager = new PointerTargetSetManager(options, pMachineModel, pFmgr);
+      CToFormulaWithUFConverter ufConverter = new CToFormulaWithUFConverter(options, pFmgr, pMachineModel, ptsManager, pVariableClassification, pLogger);
       NONDET_FORMULA_TYPE = ufConverter.getFormulaTypeFromCType(NONDET_TYPE, null);
       converter = ufConverter;
-      ptsManager = new PointerTargetSetManager(options, pMachineModel, pFmgr);
 
     } else {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
@@ -454,7 +454,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     PointerTargetSet resultPTS = ptsMergeResult.getFirst();
     if (!sharedFields.isEmpty()) {
-      final PointerTargetSetBuilder resultPTSBuilder = resultPTS.builder();
+      final PointerTargetSetBuilder resultPTSBuilder = resultPTS.builder(ptsManager);
       for (final Pair<CCompositeType, String> sharedField : sharedFields) {
         resultPTSBuilder.addField(sharedField.getFirst(), sharedField.getSecond());
       }
@@ -547,7 +547,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
                                        pts));
         }
         if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
-          offset += pts.getSize(memberType);
+          offset += ptsManager.getSize(memberType);
         }
       }
     } else {

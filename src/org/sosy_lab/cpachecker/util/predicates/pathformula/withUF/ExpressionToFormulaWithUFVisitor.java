@@ -149,7 +149,7 @@ class ExpressionToFormulaWithUFVisitor
                                         asValueFormula(subscript.accept(this), subscriptType),
                                         edge);
 
-    final Formula coeff = conv.fmgr.makeNumber(conv.voidPointerFormulaType, pts.getSize(elementType));
+    final Formula coeff = conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.ptsMgr.getSize(elementType));
     final Formula baseAddress = base.asAliasedLocation().getAddress();
     final Formula address = conv.fmgr.makePlus(baseAddress, conv.fmgr.makeMultiply(coeff, index));
     addEqualBaseAdressConstraint(baseAddress, address);
@@ -196,7 +196,7 @@ class ExpressionToFormulaWithUFVisitor
         final String fieldName = e.getFieldName();
         usedFields.add(Pair.of((CCompositeType) fieldOwnerType, fieldName));
         final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType,
-                                                    pts.getOffset((CCompositeType) fieldOwnerType, fieldName));
+                                                    conv.ptsMgr.getOffset((CCompositeType) fieldOwnerType, fieldName));
 
         final Formula address = conv.fmgr.makePlus(base.getAddress(), offset);
         addEqualBaseAdressConstraint(base.getAddress(), address);
@@ -295,7 +295,7 @@ class ExpressionToFormulaWithUFVisitor
     return Value.ofValue(
              conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(CTypeUtils.simplifyType(e.getExpressionType()),
                                                                pts),
-                                  pts.getSize(type)));
+                                                               conv.ptsMgr.getSize(type)));
   }
 
   @Override
@@ -369,7 +369,7 @@ class ExpressionToFormulaWithUFVisitor
               final CCompositeType compositeType = (CCompositeType)CTypeUtils.simplifyType(pointerType.getType());
               usedFields.add(Pair.of(compositeType, fieldName));
               final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType,
-                                                          pts.getOffset(compositeType, fieldName));
+                                                          conv.ptsMgr.getOffset(compositeType, fieldName));
               addressExpression = AliasedLocation.ofAddress(conv.fmgr.makePlus(base, offset));
               addEqualBaseAdressConstraint(base, addressExpression.getAddress());
             }
@@ -424,7 +424,7 @@ class ExpressionToFormulaWithUFVisitor
   }
 
   private Formula getPointerTargetSizeLiteral(final CPointerType pointerType, final CType implicitType) {
-    final int pointerTargetSize = pts.getSize(pointerType.getType());
+    final int pointerTargetSize = conv.ptsMgr.getSize(pointerType.getType());
     return conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(implicitType, pts), pointerTargetSize);
   }
 

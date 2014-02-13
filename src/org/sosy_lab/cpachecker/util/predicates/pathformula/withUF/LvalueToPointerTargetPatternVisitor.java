@@ -113,7 +113,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
           offset = tryEvaluateExpression(operand2);
         }
         if (result != null) {
-          final Integer remaining = result.getRemainingOffset(pts);
+          final Integer remaining = result.getRemainingOffset(conv.ptsMgr);
           if (offset != null && remaining != null && offset < remaining) {
             assert result.getProperOffset() != null : "Unexpected nondet proper offset";
             result.setProperOffset(result.getProperOffset() + offset);
@@ -198,7 +198,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
       result.shift(containerType);
       final Integer index = tryEvaluateExpression(e.getSubscriptExpression());
       if (index != null) {
-        result.setProperOffset(index * pts.getSize(elementType));
+        result.setProperOffset(index * conv.ptsMgr.getSize(elementType));
       }
       return result;
     } else {
@@ -222,7 +222,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
       final CType containerType = CTypeUtils.simplifyType(ownerExpression.getExpressionType());
       if (containerType instanceof CCompositeType) {
         assert  ((CCompositeType) containerType).getKind() != ComplexTypeKind.ENUM : "Enums are not composites!";
-        result.shift(containerType, pts.getOffset((CCompositeType) containerType, e.getFieldName()));
+        result.shift(containerType, conv.ptsMgr.getOffset((CCompositeType) containerType, e.getFieldName()));
         return result;
       } else {
         throw new UnrecognizedCCodeException("Field owner expression has incompatible type", cfaEdge, e);

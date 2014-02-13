@@ -129,15 +129,19 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   @SuppressWarnings("hiding")
   final MachineModel machineModel = super.machineModel;
 
+  final PointerTargetSetManager ptsMgr;
+
   public CToFormulaWithUFConverter(final FormulaEncodingWithUFOptions pOptions,
                                    final FormulaManagerView formulaManagerView,
                                    final MachineModel pMachineModel,
+                                   final PointerTargetSetManager pPtsMgr,
                                    final Optional<VariableClassification> pVariableClassification,
                                    final LogManager logger)
   throws InvalidConfigurationException {
     super(pOptions, formulaManagerView, pMachineModel, logger);
     variableClassification = pVariableClassification;
     options = pOptions;
+    ptsMgr = pPtsMgr;
   }
 
   public PathFormulaWithUF makeEmptyPathFormula() {
@@ -187,7 +191,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   public FormulaType<?> getFormulaTypeFromCType(final CType type, @Nullable final PointerTargetSet pts) {
-    final int size = pts != null ? pts.getSize(type) : super.getSizeof(type);
+    final int size = pts != null ? ptsMgr.getSize(type) : super.getSizeof(type);
     final int bitsPerByte = machineModel.getSizeofCharInBits();
     return efmgr.getFormulaType(size * bitsPerByte);
   }
@@ -325,7 +329,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                           final PointerTargetSetBuilder pts) {
     return !variableClassification.isPresent() ||
            !options.ignoreIrrelevantVariables() ||
-           pts.getSize(compositeType) <= options.maxPreFilledAllocationSize() ||
+           ptsMgr.getSize(compositeType) <= options.maxPreFilledAllocationSize() ||
            variableClassification.get().getRelevantFields().containsEntry(compositeType, fieldName);
   }
 
@@ -386,7 +390,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       pts.shareBase(base, type);
     }
     if (forcePreFill ||
-        (options.maxPreFilledAllocationSize() > 0 && pts.getSize(type) <= options.maxPreFilledAllocationSize())) {
+        (options.maxPreFilledAllocationSize() > 0 && ptsMgr.getSize(type) <= options.maxPreFilledAllocationSize())) {
       addAllFields(type, pts);
     }
   }
@@ -453,7 +457,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                     pts);
         }
         if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
-          offset += pts.getSize(memberType);
+          offset += ptsMgr.getSize(memberType);
         }
       }
     } else {
@@ -689,7 +693,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                          final @Nonnull Constraints constraints,
                                          final @Nonnull PointerTargetSetBuilder pts) {
     lvalueType = CTypeUtils.simplifyType(lvalueType);
-    final int size = pts.getSize(lvalueType);
+    final int size = ptsMgr.getSize(lvalueType);
     if (isSimpleType(lvalueType)) {
       Preconditions.checkArgument(startAddress != null,
                                   "Start address is mandatory for assigning to lvalues of simple types");
@@ -885,7 +889,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                      ssa,
                                                      errorConditions,
                                                      pts));
-         offset += pts.getSize(lvalueArrayType.getType());
+         offset += ptsMgr.getSize(lvalueArrayType.getType());
       }
       return result;
     } else if (lvalueType instanceof CCompositeType) {
@@ -936,7 +940,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         }
 
         if (lvalueCompositeType.getKind() == ComplexTypeKind.STRUCT) {
-          offset += pts.getSize(memberDeclaration.getType());
+          offset += ptsMgr.getSize(memberDeclaration.getType());
         }
       }
       return result;
@@ -1183,7 +1187,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     final String function = edge.getPredecessor() != null ? edge.getPredecessor().getFunctionName() : null;
     final SSAMapBuilder ssa = oldFormula.getSsa().builder();
     final Constraints constraints = new Constraints(bfmgr);
-    final PointerTargetSetBuilder pts = oldFormula.getPointerTargetSet().builder();
+    final PointerTargetSetBuilder pts = oldFormula.getPointerTargetSet().builder(ptsMgr);
 
     BooleanFormula edgeFormula = createFormulaForEdge(edge, function, ssa, constraints, errorConditions, pts);
     edgeFormula = bfmgr.and(edgeFormula, constraints.get());
