@@ -25,8 +25,10 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Formatter;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map.Entry;
 
 import org.sosy_lab.common.Pair;
@@ -82,6 +84,10 @@ public enum InvariantsTransferRelation implements TransferRelation {
    * returning function calls.
    */
   static final String RETURN_VARIABLE_BASE_NAME = "___cpa_temp_result_var_";
+
+  private static final StringBuilder FORMATTER_OUT = new StringBuilder();
+
+  private static final Formatter FORMATTER = new Formatter(FORMATTER_OUT, (Locale) null);
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(
@@ -369,22 +375,20 @@ public enum InvariantsTransferRelation implements TransferRelation {
       CArraySubscriptExpression arraySubscript = (CArraySubscriptExpression) pLhs;
       CExpression subscript = arraySubscript.getSubscriptExpression();
       CExpression owner = arraySubscript.getArrayExpression();
-      if (pState != null) {
-        CompoundInterval subscriptValue = evaluate(subscript.accept(InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(pEdge)), pState);
-        if (subscriptValue.isSingleton()) {
-          return String.format("%s[%d]", getVarName(owner, pEdge, pFunctionName), subscriptValue.getValue());
-        }
-      }
       if (subscript instanceof CIntegerLiteralExpression) {
         CIntegerLiteralExpression literal = (CIntegerLiteralExpression) subscript;
-        return String.format("%s[%d]", getVarName(owner, pEdge, pFunctionName), literal.asLong());
-      } else {
-        return String.format("%s[*]", getVarName(owner, pEdge, pFunctionName));
+        return format("%s[%d]", getVarName(owner, pEdge, pFunctionName), literal.asLong()).toString();
+      } else if (pState != null) {
+        CompoundInterval subscriptValue = evaluate(subscript.accept(InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(pEdge)), pState);
+        if (subscriptValue.isSingleton()) {
+          return format("%s[%d]", getVarName(owner, pEdge, pFunctionName), subscriptValue.getValue()).toString();
+        }
       }
+      return format("%s[*]", getVarName(owner, pEdge, pFunctionName)).toString();
     } else if (pLhs instanceof CPointerExpression) {
       CPointerExpression pe = (CPointerExpression) pLhs;
       if (pe.getOperand() instanceof CLeftHandSide) {
-        return String.format("*(%s)", getVarName(pe.getOperand(), pEdge));
+        return format("*(%s)", getVarName(pe.getOperand(), pEdge));
       }
       return pLhs.toString();
     } else if (pLhs instanceof CCastExpression) {
@@ -393,6 +397,13 @@ public enum InvariantsTransferRelation implements TransferRelation {
     } else {
       return pLhs.toString(); // This actually seems wrong but is currently the only way to deal with some cases of pointer arithmetics
     }
+  }
+
+  private static String format(String pFormatString, Object... pArgs) {
+    assert FORMATTER_OUT.length() == 0;
+    String result = FORMATTER.format(pFormatString, pArgs).toString();
+    FORMATTER_OUT.setLength(0);
+    return result;
   }
 
   static String scope(String pVar, String pFunction) {
