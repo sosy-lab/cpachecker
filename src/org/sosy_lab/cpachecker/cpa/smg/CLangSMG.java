@@ -618,8 +618,11 @@ class CLangSMGConsistencyVerifier {
    * @return True if {@link pSmg} is consistent w.r.t. this criteria. False otherwise.
    */
   static private boolean verifyGlobalNamespace(LogManager pLogger, CLangSMG pSmg) {
+    Map<String, SMGRegion> globals = pSmg.getGlobalObjects();
+
     for (String label: pSmg.getGlobalObjects().keySet()) {
-      if (pSmg.getGlobalObjects().get(label).getLabel() != label) {
+      String globalLabel = globals.get(label).getLabel();
+      if (! globalLabel.equals(label)) {
         pLogger.log(Level.SEVERE,  "CLangSMG inconsistent: label [" + label + "] points to an object with label [" + pSmg.getGlobalObjects().get(label).getLabel() + "]");
         return false;
       }

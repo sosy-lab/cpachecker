@@ -44,12 +44,12 @@ final class SMGJoinValues {
       pJV.defined = true;
     }
 
-    return pV1 == pV2;
+    return pV1.equals(pV2);
   }
 
   private static boolean joinValuesAlreadyJoined(SMGJoinValues pJV, Integer pV1, Integer pV2) {
     if (pJV.mapping1.containsKey(pV1) && pJV.mapping2.containsKey(pV2) &&
-        pJV.mapping1.get(pV1) == pJV.mapping2.get(pV2)) {
+        pJV.mapping1.get(pV1).equals(pJV.mapping2.get(pV2))) {
       pJV.value = pJV.mapping1.get(pV1);
       pJV.defined = true;
       return true;
