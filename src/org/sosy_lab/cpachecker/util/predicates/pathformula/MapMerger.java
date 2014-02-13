@@ -241,7 +241,7 @@ public class MapMerger {
         fromSet2 = fromSet2.putAndCopy(difference.getFirst(), difference.getThird());
       } else if (difference.getThird() == null) {
         // second value is null, key was only in first map
-        fromSet1 = fromSet1.putAndCopy(difference.getFirst(), difference.getThird());
+        fromSet1 = fromSet1.putAndCopy(difference.getFirst(), difference.getSecond());
       } else {
         // both values present, key was in both maps
       }
