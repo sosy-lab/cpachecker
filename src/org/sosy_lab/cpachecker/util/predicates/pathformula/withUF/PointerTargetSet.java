@@ -825,7 +825,7 @@ public class PointerTargetSet implements Serializable {
     final Triple<PersistentSortedMap<CompositeField, Boolean>,
                  PersistentSortedMap<CompositeField, Boolean>,
                  PersistentSortedMap<CompositeField, Boolean>> mergedFields =
-      !reverseBases ? mergeSortedSets(fields, other.fields, PointerTargetSet.<Boolean>failOnConflict()) :
+      !reverseFields ? mergeSortedSets(fields, other.fields, PointerTargetSet.<Boolean>failOnConflict()) :
                       mergeSortedSets(other.fields, fields, PointerTargetSet.<Boolean>failOnConflict());
 
     final boolean reverseTargets = other.targets.size() > targets.size();
