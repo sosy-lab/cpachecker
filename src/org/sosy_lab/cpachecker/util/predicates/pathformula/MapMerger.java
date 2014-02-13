@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import static com.google.common.collect.Iterators.*;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -193,5 +194,45 @@ public class MapMerger {
     assert result.size() >= Math.max(map1.size(), map2.size());
 
     return result;
+  }
+
+  /**
+   * Merges two {@link PersistentSortedMap}s with the given conflict handler (in the same way as
+   * {@link #mergeSortedMaps(set1, set2, conflictHandler)} does) and returns two additional
+   * {@link PersistentSortedMap}s: one with elements form the first map that don't contain in the second one and the
+   * second with the elements from the second map that don't contain in the first.
+   * @param set1 the first map
+   * @param set2 the second map
+   * @param conflictHandler the conflict handler
+   * @return The {@link Triple} {@link Triple#of(from1, from2, union)} where {@code from1} and {@code from2} are the
+   * first and the second map mentioned above.
+   */
+  public static <K extends Comparable<? super K>, V> Triple<PersistentSortedMap<K, V>,
+                                                             PersistentSortedMap<K, V>,
+                                                             PersistentSortedMap<K, V>> mergeSortedSets(
+    final PersistentSortedMap<K, V> set1,
+    final PersistentSortedMap<K, V> set2,
+    final ConflictHandler<K, V> conflictHandler) {
+
+    List<Triple<K, V, V>> differences = new ArrayList<>();
+    PersistentSortedMap<K, V> union = merge(set1, set2, Equivalence.equals(),
+        conflictHandler, differences);
+
+    PersistentSortedMap<K, V> fromSet1 = union.empty();
+    PersistentSortedMap<K, V> fromSet2 = union.empty();
+
+    for (Triple<K, V, V> difference : differences) {
+      if (difference.getSecond() == null) {
+        // first value is null, key was only in second map
+        fromSet2 = fromSet2.putAndCopy(difference.getFirst(), difference.getThird());
+      } else if (difference.getThird() == null) {
+        // second value is null, key was only in first map
+        fromSet1 = fromSet1.putAndCopy(difference.getFirst(), difference.getThird());
+      } else {
+        // both values present, key was in both maps
+      }
+    }
+
+    return Triple.of(fromSet1, fromSet2, union);
   }
 }

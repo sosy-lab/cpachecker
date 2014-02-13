@@ -28,13 +28,12 @@ import static com.google.common.base.Preconditions.*;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes.VOID;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.MapMerger.mergeSortedMaps;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.MapMerger.*;
 
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.SortedSet;
 
@@ -941,97 +940,6 @@ public class PointerTargetSet implements Serializable {
                      basesMergeFormula,
                      !reverseBases ? Pair.of(mergedBases.getFirst(), mergedBases.getSecond()) :
                                      Pair.of(mergedBases.getSecond(), mergedBases.getFirst()));
-  }
-
-  /**
-   * Merges two {@link PersistentSortedMap}s with the given conflict handler (in the same way as
-   * {@link #mergeSortedMaps(set1, set2, conflictHandler)} does) and returns two additional
-   * {@link PersistentSortedMap}s: one with elements form the first map that don't contain in the second one and the
-   * second with the elements from the second map that don't contain in the first.
-   * @param set1 the first map
-   * @param set2 the second map
-   * @param conflictHandler the conflict handler
-   * @return The {@link Triple} {@link Triple#of(from1, from2, union)} where {@code from1} and {@code from2} are the
-   * first and the second map mentioned above.
-   */
-  private static <K extends Comparable<? super K>, V> Triple<PersistentSortedMap<K, V>,
-                                                             PersistentSortedMap<K, V>,
-                                                             PersistentSortedMap<K, V>> mergeSortedSets(
-    final PersistentSortedMap<K, V> set1,
-    final PersistentSortedMap<K, V> set2,
-    final ConflictHandler<K, V> conflictHandler) {
-
-    PersistentSortedMap<K, V> fromSet1 = PathCopyingPersistentTreeMap.<K, V>of();
-    PersistentSortedMap<K, V> fromSet2 = PathCopyingPersistentTreeMap.<K, V>of();
-    PersistentSortedMap<K, V> union = set1; // Here we assume that the set1 is bigger
-
-    final Iterator<Map.Entry<K, V>> it1 = set1.entrySet().iterator();
-    final Iterator<Map.Entry<K, V>> it2 = set2.entrySet().iterator();
-
-    Map.Entry<K, V> e1 = null;
-    Map.Entry<K, V> e2 = null;
-
-    // This loop iterates synchronously through both sets
-    // by trying to keep the keys equal.
-    // If one iterator fails behind, the other is not forwarded until the first catches up.
-    // The advantage of this is it is in O(n log(n))
-    // (n iterations, log(n) per update).
-    while ((e1 != null || it1.hasNext()) && (e2 != null || it2.hasNext())) {
-      if (e1 == null) {
-        e1 = it1.next();
-      }
-      if (e2 == null) {
-        e2 = it2.next();
-      }
-
-      final int flag = e1.getKey().compareTo(e2.getKey());
-
-      if (flag < 0) {
-        // e1 < e2
-        fromSet1 = fromSet1.putAndCopy(e1.getKey(), e1.getValue());
-        // Forward e1 until it catches up with e2
-        e1 = null;
-      } else if (flag > 0) {
-        // e1 > e2
-        fromSet2 = fromSet2.putAndCopy(e2.getKey(), e2.getValue());
-        assert !union.containsKey(e2.getKey());
-        union = union.putAndCopy(e2.getKey(), e2.getValue());
-        // Forward e2 until it catches up with e1
-        e2 = null;
-      } else {
-        // e1 == e2
-        final K key = e1.getKey();
-        final V value1 = e1.getValue();
-        final V value2 = e2.getValue();
-
-        if (!value1.equals(value2)) {
-          union = union.putAndCopy(key, conflictHandler.resolveConflict(key, value1, value2));
-        }
-        // Forward both iterators
-        e1 = null;
-        e2 = null;
-      }
-    }
-
-    while (e1 != null || it1.hasNext()) {
-      if (e1 == null) {
-        e1 = it1.next();
-      }
-      fromSet1 = fromSet1.putAndCopy(e1.getKey(), e1.getValue());
-      e1 = null;
-    }
-
-    while (e2 != null || it2.hasNext()) {
-      if (e2 == null) {
-        e2 = it2.next();
-      }
-      fromSet2 = fromSet2.putAndCopy(e2.getKey(), e2.getValue());
-      assert !union.containsKey(e2.getKey());
-      union = union.putAndCopy(e2.getKey(), e2.getValue());
-      e2 = null;
-    }
-
-    return Triple.of(fromSet1, fromSet2, union);
   }
 
   private static <K, T> ConflictHandler<K, PersistentList<T>> mergeOnConflict() {
