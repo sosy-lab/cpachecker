@@ -532,7 +532,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
       while (!todo.isEmpty()) {
         final ARGState currentState = todo.removeFirst();
 
-        if (isNonTrivialInterpolantAvailable(currentState)) {
+        if (isNonTrivialInterpolantAvailable(currentState) && !currentState.isTarget()) {
           ExplicitValueInterpolant itp = interpolants.get(currentState);
           for (MemoryLocation memoryLocation : itp.getMemoryLocations()) {
             increment.put(getEdgeToSuccessor(currentState).getSuccessor(), memoryLocation);
