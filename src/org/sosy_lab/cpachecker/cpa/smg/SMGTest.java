@@ -73,8 +73,8 @@ public class SMGTest {
     smg.addObject(obj1);
     smg.addObject(obj2);
 
-    smg.addValue(val1.intValue());
-    smg.addValue(val2.intValue());
+    smg.addValue(val1);
+    smg.addValue(val2);
 
     smg.addPointsToEdge(pt1to1);
 
@@ -139,7 +139,7 @@ public class SMGTest {
     SMGObject third_object = new SMGRegion(16, "object-3");
     Integer third_value = Integer.valueOf(3);
     smg_copy.addObject(third_object);
-    smg_copy.addValue(third_value.intValue());
+    smg_copy.addValue(third_value);
     smg_copy.addHasValueEdge(new SMGEdgeHasValue(mockType, 0, third_object,  third_value));
     smg_copy.addPointsToEdge(new SMGEdgePointsTo(third_value, third_object, 0));
 

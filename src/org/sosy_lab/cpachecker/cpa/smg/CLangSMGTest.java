@@ -79,8 +79,8 @@ public class CLangSMGTest {
     SMGEdgePointsTo pt = new SMGEdgePointsTo(val1, obj1, 0);
     SMGEdgeHasValue hv = new SMGEdgeHasValue(AnonymousTypes.dummyInt, 0, obj2, val2.intValue());
 
-    smg.addValue(val1.intValue());
-    smg.addValue(val2.intValue());
+    smg.addValue(val1);
+    smg.addValue(val2);
     smg.addHeapObject(obj1);
     smg.addGlobalObject(obj2);
     smg.addPointsToEdge(pt);
