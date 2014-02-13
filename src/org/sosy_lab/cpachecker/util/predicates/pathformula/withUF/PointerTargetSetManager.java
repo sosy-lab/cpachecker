@@ -95,63 +95,12 @@ public class PointerTargetSetManager {
                 Pair<PersistentSortedMap<String, CType>, PersistentSortedMap<String, CType>>>
     merge(final PointerTargetSet pts1, final PointerTargetSet pts2) {
 
-    final ConflictHandler<String, CType> baseUnitingConflictHandler = new ConflictHandler<String, CType>() {
-      @Override
-      public CType resolveConflict(final String key, final CType type1, final CType type2) {
-        if (isFakeBaseType(type1)) {
-          return type2;
-        } else if (isFakeBaseType(type2)) {
-          return type1;
-        }
-        int currentFieldIndex = 0;
-        final ImmutableList.Builder<CCompositeTypeMemberDeclaration> membersBuilder =
-          ImmutableList.<CCompositeTypeMemberDeclaration>builder();
-        if (type1 instanceof CCompositeType) {
-          final CCompositeType compositeType1 = (CCompositeType) type1;
-          if (compositeType1.getKind() == ComplexTypeKind.UNION &&
-              !compositeType1.getMembers().isEmpty() &&
-              compositeType1.getMembers().get(0).getName().equals(getUnitedFieldBaseName(0))) {
-            membersBuilder.addAll(compositeType1.getMembers());
-            currentFieldIndex += compositeType1.getMembers().size();
-          } else {
-            membersBuilder.add(new CCompositeTypeMemberDeclaration(compositeType1,
-                                                                   getUnitedFieldBaseName(currentFieldIndex++)));
-          }
-        } else {
-          membersBuilder.add(new CCompositeTypeMemberDeclaration(type1,
-                                                                 getUnitedFieldBaseName(currentFieldIndex++)));
-        }
-        if (type2 instanceof CCompositeType) {
-          final CCompositeType compositeType2 = (CCompositeType) type2;
-          if (compositeType2.getKind() == ComplexTypeKind.UNION &&
-              !compositeType2.getMembers().isEmpty() &&
-              compositeType2.getMembers().get(0).getName().equals(getUnitedFieldBaseName(0))) {
-            for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType2.getMembers()) {
-              membersBuilder.add(new CCompositeTypeMemberDeclaration(memberDeclaration.getType(),
-                                                                     getUnitedFieldBaseName(currentFieldIndex++)));
-            }
-          } else {
-            membersBuilder.add(new CCompositeTypeMemberDeclaration(compositeType2,
-                                                                   getUnitedFieldBaseName(currentFieldIndex++)));
-          }
-        } else {
-          membersBuilder.add(new CCompositeTypeMemberDeclaration(type2,
-                                                                 getUnitedFieldBaseName(currentFieldIndex++)));
-        }
-        return new CCompositeType(false,
-                                  false,
-                                  ComplexTypeKind.UNION,
-                                  membersBuilder.build(),
-                                  UNITED_BASE_UNION_TAG_PREFIX + type1.toString().replace(' ', '_') + "_and_" +
-                                                                 type2.toString().replace(' ', '_'));
-      }
-    };
     final boolean reverseBases = pts2.bases.size() > pts1.bases.size();
     Triple<PersistentSortedMap<String, CType>,
            PersistentSortedMap<String, CType>,
            PersistentSortedMap<String, CType>> mergedBases =
-      !reverseBases ? mergeSortedSets(pts1.bases, pts2.bases, baseUnitingConflictHandler) :
-                      mergeSortedSets(pts2.bases, pts1.bases, baseUnitingConflictHandler);
+      !reverseBases ? mergeSortedSets(pts1.bases, pts2.bases, BaseUnitingConflictHandler.INSTANCE) :
+                      mergeSortedSets(pts2.bases, pts1.bases, BaseUnitingConflictHandler.INSTANCE);
 
     final boolean reverseFields = pts2.fields.size() > pts1.fields.size();
     final Triple<PersistentSortedMap<CompositeField, Boolean>,
@@ -189,33 +138,8 @@ public class PointerTargetSetManager {
       builder2.addBase(entry.getKey(), entry.getValue());
     }
 
-    final Map<DeferredAllocationPool, DeferredAllocationPool> mergedDeferredAllocationPools = new HashMap<>();
-    final boolean reverseDeferredAllocations = pts2.deferredAllocations.size() > pts1.deferredAllocations.size();
-    final ConflictHandler<String, DeferredAllocationPool> deferredAllocationMergingConflictHandler =
-      new ConflictHandler<String, DeferredAllocationPool>() {
-      @Override
-      public DeferredAllocationPool resolveConflict(String key, DeferredAllocationPool a, DeferredAllocationPool b) {
-        final DeferredAllocationPool result = a.mergeWith(b);
-        final DeferredAllocationPool oldResult = mergedDeferredAllocationPools.get(result);
-        if (oldResult == null) {
-          mergedDeferredAllocationPools.put(result, result);
-          return result;
-        } else {
-          final DeferredAllocationPool newResult = oldResult.mergeWith(result);
-          mergedDeferredAllocationPools.put(newResult, newResult);
-          return newResult;
-        }
-      }
-    };
-    PersistentSortedMap<String, DeferredAllocationPool> mergedDeferredAllocations =
-      !reverseDeferredAllocations ?
-        mergeSortedMaps(pts1.deferredAllocations, pts2.deferredAllocations, deferredAllocationMergingConflictHandler) :
-        mergeSortedMaps(pts2.deferredAllocations, pts1.deferredAllocations, deferredAllocationMergingConflictHandler);
-    for (final DeferredAllocationPool merged : mergedDeferredAllocationPools.keySet()) {
-      for (final String pointerVariable : merged.getPointerVariables()) {
-        mergedDeferredAllocations = mergedDeferredAllocations.putAndCopy(pointerVariable, merged);
-      }
-    }
+    final PersistentSortedMap<String, DeferredAllocationPool> mergedDeferredAllocations =
+        mergeDeferredAllocationPools(pts1, pts2);
 
     final String lastBase;
     final BooleanFormula basesMergeFormula;
@@ -270,6 +194,92 @@ public class PointerTargetSetManager {
                      basesMergeFormula,
                      !reverseBases ? Pair.of(mergedBases.getFirst(), mergedBases.getSecond()) :
                                      Pair.of(mergedBases.getSecond(), mergedBases.getFirst()));
+  }
+
+  private PersistentSortedMap<String, DeferredAllocationPool> mergeDeferredAllocationPools(final PointerTargetSet pts1,
+      final PointerTargetSet pts2) {
+    final Map<DeferredAllocationPool, DeferredAllocationPool> mergedDeferredAllocationPools = new HashMap<>();
+    final boolean reverseDeferredAllocations = pts2.deferredAllocations.size() > pts1.deferredAllocations.size();
+    final ConflictHandler<String, DeferredAllocationPool> deferredAllocationMergingConflictHandler =
+      new ConflictHandler<String, DeferredAllocationPool>() {
+      @Override
+      public DeferredAllocationPool resolveConflict(String key, DeferredAllocationPool a, DeferredAllocationPool b) {
+        final DeferredAllocationPool result = a.mergeWith(b);
+        final DeferredAllocationPool oldResult = mergedDeferredAllocationPools.get(result);
+        if (oldResult == null) {
+          mergedDeferredAllocationPools.put(result, result);
+          return result;
+        } else {
+          final DeferredAllocationPool newResult = oldResult.mergeWith(result);
+          mergedDeferredAllocationPools.put(newResult, newResult);
+          return newResult;
+        }
+      }
+    };
+    PersistentSortedMap<String, DeferredAllocationPool> mergedDeferredAllocations =
+      !reverseDeferredAllocations ?
+        mergeSortedMaps(pts1.deferredAllocations, pts2.deferredAllocations, deferredAllocationMergingConflictHandler) :
+        mergeSortedMaps(pts2.deferredAllocations, pts1.deferredAllocations, deferredAllocationMergingConflictHandler);
+    for (final DeferredAllocationPool merged : mergedDeferredAllocationPools.keySet()) {
+      for (final String pointerVariable : merged.getPointerVariables()) {
+        mergedDeferredAllocations = mergedDeferredAllocations.putAndCopy(pointerVariable, merged);
+      }
+    }
+    return mergedDeferredAllocations;
+  }
+
+  private static enum BaseUnitingConflictHandler implements ConflictHandler<String, CType> {
+    INSTANCE;
+
+    @Override
+    public CType resolveConflict(final String key, final CType type1, final CType type2) {
+      if (isFakeBaseType(type1)) {
+        return type2;
+      } else if (isFakeBaseType(type2)) {
+        return type1;
+      }
+      int currentFieldIndex = 0;
+      final ImmutableList.Builder<CCompositeTypeMemberDeclaration> membersBuilder =
+        ImmutableList.<CCompositeTypeMemberDeclaration>builder();
+      if (type1 instanceof CCompositeType) {
+        final CCompositeType compositeType1 = (CCompositeType) type1;
+        if (compositeType1.getKind() == ComplexTypeKind.UNION &&
+            !compositeType1.getMembers().isEmpty() &&
+            compositeType1.getMembers().get(0).getName().equals(getUnitedFieldBaseName(0))) {
+          membersBuilder.addAll(compositeType1.getMembers());
+          currentFieldIndex += compositeType1.getMembers().size();
+        } else {
+          membersBuilder.add(new CCompositeTypeMemberDeclaration(compositeType1,
+                                                                 getUnitedFieldBaseName(currentFieldIndex++)));
+        }
+      } else {
+        membersBuilder.add(new CCompositeTypeMemberDeclaration(type1,
+                                                               getUnitedFieldBaseName(currentFieldIndex++)));
+      }
+      if (type2 instanceof CCompositeType) {
+        final CCompositeType compositeType2 = (CCompositeType) type2;
+        if (compositeType2.getKind() == ComplexTypeKind.UNION &&
+            !compositeType2.getMembers().isEmpty() &&
+            compositeType2.getMembers().get(0).getName().equals(getUnitedFieldBaseName(0))) {
+          for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType2.getMembers()) {
+            membersBuilder.add(new CCompositeTypeMemberDeclaration(memberDeclaration.getType(),
+                                                                   getUnitedFieldBaseName(currentFieldIndex++)));
+          }
+        } else {
+          membersBuilder.add(new CCompositeTypeMemberDeclaration(compositeType2,
+                                                                 getUnitedFieldBaseName(currentFieldIndex++)));
+        }
+      } else {
+        membersBuilder.add(new CCompositeTypeMemberDeclaration(type2,
+                                                               getUnitedFieldBaseName(currentFieldIndex++)));
+      }
+      return new CCompositeType(false,
+                                false,
+                                ComplexTypeKind.UNION,
+                                membersBuilder.build(),
+                                UNITED_BASE_UNION_TAG_PREFIX + type1.toString().replace(' ', '_') + "_and_" +
+                                                               type2.toString().replace(' ', '_'));
+    }
   }
 
   private static <K, T> ConflictHandler<K, PersistentList<T>> mergeOnConflict() {
