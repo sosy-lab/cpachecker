@@ -48,7 +48,6 @@ import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -56,7 +55,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
@@ -134,30 +132,6 @@ public class PointerTargetSet implements Serializable {
 
     private final String compositeType;
     private final String fieldName;
-  }
-
-  private static class CSizeofVisitor extends BaseSizeofVisitor
-                                     implements CTypeVisitor<Integer, IllegalArgumentException> {
-
-    public CSizeofVisitor(final MachineModel machineModel,
-                           final FormulaEncodingWithUFOptions options) {
-      super(machineModel);
-      this.options = options;
-    }
-
-    @Override
-    public Integer visit(final CArrayType t) throws IllegalArgumentException {
-      Integer length = CTypeUtils.getArrayLength(t);
-
-      if (length == null) {
-        length = options.defaultArrayLength();
-      }
-
-      final int sizeOfType = t.getType().accept(this);
-      return length * sizeOfType;
-    }
-
-    private final FormulaEncodingWithUFOptions options;
   }
 
   public static String getBaseName(final String name){
