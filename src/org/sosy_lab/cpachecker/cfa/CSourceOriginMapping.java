@@ -34,6 +34,12 @@ import com.google.common.collect.TreeRangeMap;
 public enum CSourceOriginMapping {
   INSTANCE;
 
+  public class NoOriginMappingAvailable extends Exception {
+    public NoOriginMappingAvailable(String message) {
+      super(message);
+    }
+  }
+
   private Boolean oneInputLinePerToken = null;
   private boolean frozen = false;
 
@@ -75,12 +81,20 @@ public enum CSourceOriginMapping {
     lineDeltaMapping.put(lineRange, deltaLinesToOrigin);
   }
 
-  public Pair<String, Integer> getOriginLineFromAnalysisCodeLine(int analysisCodeLine) {
-    int inputLine = analysisCodeLine;
-    if (oneInputLinePerToken) {
+  public Pair<String, Integer> getOriginLineFromAnalysisCodeLine(int analysisCodeLine) throws NoOriginMappingAvailable {
+    Integer inputLine = analysisCodeLine;
+    if ((oneInputLinePerToken != null) && oneInputLinePerToken) {
       inputLine = tokenToLineMapping.get(analysisCodeLine);
     }
-    return Pair.of(lineToFilenameMapping.get(analysisCodeLine), inputLine + lineDeltaMapping.get(inputLine));
+
+    Integer lineDelta = lineDeltaMapping.get(inputLine);
+    String originFileName = lineToFilenameMapping.get(analysisCodeLine);
+
+    if (inputLine == null || lineDelta == null || originFileName == null) {
+      throw new NoOriginMappingAvailable("Mapping source code line to its origin is not possible due to missing mappings!");
+    }
+
+    return Pair.of(originFileName, inputLine + lineDelta);
   }
 
   public synchronized void freeze() {

@@ -94,6 +94,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
+import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping.NoOriginMappingAvailable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
@@ -1748,16 +1749,23 @@ class ASTConverter {
       return null;
     }
 
+    String originFileName;
+    int startingLineInOrigin;
     int startingLineInInput = l.getStartingLineNumber();
-    Pair<String, Integer> startingLineInOrigin = CSourceOriginMapping.INSTANCE.getOriginLineFromAnalysisCodeLine(startingLineInInput);
 
-    String fileName = startingLineInOrigin.getFirst();
-    if (fileName == null) {
-      fileName = l.getFileName();
+    Pair<String, Integer> startingInOrigin;
+    try {
+      startingInOrigin = CSourceOriginMapping.INSTANCE.getOriginLineFromAnalysisCodeLine(startingLineInInput);
+
+      originFileName = startingInOrigin.getFirst();
+      startingLineInOrigin = startingInOrigin.getSecond();
+    } catch (NoOriginMappingAvailable e) {
+      originFileName = l.getFileName();
+      startingLineInOrigin = l.getStartingLineNumber();
     }
 
-    return new FileLocation(l.getEndingLineNumber(), fileName, l.getNodeLength(), l.getNodeOffset(),
-        l.getStartingLineNumber(), startingLineInOrigin.getSecond());
+    return new FileLocation(l.getEndingLineNumber(), originFileName, l.getNodeLength(), l.getNodeOffset(),
+        l.getStartingLineNumber(), startingLineInOrigin);
   }
 
   static String convert(IASTName n) {

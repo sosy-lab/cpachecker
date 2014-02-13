@@ -244,6 +244,9 @@ public class CFACreator {
 
       if (transformTokensToLines) {
         outerParser = new CParserWithLocationMapper(outerParser);
+        CSourceOriginMapping.INSTANCE.setHasOneInputLinePerToken(true);
+      } else {
+        CSourceOriginMapping.INSTANCE.setHasOneInputLinePerToken(false);
       }
 
       if (usePreprocessor) {
