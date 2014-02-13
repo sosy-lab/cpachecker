@@ -95,8 +95,8 @@ public class SMGJoinTargetObjectsTest {
     SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, obj1, obj2);
     Assert.assertTrue(mo.isDefined());
 
-    @SuppressWarnings("unused")
     SMGJoinTargetObjects jto = new SMGJoinTargetObjects(mo.getStatus(), smg1, smg2, destSMG, mapping1, mapping2, value1, value2);
+    jto.getStatus(); // Avoid dead store warning
   }
 
   @Test
