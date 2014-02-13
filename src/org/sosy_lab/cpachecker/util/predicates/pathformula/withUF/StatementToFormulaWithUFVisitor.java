@@ -611,7 +611,7 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
       if (functionName.equals(CToFormulaWithUFConverter.ASSUME_FUNCTION_NAME) && parameters.size() == 1) {
         final BooleanFormula condition = visitAssume(parameters.get(0), true);
         constraints.addConstraint(condition);
-        return Value.ofValue(conv.makeFreshVariable(functionName, returnType, ssa, pts));
+        return Value.ofValue(conv.makeFreshVariable(functionName, returnType, ssa));
 
       } else if ((conv.options.isSuccessfulAllocFunctionName(functionName) ||
                   conv.options.isSuccessfulZallocFunctionName(functionName))) {
@@ -667,7 +667,7 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
     // Now let's handle "normal" functions assumed to be pure
     if (parameters.isEmpty()) {
       // This is a function of arity 0 and we assume its constant.
-      return Value.ofValue(conv.makeConstant(CToFormulaWithUFConverter.UF_NAME_PREFIX + functionName, returnType, pts));
+      return Value.ofValue(conv.makeConstant(CToFormulaWithUFConverter.UF_NAME_PREFIX + functionName, returnType));
     } else {
       final CFunctionDeclaration functionDeclaration = e.getDeclaration();
       if (functionDeclaration == null) {
@@ -711,7 +711,7 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
       }
       assert !formalParameterTypesIterator.hasNext() && !parametersIterator.hasNext();
 
-      final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(resultType, pts);
+      final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(resultType);
       return Value.ofValue(conv.ffmgr.createFuncAndCall(CToFormulaWithUFConverter.UF_NAME_PREFIX + functionName,
                                                         resultFormulaType,
                                                         arguments));
@@ -778,8 +778,7 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
     if (!conv.options.makeMemoryAllocationsAlwaysSucceed()) {
       final Formula nondet = conv.makeFreshVariable(functionName,
                                                     CPointerType.POINTER_TO_VOID,
-                                                    ssa,
-                                                    pts);
+                                                    ssa);
       return conv.bfmgr.ifThenElse(conv.bfmgr.not(conv.fmgr.makeEqual(nondet, conv.nullPointer)),
                                     visit(delegateCall).asValue().getValue(),
                                     conv.nullPointer);
@@ -860,7 +859,7 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
                                                                                       BigInteger.valueOf(size)) :
                                                         null,
                                          newBase);
-      address = conv.makeConstant(PointerTargetSet.getBaseName(newBase), CPointerType.POINTER_TO_VOID, pts);
+      address = conv.makeConstant(PointerTargetSet.getBaseName(newBase), CPointerType.POINTER_TO_VOID);
     }
 
     if (errorConditions != null) {
@@ -885,7 +884,7 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
       BooleanFormula validFree = conv.fmgr.makeEqual(operand, conv.nullPointer);
 
       for (String base : pts.getAllBases()) {
-        Formula baseF = conv.makeConstant(PointerTargetSet.getBaseName(base), CPointerType.POINTER_TO_VOID, pts);
+        Formula baseF = conv.makeConstant(PointerTargetSet.getBaseName(base), CPointerType.POINTER_TO_VOID);
         validFree = conv.bfmgr.or(validFree, conv.fmgr.makeEqual(operand, baseF));
       }
       errorConditions.addInvalidFreeCondition(conv.bfmgr.not(validFree));

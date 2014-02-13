@@ -107,10 +107,10 @@ class ExpressionToFormulaWithUFVisitor
     if (e.isValue()) {
       return e.asValue().getValue();
     } else if (e.asLocation().isAliased()) {
-      return !isSafe ? conv.makeDereference(type, e.asLocation().asAliased().getAddress(), ssa, errorConditions, pts) :
-                       conv.makeSafeDereference(type, e.asLocation().asAliased().getAddress(), ssa, pts);
+      return !isSafe ? conv.makeDereference(type, e.asLocation().asAliased().getAddress(), ssa, errorConditions) :
+                       conv.makeSafeDereference(type, e.asLocation().asAliased().getAddress(), ssa);
     } else { // Unaliased location
-      return conv.makeVariable(e.asLocation().asUnaliased().getVariableName(), type, ssa, pts);
+      return conv.makeVariable(e.asLocation().asUnaliased().getVariableName(), type, ssa);
     }
   }
 
@@ -271,13 +271,12 @@ class ExpressionToFormulaWithUFVisitor
         }
         return UnaliasedLocation.ofVariableName(variableName);
       } else {
-        return Value.ofValue(conv.makeConstant(variable, pts));
+        return Value.ofValue(conv.makeConstant(variable));
       }
     } else {
       variable = conv.scopedIfNecessary(e, ssa, function);
       final Formula address = conv.makeConstant(PointerTargetSet.getBaseName(variable.getName()),
-                                                CTypeUtils.getBaseType(resultType),
-                                                pts);
+                                                CTypeUtils.getBaseType(resultType));
       return AliasedLocation.ofAddress(address);
     }
   }
@@ -293,8 +292,7 @@ class ExpressionToFormulaWithUFVisitor
 
   private Value handleSizeof(final CExpression e, final CType type) throws UnrecognizedCCodeException {
     return Value.ofValue(
-             conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(CTypeUtils.simplifyType(e.getExpressionType()),
-                                                               pts),
+             conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(CTypeUtils.simplifyType(e.getExpressionType())),
                                                                conv.ptsMgr.getSize(type)));
   }
 
@@ -328,7 +326,7 @@ class ExpressionToFormulaWithUFVisitor
         result = conv.fmgr.makeNot(operandFormula);
       }
 
-      final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(resultType, pts);
+      final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(resultType);
       assert resultFormulaType == conv.fmgr.getFormulaType(result)
             : "Returntype and Formulatype do not match in visit(CUnaryExpression)";
 
@@ -338,7 +336,7 @@ class ExpressionToFormulaWithUFVisitor
     case NOT: {
       final Formula f = asValueFormula(operand.accept(this), operandType);
       final BooleanFormula term = conv.toBooleanFormula(f);
-      return Value.ofValue(conv.ifTrueThenOneElseZero(conv.getFormulaTypeFromCType(resultType, pts),
+      return Value.ofValue(conv.ifTrueThenOneElseZero(conv.getFormulaTypeFromCType(resultType),
                                                       conv.bfmgr.not(term)));
     }
 
@@ -388,7 +386,7 @@ class ExpressionToFormulaWithUFVisitor
           final Variable newBaseVariable = oldBaseVariable.withType(
             CTypeUtils.getBaseType(oldBaseVariable.getType()));
           final Formula baseAddress = conv.makeConstant(
-            newBaseVariable.withName(PointerTargetSet.getBaseName(oldBaseVariable.getName())), pts);
+            newBaseVariable.withName(PointerTargetSet.getBaseName(oldBaseVariable.getName())));
           conv.addValueImportConstraints(edge,
                                          baseAddress,
                                          oldBaseVariable,
@@ -425,7 +423,7 @@ class ExpressionToFormulaWithUFVisitor
 
   private Formula getPointerTargetSizeLiteral(final CPointerType pointerType, final CType implicitType) {
     final int pointerTargetSize = conv.ptsMgr.getSize(pointerType.getType());
-    return conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(implicitType, pts), pointerTargetSize);
+    return conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(implicitType), pointerTargetSize);
   }
 
   @Override
@@ -435,7 +433,7 @@ class ExpressionToFormulaWithUFVisitor
     final CType calculationType = CTypeUtils.simplifyType(exp.getCalculationType());
 
     // these operators expect numeric arguments
-    final FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType, pts);
+    final FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
 
     CExpression e1 = exp.getOperand1();
     CExpression e2 = exp.getOperand2();
