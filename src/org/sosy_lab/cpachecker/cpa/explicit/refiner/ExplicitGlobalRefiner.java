@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -73,6 +72,7 @@ import org.sosy_lab.cpachecker.cpa.explicit.refiner.ExplicitInterpolationBasedEx
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
 
@@ -160,7 +160,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     while(!interpolationRoots.isEmpty()) {
       i++;
       ARGState currentRoot = interpolationRoots.pop();
-      
+
       logger.log(Level.FINEST, "taking new root ", currentRoot.getStateId(), " from stack");
 
       if(!itpTree.isValidInterpolationRoot(currentRoot)) {
@@ -197,7 +197,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     }
 
     ARGReachedSet reached = new ARGReachedSet(pReached);
-    
+
     for(ARGState root : itpTree.obtainRefinementRoots(doLazyAbstraction)) {
       Collection<ARGState> targetsReachableFromRoot = itpTree.getTargetsInSubtree(root);
 
@@ -209,12 +209,11 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
         // join precision of target state it with the original one
         inital.getRefinablePrecision().join(precisionOfTarget.getRefinablePrecision());
       }
+
       final ExplicitPrecision refinedPrecision = new ExplicitPrecision(inital, itpTree.extractPrecisionIncrement(root));
 
-      // if refinement root equals root of ARG, take first child of refinement root as new root
-      if(root == pReached.getFirstState()) {
-        root = root.getChildren().iterator().next();
-      }
+      root = root.getChildren().iterator().next();
+
       reached.removeSubtree(root, refinedPrecision, ExplicitPrecision.class);
     }
 
@@ -337,7 +336,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
      * the logger in use
      */
     private final LogManager logger;
-    
+
     /**
      * the predecessor relation of the states contained in this tree
      */
@@ -371,7 +370,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     /**
      * This method creates the successor and predecessor relations, which make up the interpolation tree,
      * from the target states given as input.
-     * 
+     *
      * @param targetStates the target states to build the tree from
      * @return the root of the tree
      */
@@ -394,7 +393,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
           itpTreeRoot = currentState;
         }
       }
-      
+
       return itpTreeRoot;
     }
 
@@ -440,9 +439,9 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     /**
      * This method checks if the given state is a valid interpolation root, i.e., if the interpolant
      * associated with the given state, if any, is not false.
-     * 
+     *
      * @param state the state for which to perofrm the check
-     * @return true, if the interpolant associated with the state, if any, is valid, i.e, is not false 
+     * @return true, if the interpolant associated with the state, if any, is valid, i.e, is not false
      */
     private boolean isValidInterpolationRoot(ARGState state) {
       ARGState predecessor = predecessorRelation.get(state);
@@ -480,6 +479,11 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
         }
 
         current = child;
+
+        // add out-going edges of final state, too (just for compatiblity reasons to compare to DelegatingRefiner)
+        if(!successorRelation.get(current).iterator().hasNext()) {
+          errorPath.add(Pair.of(current, CFAUtils.leavingEdges(AbstractStates.extractLocation(current)).first().orNull()));
+        }
       }
 
       return errorPath;
@@ -520,32 +524,32 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
      * It does so by collection all non-trivial interpolants in the subtree of the given refinement root.
      *
      * @return the precision increment for the given refinement root
-     */    
+     */
     private Multimap<CFANode, MemoryLocation> extractPrecisionIncrement(ARGState refinmentRoot) {
       Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
-    
+
       Deque<ARGState> todo = new ArrayDeque<>(Collections.singleton(refinmentRoot));
       while (!todo.isEmpty()) {
         final ARGState currentState = todo.removeFirst();
-        
+
         if (isNonTrivialInterpolantAvailable(currentState)) {
           ExplicitValueInterpolant itp = interpolants.get(currentState);
           for (MemoryLocation memoryLocation : itp.getMemoryLocations()) {
             increment.put(getEdgeToSuccessor(currentState).getSuccessor(), memoryLocation);
           }
         }
-        
+
         Set<ARGState> successors = successorRelation.get(currentState);
         todo.addAll(successors);
       }
-  
+
       return increment;
     }
 
     /**
      * This method obtains the refinement roots, i.e., for each disjunct path from target states
      * to the root, it collects the highest state that has a non-trivial interpolant associated.
-     * With non-lazy abstraction, the root of the interpolation tree is used as refinement root. 
+     * With non-lazy abstraction, the root of the interpolation tree is used as refinement root.
      *
      * @param whether to perform lazy abstraction or not
      * @return the set of refinement roots
@@ -554,18 +558,18 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
       if (!doLazyAbstraction) {
         return new HashSet<>(Collections.singleton(root));
       }
-      
+
       Collection<ARGState> refinementRoots = new HashSet<>();
-      
+
       Deque<ARGState> todo = new ArrayDeque<>(Collections.singleton(root));
       while (!todo.isEmpty()) {
         final ARGState currentState = todo.removeFirst();
-        
+
         if (isNonTrivialInterpolantAvailable(currentState)) {
           refinementRoots.add(currentState);
           continue;
         }
-        
+
         Set<ARGState> successors = successorRelation.get(currentState);
         todo.addAll(successors);
       }
@@ -575,22 +579,22 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
 
     /**
      * This method returns the target states in the subtree of the given state.
-     * 
+     *
      * @param state the state for which to collect the target states in its subtree.
      * @return target states in the subtree of the given state
      */
     private Collection<ARGState> getTargetsInSubtree(ARGState state) {
       Collection<ARGState> targetStates = new HashSet<>();
-      
+
       Deque<ARGState> todo = new ArrayDeque<>(Collections.singleton(state));
       while (!todo.isEmpty()) {
         final ARGState currentState = todo.removeFirst();
-        
+
         if (currentState.isTarget()) {
           targetStates.add(currentState);
           continue;
         }
-        
+
         Set<ARGState> successors = successorRelation.get(currentState);
         todo.addAll(successors);
       }
@@ -600,7 +604,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
 
     /**
      * This method checks if for the given state a non-trivial interpolant is present.
-     * 
+     *
      * @param currentState the state for which to check
      * @return true, if a non-trivial interpolant is present, else false
      */
