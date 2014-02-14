@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
 
+import static com.google.common.base.Objects.firstNonNull;
 import static org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes.VOID;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.MapMerger.*;
 
@@ -30,8 +31,12 @@ import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.annotation.CheckReturnValue;
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -40,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -401,5 +407,79 @@ public class PointerTargetSetManager {
 
     sizes.setCount(compositeType, size);
     offsets.put(compositeType, members);
+  }
+
+  @CheckReturnValue
+  private static PersistentSortedMap<String, PersistentList<PointerTarget>> addToTarget(final String base,
+                         final CType targetType,
+                         final @Nullable CType containerType,
+                         final int properOffset,
+                         final int containerOffset,
+                         final PersistentSortedMap<String, PersistentList<PointerTarget>> targets) {
+    final String type = CTypeUtils.typeToString(targetType);
+    PersistentList<PointerTarget> targetsForType = firstNonNull(targets.get(type),
+                                                                PersistentLinkedList.<PointerTarget>of());
+    return targets.putAndCopy(type, targetsForType.with(new PointerTarget(base,
+                                                                             containerType,
+                                                                             properOffset,
+                                                                             containerOffset)));
+  }
+
+  /**
+   * Recursively adds pointer targets for every used (tracked) (sub)field of the newly allocated base.
+   *
+   * Note: the recursion doesn't proceed on unused (untracked) (sub)fields.
+   *
+   * @param base the name of the newly allocated base variable
+   * @param currentType type of the allocated base or the next added pointer target
+   * @param containerType either {@code null} or the type of the innermost container of the next added pointer target
+   * @param properOffset either {@code 0} or the offset of the next added pointer target in its innermost container
+   * @param containerOffset either {@code 0} or the offset of the innermost container (relative to the base adddress)
+   * @param targets The list of targets where the new targets should be added to.
+   * @param fields The set of "shared" fields that are accessed directly via pointers.
+   * @return The targets map together with all the added targets.
+   */
+  @CheckReturnValue
+  PersistentSortedMap<String, PersistentList<PointerTarget>> addToTargets(final String base,
+                          final CType currentType,
+                          final @Nullable CType containerType,
+                          final int properOffset,
+                          final int containerOffset,
+                          PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
+                          final PersistentSortedMap<CompositeField, Boolean> fields) {
+    final CType cType = CTypeUtils.simplifyType(currentType);
+    assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type:" + cType;
+    if (cType instanceof CArrayType) {
+      final CArrayType arrayType = (CArrayType) cType;
+      Integer length = CTypeUtils.getArrayLength(arrayType);
+      if (length == null) {
+        length = options.defaultArrayLength();
+      } else if (length > options.maxArrayLength()) {
+        length = options.maxArrayLength();
+      }
+      int offset = 0;
+      for (int i = 0; i < length; ++i) {
+        targets = addToTargets(base, arrayType.getType(), arrayType, offset, containerOffset + properOffset, targets, fields);
+        offset += getSize(arrayType.getType());
+      }
+    } else if (cType instanceof CCompositeType) {
+      final CCompositeType compositeType = (CCompositeType) cType;
+      assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
+      final String type = CTypeUtils.typeToString(compositeType);
+      addCompositeTypeToCache(compositeType);
+      int offset = 0;
+      for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+        if (fields.containsKey(CompositeField.of(type, memberDeclaration.getName()))) {
+          targets = addToTargets(base, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset, targets, fields);
+        }
+        if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
+          offset += getSize(memberDeclaration.getType());
+        }
+      }
+    } else {
+      targets = addToTarget(base, cType, containerType, properOffset, containerOffset, targets);
+    }
+
+    return targets;
   }
 }

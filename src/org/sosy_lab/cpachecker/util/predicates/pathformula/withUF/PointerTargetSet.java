@@ -174,69 +174,6 @@ public class PointerTargetSet implements Serializable {
     }
 
 
-    private void addTarget(final String base,
-                           final CType targetType,
-                           final @Nullable CType containerType,
-                           final int properOffset,
-                           final int containerOffset) {
-      final String type = CTypeUtils.typeToString(targetType);
-      PersistentList<PointerTarget> targetsForType = firstNonNull(targets.get(type),
-                                                                  PersistentLinkedList.<PointerTarget>of());
-      targets = targets.putAndCopy(type, targetsForType.with(new PointerTarget(base,
-                                                                               containerType,
-                                                                               properOffset,
-                                                                               containerOffset)));
-      flag = true;
-    }
-
-  /**
-   * Recursively adds pointer targets for every used (tracked) (sub)field of the newly allocated base.
-   * (actual recursive implementation).
-   * @param base the name of the newly allocated base variable
-   * @param currentType type of the allocated base or the next added pointer target
-   * @param containerType either {@code null} or the type of the innermost container of the next added pointer target
-   * @param properOffset either {@code 0} or the offset of the next added pointer target in its innermost container
-   * @param containerOffset either {@code 0} or the offset of the innermost container (relative to the base adddress)
-   */
-    private void addTargets(final String base,
-                            final CType currentType,
-                            final @Nullable CType containerType,
-                            final int properOffset,
-                            final int containerOffset) {
-      final CType cType = CTypeUtils.simplifyType(currentType);
-      assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type:" + cType;
-      if (cType instanceof CArrayType) {
-        final CArrayType arrayType = (CArrayType) cType;
-        Integer length = CTypeUtils.getArrayLength(arrayType);
-        if (length == null) {
-          length = options.defaultArrayLength();
-        } else if (length > options.maxArrayLength()) {
-          length = options.maxArrayLength();
-        }
-        int offset = 0;
-        for (int i = 0; i < length; ++i) {
-          addTargets(base, arrayType.getType(), arrayType, offset, containerOffset + properOffset);
-          offset += ptsMgr.getSize(arrayType.getType());
-        }
-      } else if (cType instanceof CCompositeType) {
-        final CCompositeType compositeType = (CCompositeType) cType;
-        assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
-        final String type = CTypeUtils.typeToString(compositeType);
-        ptsMgr.addCompositeTypeToCache(compositeType);
-        int offset = 0;
-        for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-          if (fields.containsKey(CompositeField.of(type, memberDeclaration.getName()))) {
-            addTargets(base, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset);
-          }
-          if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
-            offset += ptsMgr.getSize(memberDeclaration.getType());
-          }
-        }
-      } else {
-        addTarget(base, cType, containerType, properOffset, containerOffset);
-      }
-    }
-
     /**
      * Recursively adds pointer targets for every used (tracked) (sub)field of the newly allocated base.
      *
@@ -246,7 +183,7 @@ public class PointerTargetSet implements Serializable {
      * @param currentType type of the allocated base or the next added pointer target
      */
     private void addTargets(final String name, CType type) {
-      addTargets(name, type, null, 0, 0);
+      targets = ptsMgr.addToTargets(name, type, null, 0, 0, targets, fields);
     }
 
     public BooleanFormula prepareBase(final String name, CType type) {
@@ -343,7 +280,7 @@ public class PointerTargetSet implements Serializable {
                        composite, memberName);
           }
           if (isTargetComposite && memberDeclaration.getName().equals(memberName)) {
-            addTargets(base, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset);
+            targets = ptsMgr.addToTargets(base, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset, targets, fields);
           }
           if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
             offset += ptsMgr.getSize(memberDeclaration.getType());
@@ -358,12 +295,18 @@ public class PointerTargetSet implements Serializable {
       if (fields.containsKey(field)) {
         return true; // The field has already been added
       }
-      flag = false;
+
+      final PersistentSortedMap<String, PersistentList<PointerTarget>> oldTargets = targets;
       for (final PersistentSortedMap.Entry<String, CType> baseEntry : bases.entrySet()) {
         addTargets(baseEntry.getKey(), baseEntry.getValue(), null, 0, 0, type, fieldName);
       }
       fields = fields.putAndCopy(field, true);
-      return flag;
+
+      if (oldTargets != targets) {
+        // Target added
+        return true;
+      }
+      return false;
     }
 
     /**
@@ -460,8 +403,6 @@ public class PointerTargetSet implements Serializable {
                                   targets,
                                   formulaManager);
     }
-
-    private boolean flag; // Used by addField() to detect essential additions
 
     private static final long serialVersionUID = 5692271309582052121L;
   }
