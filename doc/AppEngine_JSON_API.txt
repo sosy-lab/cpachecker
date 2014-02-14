@@ -10,7 +10,7 @@ and standard HTTP status codes are used to convey success/error states.
 
 JSON format
 ----------
-The JSON format (http://json.org/) is used for sending and retrieveing data.
+The JSON format (http://json.org/) is used for sending and retrieving data.
 Therefore any requests must set the following HTTP headers to successfully use
 the JSON API:
 Content-Type: application/json
@@ -20,7 +20,7 @@ Accept: application/json
 General server errors
 =====================
 Sometimes the server cannot process a request and therefore returns a default
-response according to the occured error.
+response according to the occurred error.
 
 Over Quota
 ----------
@@ -93,7 +93,7 @@ Response
 
 # GET /tasks
 ===========
-Returns a list of all tasks that are stored in the datastore.
+Returns a list of all tasks that are available.
 
 Response
 --------
@@ -119,9 +119,9 @@ Location: [URI of the created task resource]
 
 Optional:
   - options
-  - sourceFileName
 Required:
   - Either specification or configuration
+  - sourceFileName
   - programText
 
 {
@@ -149,20 +149,22 @@ Errors
   "error.jsonNotWellFormed",
   "error.jsonNotMapped",
   "error.requestBodyNotRead",
-  "error.specOrConfigMissing",
-  "error.specificationNotFound",
-  "error.configurationNotFound",
-  "error.noProgram",
-  "error.invalidLogLevel",
-  "error.programTooLarge",
-  "error.couldNotUpload",
-  "error.invalidInstanceType"
+  "error.invalidConfiguration",
+  "task.specOrConf.IsBlank",
+  "task.spec.DoesNotExist",
+  "task.conf.DoesNotExist",
+  "task.program.IsBlank",
+  "task.program.NameIsBlank",
+  "task.program.TooLarge",
+  "task.program.CouldNotUpload"
 ]
 
 
 # DELETE /tasks
 ==============
 Deletes all tasks and their associated files and statistic.
+This endpoint must be called multiple times to ensure everything will be deleted
+due to the underlying implementation.
 
 
 # GET /tasks/{taskKey}
@@ -186,7 +188,6 @@ Response
   "specification" : "sv-comp.spc",
   "configuration" : "explicitAnalysis.properties",
   "sourceFileName" : "example.c",
-  "instanceType" : "FRONTEND",
   "retries" : 0,
   "result" : "TRUE",
   "resultMessage" : "TRUE. No property violation found by chosen configuration.",
@@ -220,7 +221,7 @@ Response
 Deletes the task with the key {taskKey} and all associated files and statistic.
 
 
-# GET /tasks/{taskbKey}/statistics
+# GET /tasks/{taskKey}/statistics
 ==========================
 Returns statistics about the task with the key {taskKey}.
 
@@ -247,7 +248,7 @@ Response
 
 
 
-# GET /tasks/{taskKey}/files/{taskKey}
+# GET /tasks/{taskKey}/files/{fileKey}
 ====================================
 Returns the file with the key {fileKey} belonging to the task with the key {taskKey}.
 
