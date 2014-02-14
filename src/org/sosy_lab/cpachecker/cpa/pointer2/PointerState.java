@@ -36,6 +36,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.Location;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
+import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSetBot;
+import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSetTop;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.Struct;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.Union;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.Variable;
@@ -116,7 +118,7 @@ public class PointerState implements AbstractState {
       return this;
     }
     if (pTargets.isTop()) {
-      return new PointerState(pointsToMap.putAndCopy(pSource, LocationSet.TOP));
+      return new PointerState(pointsToMap.putAndCopy(pSource, LocationSetTop.INSTANCE));
     }
     LocationSet previousPointsToSet = getPointsToSet(pSource);
     return new PointerState(pointsToMap.putAndCopy(pSource, previousPointsToSet.addElements(pTargets)));
@@ -131,7 +133,7 @@ public class PointerState implements AbstractState {
   public LocationSet getPointsToSet(Location pSource) {
     LocationSet result = this.pointsToMap.get(pSource);
     if (result == null) {
-      return LocationSet.BOT;
+      return LocationSetBot.INSTANCE;
     }
     return result;
   }
@@ -148,7 +150,7 @@ public class PointerState implements AbstractState {
   @Nullable
   public Boolean pointsTo(Location pSource, Location pTarget) {
     LocationSet pointsToSet = getPointsToSet(pSource);
-    if (pointsToSet.equals(LocationSet.BOT)) {
+    if (pointsToSet.equals(LocationSetBot.INSTANCE)) {
       return false;
     }
     if (pointsToSet instanceof ExplicitLocationSet) {

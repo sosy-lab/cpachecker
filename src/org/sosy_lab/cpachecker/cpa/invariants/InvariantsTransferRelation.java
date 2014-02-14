@@ -76,6 +76,8 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvalua
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
+import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
+import org.sosy_lab.cpachecker.cpa.pointer2.util.Location;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -459,19 +461,19 @@ public enum InvariantsTransferRelation implements TransferRelation {
       if (leftHandSide != null && leftHandSide instanceof CPointerExpression) {
         CExpression dereferencee = ((CPointerExpression) leftHandSide).getOperand();
         for (PointerState pointerState : FluentIterable.from(pOtherElements).filter(PointerState.class)) {
-          String varName = getVarName(dereferencee, edge);
-          org.sosy_lab.cpachecker.cpa.pointer2.util.Variable location = new org.sosy_lab.cpachecker.cpa.pointer2.util.Variable(varName);
           InvariantsState stateBeforeClearing = state.getStateBeforePointerDereferenceClearing();
           InvariantsState result = stateBeforeClearing;
-          for (String potentialTargetVar : stateBeforeClearing.getEnvironment().keySet()) {
-            org.sosy_lab.cpachecker.cpa.pointer2.util.Variable potentialTarget = new org.sosy_lab.cpachecker.cpa.pointer2.util.Variable(potentialTargetVar);
-            if (pointerState.mayPointTo(location, potentialTarget)) {
-              result = result.assign(false, potentialTargetVar, CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top()), edge);
-              if (result == null) {
-                return Collections.emptySet();
+          for (Location location : PointerTransferRelation.asLocations(dereferencee, pointerState)) {
+            for (String potentialTargetVar : stateBeforeClearing.getEnvironment().keySet()) {
+              org.sosy_lab.cpachecker.cpa.pointer2.util.Variable potentialTarget = new org.sosy_lab.cpachecker.cpa.pointer2.util.Variable(potentialTargetVar);
+              if (pointerState.mayPointTo(location, potentialTarget)) {
+                result = result.assign(false, potentialTargetVar, CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top()), edge);
+                if (result == null) {
+                  return Collections.emptySet();
+                }
               }
+              return Collections.singleton(result);
             }
-            return Collections.singleton(result);
           }
         }
       }
