@@ -72,20 +72,22 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-@Options
+@Options(prefix="spec")
 public class AutomatonGraphmlParser {
 
-  @Option(name="spec.considerNegativeSemanticsAttribute",
-      description="Consider the negative semantics of tokens provided with path automatons.")
+  @Option(description="Consider the negative semantics of tokens provided with path automatons.")
   private boolean considerNegativeSemanticsAttribute = true;
 
-  @Option(name="spec.transitionToStopForNegatedTokensetMatch", description="")
+  @Option(description="")
   private boolean transitionToStopForNegatedTokensetMatch = true;
 
-  @Option(name="spec.matchSourcecodeData", description="Match the source code provided with the witness.")
+  @Option(description="Match the source code provided with the witness.")
   private boolean matchSourcecodeData = false;
 
-  @Option(name="spec.automatonDumpFile", description="")
+  @Option(description="Match the line numbers within the origin (mapping done by preprocessor line markers).")
+  private boolean matchOriginLine = false;
+
+  @Option(description="")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path specAutomatonDumpFile = null;
 
@@ -206,9 +208,31 @@ public class AutomatonGraphmlParser {
 
         AutomatonBoolExpr conjunctedTriggers = AutomatonBoolExpr.TRUE;
 
-        if (matchSourcecodeData) {
+        if (matchOriginLine) {
+          Set<String> originFileTags = docDat.getDataOnNode(stateTransitionEdge, KeyDef.ORIGINFILE);
+          Preconditions.checkArgument(originFileTags.size() < 2, "At most one origin-file data tag must be provided for an edge!");
+
+          Set<String> originLineTags = docDat.getDataOnNode(stateTransitionEdge, KeyDef.ORIGINLINE);
+          Preconditions.checkArgument(originLineTags.size() == 1, "Exactly one origin-line data tag must be provided for each edge!");
+
+          Optional<String> matchOriginFileName = originFileTags.isEmpty() ? Optional.<String>absent() : Optional.of(originFileTags.iterator().next());
+          int matchOriginLineNumber = Integer.parseInt(originLineTags.iterator().next());
+
+          conjunctedTriggers = new AutomatonBoolExpr.And(conjunctedTriggers,
+              new AutomatonBoolExpr.MatchStartingLineInOrigin(matchOriginFileName, matchOriginLineNumber, true));
+
+          if (targetStateId.equalsIgnoreCase(SINK_NODE_ID) || targetNodeFlags.contains(NodeFlag.ISSINKNODE)) {
+            // Transition to the BOTTOM state
+            transitions.add(new AutomatonTransition(conjunctedTriggers, emptyAssertions, actions, AutomatonInternalState.BOTTOM));
+          } else {
+            // Transition to the next state
+            transitions.add(new AutomatonTransition(conjunctedTriggers, emptyAssertions, actions, targetStateId));
+            transitions.add(new AutomatonTransition(new AutomatonBoolExpr.Negation(conjunctedTriggers), emptyAssertions, actions, AutomatonInternalState.BOTTOM));
+          }
+
+        } else if (matchSourcecodeData) {
           Set<String> sourceCodeDataTags = docDat.getDataOnNode(stateTransitionEdge, KeyDef.SOURCECODE);
-          Preconditions.checkArgument(sourceCodeDataTags.size() < 2, "At most one source code data-tag must be provided!");
+          Preconditions.checkArgument(sourceCodeDataTags.size() < 2, "At most one source-code data tag must be provided!");
           if (sourceCodeDataTags.isEmpty()) {
             conjunctedTriggers = new AutomatonBoolExpr.And(conjunctedTriggers, new AutomatonBoolExpr.MatchCFAEdgeExact(""));
           } else {
