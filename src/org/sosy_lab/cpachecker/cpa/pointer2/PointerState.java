@@ -173,7 +173,7 @@ public class PointerState implements AbstractState {
    * not to point to it.
    */
   public boolean definitelyPointsTo(Location pSource, Location pTarget) {
-    return pointsTo(pSource, pTarget) == true;
+    return Boolean.TRUE.equals(pointsTo(pSource, pTarget));
   }
 
   /**
@@ -187,7 +187,7 @@ public class PointerState implements AbstractState {
    * it or is known to point to it.
    */
   public boolean definitelyNotPointsTo(Location pSource, Location pTarget) {
-    return pointsTo(pSource, pTarget) == false;
+    return Boolean.FALSE.equals(pointsTo(pSource, pTarget));
   }
 
   /**
@@ -201,7 +201,7 @@ public class PointerState implements AbstractState {
    * not to point to it.
    */
   public boolean mayPointTo(Location pSource, Location pTarget) {
-    return pointsTo(pSource, pTarget) != false;
+    return !Boolean.FALSE.equals(pointsTo(pSource, pTarget));
   }
 
   /**
