@@ -212,7 +212,7 @@ public class TaskDAO {
 
     if (errors.isEmpty()) {
       try {
-        task.setId(TaskDAO.allocateKey().getId());
+        task.setId(allocateKey().getId());
         program.setTask(task);
         TaskFileDAO.save(program);
         task.setProgram(program);
