@@ -68,9 +68,10 @@ public class TasksServerResource extends WadlServerResource implements TasksReso
 
   @Override
   public Representation createTaskFromHtml(Representation input) throws IOException {
-    Map<String, String> options = new HashMap<>();
     Task task = new Task();
     TaskFile program = new TaskFile();
+
+    Map<String, String> options = new HashMap<>();
     List<String> errors = new ArrayList<>();
 
     ServletFileUpload upload = new ServletFileUpload();
@@ -131,16 +132,16 @@ public class TasksServerResource extends WadlServerResource implements TasksReso
       }
     } catch (FileUploadException | IOException e) {
       getLogger().log(Level.WARNING, "Could not upload program file.", e);
-      errors.add("error.couldNotUpload");
+      errors.add("task.program.CouldNotUpload");
     }
 
     task.setOptions(options);
 
-    if (errors.size() == 0) {
-      errors = TaskDAO.create(task, program);
+    if (errors.isEmpty()) {
+      errors = TaskDAO.validateAndSave(task, program);
     }
 
-    if (errors != null && errors.size() == 0) {
+    if (errors.isEmpty()) {
       try {
         Configuration config = Configuration.builder()
             .setOptions(task.getOptions()).build();
@@ -150,7 +151,7 @@ public class TasksServerResource extends WadlServerResource implements TasksReso
       }
     }
 
-    if (errors.size() == 0) {
+    if (errors.isEmpty()) {
       getResponse().setStatus(Status.SUCCESS_CREATED);
       redirectSeeOther("/tasks/" + task.getKey());
       return getResponseEntity();
@@ -186,8 +187,8 @@ public class TasksServerResource extends WadlServerResource implements TasksReso
     mapper.addMixInAnnotations(TaskFile.class, TaskFileMixinAnnotations.FromJSONAPI.class);
 
     List<String> errors = new ArrayList<>();
-    Task task = new Task();
-    TaskFile program = new TaskFile();
+    Task task = null;
+    TaskFile program = null;
     try {
       if (entity != null) {
         String json = entity.getText();
@@ -202,11 +203,11 @@ public class TasksServerResource extends WadlServerResource implements TasksReso
       errors.add("error.requestBodyNotRead");
     }
 
-    if (errors.size() == 0) {
-      errors = TaskDAO.create(task, program);
+    if (errors.isEmpty()) {
+      errors = TaskDAO.validateAndSave(task, program);
     }
 
-    if (errors != null && errors.size() == 0) {
+    if (errors.isEmpty()) {
       try {
         Configuration config = Configuration.builder()
             .setOptions(task.getOptions()).build();
@@ -217,14 +218,14 @@ public class TasksServerResource extends WadlServerResource implements TasksReso
     }
 
     try {
-      if (errors.size() > 0) {
+      if (!errors.isEmpty()) {
         getResponse().setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
         return new StringRepresentation(mapper.writeValueAsString(errors), MediaType.APPLICATION_JSON);
-      } else {
-        getResponse().setStatus(Status.SUCCESS_CREATED);
-        getResponse().setLocationRef("/tasks/" + task.getKey());
-        return getResponseEntity();
       }
+
+      getResponse().setStatus(Status.SUCCESS_CREATED);
+      getResponse().setLocationRef("/tasks/" + task.getKey());
+      return getResponseEntity();
     } catch (JsonProcessingException e) {
       return null;
     }

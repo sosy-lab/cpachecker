@@ -30,10 +30,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueTaskRunner;
-import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueTaskRunner.InstanceType;
 import org.sosy_lab.cpachecker.appengine.entity.DefaultOptions;
 import org.sosy_lab.cpachecker.appengine.entity.Task;
 import org.sosy_lab.cpachecker.appengine.entity.Task.Status;
@@ -48,6 +46,7 @@ import com.google.appengine.api.log.RequestLogs;
 import com.google.appengine.api.taskqueue.Queue;
 import com.google.appengine.api.taskqueue.QueueFactory;
 import com.google.apphosting.api.ApiProxy.RequestTooLargeException;
+import com.google.common.base.Preconditions;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
 import com.googlecode.objectify.VoidWork;
@@ -160,70 +159,69 @@ public class TaskDAO {
   }
 
   /**
-   * Creates a new {@link Task} from the given {@link Task} and program.
+   * Validates the given {@link Task} and the given {@link TaskFile} and saves
+   * them if the validation succeeds.
+   * The given {@link TaskFile} will be set as the {@link Task}s program.
+   * @see Task#setProgram(TaskFile)
    *
-   * @param task The {@link Task}
-   * @param program The program
-   * @return A list of errors if any occurred.
+   * @param task The {@link Task} to validate and save
+   * @param program The {@link TaskFile} to validate and set as program
+   * @return A list of errors or an empty list if none occurred.
+   *         Each error is {@link String} representing a key in the resource bundle.
    */
-  @SuppressWarnings("unchecked")
-  public static List<String> create(Task task, TaskFile program) {
-    // merge existing errors
+  public static List<String> validateAndSave(Task task, TaskFile program) {
+    Preconditions.checkNotNull(task);
+    Preconditions.checkNotNull(program);
+
     List<String> errors = new ArrayList<>();
 
-    if (task.getSpecification() == null && task.getConfiguration() == null) {
-      errors.add("error.specOrConfigMissing");
+    if ((task.getSpecification() == null
+        || task.getSpecification().isEmpty())
+        && (task.getConfiguration() == null
+        || task.getConfiguration().isEmpty())) {
+      errors.add("task.specOrConf.IsBlank");
     }
 
-    if (task.getSpecification() != null) {
-      if (!DefaultOptions.getSpecifications().contains(task.getSpecification())) {
-        errors.add("error.specificationNotFound");
+    if (errors.isEmpty()) {
+      if (task.getSpecification() != null
+          && !task.getSpecification().isEmpty()
+          && !DefaultOptions.getSpecifications().contains(task.getSpecification())) {
+        errors.add("task.spec.DoesNotExist");
       }
-    }
 
-    if (task.getConfiguration() != null) {
       try {
-        if (!DefaultOptions.getConfigurations().contains(task.getConfiguration())) {
-          errors.add("error.configurationNotFound");
+        if (task.getConfiguration() != null
+            && !task.getConfiguration().isEmpty()
+            && !DefaultOptions.getConfigurations().contains(task.getConfiguration())) {
+          errors.add("task.conf.DoesNotExist");
         }
       } catch (IOException e) {
-        errors.add("error.configurationNotFound");
+        errors.add("task.conf.DoesNotExist");
       }
     }
 
-    if (program.getContent() == null || program.getContent().equals("")) {
-      errors.add("error.noProgram");
+    if (program.getContent() == null
+        || program.getContent().isEmpty()) {
+      errors.add("task.program.IsBlank");
     }
 
-    if (task.getOptions().containsKey("log.level")) {
-      try {
-        Level.parse(task.getOptions().get("log.level"));
-      } catch (IllegalArgumentException e) {
-        errors.add("error.invalidLogLevel");
-      }
+    if (program.getPath() == null
+        || program.getPath().isEmpty()) {
+      errors.add("task.program.NameIsBlank");
     }
 
-    if (task.getOptions().containsKey("gae.instanceType")) {
+    if (errors.isEmpty()) {
       try {
-        InstanceType.valueOf(task.getOptions().get("gae.instanceType"));
-      } catch (IllegalArgumentException e) {
-        errors.add("error.invalidInstanceType");
-      }
-    }
-
-    if (errors.size() == 0) {
-      try {
-        task.setId(allocateKey().getId());
+        task.setId(TaskDAO.allocateKey().getId());
         program.setTask(task);
-
         TaskFileDAO.save(program);
         task.setProgram(program);
-        TaskDAO.save(task);
+        save(task);
       } catch (IOException e) {
         if (e.getCause() instanceof RequestTooLargeException) {
-          errors.add("error.programTooLarge");
+          errors.add("task.program.TooLarge");
         } else {
-          errors.add("error.couldNotUpload");
+          errors.add("task.program.CouldNotUpload");
         }
       }
     }

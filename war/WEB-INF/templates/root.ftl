@@ -22,7 +22,7 @@
           </div>
           </#if>
 
-          <#if errors?? && errors?seq_contains("error.specOrConfigMissing")>
+          <#if errors?? && errors?seq_contains("task.specOrConf.IsBlank")>
           <div class="form-group has-error">
           <#else>
           <div class="form-group">
@@ -42,7 +42,7 @@
               </#list>
             </select>
           </div>
-          <#if errors?? && errors?seq_contains("error.specOrConfigMissing")>
+          <#if errors?? && errors?seq_contains("task.specOrConf.IsBlank")>
           <div class="form-group has-error">
           <#else>
           <div class="form-group">
@@ -57,7 +57,7 @@
               </#list>
             </select>
           </div>
-          <#if errors?? && errors?seq_contains("error.noProgram")>
+          <#if errors?? && errors?seq_contains("taskFile.content.IsBlank")>
           <div class="form-group has-error">
           <#else>
           <div class="form-group">
@@ -65,7 +65,7 @@
             <label for="programFile" class="control-label">${msg.programFile}</label>
             <input type="file" name="programFile" id="programFile">
           </div>
-          <#if errors?? && errors?seq_contains("error.noProgram")>
+          <#if errors?? && errors?seq_contains("taskFile.content.IsBlank")>
           <div class="form-group has-error">
           <#else>
           <div class="form-group">
