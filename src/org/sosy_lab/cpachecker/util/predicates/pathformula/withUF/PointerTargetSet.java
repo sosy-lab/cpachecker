@@ -159,11 +159,12 @@ public class PointerTargetSet implements Serializable {
   public final static class PointerTargetSetBuilder extends PointerTargetSet {
 
     private final PointerTargetSetManager ptsMgr;
+    private final FormulaEncodingWithUFOptions options;
 
     private PointerTargetSetBuilder(final PointerTargetSet pointerTargetSet,
-        final PointerTargetSetManager pPtsMgr) {
+        final PointerTargetSetManager pPtsMgr,
+        final FormulaEncodingWithUFOptions pOptions) {
       super(pointerTargetSet.machineModel,
-            pointerTargetSet.options,
             pointerTargetSet.bases,
             pointerTargetSet.lastBase,
             pointerTargetSet.fields,
@@ -171,6 +172,7 @@ public class PointerTargetSet implements Serializable {
             pointerTargetSet.targets,
             pointerTargetSet.formulaManager);
       ptsMgr = pPtsMgr;
+      options = pOptions;
     }
 
 
@@ -395,7 +397,6 @@ public class PointerTargetSet implements Serializable {
      */
     public PointerTargetSet build() {
       return new PointerTargetSet(machineModel,
-                                  options,
                                   bases,
                                   lastBase,
                                   fields,
@@ -458,10 +459,8 @@ public class PointerTargetSet implements Serializable {
   }
 
   public static final PointerTargetSet emptyPointerTargetSet(final MachineModel machineModel,
-                                                             final FormulaEncodingWithUFOptions options,
                                                              final FormulaManagerView formulaManager) {
     return new PointerTargetSet(machineModel,
-                                options,
                                 PathCopyingPersistentTreeMap.<String, CType>of(),
                                 null,
                                 PathCopyingPersistentTreeMap.<CompositeField, Boolean>of(),
@@ -493,7 +492,6 @@ public class PointerTargetSet implements Serializable {
   }
 
   PointerTargetSet(final MachineModel machineModel,
-                           final FormulaEncodingWithUFOptions options,
                            final PersistentSortedMap<String, CType> bases,
                            final String lastBase,
                            final PersistentSortedMap<CompositeField, Boolean> fields,
@@ -502,7 +500,6 @@ public class PointerTargetSet implements Serializable {
                            final FormulaManagerView formulaManager) {
     this.machineModel = machineModel;
 
-    this.options = options;
     this.formulaManager = formulaManager;
 
     this.bases = bases;
@@ -522,13 +519,13 @@ public class PointerTargetSet implements Serializable {
   /**
    * Returns a PointerTargetSetBuilder that is initialized with the current PointerTargetSet.
    */
-  public PointerTargetSetBuilder builder(PointerTargetSetManager ptsMgr) {
-    return new PointerTargetSetBuilder(this, ptsMgr);
+  public PointerTargetSetBuilder builder(PointerTargetSetManager ptsMgr,
+      FormulaEncodingWithUFOptions options) {
+    return new PointerTargetSetBuilder(this, ptsMgr, options);
   }
 
   private static final Joiner joiner = Joiner.on(" ");
 
-  protected final FormulaEncodingWithUFOptions options;
   protected final MachineModel machineModel;
 
   protected final FormulaManagerView formulaManager;

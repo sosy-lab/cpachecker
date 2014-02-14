@@ -152,7 +152,7 @@ public class PointerTargetSetManager {
 
     PointerTargetSet resultPTS = ptsMergeResult.getFirst();
     if (!sharedFields.isEmpty()) {
-      final PointerTargetSetBuilder resultPTSBuilder = resultPTS.builder(this);
+      final PointerTargetSetBuilder resultPTSBuilder = resultPTS.builder(this, options);
       for (final Pair<CCompositeType, String> sharedField : sharedFields) {
         resultPTSBuilder.addField(sharedField.getFirst(), sharedField.getSecond());
       }
@@ -188,12 +188,10 @@ public class PointerTargetSetManager {
 
     final PointerTargetSetBuilder builder1 = PointerTargetSet.emptyPointerTargetSet(
                                                                                machineModel,
-                                                                               options,
-                                                                               formulaManager).builder(this),
+                                                                               formulaManager).builder(this, options),
                                   builder2 = PointerTargetSet.emptyPointerTargetSet(
                                                                                machineModel,
-                                                                               options,
-                                                                               formulaManager).builder(this);
+                                                                               formulaManager).builder(this, options);
     if (reverseBases == reverseFields) {
       builder1.setFields(mergedFields.getFirst());
       builder2.setFields(mergedFields.getSecond());
@@ -249,7 +247,6 @@ public class PointerTargetSetManager {
 
     final PointerTargetSet result  =
       new PointerTargetSet(machineModel,
-                           options,
                            mergedBases.getThird(),
                            lastBase,
                            mergedFields.getThird(),
