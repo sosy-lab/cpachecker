@@ -920,7 +920,7 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
   }
 
   public void declareCompositeType(final CCompositeType compositeType) {
-    conv.ptsMgr.addCompositeTypeToCache(compositeType);
+    conv.typeHandler.addCompositeTypeToCache(compositeType);
   }
 
   private final StatementToFormulaVisitor statementDelegate;

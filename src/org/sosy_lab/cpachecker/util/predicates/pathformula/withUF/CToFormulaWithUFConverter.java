@@ -129,19 +129,28 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   @SuppressWarnings("hiding")
   final MachineModel machineModel = super.machineModel;
 
+  final CToFormulaWithUFTypeHandler typeHandler;
   final PointerTargetSetManager ptsMgr;
+
+  final FormulaType<?> voidPointerFormulaType;
+  final Formula nullPointer;
 
   public CToFormulaWithUFConverter(final FormulaEncodingWithUFOptions pOptions,
                                    final FormulaManagerView formulaManagerView,
                                    final MachineModel pMachineModel,
                                    final PointerTargetSetManager pPtsMgr,
                                    final Optional<VariableClassification> pVariableClassification,
-                                   final LogManager logger)
+                                   final LogManager logger,
+                                   final CToFormulaWithUFTypeHandler pTypeHandler)
   throws InvalidConfigurationException {
-    super(pOptions, formulaManagerView, pMachineModel, logger);
+    super(pOptions, formulaManagerView, pMachineModel, logger, pTypeHandler);
     variableClassification = pVariableClassification;
     options = pOptions;
     ptsMgr = pPtsMgr;
+    typeHandler = pTypeHandler;
+
+    voidPointerFormulaType = typeHandler.getFormulaTypeFromCType(CPointerType.POINTER_TO_VOID);
+    nullPointer = fmgr.makeNumber(voidPointerFormulaType, 0);
   }
 
   public PathFormulaWithUF makeEmptyPathFormula() {
@@ -181,13 +190,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   static String getReturnVarName() {
     return RETURN_VARIABLE_NAME;
-  }
-
-  @Override
-  public FormulaType<?> getFormulaTypeFromCType(final CType type) {
-    final int size = ptsMgr.getSize(type);
-    final int bitsPerByte = machineModel.getSizeofCharInBits();
-    return efmgr.getFormulaType(size * bitsPerByte);
   }
 
   @Override
@@ -1529,9 +1531,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   @SuppressWarnings("hiding") // same instance with narrower type
   final FormulaEncodingWithUFOptions options;
-
-  final FormulaType<?> voidPointerFormulaType = super.getFormulaTypeFromCType(CPointerType.POINTER_TO_VOID);
-  final Formula nullPointer = fmgr.makeNumber(voidPointerFormulaType, 0);
 
   private final Optional<VariableClassification> variableClassification;
 

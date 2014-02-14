@@ -56,9 +56,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetS
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTarget;
 
-import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Multiset;
 
 
 public class PointerTargetSetManager {
@@ -86,26 +84,14 @@ public class PointerTargetSetManager {
   private final FormulaEncodingWithUFOptions options;
   private final MachineModel machineModel;
   private final FormulaManagerView formulaManager;
-
-  private final CSizeofVisitor sizeofVisitor;
-
-  /*
-   * Use Multiset<String> instead of Map<String, Integer> because it is more
-   * efficient. The integer value is stored as the number of instances of any
-   * element in the Multiset. So instead of calling map.get(key) we just use
-   * Multiset.count(key). This is better because the Multiset internally uses
-   * modifiable integers instead of the immutable Integer class.
-   */
-  private final Multiset<CCompositeType> sizes = HashMultiset.create();
-  private final Map<CCompositeType, Multiset<String>> offsets = new HashMap<>();
+  private final CToFormulaWithUFTypeHandler typeHandler;
 
   public PointerTargetSetManager(FormulaEncodingWithUFOptions pOptions, MachineModel pMachineModel,
-      FormulaManagerView pFormulaManager) {
+      FormulaManagerView pFormulaManager, CToFormulaWithUFTypeHandler pTypeHandler) {
     options = pOptions;
     machineModel = pMachineModel;
     formulaManager = pFormulaManager;
-
-    sizeofVisitor = new CSizeofVisitor(pMachineModel, pOptions);
+    typeHandler = pTypeHandler;
   }
 
   public Triple<PointerTargetSet,
@@ -324,16 +310,7 @@ public class PointerTargetSetManager {
    * @return
    */
   public int getSize(CType cType) {
-    cType = CTypeUtils.simplifyType(cType);
-    if (cType instanceof CCompositeType) {
-      if (sizes.contains(cType)) {
-        return sizes.count(cType);
-      } else {
-        return cType.accept(sizeofVisitor);
-      }
-    } else {
-      return cType.accept(sizeofVisitor);
-    }
+    return typeHandler.getSizeof(cType);
   }
 
   /**
@@ -343,70 +320,7 @@ public class PointerTargetSetManager {
    * @return
    */
   public int getOffset(CCompositeType compositeType, final String memberName) {
-    compositeType = (CCompositeType) CTypeUtils.simplifyType(compositeType);
-    assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
-    Multiset<String> multiset = offsets.get(compositeType);
-    if (multiset == null) {
-      addCompositeTypeToCache(compositeType);
-      multiset = offsets.get(compositeType);
-      assert multiset != null : "Failed adding composite type to cache: " + compositeType;
-    }
-    return multiset.count(memberName);
-  }
-
-  /**
-   * Adds the declared composite type to the cache saving its size as well as the offset of every
-   * member of the composite.
-   * @param compositeType
-   */
-  void addCompositeTypeToCache(CCompositeType compositeType) {
-    compositeType = (CCompositeType) CTypeUtils.simplifyType(compositeType);
-    if (offsets.containsKey(compositeType)) {
-      // Support for empty structs though it's a GCC extension
-      assert sizes.contains(compositeType) || Integer.valueOf(0).equals(compositeType.accept(sizeofVisitor)) :
-        "Illegal state of PointerTargetSet: no size for type:" + compositeType;
-      return; // The type has already been added
-    }
-
-    final Integer size = compositeType.accept(sizeofVisitor);
-
-    assert size != null : "Can't evaluate size of a composite type: " + compositeType;
-
-    assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
-
-    final Multiset<String> members = HashMultiset.create();
-    int offset = 0;
-    for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-      members.setCount(memberDeclaration.getName(), offset);
-      final CType memberType = CTypeUtils.simplifyType(memberDeclaration.getType());
-      final CCompositeType memberCompositeType;
-      if (memberType instanceof CCompositeType) {
-        memberCompositeType = (CCompositeType) memberType;
-        if (memberCompositeType.getKind() == ComplexTypeKind.STRUCT ||
-            memberCompositeType.getKind() == ComplexTypeKind.UNION) {
-          if (!offsets.containsKey(memberCompositeType)) {
-            assert !sizes.contains(memberCompositeType) :
-              "Illegal state of PointerTargetSet: size for type:" + memberCompositeType;
-            addCompositeTypeToCache(memberCompositeType);
-          }
-        }
-      } else {
-        memberCompositeType = null;
-      }
-      if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
-        if (memberCompositeType != null) {
-          offset += sizes.count(memberCompositeType);
-        } else {
-          offset += memberDeclaration.getType().accept(sizeofVisitor);
-        }
-      }
-    }
-
-    assert compositeType.getKind() != ComplexTypeKind.STRUCT || offset == size :
-           "Incorrect sizeof or offset of the last member: " + compositeType;
-
-    sizes.setCount(compositeType, size);
-    offsets.put(compositeType, members);
+    return typeHandler.getOffset(compositeType, memberName);
   }
 
   @CheckReturnValue
@@ -466,7 +380,7 @@ public class PointerTargetSetManager {
       final CCompositeType compositeType = (CCompositeType) cType;
       assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
       final String type = CTypeUtils.typeToString(compositeType);
-      addCompositeTypeToCache(compositeType);
+      typeHandler.addCompositeTypeToCache(compositeType);
       int offset = 0;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         if (fields.containsKey(CompositeField.of(type, memberDeclaration.getName()))) {

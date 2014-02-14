@@ -69,8 +69,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.CToFormulaWithUFConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.CToFormulaWithUFTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.CTypeUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.FormulaEncodingWithUFOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PathFormulaWithUF;
@@ -143,14 +145,17 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     ffmgr = fmgr.getFunctionFormulaManager();
     logger = pLogger;
 
+
     if (handlePointerAliasing) {
       final FormulaEncodingWithUFOptions options = new FormulaEncodingWithUFOptions(config);
-      ptsManager = new PointerTargetSetManager(options, pMachineModel, pFmgr);
-      converter = new CToFormulaWithUFConverter(options, pFmgr, pMachineModel, ptsManager, pVariableClassification, pLogger);
+      CToFormulaWithUFTypeHandler typeHandler = new CToFormulaWithUFTypeHandler(pLogger, pMachineModel, pFmgr, options);
+      ptsManager = new PointerTargetSetManager(options, pMachineModel, pFmgr, typeHandler);
+      converter = new CToFormulaWithUFConverter(options, pFmgr, pMachineModel, ptsManager, pVariableClassification, pLogger, typeHandler);
 
     } else {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
-      converter = new CtoFormulaConverter(options, pFmgr, pMachineModel, pLogger);
+      CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel, pFmgr);
+      converter = new CtoFormulaConverter(options, pFmgr, pMachineModel, pLogger, typeHandler);
       ptsManager = null;
 
       logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
