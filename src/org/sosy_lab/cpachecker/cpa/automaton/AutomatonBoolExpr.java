@@ -244,7 +244,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
   }
 
-  static abstract class TokenAwareAutomatonBoolExpr implements AutomatonBoolExpr {
+  static abstract class OnRelevantEdgesBoolExpr implements AutomatonBoolExpr {
     protected boolean handleAsEpsilonEdge(CFAEdge edge) {
       if (edge instanceof BlankEdge) {
         return true;
@@ -269,7 +269,21 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
   }
 
-  static class MatchNonEmptyEdgeTokens extends TokenAwareAutomatonBoolExpr {
+  static class MatchPathRelevantEdgesBoolExpr extends OnRelevantEdgesBoolExpr {
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      return handleAsEpsilonEdge(pArgs.getCfaEdge()) ? CONST_FALSE : CONST_TRUE;
+    }
+
+    @Override
+    public String toString() {
+      return "MATCH PATH RELEVANT EDGE";
+    }
+
+  }
+
+  static class MatchNonEmptyEdgeTokens extends OnRelevantEdgesBoolExpr {
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
@@ -290,7 +304,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   }
 
-  static abstract class MatchEdgeTokens extends TokenAwareAutomatonBoolExpr {
+  static abstract class MatchEdgeTokens extends OnRelevantEdgesBoolExpr {
 
     protected final Set<Integer> matchTokens;
 

@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.SubsetMatchEdgeTo
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlTag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeType;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -89,7 +88,7 @@ public class AutomatonGraphmlParser {
 
   @Option(description="")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path specAutomatonDumpFile = null;
+  private Path automatonDumpFile = null;
 
   public AutomatonGraphmlParser(Configuration pConfig, LogManager pLogger, MachineModel pMachine) throws InvalidConfigurationException {
     pConfig.inject(this);
@@ -213,22 +212,27 @@ public class AutomatonGraphmlParser {
           Preconditions.checkArgument(originFileTags.size() < 2, "At most one origin-file data tag must be provided for an edge!");
 
           Set<String> originLineTags = docDat.getDataOnNode(stateTransitionEdge, KeyDef.ORIGINLINE);
-          Preconditions.checkArgument(originLineTags.size() == 1, "Exactly one origin-line data tag must be provided for each edge!");
+          Preconditions.checkArgument(originLineTags.size() < 2, "At most one origin-line data tag must be provided for each edge!");
 
-          Optional<String> matchOriginFileName = originFileTags.isEmpty() ? Optional.<String>absent() : Optional.of(originFileTags.iterator().next());
-          int matchOriginLineNumber = Integer.parseInt(originLineTags.iterator().next());
+          if (originLineTags.size() > 0) {
+            Optional<String> matchOriginFileName = originFileTags.isEmpty() ? Optional.<String>absent() : Optional.of(originFileTags.iterator().next());
+            int matchOriginLineNumber = Integer.parseInt(originLineTags.iterator().next());
 
-          conjunctedTriggers = new AutomatonBoolExpr.And(conjunctedTriggers,
-              new AutomatonBoolExpr.MatchStartingLineInOrigin(matchOriginFileName, matchOriginLineNumber, true));
+            conjunctedTriggers = new AutomatonBoolExpr.And(conjunctedTriggers,
+                new AutomatonBoolExpr.MatchStartingLineInOrigin(matchOriginFileName, matchOriginLineNumber, true));
 
-          if (targetStateId.equalsIgnoreCase(SINK_NODE_ID) || targetNodeFlags.contains(NodeFlag.ISSINKNODE)) {
-            // Transition to the BOTTOM state
-            transitions.add(new AutomatonTransition(conjunctedTriggers, emptyAssertions, actions, AutomatonInternalState.BOTTOM));
-          } else {
-            // Transition to the next state
-            transitions.add(new AutomatonTransition(conjunctedTriggers, emptyAssertions, actions, targetStateId));
-            transitions.add(new AutomatonTransition(new AutomatonBoolExpr.Negation(conjunctedTriggers), emptyAssertions, actions, AutomatonInternalState.BOTTOM));
+            if (targetStateId.equalsIgnoreCase(SINK_NODE_ID) || targetNodeFlags.contains(NodeFlag.ISSINKNODE)) {
+              // Transition to the BOTTOM state
+              transitions.add(new AutomatonTransition(conjunctedTriggers, emptyAssertions, actions, AutomatonInternalState.BOTTOM));
+            }
+            transitions.add(new AutomatonTransition(new AutomatonBoolExpr.And(
+                  new AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr(),
+                  new AutomatonBoolExpr.Negation(conjunctedTriggers)),
+                emptyAssertions, actions, AutomatonInternalState.BOTTOM));
           }
+
+          // Transition to the next state
+          transitions.add(new AutomatonTransition(conjunctedTriggers, emptyAssertions, actions, targetStateId));
 
         } else if (matchSourcecodeData) {
           Set<String> sourceCodeDataTags = docDat.getDataOnNode(stateTransitionEdge, KeyDef.SOURCECODE);
@@ -338,8 +342,8 @@ public class AutomatonGraphmlParser {
       Automaton automaton = new Automaton(automatonName, automatonVariables, automatonStates, initialStateName);
       result.add(automaton);
 
-      if (specAutomatonDumpFile != null) {
-        try (Writer w = Files.openOutputFile(specAutomatonDumpFile)) {
+      if (automatonDumpFile != null) {
+        try (Writer w = Files.openOutputFile(automatonDumpFile)) {
           automaton.writeDotFile(w);
         } catch (IOException e) {
          // logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
@@ -477,11 +481,8 @@ public class AutomatonGraphmlParser {
       return result;
     }
 
-    public NodeType getNodeType(Node checkDataOnNode) {
-      return NodeType.fromString(getDataValue(checkDataOnNode, KeyDef.NODETYPE, "The type of each node must be specified!"));
-    }
-
-    private String getDataValue(Node dataOnNode, KeyDef dataKey, String exceptionMessage) {
+    @SuppressWarnings("unused")
+    public String getDataValue(Node dataOnNode, KeyDef dataKey, String exceptionMessage) {
       Set<String> values = getDataOnNode(dataOnNode, dataKey);
       if (values.isEmpty()) {
         Optional<String> defaultValue = getDataDefault(dataKey);
