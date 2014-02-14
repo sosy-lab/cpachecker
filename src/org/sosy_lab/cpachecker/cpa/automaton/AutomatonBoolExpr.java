@@ -29,6 +29,7 @@ import java.util.logging.Level;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -374,6 +375,61 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     @Override
     public String toString() {
       return "MATCH TOKENS INTERSECT " + matchTokens;
+    }
+
+  }
+
+  static class MatchStartingLineInOrigin implements AutomatonBoolExpr {
+
+    private final Optional<String> matchOriginFileName;
+    private final int matchStartingLineInOrigin;
+    private final boolean matchExtractedBaseName;
+
+    public MatchStartingLineInOrigin(Optional<String> pOriginFileName, int pStartingLineInOrigin, boolean bMatchExtractedBaseName) {
+      this.matchStartingLineInOrigin = pStartingLineInOrigin;
+      this.matchExtractedBaseName = bMatchExtractedBaseName;
+
+      if (pOriginFileName.isPresent()) {
+        this.matchOriginFileName = Optional.of(bMatchExtractedBaseName ? getBaseName(pOriginFileName.get()) : pOriginFileName.get());
+      } else {
+        this.matchOriginFileName = Optional.absent();
+      }
+    }
+
+    public String getBaseName(String pOf) {
+      int index = pOf.lastIndexOf('/');
+      if (index == -1) {
+        index = pOf.lastIndexOf('\\');
+      }
+      if (index == -1) {
+        return pOf;
+      } else {
+        return pOf.substring(index + 1);
+      }
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      Set<FileLocation> fileLocs = SourceLocationMapper.getFileLocationsFromCfaEdge(pArgs.getCfaEdge());
+      for (FileLocation l: fileLocs) {
+        boolean matches = true;
+        if (matchOriginFileName.isPresent()) {
+          String edgeFileName = matchExtractedBaseName ? getBaseName(l.getFileName()) : l.getFileName();
+          if (!matchOriginFileName.get().equals(edgeFileName)) {
+            matches = false;
+          }
+        }
+        if (matches && l.getStartingLineInOrigin() == matchStartingLineInOrigin) {
+          return CONST_TRUE;
+        }
+      }
+
+      return CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "MATCH ORIGIN STARTING LINE " + matchStartingLineInOrigin;
     }
 
   }
