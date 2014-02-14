@@ -1525,10 +1525,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
   }
 
-  public boolean isDynamicAllocVariableName(final String name) {
-    return options.isSuccessfulAllocFunctionName(name) || options.isSuccessfulZallocFunctionName(name);
-  }
-
   @SuppressWarnings("hiding") // same instance with narrower type
   final FormulaEncodingWithUFOptions options;
 

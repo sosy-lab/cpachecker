@@ -28,7 +28,9 @@ import static org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes.VOID;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.MapMerger.*;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.annotation.CheckReturnValue;
@@ -49,9 +51,14 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.MapMerger;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.MapMerger.ConflictHandler;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.CompositeField;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTarget;
@@ -84,6 +91,8 @@ public class PointerTargetSetManager {
   private final FormulaEncodingWithUFOptions options;
   private final MachineModel machineModel;
   private final FormulaManagerView formulaManager;
+  private final BooleanFormulaManagerView bfmgr;
+  private final FunctionFormulaManagerView ffmgr;
   private final CToFormulaWithUFTypeHandler typeHandler;
 
   public PointerTargetSetManager(FormulaEncodingWithUFOptions pOptions, MachineModel pMachineModel,
@@ -91,10 +100,69 @@ public class PointerTargetSetManager {
     options = pOptions;
     machineModel = pMachineModel;
     formulaManager = pFormulaManager;
+    bfmgr = formulaManager.getBooleanFormulaManager();
+    ffmgr = formulaManager.getFunctionFormulaManager();
     typeHandler = pTypeHandler;
   }
 
-  public Triple<PointerTargetSet,
+  public Pair<Triple<BooleanFormula, BooleanFormula, BooleanFormula>, PointerTargetSet>
+            mergePointerTargetSets(final PointerTargetSet pts1,
+                                   final PointerTargetSet pts2,
+                                   final SSAMap resultSSA) {
+
+    BooleanFormula mergeFormula1 = bfmgr.makeBoolean(true);
+    BooleanFormula mergeFormula2 = bfmgr.makeBoolean(true);
+
+    final Triple<PointerTargetSet,
+                 BooleanFormula,
+                 Pair<PersistentSortedMap<String, CType>, PersistentSortedMap<String, CType>>>
+      ptsMergeResult = merge(pts1, pts2);
+
+    final List<Pair<CCompositeType, String>> sharedFields = new ArrayList<>();
+    for (final Map.Entry<String, CType> baseFromPTS1 : ptsMergeResult.getThird().getFirst().entrySet()) {
+      if (!options.isDynamicAllocVariableName(baseFromPTS1.getKey()) &&
+          !CTypeUtils.containsArray(baseFromPTS1.getValue())) {
+        final FormulaType<?> baseFormulaType = typeHandler.getFormulaTypeFromCType(
+                                                   CTypeUtils.getBaseType(baseFromPTS1.getValue()));
+        mergeFormula2 = bfmgr.and(mergeFormula2, makeSharingConstraints(formulaManager.makeVariable(baseFormulaType,
+                                                                                          PointerTargetSet.getBaseName(
+                                                                                            baseFromPTS1.getKey())),
+                                                                        baseFromPTS1.getKey(),
+                                                                        baseFromPTS1.getValue(),
+                                                                        sharedFields,
+                                                                        resultSSA,
+                                                                        pts2));
+      }
+    }
+    for (final Map.Entry<String, CType> baseFromPTS2 : ptsMergeResult.getThird().getSecond().entrySet()) {
+      if (!options.isDynamicAllocVariableName(baseFromPTS2.getKey()) &&
+          !CTypeUtils.containsArray(baseFromPTS2.getValue())) {
+        final FormulaType<?> baseFormulaType = typeHandler.getFormulaTypeFromCType(
+                                                   CTypeUtils.getBaseType(baseFromPTS2.getValue()));
+        mergeFormula1 = bfmgr.and(mergeFormula1, makeSharingConstraints(formulaManager.makeVariable(baseFormulaType,
+                                                                                          PointerTargetSet.getBaseName(
+                                                                                              baseFromPTS2.getKey())),
+                                                                        baseFromPTS2.getKey(),
+                                                                        baseFromPTS2.getValue(),
+                                                                        sharedFields,
+                                                                        resultSSA,
+                                                                        pts1));
+      }
+    }
+
+    PointerTargetSet resultPTS = ptsMergeResult.getFirst();
+    if (!sharedFields.isEmpty()) {
+      final PointerTargetSetBuilder resultPTSBuilder = resultPTS.builder(this);
+      for (final Pair<CCompositeType, String> sharedField : sharedFields) {
+        resultPTSBuilder.addField(sharedField.getFirst(), sharedField.getSecond());
+      }
+      resultPTS = resultPTSBuilder.build();
+    }
+
+    return Pair.of(Triple.of(mergeFormula1, mergeFormula2, ptsMergeResult.getSecond()), resultPTS);
+  }
+
+  private Triple<PointerTargetSet,
                 BooleanFormula,
                 Pair<PersistentSortedMap<String, CType>, PersistentSortedMap<String, CType>>>
     merge(final PointerTargetSet pts1, final PointerTargetSet pts2) {
@@ -302,6 +370,62 @@ public class PointerTargetSetManager {
       }
     };
   }
+
+  private BooleanFormula makeSharingConstraints(final Formula address,
+                                                final String variablePrefix,
+                                                final CType variableType,
+                                                final List<Pair<CCompositeType, String>> sharedFields,
+                                                final SSAMap ssa,
+                                                final PointerTargetSet pts) {
+
+    assert !CTypeUtils.containsArray(variableType) : "Array access can't be encoded as a varaible";
+
+    BooleanFormula result = bfmgr.makeBoolean(true);
+
+    if (variableType instanceof CCompositeType) {
+      final CCompositeType compositeType = (CCompositeType) variableType;
+      assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
+      int offset = 0;
+      for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+        final String memberName = memberDeclaration.getName();
+        final CType memberType = CTypeUtils.simplifyType(memberDeclaration.getType());
+        final String newPrefix = variablePrefix + CToFormulaWithUFConverter.FIELD_NAME_SEPARATOR + memberName;
+        if (ssa.getIndex(newPrefix) > 0) {
+          sharedFields.add(Pair.of(compositeType, memberName));
+          result = bfmgr.and(result, makeSharingConstraints(
+                                       formulaManager.makePlus(address, formulaManager.makeNumber(pts.getPointerType(), offset)),
+                                       newPrefix,
+                                       memberType,
+                                       sharedFields,
+                                       ssa,
+                                       pts));
+        }
+        if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
+          offset += typeHandler.getSizeof(memberType);
+        }
+      }
+    } else {
+      if (ssa.getIndex(variablePrefix) > 0) {
+        final FormulaType<?> variableFormulaType = typeHandler.getFormulaTypeFromCType(variableType);
+        result = bfmgr.and(result, formulaManager.makeEqual(makeDereferece(variableType, address, ssa),
+                                                  formulaManager.makeVariable(variableFormulaType,
+                                                                    variablePrefix,
+                                                                    ssa.getIndex(variablePrefix))));
+      }
+    }
+
+    return result;
+  }
+
+  private Formula makeDereferece(final CType type,
+                                 final Formula address,
+                                 final SSAMap ssa) {
+    final String ufName = CToFormulaWithUFConverter.getUFName(type);
+    final int index = ssa.getIndex(ufName);
+    final FormulaType<?> returnType = typeHandler.getFormulaTypeFromCType(type);
+    return ffmgr.createFuncAndCall(ufName, index, returnType, ImmutableList.of(address));
+  }
+
 
 
   /**

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +37,6 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -47,9 +45,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.Model;
@@ -73,11 +68,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.CToFormulaWithUFConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.CToFormulaWithUFTypeHandler;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.CTypeUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.FormulaEncodingWithUFOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PathFormulaWithUF;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTarget;
 
@@ -267,7 +260,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       final SSAMap newSSA = mergeSSAResult.getSecond();
 
       final Pair<Triple<BooleanFormula, BooleanFormula, BooleanFormula>, PointerTargetSet> mergePtsResult =
-        mergePointerTargetSets(pts1, pts2, newSSA);
+        ptsManager.mergePointerTargetSets(pts1, pts2, newSSA);
 
       // (?) Do not swap these two lines, that makes a huge difference in performance (?) !
       final BooleanFormula newFormula1 = bfmgr.and(formula1,
@@ -422,63 +415,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return Pair.of(Pair.of(mergeFormula1, mergeFormula2), resultSSA);
   }
 
-  private Pair<Triple<BooleanFormula, BooleanFormula, BooleanFormula>, PointerTargetSet>
-    mergePointerTargetSets(final PointerTargetSet pts1,
-                                     final PointerTargetSet pts2,
-                                     final SSAMap resultSSA) {
-
-    BooleanFormula mergeFormula1 = bfmgr.makeBoolean(true);
-    BooleanFormula mergeFormula2 = bfmgr.makeBoolean(true);
-
-    final Triple<PointerTargetSet,
-                 BooleanFormula,
-                 Pair<PersistentSortedMap<String, CType>, PersistentSortedMap<String, CType>>>
-      ptsMergeResult = ptsManager.merge(pts1, pts2);
-
-    final List<Pair<CCompositeType, String>> sharedFields = new ArrayList<>();
-    for (final Map.Entry<String, CType> baseFromPTS1 : ptsMergeResult.getThird().getFirst().entrySet()) {
-      if (!((CToFormulaWithUFConverter) converter).isDynamicAllocVariableName(baseFromPTS1.getKey()) &&
-          !CTypeUtils.containsArray(baseFromPTS1.getValue())) {
-        final FormulaType<?> baseFormulaType = converter.getFormulaTypeFromCType(
-                                                   CTypeUtils.getBaseType(baseFromPTS1.getValue()));
-        mergeFormula2 = bfmgr.and(mergeFormula2, makeSharingConstraints(fmgr.makeVariable(baseFormulaType,
-                                                                                          PointerTargetSet.getBaseName(
-                                                                                            baseFromPTS1.getKey())),
-                                                                        baseFromPTS1.getKey(),
-                                                                        baseFromPTS1.getValue(),
-                                                                        sharedFields,
-                                                                        resultSSA,
-                                                                        pts2));
-      }
-    }
-    for (final Map.Entry<String, CType> baseFromPTS2 : ptsMergeResult.getThird().getSecond().entrySet()) {
-      if (!((CToFormulaWithUFConverter) converter).isDynamicAllocVariableName(baseFromPTS2.getKey()) &&
-          !CTypeUtils.containsArray(baseFromPTS2.getValue())) {
-        final FormulaType<?> baseFormulaType = converter.getFormulaTypeFromCType(
-                                                   CTypeUtils.getBaseType(baseFromPTS2.getValue()));
-        mergeFormula1 = bfmgr.and(mergeFormula1, makeSharingConstraints(fmgr.makeVariable(baseFormulaType,
-                                                                                          PointerTargetSet.getBaseName(
-                                                                                              baseFromPTS2.getKey())),
-                                                                        baseFromPTS2.getKey(),
-                                                                        baseFromPTS2.getValue(),
-                                                                        sharedFields,
-                                                                        resultSSA,
-                                                                        pts1));
-      }
-    }
-
-    PointerTargetSet resultPTS = ptsMergeResult.getFirst();
-    if (!sharedFields.isEmpty()) {
-      final PointerTargetSetBuilder resultPTSBuilder = resultPTS.builder(ptsManager);
-      for (final Pair<CCompositeType, String> sharedField : sharedFields) {
-        resultPTSBuilder.addField(sharedField.getFirst(), sharedField.getSecond());
-      }
-      resultPTS = resultPTSBuilder.build();
-    }
-
-    return Pair.of(Triple.of(mergeFormula1, mergeFormula2, ptsMergeResult.getSecond()), resultPTS);
-  }
-
   private BooleanFormula makeNondetMiddleVariableMerger(final String variableName,
                                                         final CType variableType,
                                                         final int oldIndex,
@@ -514,61 +450,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
                                                                               returnFormulaType,
                                                                               ImmutableList.of(targetAddress)));
       result = fmgr.makeAnd(result, retention);
-    }
-
-    return result;
-  }
-
-  private Formula makeDereferece(final CType type,
-                                 final Formula address,
-                                 final SSAMap ssa) {
-    final String ufName = CToFormulaWithUFConverter.getUFName(type);
-    final int index = ssa.getIndex(ufName);
-    final FormulaType<?> returnType = converter.getFormulaTypeFromCType(type);
-    return ffmgr.createFuncAndCall(ufName, index, returnType, ImmutableList.of(address));
-  }
-
-  private BooleanFormula makeSharingConstraints(final Formula address,
-                                                final String variablePrefix,
-                                                final CType variableType,
-                                                final List<Pair<CCompositeType, String>> sharedFields,
-                                                final SSAMap ssa,
-                                                final PointerTargetSet pts) {
-
-    assert !CTypeUtils.containsArray(variableType) : "Array access can't be encoded as a varaible";
-
-    BooleanFormula result = bfmgr.makeBoolean(true);
-
-    if (variableType instanceof CCompositeType) {
-      final CCompositeType compositeType = (CCompositeType) variableType;
-      assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
-      int offset = 0;
-      for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-        final String memberName = memberDeclaration.getName();
-        final CType memberType = CTypeUtils.simplifyType(memberDeclaration.getType());
-        final String newPrefix = variablePrefix + CToFormulaWithUFConverter.FIELD_NAME_SEPARATOR + memberName;
-        if (ssa.getIndex(newPrefix) > 0) {
-          sharedFields.add(Pair.of(compositeType, memberName));
-          result = bfmgr.and(result, makeSharingConstraints(
-                                       fmgr.makePlus(address, fmgr.makeNumber(pts.getPointerType(), offset)),
-                                       newPrefix,
-                                       memberType,
-                                       sharedFields,
-                                       ssa,
-                                       pts));
-        }
-        if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
-          offset += ptsManager.getSize(memberType);
-        }
-      }
-    } else {
-      if (ssa.getIndex(variablePrefix) > 0) {
-        final FormulaType<?> variableFormulaType = converter.getFormulaTypeFromCType(variableType);
-        result = bfmgr.and(result, fmgr.makeEqual(makeDereferece(variableType, address, ssa),
-                                                  fmgr.makeVariable(variableFormulaType,
-                                                                    variablePrefix,
-                                                                    ssa.getIndex(variablePrefix))));
-      }
     }
 
     return result;

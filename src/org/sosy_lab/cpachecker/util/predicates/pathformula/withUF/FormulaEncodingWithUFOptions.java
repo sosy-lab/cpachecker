@@ -101,6 +101,10 @@ public class FormulaEncodingWithUFOptions extends FormulaEncodingOptions {
     return successfulZallocFunctionName.equals(name);
   }
 
+  public boolean isDynamicAllocVariableName(final String name) {
+    return isSuccessfulAllocFunctionName(name) || isSuccessfulZallocFunctionName(name);
+  }
+
   public String getSuccessfulAllocFunctionName() {
     return successfulAllocFunctionName;
   }
