@@ -64,6 +64,7 @@ public abstract class TaskFileMixinAnnotations {
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
+  @JsonAutoDetect(setterVisibility = Visibility.NONE)
   public abstract class FromJSONAPI {
     @JsonIgnore
     Ref<Task> task;

@@ -51,6 +51,8 @@ import com.googlecode.objectify.Ref;
  */
 public abstract class TaskMixinAnnotations {
 
+  private static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS";
+
   @JsonAutoDetect(getterVisibility = Visibility.NONE, fieldVisibility = Visibility.NONE)
   public abstract class KeyOnly extends Task {
 
@@ -62,17 +64,17 @@ public abstract class TaskMixinAnnotations {
   public abstract class Minimal extends KeyOnly {
 
     @JsonProperty
-    @JsonFormat(timezone = "UTC", pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
+    @JsonFormat(timezone = "UTC", pattern = DATE_FORMAT)
     Date creationDate;
 
     @JsonProperty
     @JsonInclude(Include.ALWAYS)
-    @JsonFormat(timezone = "UTC", pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
+    @JsonFormat(timezone = "UTC", pattern = DATE_FORMAT)
     Date executionDate;
 
     @JsonProperty
     @JsonInclude(Include.ALWAYS)
-    @JsonFormat(timezone = "UTC", pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
+    @JsonFormat(timezone = "UTC", pattern = DATE_FORMAT)
     Date terminationDate;
 
     @JsonProperty
@@ -128,8 +130,18 @@ public abstract class TaskMixinAnnotations {
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
+  @JsonAutoDetect(setterVisibility = Visibility.NONE)
   public abstract class FromJSONAPI {
     @JsonIgnore
     Ref<TaskFile> program;
+
+    @JsonProperty
+    String specification;
+
+    @JsonProperty
+    String configuration;
+
+    @JsonProperty
+    Map<String, String> options;
   }
 }
