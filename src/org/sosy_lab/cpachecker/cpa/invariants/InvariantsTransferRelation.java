@@ -75,10 +75,12 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvaluationVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
+import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 
 public enum InvariantsTransferRelation implements TransferRelation {
@@ -438,7 +440,42 @@ public enum InvariantsTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState pElement, List<AbstractState> pOtherElements,
-      CFAEdge pCfaEdge, Precision pPrecision) {
+      CFAEdge pCfaEdge, Precision pPrecision) throws UnrecognizedCCodeException {
+
+    InvariantsState state = (InvariantsState) pElement;
+    if (state.wasClearedDueToPointerDereference()) {
+      CFAEdge edge = pCfaEdge;
+      if (edge instanceof MultiEdge) {
+        edge = FluentIterable.from((MultiEdge) edge).filter(new Predicate<CFAEdge>() {
+
+          @Override
+          public boolean apply(@Nullable CFAEdge pArg0) {
+            return getLeftHandSide(pArg0) != null;
+          }
+
+        }).last().orNull();
+      }
+      CLeftHandSide leftHandSide = getLeftHandSide(edge);
+      if (leftHandSide != null && leftHandSide instanceof CPointerExpression) {
+        CExpression dereferencee = ((CPointerExpression) leftHandSide).getOperand();
+        for (PointerState pointerState : FluentIterable.from(pOtherElements).filter(PointerState.class)) {
+          String varName = getVarName(dereferencee, edge);
+          org.sosy_lab.cpachecker.cpa.pointer2.util.Variable location = new org.sosy_lab.cpachecker.cpa.pointer2.util.Variable(varName);
+          InvariantsState stateBeforeClearing = state.getStateBeforePointerDereferenceClearing();
+          InvariantsState result = stateBeforeClearing;
+          for (String potentialTargetVar : stateBeforeClearing.getEnvironment().keySet()) {
+            org.sosy_lab.cpachecker.cpa.pointer2.util.Variable potentialTarget = new org.sosy_lab.cpachecker.cpa.pointer2.util.Variable(potentialTargetVar);
+            if (pointerState.mayPointTo(location, potentialTarget)) {
+              result = result.assign(false, potentialTargetVar, CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top()), edge);
+              if (result == null) {
+                return Collections.emptySet();
+              }
+            }
+            return Collections.singleton(result);
+          }
+        }
+      }
+    }
 
     return null;
   }
@@ -474,5 +511,23 @@ public enum InvariantsTransferRelation implements TransferRelation {
       }
     }
     return false;
+  }
+
+  private CLeftHandSide getLeftHandSide(CFAEdge pEdge) {
+    if (pEdge instanceof CStatementEdge) {
+      CStatementEdge statementEdge = (CStatementEdge) pEdge;
+      if (statementEdge.getStatement() instanceof CAssignment) {
+        CAssignment assignment = (CAssignment)statementEdge.getStatement();
+        return assignment.getLeftHandSide();
+      }
+    } else if (pEdge instanceof CFunctionCallEdge) {
+      CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) pEdge;
+      CFunctionCall functionCall = functionCallEdge.getSummaryEdge().getExpression();
+      if (functionCall instanceof CFunctionCallAssignmentStatement) {
+        CFunctionCallAssignmentStatement assignment = (CFunctionCallAssignmentStatement) functionCall;
+        return assignment.getLeftHandSide();
+      }
+    }
+    return null;
   }
 }

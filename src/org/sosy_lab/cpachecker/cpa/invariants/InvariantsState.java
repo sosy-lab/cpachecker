@@ -155,6 +155,12 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
   private Iterable<InvariantsFormula<CompoundInterval>> environmentAndAssumptions = null;
 
+  /**
+   * This state provides additional information for strengthening but is not
+   * relevant elsewhere.
+   */
+  private InvariantsState preUnknownPointerDerefClear;
+
   private volatile int hash = 0;
 
   /**
@@ -240,9 +246,12 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   }
 
   public InvariantsState assign(boolean isUnknownPointerDereference, String pVarName, InvariantsFormula<CompoundInterval> pValue, CFAEdge pEdge) {
+    this.preUnknownPointerDerefClear = null;
     // If a dereferenced pointer is assigned to, anything might change, so all information is invalidated
     if (isUnknownPointerDereference) {
-      return clear();
+      InvariantsState result = new InvariantsState(useBitvectors, variableSelection, edgeBasedAbstractionStrategy, precision);
+      result.preUnknownPointerDerefClear = this;
+      return result;
     }
     if (pValue instanceof Variable<?>) {
       InvariantsState result = this;
@@ -980,6 +989,15 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
   public InvariantsPrecision getPrecision() {
     return this.precision;
+  }
+
+  public boolean wasClearedDueToPointerDereference() {
+    return this.preUnknownPointerDerefClear != null;
+  }
+
+  public InvariantsState getStateBeforePointerDereferenceClearing() {
+    Preconditions.checkArgument(wasClearedDueToPointerDereference());
+    return this.preUnknownPointerDerefClear;
   }
 
   static interface EdgeBasedAbstractionStrategy {
