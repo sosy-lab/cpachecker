@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -59,11 +60,13 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaManager;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.Constant;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor.VariableNameExtractor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvaluationVisitor;
@@ -88,6 +91,8 @@ public enum InvariantsTransferRelation implements TransferRelation {
   private static final StringBuilder FORMATTER_OUT = new StringBuilder();
 
   private static final Formatter FORMATTER = new Formatter(FORMATTER_OUT, (Locale) null);
+
+  private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(
@@ -185,7 +190,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
     if (decl.getInitializer() != null && decl.getInitializer() instanceof CInitializerExpression) {
       CExpression init = ((CInitializerExpression)decl.getInitializer()).getExpression();
       value = init.accept(getExpressionToFormulaVisitor(pEdge));
-      if (!(value instanceof Constant<?>) && value.toString().contains("[*]")) {
+      if (containsArrayWildcard(value)) {
         value = toConstant(value, pElement);
       }
 
@@ -193,6 +198,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
       value = CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
     }
 
+    value = topIfProblematicType(pElement, value, decl.getType());
     return pElement.assign(false, varName, value, pEdge);
   }
 
@@ -200,13 +206,16 @@ public enum InvariantsTransferRelation implements TransferRelation {
 
     InvariantsState newElement = pElement;
     List<String> formalParams = pEdge.getSuccessor().getFunctionParameterNames();
+    List<CParameterDeclaration> declarations = pEdge.getSuccessor().getFunctionParameters();
     List<CExpression> actualParams = pEdge.getArguments();
     int limit = Math.min(formalParams.size(), actualParams.size());
     formalParams = FluentIterable.from(formalParams).limit(limit).toList();
     actualParams = FluentIterable.from(actualParams).limit(limit).toList();
 
+    Iterator<CParameterDeclaration> declarationIterator = declarations.iterator();
     for (Pair<String, CExpression> param : Pair.zipList(formalParams, actualParams)) {
       CExpression actualParam = param.getSecond();
+      CParameterDeclaration declaration = declarationIterator.next();
 
       InvariantsFormula<CompoundInterval> value = actualParam.accept(getExpressionToFormulaVisitor(new VariableNameExtractor() {
 
@@ -215,10 +224,12 @@ public enum InvariantsTransferRelation implements TransferRelation {
           return getVarName(pCExpression, pEdge, pEdge.getPredecessor().getFunctionName(), pElement);
         }
       }));
-      if (!(value instanceof Constant<?>) && value.toString().contains("[*]")) {
+      if (containsArrayWildcard(value)) {
         value = toConstant(value, pElement);
       }
       String formalParam = scope(param.getFirst(), pEdge.getSuccessor().getFunctionName());
+
+      value = topIfProblematicType(pElement, value, declaration.getType());
       newElement = newElement.assign(false, formalParam, value, pEdge);
     }
 
@@ -251,6 +262,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
           }
         }
       }
+      value = topIfProblematicType(pElement, value, leftHandSide.getExpressionType());
       return handleAssignment(pElement, pEdge.getPredecessor().getFunctionName(), pEdge, leftHandSide, value, pPrecision);
     }
 
@@ -281,6 +293,13 @@ public enum InvariantsTransferRelation implements TransferRelation {
       String varName = getVarName(pLeftHandSide, pEdge, pFunctionName);
       return pElement.assign(isUnknownPointerDereference, varName, pValue, pEdge);
     }
+  }
+
+  private InvariantsFormula<CompoundInterval> topIfProblematicType(InvariantsState pElement, InvariantsFormula<CompoundInterval> pFormula, CType pType) {
+    if (pType instanceof CSimpleType && ((CSimpleType) pType).isUnsigned() && evaluate(pFormula, pElement).containsNegative()) {
+      return CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
+    }
+    return pFormula;
   }
 
   private InvariantsState handleReturnStatement(InvariantsState pElement, CReturnStatementEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCCodeException {
@@ -430,5 +449,14 @@ public enum InvariantsTransferRelation implements TransferRelation {
 
   public ExpressionToFormulaVisitor getExpressionToFormulaVisitor(VariableNameExtractor pVariableNameExtractor) {
     return new ExpressionToFormulaVisitor(pVariableNameExtractor);
+  }
+
+  private boolean containsArrayWildcard(InvariantsFormula<CompoundInterval> pFormula) {
+    for (String pVarName : pFormula.accept(COLLECT_VARS_VISITOR)) {
+      if (pVarName.contains("[*]")) {
+        return true;
+      }
+    }
+    return false;
   }
 }
