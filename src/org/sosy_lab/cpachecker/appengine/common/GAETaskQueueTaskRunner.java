@@ -98,7 +98,6 @@ public class GAETaskQueueTaskRunner implements TaskRunner {
 
     TaskHandle taskHandle = queue.add(builder);
 
-    task.setInstanceType(instanceType);
     task.setQueueName(taskHandle.getQueueName());
     task.setTaskName(taskHandle.getName());
     TaskDAO.save(task);

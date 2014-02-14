@@ -63,16 +63,15 @@ public abstract class TaskFileMixinAnnotations {
     public abstract Task getTask();
   }
 
-  @JsonAutoDetect(setterVisibility = Visibility.PUBLIC_ONLY)
   @JsonIgnoreProperties(ignoreUnknown = true)
   public abstract class FromJSONAPI {
     @JsonIgnore
     Ref<Task> task;
 
-    @JsonProperty(value = "sourceFileName")
+    @JsonProperty("sourceFileName")
     String path;
 
-    @JsonProperty(value = "programText")
+    @JsonProperty("programText")
     String content;
   }
 }

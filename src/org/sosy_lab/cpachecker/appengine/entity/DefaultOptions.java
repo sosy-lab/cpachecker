@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
@@ -64,7 +65,7 @@ public class DefaultOptions {
     defaultOptions.put("analysis.machineModel", "Linux32");
     defaultOptions.put("output.disable", "false");
     defaultOptions.put("statistics.export", "true");
-    defaultOptions.put("log.level", "OFF");
+    defaultOptions.put("log.level", "FINER");
     defaultOptions.put("limits.time.wall", DEFAUL_WALLTIME_LIMIT);
     defaultOptions.put("gae.instanceType", "FRONTEND");
 
@@ -94,9 +95,14 @@ public class DefaultOptions {
    * @return True, if the option will be used as is, false if it was altered.
    */
   public boolean setOption(String key, String value) {
-    // log level needs to be UPPERCASE
+    // log level needs to be UPPERCASE and valid
     if (key.equals("log.level")) {
       value = value.toUpperCase();
+      try {
+        Level.parse(value);
+      } catch (IllegalArgumentException e) {
+        value = getDefault("log.level");
+      }
     }
 
     // walltime must not be negative or too large on front-end instances

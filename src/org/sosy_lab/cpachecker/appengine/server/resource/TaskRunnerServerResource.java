@@ -348,11 +348,7 @@ public class TaskRunnerServerResource extends WadlServerResource implements Task
   }
 
   private void setupLogging() throws IOException, InvalidConfigurationException {
-    if (config == null || config.getProperty("log.level") == null || config.getProperty("log.level").equals("")) {
-      logLevel = Level.parse(DefaultOptions.getDefault("log.level"));
-    } else {
-      logLevel = Level.parse(config.getProperty("log.level"));
-    }
+    logLevel = Level.parse(config.getProperty("log.level"));
 
     if (logLevel != Level.OFF) {
       Formatter fileLogFormatter = new FileLogFormatter();
@@ -379,7 +375,7 @@ public class TaskRunnerServerResource extends WadlServerResource implements Task
       configurationBuilder.loadFromFile(Paths.get("WEB-INF", "configurations", task.getConfiguration()));
     }
     configurationBuilder
-        .setOption("analysis.programNames", task.getProgram().getName())
+        .setOption("analysis.programNames", task.getProgram().getPath())
         .setOptions(task.getOptions());
     if (task.getSpecification() != null) {
       configurationBuilder.setOption("specification", "WEB-INF/specifications/" + task.getSpecification());

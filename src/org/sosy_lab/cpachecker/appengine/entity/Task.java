@@ -28,7 +28,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueTaskRunner.InstanceType;
 import org.sosy_lab.cpachecker.appengine.dao.TaskFileDAO;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
@@ -82,7 +81,6 @@ public class Task {
   private String configuration;
   private String queueName;
   private String taskName;
-  private InstanceType instanceType;
   private int retries;
   private Result resultOutcome;
   private String resultMessage;
@@ -98,9 +96,9 @@ public class Task {
     init();
   }
 
-  public Task(Long id) {
+  public Task(long id) {
     init();
-    this.id = id;
+    setId(id);
   }
 
   private void init() {
@@ -220,11 +218,11 @@ public class Task {
     this.program = Ref.create(program);
   }
 
-  public Long getId() {
+  public long getId() {
     return id;
   }
 
-  public void setId(Long pId) {
+  public void setId(long pId) {
     id = pId;
   }
 
@@ -233,16 +231,27 @@ public class Task {
   }
 
   /**
-   * Returns the file with an ID of the given path.
+   * Returns the {@link TaskFile} with the given path that is associated with
+   * this instance.
    *
-   * @param path The file's path.
-   * @return The file or null if the file cannot be found
+   * @see TaskFileDAO#loadByPath(String, Task)
+   *
+   * @param path The {@link TaskFile}s path.
+   * @return The {@link TaskFile} or null if it cannot be found
    */
   public TaskFile getFile(String path) {
     return TaskFileDAO.loadByPath(path, this);
   }
 
-  public List<TaskFile> getFilesLoaded() {
+  /**
+   * Returns a {@link List} of {@link TaskFile}s that are associated with this
+   * instance.
+   *
+   * @see TaskFileDAO#files(Task)
+   *
+   * @return A {@link List} of {@link TaskFile}s or an empty list.
+   */
+  public List<TaskFile> getFiles() {
     return TaskFileDAO.files(this);
   }
 
@@ -260,14 +269,6 @@ public class Task {
 
   public void setTaskName(String pTaskName) {
     taskName = pTaskName;
-  }
-
-  public InstanceType getInstanceType() {
-    return instanceType;
-  }
-
-  public void setInstanceType(InstanceType pInstanceType) {
-    instanceType = pInstanceType;
   }
 
   public int getRetries() {

@@ -96,12 +96,6 @@
           <td>${task.program.name?html}</td>
         </tr>
         </#if>
-        <#if task.instanceType??>
-        <tr>
-          <td>${msg.instanceType}</td>
-          <td>${task.instanceType}</td>
-        </tr>
-        </#if>
         <#if task.options?? >
         <tr>
           <td>${msg.options}</td>

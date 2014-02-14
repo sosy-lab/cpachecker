@@ -64,7 +64,7 @@ public class TaskServerResource extends WadlServerResource implements TaskResour
 
   @Override
   public Representation taskAsHtml() {
-    List<TaskFile> files = task.getFilesLoaded();
+    List<TaskFile> files = task.getFiles();
 
     return FreemarkerUtil.templateBuilder()
         .context(getContext())

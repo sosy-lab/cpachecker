@@ -62,12 +62,8 @@ public class TaskFile {
 
   public TaskFile() {}
 
-  public TaskFile(String path) {
-    setPath(path);
-  }
-
-  public TaskFile(Task task) {
-    setTask(task);
+  public TaskFile(long id) {
+    setId(id);
   }
 
   public TaskFile(String path, Task task) {
@@ -79,8 +75,12 @@ public class TaskFile {
     return Key.create(task.getKey(), TaskFile.class, getId()).getString();
   }
 
-  public Long getId() {
+  public long getId() {
     return id;
+  }
+
+  public void setId(long pId) {
+    id = pId;
   }
 
   public Task getTask() {
@@ -160,7 +160,7 @@ public class TaskFile {
   /**
    * A ByteArrayOuputStream that saves the given {@link TaskFile} instance on calling close()
    */
-  public class SaveOnCloseByteArrayOutputStream extends ByteArrayOutputStream {
+  public static class SaveOnCloseByteArrayOutputStream extends ByteArrayOutputStream {
 
     private TaskFile file;
 

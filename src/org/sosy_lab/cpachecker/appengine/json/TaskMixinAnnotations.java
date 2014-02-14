@@ -119,7 +119,7 @@ public abstract class TaskMixinAnnotations {
     @JsonProperty("files")
     @JsonInclude(Include.ALWAYS)
     @Override
-    public abstract List<TaskFile> getFilesLoaded();
+    public abstract List<TaskFile> getFiles();
 
     @JsonProperty
     @JsonInclude(Include.ALWAYS)
@@ -127,7 +127,6 @@ public abstract class TaskMixinAnnotations {
     public abstract TaskStatistic getStatistic();
   }
 
-  @JsonAutoDetect(setterVisibility = Visibility.PUBLIC_ONLY)
   @JsonIgnoreProperties(ignoreUnknown = true)
   public abstract class FromJSONAPI {
     @JsonIgnore
