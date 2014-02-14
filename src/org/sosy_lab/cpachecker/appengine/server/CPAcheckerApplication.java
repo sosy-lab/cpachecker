@@ -31,13 +31,16 @@ import org.restlet.routing.Router;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.appengine.entity.Task;
 import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
+import org.sosy_lab.cpachecker.appengine.entity.Taskset;
+import org.sosy_lab.cpachecker.appengine.server.resource.RootServerResource;
+import org.sosy_lab.cpachecker.appengine.server.resource.SettingsServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.TaskFileServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.TaskRunnerServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.TaskServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.TaskStatisticServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.TasksServerResource;
-import org.sosy_lab.cpachecker.appengine.server.resource.RootServerResource;
-import org.sosy_lab.cpachecker.appengine.server.resource.SettingsServerResource;
+import org.sosy_lab.cpachecker.appengine.server.resource.TasksetServerResource;
+import org.sosy_lab.cpachecker.appengine.server.resource.TasksetTasksServerResource;
 
 import com.google.common.base.Charsets;
 import com.googlecode.objectify.ObjectifyService;
@@ -60,12 +63,18 @@ public class CPAcheckerApplication extends WadlApplication {
     Router router = new Router(getContext());
 
     router.attach("/", RootServerResource.class);
+    router.attach("/settings", SettingsServerResource.class);
+
     router.attach("/tasks", TasksServerResource.class);
     router.attach("/tasks/{taskKey}", TaskServerResource.class);
     router.attach("/tasks/{taskKey}/statistics", TaskStatisticServerResource.class);
     router.attach("/tasks/{taskKey}/files/{fileKey}", TaskFileServerResource.class);
+
+    router.attach("/taskset", TasksetServerResource.class);
+    router.attach("/taskset/{tasksetKey}", TasksetServerResource.class);
+    router.attach("/taskset/{tasksetKey}/tasks", TasksetTasksServerResource.class);
+
     router.attach("/workers/run-task", TaskRunnerServerResource.class);
-    router.attach("/settings", SettingsServerResource.class);
 
     CapabilitiesFilter capabilitiesFilter = new CapabilitiesFilter(getContext());
     capabilitiesFilter.setNext(router);
@@ -89,5 +98,6 @@ public class CPAcheckerApplication extends WadlApplication {
   static {
     ObjectifyService.register(Task.class);
     ObjectifyService.register(TaskFile.class);
+    ObjectifyService.register(Taskset.class);
   }
 }

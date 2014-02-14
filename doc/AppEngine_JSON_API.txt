@@ -114,9 +114,6 @@ Creates a new task.
 
 Request
 -------
-201 Created
-Location: [URI of the created task resource]
-
 Optional:
   - options
 Required:
@@ -140,6 +137,11 @@ Required:
     "gae.instanceType" : "FRONTEND"
   }
 }
+
+Response
+--------
+201 Created
+Location: [URI of the created task resource]
 
 Errors
 ------
@@ -274,3 +276,110 @@ with the key {taskKey}.
 Response
 --------
 Content-Type: text/plain
+
+
+
+# POST /taskset
+===============
+Creates a new taskset.
+A taskset is a collection of tasks that are bundled together e.g. by a benchmark or
+a large verification run. It associates every task with a boolean marker that
+indicates whether the task has been marked as processed or not. This can be used
+by a client e.g. to track the retrieval of the outcome of a task. 
+
+Response
+-------
+201 Created
+Location: [URI of the created taskset resource]
+
+
+
+# DELETE /taskset/{tasksetKey}
+===============
+Deletes the taskset with the key {tasksetKey}.
+Does not delete any associated tasks. 
+
+Response
+-------
+200 OK
+
+Error
+-----
+400 Not Found
+
+
+
+# POST /taskset/{tasksetKey}/tasks
+==================================
+Creates tasks and puts them into the taskset with the key {tasksetKey}.
+For the exact JSON format of a task see "POST /tasks".
+Every task takes an additional field with the name "identifier".
+This field will be passed into the response together with the key of the created task.
+This identifier can be used to associate the created task with an object on the client.
+For example:
+Request: { "programText" : "abc", "identifier" : "foo", ...}
+Response: { "foo" : "taskKey" }
+
+Request
+-------
+[ {...}, {...}, {...}, ...]
+
+Response
+--------
+201 Created
+[
+  { "123" : "agZ234432Y324WJyCQsSA0pvYsdfsDA" },
+  { "709" : "340sdagZiYSdskjfs" },
+  { "dww" : "öwefsdfäüwdsdf" }
+]
+
+Error
+-----
+400 Bad Request
+500 Internal Server Error
+
+
+
+# PUT /taskset/{tasksetKey}/tasks
+==================================
+Marks the tasks with the requested keys as processed in the taskset with the key {tasksetKey}.
+
+Request
+-------
+[
+  "Z234432Y324WJyCQsSA0pvYsd",
+  "340sdagZiYSdskjfs",
+  "A0pvYhgDDAsSB0pvYk"
+]
+
+Response
+--------
+204 No Content
+
+Error
+-----
+400 Bad Request
+500 Internal Server Error
+
+
+
+# GET /taskset/{tasksetKey}/tasks
+==================================
+Returns the tasks that are in the taskset with the key {tasksetKey}.
+The URI accepts a query parameter to return tasks based on being marked as processed
+or not. If the parameter is ommitted all tasks will be returned.
+
+Query Parameter:
+  - processed:
+  	true, if only processed tasks should be returned
+  	false, if only un-processed tasks should be returned
+
+Response
+--------
+200 OK
+For the response format of a task see "GET /tasks/{taskKey}"
+
+Error
+-----
+400 Bad Request
+500 Internal Server Error
