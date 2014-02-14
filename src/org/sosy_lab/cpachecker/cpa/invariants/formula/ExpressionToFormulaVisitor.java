@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -41,6 +42,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -85,15 +88,21 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
    */
   private final VariableNameExtractor variableNameExtractor;
 
+  private final FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor = new FormulaCompoundStateEvaluationVisitor();
+
+  private final Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> environment;
+
   /**
    * Creates a new visitor for converting c expressions to compound state
    * invariants formulae with the given variable name extractor.
    *
    * @param pVariableNameExtractor the variable name extractor used to obtain
    * variable names for c id expressions.
+   * @param pEnvironment the current environment information.
    */
-  public ExpressionToFormulaVisitor(VariableNameExtractor pVariableNameExtractor) {
+  public ExpressionToFormulaVisitor(VariableNameExtractor pVariableNameExtractor, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     this.variableNameExtractor = pVariableNameExtractor;
+    this.environment = pEnvironment;
   }
 
   @Override
@@ -159,9 +168,11 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
 
   @Override
   public InvariantsFormula<CompoundInterval> visit(CBinaryExpression pCBinaryExpression) throws UnrecognizedCCodeException {
+    CompoundIntervalFormulaManager fmgr = CompoundIntervalFormulaManager.INSTANCE;
     InvariantsFormula<CompoundInterval> left = pCBinaryExpression.getOperand1().accept(this);
     InvariantsFormula<CompoundInterval> right = pCBinaryExpression.getOperand2().accept(this);
-    CompoundIntervalFormulaManager fmgr = CompoundIntervalFormulaManager.INSTANCE;
+    left = topIfProblematicType(pCBinaryExpression.getCalculationType(), left);
+    right = topIfProblematicType(pCBinaryExpression.getCalculationType(), right);
     switch (pCBinaryExpression.getOperator()) {
     case BINARY_AND:
       return fmgr.binaryAnd(left, right);
@@ -231,5 +242,15 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
      */
     String extract(CExpression pCExpression) throws UnrecognizedCCodeException;
 
+  }
+
+  private InvariantsFormula<CompoundInterval> topIfProblematicType(CType pType, InvariantsFormula<CompoundInterval> pFormula) {
+    if ((pType instanceof CSimpleType) && ((CSimpleType) pType).isUnsigned()) {
+      CompoundInterval value =  pFormula.accept(evaluationVisitor, environment);
+      if (!value.isTop() && value.containsNegative()) {
+        return TOP;
+      }
+    }
+    return pFormula;
   }
 }

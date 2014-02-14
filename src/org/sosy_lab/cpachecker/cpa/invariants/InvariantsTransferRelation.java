@@ -29,7 +29,10 @@ import java.util.Formatter;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Map.Entry;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -151,7 +154,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
   private InvariantsState handleAssume(InvariantsState pElement, CAssumeEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCCodeException {
     CExpression expression = pEdge.getExpression();
     // Create a formula representing the edge expression
-    InvariantsFormula<CompoundInterval> expressionFormula = expression.accept(getExpressionToFormulaVisitor(pEdge));
+    InvariantsFormula<CompoundInterval> expressionFormula = expression.accept(getExpressionToFormulaVisitor(pEdge, pElement));
 
     /*
      * If the expression definitely evaluates to false when truth is assumed or
@@ -189,7 +192,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
     InvariantsFormula<CompoundInterval> value;
     if (decl.getInitializer() != null && decl.getInitializer() instanceof CInitializerExpression) {
       CExpression init = ((CInitializerExpression)decl.getInitializer()).getExpression();
-      value = init.accept(getExpressionToFormulaVisitor(pEdge));
+      value = init.accept(getExpressionToFormulaVisitor(pEdge, pElement));
       if (containsArrayWildcard(value)) {
         value = toConstant(value, pElement);
       }
@@ -223,7 +226,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
         public String extract(CExpression pCExpression) throws UnrecognizedCCodeException {
           return getVarName(pCExpression, pEdge, pEdge.getPredecessor().getFunctionName(), pElement);
         }
-      }));
+      }, pElement));
       if (containsArrayWildcard(value)) {
         value = toConstant(value, pElement);
       }
@@ -248,7 +251,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
 
     if (pEdge.getStatement() instanceof CAssignment) {
       CAssignment assignment = (CAssignment)pEdge.getStatement();
-      ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge);
+      ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
       CExpression leftHandSide = assignment.getLeftHandSide();
       CRightHandSide rightHandSide = assignment.getRightHandSide();
       InvariantsFormula<CompoundInterval> value = assignment.getRightHandSide().accept(etfv);
@@ -271,7 +274,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
       CFunctionCall functionCall = (CFunctionCall) pEdge.getStatement();
       CFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
       if (functionCallExpression.getFunctionNameExpression().toString().equals("__CPROVER_assume")) {
-        ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge);
+        ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
         for (CExpression expression : functionCallExpression.getParameterExpressions()) {
           result = result.assume(expression.accept(etfv), pEdge);
         }
@@ -282,7 +285,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
   }
 
   private InvariantsState handleAssignment(InvariantsState pElement, String pFunctionName, CFAEdge pEdge, CExpression pLeftHandSide, InvariantsFormula<CompoundInterval> pValue, InvariantsPrecision pPrecision) throws UnrecognizedCCodeException {
-    ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge);
+    ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
     boolean isUnknownPointerDereference = pLeftHandSide instanceof CPointerExpression;
     if (pLeftHandSide instanceof CArraySubscriptExpression) {
       CArraySubscriptExpression arraySubscriptExpression = (CArraySubscriptExpression) pLeftHandSide;
@@ -296,8 +299,11 @@ public enum InvariantsTransferRelation implements TransferRelation {
   }
 
   private InvariantsFormula<CompoundInterval> topIfProblematicType(InvariantsState pElement, InvariantsFormula<CompoundInterval> pFormula, CType pType) {
-    if (pType instanceof CSimpleType && ((CSimpleType) pType).isUnsigned() && evaluate(pFormula, pElement).containsNegative()) {
-      return CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
+    if (pType instanceof CSimpleType && ((CSimpleType) pType).isUnsigned()) {
+      CompoundInterval value = evaluate(pFormula, pElement);
+      if (!value.isTop() && value.containsNegative()) {
+        return CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
+      }
     }
     return pFormula;
   }
@@ -309,7 +315,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
     if (returnedExpression == null) {
       return pElement;
     }
-    ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge);
+    ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
     InvariantsFormula<CompoundInterval> returnedState = returnedExpression.accept(etfv);
     String returnValueName = scope(RETURN_VARIABLE_BASE_NAME, calledFunctionName);
     return pElement.assign(false, returnValueName, returnedState, pEdge);
@@ -341,7 +347,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
           break;
         }
         CExpression actualParam = actualParamIterator.next();
-        InvariantsFormula<CompoundInterval> actualParamFormula = actualParam.accept(getExpressionToFormulaVisitor(summaryEdge));
+        InvariantsFormula<CompoundInterval> actualParamFormula = actualParam.accept(getExpressionToFormulaVisitor(summaryEdge, pElement));
         if (actualParamFormula instanceof Variable) {
           String actualParamName = ((Variable<?>) actualParamFormula).getName();
           String formalParamPrefixDeref = calledFunctionName + "::" + formalParamName + "->";
@@ -398,7 +404,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
         CIntegerLiteralExpression literal = (CIntegerLiteralExpression) subscript;
         return format("%s[%d]", getVarName(owner, pEdge, pFunctionName), literal.asLong()).toString();
       } else if (pState != null) {
-        CompoundInterval subscriptValue = evaluate(subscript.accept(InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(pEdge)), pState);
+        CompoundInterval subscriptValue = evaluate(subscript.accept(InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(pEdge, pState)), pState);
         if (subscriptValue.isSingleton()) {
           return format("%s[%d]", getVarName(owner, pEdge, pFunctionName), subscriptValue.getValue()).toString();
         }
@@ -438,17 +444,27 @@ public enum InvariantsTransferRelation implements TransferRelation {
   }
 
   public ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final CFAEdge pEdge) {
+    return getExpressionToFormulaVisitor(pEdge, null);
+  }
+
+  public ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final VariableNameExtractor pVariableNameExtractor) {
+    return getExpressionToFormulaVisitor(pVariableNameExtractor, null);
+  }
+
+  private ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final CFAEdge pEdge, final @Nullable InvariantsState pState) {
     return getExpressionToFormulaVisitor(new VariableNameExtractor() {
 
       @Override
       public String extract(CExpression pCExpression) throws UnrecognizedCCodeException {
         return getVarName(pCExpression, pEdge);
       }
-    });
+    }, pState);
   }
 
-  public ExpressionToFormulaVisitor getExpressionToFormulaVisitor(VariableNameExtractor pVariableNameExtractor) {
-    return new ExpressionToFormulaVisitor(pVariableNameExtractor);
+  private ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final VariableNameExtractor pVariableNameExtractor, final @Nullable InvariantsState pState) {
+    final Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> environment;
+    environment = pState == null ? Collections.<String, InvariantsFormula<CompoundInterval>>emptyMap() : pState.getEnvironment();
+    return new ExpressionToFormulaVisitor(pVariableNameExtractor, environment);
   }
 
   private boolean containsArrayWildcard(InvariantsFormula<CompoundInterval> pFormula) {
