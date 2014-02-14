@@ -391,6 +391,18 @@ public enum CompoundIntervalFormulaManager {
    * @return a invariants formula representing a constant with the given value.
    */
   public InvariantsFormula<CompoundInterval> asConstant(CompoundInterval pValue) {
+    if (pValue.isTop()) {
+      return TOP;
+    }
+    if (pValue.isBottom()) {
+      return BOTTOM;
+    }
+    if (pValue.equals(CompoundInterval.logicalTrue())) {
+      return TRUE;
+    }
+    if (pValue.equals(CompoundInterval.logicalFalse())) {
+      return FALSE;
+    }
     return InvariantsFormulaManager.INSTANCE.asConstant(pValue);
   }
 
