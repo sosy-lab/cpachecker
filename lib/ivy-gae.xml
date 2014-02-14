@@ -25,12 +25,12 @@
 
 	<dependencies>
 		<!-- Restlet -->
-		<dependency org="org.restlet.gae" name="org.restlet" rev="2.1.6" conf="runtime->master; contrib->sources" />
-		<dependency org="org.restlet.gae" name="org.restlet.ext.fileupload" rev="2.1.6" conf="runtime->master; contrib->sources" />
-		<dependency org="org.restlet.gae" name="org.restlet.ext.freemarker" rev="2.1.6" conf="runtime->master; contrib->sources" />
-		<dependency org="org.restlet.gae" name="org.restlet.ext.servlet" rev="2.1.6" conf="runtime->master; contrib->sources" />
-		<dependency org="org.restlet.gae" name="org.restlet.ext.wadl" rev="2.1.6" conf="runtime->master; contrib->sources" />
-		<dependency org="org.restlet.gae" name="org.restlet.ext.xml" rev="2.1.6" conf="runtime->master; contrib->sources" />
+		<dependency org="org.restlet.gae" name="org.restlet" rev="2.1.7" conf="runtime->master; contrib->sources" />
+		<dependency org="org.restlet.gae" name="org.restlet.ext.fileupload" rev="2.1.7" conf="runtime->master; contrib->sources" />
+		<dependency org="org.restlet.gae" name="org.restlet.ext.freemarker" rev="2.1.7" conf="runtime->master; contrib->sources" />
+		<dependency org="org.restlet.gae" name="org.restlet.ext.servlet" rev="2.1.7" conf="runtime->master; contrib->sources" />
+		<dependency org="org.restlet.gae" name="org.restlet.ext.wadl" rev="2.1.7" conf="runtime->master; contrib->sources" />
+		<dependency org="org.restlet.gae" name="org.restlet.ext.xml" rev="2.1.7" conf="runtime->master; contrib->sources" />
 		<!--HTML templating -->
 		<dependency org="org.freemarker" name="freemarker-gae" rev="2.3.20" conf="runtime->master; contrib->sources" />
 		<!-- File upload -->
