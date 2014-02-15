@@ -25,11 +25,8 @@ package org.sosy_lab.cpachecker.appengine.dao;
 
 import static org.junit.Assert.*;
 
-import java.util.Collection;
-
 import org.junit.Test;
 import org.sosy_lab.cpachecker.appengine.common.DatastoreTest;
-import org.sosy_lab.cpachecker.appengine.entity.Task;
 import org.sosy_lab.cpachecker.appengine.entity.Taskset;
 
 
@@ -59,50 +56,10 @@ public class TasksetDAOTest extends DatastoreTest {
   }
 
   @Test
-  public void shouldLoadAllTasks() throws Exception {
-    putTasksIntoTaskset(2, taskset);
-
-    Collection<Task> tasks = TasksetDAO.tasks(taskset);
-    assertEquals(2, tasks.size());
-  }
-
-  @Test
-  public void shouldLoadProcessedTasks() throws Exception {
-    Task[] tasks = putTasksIntoTaskset(1, taskset);
-    taskset.setProcessed(tasks[0].getKey());
-    TasksetDAO.save(taskset);
-
-    assertEquals(1, TasksetDAO.tasks(taskset, true).size());
-    assertEquals(0, TasksetDAO.tasks(taskset, false).size());
-  }
-
-  @Test
-  public void shouldLoadUnProcessedTasks() throws Exception {
-    putTasksIntoTaskset(1, taskset);
-
-    assertEquals(1, TasksetDAO.tasks(taskset, false).size());
-    assertEquals(0, TasksetDAO.tasks(taskset, true).size());
-  }
-
-  @Test
   public void shouldDeleteTaskset() throws Exception {
     String key = taskset.getKey();
     TasksetDAO.delete(taskset);
 
     assertNull(TasksetDAO.load(key));
-  }
-
-  private Task[] putTasksIntoTaskset(int amount, Taskset tasket) {
-    Task[] tasks = new Task[amount];
-
-    for (int i = 0; i < amount; i++) {
-      Task task = new Task();
-      TaskDAO.save(task);
-      taskset.addTask(task);
-      TasksetDAO.save(tasket);
-      tasks[i] = task;
-    }
-
-    return tasks;
   }
 }

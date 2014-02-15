@@ -25,12 +25,6 @@ package org.sosy_lab.cpachecker.appengine.dao;
 
 import static com.googlecode.objectify.ObjectifyService.ofy;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map.Entry;
-
-import org.sosy_lab.cpachecker.appengine.entity.Task;
 import org.sosy_lab.cpachecker.appengine.entity.Taskset;
 
 import com.googlecode.objectify.Key;
@@ -65,41 +59,6 @@ public class TasksetDAO {
   public static Taskset save(Taskset taskset) {
     ofy().save().entity(taskset).now();
     return taskset;
-  }
-
-  /**
-   * Returns a collection of {@link Task}s that are associated with the given {@link Taskset}
-   *
-   * @param taskset The {@link Taskset} to retrieve the {@link Task}s for
-   * @return A collection of {@link Task}s
-   */
-  public static Collection<Task> tasks(Taskset taskset) {
-    List<Key<Task>> keys = new ArrayList<>();
-    for (String key : taskset.getTasks().keySet()) {
-      Key<Task> taskKey = Key.create(key);
-      keys.add(taskKey);
-    }
-    return ofy().load().keys(keys).values();
-  }
-
-  /**
-   * Returns a collection of {@link Task}s that are associated with the given {@link Taskset}
-   * and are either marked as processed or not.
-   *
-   * @param taskset The {@link Taskset} to retrieve the {@link Task}s for
-   * @param processed True, if only processed {@link Task}s will be retrieved,
-   *                  false if only un-processed {@link Task}s will be retrieved
-   * @return
-   */
-  public static Collection<Task> tasks(Taskset taskset, boolean processed) {
-    List<Key<Task>> keys = new ArrayList<>();
-    for (Entry<String, Boolean> entry : taskset.getTasks().entrySet()) {
-      if (entry.getValue() == processed) {
-        Key<Task> taskKey = Key.create(entry.getKey());
-        keys.add(taskKey);
-      }
-    }
-    return ofy().load().keys(keys).values();
   }
 
   /**
