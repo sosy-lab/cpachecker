@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.appengine.server.resource;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -184,17 +183,25 @@ public class TasksetTasksServerResource extends WadlServerResource implements Ta
   @Override
   public Representation getTasks() {
 
-    Collection<Task> tasks = new ArrayList<>();
+    List<Task> tasks = TaskDAO.load(taskset.getTaskKeys());
 
     if (taskset.getTasks() != null && !taskset.getTasks().isEmpty()) {
       if (getQueryValue("processed") != null) {
         if (getQueryValue("processed").equals("true")) {
-          tasks = TasksetDAO.tasks(taskset, true);
+          tasks.retainAll(TaskDAO.load(taskset.getProcessedKeys()));
         } else {
-          tasks = TasksetDAO.tasks(taskset, false);
+          tasks.retainAll(TaskDAO.load(taskset.getUnprocessedKeys()));
         }
-      } else {
-        tasks = TasksetDAO.tasks(taskset);
+      }
+    }
+
+    if (taskset.getTasks() != null && !taskset.getTasks().isEmpty()) {
+      if (getQueryValue("finished") != null) {
+        if (getQueryValue("finished").equals("true")) {
+          tasks.retainAll(TaskDAO.finishedTasks(taskset.getTaskKeys()));
+        } else {
+          tasks.retainAll(TaskDAO.unfinishedTasks(taskset.getTaskKeys()));
+        }
       }
     }
 

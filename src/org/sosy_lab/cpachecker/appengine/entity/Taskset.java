@@ -23,9 +23,13 @@
  */
 package org.sosy_lab.cpachecker.appengine.entity;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
+import com.google.common.collect.Lists;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.annotation.EmbedMap;
 import com.googlecode.objectify.annotation.Entity;
@@ -54,6 +58,28 @@ public class Taskset {
 
   public Map<String, Boolean> getTasks() {
     return tasks;
+  }
+
+  public List<String> getTaskKeys() {
+    return Lists.newArrayList(tasks.keySet());
+  }
+
+  public List<String> getProcessedKeys() {
+    return getKeysWithMarker(true);
+  }
+
+  public List<String> getUnprocessedKeys() {
+    return getKeysWithMarker(false);
+  }
+
+  private List<String> getKeysWithMarker(boolean marker) {
+    List<String> keys = new ArrayList<>();
+    for (Entry<String, Boolean> entry : tasks.entrySet()) {
+      if (entry.getValue() == marker) {
+        keys.add(entry.getKey());
+      }
+    }
+    return keys;
   }
 
   public void setTasks(Map<String, Boolean> pTasks) {
