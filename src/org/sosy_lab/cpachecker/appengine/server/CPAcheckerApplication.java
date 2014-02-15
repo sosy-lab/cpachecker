@@ -67,9 +67,9 @@ public class CPAcheckerApplication extends WadlApplication {
     router.attach("/tasks/{taskKey}/statistics", TaskStatisticServerResource.class);
     router.attach("/tasks/{taskKey}/files/{fileKey}", TaskFileServerResource.class);
 
-    router.attach("/taskset", TasksetServerResource.class);
-    router.attach("/taskset/{tasksetKey}", TasksetServerResource.class);
-    router.attach("/taskset/{tasksetKey}/tasks", TasksetTasksServerResource.class);
+    router.attach("/tasksets", TasksetServerResource.class);
+    router.attach("/tasksets/{tasksetKey}", TasksetServerResource.class);
+    router.attach("/tasksets/{tasksetKey}/tasks", TasksetTasksServerResource.class);
 
     router.attach("/workers/run-task", TaskRunnerServerResource.class);
 

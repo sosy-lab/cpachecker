@@ -279,7 +279,7 @@ Content-Type: text/plain
 
 
 
-# POST /taskset
+# POST /tasksets
 ===============
 Creates a new taskset.
 A taskset is a collection of tasks that are bundled together e.g. by a benchmark or
@@ -294,7 +294,7 @@ Location: [URI of the created taskset resource]
 
 
 
-# DELETE /taskset/{tasksetKey}
+# DELETE /tasksets/{tasksetKey}
 ===============
 Deletes the taskset with the key {tasksetKey}.
 Does not delete any associated tasks. 
@@ -309,7 +309,7 @@ Error
 
 
 
-# POST /taskset/{tasksetKey}/tasks
+# POST /tasksets/{tasksetKey}/tasks
 ==================================
 Creates tasks and puts them into the taskset with the key {tasksetKey}.
 For the exact JSON format of a task see "POST /tasks".
@@ -340,7 +340,7 @@ Error
 
 
 
-# PUT /taskset/{tasksetKey}/tasks
+# PUT /tasksets/{tasksetKey}/tasks
 ==================================
 Marks the tasks with the requested keys as processed in the taskset with the key {tasksetKey}.
 
@@ -363,7 +363,7 @@ Error
 
 
 
-# GET /taskset/{tasksetKey}/tasks
+# GET /tasksets/{tasksetKey}/tasks
 ==================================
 Returns the tasks that are in the taskset with the key {tasksetKey}.
 The URI accepts two query parameters that can be used together or individually.
