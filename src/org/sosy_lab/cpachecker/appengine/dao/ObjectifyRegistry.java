@@ -21,32 +21,23 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.appengine.common;
+package org.sosy_lab.cpachecker.appengine.dao;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.sosy_lab.cpachecker.appengine.dao.ObjectifyRegistry;
+import org.sosy_lab.cpachecker.appengine.entity.Task;
+import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
+import org.sosy_lab.cpachecker.appengine.entity.Taskset;
 
-import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
-import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
+import com.googlecode.objectify.ObjectifyService;
 
-@Ignore
-public abstract class DatastoreTest {
+/**
+ * This class registers entities with the {@link ObjectifyService}.
+ * Call {@link #register()} when bootstrapping the application or tests.
+ */
+public class ObjectifyRegistry {
 
-  static {
-    ObjectifyRegistry.register();
-  }
-
-  private final LocalServiceTestHelper helper = new LocalServiceTestHelper(new LocalDatastoreServiceTestConfig());
-
-  @Before
-  public void setUp() {
-    helper.setUp();
-  }
-
-  @After
-  public void tearDown() {
-    helper.tearDown();
+  public static void register() {
+    ObjectifyService.register(Task.class);
+    ObjectifyService.register(TaskFile.class);
+    ObjectifyService.register(Taskset.class);
   }
 }

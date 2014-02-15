@@ -29,9 +29,7 @@ import org.restlet.Restlet;
 import org.restlet.ext.wadl.WadlApplication;
 import org.restlet.routing.Router;
 import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.cpachecker.appengine.entity.Task;
-import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
-import org.sosy_lab.cpachecker.appengine.entity.Taskset;
+import org.sosy_lab.cpachecker.appengine.dao.ObjectifyRegistry;
 import org.sosy_lab.cpachecker.appengine.server.resource.RootServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.SettingsServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.TaskFileServerResource;
@@ -43,15 +41,14 @@ import org.sosy_lab.cpachecker.appengine.server.resource.TasksetServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.TasksetTasksServerResource;
 
 import com.google.common.base.Charsets;
-import com.googlecode.objectify.ObjectifyService;
 
 import freemarker.log.Logger;
 
 public class CPAcheckerApplication extends WadlApplication {
 
-
   @Override
   public Restlet createInboundRoot() {
+
     getEncoderService().setEnabled(true);
 
     try {
@@ -96,8 +93,6 @@ public class CPAcheckerApplication extends WadlApplication {
   }
 
   static {
-    ObjectifyService.register(Task.class);
-    ObjectifyService.register(TaskFile.class);
-    ObjectifyService.register(Taskset.class);
+    ObjectifyRegistry.register();
   }
 }
