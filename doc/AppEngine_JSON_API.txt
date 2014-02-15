@@ -257,9 +257,6 @@ Returns the file with the key {fileKey} belonging to the task with the key {task
 Response
 --------
 {
-  "task" : {
-    "key" : "agZiYS1sYWJyCQsSA0pvYhgDDA"
-  },
   "name" : "CPALog.txt",
   "content" : "...",
   "key" : "agZiYS1sYWJyHQsSA0pvYhgDDAsSB0pvYkZpbGUYgICAgICAwAgM"

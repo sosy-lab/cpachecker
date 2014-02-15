@@ -57,10 +57,6 @@ public abstract class TaskFileMixinAnnotations {
 
     @JsonProperty
     String content;
-
-    @JsonProperty
-    @Override
-    public abstract Task getTask();
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
