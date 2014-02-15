@@ -69,7 +69,7 @@ public class TaskDAOTest extends DatastoreTest {
   }
 
   @Test
-  public void shouldLoadTasksByReferences() throws Exception {
+  public void shouldLoadTasksByKeys() throws Exception {
     Task[] tasks = createTasks(2);
     List<String> keys = new ArrayList<>();
     keys.add(tasks[0].getKey());
