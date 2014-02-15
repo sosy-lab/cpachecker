@@ -27,6 +27,7 @@ import static com.googlecode.objectify.ObjectifyService.ofy;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -47,7 +48,6 @@ import com.google.appengine.api.taskqueue.Queue;
 import com.google.appengine.api.taskqueue.QueueFactory;
 import com.google.apphosting.api.ApiProxy.RequestTooLargeException;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
 import com.googlecode.objectify.VoidWork;
@@ -78,8 +78,7 @@ public class TaskDAO {
    * @return The desired {@link Task} or null if it cannot be found
    */
   public static Task load(Key<Task> key) {
-    Task task = ofy().load().key(key).now();
-    return sanitizeStateAndSetStatistics(task);
+    return sanitizeStateAndSetStatistics(ofy().load().key(key).now());
   }
 
   /**
@@ -94,7 +93,7 @@ public class TaskDAO {
       Key<Task> taskKey = Key.create(key);
       taskKeys.add(taskKey);
     }
-    return Lists.newArrayList(ofy().load().keys(taskKeys).values());
+    return sanitizeStateAndSetStatistics(ofy().load().keys(taskKeys).values());
   }
 
   /**
@@ -102,12 +101,7 @@ public class TaskDAO {
    * @return
    */
   public static List<Task> tasks() {
-    List<Task> tasks = ofy().load().type(Task.class).list();
-    for (Task task : tasks) {
-      sanitizeStateAndSetStatistics(task);
-    }
-
-    return tasks;
+    return sanitizeStateAndSetStatistics(ofy().load().type(Task.class).list());
   }
 
   /**
@@ -147,7 +141,7 @@ public class TaskDAO {
       }
     }
 
-    return tasks;
+    return sanitizeStateAndSetStatistics(tasks);
   }
 
   /**
@@ -368,7 +362,8 @@ public class TaskDAO {
         task.setStatus(Status.ERROR);
         task.setStatusMessage("The task's request has finished, the task's status did not reflect this and no retries are left");
         task.setRequestID(lastRecord.getRequestId());
-        save(task);
+        setStatistics(task, lastRecord);
+        return save(task);
       }
     }
 
@@ -413,16 +408,7 @@ public class TaskDAO {
           }
 
           if (task.getStatus() == Status.DONE || task.getStatus() == Status.ERROR || task.getStatus() == Status.TIMEOUT) {
-            TaskStatistic stats = new TaskStatistic();
-            stats.setCost(record.getCost());
-            stats.setHost(record.getHost());
-            stats.setLatency(record.getLatencyUsec());
-            stats.setEndTime(record.getEndTimeUsec());
-            stats.setStartTime(record.getStartTimeUsec());
-            stats.setPendingTime(record.getPendingTimeUsec());
-            stats.setMcycles(record.getMcycles());
-
-            task.setStatistic(stats);
+            setStatistics(task, record);
           }
 
           task = save(task);
@@ -433,4 +419,25 @@ public class TaskDAO {
     return task;
   }
 
+  private static List<Task> sanitizeStateAndSetStatistics(Collection<Task> tasks) {
+    List<Task> sanitizedTasks = new ArrayList<>();
+    for (Task task : tasks) {
+      sanitizedTasks.add(sanitizeStateAndSetStatistics(task));
+    }
+    return sanitizedTasks;
+  }
+
+  private static Task setStatistics(Task task, RequestLogs record) {
+    TaskStatistic stats = new TaskStatistic();
+    stats.setCost(record.getCost());
+    stats.setHost(record.getHost());
+    stats.setLatency(record.getLatencyUsec());
+    stats.setEndTime(record.getEndTimeUsec());
+    stats.setStartTime(record.getStartTimeUsec());
+    stats.setPendingTime(record.getPendingTimeUsec());
+    stats.setMcycles(record.getMcycles());
+
+    task.setStatistic(stats);
+    return task;
+  }
 }
