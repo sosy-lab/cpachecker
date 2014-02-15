@@ -31,12 +31,12 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueTaskRunner;
 import org.sosy_lab.cpachecker.appengine.entity.DefaultOptions;
 import org.sosy_lab.cpachecker.appengine.entity.Task;
 import org.sosy_lab.cpachecker.appengine.entity.Task.Status;
 import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 import org.sosy_lab.cpachecker.appengine.entity.TaskStatistic;
+import org.sosy_lab.cpachecker.appengine.server.GAETaskQueueTaskRunner;
 import org.sosy_lab.cpachecker.appengine.server.common.TaskRunnerResource;
 
 import com.google.appengine.api.log.AppLogLine;

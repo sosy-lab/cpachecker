@@ -47,13 +47,13 @@ import org.restlet.representation.StringRepresentation;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.appengine.common.FreemarkerUtil;
-import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueTaskRunner;
 import org.sosy_lab.cpachecker.appengine.dao.TaskDAO;
 import org.sosy_lab.cpachecker.appengine.entity.DefaultOptions;
 import org.sosy_lab.cpachecker.appengine.entity.Task;
 import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 import org.sosy_lab.cpachecker.appengine.json.TaskFileMixinAnnotations;
 import org.sosy_lab.cpachecker.appengine.json.TaskMixinAnnotations;
+import org.sosy_lab.cpachecker.appengine.server.GAETaskQueueTaskRunner;
 import org.sosy_lab.cpachecker.appengine.server.common.TasksResource;
 
 import com.fasterxml.jackson.core.JsonParseException;

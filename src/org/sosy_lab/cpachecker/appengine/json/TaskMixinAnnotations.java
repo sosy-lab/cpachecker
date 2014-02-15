@@ -27,10 +27,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueTaskRunner.InstanceType;
 import org.sosy_lab.cpachecker.appengine.entity.Task;
 import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 import org.sosy_lab.cpachecker.appengine.entity.TaskStatistic;
+import org.sosy_lab.cpachecker.appengine.server.GAETaskQueueTaskRunner.InstanceType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
