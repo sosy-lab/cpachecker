@@ -53,6 +53,7 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 
@@ -76,6 +77,7 @@ public class TasksetTasksServerResource extends WadlServerResource implements Ta
   public Representation createTasksFromJson(Representation entity) {
 
     ObjectMapper mapper = new ObjectMapper();
+    mapper.enable(MapperFeature.USE_STATIC_TYPING);
     mapper.addMixInAnnotations(Task.class, TaskMixinAnnotations.FromJSONAPI.class);
     mapper.addMixInAnnotations(TaskFile.class, TaskFileMixinAnnotations.FromJSONAPI.class);
 
@@ -93,7 +95,7 @@ public class TasksetTasksServerResource extends WadlServerResource implements Ta
       errors.add("error.requestBodyNotRead");
     }
 
-    Map<String, String> taskKeys = new HashMap<>();
+    Map<String, Object> taskKeys = new HashMap<>();
     if (errors.isEmpty() && objects != null) {
       for (Map<String, Object> object : objects) {
         Task task = new Task();
@@ -113,11 +115,7 @@ public class TasksetTasksServerResource extends WadlServerResource implements Ta
                 .setOptions(task.getOptions()).build();
             new GAETaskQueueTaskRunner(config).run(task);
 
-            String identifier = "";
-            if (object.get("identifier") != null) {
-              identifier = (String) object.get("identifier");
-            }
-            taskKeys.put(task.getKey(), identifier);
+            taskKeys.put(task.getKey(), object.get("identifier"));
             taskset.addTask(task);
           } catch (InvalidConfigurationException e) {
             // nothing to do about it
