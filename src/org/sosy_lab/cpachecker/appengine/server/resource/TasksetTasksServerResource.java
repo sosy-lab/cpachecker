@@ -117,7 +117,7 @@ public class TasksetTasksServerResource extends WadlServerResource implements Ta
             if (object.get("identifier") != null) {
               identifier = (String) object.get("identifier");
             }
-            taskKeys.put(identifier, task.getKey());
+            taskKeys.put(task.getKey(), identifier);
             taskset.addTask(task);
           } catch (InvalidConfigurationException e) {
             // nothing to do about it

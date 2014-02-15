@@ -318,7 +318,7 @@ This field will be passed into the response together with the key of the created
 This identifier can be used to associate the created task with an object on the client.
 For example:
 Request: { "programText" : "abc", "identifier" : "foo", ...}
-Response: { "foo" : "taskKey" }
+Response: { "taskKey" : "foo" }
 
 Request
 -------
@@ -328,9 +328,9 @@ Response
 --------
 201 Created
 [
-  { "123" : "agZ234432Y324WJyCQsSA0pvYsdfsDA" },
-  { "709" : "340sdagZiYSdskjfs" },
-  { "dww" : "öwefsdfäüwdsdf" }
+  { "agZ234432Y324WJyCQsSA0pvYsdfsDA" : "123" },
+  { "340sdagZiYSdskjfs" : "709" },
+  { "öwefsdfäüwdsdf" : "dww" }
 ]
 
 Error
