@@ -49,7 +49,11 @@ public class TaskStatisticServerResource extends WadlServerResource implements T
   protected void doInit() throws ResourceException {
     super.doInit();
 
-    stats = TaskDAO.load(getAttribute("taskKey")).getStatistic();
+    Task task = TaskDAO.load(getAttribute("taskKey"));
+
+    if (task != null) {
+      stats = task.getStatistic();
+    }
 
     if (stats == null) {
       getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND);
