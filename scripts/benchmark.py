@@ -68,10 +68,10 @@ DEFAULT_CLOUD_CPUCORE_REQUIREMENT = 2 # one core with hyperthreading
 DEFAULT_CLOUD_CPUMODEL_REQUIREMENT = "" # empty string matches every model
 
 DEFAULT_APPENGINE_URI = 'http://dev.ba-lab.appspot.com'
-DEFAULT_APPENGINE_POLLINTERVAL = 600 # seconds (== 10 minutes)
+DEFAULT_APPENGINE_POLLINTERVAL = 60 # seconds (== 10 minutes)
 APPENGINE_SUBMITTER_THREAD = None
 APPENGINE_POLLER_THREAD = None
-APPENGINE_JOBS = []
+APPENGINE_TASKS = {}
 APPENGINE_SETTINGS = {} # these will be fetched from the server
 
 # next lines are needed for stopping the script
@@ -163,146 +163,171 @@ class Worker(threading.Thread):
         self.runExecutor.kill()
 
 class AppEngineSubmitter(threading.Thread):
-    def __init__(self, runDefinitions, benchmark):
+    def __init__(self, runQueue, tasksetKey, numberOfRuns, benchmark):
         threading.Thread.__init__(self)
-        self.runDefinitions = runDefinitions
+        self.queue = runQueue
+        self.tasksetKey = tasksetKey
+        self.numberOfRuns = numberOfRuns
         self.benchmark = benchmark
         self.done = False
-        self.submittedJobs = 0
+        self.submittedTasks = 0
 
     def run(self):
-        for run in self.runDefinitions:
+        while not self.queue.empty():
             if STOPPED_BY_INTERRUPT: break
-            args = run['args']
-            with open(run['sourcefile'], 'r') as f:
-                args['programText'] = f.read()
             
-            uri = config.appengineURI+'/tasks'
-            data = json.dumps(args)
+            runs = []
+            combinedFileSize = 0
+            payloadComplete = False
+            while not payloadComplete:
+                if STOPPED_BY_INTERRUPT: break
+                run = self.queue.get()
+                combinedFileSize += len(run['payload']['programText'])
+                if combinedFileSize < 3145728 and len(runs) < 60: # 3MB
+                    runs.append(run)
+                    self.queue.task_done()
+                else:
+                    self.queue.task_done()
+                    self.queue.put(run)
+                    payloadComplete = True
+
+                if self.queue.empty():
+                    payloadComplete = True
+
+            logging.debug('Submitting {} of {} tasks.'.format(str(len(runs)), str(self.numberOfRuns-self.submittedTasks)))
+
+            payload = []
+            for index, run in enumerate(runs):
+                args = run['payload']
+                args['identifier'] = index
+                payload.append(args)
+                self.submittedTasks += 1
+
+            uri = config.appengineURI+'/tasksets/'+self.tasksetKey+'/tasks'
             headers = {'Content-type':'application/json', 'Accept':'application/json'}
             try:
+                data = json.dumps(payload)
                 request = urllib2.Request(uri, data, headers)
-                response = urllib2.urlopen(request)
-                location = response.info()['Location']
-                jobID = location[location.rindex('/')+1:]
-                logging.debug('Submitted job: '+jobID)
-                APPENGINE_JOBS.append({'jobID':jobID, 'logFile':run['logFile'], 'status':''})
+                response = urllib2.urlopen(request).read()
+                taskIDs = json.loads(response)
+                for key in taskIDs:
+                    logging.debug('Task created: '+key)
+                    APPENGINE_TASKS[key] = runs[int(taskIDs[key])]
+                    try:
+                        with open(OUTPUT_PATH+'Submitted_Tasks.txt', 'a') as f:
+                            f.write(key+'\n')
+                    except:
+                        pass
             except urllib2.HTTPError as e:
                 msg = e.read()
-                try:
-                    with open(run['logFile']+'.stdErr', 'w') as logFile:
-                        logFile.write('NOT SUBMITTED\n{0}\n{1}\n{2}'.format(e.code, e.reason, msg))
-                except:
-                    pass
-                logging.warn('Job could not be submitted. HTTP Error: {0}: {1}, Message: {2}, Sourcefile: {3}'.format(e.code, e.reason, msg, run['sourcefile']))
+                logging.warn('Tasks could not be submitted. HTTP Error: {}: {}, Message: {}'.format(e.code, e.reason, msg))
+                logging.debug('Submitting will be retried later.')
+                for run in runs:
+                    self.queue.put(run)
+                self.submittedTasks -= len(runs)
             except:
-                sys.exit('Error while submitting jobs. {0}'.format(sys.exc_info()[0]))
-            
-            self.submittedJobs += 1
+                sys.exit('Error while submitting tasks. {}'.format(sys.exc_info()[0]))
 
-#             if self.submittedJobs == 10: break
+#             if self.submittedTasks >= 1: break
         
-        logging.debug('Submitting finished with %i submitted jobs.'%self.submittedJobs)
+        logging.debug('Submitting finished with %i submitted tasks.'%self.submittedTasks)
         self.done = True
                 
 class AppEnginePoller(threading.Thread):
-    def __init__(self, benchmark):
+    def __init__(self, benchmark, tasksetKey):
         threading.Thread.__init__(self)
         self.benchmark = benchmark
+        self.tasksetKey = tasksetKey
         self.done = False
+        self.finishedTasks = 0
     
     def run(self):
-        finishedJobs = 0
-        nextJobIndex = 0
+        time.sleep(config.appenginePollInterval)
         while not self.done and not STOPPED_BY_INTERRUPT:
-            self.done = (APPENGINE_SUBMITTER_THREAD.done and finishedJobs == len(APPENGINE_JOBS))
-
-            if len(APPENGINE_JOBS) > nextJobIndex:
-                job = APPENGINE_JOBS[nextJobIndex]
-                jobID = job['jobID']
-                if job['status'] in ['DONE', 'TIMEOUT', 'ERROR']:
-                    nextJobIndex += 1
+            try:
+                logging.debug('Polling tasks')
+                uri = config.appengineURI+'/tasksets/'+self.tasksetKey+'/tasks?finished=true&processed=false'
+                headers = {'Accept':'application/json'}
+                request = urllib2.Request(uri, headers=headers)
+                tasks = json.loads(urllib2.urlopen(request).read())
+                logging.debug('Received results for {} tasks.'.format(len(tasks)))
+                for task in tasks:
+                    taskKey = task['key']
+                    if not taskKey in APPENGINE_TASKS: continue
+                    logging.debug('Task {} finished. Status: {}'.format(taskKey, task['status']))
+                    self.saveResult(APPENGINE_TASKS[taskKey], task)
+                logging.debug('Received results are fully processed.')
+                    
+            except urllib2.HTTPError as e:
+                if 'OVER_QUOTA' in e.read():
+                    logging.warn('A resource on App Engine has been depleted and no more requests can be processed!')
+                    self.done = True
                 else:
-                    try:
-                        logging.debug('Polling job: '+jobID)
-                        uri = config.appengineURI+'/tasks/'+jobID
-                        headers = {'Accept':'application/json'}
-                        request = urllib2.Request(uri, headers=headers)
-                        response = json.loads(urllib2.urlopen(request).read())
-                        status = response['status']
-                        if status in ['DONE', 'TIMEOUT', 'ERROR']:
-                            logging.debug('Job {0} finished. Status: {1}'.format(jobID,status))
-                            job['status'] = status
-                            self.saveResult(job, response)
-                            finishedJobs += 1
-                            nextJobIndex += 1
-                        else:
-                            if status == 'PENDING':
-                                # TODO Detect stalled jobs.
-                                # Sometimes jobs will never be started because of
-                                # problems on GAE itself. 
-                                logging.debug('Job %s is still pending.'%jobID)
-                                nextJobIndex += 1
-                            elif status == 'RUNNING':
-                                logging.debug('Job %s is still running.'%jobID)
-                            time.sleep(config.appenginePollInterval)
-                            
-                    except urllib2.HTTPError as e:
-                        if 'OVER_QUOTA' in e.read():
-                            logging.warn('A resource on App Engine has been depleted and no more requests can be processed!')
-                            self.done = True
-                        else:
-                            nextJobIndex += 1
-                            logging.warn('Server error while polling job {0}: {1} {2}. Polling will be retried in the next iteration.'.format(jobID,e.code,e.reason))
-                    except:
-                        sys.exit('Error while polling jobs. {0}'.format(sys.exc_info()[0]))
+                    logging.warn('Server error while polling tasks: {} {}. Polling will be retried.'.format(e.code, e.reason))
+            except:
+                logging.warn('Error while polling tasks. {}'.format(sys.exc_info()[0]))
                 
-                # never go out of bounds    
-                nextJobIndex = nextJobIndex % len(APPENGINE_JOBS)    
-            else:
-                time.sleep(config.appenginePollInterval)
+            self.done = (APPENGINE_SUBMITTER_THREAD.done and self.finishedTasks == len(APPENGINE_TASKS))
+            if not self.done: time.sleep(config.appenginePollInterval)
     
-    def saveResult(self, job, jsonObj):
-        jobID = job['jobID']
-        logFile = job['logFile']
+    def saveResult(self, run, task):
+        taskKey = task['key']
+        logFile = run['logFile']
         headers = {'Accept':'text/plain'}
-
-        try:
-            uri = config.appengineURI+'/tasks/'+jobID+'/files/' + APPENGINE_SETTINGS['statisticsFileName']
-            request = urllib2.Request(uri, headers=headers)
-            response = urllib2.urlopen(request).read()
-            filewriter.writeFile(response, logFile)
-        except:
-            pass # no stats
+        
+        fileNames = []
+        for file in task['files']:
+            fileNames.append(file['name'])
         
         try:
-            filewriter.writeFile(json.dumps(jsonObj), logFile+'.stdOut')
+            filewriter.writeFile(json.dumps(task), logFile+'.stdOut')
         except:
-            pass # no result
-
-        # save errors
-        status = job['status']
-        if status in ['ERROR','TIMEOUT']:
+            logging.debug('Could not save result '+taskKey)
+            
+        statisticsProcessed = False
+        if APPENGINE_SETTINGS['statisticsFileName'] in fileNames:
             try:
-                uri = config.appengineURI+'/tasks/'+jobID+'/files/' + APPENGINE_SETTINGS['errorFileName']
+                uri = config.appengineURI+'/tasks/'+taskKey+'/files/' + APPENGINE_SETTINGS['statisticsFileName']
                 request = urllib2.Request(uri, headers=headers)
                 response = urllib2.urlopen(request).read()
-                response = 'Job ID: {0}\n{1}'.format(jobID, response)
+                filewriter.writeFile(response, logFile)
+                statisticsProcessed = True
+            except:
+                logging.debug('Could not save statistics '+taskKey)
+        else:
+            statisticsProcessed = True
+            logging.debug('No statistics available '+taskKey)
+
+
+        if APPENGINE_SETTINGS['errorFileName'] in fileNames:
+            try:
+                uri = config.appengineURI+'/tasks/'+taskKey+'/files/' + APPENGINE_SETTINGS['errorFileName']
+                request = urllib2.Request(uri, headers=headers)
+                response = urllib2.urlopen(request).read()
+                response = 'Task Key: {}\n{}'.format(taskKey, response)
                 filewriter.writeFile(response, logFile+'.stdErr')
             except:
-                pass # no error file
+                logging.debug('Could not save errors '+taskKey)
 
+        headers = {'Content-type':'application/json', 'Accept':'application/json'}
         if config.appengineDeleteWhenDone:
             try:
-                headers = {'Accept':'application/json'}
-                uri = config.appengineURI+'/tasks/'+jobID
+                uri = config.appengineURI+'/tasks/'+taskKey
                 request = urllib2.Request(uri, headers=headers)
                 request.get_method = lambda: 'DELETE'
                 urllib2.urlopen(request).read()
-                logging.debug('Deleted job {0} from App Engine.'.format(jobID))
             except:
-                logging.warn('The job {0} could not be deleted from App Engine.'
-                             .format(jobID))
+                logging.warn('The task {} could not be deleted.'.format(taskKey))
+        
+        if statisticsProcessed:
+            try:
+                uri = config.appengineURI+'/tasksets/'+self.tasksetKey+'/tasks'
+                request = urllib2.Request(uri, json.dumps([taskKey]), headers=headers)
+                request.get_method = lambda: 'PUT'
+                urllib2.urlopen(request)
+                self.finishedTasks += 1
+            except:
+                logging.warn('The task {} could not be marked as processed.'.format(taskKey))
 
 def executeBenchmarkLocaly(benchmark, outputHandler):
     
@@ -448,15 +473,15 @@ def parseArgsForAppEngine(args, absWorkingDir):
     for idx, arg in enumerate(args):
         if STOPPED_BY_INTERRUPT: break
         if '-noout' == arg:
-            options['output.disable'] = True
+            options['output.disable'] = "true"
         elif '-stats' == arg:
-            options['statistics.export'] = True
+            options['statistics.export'] = "true"
         elif '-32' == arg:
             options['analysis.machineModel'] = 'Linux32'
         elif '-64' == arg:
             options['analysis.machineModel'] = 'Linux64'
         elif '-printUsedOptions' == arg:
-            options['log.usedOptions.export'] = True
+            options['log.usedOptions.export'] = "true"
         elif '-nolog' == arg:
             options['log.level'] = 'OFF'
         elif '-setprop' == arg:
@@ -464,18 +489,18 @@ def parseArgsForAppEngine(args, absWorkingDir):
             options[keyVal[0]] = keyVal[1]
         elif '-config' == arg:
             conf = args[args.index(arg)+1]
-            conf = conf if conf.endswith('.properties') else '{0}.properties'.format(conf)
+            conf = conf if conf.endswith('.properties') else conf+'.properties'
             if os.path.isfile(os.path.join(absWorkingDir, 'config', conf)):
                 appengineArgs['configuration'] = conf
             else:
-                sys.exit('Given configuration file {0} is not a valid file.'.format(conf))
+                sys.exit('Given configuration file {} is not a valid file.'.format(conf))
         elif '-spec' == arg:
             spec = args[args.index('-spec')+1]
-            spec = spec if spec.endswith('.spc') else '{0}.spc'.format(spec)
+            spec = spec if spec.endswith('.spc') else spec+'.spc'
             if os.path.isfile(os.path.join(absWorkingDir, 'config/specification', spec)):
                 appengineArgs['specification'] = spec
             else:
-                sys.exit('Given specification file {0} is not a valid file.'.format(spec))
+                sys.exit('Given specification file {} is not a valid file.'.format(spec))
         elif arg.startswith('-'):
             if not 'configuration' in appengineArgs:
                 argName = arg[1:]
@@ -486,7 +511,7 @@ def parseArgsForAppEngine(args, absWorkingDir):
         timeLimit = int(options['limits.time.wall'])
         if timeLimit > int(APPENGINE_SETTINGS['timeLimit']):
             logging.warn('Given timelimit is too large for App Engine. Using %s instead.'%APPENGINE_SETTINGS['timeLimit'])
-            options['limits.time.wall'] = int(APPENGINE_SETTINGS['timeLimit'])
+            options['limits.time.wall'] = APPENGINE_SETTINGS['timeLimit']
     
     appengineArgs['options'] = options
     return appengineArgs
@@ -773,12 +798,12 @@ def handleAppEngineResults(benchmark, outputHandler):
     outputHandler.outputAfterBenchmark(STOPPED_BY_INTERRUPT)
     
     if len(notSubmitted) > 0:
-        logging.warning("{0} runs were not submitted to App Engine!".format(len(notSubmitted)))
+        logging.warning("{} runs were not submitted to App Engine!".format(len(notSubmitted)))
     if len(withError) > 0:
-        logging.warning("{0} runs produced unexpected errors, please check the {1} files!"
+        logging.warning("{} runs produced unexpected errors, please check the {} files!"
                         .format(len(withError), os.path.join(benchmark.logFolder, '*.stdErr')))
     if len(withTimeout) > 0:
-        logging.warning("{0} runs timed out!".format(len(withTimeout)))
+        logging.warning("{} runs timed out!".format(len(withTimeout)))
     if isOverQuota:
         logging.warning("Quota exceeded! Not all runs could be processed!")
     
@@ -791,11 +816,11 @@ def getBenchmarkDataForAppEngine(benchmark):
     
     workingDir = benchmark.workingDirectory()
     if not os.path.isdir(workingDir):
-        sys.exit("Missing working directory {0}, cannot run tool.".format(workingDir))
+        sys.exit("Missing working directory {}, cannot run tool.".format(workingDir))
     absWorkingDir = os.path.abspath(workingDir)
     
     sourceFiles = []
-    runDefinitions = []
+    runQueue = Queue.Queue(maxsize=0)
     for runSet in benchmark.runSets:
         if not runSet.shouldBeExecuted(): continue
         if STOPPED_BY_INTERRUPT: break
@@ -805,20 +830,23 @@ def getBenchmarkDataForAppEngine(benchmark):
             logFile = os.path.relpath(run.logFile, benchmark.logFolder)
             args = parseArgsForAppEngine(run.getCmdline(), absWorkingDir)
             args['sourceFileName'] = run.sourcefile
-            runDefinitions.append({'args':args,
-                                   'debug':config.debug,
-                                   'maxLogfileSize':config.maxLogfileSize,
-                                   'sourcefile':os.path.join(absWorkingDir, run.sourcefile),
-                                   'logFile':os.path.join(benchmark.logFolder, logFile)})
+            try:
+                with open(run.sourcefile, 'r') as f:
+                    args['programText'] = f.read()
+            except:
+                args['programText'] = ''
+            runQueue.put({'payload':args,
+                          'logFile':os.path.join(benchmark.logFolder, logFile),
+                          'debug':config.debug,
+                          'maxLogfileSize':config.maxLogfileSize})
             sourceFiles.append(run.sourcefile)
 
     if not sourceFiles: sys.exit("Benchmark has nothing to run.")
     
-    return (cpuModel, numberOfRuns, runDefinitions, sourceFiles, absWorkingDir)
+    return (cpuModel, numberOfRuns, runQueue, sourceFiles, absWorkingDir)
 
 
 def executeBenchmarkInCloud(benchmark, outputHandler):
-
     # build input for cloud
     cloudInput = getCloudInput(benchmark)
     cloudInputFile = os.path.join(benchmark.logFolder, 'cloudInput.txt')
@@ -861,22 +889,32 @@ def executeBenchmarkInCloud(benchmark, outputHandler):
     return returnCode
 
 def executeBenchmarkInAppengine(benchmark, outputHandler):
-    outputHandler.storeSystemInfo('unknown', 'unknown', 'unknown', APPENGINE_SETTINGS['CPUSpeed'], APPENGINE_SETTINGS['RAM'], 'Google App Engine')
-    (cpuModel, numberOfRuns, runDefinitions, sourceFiles, absWorkingDir) = getBenchmarkDataForAppEngine(benchmark)
+    formatString = '%m-%d-%YT%H:%M:%S.%f'
+    timestampsFileName = OUTPUT_PATH+'Timestamps_'+datetime.strftime(datetime.now(), formatString)+'.txt'
+    with open(timestampsFileName, 'a') as f:
+        f.write('Start: '+datetime.strftime(datetime.now(), formatString)+'\n')
+        
+    tasksetKey = getTasksetKeyForAppEngine()
+    logging.debug('Using taskset with key: '+tasksetKey)
     
-    # submit jobs
+    outputHandler.storeSystemInfo('unknown', 'unknown', 'unknown', APPENGINE_SETTINGS['CPUSpeed'], APPENGINE_SETTINGS['RAM'], 'Google App Engine')
+    (cpuModel, numberOfRuns, runQueue, sourceFiles, absWorkingDir) = getBenchmarkDataForAppEngine(benchmark)
+
+    logging.debug('Will execute {} runs.'.format(str(numberOfRuns)))
+    
     global APPENGINE_SUBMITTER_THREAD
-    APPENGINE_SUBMITTER_THREAD = AppEngineSubmitter(runDefinitions, benchmark)
+    APPENGINE_SUBMITTER_THREAD = AppEngineSubmitter(runQueue, tasksetKey, numberOfRuns, benchmark)
     APPENGINE_SUBMITTER_THREAD.start()
     
-    # poll jobs
     global APPENGINE_POLLER_THREAD
-    APPENGINE_POLLER_THREAD = AppEnginePoller(benchmark)
+    APPENGINE_POLLER_THREAD = AppEnginePoller(benchmark, tasksetKey)
     APPENGINE_POLLER_THREAD.start()
     try:
         while not APPENGINE_POLLER_THREAD.done:
             time.sleep(0.1)
     except KeyboardInterrupt:
+        with open(timestampsFileName, 'a') as f:
+            f.write('Interrupt: '+datetime.strftime(datetime.now(), formatString)+'\n')
         killScriptAppEngine()
     APPENGINE_POLLER_THREAD.join()
     
@@ -886,6 +924,9 @@ def executeBenchmarkInAppengine(benchmark, outputHandler):
         Util.addFilesToGitRepository(OUTPUT_PATH, outputHandler.allCreatedFiles,
                                      config.commitMessage+'\n\n'+outputHandler.description)
         
+    with open(timestampsFileName, 'a') as f:
+        f.write('Finish: '+datetime.strftime(datetime.now(), formatString)+'\n')
+
 
 def setupBenchmarkForAppengine(benchmark):
     uri = config.appengineURI + '/settings'
@@ -901,7 +942,19 @@ def setupBenchmarkForAppengine(benchmark):
         
         logging.debug('Settings were successfully retrieved.')
     except urllib2.URLError as e:
-        sys.exit('The settings could not be pulled. {0} is not available. Error: {1}'.format(uri, e.reason))
+        sys.exit('The settings could not be retrieved. {} is not available. Error: {}'.format(uri, e.reason))
+        
+def getTasksetKeyForAppEngine():
+        uri = config.appengineURI+'/tasksets'
+        headers = {'Content-type':'application/json', 'Accept':'application/json'}
+        try:
+            request = urllib2.Request(uri, '', headers)
+            return urllib2.urlopen(request).read()
+        except urllib2.HTTPError as e:
+            logging.warn('Taskset could not be created. HTTP Error: {}: {}, Message: {}'.format(e.code, e.reason, msg))
+            return False
+        except:
+            sys.exit('Error while submitting tasks. {}'.format(sys.exc_info()[0]))
 
 def executeBenchmark(benchmarkFile):
     benchmark = Benchmark(benchmarkFile, config, OUTPUT_PATH)
@@ -1037,7 +1090,7 @@ def main(argv=None):
                       metavar="URI",
                       default=DEFAULT_APPENGINE_URI,
                       type=str,
-                      help="Sets the URI to use when submitting jobs to App Engine.")
+                      help="Sets the URI to use when submitting tasks to App Engine.")
     
     parser.add_argument("--appenginePollInterval",
                       dest="appenginePollInterval",
@@ -1049,7 +1102,7 @@ def main(argv=None):
     parser.add_argument("--appengineKeep",
                         dest="appengineDeleteWhenDone",
                         action="store_false",
-                        help="If set a job will NOT be deleted from App Engine after it has successfully been executed.")
+                        help="If set a task will NOT be deleted from App Engine after it has successfully been executed.")
 
     global config, OUTPUT_PATH
     config = parser.parse_args(argv[1:])
