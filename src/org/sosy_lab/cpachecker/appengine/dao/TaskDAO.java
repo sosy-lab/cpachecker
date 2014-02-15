@@ -47,6 +47,7 @@ import com.google.appengine.api.taskqueue.Queue;
 import com.google.appengine.api.taskqueue.QueueFactory;
 import com.google.apphosting.api.ApiProxy.RequestTooLargeException;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
 import com.googlecode.objectify.VoidWork;
@@ -82,6 +83,21 @@ public class TaskDAO {
   }
 
   /**
+   * Returns a {@link List} of {@link Task}s.
+   *
+   * @param keys A {@link List} of keys of the {@link Task}s to retrieve
+   * @return A {@link List} of {@link Task}s
+   */
+  public static List<Task> load(List<String> keys) {
+    List<Key<Task>> taskKeys = new ArrayList<>();
+    for (String key : keys) {
+      Key<Task> taskKey = Key.create(key);
+      taskKeys.add(taskKey);
+    }
+    return Lists.newArrayList(ofy().load().keys(taskKeys).values());
+  }
+
+  /**
    * Returns a list containing all available {@link Task}.
    * @return
    */
@@ -89,6 +105,42 @@ public class TaskDAO {
     List<Task> tasks = ofy().load().type(Task.class).list();
     for (Task task : tasks) {
       sanitizeStateAndSetStatistics(task);
+    }
+
+    return tasks;
+  }
+
+  /**
+   * Returns a {@link List} of {@link Task}s whose status is {@link Status#DONE}.
+   *
+   * @param keys The {@link List} containing the keys of the {@link Task}s
+   * @return A {@link List} of {@link Task}s
+   */
+  public static List<Task> finishedTasks(List<String> keys) {
+    return tasksWithStatus(keys, true);
+  }
+
+  /**
+   * Returns a {@link List} of {@link Task}s whose status is not {@link Status#DONE}.
+   *
+   * @param keys The {@link List} containing the keys of the {@link Task}s
+   * @return A {@link List} of {@link Task}s
+   */
+  public static List<Task> unfinishedTasks(List<String> keys) {
+    return tasksWithStatus(keys, false);
+  }
+
+  private static List<Task> tasksWithStatus(List<String> keys, boolean statusDone) {
+    List<Task> tasks = new ArrayList<>();
+    for (Task task : load(keys)) {
+      if (statusDone
+          && (task.getStatus() == Status.DONE
+          || task.getStatus() == Status.ERROR
+          || task.getStatus() == Status.TIMEOUT)) {
+        tasks.add(task);
+      } else if (!statusDone && task.getStatus() != Status.DONE) {
+        tasks.add(task);
+      }
     }
 
     return tasks;

@@ -25,9 +25,14 @@ package org.sosy_lab.cpachecker.appengine.dao;
 
 import static org.junit.Assert.*;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import org.junit.Test;
 import org.sosy_lab.cpachecker.appengine.common.DatastoreTest;
 import org.sosy_lab.cpachecker.appengine.entity.Task;
+import org.sosy_lab.cpachecker.appengine.entity.Task.Status;
 import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 
 import com.googlecode.objectify.Key;
@@ -64,6 +69,18 @@ public class TaskDAOTest extends DatastoreTest {
   }
 
   @Test
+  public void shouldLoadTasksByReferences() throws Exception {
+    Task[] tasks = createTasks(2);
+    List<String> keys = new ArrayList<>();
+    keys.add(tasks[0].getKey());
+    keys.add(tasks[1].getKey());
+
+    assertEquals(2, TaskDAO.load(keys).size());
+    assertTrue(TaskDAO.load(keys).contains(tasks[0]));
+    assertTrue(TaskDAO.load(keys).contains(tasks[1]));
+  }
+
+  @Test
   public void shouldSaveTask() throws Exception {
     Task task = new Task();
     TaskDAO.save(task);
@@ -90,5 +107,37 @@ public class TaskDAOTest extends DatastoreTest {
     TaskDAO.save(new Task());
     TaskDAO.deleteAll();
     assertTrue(TaskDAO.tasks().isEmpty());
+  }
+
+  @Test
+  public void shouldLoadAllFinishedTasks() throws Exception {
+    Task[] tasks = createTasks(1);
+    tasks[0].setStatus(Status.ERROR);
+    TaskDAO.save(tasks[0]);
+
+    List<String> keys = Collections.singletonList(tasks[0].getKey());
+    assertEquals(1, TaskDAO.finishedTasks(keys).size());
+    assertTrue(TaskDAO.finishedTasks(keys).contains(tasks[0]));
+  }
+
+  @Test
+  public void shouldLoadAllUnfinishedTasks() throws Exception {
+    Task[] tasks = createTasks(1);
+    tasks[0].setStatus(Status.RUNNING);
+    TaskDAO.save(tasks[0]);
+
+    List<String> keys = Collections.singletonList(tasks[0].getKey());
+    assertEquals(1, TaskDAO.unfinishedTasks(keys).size());
+    assertTrue(TaskDAO.unfinishedTasks(keys).contains(tasks[0]));
+  }
+
+  private Task[] createTasks(int amount) {
+    Task[] tasks = new Task[amount];
+
+    for (int i = 0; i < amount; i++) {
+      tasks[i] = TaskDAO.save(new Task());
+    }
+
+    return tasks;
   }
 }
