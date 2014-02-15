@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.appengine.common;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
-import org.sosy_lab.cpachecker.appengine.dao.ObjectifyRegistry;
+import org.sosy_lab.cpachecker.appengine.util.ObjectifyRegistry;
 
 import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;

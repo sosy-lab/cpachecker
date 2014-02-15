@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.appengine.dao.TaskFileDAO;
+import org.sosy_lab.cpachecker.appengine.util.DefaultOptions;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
 import com.googlecode.objectify.Key;

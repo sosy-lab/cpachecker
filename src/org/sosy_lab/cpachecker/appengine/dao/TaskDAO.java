@@ -31,13 +31,13 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.appengine.entity.DefaultOptions;
 import org.sosy_lab.cpachecker.appengine.entity.Task;
 import org.sosy_lab.cpachecker.appengine.entity.Task.Status;
 import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 import org.sosy_lab.cpachecker.appengine.entity.TaskStatistic;
 import org.sosy_lab.cpachecker.appengine.server.GAETaskQueueTaskRunner;
 import org.sosy_lab.cpachecker.appengine.server.common.TaskRunnerResource;
+import org.sosy_lab.cpachecker.appengine.util.DefaultOptions;
 
 import com.google.appengine.api.log.AppLogLine;
 import com.google.appengine.api.log.LogQuery;
@@ -347,7 +347,8 @@ public class TaskDAO {
       Date now = new Date();
       LogQuery query = LogQuery.Builder
           .withStartTimeMillis(task.getCreationDate().getTime())
-          .endTimeMillis(now.getTime());
+          .endTimeMillis(now.getTime())
+          .batchSize(Integer.MAX_VALUE);
 
       int amountOfDetectedRecords = 0;
       RequestLogs lastRecord = null;

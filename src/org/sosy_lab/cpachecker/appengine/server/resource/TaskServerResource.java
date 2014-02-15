@@ -32,7 +32,6 @@ import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.representation.Variant;
 import org.restlet.resource.ResourceException;
-import org.sosy_lab.cpachecker.appengine.common.FreemarkerUtil;
 import org.sosy_lab.cpachecker.appengine.dao.TaskDAO;
 import org.sosy_lab.cpachecker.appengine.entity.Task;
 import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
@@ -41,6 +40,7 @@ import org.sosy_lab.cpachecker.appengine.json.TaskFileMixinAnnotations;
 import org.sosy_lab.cpachecker.appengine.json.TaskMixinAnnotations;
 import org.sosy_lab.cpachecker.appengine.json.TaskStatisticMixinAnnotations;
 import org.sosy_lab.cpachecker.appengine.server.common.TaskResource;
+import org.sosy_lab.cpachecker.appengine.util.FreemarkerUtil;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
