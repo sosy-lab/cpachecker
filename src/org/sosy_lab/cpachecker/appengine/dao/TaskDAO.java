@@ -138,7 +138,11 @@ public class TaskDAO {
           || task.getStatus() == Status.ERROR
           || task.getStatus() == Status.TIMEOUT)) {
         tasks.add(task);
-      } else if (!statusDone && task.getStatus() != Status.DONE) {
+      }
+
+      if (!statusDone
+          && (task.getStatus() == Status.PENDING
+          || task.getStatus() == Status.RUNNING)) {
         tasks.add(task);
       }
     }
