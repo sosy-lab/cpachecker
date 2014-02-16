@@ -254,7 +254,6 @@ class AppEnginePoller(threading.Thread):
                 for task in tasks:
                     taskKey = task['key']
                     if not taskKey in APPENGINE_TASKS: continue
-                    logging.debug('Task {} finished. Status: {}'.format(taskKey, task['status']))
                     self.saveResult(APPENGINE_TASKS[taskKey], task)
                 logging.debug('Received results are fully processed.')
                     
@@ -263,7 +262,7 @@ class AppEnginePoller(threading.Thread):
                     logging.warn('A resource on App Engine has been depleted and no more requests can be processed!')
                     self.done = True
                 else:
-                    logging.warn('Server error while polling tasks: {} {}. Polling will be retried.'.format(e.code, e.reason))
+                    logging.warn('Server error while polling tasks: {} {}. Polling will be retried later.'.format(e.code, e.reason))
             except:
                 logging.warn('Error while polling tasks. {}'.format(sys.exc_info()[0]))
                 
@@ -296,7 +295,6 @@ class AppEnginePoller(threading.Thread):
                 logging.debug('Could not save statistics '+taskKey)
         else:
             statisticsProcessed = True
-            logging.debug('No statistics available '+taskKey)
 
 
         if APPENGINE_SETTINGS['errorFileName'] in fileNames:
@@ -307,7 +305,7 @@ class AppEnginePoller(threading.Thread):
                 response = 'Task Key: {}\n{}'.format(taskKey, response)
                 filewriter.writeFile(response, logFile+'.stdErr')
             except:
-                logging.debug('Could not save errors '+taskKey)
+                pass
 
         headers = {'Content-type':'application/json', 'Accept':'application/json'}
         if config.appengineDeleteWhenDone:
@@ -326,6 +324,7 @@ class AppEnginePoller(threading.Thread):
                 request.get_method = lambda: 'PUT'
                 urllib2.urlopen(request)
                 self.finishedTasks += 1
+                logging.debug('Task {} finished. Status: {}'.format(taskKey, task['status']))
             except:
                 logging.warn('The task {} could not be marked as processed.'.format(taskKey))
 
