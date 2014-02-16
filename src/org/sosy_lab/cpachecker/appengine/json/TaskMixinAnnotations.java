@@ -30,7 +30,6 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.appengine.entity.Task;
 import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 import org.sosy_lab.cpachecker.appengine.entity.TaskStatistic;
-import org.sosy_lab.cpachecker.appengine.server.GAETaskQueueTaskRunner.InstanceType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -102,10 +101,6 @@ public abstract class TaskMixinAnnotations {
     @JsonProperty
     @JsonInclude(Include.ALWAYS)
     String sourceFileName;
-
-    @JsonProperty
-    @JsonInclude(Include.ALWAYS)
-    InstanceType instanceType;
 
     @JsonProperty
     int retries;
