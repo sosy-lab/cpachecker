@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.appengine.entity.Taskset;
 import org.sosy_lab.cpachecker.appengine.json.TaskFileMixinAnnotations;
 import org.sosy_lab.cpachecker.appengine.json.TaskMixinAnnotations;
 import org.sosy_lab.cpachecker.appengine.json.TaskStatisticMixinAnnotations;
-import org.sosy_lab.cpachecker.appengine.server.GAETaskQueueTaskRunner;
+import org.sosy_lab.cpachecker.appengine.server.TaskQueueTaskRunner;
 import org.sosy_lab.cpachecker.appengine.server.common.TasksetTasksResource;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -78,8 +78,6 @@ public class TasksetTasksServerResource extends WadlServerResource implements Ta
 
     ObjectMapper mapper = new ObjectMapper();
     mapper.enable(MapperFeature.USE_STATIC_TYPING);
-    mapper.addMixInAnnotations(Task.class, TaskMixinAnnotations.FromJSONAPI.class);
-    mapper.addMixInAnnotations(TaskFile.class, TaskFileMixinAnnotations.FromJSONAPI.class);
 
     List<String> errors = new ArrayList<>();
     List<Map<String, Object>> objects = null;
@@ -113,7 +111,7 @@ public class TasksetTasksServerResource extends WadlServerResource implements Ta
           try {
             Configuration config = Configuration.builder()
                 .setOptions(task.getOptions()).build();
-            new GAETaskQueueTaskRunner(config).run(task);
+            new TaskQueueTaskRunner(config).run(task);
 
             taskKeys.put(task.getKey(), object.get("identifier"));
             taskset.addTask(task);
@@ -181,14 +179,14 @@ public class TasksetTasksServerResource extends WadlServerResource implements Ta
   @Override
   public Representation getTasks() {
 
-    List<Task> tasks = TaskDAO.load(taskset.getTaskKeys());
+    List<Task> tasks = null;
 
     if (taskset.getTasks() != null && !taskset.getTasks().isEmpty()) {
       if (getQueryValue("processed") != null) {
         if (getQueryValue("processed").equals("true")) {
-          tasks.retainAll(TaskDAO.load(taskset.getProcessedKeys()));
-        } else {
-          tasks.retainAll(TaskDAO.load(taskset.getUnprocessedKeys()));
+          tasks = TaskDAO.load(taskset.getProcessedKeys());
+        } else if (getQueryValue("processed").equals("false")) {
+          tasks = TaskDAO.load(taskset.getUnprocessedKeys());
         }
       }
     }
@@ -196,11 +194,17 @@ public class TasksetTasksServerResource extends WadlServerResource implements Ta
     if (taskset.getTasks() != null && !taskset.getTasks().isEmpty()) {
       if (getQueryValue("finished") != null) {
         if (getQueryValue("finished").equals("true")) {
+          if (tasks == null) { tasks = new ArrayList<>(); }
           tasks.retainAll(TaskDAO.finishedTasks(taskset.getTaskKeys()));
-        } else {
+        } else if (getQueryValue("finished").equals("false")) {
+          if (tasks == null) { tasks = new ArrayList<>(); }
           tasks.retainAll(TaskDAO.unfinishedTasks(taskset.getTaskKeys()));
         }
       }
+    }
+
+    if (tasks == null) {
+      tasks = TaskDAO.load(taskset.getTaskKeys());
     }
 
     ObjectMapper mapper = new ObjectMapper();
