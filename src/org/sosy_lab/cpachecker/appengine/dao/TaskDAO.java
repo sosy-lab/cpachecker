@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.appengine.entity.Task;
 import org.sosy_lab.cpachecker.appengine.entity.Task.Status;
 import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 import org.sosy_lab.cpachecker.appengine.entity.TaskStatistic;
-import org.sosy_lab.cpachecker.appengine.server.GAETaskQueueTaskRunner;
+import org.sosy_lab.cpachecker.appengine.server.TaskQueueTaskRunner;
 import org.sosy_lab.cpachecker.appengine.server.common.TaskRunnerResource;
 import org.sosy_lab.cpachecker.appengine.util.DefaultOptions;
 
@@ -141,7 +141,7 @@ public class TaskDAO {
       }
     }
 
-    return sanitizeStateAndSetStatistics(tasks);
+    return tasks;
   }
 
   /**
@@ -198,7 +198,7 @@ public class TaskDAO {
     ofy().delete().keys(fileKeys).now();
 
     try {
-      Queue queue = QueueFactory.getQueue(GAETaskQueueTaskRunner.QUEUE_NAME);
+      Queue queue = QueueFactory.getQueue(TaskQueueTaskRunner.QUEUE_NAME);
       queue.purge();
     } catch (Exception _) {
       /*
