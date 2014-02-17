@@ -88,6 +88,7 @@ public class ARGMergeJoinPredicatedAnalysis implements MergeOperator {
     return mergedElement;
   }
 
+  @SuppressWarnings("unused")
   private void deleteChildren(ARGState parent) {
     // assumes that covered elements are not saved in reached set
     Stack<ARGState> toProcess = new Stack<>();
