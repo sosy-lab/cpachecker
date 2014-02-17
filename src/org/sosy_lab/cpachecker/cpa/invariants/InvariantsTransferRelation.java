@@ -290,7 +290,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
 
   private InvariantsState handleAssignment(InvariantsState pElement, String pFunctionName, CFAEdge pEdge, CExpression pLeftHandSide, InvariantsFormula<CompoundInterval> pValue, InvariantsPrecision pPrecision) throws UnrecognizedCCodeException {
     ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
-    boolean isUnknownPointerDereference = pLeftHandSide instanceof CPointerExpression;
+    boolean isUnknownPointerDereference = pLeftHandSide instanceof CPointerExpression || pLeftHandSide instanceof CFieldReference && ((CFieldReference) pLeftHandSide).isPointerDereference();
     if (pLeftHandSide instanceof CArraySubscriptExpression) {
       CArraySubscriptExpression arraySubscriptExpression = (CArraySubscriptExpression) pLeftHandSide;
       String array = getVarName(arraySubscriptExpression.getArrayExpression(), pEdge, pFunctionName);
@@ -458,21 +458,29 @@ public enum InvariantsTransferRelation implements TransferRelation {
         }).last().orNull();
       }
       CLeftHandSide leftHandSide = getLeftHandSide(edge);
-      if (leftHandSide != null && leftHandSide instanceof CPointerExpression) {
-        CExpression dereferencee = ((CPointerExpression) leftHandSide).getOperand();
-        for (PointerState pointerState : FluentIterable.from(pOtherElements).filter(PointerState.class)) {
-          InvariantsState stateBeforeClearing = state.getStateBeforePointerDereferenceClearing();
-          InvariantsState result = stateBeforeClearing;
-          for (Location location : PointerTransferRelation.asLocations(dereferencee, pointerState)) {
-            for (String potentialTargetVar : stateBeforeClearing.getEnvironment().keySet()) {
-              org.sosy_lab.cpachecker.cpa.pointer2.util.Variable potentialTarget = new org.sosy_lab.cpachecker.cpa.pointer2.util.Variable(potentialTargetVar);
-              if (pointerState.mayPointTo(location, potentialTarget)) {
-                result = result.assign(false, potentialTargetVar, CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top()), edge);
-                if (result == null) {
-                  return Collections.emptySet();
+      if (leftHandSide != null) {
+        CExpression dereferencee = null;
+        if (leftHandSide instanceof CPointerExpression) {
+          dereferencee = ((CPointerExpression) leftHandSide).getOperand();
+        } else if (leftHandSide instanceof CFieldReference) {
+          CFieldReference fieldReference = (CFieldReference) leftHandSide;
+          dereferencee = fieldReference.isPointerDereference() ? fieldReference.getFieldOwner() : null;
+        }
+        if (dereferencee != null) {
+          for (PointerState pointerState : FluentIterable.from(pOtherElements).filter(PointerState.class)) {
+            InvariantsState stateBeforeClearing = state.getStateBeforePointerDereferenceClearing();
+            InvariantsState result = stateBeforeClearing;
+            for (Location location : PointerTransferRelation.asLocations(dereferencee, pointerState)) {
+              for (String potentialTargetVar : stateBeforeClearing.getEnvironment().keySet()) {
+                org.sosy_lab.cpachecker.cpa.pointer2.util.Variable potentialTarget = new org.sosy_lab.cpachecker.cpa.pointer2.util.Variable(potentialTargetVar);
+                if (pointerState.mayPointTo(location, potentialTarget)) {
+                  result = result.assign(false, potentialTargetVar, CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top()), edge);
+                  if (result == null) {
+                    return Collections.emptySet();
+                  }
                 }
+                return Collections.singleton(result);
               }
-              return Collections.singleton(result);
             }
           }
         }
