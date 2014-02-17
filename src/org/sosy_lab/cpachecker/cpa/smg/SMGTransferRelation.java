@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,7 +53,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -66,7 +64,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
@@ -75,7 +72,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -848,10 +844,6 @@ public class SMGTransferRelation implements TransferRelation {
       }
 
       value = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
-
-      if (newValueIsNeqZero(newState, cfaEdge, rValue)) {
-        newState.identifyEqualValues((SMGKnownSymValue)value, SMGKnownSymValue.ZERO);
-      }
     }
 
     SMGExpressionEvaluator expEvaluator = new SMGExpressionEvaluator(logger, machineModel);
@@ -952,12 +944,6 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     return newState;
-  }
-
-  private boolean newValueIsNeqZero(SMGState newState, CFAEdge cfaEdge, CRightHandSide rValue)
-      throws UnrecognizedCCodeException {
-
-    return rValue.accept(new IsNotZeroVisitor(newState, cfaEdge));
   }
 
   private SMGState handleVariableDeclaration(SMGState pState, CVariableDeclaration pVarDecl, CDeclarationEdge pEdge) throws CPATransferException {
@@ -1140,62 +1126,6 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     return pNewState;
-  }
-
-  static private class IsNotZeroVisitor extends DefaultCExpressionVisitor<Boolean, UnrecognizedCCodeException>
-      implements CRightHandSideVisitor<Boolean, UnrecognizedCCodeException> {
-
-    //TODO Refactor, this visitor should not be neccessary
-
-    @SuppressWarnings("unused")
-    private final CFAEdge cfaEdge;
-    @SuppressWarnings("unused")
-    private final SMGState smgState;
-
-    public IsNotZeroVisitor(SMGState pSmgState, CFAEdge pCfaEdge) {
-      cfaEdge = pCfaEdge;
-      smgState = pSmgState;
-    }
-
-    @Override
-    public Boolean visit(CFunctionCallExpression exp) throws UnrecognizedCCodeException {
-      return false;
-    }
-
-    @Override
-    protected Boolean visitDefault(CExpression exp) throws UnrecognizedCCodeException {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(CIntegerLiteralExpression exp) throws UnrecognizedCCodeException {
-      return !exp.getValue().equals(BigInteger.ZERO);
-    }
-
-    @Override
-    public Boolean visit(CCastExpression exp) throws UnrecognizedCCodeException {
-      return exp.getOperand().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CComplexCastExpression exp) throws UnrecognizedCCodeException {
-      return exp.getOperand().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CCharLiteralExpression exp) throws UnrecognizedCCodeException {
-      return !(exp.getCharacter() == 0);
-    }
-
-    @Override
-    public Boolean visit(CFloatLiteralExpression exp) throws UnrecognizedCCodeException {
-      return !exp.getValue().equals(BigDecimal.ZERO);
-    }
-
-    @Override
-    public Boolean visit(CImaginaryLiteralExpression exp) throws UnrecognizedCCodeException {
-      return exp.getValue().accept(this);
-    }
   }
 
   /**

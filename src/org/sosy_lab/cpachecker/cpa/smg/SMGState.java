@@ -465,10 +465,6 @@ public class SMGState implements AbstractQueryableState, Targetable {
   private SMGEdgeHasValue writeValue(SMGObject pObject, int pOffset, CType pType, Integer pValue) throws SMGInconsistentException {
     // vgl Algorithm 1 Byte-Precise Verification of Low-Level List Manipulation FIT-TR-2012-04
 
-    if (pValue == null) {
-      pValue = heap.getNullValue();
-    }
-
     if (! heap.isObjectValid(pObject)) {
       //Attempt to write to invalid object
       setInvalidWrite();
