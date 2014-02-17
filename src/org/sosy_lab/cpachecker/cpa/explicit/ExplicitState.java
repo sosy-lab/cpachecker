@@ -572,8 +572,9 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     return Collections.unmodifiableMap(constantsMap);
   }
 
-  public static class MemoryLocation implements Comparable<MemoryLocation> {
+  public static class MemoryLocation implements Comparable<MemoryLocation>, Serializable {
 
+    private static final long serialVersionUID = -8910967707373729034L;
     private final String functionName;
     private final String identifier;
     private final long offset;
