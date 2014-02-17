@@ -107,45 +107,18 @@ public class PointerTargetSetManager {
                                    final PointerTargetSet pts2,
                                    final SSAMap resultSSA) {
 
-    BooleanFormula mergeFormula1 = bfmgr.makeBoolean(true);
-    BooleanFormula mergeFormula2 = bfmgr.makeBoolean(true);
 
     final Triple<PointerTargetSet,
                  BooleanFormula,
                  Pair<PersistentSortedMap<String, CType>, PersistentSortedMap<String, CType>>>
       ptsMergeResult = merge(pts1, pts2);
 
+    final PersistentSortedMap<String, CType> basesFromPTS1 = ptsMergeResult.getThird().getFirst();
+    final PersistentSortedMap<String, CType> basesFromPTS2 = ptsMergeResult.getThird().getSecond();
+
     final List<Pair<CCompositeType, String>> sharedFields = new ArrayList<>();
-    for (final Map.Entry<String, CType> baseFromPTS1 : ptsMergeResult.getThird().getFirst().entrySet()) {
-      if (!options.isDynamicAllocVariableName(baseFromPTS1.getKey()) &&
-          !CTypeUtils.containsArray(baseFromPTS1.getValue())) {
-        final FormulaType<?> baseFormulaType = typeHandler.getFormulaTypeFromCType(
-                                                   CTypeUtils.getBaseType(baseFromPTS1.getValue()));
-        mergeFormula2 = bfmgr.and(mergeFormula2, makeSharingConstraints(formulaManager.makeVariable(baseFormulaType,
-                                                                                          PointerTargetSet.getBaseName(
-                                                                                            baseFromPTS1.getKey())),
-                                                                        baseFromPTS1.getKey(),
-                                                                        baseFromPTS1.getValue(),
-                                                                        sharedFields,
-                                                                        resultSSA,
-                                                                        pts2));
-      }
-    }
-    for (final Map.Entry<String, CType> baseFromPTS2 : ptsMergeResult.getThird().getSecond().entrySet()) {
-      if (!options.isDynamicAllocVariableName(baseFromPTS2.getKey()) &&
-          !CTypeUtils.containsArray(baseFromPTS2.getValue())) {
-        final FormulaType<?> baseFormulaType = typeHandler.getFormulaTypeFromCType(
-                                                   CTypeUtils.getBaseType(baseFromPTS2.getValue()));
-        mergeFormula1 = bfmgr.and(mergeFormula1, makeSharingConstraints(formulaManager.makeVariable(baseFormulaType,
-                                                                                          PointerTargetSet.getBaseName(
-                                                                                              baseFromPTS2.getKey())),
-                                                                        baseFromPTS2.getKey(),
-                                                                        baseFromPTS2.getValue(),
-                                                                        sharedFields,
-                                                                        resultSSA,
-                                                                        pts1));
-      }
-    }
+    final BooleanFormula mergeFormula2 = makeSharingConstraints(basesFromPTS1, sharedFields, resultSSA, pts2);
+    final BooleanFormula mergeFormula1 = makeSharingConstraints(basesFromPTS2, sharedFields, resultSSA, pts1);
 
     PointerTargetSet resultPTS = ptsMergeResult.getFirst();
     if (!sharedFields.isEmpty()) {
@@ -323,6 +296,27 @@ public class PointerTargetSetManager {
         return DeferredAllocationPool.mergeLists(list1, list2);
       }
     };
+  }
+
+  private BooleanFormula makeSharingConstraints(final PersistentSortedMap<String, CType> newBases,
+      final List<Pair<CCompositeType, String>> sharedFields, final SSAMap ssa, final PointerTargetSet pts) {
+    BooleanFormula mergeFormula = bfmgr.makeBoolean(true);
+    for (final Map.Entry<String, CType> base : newBases.entrySet()) {
+      if (!options.isDynamicAllocVariableName(base.getKey()) &&
+          !CTypeUtils.containsArray(base.getValue())) {
+        final FormulaType<?> baseFormulaType = typeHandler.getFormulaTypeFromCType(
+                                                   CTypeUtils.getBaseType(base.getValue()));
+        mergeFormula = bfmgr.and(mergeFormula, makeSharingConstraints(formulaManager.makeVariable(baseFormulaType,
+                                                                                          PointerTargetSet.getBaseName(
+                                                                                              base.getKey())),
+                                                                        base.getKey(),
+                                                                        base.getValue(),
+                                                                        sharedFields,
+                                                                        ssa,
+                                                                        pts));
+      }
+    }
+    return mergeFormula;
   }
 
   private BooleanFormula makeSharingConstraints(final Formula address,
