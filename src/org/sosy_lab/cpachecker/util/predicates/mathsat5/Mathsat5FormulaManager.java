@@ -100,12 +100,14 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
       Mathsat5UnsafeFormulaManager unsafeManager,
       Mathsat5FunctionFormulaManager pFunctionManager,
       Mathsat5BooleanFormulaManager pBooleanManager,
-      Mathsat5NumeralFormulaManager pNumericManager,
+      Mathsat5IntegerFormulaManager pIntegerManager,
+      Mathsat5RationalFormulaManager pRationalManager,
       Mathsat5BitvectorFormulaManager pBitpreciseManager,
       Mathsat5Settings pSettings,
       final ShutdownNotifier pShutdownNotifier) {
 
-    super(pEnv, creator, unsafeManager, pFunctionManager, pBooleanManager, pNumericManager, pBitpreciseManager);
+    super(pEnv, creator, unsafeManager, pFunctionManager,
+            pBooleanManager, pIntegerManager, pRationalManager, pBitpreciseManager);
 
     mathsatConfig = pMathsatConfig;
     settings = pSettings;
@@ -130,7 +132,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
   }
 
   public static Mathsat5FormulaManager create(LogManager logger,
-      Configuration config, ShutdownNotifier pShutdownNotifier, boolean useIntegers) throws InvalidConfigurationException {
+      Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
 
     // Init Msat
     Mathsat5Settings settings = new Mathsat5Settings(config);
@@ -155,17 +157,13 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
     Mathsat5UnsafeFormulaManager unsafeManager = new Mathsat5UnsafeFormulaManager(creator);
     Mathsat5FunctionFormulaManager functionTheory = new Mathsat5FunctionFormulaManager(creator, unsafeManager);
     Mathsat5BooleanFormulaManager booleanTheory = Mathsat5BooleanFormulaManager.create(creator);
-    Mathsat5NumeralFormulaManager rationalTheory;
-    if (useIntegers) {
-      rationalTheory = new Mathsat5IntegerFormulaManager(creator, functionTheory);
-    } else {
-      rationalTheory = new Mathsat5RationalFormulaManager(creator, functionTheory);
-    }
+    Mathsat5IntegerFormulaManager integerTheory = new Mathsat5IntegerFormulaManager(creator, functionTheory);
+    Mathsat5RationalFormulaManager rationalTheory = new Mathsat5RationalFormulaManager(creator, functionTheory);
     Mathsat5BitvectorFormulaManager bitvectorTheory  = Mathsat5BitvectorFormulaManager.create(creator);
 
     return new Mathsat5FormulaManager(logger, msatConf, msatEnv, creator,
         unsafeManager, functionTheory, booleanTheory,
-        rationalTheory, bitvectorTheory, settings, pShutdownNotifier);
+        integerTheory, rationalTheory, bitvectorTheory, settings, pShutdownNotifier);
   }
 
   BooleanFormula encapsulateBooleanFormula(long t) {

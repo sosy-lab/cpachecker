@@ -128,7 +128,7 @@ public class FormulaManagerView {
     manager = baseManager;
     bitvectorFormulaManager = loadManagers.wrapManager(baseManager.getBitvectorFormulaManager());
     bitvectorFormulaManager.couple(this);
-    numeralFormulaManager = loadManagers.wrapManager(baseManager.getNumeralFormulaManager());
+    numeralFormulaManager = loadManagers.wrapManager(baseManager.getRationalFormulaManager());
     numeralFormulaManager.couple(this);
     booleanFormulaManager = loadManagers.wrapManager(baseManager.getBooleanFormulaManager());
     booleanFormulaManager.couple(this);
@@ -893,7 +893,7 @@ public class FormulaManagerView {
       boolean conjunctionsOnly) {
     BooleanFormulaManager rawBooleanManager = manager.getBooleanFormulaManager();
     BitvectorFormulaManager rawBitpreciseManager = manager.getBitvectorFormulaManager();
-    NumeralFormulaManager rawNumericManager = manager.getNumeralFormulaManager();
+    NumeralFormulaManager rawNumericManager = manager.getRationalFormulaManager();
     UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
 
     Set<BooleanFormula> handled = new HashSet<>();

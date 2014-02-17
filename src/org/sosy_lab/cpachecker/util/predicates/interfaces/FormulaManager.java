@@ -32,9 +32,20 @@ import org.sosy_lab.common.Appender;
 public interface FormulaManager {
 
   /**
-   * Returns the Numeral-Theory. This can be an Integer- or a Rational-Theory.
+   * Returns the Integer-Theory.
+   * Because most SAT-solvers support automatic casting between Integer- and Rational-Theory,
+   * the Integer- and the RationalFormulaManager both return the same Formulas for numeric operations
+   * like ADD, SUBSTRACT, TIMES, LESSTHAN, EQUAL, etc.
    */
-  NumeralFormulaManager getNumeralFormulaManager();
+  NumeralFormulaManager getIntegerFormulaManager();
+
+  /**
+   * Returns the Rational-Theory.
+   * Because most SAT-solvers support automatic casting between Integer- and Rational-Theory,
+   * the Integer- and the RationalFormulaManager both return the same Formulas for numeric operations
+   * like ADD, SUBSTRACT, TIMES, LESSTHAN, EQUAL, etc.
+   */
+  NumeralFormulaManager getRationalFormulaManager();
 
   /**
    * Returns the Boolean-Theory.

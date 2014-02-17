@@ -82,7 +82,7 @@ public class ReplacingFormulaManager implements FormulaManager {
       bitvectorTheory =
           new ReplaceBitvectorWithRationalAndFunctionTheory(
               this,
-              rawFormulaManager.getNumeralFormulaManager(),
+              rawFormulaManager.getRationalFormulaManager(),
               rawFormulaManager.getFunctionFormulaManager(),
               ignoreExtractConcat);
       replacedBitvectorTheory = true;
@@ -132,8 +132,13 @@ public class ReplacingFormulaManager implements FormulaManager {
   }
 
   @Override
-  public NumeralFormulaManager getNumeralFormulaManager() {
-    return rawFormulaManager.getNumeralFormulaManager();
+  public NumeralFormulaManager getIntegerFormulaManager() {
+    return rawFormulaManager.getIntegerFormulaManager();
+  }
+
+  @Override
+  public NumeralFormulaManager getRationalFormulaManager() {
+    return rawFormulaManager.getRationalFormulaManager();
   }
 
   @Override

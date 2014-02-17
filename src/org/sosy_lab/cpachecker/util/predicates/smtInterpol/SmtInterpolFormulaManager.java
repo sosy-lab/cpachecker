@@ -60,8 +60,9 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
       SmtInterpolUnsafeFormulaManager pUnsafeManager,
       SmtInterpolFunctionFormulaManager pFunctionManager,
       SmtInterpolBooleanFormulaManager pBooleanManager,
-      SmtInterpolNumeralFormulaManager pNumericManager) {
-    super(pEnv, pCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pNumericManager, null);
+      SmtInterpolIntegerFormulaManager pIntegerManager,
+      SmtInterpolRationalFormulaManager pRationalManager) {
+    super(pEnv, pCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pIntegerManager, pRationalManager, null);
   }
 
   public static SmtInterpolFormulaManager create(Configuration config, LogManager logger,
@@ -78,13 +79,11 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
     SmtInterpolUnsafeFormulaManager unsafeManager = new SmtInterpolUnsafeFormulaManager(creator);
     SmtInterpolFunctionFormulaManager functionTheory = new SmtInterpolFunctionFormulaManager(creator, unsafeManager);
     SmtInterpolBooleanFormulaManager booleanTheory = new SmtInterpolBooleanFormulaManager(creator, env.getTheory());
-    SmtInterpolNumeralFormulaManager rationalTheory;
-    if (pUseIntegers) {
-      rationalTheory = new SmtInterpolIntegerFormulaManager(creator, functionTheory);
-    } else {
-      rationalTheory = new SmtInterpolRationalFormulaManager(creator, functionTheory);
-    }
-    return new SmtInterpolFormulaManager(env, creator, unsafeManager, functionTheory, booleanTheory, rationalTheory);
+    SmtInterpolIntegerFormulaManager integerTheory = new SmtInterpolIntegerFormulaManager(creator, functionTheory);
+    SmtInterpolRationalFormulaManager rationalTheory = new SmtInterpolRationalFormulaManager(creator, functionTheory);
+
+    return new SmtInterpolFormulaManager(env, creator, unsafeManager, functionTheory,
+            booleanTheory, integerTheory, rationalTheory);
   }
 
   public SmtInterpolInterpolatingProver createInterpolator() {

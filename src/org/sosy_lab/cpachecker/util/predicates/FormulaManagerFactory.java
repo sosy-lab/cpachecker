@@ -123,11 +123,11 @@ public class FormulaManagerFactory {
         return loadSmtInterpol().create(config, logger, shutdownNotifier, useIntegers);
 
       case MATHSAT5:
-          return Mathsat5FormulaManager.create(logger, config, shutdownNotifier, useIntegers);
+          return Mathsat5FormulaManager.create(logger, config, shutdownNotifier);
 
       case Z3:
         try {
-          return Z3FormulaManager.create(logger, config, useIntegers);
+          return Z3FormulaManager.create(logger, config);
         } catch (UnsatisfiedLinkError e) {
           if (e.getMessage().contains("libfoci.so")) {
             throw new InvalidConfigurationException("Z3 needs the FOCI library which is not supplied with CPAchecker."

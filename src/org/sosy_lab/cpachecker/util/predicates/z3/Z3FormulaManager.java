@@ -51,16 +51,18 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
       Z3UnsafeFormulaManager pUnsafeManager,
       Z3FunctionFormulaManager pFunctionManager,
       Z3BooleanFormulaManager pBooleanManager,
-      Z3NumeralFormulaManager pNumericManager,
+      Z3IntegerFormulaManager pIntegerManager,
+      Z3RationalFormulaManager pRationalManager,
       Z3BitvectorFormulaManager pBitpreciseManager,
       Z3SmtLogger smtLogger, Configuration config) throws InvalidConfigurationException {
 
-    super(z3context, pFormulaCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pNumericManager, pBitpreciseManager);
+    super(z3context, pFormulaCreator, pUnsafeManager, pFunctionManager,
+            pBooleanManager, pIntegerManager, pRationalManager, pBitpreciseManager);
     config.inject(this);
     this.z3smtLogger = smtLogger;
   }
 
-  public static synchronized Z3FormulaManager create(LogManager logger, Configuration config, boolean useIntegers)
+  public static synchronized Z3FormulaManager create(LogManager logger, Configuration config)
       throws InvalidConfigurationException {
 
     /*
@@ -124,19 +126,15 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
     Z3UnsafeFormulaManager unsafeManager = new Z3UnsafeFormulaManager(creator);
     Z3FunctionFormulaManager functionTheory = new Z3FunctionFormulaManager(creator, unsafeManager, smtLogger);
     Z3BooleanFormulaManager booleanTheory = new Z3BooleanFormulaManager(creator);
-    Z3NumeralFormulaManager numeralTheory;
-    if (useIntegers) {
-      numeralTheory = new Z3IntegerFormulaManager(creator, functionTheory);
-    } else {
-      numeralTheory = new Z3RationalFormulaManager(creator, functionTheory);
-    }
+    Z3IntegerFormulaManager integerTheory = new Z3IntegerFormulaManager(creator, functionTheory);
+    Z3RationalFormulaManager rationalTheory = new Z3RationalFormulaManager(creator, functionTheory);
 
     Z3BitvectorFormulaManager bitvectorTheory = new Z3BitvectorFormulaManager(creator);
 
     Z3FormulaManager instance = new Z3FormulaManager(
         context, creator,
         unsafeManager, functionTheory, booleanTheory,
-        numeralTheory, bitvectorTheory, smtLogger, config);
+        integerTheory, rationalTheory, bitvectorTheory, smtLogger, config);
     return instance;
   }
 

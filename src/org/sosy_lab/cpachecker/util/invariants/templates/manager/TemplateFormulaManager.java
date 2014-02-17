@@ -33,7 +33,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 public class TemplateFormulaManager implements FormulaManager {
 
   private final TemplateParseMode tpMode;
-  private  TemplateNumericFormulaManager nfmgr;
+  private  TemplateIntegerFormulaManager ifmgr;
+  private  TemplateRationalFormulaManager rfmgr;
   private  TemplateBooleanFormulaManager bfmgr;
   private  TemplateBitvectorFormulaManager efmgr;
   private  TemplateFunctionFormulaManager ffmgr;
@@ -50,7 +51,8 @@ public class TemplateFormulaManager implements FormulaManager {
   }
 
   private void init() {
-    nfmgr = new TemplateRationalFormulaManager(this);
+    ifmgr = new TemplateIntegerFormulaManager(this);
+    rfmgr = new TemplateRationalFormulaManager(this);
     bfmgr = new TemplateBooleanFormulaManager(this);
     efmgr = new TemplateBitvectorFormulaManager(this);
     ffmgr = new TemplateFunctionFormulaManager(this);
@@ -63,8 +65,13 @@ public class TemplateFormulaManager implements FormulaManager {
   }
 
   @Override
-  public NumeralFormulaManager getNumeralFormulaManager() {
-    return nfmgr;
+  public NumeralFormulaManager getIntegerFormulaManager() {
+    return ifmgr;
+  }
+
+  @Override
+  public NumeralFormulaManager getRationalFormulaManager() {
+    return rfmgr;
   }
 
   @Override
