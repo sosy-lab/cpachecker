@@ -108,6 +108,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private final BooleanFormulaManagerView bfmgr;
   private final FunctionFormulaManagerView ffmgr;
   private final CtoFormulaConverter converter;
+  private final CtoFormulaTypeHandler typeHandler;
   private final @Nullable PointerTargetSetManager ptsManager;
   private final LogManager logger;
 
@@ -141,13 +142,14 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     if (handlePointerAliasing) {
       final FormulaEncodingWithUFOptions options = new FormulaEncodingWithUFOptions(config);
-      CToFormulaWithUFTypeHandler typeHandler = new CToFormulaWithUFTypeHandler(pLogger, pMachineModel, pFmgr, options);
-      ptsManager = new PointerTargetSetManager(options, pMachineModel, pFmgr, typeHandler);
-      converter = new CToFormulaWithUFConverter(options, pFmgr, pMachineModel, ptsManager, pVariableClassification, pLogger, typeHandler);
+      CToFormulaWithUFTypeHandler ufTypeHandler = new CToFormulaWithUFTypeHandler(pLogger, pMachineModel, pFmgr, options);
+      typeHandler = ufTypeHandler;
+      ptsManager = new PointerTargetSetManager(options, pMachineModel, pFmgr, ufTypeHandler);
+      converter = new CToFormulaWithUFConverter(options, pFmgr, pMachineModel, ptsManager, pVariableClassification, pLogger, ufTypeHandler);
 
     } else {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
-      CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel, pFmgr);
+      typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel, pFmgr);
       converter = new CtoFormulaConverter(options, pFmgr, pMachineModel, pLogger, typeHandler);
       ptsManager = null;
 
@@ -438,8 +440,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final FormulaType<?> returnFormulaType =  converter.getFormulaTypeFromCType(returnType);
     BooleanFormula result = bfmgr.makeBoolean(true);
     for (final PointerTarget target : pts.getAllTargets(returnType)) {
-      final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(pts.getPointerType(), target.getBaseName()),
-                                                  fmgr.makeNumber(pts.getPointerType(), target.getOffset()));
+      final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(typeHandler.getPointerType(), target.getBaseName()),
+                                                  fmgr.makeNumber(typeHandler.getPointerType(), target.getOffset()));
 
       final BooleanFormula retention = fmgr.makeEqual(ffmgr.createFuncAndCall(functionName,
                                                                               newIndex,

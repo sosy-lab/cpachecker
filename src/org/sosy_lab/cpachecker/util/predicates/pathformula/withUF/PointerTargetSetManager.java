@@ -93,7 +93,7 @@ public class PointerTargetSetManager {
   private final FormulaManagerView formulaManager;
   private final BooleanFormulaManagerView bfmgr;
   private final FunctionFormulaManagerView ffmgr;
-  private final CToFormulaWithUFTypeHandler typeHandler;
+  final CToFormulaWithUFTypeHandler typeHandler;
 
   public PointerTargetSetManager(FormulaEncodingWithUFOptions pOptions, MachineModel pMachineModel,
       FormulaManagerView pFormulaManager, CToFormulaWithUFTypeHandler pTypeHandler) {
@@ -238,8 +238,8 @@ public class PointerTargetSetManager {
                   mergedBases.getSecond(),
                   mergedBases.getThird().putAndCopy(fakeBaseName, fakeBaseType));
       lastBase = fakeBaseName;
-      basesMergeFormula = formulaManager.makeAnd(pts1.getNextBaseAddressInequality(fakeBaseName, pts1.lastBase, this),
-                                                 pts2.getNextBaseAddressInequality(fakeBaseName, pts2.lastBase, this));
+      basesMergeFormula = formulaManager.makeAnd(pts1.getNextBaseAddressInequality(fakeBaseName, pts1.lastBase, typeHandler),
+                                                 pts2.getNextBaseAddressInequality(fakeBaseName, pts2.lastBase, typeHandler));
     }
 
     final ConflictHandler<String, PersistentList<PointerTarget>> conflictHandler =
@@ -390,7 +390,7 @@ public class PointerTargetSetManager {
         if (ssa.getIndex(newPrefix) > 0) {
           sharedFields.add(Pair.of(compositeType, memberName));
           result = bfmgr.and(result, makeSharingConstraints(
-                                       formulaManager.makePlus(address, formulaManager.makeNumber(pts.getPointerType(), offset)),
+                                       formulaManager.makePlus(address, formulaManager.makeNumber(typeHandler.getPointerType(), offset)),
                                        newPrefix,
                                        memberType,
                                        sharedFields,

@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTarget;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
 
@@ -195,7 +196,7 @@ public class PointerTargetSet implements Serializable {
         return formulaManager.getBooleanFormulaManager().makeBoolean(true);
       }
       bases = bases.putAndCopy(name, type); // To get proper inequalities
-      final BooleanFormula nextInequality = getNextBaseAddressInequality(name, lastBase, ptsMgr);
+      final BooleanFormula nextInequality = getNextBaseAddressInequality(name, lastBase, ptsMgr.typeHandler);
       bases = bases.putAndCopy(name, PointerTargetSetManager.getFakeBaseType(ptsMgr.getSize(type))); // To prevent adding spurious targets when merging
       lastBase = name;
       return nextInequality;
@@ -228,7 +229,7 @@ public class PointerTargetSet implements Serializable {
       addTargets(name, type);
       bases = bases.putAndCopy(name, type);
 
-      final BooleanFormula nextInequality = getNextBaseAddressInequality(name, lastBase, ptsMgr);
+      final BooleanFormula nextInequality = getNextBaseAddressInequality(name, lastBase, ptsMgr.typeHandler);
       lastBase = name;
       return nextInequality;
     }
@@ -419,17 +420,14 @@ public class PointerTargetSet implements Serializable {
     return deferredAllocations.containsKey(pointerVariable);
   }
 
-  public FormulaType<?> getPointerType() {
-    return pointerType;
-  }
-
   protected BooleanFormula getNextBaseAddressInequality(final String newBase,
                                                         final String lastBase,
-                                                        final PointerTargetSetManager ptsMgr) {
+                                                        final CtoFormulaTypeHandler typeHandler) {
     final FormulaManagerView fm = formulaManager;
+    final FormulaType<?> pointerType = typeHandler.getPointerType();
     final Formula newBaseFormula = fm.makeVariable(pointerType, getBaseName(newBase));
     if (lastBase != null) {
-      final Integer lastSize = ptsMgr.getSize(bases.get(lastBase));
+      final Integer lastSize = typeHandler.getSizeof(bases.get(lastBase));
       final Formula rhs = fm.makePlus(fm.makeVariable(pointerType, getBaseName(lastBase)),
                                       fm.makeNumber(pointerType, lastSize));
       // The condition rhs > 0 prevents overflows in case of bit-vector encoding
@@ -509,11 +507,6 @@ public class PointerTargetSet implements Serializable {
     this.deferredAllocations = deferredAllocations;
 
     this.targets = targets;
-
-    final int pointerSize = machineModel.getSizeofPtr();
-    final int bitsPerByte = machineModel.getSizeofCharInBits();
-    this.pointerType = this.formulaManager.getBitvectorFormulaManager()
-                                          .getFormulaType(pointerSize * bitsPerByte);
   }
 
   /**
@@ -556,8 +549,6 @@ public class PointerTargetSet implements Serializable {
   // This means that when a location is not present in this map,
   // its value is not tracked and might get lost.
   protected /*final*/ PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
-
-  private final FormulaType<?> pointerType;
 
   // The counter that guarantees a unique name for each allocated memory region.
   private static int dynamicAllocationCounter = 0;

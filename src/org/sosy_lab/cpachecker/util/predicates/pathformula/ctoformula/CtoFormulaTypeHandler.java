@@ -50,6 +50,8 @@ public class CtoFormulaTypeHandler {
 
   private final CtoFormulaSizeofVisitor sizeofVisitor;
 
+  private final FormulaType<?> pointerType;
+
   private final Map<CType, FormulaType<?>> typeCache = new IdentityHashMap<>();
 
   public CtoFormulaTypeHandler(LogManager pLogger,
@@ -59,6 +61,10 @@ public class CtoFormulaTypeHandler {
     efmgr = pFmgr.getBitvectorFormulaManager();
 
     sizeofVisitor = new CtoFormulaSizeofVisitor(pMachineModel);
+
+    final int pointerSize = machineModel.getSizeofPtr();
+    final int bitsPerByte = machineModel.getSizeofCharInBits();
+    pointerType = efmgr.getFormulaType(pointerSize * bitsPerByte);
   }
 
   /**
@@ -68,7 +74,7 @@ public class CtoFormulaTypeHandler {
    * @param pType the type to calculate the size of.
    * @return the size in bytes of the given type.
    */
-  protected int getSizeof(CType pType) {
+  public int getSizeof(CType pType) {
     int size = pType.accept(sizeofVisitor);
     if (size == 0) {
       CType type = getCanonicalType(pType);
@@ -98,4 +104,7 @@ public class CtoFormulaTypeHandler {
     return result;
   }
 
+  public FormulaType<?> getPointerType() {
+    return pointerType;
+  }
 }
