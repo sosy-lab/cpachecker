@@ -8,11 +8,14 @@
   <sourcefiles name="cpalien-goal">
     <includesfile>../programs/cpalien/cpalien-goal.set</includesfile>
     <option name="-CPAlien"/>
+    <option name="-setprop">memorysafety.config=config/CPAlien.properties</option>
+    <propertyfile>../programs/benchmarks/PropertyMemSafety.prp</propertyfile>
   </sourcefiles>
 
   <sourcefiles name="cpalien-label-goal">
     <includesfile>../programs/cpalien/cpalien-label-goal.set</includesfile>
     <option name="-CPAlien-label"/>
+    <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
   </sourcefiles>
 
   <rundefinition name="cpalien">
