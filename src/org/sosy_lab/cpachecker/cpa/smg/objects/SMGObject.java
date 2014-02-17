@@ -75,4 +75,8 @@ public class SMGObject {
     }
     return false;
   }
+
+  public SMGObject join(SMGObject pOther) {
+    throw new UnsupportedOperationException("join() called on SMGObject instance, not on a subclass");
+  }
 }

@@ -84,9 +84,27 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
     if (! pOther.isAbstract()) {
       return true;
     }
-    if (! matchGenericShape(this)) {
+    if (! matchSpecificShape((SMGAbstractObject)pOther)) {
       throw new IllegalArgumentException("isMoreGeneral called on incompatible abstract objects");
     }
     return length < ((SMGSingleLinkedList)pOther).length;
+  }
+
+  @Override
+  public SMGObject join(SMGObject pOther) {
+    if (! pOther.isAbstract()) {
+      return new SMGSingleLinkedList(this);
+    }
+
+    if (matchSpecificShape((SMGAbstractObject)pOther)) {
+      SMGSingleLinkedList otherSll = (SMGSingleLinkedList)pOther;
+      if (getLength() < otherSll.getLength()) {
+        return new SMGSingleLinkedList(this);
+      } else {
+        return new SMGSingleLinkedList(otherSll);
+      }
+    }
+
+    throw new UnsupportedOperationException("join() called on incompatible abstract objects");
   }
 }

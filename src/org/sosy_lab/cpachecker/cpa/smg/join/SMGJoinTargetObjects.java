@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.cpa.smg.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
 final class SMGJoinTargetObjects {
   private SMGJoinStatus status;
@@ -110,12 +109,7 @@ final class SMGJoinTargetObjects {
       return;
     }
 
-    SMGObject newObject;
-    if (target1.isAbstract()) {
-      throw new UnsupportedOperationException("Cannot join abstract objects yet");
-    } else {
-      newObject = new SMGRegion((SMGRegion)target1);
-    }
+    SMGObject newObject = target1.join(target2);
     destSMG.addObject(newObject);
 
     if (mapping1.containsKey(target1)) {
