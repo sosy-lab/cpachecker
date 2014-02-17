@@ -41,6 +41,12 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
     length = pLength;
   }
 
+  public SMGSingleLinkedList(SMGSingleLinkedList pOriginal) {
+    super(pOriginal);
+    bindingOffset = pOriginal.bindingOffset;
+    length = pOriginal.length;
+  }
+
   //TODO: Abstract interface???
   public int getLength() {
     return length;
