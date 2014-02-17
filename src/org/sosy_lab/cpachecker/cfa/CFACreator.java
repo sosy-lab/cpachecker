@@ -242,7 +242,7 @@ public class CFACreator {
     case C:
       CParser outerParser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machineModel);
 
-      outerParser = new CParserWithLocationMapper(outerParser, transformTokensToLines);
+      outerParser = new CParserWithLocationMapper(config, logger, outerParser, transformTokensToLines);
       CSourceOriginMapping.INSTANCE.setHasOneInputLinePerToken(transformTokensToLines);
 
       if (usePreprocessor) {
