@@ -40,7 +40,6 @@ import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -165,8 +164,7 @@ public class PointerTargetSet implements Serializable {
     private PointerTargetSetBuilder(final PointerTargetSet pointerTargetSet,
         final PointerTargetSetManager pPtsMgr,
         final FormulaEncodingWithUFOptions pOptions) {
-      super(pointerTargetSet.machineModel,
-            pointerTargetSet.bases,
+      super(pointerTargetSet.bases,
             pointerTargetSet.lastBase,
             pointerTargetSet.fields,
             pointerTargetSet.deferredAllocations,
@@ -397,8 +395,7 @@ public class PointerTargetSet implements Serializable {
      * Returns an immutable PointerTargetSet with all the changes made to the builder.
      */
     public PointerTargetSet build() {
-      return new PointerTargetSet(machineModel,
-                                  bases,
+      return new PointerTargetSet(bases,
                                   lastBase,
                                   fields,
                                   deferredAllocations,
@@ -456,10 +453,8 @@ public class PointerTargetSet implements Serializable {
     return bases.keySet();
   }
 
-  public static final PointerTargetSet emptyPointerTargetSet(final MachineModel machineModel,
-                                                             final FormulaManagerView formulaManager) {
-    return new PointerTargetSet(machineModel,
-                                PathCopyingPersistentTreeMap.<String, CType>of(),
+  public static final PointerTargetSet emptyPointerTargetSet(final FormulaManagerView formulaManager) {
+    return new PointerTargetSet(PathCopyingPersistentTreeMap.<String, CType>of(),
                                 null,
                                 PathCopyingPersistentTreeMap.<CompositeField, Boolean>of(),
                                 PathCopyingPersistentTreeMap.<String, DeferredAllocationPool>of(),
@@ -489,15 +484,12 @@ public class PointerTargetSet implements Serializable {
     }
   }
 
-  PointerTargetSet(final MachineModel machineModel,
-                           final PersistentSortedMap<String, CType> bases,
+  PointerTargetSet(final PersistentSortedMap<String, CType> bases,
                            final String lastBase,
                            final PersistentSortedMap<CompositeField, Boolean> fields,
                            final PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations,
                            final PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
                            final FormulaManagerView formulaManager) {
-    this.machineModel = machineModel;
-
     this.formulaManager = formulaManager;
 
     this.bases = bases;
@@ -518,8 +510,6 @@ public class PointerTargetSet implements Serializable {
   }
 
   private static final Joiner joiner = Joiner.on(" ");
-
-  protected final MachineModel machineModel;
 
   protected final FormulaManagerView formulaManager;
 

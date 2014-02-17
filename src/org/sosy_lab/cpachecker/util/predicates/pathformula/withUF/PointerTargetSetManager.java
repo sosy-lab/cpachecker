@@ -42,7 +42,6 @@ import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -89,16 +88,14 @@ public class PointerTargetSetManager {
 
 
   private final FormulaEncodingWithUFOptions options;
-  private final MachineModel machineModel;
   private final FormulaManagerView formulaManager;
   private final BooleanFormulaManagerView bfmgr;
   private final FunctionFormulaManagerView ffmgr;
   final CToFormulaWithUFTypeHandler typeHandler;
 
-  public PointerTargetSetManager(FormulaEncodingWithUFOptions pOptions, MachineModel pMachineModel,
+  public PointerTargetSetManager(FormulaEncodingWithUFOptions pOptions,
       FormulaManagerView pFormulaManager, CToFormulaWithUFTypeHandler pTypeHandler) {
     options = pOptions;
-    machineModel = pMachineModel;
     formulaManager = pFormulaManager;
     bfmgr = formulaManager.getBooleanFormulaManager();
     ffmgr = formulaManager.getFunctionFormulaManager();
@@ -187,10 +184,8 @@ public class PointerTargetSetManager {
                         mergeSortedMaps(pts2.targets, pts1.targets, PointerTargetSetManager.<String, PointerTarget>mergeOnConflict());
 
     final PointerTargetSetBuilder builder1 = PointerTargetSet.emptyPointerTargetSet(
-                                                                               machineModel,
                                                                                formulaManager).builder(this, options),
                                   builder2 = PointerTargetSet.emptyPointerTargetSet(
-                                                                               machineModel,
                                                                                formulaManager).builder(this, options);
     if (reverseBases == reverseFields) {
       builder1.setFields(mergedFields.getFirst());
@@ -246,8 +241,7 @@ public class PointerTargetSetManager {
                                                            PointerTargetSetManager.<String, PointerTarget>destructiveMergeOnConflict();
 
     final PointerTargetSet result  =
-      new PointerTargetSet(machineModel,
-                           mergedBases.getThird(),
+      new PointerTargetSet(mergedBases.getThird(),
                            lastBase,
                            mergedFields.getThird(),
                            mergedDeferredAllocations,

@@ -144,7 +144,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       final FormulaEncodingWithUFOptions options = new FormulaEncodingWithUFOptions(config);
       CToFormulaWithUFTypeHandler ufTypeHandler = new CToFormulaWithUFTypeHandler(pLogger, pMachineModel, pFmgr, options);
       typeHandler = ufTypeHandler;
-      ptsManager = new PointerTargetSetManager(options, pMachineModel, pFmgr, ufTypeHandler);
+      ptsManager = new PointerTargetSetManager(options, pFmgr, ufTypeHandler);
       converter = new CToFormulaWithUFConverter(options, pFmgr, pMachineModel, ptsManager, pVariableClassification, pLogger, ufTypeHandler);
 
     } else {

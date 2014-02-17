@@ -156,7 +156,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   public PathFormulaWithUF makeEmptyPathFormula() {
     return new PathFormulaWithUF(bfmgr.makeBoolean(true),
                                  SSAMap.emptySSAMap(),
-                                 PointerTargetSet.emptyPointerTargetSet(machineModel, fmgr),
+                                 PointerTargetSet.emptyPointerTargetSet(fmgr),
                                  0);
   }
 
