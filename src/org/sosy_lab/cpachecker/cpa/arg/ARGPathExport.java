@@ -189,22 +189,28 @@ public class ARGPathExport {
       return this.keyValues.equals(oT.keyValues);
     }
 
+    public boolean hasTransitionRestrictions(){
+      return !keyValues.isEmpty();
+    }
+
     @Override
     public int hashCode() {
       return keyValues.hashCode();
     }
   }
 
-  private class AggregatedTargetNode {
+  private class AggregatedEdge {
+    public final String source;
     public final String targetRepresentedBy;
     public final TransitionCondition condition;
-    public final Set<String> aggregates = Sets.newHashSet();
+    public final Set<String> aggregatesTargets = Sets.newHashSet();
 
-    public AggregatedTargetNode(final String source, final String targetRepresentedBy,
+    public AggregatedEdge(final String source, final String targetRepresentedBy,
         final TransitionCondition condition) {
+      this.source = source;
       this.condition = condition;
       this.targetRepresentedBy = targetRepresentedBy;
-      this.aggregates.add(targetRepresentedBy);
+      this.aggregatesTargets.add(targetRepresentedBy);
     }
   }
 
@@ -243,8 +249,8 @@ public class ARGPathExport {
   }
 
   private class WitnessWriter {
-    private final Multimap<String, AggregatedTargetNode> sourceToTargetMap = HashMultimap.create();
-    private final Multimap<String, AggregatedTargetNode> targetToSourceMap = HashMultimap.create();
+    private final Multimap<String, AggregatedEdge> sourceToTargetMap = HashMultimap.create();
+    private final Multimap<String, AggregatedEdge> targetToSourceMap = HashMultimap.create();
     private final Map<String, Element> delayedNodes = Maps.newHashMap();
 
     private final String defaultSourcefileName;
@@ -253,10 +259,22 @@ public class ARGPathExport {
       this.defaultSourcefileName = defaultSourcefileName;
     }
 
-    private boolean isNodeRepresentingOneOf(Collection<AggregatedTargetNode> targets, String nodeId) {
-      for (AggregatedTargetNode t : targets) {
+    @SuppressWarnings("unused")
+    private boolean isNodeRepresentingOneOf(Collection<AggregatedEdge> targets, String nodeId) {
+      for (AggregatedEdge t : targets) {
         if (t.targetRepresentedBy.equals(nodeId)) {
           return true;
+        }
+      }
+      return false;
+    }
+
+    private boolean containsRestrictedEdgeTo(Collection<AggregatedEdge> targets, String nodeId) {
+      for (AggregatedEdge t : targets) {
+        if (t.targetRepresentedBy.equals(nodeId)) {
+          if (t.condition.hasTransitionRestrictions()) {
+            return true;
+          }
         }
       }
       return false;
@@ -270,9 +288,9 @@ public class ARGPathExport {
 
       // Decide if writing the node should be delayed.
       // Some nodes might not get referenced by edges later.
-      Collection<AggregatedTargetNode> existingEdgesTo = targetToSourceMap.get(nodeId);
+      Collection<AggregatedEdge> existingEdgesTo = targetToSourceMap.get(nodeId);
       // -- A node must always be written if it represents a set of aggregated nodes
-      if (isNodeRepresentingOneOf(existingEdgesTo, nodeId)) {
+      if (containsRestrictedEdgeTo(existingEdgesTo, nodeId)) {
         doc.appendToAppendable(result);
       } else {
         delayedNodes.put(nodeId, result);
@@ -293,12 +311,48 @@ public class ARGPathExport {
 
       TransitionCondition desc = constructTransitionCondition(from, to, edge, fromState, valueMap);
 
+      if (aggregateToPrevEdge(from, to, desc)) {
+        return;
+      }
+
+      // Switch the source node (from) to the aggregating one
+      // -- only if this is unambiguous
+      Collection<AggregatedEdge> edgesToTheSourceNode = targetToSourceMap.get(from);
+      if (edgesToTheSourceNode.size() == 1) {
+        AggregatedEdge aggregationEdge = edgesToTheSourceNode.iterator().next();
+        from = aggregationEdge.targetRepresentedBy;
+
+        // If there is a edge to "from" with an empty transition condition (epsilon)
+        //  then switch "from" to the "from" of the epsilon edge
+        if (!aggregationEdge.condition.hasTransitionRestrictions()) {
+          from = aggregationEdge.source;
+        }
+        // -- delay writing epsilon edges!
+      }
+
+      if (desc.hasTransitionRestrictions()) {
+        appendDelayedNode(doc, from);
+        appendDelayedNode(doc, to);
+
+        Element result = doc.createEdgeElement(from, to);
+        for (KeyDef k : desc.keyValues.keySet())  {
+          doc.addDataElementChild(result, k, desc.keyValues.get(k));
+        }
+        doc.appendToAppendable(result);
+      }
+
+      AggregatedEdge t = new AggregatedEdge(from, to, desc);
+      sourceToTargetMap.put(from, t);
+      targetToSourceMap.put(to, t);
+    }
+
+    private boolean aggregateToPrevEdge(String from, final String to, TransitionCondition desc) {
       // What edges to "from" exist?
       //    edgesTo(from) = [e | e = (u,c,v) in E, v = from]
 
-      Collection<AggregatedTargetNode> edgesToTheSourceNode = targetToSourceMap.get(from);
+      Collection<AggregatedEdge> edgesToTheSourceNode = targetToSourceMap.get(from);
       if (edgesToTheSourceNode.size() == 1) {
-        AggregatedTargetNode aggregationEdge = edgesToTheSourceNode.iterator().next();
+        AggregatedEdge aggregationEdge = edgesToTheSourceNode.iterator().next();
 
         // Does the transition descriptor of TT match (equals) the descriptor of this transition?
         //  edgesTo(from)[1].c == this.c
@@ -306,33 +360,14 @@ public class ARGPathExport {
           // If everything can be answered with "yes":
           //  Instead of adding a new transition, modify the points-to information of TT
 
-          aggregationEdge.aggregates.add(to);
+          aggregationEdge.aggregatesTargets.add(to);
           targetToSourceMap.put(to, aggregationEdge);
 
-          return;
+          return true;
         }
       }
 
-      // Switch the source node (from) to the aggregating one
-      // -- only if this is unambiguous
-      edgesToTheSourceNode = targetToSourceMap.get(from);
-      if (edgesToTheSourceNode.size() == 1) {
-        AggregatedTargetNode aggregationEdge = edgesToTheSourceNode.iterator().next();
-        from = aggregationEdge.targetRepresentedBy;
-      }
-
-      appendDelayedNode(doc, from);
-      appendDelayedNode(doc, to);
-
-      Element result = doc.createEdgeElement(from, to);
-      for (KeyDef k : desc.keyValues.keySet())  {
-        doc.addDataElementChild(result, k, desc.keyValues.get(k));
-      }
-      doc.appendToAppendable(result);
-
-      AggregatedTargetNode t = new AggregatedTargetNode(from, to, desc);
-      sourceToTargetMap.put(from, t);
-      targetToSourceMap.put(to, t);
+      return false;
     }
 
     private TransitionCondition constructTransitionCondition(String from, String to, CFAEdge edge, ARGState fromState,
