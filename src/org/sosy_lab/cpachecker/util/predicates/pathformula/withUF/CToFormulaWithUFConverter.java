@@ -156,7 +156,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   public PathFormulaWithUF makeEmptyPathFormula() {
     return new PathFormulaWithUF(bfmgr.makeBoolean(true),
                                  SSAMap.emptySSAMap(),
-                                 PointerTargetSet.emptyPointerTargetSet(fmgr),
+                                 PointerTargetSet.emptyPointerTargetSet(),
                                  0);
   }
 
@@ -1160,7 +1160,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     final String function = edge.getPredecessor() != null ? edge.getPredecessor().getFunctionName() : null;
     final SSAMapBuilder ssa = oldFormula.getSsa().builder();
     final Constraints constraints = new Constraints(bfmgr);
-    final PointerTargetSetBuilder pts = oldFormula.getPointerTargetSet().builder(ptsMgr, options);
+    final PointerTargetSetBuilder pts = oldFormula.getPointerTargetSet().builder(fmgr, ptsMgr, options);
 
     BooleanFormula edgeFormula = createFormulaForEdge(edge, function, ssa, constraints, errorConditions, pts);
     edgeFormula = bfmgr.and(edgeFormula, constraints.get());

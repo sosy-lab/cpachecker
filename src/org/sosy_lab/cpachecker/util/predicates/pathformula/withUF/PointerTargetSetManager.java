@@ -149,7 +149,7 @@ public class PointerTargetSetManager {
 
     PointerTargetSet resultPTS = ptsMergeResult.getFirst();
     if (!sharedFields.isEmpty()) {
-      final PointerTargetSetBuilder resultPTSBuilder = resultPTS.builder(this, options);
+      final PointerTargetSetBuilder resultPTSBuilder = resultPTS.builder(formulaManager, this, options);
       for (final Pair<CCompositeType, String> sharedField : sharedFields) {
         resultPTSBuilder.addField(sharedField.getFirst(), sharedField.getSecond());
       }
@@ -183,10 +183,10 @@ public class PointerTargetSetManager {
       !reverseTargets ? mergeSortedMaps(pts1.targets, pts2.targets,PointerTargetSetManager.<String, PointerTarget>mergeOnConflict()) :
                         mergeSortedMaps(pts2.targets, pts1.targets, PointerTargetSetManager.<String, PointerTarget>mergeOnConflict());
 
-    final PointerTargetSetBuilder builder1 = PointerTargetSet.emptyPointerTargetSet(
-                                                                               formulaManager).builder(this, options),
-                                  builder2 = PointerTargetSet.emptyPointerTargetSet(
-                                                                               formulaManager).builder(this, options);
+    final PointerTargetSetBuilder builder1 = PointerTargetSet.emptyPointerTargetSet()
+                                                             .builder(formulaManager, this, options),
+                                  builder2 = PointerTargetSet.emptyPointerTargetSet()
+                                                             .builder(formulaManager, this, options);
     if (reverseBases == reverseFields) {
       builder1.setFields(mergedFields.getFirst());
       builder2.setFields(mergedFields.getSecond());
@@ -233,8 +233,8 @@ public class PointerTargetSetManager {
                   mergedBases.getSecond(),
                   mergedBases.getThird().putAndCopy(fakeBaseName, fakeBaseType));
       lastBase = fakeBaseName;
-      basesMergeFormula = formulaManager.makeAnd(pts1.getNextBaseAddressInequality(fakeBaseName, pts1.lastBase, typeHandler),
-                                                 pts2.getNextBaseAddressInequality(fakeBaseName, pts2.lastBase, typeHandler));
+      basesMergeFormula = formulaManager.makeAnd(pts1.getNextBaseAddressInequality(fakeBaseName, pts1.lastBase, typeHandler, formulaManager),
+                                                 pts2.getNextBaseAddressInequality(fakeBaseName, pts2.lastBase, typeHandler, formulaManager));
     }
 
     final ConflictHandler<String, PersistentList<PointerTarget>> conflictHandler =
@@ -250,8 +250,7 @@ public class PointerTargetSetManager {
                                              builder1.targets,
                                              conflictHandler),
                              builder2.targets,
-                             conflictHandler),
-                           formulaManager);
+                             conflictHandler));
     return Triple.of(result,
                      basesMergeFormula,
                      !reverseBases ? Pair.of(mergedBases.getFirst(), mergedBases.getSecond()) :

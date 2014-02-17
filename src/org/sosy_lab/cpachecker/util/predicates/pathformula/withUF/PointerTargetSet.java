@@ -158,18 +158,20 @@ public class PointerTargetSet implements Serializable {
    */
   public final static class PointerTargetSetBuilder extends PointerTargetSet {
 
+    private final FormulaManagerView formulaManager;
     private final PointerTargetSetManager ptsMgr;
     private final FormulaEncodingWithUFOptions options;
 
     private PointerTargetSetBuilder(final PointerTargetSet pointerTargetSet,
+        final FormulaManagerView pFormulaManager,
         final PointerTargetSetManager pPtsMgr,
         final FormulaEncodingWithUFOptions pOptions) {
       super(pointerTargetSet.bases,
             pointerTargetSet.lastBase,
             pointerTargetSet.fields,
             pointerTargetSet.deferredAllocations,
-            pointerTargetSet.targets,
-            pointerTargetSet.formulaManager);
+            pointerTargetSet.targets);
+      formulaManager = pFormulaManager;
       ptsMgr = pPtsMgr;
       options = pOptions;
     }
@@ -194,7 +196,7 @@ public class PointerTargetSet implements Serializable {
         return formulaManager.getBooleanFormulaManager().makeBoolean(true);
       }
       bases = bases.putAndCopy(name, type); // To get proper inequalities
-      final BooleanFormula nextInequality = getNextBaseAddressInequality(name, lastBase, ptsMgr.typeHandler);
+      final BooleanFormula nextInequality = getNextBaseAddressInequality(name, lastBase, ptsMgr.typeHandler, formulaManager);
       bases = bases.putAndCopy(name, PointerTargetSetManager.getFakeBaseType(ptsMgr.getSize(type))); // To prevent adding spurious targets when merging
       lastBase = name;
       return nextInequality;
@@ -227,7 +229,7 @@ public class PointerTargetSet implements Serializable {
       addTargets(name, type);
       bases = bases.putAndCopy(name, type);
 
-      final BooleanFormula nextInequality = getNextBaseAddressInequality(name, lastBase, ptsMgr.typeHandler);
+      final BooleanFormula nextInequality = getNextBaseAddressInequality(name, lastBase, ptsMgr.typeHandler, formulaManager);
       lastBase = name;
       return nextInequality;
     }
@@ -399,8 +401,7 @@ public class PointerTargetSet implements Serializable {
                                   lastBase,
                                   fields,
                                   deferredAllocations,
-                                  targets,
-                                  formulaManager);
+                                  targets);
     }
 
     private static final long serialVersionUID = 5692271309582052121L;
@@ -419,8 +420,8 @@ public class PointerTargetSet implements Serializable {
 
   protected BooleanFormula getNextBaseAddressInequality(final String newBase,
                                                         final String lastBase,
-                                                        final CtoFormulaTypeHandler typeHandler) {
-    final FormulaManagerView fm = formulaManager;
+                                                        final CtoFormulaTypeHandler typeHandler,
+                                                        final FormulaManagerView fm) {
     final FormulaType<?> pointerType = typeHandler.getPointerType();
     final Formula newBaseFormula = fm.makeVariable(pointerType, getBaseName(newBase));
     if (lastBase != null) {
@@ -453,13 +454,12 @@ public class PointerTargetSet implements Serializable {
     return bases.keySet();
   }
 
-  public static final PointerTargetSet emptyPointerTargetSet(final FormulaManagerView formulaManager) {
+  public static final PointerTargetSet emptyPointerTargetSet() {
     return new PointerTargetSet(PathCopyingPersistentTreeMap.<String, CType>of(),
                                 null,
                                 PathCopyingPersistentTreeMap.<CompositeField, Boolean>of(),
                                 PathCopyingPersistentTreeMap.<String, DeferredAllocationPool>of(),
-                                PathCopyingPersistentTreeMap.<String, PersistentList<PointerTarget>>of(),
-                                formulaManager);
+                                PathCopyingPersistentTreeMap.<String, PersistentList<PointerTarget>>of());
   }
 
   @Override
@@ -488,10 +488,7 @@ public class PointerTargetSet implements Serializable {
                            final String lastBase,
                            final PersistentSortedMap<CompositeField, Boolean> fields,
                            final PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations,
-                           final PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
-                           final FormulaManagerView formulaManager) {
-    this.formulaManager = formulaManager;
-
+                           final PersistentSortedMap<String, PersistentList<PointerTarget>> targets) {
     this.bases = bases;
     this.lastBase = lastBase;
     this.fields = fields;
@@ -504,14 +501,14 @@ public class PointerTargetSet implements Serializable {
   /**
    * Returns a PointerTargetSetBuilder that is initialized with the current PointerTargetSet.
    */
-  public PointerTargetSetBuilder builder(PointerTargetSetManager ptsMgr,
+  public PointerTargetSetBuilder builder(
+      FormulaManagerView fmgr,
+      PointerTargetSetManager ptsMgr,
       FormulaEncodingWithUFOptions options) {
-    return new PointerTargetSetBuilder(this, ptsMgr, options);
+    return new PointerTargetSetBuilder(this, fmgr, ptsMgr, options);
   }
 
   private static final Joiner joiner = Joiner.on(" ");
-
-  protected final FormulaManagerView formulaManager;
 
   // The following fields are modified in the derived class only
 
