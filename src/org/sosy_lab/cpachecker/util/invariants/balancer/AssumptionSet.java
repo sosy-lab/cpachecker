@@ -137,6 +137,7 @@ public class AssumptionSet implements Iterable<Assumption> {
    * Diagnostic purposes.
    */
   public boolean add(Assumption a, boolean writeArgs) {
+    @SuppressWarnings("unused")
     Assumption b, c;
     for (int i = 0; i < aset.size(); i++) {
       b = aset.get(i);

@@ -36,7 +36,7 @@ import java.nio.charset.Charset;
 
 import org.junit.Test;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.cpachecker.appengine.common.DatabaseTest;
+import org.sosy_lab.cpachecker.appengine.common.DatastoreTest;
 import org.sosy_lab.cpachecker.appengine.dao.TaskDAO;
 import org.sosy_lab.cpachecker.appengine.dao.TaskFileDAO;
 import org.sosy_lab.cpachecker.appengine.entity.Task;
@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 import com.google.common.io.FileWriteMode;
 
 
-public class GAEPathTest extends DatabaseTest {
+public class GAEPathTest extends DatastoreTest {
 
   private Task task;
   private TaskFile file;

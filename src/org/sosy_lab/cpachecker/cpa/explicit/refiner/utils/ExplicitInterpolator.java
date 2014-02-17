@@ -29,7 +29,6 @@ import static com.google.common.collect.Iterables.skip;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -157,10 +156,6 @@ public class ExplicitInterpolator {
       final ExplicitValueInterpolant pInputInterpolant) throws CPAException, InterruptedException {
     numberOfInterpolations = 0;
 
-    if(pErrorPath.get(pOffset).getEdgeType() == CFAEdgeType.BlankEdge) {
-      return pInputInterpolant;
-    }
-
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
     ExplicitState initialState      = pInputInterpolant.createExplicitValueState();
     ExplicitState initialSuccessor  = getInitialSuccessor(initialState, pErrorPath.get(pOffset));
@@ -168,9 +163,20 @@ public class ExplicitInterpolator {
       return ExplicitValueInterpolant.FALSE;
     }
 
+    // if initial state and successor are equal, return the input interpolant
+    if (initialState.equals(initialSuccessor)) {
+      return pInputInterpolant;
+    }
+
     // check if input-interpolant is still strong enough
     if(applyUseDefInformation && !isUseDefInformationAffected(pErrorPath, initialState, initialSuccessor)) {
       return pInputInterpolant;
+    }
+
+    // if the current edge just changes the names of variables (e.g. function arguments, returned variables)
+    // then return the input interpolant with those renamings
+    if (isOnlyVariableRenamingEdge(pErrorPath.get(pOffset))) {
+      return new ExplicitValueInterpolant(new HashMap<>(initialSuccessor.getConstantsMapView()));
     }
 
     // if the remaining path is infeasible by itself, i.e., contradicting by itself, skip interpolation
@@ -180,6 +186,11 @@ public class ExplicitInterpolator {
     }
 
     Map<MemoryLocation, ExplicitValueBase> rawInterpolant = new HashMap<>();
+    // optimization, which however, leads to too strong interpolants, as the successor is used directly as interpolant
+    //if (!isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
+      //return new ExplicitValueInterpolant(initialSuccessor.getConstantsMapView());
+    //}
+
     for (MemoryLocation currentMemoryLocation : determineInterpolationCandidates(initialSuccessor)) {
       shutdownNotifier.shutdownIfNecessary();
       ExplicitState successor = initialSuccessor.clone();
@@ -192,33 +203,23 @@ public class ExplicitInterpolator {
         }
       }
 
+      // temporarily remove the value of the current memory location from the rawInterpolant
+      ExplicitValueBase value = initialSuccessor.forget(currentMemoryLocation);
+
       // check if the remaining path now becomes feasible,
+
       // and mark variables as relevant or irrelevant
       if (isRemainingPathFeasible(remainingErrorPath, successor)) {
         rawInterpolant.put(currentMemoryLocation, initialSuccessor.getValueFor(currentMemoryLocation));
       } else {
         rawInterpolant.put(currentMemoryLocation, null);
+
+      if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
+        initialSuccessor.assignConstant(currentMemoryLocation, value);
       }
     }
 
-    return creatFinalInterpolant(rawInterpolant);
-  }
-
-  /**
-   * This method returns the final interpolant.
-   *
-   * @param interpolant the interpolant to finalize
-   * @return the final interpolant
-   */
-  private ExplicitValueInterpolant creatFinalInterpolant(Map<MemoryLocation, ExplicitValueBase> interpolant) {
-    // interpolant might still contain null-mappings, indicating now-irrelevant memory locations, so remove these
-    for(Iterator<Map.Entry<MemoryLocation, ExplicitValueBase>> it = interpolant.entrySet().iterator(); it.hasNext(); ) {
-      if(it.next().getValue() == null) {
-        it.remove();
-      }
-    }
-
-    return new ExplicitValueInterpolant(interpolant);
+    return new ExplicitValueInterpolant(new HashMap<>(initialSuccessor.getConstantsMapView()));
   }
 
   /**
@@ -241,6 +242,7 @@ public class ExplicitInterpolator {
         reOrderedMemoryLocations.add(currentMemoryLocation);
       }
     }
+
     return reOrderedMemoryLocations;
   }
 
@@ -324,6 +326,28 @@ public class ExplicitInterpolator {
     }
 
     return isUseDefInformationAffected;
+  }
+
+  /**
+   * This method checks, if the given edge is only renaming variables.
+   *
+   * @param cfaEdge the CFA edge to check
+   * @return true, if the given edge is only renaming variables
+   */
+  private boolean isOnlyVariableRenamingEdge(CFAEdge cfaEdge) {
+    return
+        // renames from calledFn::___cpa_temp_result_var_ to callerFN::assignedVar
+        // if the former is relevant, so is the latter
+        cfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge
+
+        // for the next two edge types this would also work, but variables
+        // from the calling/returning function would be added to interpolant
+        // as they are not "cleaned up" by the transfer relation
+        // so these two stay out for now
+
+        //|| cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge
+        //|| cfaEdge.getEdgeType() == CFAEdgeType.ReturnStatementEdge
+        ;
   }
 
   /**

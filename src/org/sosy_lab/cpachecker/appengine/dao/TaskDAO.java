@@ -27,19 +27,18 @@ import static com.googlecode.objectify.ObjectifyService.ofy;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueTaskRunner;
-import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueTaskRunner.InstanceType;
-import org.sosy_lab.cpachecker.appengine.entity.DefaultOptions;
 import org.sosy_lab.cpachecker.appengine.entity.Task;
 import org.sosy_lab.cpachecker.appengine.entity.Task.Status;
 import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 import org.sosy_lab.cpachecker.appengine.entity.TaskStatistic;
+import org.sosy_lab.cpachecker.appengine.server.TaskQueueTaskRunner;
 import org.sosy_lab.cpachecker.appengine.server.common.TaskRunnerResource;
+import org.sosy_lab.cpachecker.appengine.util.DefaultOptions;
 
 import com.google.appengine.api.log.AppLogLine;
 import com.google.appengine.api.log.LogQuery;
@@ -48,6 +47,7 @@ import com.google.appengine.api.log.RequestLogs;
 import com.google.appengine.api.taskqueue.Queue;
 import com.google.appengine.api.taskqueue.QueueFactory;
 import com.google.apphosting.api.ApiProxy.RequestTooLargeException;
+import com.google.common.base.Preconditions;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
 import com.googlecode.objectify.VoidWork;
@@ -78,8 +78,22 @@ public class TaskDAO {
    * @return The desired {@link Task} or null if it cannot be found
    */
   public static Task load(Key<Task> key) {
-    Task task = ofy().load().key(key).now();
-    return sanitizeStateAndSetStatistics(task);
+    return sanitizeStateAndSetStatistics(ofy().load().key(key).now());
+  }
+
+  /**
+   * Returns a {@link List} of {@link Task}s.
+   *
+   * @param keys A {@link List} of keys of the {@link Task}s to retrieve
+   * @return A {@link List} of {@link Task}s
+   */
+  public static List<Task> load(List<String> keys) {
+    List<Key<Task>> taskKeys = new ArrayList<>();
+    for (String key : keys) {
+      Key<Task> taskKey = Key.create(key);
+      taskKeys.add(taskKey);
+    }
+    return sanitizeStateAndSetStatistics(ofy().load().keys(taskKeys).values());
   }
 
   /**
@@ -87,9 +101,44 @@ public class TaskDAO {
    * @return
    */
   public static List<Task> tasks() {
-    List<Task> tasks = ofy().load().type(Task.class).list();
-    for (Task task : tasks) {
-      sanitizeStateAndSetStatistics(task);
+    return sanitizeStateAndSetStatistics(ofy().load().type(Task.class).list());
+  }
+
+  /**
+   * Returns a {@link List} of {@link Task}s whose status is {@link Status#DONE}.
+   *
+   * @param keys The {@link List} containing the keys of the {@link Task}s
+   * @return A {@link List} of {@link Task}s
+   */
+  public static List<Task> finishedTasks(List<String> keys) {
+    return tasksWithStatus(keys, true);
+  }
+
+  /**
+   * Returns a {@link List} of {@link Task}s whose status is not {@link Status#DONE}.
+   *
+   * @param keys The {@link List} containing the keys of the {@link Task}s
+   * @return A {@link List} of {@link Task}s
+   */
+  public static List<Task> unfinishedTasks(List<String> keys) {
+    return tasksWithStatus(keys, false);
+  }
+
+  private static List<Task> tasksWithStatus(List<String> keys, boolean statusDone) {
+    List<Task> tasks = new ArrayList<>();
+    for (Task task : load(keys)) {
+      if (statusDone
+          && (task.getStatus() == Status.DONE
+          || task.getStatus() == Status.ERROR
+          || task.getStatus() == Status.TIMEOUT)) {
+        tasks.add(task);
+      }
+
+      if (!statusDone
+          && (task.getStatus() == Status.PENDING
+          || task.getStatus() == Status.RUNNING)) {
+        tasks.add(task);
+      }
     }
 
     return tasks;
@@ -149,7 +198,7 @@ public class TaskDAO {
     ofy().delete().keys(fileKeys).now();
 
     try {
-      Queue queue = QueueFactory.getQueue(GAETaskQueueTaskRunner.QUEUE_NAME);
+      Queue queue = QueueFactory.getQueue(TaskQueueTaskRunner.QUEUE_NAME);
       queue.purge();
     } catch (Exception _) {
       /*
@@ -160,70 +209,69 @@ public class TaskDAO {
   }
 
   /**
-   * Creates a new {@link Task} from the given {@link Task} and program.
+   * Validates the given {@link Task} and the given {@link TaskFile} and saves
+   * them if the validation succeeds.
+   * The given {@link TaskFile} will be set as the {@link Task}s program.
+   * @see Task#setProgram(TaskFile)
    *
-   * @param task The {@link Task}
-   * @param program The program
-   * @return A list of errors if any occurred.
+   * @param task The {@link Task} to validate and save
+   * @param program The {@link TaskFile} to validate and set as program
+   * @return A list of errors or an empty list if none occurred.
+   *         Each error is {@link String} representing a key in the resource bundle.
    */
-  @SuppressWarnings("unchecked")
-  public static List<String> create(Task task, TaskFile program) {
-    // merge existing errors
+  public static List<String> validateAndSave(Task task, TaskFile program) {
+    Preconditions.checkNotNull(task);
+    Preconditions.checkNotNull(program);
+
     List<String> errors = new ArrayList<>();
 
-    if (task.getSpecification() == null && task.getConfiguration() == null) {
-      errors.add("error.specOrConfigMissing");
+    if ((task.getSpecification() == null
+        || task.getSpecification().isEmpty())
+        && (task.getConfiguration() == null
+        || task.getConfiguration().isEmpty())) {
+      errors.add("task.specOrConf.IsBlank");
     }
 
-    if (task.getSpecification() != null) {
-      if (!DefaultOptions.getSpecifications().contains(task.getSpecification())) {
-        errors.add("error.specificationNotFound");
+    if (errors.isEmpty()) {
+      if (task.getSpecification() != null
+          && !task.getSpecification().isEmpty()
+          && !DefaultOptions.getSpecifications().contains(task.getSpecification())) {
+        errors.add("task.spec.DoesNotExist");
       }
-    }
 
-    if (task.getConfiguration() != null) {
       try {
-        if (!DefaultOptions.getConfigurations().contains(task.getConfiguration())) {
-          errors.add("error.configurationNotFound");
+        if (task.getConfiguration() != null
+            && !task.getConfiguration().isEmpty()
+            && !DefaultOptions.getConfigurations().contains(task.getConfiguration())) {
+          errors.add("task.conf.DoesNotExist");
         }
       } catch (IOException e) {
-        errors.add("error.configurationNotFound");
+        errors.add("task.conf.DoesNotExist");
       }
     }
 
-    if (program.getContent() == null || program.getContent().equals("")) {
-      errors.add("error.noProgram");
+    if (program.getContent() == null
+        || program.getContent().isEmpty()) {
+      errors.add("task.program.IsBlank");
     }
 
-    if (task.getOptions().containsKey("log.level")) {
-      try {
-        Level.parse(task.getOptions().get("log.level"));
-      } catch (IllegalArgumentException e) {
-        errors.add("error.invalidLogLevel");
-      }
+    if (program.getPath() == null
+        || program.getPath().isEmpty()) {
+      errors.add("task.program.NameIsBlank");
     }
 
-    if (task.getOptions().containsKey("gae.instanceType")) {
-      try {
-        InstanceType.valueOf(task.getOptions().get("gae.instanceType"));
-      } catch (IllegalArgumentException e) {
-        errors.add("error.invalidInstanceType");
-      }
-    }
-
-    if (errors.size() == 0) {
+    if (errors.isEmpty()) {
       try {
         task.setId(allocateKey().getId());
         program.setTask(task);
-
         TaskFileDAO.save(program);
         task.setProgram(program);
-        TaskDAO.save(task);
+        save(task);
       } catch (IOException e) {
         if (e.getCause() instanceof RequestTooLargeException) {
-          errors.add("error.programTooLarge");
+          errors.add("task.program.TooLarge");
         } else {
-          errors.add("error.couldNotUpload");
+          errors.add("task.program.CouldNotUpload");
         }
       }
     }
@@ -293,7 +341,8 @@ public class TaskDAO {
       Date now = new Date();
       LogQuery query = LogQuery.Builder
           .withStartTimeMillis(task.getCreationDate().getTime())
-          .endTimeMillis(now.getTime());
+          .endTimeMillis(now.getTime())
+          .batchSize(Integer.MAX_VALUE);
 
       int amountOfDetectedRecords = 0;
       RequestLogs lastRecord = null;
@@ -313,7 +362,8 @@ public class TaskDAO {
         task.setStatus(Status.ERROR);
         task.setStatusMessage("The task's request has finished, the task's status did not reflect this and no retries are left");
         task.setRequestID(lastRecord.getRequestId());
-        save(task);
+        setStatistics(task, lastRecord);
+        return save(task);
       }
     }
 
@@ -358,16 +408,7 @@ public class TaskDAO {
           }
 
           if (task.getStatus() == Status.DONE || task.getStatus() == Status.ERROR || task.getStatus() == Status.TIMEOUT) {
-            TaskStatistic stats = new TaskStatistic();
-            stats.setCost(record.getCost());
-            stats.setHost(record.getHost());
-            stats.setLatency(record.getLatencyUsec());
-            stats.setEndTime(record.getEndTimeUsec());
-            stats.setStartTime(record.getStartTimeUsec());
-            stats.setPendingTime(record.getPendingTimeUsec());
-            stats.setMcycles(record.getMcycles());
-
-            task.setStatistic(stats);
+            setStatistics(task, record);
           }
 
           task = save(task);
@@ -378,4 +419,25 @@ public class TaskDAO {
     return task;
   }
 
+  private static List<Task> sanitizeStateAndSetStatistics(Collection<Task> tasks) {
+    List<Task> sanitizedTasks = new ArrayList<>();
+    for (Task task : tasks) {
+      sanitizedTasks.add(sanitizeStateAndSetStatistics(task));
+    }
+    return sanitizedTasks;
+  }
+
+  private static Task setStatistics(Task task, RequestLogs record) {
+    TaskStatistic stats = new TaskStatistic();
+    stats.setCost(record.getCost());
+    stats.setHost(record.getHost());
+    stats.setLatency(record.getLatencyUsec());
+    stats.setEndTime(record.getEndTimeUsec());
+    stats.setStartTime(record.getStartTimeUsec());
+    stats.setPendingTime(record.getPendingTimeUsec());
+    stats.setMcycles(record.getMcycles());
+
+    task.setStatistic(stats);
+    return task;
+  }
 }

@@ -31,10 +31,10 @@ import org.restlet.data.MediaType;
 import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
-import org.sosy_lab.cpachecker.appengine.entity.DefaultOptions;
 import org.sosy_lab.cpachecker.appengine.server.CPAcheckerApplication;
 import org.sosy_lab.cpachecker.appengine.server.common.TaskRunnerResource;
 import org.sosy_lab.cpachecker.appengine.server.common.SettingsResource;
+import org.sosy_lab.cpachecker.appengine.util.DefaultOptions;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 
 import com.fasterxml.jackson.core.JsonProcessingException;

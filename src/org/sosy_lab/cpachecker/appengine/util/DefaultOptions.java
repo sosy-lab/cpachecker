@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.appengine.entity;
+package org.sosy_lab.cpachecker.appengine.util;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -31,7 +31,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
@@ -40,15 +42,11 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.Maps;
 
 /**
- * Represents the options that may be set by a client.
- * Setting options not defined by this class might cause the application
- * to crash or not behave as intended.
- *
- * The class also provides static methods to retrieve the following:
- * - default options: All allowed options and their default value
- * - immutable options: Options that will always precede any other options
- * - specifications: A list of available specifications
- * - configurations: A list of available configurations
+ * This class manages options of CPAchecker that are set by default on App Engine.
+ * It also provides methods to set options that can be overwritten and validates
+ * and sanitizes them.
+ * Furthermore it provides access to the supported and unsupported specifications
+ * and configurations of CPAchecker.
  */
 public class DefaultOptions {
 
@@ -63,7 +61,7 @@ public class DefaultOptions {
     defaultOptions.put("analysis.machineModel", "Linux32");
     defaultOptions.put("output.disable", "false");
     defaultOptions.put("statistics.export", "true");
-    defaultOptions.put("log.level", "OFF");
+    defaultOptions.put("log.level", "FINER");
     defaultOptions.put("limits.time.wall", DEFAUL_WALLTIME_LIMIT);
     defaultOptions.put("gae.instanceType", "FRONTEND");
 
@@ -93,9 +91,14 @@ public class DefaultOptions {
    * @return True, if the option will be used as is, false if it was altered.
    */
   public boolean setOption(String key, String value) {
-    // log level needs to be UPPERCASE
+    // log level needs to be UPPERCASE and valid
     if (key.equals("log.level")) {
       value = value.toUpperCase();
+      try {
+        Level.parse(value);
+      } catch (IllegalArgumentException e) {
+        value = getDefault("log.level");
+      }
     }
 
     // walltime must not be negative or too large on front-end instances
@@ -133,8 +136,8 @@ public class DefaultOptions {
    * @param options The options to set
    */
   public void setOptions(Map<String, String> options) {
-    for (String option : options.keySet()) {
-      setOption(option, options.get(option));
+    for (Entry<String, String> entry : options.entrySet()) {
+      setOption(entry.getKey(), entry.getValue());
     }
   }
 

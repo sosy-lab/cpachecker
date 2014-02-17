@@ -54,6 +54,17 @@ public class MapMerger {
   public static <K, V> ConflictHandler<K, V> getExceptionOnConflictHandler() {
     return (ConflictHandler<K, V>) EXCEPTION_ON_CONFLICT;
   }
+
+  private static <K, V> ConflictHandler<K, V> inverseConflictHandler(
+      final ConflictHandler<K, V> delegate) {
+    return new ConflictHandler<K, V>() {
+      @Override
+      public V resolveConflict(K pKey, V pValue1, V pValue2) {
+        return delegate.resolveConflict(pKey, pValue2, pValue1);
+      }
+    };
+  }
+
   /**
    * Merge two PersistentSortedMaps.
    * The result has all key-value pairs where the key is only in one of the map,
@@ -70,7 +81,11 @@ public class MapMerger {
     final PersistentSortedMap<K, V> map2,
     final ConflictHandler<K, V> conflictHandler) {
 
-    return merge(map1, map2, Equivalence.equals(), conflictHandler, null);
+    if (map1.size() >= map2.size()) {
+      return merge(map1, map2, Equivalence.equals(), conflictHandler, null);
+    } else {
+      return merge(map2, map1, Equivalence.equals(), inverseConflictHandler(conflictHandler), null);
+    }
   }
 
   /**
@@ -79,6 +94,11 @@ public class MapMerger {
    * those which are identical in both map,
    * and for those keys that have a different value in both maps a handler is called,
    * and the result is put in the resulting map.
+   *
+   * Implementation note:
+   * It may be faster to call this method with the bigger of the input maps
+   * as the first parameter.
+   *
    * @param map1 The first map.
    * @param map2 The second map.
    * @param conflictHandler The handler that is called for a key with two different values.
@@ -92,7 +112,7 @@ public class MapMerger {
       final ConflictHandler<? super K, V> conflictHandler,
       final @Nullable List<Triple<K, V, V>> collectDifferences) {
 
-    // s1 is the bigger one, so we use it as the base.
+    // Assume map1 is the bigger one, so we use it as the base.
     PersistentSortedMap<K, V> result = map1;
 
     final Iterator<Map.Entry<K, V>> it1 = map1.entrySet().iterator();
@@ -227,6 +247,13 @@ public class MapMerger {
     final PersistentSortedMap<K, V> set1,
     final PersistentSortedMap<K, V> set2,
     final ConflictHandler<K, V> conflictHandler) {
+
+    if (set1.size() < set2.size()) {
+      // swap order for more efficient implementation
+      Triple<PersistentSortedMap<K, V>, PersistentSortedMap<K, V>, PersistentSortedMap<K, V>> result =
+          mergeSortedSets(set2, set1, inverseConflictHandler(conflictHandler));
+      return Triple.of(result.getSecond(), result.getFirst(), result.getThird());
+    }
 
     List<Triple<K, V, V>> differences = new ArrayList<>();
     PersistentSortedMap<K, V> union = merge(set1, set2, Equivalence.equals(),

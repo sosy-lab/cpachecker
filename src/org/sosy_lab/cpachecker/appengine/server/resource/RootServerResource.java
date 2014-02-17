@@ -27,9 +27,9 @@ import java.io.IOException;
 
 import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
-import org.sosy_lab.cpachecker.appengine.common.FreemarkerUtil;
-import org.sosy_lab.cpachecker.appengine.entity.DefaultOptions;
 import org.sosy_lab.cpachecker.appengine.server.common.RootResource;
+import org.sosy_lab.cpachecker.appengine.util.DefaultOptions;
+import org.sosy_lab.cpachecker.appengine.util.FreemarkerUtil;
 
 
 public class RootServerResource extends WadlServerResource implements RootResource {

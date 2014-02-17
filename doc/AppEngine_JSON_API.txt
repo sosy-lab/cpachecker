@@ -10,7 +10,7 @@ and standard HTTP status codes are used to convey success/error states.
 
 JSON format
 ----------
-The JSON format (http://json.org/) is used for sending and retrieveing data.
+The JSON format (http://json.org/) is used for sending and retrieving data.
 Therefore any requests must set the following HTTP headers to successfully use
 the JSON API:
 Content-Type: application/json
@@ -20,7 +20,7 @@ Accept: application/json
 General server errors
 =====================
 Sometimes the server cannot process a request and therefore returns a default
-response according to the occured error.
+response according to the occurred error.
 
 Over Quota
 ----------
@@ -93,7 +93,7 @@ Response
 
 # GET /tasks
 ===========
-Returns a list of all tasks that are stored in the datastore.
+Returns a list of all tasks that are available.
 
 Response
 --------
@@ -114,14 +114,11 @@ Creates a new task.
 
 Request
 -------
-201 Created
-Location: [URI of the created task resource]
-
 Optional:
   - options
-  - sourceFileName
 Required:
   - Either specification or configuration
+  - sourceFileName
   - programText
 
 {
@@ -141,6 +138,11 @@ Required:
   }
 }
 
+Response
+--------
+201 Created
+Location: [URI of the created task resource]
+
 Errors
 ------
 400 Bad Request
@@ -149,20 +151,22 @@ Errors
   "error.jsonNotWellFormed",
   "error.jsonNotMapped",
   "error.requestBodyNotRead",
-  "error.specOrConfigMissing",
-  "error.specificationNotFound",
-  "error.configurationNotFound",
-  "error.noProgram",
-  "error.invalidLogLevel",
-  "error.programTooLarge",
-  "error.couldNotUpload",
-  "error.invalidInstanceType"
+  "error.invalidConfiguration",
+  "task.specOrConf.IsBlank",
+  "task.spec.DoesNotExist",
+  "task.conf.DoesNotExist",
+  "task.program.IsBlank",
+  "task.program.NameIsBlank",
+  "task.program.TooLarge",
+  "task.program.CouldNotUpload"
 ]
 
 
 # DELETE /tasks
 ==============
 Deletes all tasks and their associated files and statistic.
+This endpoint must be called multiple times to ensure everything will be deleted
+due to the underlying implementation.
 
 
 # GET /tasks/{taskKey}
@@ -186,7 +190,6 @@ Response
   "specification" : "sv-comp.spc",
   "configuration" : "explicitAnalysis.properties",
   "sourceFileName" : "example.c",
-  "instanceType" : "FRONTEND",
   "retries" : 0,
   "result" : "TRUE",
   "resultMessage" : "TRUE. No property violation found by chosen configuration.",
@@ -220,7 +223,7 @@ Response
 Deletes the task with the key {taskKey} and all associated files and statistic.
 
 
-# GET /tasks/{taskbKey}/statistics
+# GET /tasks/{taskKey}/statistics
 ==========================
 Returns statistics about the task with the key {taskKey}.
 
@@ -247,16 +250,13 @@ Response
 
 
 
-# GET /tasks/{taskKey}/files/{taskKey}
+# GET /tasks/{taskKey}/files/{fileKey}
 ====================================
 Returns the file with the key {fileKey} belonging to the task with the key {taskKey}.
 
 Response
 --------
 {
-  "task" : {
-    "key" : "agZiYS1sYWJyCQsSA0pvYhgDDA"
-  },
   "name" : "CPALog.txt",
   "content" : "...",
   "key" : "agZiYS1sYWJyHQsSA0pvYhgDDAsSB0pvYkZpbGUYgICAgICAwAgM"
@@ -273,3 +273,114 @@ with the key {taskKey}.
 Response
 --------
 Content-Type: text/plain
+
+
+
+# POST /tasksets
+===============
+Creates a new taskset.
+A taskset is a collection of tasks that are bundled together e.g. by a benchmark or
+a large verification run. It associates every task with a boolean marker that
+indicates whether the task has been marked as processed or not. This can be used
+by a client e.g. to track the retrieval of the outcome of a task. 
+
+Response
+-------
+201 Created
+Location: [URI of the created taskset resource]
+
+
+
+# DELETE /tasksets/{tasksetKey}
+===============
+Deletes the taskset with the key {tasksetKey}.
+Does not delete any associated tasks. 
+
+Response
+-------
+200 OK
+
+Error
+-----
+400 Not Found
+
+
+
+# POST /tasksets/{tasksetKey}/tasks
+==================================
+Creates tasks and puts them into the taskset with the key {tasksetKey}.
+For the exact JSON format of a task see "POST /tasks".
+Every task takes an additional field with the name "identifier".
+This field will be passed into the response together with the key of the created task.
+This identifier can be used to associate the created task with an object on the client.
+For example:
+Request: { "programText" : "abc", "identifier" : "foo", ...}
+Response: { "taskKey" : "foo" }
+
+Request
+-------
+[ {...}, {...}, {...}, ...]
+
+Response
+--------
+201 Created
+[
+  { "agZ234432Y324WJyCQsSA0pvYsdfsDA" : "123" },
+  { "340sdagZiYSdskjfs" : "709" },
+  { "öwefsdfäüwdsdf" : "dww" }
+]
+
+Error
+-----
+400 Bad Request
+500 Internal Server Error
+
+
+
+# PUT /tasksets/{tasksetKey}/tasks
+==================================
+Marks the tasks with the requested keys as processed in the taskset with the key {tasksetKey}.
+
+Request
+-------
+[
+  "Z234432Y324WJyCQsSA0pvYsd",
+  "340sdagZiYSdskjfs",
+  "A0pvYhgDDAsSB0pvYk"
+]
+
+Response
+--------
+204 No Content
+
+Error
+-----
+400 Bad Request
+500 Internal Server Error
+
+
+
+# GET /tasksets/{tasksetKey}/tasks
+==================================
+Returns the tasks that are in the taskset with the key {tasksetKey}.
+The URI accepts two query parameters that can be used together or individually.
+They allow to filter the returned tasks to ones marked as processed/unprocessed
+and finished/unfinished. If omitted all tasks are returned. 
+
+Query Parameter:
+  - processed:
+  	true, if only processed tasks should be returned
+  	false, if only unprocessed tasks should be returned
+  - finished:
+  	true, if only tasks with status DONE, ERROR, TIMEOUT should be returned
+  	false, if only tasks with status PENDING or RUNNING should be returned
+
+Response
+--------
+200 OK
+For the response format of a task see "GET /tasks/{taskKey}"
+
+Error
+-----
+400 Bad Request
+500 Internal Server Error

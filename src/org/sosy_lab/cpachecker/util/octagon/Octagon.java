@@ -66,7 +66,8 @@ public class Octagon {
       return false;
     }
     Octagon otherOct = (Octagon) pObj;
-    return OctagonManager.isEqual(this, otherOct);
+
+    return OctagonManager.dimension(this) == OctagonManager.dimension(otherOct) && OctagonManager.isEqual(this, otherOct);
   }
 
   @Override

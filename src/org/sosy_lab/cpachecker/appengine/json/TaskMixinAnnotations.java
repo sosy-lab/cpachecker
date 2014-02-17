@@ -27,7 +27,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueTaskRunner.InstanceType;
 import org.sosy_lab.cpachecker.appengine.entity.Task;
 import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 import org.sosy_lab.cpachecker.appengine.entity.TaskStatistic;
@@ -51,6 +50,8 @@ import com.googlecode.objectify.Ref;
  */
 public abstract class TaskMixinAnnotations {
 
+  private static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS";
+
   @JsonAutoDetect(getterVisibility = Visibility.NONE, fieldVisibility = Visibility.NONE)
   public abstract class KeyOnly extends Task {
 
@@ -62,17 +63,17 @@ public abstract class TaskMixinAnnotations {
   public abstract class Minimal extends KeyOnly {
 
     @JsonProperty
-    @JsonFormat(timezone = "UTC", pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
+    @JsonFormat(timezone = "UTC", pattern = DATE_FORMAT)
     Date creationDate;
 
     @JsonProperty
     @JsonInclude(Include.ALWAYS)
-    @JsonFormat(timezone = "UTC", pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
+    @JsonFormat(timezone = "UTC", pattern = DATE_FORMAT)
     Date executionDate;
 
     @JsonProperty
     @JsonInclude(Include.ALWAYS)
-    @JsonFormat(timezone = "UTC", pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
+    @JsonFormat(timezone = "UTC", pattern = DATE_FORMAT)
     Date terminationDate;
 
     @JsonProperty
@@ -102,10 +103,6 @@ public abstract class TaskMixinAnnotations {
     String sourceFileName;
 
     @JsonProperty
-    @JsonInclude(Include.ALWAYS)
-    InstanceType instanceType;
-
-    @JsonProperty
     int retries;
 
     @JsonProperty
@@ -119,7 +116,7 @@ public abstract class TaskMixinAnnotations {
     @JsonProperty("files")
     @JsonInclude(Include.ALWAYS)
     @Override
-    public abstract List<TaskFile> getFilesLoaded();
+    public abstract List<TaskFile> getFiles();
 
     @JsonProperty
     @JsonInclude(Include.ALWAYS)
@@ -127,10 +124,19 @@ public abstract class TaskMixinAnnotations {
     public abstract TaskStatistic getStatistic();
   }
 
-  @JsonAutoDetect(setterVisibility = Visibility.PUBLIC_ONLY)
   @JsonIgnoreProperties(ignoreUnknown = true)
+  @JsonAutoDetect(setterVisibility = Visibility.NONE)
   public abstract class FromJSONAPI {
     @JsonIgnore
     Ref<TaskFile> program;
+
+    @JsonProperty
+    String specification;
+
+    @JsonProperty
+    String configuration;
+
+    @JsonProperty
+    Map<String, String> options;
   }
 }

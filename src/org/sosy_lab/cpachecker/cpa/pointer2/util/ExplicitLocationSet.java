@@ -159,11 +159,11 @@ public class ExplicitLocationSet implements LocationSet {
   @Override
   public int hashCode() {
     if (isBot()) {
-      return LocationSet.BOT.hashCode();
+      return LocationSetBot.INSTANCE.hashCode();
     }
     if (isTop()) {
       assert false;
-      return LocationSet.TOP.hashCode();
+      return LocationSetTop.INSTANCE.hashCode();
     }
     return explicitSet.hashCode();
   }

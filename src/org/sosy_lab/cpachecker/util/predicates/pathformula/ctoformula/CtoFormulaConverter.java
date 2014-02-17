@@ -27,7 +27,6 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.typ
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -104,7 +103,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CFieldTrackType;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils.CtoFormulaSizeofVisitor;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
@@ -146,11 +144,9 @@ public class CtoFormulaConverter {
   private final Map<String, BitvectorFormula> stringLitToFormula = new HashMap<>();
   private int nextStringLitIndex = 0;
 
-  private final Map<CType, FormulaType<?>> typeCache = new IdentityHashMap<>();
-
   final FormulaEncodingOptions options;
   protected final MachineModel machineModel;
-  private final CtoFormulaSizeofVisitor sizeofVisitor;
+  private final CtoFormulaTypeHandler typeHandler;
 
   protected final FormulaManagerView fmgr;
   protected final BooleanFormulaManagerView bfmgr;
@@ -165,12 +161,13 @@ public class CtoFormulaConverter {
   private final FunctionFormulaType<BitvectorFormula> stringUfDecl;
 
   public CtoFormulaConverter(FormulaEncodingOptions pOptions, FormulaManagerView fmgr,
-      MachineModel pMachineModel, LogManager logger) {
+      MachineModel pMachineModel, LogManager logger,
+      CtoFormulaTypeHandler pTypeHandler) {
 
     this.fmgr = fmgr;
     this.options = pOptions;
     this.machineModel = pMachineModel;
-    this.sizeofVisitor = new CtoFormulaSizeofVisitor(pMachineModel);
+    this.typeHandler = pTypeHandler;
 
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.nfmgr = fmgr.getRationalFormulaManager();
@@ -210,20 +207,7 @@ public class CtoFormulaConverter {
    * @return the size in bytes of the given type.
    */
   protected int getSizeof(CType pType) {
-    int size = pType.accept(sizeofVisitor);
-    if (size == 0) {
-      CType type = getCanonicalType(pType);
-      if (type instanceof CArrayType) {
-        // C11 §6.7.6.2 (1)
-        logger.logOnce(Level.WARNING, "Type", pType, "is a zero-length array, this is undefined.");
-      } else if (type instanceof CCompositeType) {
-        // UNDEFINED: http://stackoverflow.com/questions/1626446/what-is-the-size-of-an-empty-struct-in-c
-        logger.logOnce(Level.WARNING, "Type", pType, "has no fields, this is undefined.");
-      } else {
-        logger.logOnce(Level.WARNING, "Type", pType, "has size 0 bytes.");
-      }
-    }
-    return size;
+    return typeHandler.getSizeof(pType);
   }
 
   protected Variable scopedIfNecessary(CIdExpression var, SSAMapBuilder ssa, String function) {
@@ -257,16 +241,7 @@ public class CtoFormulaConverter {
   }
 
   public FormulaType<?> getFormulaTypeFromCType(CType type) {
-    FormulaType<?> result = typeCache.get(type);
-    if (result == null) {
-      int byteSize = getSizeof(type);
-
-      int bitsPerByte = machineModel.getSizeofCharInBits();
-      // byte to bits
-      result = efmgr.getFormulaType(byteSize * bitsPerByte);
-      typeCache.put(type, result);
-    }
-    return result;
+    return typeHandler.getFormulaTypeFromCType(type);
   }
 
   /** prefixes function to variable name

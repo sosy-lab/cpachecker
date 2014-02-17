@@ -46,15 +46,15 @@ import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.appengine.common.FreemarkerUtil;
-import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueTaskRunner;
 import org.sosy_lab.cpachecker.appengine.dao.TaskDAO;
-import org.sosy_lab.cpachecker.appengine.entity.DefaultOptions;
 import org.sosy_lab.cpachecker.appengine.entity.Task;
 import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 import org.sosy_lab.cpachecker.appengine.json.TaskFileMixinAnnotations;
 import org.sosy_lab.cpachecker.appengine.json.TaskMixinAnnotations;
+import org.sosy_lab.cpachecker.appengine.server.TaskQueueTaskRunner;
 import org.sosy_lab.cpachecker.appengine.server.common.TasksResource;
+import org.sosy_lab.cpachecker.appengine.util.DefaultOptions;
+import org.sosy_lab.cpachecker.appengine.util.FreemarkerUtil;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -68,9 +68,10 @@ public class TasksServerResource extends WadlServerResource implements TasksReso
 
   @Override
   public Representation createTaskFromHtml(Representation input) throws IOException {
-    Map<String, String> options = new HashMap<>();
     Task task = new Task();
     TaskFile program = new TaskFile();
+
+    Map<String, String> options = new HashMap<>();
     List<String> errors = new ArrayList<>();
 
     ServletFileUpload upload = new ServletFileUpload();
@@ -131,26 +132,26 @@ public class TasksServerResource extends WadlServerResource implements TasksReso
       }
     } catch (FileUploadException | IOException e) {
       getLogger().log(Level.WARNING, "Could not upload program file.", e);
-      errors.add("error.couldNotUpload");
+      errors.add("task.program.CouldNotUpload");
     }
 
     task.setOptions(options);
 
-    if (errors.size() == 0) {
-      errors = TaskDAO.create(task, program);
+    if (errors.isEmpty()) {
+      errors = TaskDAO.validateAndSave(task, program);
     }
 
-    if (errors != null && errors.size() == 0) {
+    if (errors.isEmpty()) {
       try {
         Configuration config = Configuration.builder()
             .setOptions(task.getOptions()).build();
-        new GAETaskQueueTaskRunner(config).run(task);
+        new TaskQueueTaskRunner(config).run(task);
       } catch (InvalidConfigurationException e) {
         errors.add("error.invalidConfiguration");
       }
     }
 
-    if (errors.size() == 0) {
+    if (errors.isEmpty()) {
       getResponse().setStatus(Status.SUCCESS_CREATED);
       redirectSeeOther("/tasks/" + task.getKey());
       return getResponseEntity();
@@ -186,8 +187,8 @@ public class TasksServerResource extends WadlServerResource implements TasksReso
     mapper.addMixInAnnotations(TaskFile.class, TaskFileMixinAnnotations.FromJSONAPI.class);
 
     List<String> errors = new ArrayList<>();
-    Task task = new Task();
-    TaskFile program = new TaskFile();
+    Task task = null;
+    TaskFile program = null;
     try {
       if (entity != null) {
         String json = entity.getText();
@@ -202,29 +203,29 @@ public class TasksServerResource extends WadlServerResource implements TasksReso
       errors.add("error.requestBodyNotRead");
     }
 
-    if (errors.size() == 0) {
-      errors = TaskDAO.create(task, program);
+    if (errors.isEmpty()) {
+      errors = TaskDAO.validateAndSave(task, program);
     }
 
-    if (errors != null && errors.size() == 0) {
+    if (errors.isEmpty()) {
       try {
         Configuration config = Configuration.builder()
             .setOptions(task.getOptions()).build();
-        new GAETaskQueueTaskRunner(config).run(task);
+        new TaskQueueTaskRunner(config).run(task);
       } catch (InvalidConfigurationException e) {
         errors.add("error.invalidConfiguration");
       }
     }
 
     try {
-      if (errors.size() > 0) {
+      if (!errors.isEmpty()) {
         getResponse().setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
         return new StringRepresentation(mapper.writeValueAsString(errors), MediaType.APPLICATION_JSON);
-      } else {
-        getResponse().setStatus(Status.SUCCESS_CREATED);
-        getResponse().setLocationRef("/tasks/" + task.getKey());
-        return getResponseEntity();
       }
+
+      getResponse().setStatus(Status.SUCCESS_CREATED);
+      getResponse().setLocationRef("/tasks/" + task.getKey());
+      return getResponseEntity();
     } catch (JsonProcessingException e) {
       return null;
     }

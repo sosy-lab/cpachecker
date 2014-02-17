@@ -42,10 +42,13 @@ public abstract class TaskStatisticMixinAnnotations {
 
     @JsonProperty
     double cost;
+
     @JsonProperty
     long endTime;
+
     @JsonProperty
     long startTime;
+
     @JsonProperty
     long pendingTime;
 

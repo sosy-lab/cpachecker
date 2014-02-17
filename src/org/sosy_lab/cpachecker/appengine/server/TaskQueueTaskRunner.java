@@ -21,12 +21,13 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.appengine.common;
+package org.sosy_lab.cpachecker.appengine.server;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.appengine.common.TaskRunner;
 import org.sosy_lab.cpachecker.appengine.dao.TaskDAO;
 import org.sosy_lab.cpachecker.appengine.entity.Task;
 
@@ -37,7 +38,7 @@ import com.google.appengine.api.taskqueue.TaskHandle;
 import com.google.appengine.api.taskqueue.TaskOptions;
 
 @Options
-public class GAETaskQueueTaskRunner implements TaskRunner {
+public class TaskQueueTaskRunner implements TaskRunner {
 
   public enum InstanceType {
     /**
@@ -68,7 +69,7 @@ public class GAETaskQueueTaskRunner implements TaskRunner {
    * Constructs a new instance.
    * The {@link Task} submitted via {@link #run(Task)} will be enqueued immediately.
    */
-  public GAETaskQueueTaskRunner() {
+  public TaskQueueTaskRunner() {
     instanceType = InstanceType.FRONTEND;
   }
 
@@ -78,7 +79,7 @@ public class GAETaskQueueTaskRunner implements TaskRunner {
    *
    * @param instancyType The instance type to use for processing the {@link Task}.
    */
-  public GAETaskQueueTaskRunner(Configuration config) throws InvalidConfigurationException {
+  public TaskQueueTaskRunner(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
   }
 
@@ -98,7 +99,6 @@ public class GAETaskQueueTaskRunner implements TaskRunner {
 
     TaskHandle taskHandle = queue.add(builder);
 
-    task.setInstanceType(instanceType);
     task.setQueueName(taskHandle.getQueueName());
     task.setTaskName(taskHandle.getName());
     TaskDAO.save(task);

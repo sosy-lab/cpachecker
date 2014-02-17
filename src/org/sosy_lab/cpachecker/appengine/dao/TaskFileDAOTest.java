@@ -26,14 +26,14 @@ package org.sosy_lab.cpachecker.appengine.dao;
 import static org.junit.Assert.*;
 
 import org.junit.Test;
-import org.sosy_lab.cpachecker.appengine.common.DatabaseTest;
+import org.sosy_lab.cpachecker.appengine.common.DatastoreTest;
 import org.sosy_lab.cpachecker.appengine.entity.Task;
 import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 
 import com.googlecode.objectify.Key;
 
 
-public class TaskFileDAOTest extends DatabaseTest {
+public class TaskFileDAOTest extends DatastoreTest {
 
   private Task task;
 

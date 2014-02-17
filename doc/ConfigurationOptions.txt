@@ -1417,6 +1417,10 @@ spec.automatonDumpFile = no default value
 # Consider the negative semantics of tokens provided with path automatons.
 spec.considerNegativeSemanticsAttribute = true
 
+# Match the line numbers within the origin (mapping done by preprocessor line
+# markers).
+spec.matchOriginLine = false
+
 # Match the source code provided with the witness.
 spec.matchSourcecodeData = false
 
