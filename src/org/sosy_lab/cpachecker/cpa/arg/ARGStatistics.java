@@ -353,7 +353,7 @@ public class ARGStatistics implements Statistics {
 
   private Appender createErrorPathWithVariableAssignmentInformation(
       final ARGPath targetPath, final CounterexampleInfo counterexample) {
-    final Model model = counterexample.getTargetPathModel();
+    final Model model = counterexample == null ? null : counterexample.getTargetPathModel();
     return new Appender() {
       @Override
       public void appendTo(Appendable out) throws IOException {
