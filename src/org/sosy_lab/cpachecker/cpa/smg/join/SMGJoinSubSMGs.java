@@ -23,11 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import java.util.Set;
+
 import org.sosy_lab.cpachecker.cpa.smg.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+
+import com.google.common.collect.Sets;
 
 
 final class SMGJoinSubSMGs {
@@ -75,7 +79,9 @@ final class SMGJoinSubSMGs {
     SMGEdgeHasValueFilter filterOnSMG1 = SMGEdgeHasValueFilter.objectFilter(pObj1);
     SMGEdgeHasValueFilter filterOnSMG2 = SMGEdgeHasValueFilter.objectFilter(pObj2);
 
-    for (SMGEdgeHasValue hvIn1 : inputSMG1.getHVEdges(filterOnSMG1)){
+    Set<SMGEdgeHasValue> edgesOnObject1 = Sets.newHashSet(inputSMG1.getHVEdges(filterOnSMG1));
+
+    for (SMGEdgeHasValue hvIn1 : edgesOnObject1){
       filterOnSMG2.filterAtOffset(hvIn1.getOffset());
       filterOnSMG2.filterByType(hvIn1.getType());
       SMGEdgeHasValue hvIn2 = inputSMG2.getUniqueHV(filterOnSMG2, performChecks);

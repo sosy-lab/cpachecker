@@ -23,8 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -775,9 +777,15 @@ public class SMGState implements AbstractQueryableState, Targetable {
     heap.setValidity(smgObject, false);
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(smgObject);
 
+    List<SMGEdgeHasValue> to_remove = new ArrayList<>();
     for (SMGEdgeHasValue edge : heap.getHVEdges(filter)) {
+      to_remove.add(edge);
+    }
+
+    for (SMGEdgeHasValue edge : to_remove) {
       heap.removeHasValueEdge(edge);
     }
+
     performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
