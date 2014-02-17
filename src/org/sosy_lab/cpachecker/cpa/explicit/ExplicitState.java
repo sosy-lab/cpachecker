@@ -111,7 +111,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    * @param pMemoryLocation the location in the memory.
    * @param value value to be assigned.
    */
-  void assignConstant(MemoryLocation pMemoryLocation, Long value) {
+  public void assignConstant(MemoryLocation pMemoryLocation, Long value) {
     if (blacklist.contains(pMemoryLocation)) {
       return;
     }
@@ -120,22 +120,26 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
   }
 
   /**
-   * This method removes a variable and its value from the underlying map.
+   * This method removes a variable from the underlying map and returns the removed value.
    *
-   * @param variableName the name of the variable to be removed
+   * @param variableName the name of the variable to remove
+   * @return the value of the removed variable
    */
-  public void forget(String variableName) {
-    forget(MemoryLocation.valueOf(variableName));
+  public Long forget(String variableName) {
+    return forget(MemoryLocation.valueOf(variableName));
   }
 
   /**
-   * This method removes a memory Location and its value from
-   * the underlying map.
+   * This method removes a memory location from the underlying map and returns the removed value.
    *
-   * @param variableName the name of the variable to be removed
+   * @param variableName the name of the memory location to remove
+   * @return the value of the removed memory location
    */
-  public void forget(MemoryLocation pMemoryLocation) {
+  public Long forget(MemoryLocation pMemoryLocation) {
+    Long value   = constantsMap.get(pMemoryLocation);
     constantsMap = constantsMap.removeAndCopy(pMemoryLocation);
+
+    return value;
   }
 
   /**
@@ -564,6 +568,9 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     return constantsMap;
   }
 
+  public Map<MemoryLocation, Long> getConstantsMapView() {
+    return Collections.unmodifiableMap(constantsMap);
+  }
 
   public static class MemoryLocation implements Comparable<MemoryLocation> {
 

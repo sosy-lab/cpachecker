@@ -399,6 +399,37 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
           : Collections.unmodifiableSet(assignment.keySet());
     }
 
+    @Override
+    public int hashCode() {
+      return (assignment == null) ? 0 : assignment.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+
+      if (obj == null) {
+        return false;
+      }
+
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+
+      ExplicitValueInterpolant other = (ExplicitValueInterpolant) obj;
+      if ((assignment == null && other.assignment != null) || (assignment != null && other.assignment == null)) {
+        return false;
+      }
+
+      else if (!assignment.equals(other.assignment)) {
+        return false;
+      }
+
+      return true;
+    }
+
     /**
      * The method checks for trueness of the interpolant.
      *

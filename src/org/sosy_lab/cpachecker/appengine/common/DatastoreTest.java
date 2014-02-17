@@ -26,22 +26,19 @@ package org.sosy_lab.cpachecker.appengine.common;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
-import org.sosy_lab.cpachecker.appengine.entity.Task;
-import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
+import org.sosy_lab.cpachecker.appengine.util.ObjectifyRegistry;
 
 import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
-import com.googlecode.objectify.ObjectifyService;
 
 @Ignore
-public abstract class DatabaseTest {
-
-  private final LocalServiceTestHelper helper = new LocalServiceTestHelper(new LocalDatastoreServiceTestConfig());
+public abstract class DatastoreTest {
 
   static {
-    ObjectifyService.register(Task.class);
-    ObjectifyService.register(TaskFile.class);
+    ObjectifyRegistry.register();
   }
+
+  private final LocalServiceTestHelper helper = new LocalServiceTestHelper(new LocalDatastoreServiceTestConfig());
 
   @Before
   public void setUp() {

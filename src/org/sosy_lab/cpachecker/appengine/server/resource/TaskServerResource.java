@@ -32,7 +32,6 @@ import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.representation.Variant;
 import org.restlet.resource.ResourceException;
-import org.sosy_lab.cpachecker.appengine.common.FreemarkerUtil;
 import org.sosy_lab.cpachecker.appengine.dao.TaskDAO;
 import org.sosy_lab.cpachecker.appengine.entity.Task;
 import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
@@ -41,10 +40,10 @@ import org.sosy_lab.cpachecker.appengine.json.TaskFileMixinAnnotations;
 import org.sosy_lab.cpachecker.appengine.json.TaskMixinAnnotations;
 import org.sosy_lab.cpachecker.appengine.json.TaskStatisticMixinAnnotations;
 import org.sosy_lab.cpachecker.appengine.server.common.TaskResource;
+import org.sosy_lab.cpachecker.appengine.util.FreemarkerUtil;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 
 
 public class TaskServerResource extends WadlServerResource implements TaskResource {
@@ -64,7 +63,7 @@ public class TaskServerResource extends WadlServerResource implements TaskResour
 
   @Override
   public Representation taskAsHtml() {
-    List<TaskFile> files = task.getFilesLoaded();
+    List<TaskFile> files = task.getFiles();
 
     return FreemarkerUtil.templateBuilder()
         .context(getContext())
@@ -89,7 +88,6 @@ public class TaskServerResource extends WadlServerResource implements TaskResour
   @Override
   public Representation taskAsJson() {
     ObjectMapper mapper = new ObjectMapper();
-    mapper.enable(SerializationFeature.INDENT_OUTPUT);
     mapper.addMixInAnnotations(Task.class, TaskMixinAnnotations.Full.class);
     mapper.addMixInAnnotations(TaskStatistic.class, TaskStatisticMixinAnnotations.Full.class);
     mapper.addMixInAnnotations(TaskFile.class, TaskFileMixinAnnotations.Minimal.class);

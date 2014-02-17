@@ -144,7 +144,6 @@ public class ARGStatistics implements Statistics {
   private boolean dumpErrorPathImmediately = false;
 
   private final ARGCPA cpa;
-  private final Configuration config;
 
   private Writer refinementGraphUnderlyingWriter = null;
   private ARGToDotWriter refinementGraphWriter = null;
@@ -152,7 +151,6 @@ public class ARGStatistics implements Statistics {
 
   public ARGStatistics(Configuration config, ARGCPA cpa) throws InvalidConfigurationException {
     this.cpa = cpa;
-    this.config = config;
 
     config.inject(this);
 

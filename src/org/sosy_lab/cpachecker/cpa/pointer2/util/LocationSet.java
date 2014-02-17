@@ -26,10 +26,6 @@ package org.sosy_lab.cpachecker.cpa.pointer2.util;
 
 public interface LocationSet {
 
-  public static final LocationSet TOP = LocationSetTop.INSTANCE;
-
-  public static final LocationSet BOT = LocationSetBot.INSTANCE;
-
   boolean mayPointTo(Location pElement);
 
   LocationSet addElement(Location pElement);

@@ -2,12 +2,16 @@
 <!DOCTYPE ivysettings> <!-- generic AcceptAllDTD to make the Eclipse Warning go away -->
 <ivysettings>
     <property name="ivy.dep.file" value="lib/ivy.xml"/>
-    <settings defaultResolver="Sosy-Lab"/>
+    <settings defaultResolver="default-chain" />
     <resolvers>
-        <url name="Sosy-Lab" descriptor="required">
-            <ivy pattern="${ivy.repo.url}/[organisation]/[module]/ivy-[revision].xml" />
-            <artifact pattern="${ivy.repo.url}/[organisation]/[module]/[artifact]-[revision](-[classifier]).[ext]" />
-        </url>
+    	<chain name="default-chain">
+    		<url name="Sosy-Lab" descriptor="required">
+    			<ivy pattern="${ivy.repo.url}/[organisation]/[module]/ivy-[revision].xml" />
+    			<artifact pattern="${ivy.repo.url}/[organisation]/[module]/[artifact]-[revision](-[classifier]).[ext]" />
+        	</url>
+        	<ibiblio name="central" m2compatible="true" />
+        	<ibiblio name="restlet" m2compatible="true" root="http://maven.restlet.org/" />      	
+        </chain>
     </resolvers>
     <caches lockStrategy="artifact-lock" defaultCacheDir="${ivy.cache.dir}"/>
 </ivysettings>

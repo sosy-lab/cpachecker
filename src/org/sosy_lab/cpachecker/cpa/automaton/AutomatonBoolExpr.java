@@ -29,6 +29,7 @@ import java.util.logging.Level;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -243,7 +244,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
   }
 
-  static abstract class TokenAwareAutomatonBoolExpr implements AutomatonBoolExpr {
+  static abstract class OnRelevantEdgesBoolExpr implements AutomatonBoolExpr {
     protected boolean handleAsEpsilonEdge(CFAEdge edge) {
       if (edge instanceof BlankEdge) {
         return true;
@@ -268,7 +269,21 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
   }
 
-  static class MatchNonEmptyEdgeTokens extends TokenAwareAutomatonBoolExpr {
+  static class MatchPathRelevantEdgesBoolExpr extends OnRelevantEdgesBoolExpr {
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      return handleAsEpsilonEdge(pArgs.getCfaEdge()) ? CONST_FALSE : CONST_TRUE;
+    }
+
+    @Override
+    public String toString() {
+      return "MATCH PATH RELEVANT EDGE";
+    }
+
+  }
+
+  static class MatchNonEmptyEdgeTokens extends OnRelevantEdgesBoolExpr {
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
@@ -289,7 +304,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   }
 
-  static abstract class MatchEdgeTokens extends TokenAwareAutomatonBoolExpr {
+  static abstract class MatchEdgeTokens extends OnRelevantEdgesBoolExpr {
 
     protected final Set<Integer> matchTokens;
 
@@ -374,6 +389,61 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     @Override
     public String toString() {
       return "MATCH TOKENS INTERSECT " + matchTokens;
+    }
+
+  }
+
+  static class MatchStartingLineInOrigin implements AutomatonBoolExpr {
+
+    private final Optional<String> matchOriginFileName;
+    private final int matchStartingLineInOrigin;
+    private final boolean matchExtractedBaseName;
+
+    public MatchStartingLineInOrigin(Optional<String> pOriginFileName, int pStartingLineInOrigin, boolean bMatchExtractedBaseName) {
+      this.matchStartingLineInOrigin = pStartingLineInOrigin;
+      this.matchExtractedBaseName = bMatchExtractedBaseName;
+
+      if (pOriginFileName.isPresent()) {
+        this.matchOriginFileName = Optional.of(bMatchExtractedBaseName ? getBaseName(pOriginFileName.get()) : pOriginFileName.get());
+      } else {
+        this.matchOriginFileName = Optional.absent();
+      }
+    }
+
+    public String getBaseName(String pOf) {
+      int index = pOf.lastIndexOf('/');
+      if (index == -1) {
+        index = pOf.lastIndexOf('\\');
+      }
+      if (index == -1) {
+        return pOf;
+      } else {
+        return pOf.substring(index + 1);
+      }
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      Set<FileLocation> fileLocs = SourceLocationMapper.getFileLocationsFromCfaEdge(pArgs.getCfaEdge());
+      for (FileLocation l: fileLocs) {
+        boolean matches = true;
+        if (matchOriginFileName.isPresent()) {
+          String edgeFileName = matchExtractedBaseName ? getBaseName(l.getFileName()) : l.getFileName();
+          if (!matchOriginFileName.get().equals(edgeFileName)) {
+            matches = false;
+          }
+        }
+        if (matches && l.getStartingLineInOrigin() == matchStartingLineInOrigin) {
+          return CONST_TRUE;
+        }
+      }
+
+      return CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "MATCH ORIGIN STARTING LINE " + matchStartingLineInOrigin;
     }
 
   }

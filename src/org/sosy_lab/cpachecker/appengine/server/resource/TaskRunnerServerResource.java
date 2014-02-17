@@ -52,13 +52,13 @@ import org.sosy_lab.common.log.FileLogFormatter;
 import org.sosy_lab.cpachecker.appengine.common.GAEConfigurationBuilder;
 import org.sosy_lab.cpachecker.appengine.common.TaskMappingThreadFactory;
 import org.sosy_lab.cpachecker.appengine.dao.TaskDAO;
-import org.sosy_lab.cpachecker.appengine.entity.DefaultOptions;
 import org.sosy_lab.cpachecker.appengine.entity.Task;
 import org.sosy_lab.cpachecker.appengine.entity.Task.Status;
 import org.sosy_lab.cpachecker.appengine.io.GAEPathFactory;
 import org.sosy_lab.cpachecker.appengine.log.GAELogHandler;
 import org.sosy_lab.cpachecker.appengine.log.GAELogManager;
 import org.sosy_lab.cpachecker.appengine.server.common.TaskRunnerResource;
+import org.sosy_lab.cpachecker.appengine.util.DefaultOptions;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -104,7 +104,7 @@ public class TaskRunnerServerResource extends WadlServerResource implements Task
 
     @SuppressWarnings("unchecked")
     Series<Header> headers = (Series<Header>) getRequestAttributes().get("org.restlet.http.headers");
-    int retries = Integer.valueOf(headers.getFirstValue("X-AppEngine-TaskRetryCount"));
+    int retries = Integer.parseInt(headers.getFirstValue("X-AppEngine-TaskRetryCount"));
     TaskDAO.reset(task); // clear for case of retry
     task.setRetries(retries);
     task.setRequestID((String) ApiProxy.getCurrentEnvironment().getAttributes()
@@ -348,11 +348,7 @@ public class TaskRunnerServerResource extends WadlServerResource implements Task
   }
 
   private void setupLogging() throws IOException, InvalidConfigurationException {
-    if (config == null || config.getProperty("log.level") == null || config.getProperty("log.level").equals("")) {
-      logLevel = Level.parse(DefaultOptions.getDefault("log.level"));
-    } else {
-      logLevel = Level.parse(config.getProperty("log.level"));
-    }
+    logLevel = Level.parse(config.getProperty("log.level"));
 
     if (logLevel != Level.OFF) {
       Formatter fileLogFormatter = new FileLogFormatter();
@@ -379,7 +375,7 @@ public class TaskRunnerServerResource extends WadlServerResource implements Task
       configurationBuilder.loadFromFile(Paths.get("WEB-INF", "configurations", task.getConfiguration()));
     }
     configurationBuilder
-        .setOption("analysis.programNames", task.getProgram().getName())
+        .setOption("analysis.programNames", task.getProgram().getPath())
         .setOptions(task.getOptions());
     if (task.getSpecification() != null) {
       configurationBuilder.setOption("specification", "WEB-INF/specifications/" + task.getSpecification());
@@ -397,7 +393,7 @@ public class TaskRunnerServerResource extends WadlServerResource implements Task
     Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
   }
 
-  private class DummyHandler extends Handler {
+  private static class DummyHandler extends Handler {
 
     @Override
     public void publish(LogRecord pRecord) {}

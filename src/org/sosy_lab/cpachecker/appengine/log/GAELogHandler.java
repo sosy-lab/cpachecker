@@ -79,7 +79,7 @@ public class GAELogHandler extends Handler {
    * Flushes and closes the writer.
    * Use this method to actually write the log.
    */
-  public void flushAndClose() {
+  public synchronized void flushAndClose() {
     if (writer != null) {
       try {
         if (!headIsWritten) {

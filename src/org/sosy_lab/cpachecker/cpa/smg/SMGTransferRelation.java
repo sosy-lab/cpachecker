@@ -1137,7 +1137,7 @@ public class SMGTransferRelation implements TransferRelation {
     return pNewState;
   }
 
-  private class IsNotZeroVisitor extends DefaultCExpressionVisitor<Boolean, UnrecognizedCCodeException>
+  static private class IsNotZeroVisitor extends DefaultCExpressionVisitor<Boolean, UnrecognizedCCodeException>
       implements CRightHandSideVisitor<Boolean, UnrecognizedCCodeException> {
 
     //TODO Refactor, this visitor should not be neccessary

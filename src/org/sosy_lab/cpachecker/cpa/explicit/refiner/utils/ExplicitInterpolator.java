@@ -29,9 +29,7 @@ import static com.google.common.collect.Iterables.skip;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
@@ -69,7 +67,7 @@ public class ExplicitInterpolator {
   @Option(description="whether or not to use use-definition information from the error paths" +
       "to optimize the interpolation process")
   private boolean applyUseDefInformation = true;
-    
+
   /**
    * the shutdownNotifier in use
    */
@@ -94,7 +92,7 @@ public class ExplicitInterpolator {
    * the collector to get the use-definition information from an error trace
    */
   private final AssumptionClosureCollector assumeCollector;
-  
+
   /**
    * the set of relevant variables found by the collector
    */
@@ -121,9 +119,9 @@ public class ExplicitInterpolator {
   public ExplicitInterpolator(final Configuration pConfig,final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
           throws InvalidConfigurationException {
-    
+
     pConfig.inject(this);
-    
+
 
     try {
       shutdownNotifier  = pShutdownNotifier;
@@ -133,7 +131,7 @@ public class ExplicitInterpolator {
       transfer          = new ExplicitTransferRelation(Configuration.builder().build(), pLogger, pCfa);
       precision         = new ExplicitPrecision("", Configuration.builder().build(),
           Optional.<VariableClassification>absent());
-      
+
       initializeLoopInformation();
     }
     catch (InvalidConfigurationException e) {
@@ -155,10 +153,6 @@ public class ExplicitInterpolator {
       final int pOffset,
       final ExplicitValueInterpolant pInputInterpolant) throws CPAException, InterruptedException {
     numberOfInterpolations = 0;
-    
-    if(pErrorPath.get(pOffset).getEdgeType() == CFAEdgeType.BlankEdge) {
-      return pInputInterpolant;
-    }
 
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
     ExplicitState initialState      = pInputInterpolant.createExplicitValueState();
@@ -167,9 +161,20 @@ public class ExplicitInterpolator {
       return ExplicitValueInterpolant.FALSE;
     }
 
+    // if initial state and successor are equal, return the input interpolant
+    if (initialState.equals(initialSuccessor)) {
+      return pInputInterpolant;
+    }
+
     // check if input-interpolant is still strong enough
     if(applyUseDefInformation && !isUseDefInformationAffected(pErrorPath, initialState, initialSuccessor)) {
       return pInputInterpolant;
+    }
+
+    // if the current edge just changes the names of variables (e.g. function arguments, returned variables)
+    // then return the input interpolant with those renamings
+    if (isOnlyVariableRenamingEdge(pErrorPath.get(pOffset))) {
+      return new ExplicitValueInterpolant(new HashMap<>(initialSuccessor.getConstantsMapView()));
     }
 
     // if the remaining path is infeasible by itself, i.e., contradicting by itself, skip interpolation
@@ -178,46 +183,24 @@ public class ExplicitInterpolator {
       return ExplicitValueInterpolant.TRUE;
     }
 
-    Map<MemoryLocation, Long> rawInterpolant = new HashMap<>();
+    // optimization, which however, leads to too strong interpolants, as the successor is used directly as interpolant
+    //if (!isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
+      //return new ExplicitValueInterpolant(initialSuccessor.getConstantsMapView());
+    //}
+
     for (MemoryLocation currentMemoryLocation : determineInterpolationCandidates(initialSuccessor)) {
       shutdownNotifier.shutdownIfNecessary();
-      ExplicitState successor = initialSuccessor.clone();
 
-      // remove the value of the current and all already-found-to-be-irrelevant variables from the successor
-      successor.forget(currentMemoryLocation);
-      for (Map.Entry<MemoryLocation, Long> interpolantVariable : rawInterpolant.entrySet()) {
-        if (interpolantVariable.getValue() == null) {
-          successor.forget(interpolantVariable.getKey());
-        }
-      }
+      // temporarily remove the value of the current memory location from the rawInterpolant
+      Long value = initialSuccessor.forget(currentMemoryLocation);
 
       // check if the remaining path now becomes feasible,
-      // and mark variables as relevant or irrelevant 
-      if (isRemainingPathFeasible(remainingErrorPath, successor)) {
-        rawInterpolant.put(currentMemoryLocation, initialSuccessor.getValueFor(currentMemoryLocation));
-      } else {
-        rawInterpolant.put(currentMemoryLocation, null);
+      if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
+        initialSuccessor.assignConstant(currentMemoryLocation, value);
       }
     }
 
-    return creatFinalInterpolant(rawInterpolant);
-  }
-
-  /**
-   * This method returns the final interpolant.
-   * 
-   * @param interpolant the interpolant to finalize
-   * @return the final interpolant
-   */
-  private ExplicitValueInterpolant creatFinalInterpolant(Map<MemoryLocation, Long> interpolant) {
-    // interpolant might still contain null-mappings, indicating now-irrelevant memory locations, so remove these
-    for(Iterator<Map.Entry<MemoryLocation, Long>> it = interpolant.entrySet().iterator(); it.hasNext(); ) {
-      if(it.next().getValue() == null) {
-        it.remove();
-      }
-    }
-    
-    return new ExplicitValueInterpolant(interpolant);
+    return new ExplicitValueInterpolant(new HashMap<>(initialSuccessor.getConstantsMapView()));
   }
 
   /**
@@ -240,6 +223,7 @@ public class ExplicitInterpolator {
         reOrderedMemoryLocations.add(currentMemoryLocation);
       }
     }
+
     return reOrderedMemoryLocations;
   }
 
@@ -303,16 +287,16 @@ public class ExplicitInterpolator {
 
   /**
    * This method checks if through the initial edge, memory locations in the use-def chain got changed.
-   * 
+   *
    * @param pErrorPath the error current path
    * @param initialState the initial state
    * @param initialSuccessor the immediate successor of the initial state
-   * @return true, if memory locations in the use-def chain got changed, else false 
+   * @return true, if memory locations in the use-def chain got changed, else false
    */
   private boolean isUseDefInformationAffected(final List<CFAEdge> pErrorPath,
       ExplicitState initialState, ExplicitState initialSuccessor) {
     relevantVariables = assumeCollector.obtainUseDefInformation(pErrorPath);
-    
+
     boolean isUseDefInformationAffected = false;
     for(MemoryLocation memoryLocation : initialState.getDifference(initialSuccessor)) {
       if(relevantVariables.contains(memoryLocation.getAsSimpleString())) {
@@ -321,8 +305,30 @@ public class ExplicitInterpolator {
         initialSuccessor.forget(memoryLocation.getAsSimpleString());
       }
     }
-    
+
     return isUseDefInformationAffected;
+  }
+
+  /**
+   * This method checks, if the given edge is only renaming variables.
+   *
+   * @param cfaEdge the CFA edge to check
+   * @return true, if the given edge is only renaming variables
+   */
+  private boolean isOnlyVariableRenamingEdge(CFAEdge cfaEdge) {
+    return
+        // renames from calledFn::___cpa_temp_result_var_ to callerFN::assignedVar
+        // if the former is relevant, so is the latter
+        cfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge
+
+        // for the next two edge types this would also work, but variables
+        // from the calling/returning function would be added to interpolant
+        // as they are not "cleaned up" by the transfer relation
+        // so these two stay out for now
+
+        //|| cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge
+        //|| cfaEdge.getEdgeType() == CFAEdgeType.ReturnStatementEdge
+        ;
   }
 
   /**

@@ -6,15 +6,15 @@
   <div class="col-md-12">
     <div class="panel panel-default">
       <div class="panel-heading">
-        <div class="panel-title">${msg.allTasks}</div>
+        <div class="panel-title">${msg["allTasks"]}</div>
       </div>
       <div class="panel-body">
         <table class="table table-bordered table-condensed table-hover table-tasks">
             <tr>
-              <th>${msg.creationDate}</th>
-              <th>${msg.status}</th>
-              <th>${msg.outcome}</th>
-              <th>${msg.delete}</th>
+              <th>${msg["task.creationDate"]}</th>
+              <th>${msg["task.status"]}</th>
+              <th>${msg["task.outcome"]}</th>
+              <th>${msg["delete"]}</th>
             </tr>
           </thead>
           <tbody>
@@ -66,7 +66,7 @@
             </td>
             <td>
               <form action="/tasks/${task.key}?method=delete" method="post" style="display:inline">
-            	 <button type="submit" class="btn btn-xs btn-danger"><span class="glyphicon glyphicon-trash"></span> ${msg.delete}</button>
+            	 <button type="submit" class="btn btn-xs btn-danger"><span class="glyphicon glyphicon-trash"></span> ${msg["delete"]}</button>
               </form>
             </td>
           </tr>

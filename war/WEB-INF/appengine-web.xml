@@ -18,4 +18,8 @@
 		<handler file="errorpages/timeout.json" error-code="timeout" />
 		<handler file="errorpages/over_quota.json" error-code="over_quota" />
 	</static-error-handlers>
+	
+	<system-properties>
+		<property name="java.util.logging.config.file" value="WEB-INF/logging.properties"/>
+	</system-properties>
 </appengine-web-app>

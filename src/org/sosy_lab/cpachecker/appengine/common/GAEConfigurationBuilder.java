@@ -29,7 +29,7 @@ import org.sosy_lab.common.configuration.Builder;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.appengine.entity.DefaultOptions;
+import org.sosy_lab.cpachecker.appengine.util.DefaultOptions;
 
 
 public class GAEConfigurationBuilder extends Builder implements ConfigurationBuilder {

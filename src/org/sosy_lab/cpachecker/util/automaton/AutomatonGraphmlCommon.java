@@ -65,7 +65,6 @@ public class AutomatonGraphmlCommon {
 
     SOURCECODE("sourcecode", "edge", "sourcecode", "string"),
     TOKENS("tokens", "edge", "tokenSet", "string"),
-    SOURCEFILE("sourcefile", "edge", "sourceFile", "string"),
     ORIGINLINE("originline", "edge", "lineNumberInOrigin", "int"),
     ORIGINFILE("originfile", "edge", "originFileName", "string"),
     LINECOLS("lineCols", "edge", "lineColSet", "string"),

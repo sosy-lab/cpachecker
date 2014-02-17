@@ -1,10 +1,10 @@
-Using CPAchecker with Google App Engine
+Using CPAchecker on Google App Engine
 =======================================
 
-Currently CPAchecker is being ported to run on Google's App Engine.
-For the time being all associated files will be kept separate from the default
-build process. Therefore to develop, compile and run the App Engine code you
-need to install the according JARs and setup the classpath accordingly.
+CPAchecker can be run on Google App Engine. It is being developed alongside the
+the stand-alone project. For the time being all associated files are kept
+separate from the default build process. To develop, compile and run the App
+Engine project you need to installits dependencies first.
 
 Please note that this project is under development. It might and will frequently
 change in backward incompatible ways. Things will break and might not always
@@ -13,14 +13,20 @@ work as expected.
 Installation
 ============
 
-To install the necessary JARs run the following command. Please be aware that
-the App Engine SDK will be downloaded which might take a while since it is about
-140M in size.
+Execute the following command to retrieve all dependencies and build CPAchecker
+for Google App Engine:
 
-ant -f gae-build.xml install
+ant -f gae-build.xml build
 
-Afterwards you need to add the following JARs to the classpath:
-lib/gae/*.jar
+Please be aware that the App Engine SDK will be downloaded which might take some
+time since it is about 140 MB in size.
+
+Development
+===========
+
+If you use Eclipse or some other IDE add the following JARs to the classpath:
+
+lib/gae/**/*.jar
 lib/appengine-java-sdk-1.8.9/lib/user/*.jar
 lib/appengine-java-sdk-1.8.9/lib/impl/appengine-api.jar
 lib/appengine-java-sdk-1.8.9/lib/impl/appengine-api-stubs.jar
@@ -28,17 +34,11 @@ lib/appengine-java-sdk-1.8.9/lib/impl/appengine-api-labs.jar
 lib/appengine-java-sdk-1.8.9/lib/shared/servlet-api.jar
 lib/appengine-java-sdk-1.8.9/lib/testing/appengine-testing.jar
 
-Also all App Engine related source code is excluded from the classpath by
-default. Therefore you need to remove "org/sosy_lab/cpachecker/appengine/"
-from the exclusion list.
+The Eclipse classpath excludes the App Engine sources by default.
+Thus you need to remove "org/sosy_lab/cpachecker/appengine" from the excluded paths.
 
+You can start a development server by executing:
 
-Compiling and Running
-=====================
+ant -f gae-build.xml server
 
-To compile run one of the following commands. The first one (default task) will
-compile the classes and fire up a web server. The second one will only compile
-the classes.
-
-ant -f gae-build.xml
-ant -f gae-build.xml compile
+It will be available at http://localhost:8888

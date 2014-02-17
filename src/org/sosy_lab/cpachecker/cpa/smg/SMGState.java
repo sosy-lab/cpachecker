@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
@@ -56,7 +57,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
   static boolean targetMemoryErrors = true;
   static boolean unknownOnUndefined = true;
 
-  static private int id_counter = 0;
+  static private final AtomicInteger id_counter = new AtomicInteger(0);
 
   private final Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues = new HashMap<>();
   private final CLangSMG heap;
@@ -118,7 +119,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
     heap = new CLangSMG(pMachineModel);
     logger = pLogger;
     predecessor = null;
-    id = id_counter++;
+    id = id_counter.getAndIncrement();
   }
 
   /**
@@ -134,7 +135,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
     heap = new CLangSMG(pOriginalState.heap);
     logger = pOriginalState.logger;
     predecessor = pOriginalState.predecessor;
-    id = id_counter++;
+    id = id_counter.getAndIncrement();
     explicitValues.putAll(pOriginalState.explicitValues);
   }
 
