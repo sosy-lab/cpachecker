@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 class SMGJoinFields {
   private final SMG newSMG1;
@@ -97,7 +98,7 @@ class SMGJoinFields {
     for (SMGEdgeHasValue edge : pSMG1.getHVEdges(filterForSMG1)) {
       filterForSMG2.filterAtOffset(edge.getOffset());
       filterForSMG2.filterByType(edge.getType());
-      if (pSMG2.getHVEdges(filterForSMG2).size() == 0) {
+      if (! pSMG2.getHVEdges(filterForSMG2).iterator().hasNext()) {
         returnSet.add(new SMGEdgeHasValue(edge.getType(), edge.getOffset(), pObj2, SMGValueFactory.getNewValue()));
       }
     }
@@ -131,11 +132,8 @@ class SMGJoinFields {
   static public Set<SMGEdgeHasValue> getHVSetOfMissingNullValues(SMG pSMG1, SMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
     Set<SMGEdgeHasValue> retset = new HashSet<>();
 
-    SMGEdgeHasValueFilter nonNullPtrInSmg2 = SMGEdgeHasValueFilter.objectFilter(pObj2);
-    nonNullPtrInSmg2.filterNotHavingValue(pSMG2.getNullValue());
-
-    SMGEdgeHasValueFilter nonNullPtrInSmg1 = SMGEdgeHasValueFilter.objectFilter(pObj1);
-    nonNullPtrInSmg1.filterNotHavingValue(pSMG1.getNullValue());
+    SMGEdgeHasValueFilter nonNullPtrInSmg2 = SMGEdgeHasValueFilter.objectFilter(pObj2).filterNotHavingValue(pSMG2.getNullValue());
+    SMGEdgeHasValueFilter nonNullPtrInSmg1 = SMGEdgeHasValueFilter.objectFilter(pObj1).filterNotHavingValue(pSMG1.getNullValue());
 
     for (SMGEdgeHasValue edge : pSMG2.getHVEdges(nonNullPtrInSmg2)) {
       if (! pSMG2.isPointer(edge.getValue())) {
@@ -144,7 +142,7 @@ class SMGJoinFields {
 
       nonNullPtrInSmg1.filterAtOffset(edge.getOffset());
 
-      if (pSMG1.getHVEdges(nonNullPtrInSmg1).size() == 0) {
+      if (! pSMG1.getHVEdges(nonNullPtrInSmg1).iterator().hasNext()) {
         BitSet newNullBytes = pSMG1.getNullBytesForObject(pObj1);
         int min = edge.getOffset();
         int max = edge.getOffset() + edge.getSizeInBytes(pSMG1.getMachineModel());
@@ -179,12 +177,12 @@ class SMGJoinFields {
 
   static public Set<SMGEdgeHasValue> getHVSetWithoutNullValuesOnObject(SMG pSMG, SMGObject pObj) {
     Set<SMGEdgeHasValue> retset = new HashSet<>();
-    retset.addAll(pSMG.getHVEdges());
+    Iterables.addAll(retset, pSMG.getHVEdges());
 
     SMGEdgeHasValueFilter nullValueFilter = SMGEdgeHasValueFilter.objectFilter(pObj);
     nullValueFilter.filterHavingValue(pSMG.getNullValue());
 
-    retset.removeAll(pSMG.getHVEdges(nullValueFilter));
+    retset.removeAll(Sets.newHashSet(pSMG.getHVEdges(nullValueFilter)));
 
     return retset;
   }
@@ -197,10 +195,11 @@ class SMGJoinFields {
       SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pObj2)
                                                           .filterAtOffset(edgeInSMG1.getOffset())
                                                           .filterByType(edgeInSMG1.getType());
-      Set<SMGEdgeHasValue> hvInSMG2Set = pSMG2.getHVEdges(filter);
+
+      Iterable<SMGEdgeHasValue> hvInSMG2Set = pSMG2.getHVEdges(filter);
 
       SMGEdgeHasValue hvInSMG2;
-      if (hvInSMG2Set.size() > 0) {
+      if (hvInSMG2Set.iterator().hasNext()) {
         hvInSMG2 = Iterables.getOnlyElement(hvInSMG2Set);
       } else {
         hvInSMG2 = null;
@@ -219,7 +218,7 @@ class SMGJoinFields {
     BitSet nullBytesInSMG1 = pSMG1.getNullBytesForObject(pObj1);
     BitSet nullBytesInSMG2 = pSMG2.getNullBytesForObject(pObj2);
 
-    if (pSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj1)).size() != pSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj2)).size()) {
+    if (Iterables.size(pSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj1))) != Iterables.size(pSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj2)))) {
       throw new SMGInconsistentException("SMGJoinFields output assertion does not hold: the objects do not have identical sets of fields");
     }
 

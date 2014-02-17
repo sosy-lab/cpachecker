@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 
 public class CLangSMGTest {
   static private final CFunctionType functionType = AnonymousTypes.createSimpleFunctionType(AnonymousTypes.dummyInt);
@@ -100,7 +99,7 @@ public class CLangSMGTest {
     Assert.assertEquals(obj1, smg_copy.getObjectPointedBy(val1));
 
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(obj2);
-    Assert.assertEquals(hv, Iterables.getOnlyElement(smg_copy.getHVEdges(filter)));
+    Assert.assertEquals(hv, smg_copy.getUniqueHV(filter, true));
   }
 
   @Test

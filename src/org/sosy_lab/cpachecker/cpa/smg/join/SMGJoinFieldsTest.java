@@ -258,14 +258,14 @@ public class SMGJoinFieldsTest {
     SMGJoinFields jf = new SMGJoinFields(new SMG(smg1), new SMG(smg2), obj1, obj2);
     SMG resultSMG = jf.getSMG2();
 
-    Set<SMGEdgeHasValue> edges = resultSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2));
-    Assert.assertTrue(edges.size() > 0);
+    Iterable<SMGEdgeHasValue> edges = resultSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2));
+    Assert.assertTrue(edges.iterator().hasNext());
 
     jf = new SMGJoinFields(new SMG(smg2), new SMG(smg1), obj2, obj1);
     resultSMG = jf.getSMG1();
 
     edges = resultSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2));
-    Assert.assertTrue(edges.size() > 0);
+    Assert.assertTrue(edges.iterator().hasNext());
   }
 
   @Test
