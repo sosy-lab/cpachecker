@@ -24,6 +24,6 @@ Benchmark programs:
   * kundu_uninit_a
   * kundu_uninit_b
 - Interval Analysis and Sign Analysis: Example*.c test programs
-
-
-
+  * Example2 uses flag (typically used to encode typestate of a variable) to encode property that variable y>x (named propertyInFlag in paper)
+  * Example3, Example3b, Example3c modification from example in paper "Programs from Proofs – A PCC Alternative" (named PFP, PFPb, PFPc in paper)
+  * Example4, Example4b modification from example in paper "SLR: Path-Sensitive Analysis through Infeasible-Path Detection and Syntactic Language Refinement" (named SLR and SLRb in paper)
