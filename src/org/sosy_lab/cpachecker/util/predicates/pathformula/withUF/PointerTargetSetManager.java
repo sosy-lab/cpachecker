@@ -164,24 +164,18 @@ public class PointerTargetSetManager {
                 Pair<PersistentSortedMap<String, CType>, PersistentSortedMap<String, CType>>>
     merge(final PointerTargetSet pts1, final PointerTargetSet pts2) {
 
-    final boolean reverseBases = pts2.bases.size() > pts1.bases.size();
     Triple<PersistentSortedMap<String, CType>,
            PersistentSortedMap<String, CType>,
            PersistentSortedMap<String, CType>> mergedBases =
-      !reverseBases ? mergeSortedSets(pts1.bases, pts2.bases, BaseUnitingConflictHandler.INSTANCE) :
-                      mergeSortedSets(pts2.bases, pts1.bases, BaseUnitingConflictHandler.INSTANCE);
+      mergeSortedSets(pts1.bases, pts2.bases, BaseUnitingConflictHandler.INSTANCE);
 
-    final boolean reverseFields = pts2.fields.size() > pts1.fields.size();
     final Triple<PersistentSortedMap<CompositeField, Boolean>,
                  PersistentSortedMap<CompositeField, Boolean>,
                  PersistentSortedMap<CompositeField, Boolean>> mergedFields =
-      !reverseFields ? mergeSortedSets(pts1.fields, pts2.fields, MapMerger.<CompositeField, Boolean>getExceptionOnConflictHandler()) :
-                      mergeSortedSets(pts2.fields, pts1.fields, MapMerger.<CompositeField, Boolean>getExceptionOnConflictHandler());
+      mergeSortedSets(pts1.fields, pts2.fields, MapMerger.<CompositeField, Boolean>getExceptionOnConflictHandler());
 
-    final boolean reverseTargets = pts2.targets.size() > pts1.targets.size();
     PersistentSortedMap<String, PersistentList<PointerTarget>> mergedTargets =
-      !reverseTargets ? mergeSortedMaps(pts1.targets, pts2.targets,PointerTargetSetManager.<String, PointerTarget>mergeOnConflict()) :
-                        mergeSortedMaps(pts2.targets, pts1.targets, PointerTargetSetManager.<String, PointerTarget>mergeOnConflict());
+      mergeSortedMaps(pts1.targets, pts2.targets, PointerTargetSetManager.<String, PointerTarget>mergeOnConflict());
 
     // Targets is always the cross product of bases and fields.
     // So when we merge the bases, fields, and targets by taking the union,
@@ -191,13 +185,8 @@ public class PointerTargetSetManager {
     // (b1 x f2) and (b2 x f1)
     // So we add exactly these targets:
 
-    if (reverseBases == reverseFields) {
-      mergedTargets = addAllTargets(mergedTargets, mergedBases.getSecond(), mergedFields.getFirst());
-      mergedTargets = addAllTargets(mergedTargets, mergedBases.getFirst(), mergedFields.getSecond());
-    } else {
-      mergedTargets = addAllTargets(mergedTargets, mergedBases.getSecond(), mergedFields.getSecond());
-      mergedTargets = addAllTargets(mergedTargets, mergedBases.getFirst(), mergedFields.getFirst());
-    }
+    mergedTargets = addAllTargets(mergedTargets, mergedBases.getSecond(), mergedFields.getFirst());
+    mergedTargets = addAllTargets(mergedTargets, mergedBases.getFirst(), mergedFields.getSecond());
 
     final PersistentSortedMap<String, DeferredAllocationPool> mergedDeferredAllocations =
         mergeDeferredAllocationPools(pts1, pts2);
@@ -241,14 +230,12 @@ public class PointerTargetSetManager {
                            mergedTargets);
     return Triple.of(result,
                      basesMergeFormula,
-                     !reverseBases ? Pair.of(mergedBases.getFirst(), mergedBases.getSecond()) :
-                                     Pair.of(mergedBases.getSecond(), mergedBases.getFirst()));
+                     Pair.of(mergedBases.getFirst(), mergedBases.getSecond()));
   }
 
   private PersistentSortedMap<String, DeferredAllocationPool> mergeDeferredAllocationPools(final PointerTargetSet pts1,
       final PointerTargetSet pts2) {
     final Map<DeferredAllocationPool, DeferredAllocationPool> mergedDeferredAllocationPools = new HashMap<>();
-    final boolean reverseDeferredAllocations = pts2.deferredAllocations.size() > pts1.deferredAllocations.size();
     final ConflictHandler<String, DeferredAllocationPool> deferredAllocationMergingConflictHandler =
       new ConflictHandler<String, DeferredAllocationPool>() {
       @Override
@@ -266,9 +253,7 @@ public class PointerTargetSetManager {
       }
     };
     PersistentSortedMap<String, DeferredAllocationPool> mergedDeferredAllocations =
-      !reverseDeferredAllocations ?
-        mergeSortedMaps(pts1.deferredAllocations, pts2.deferredAllocations, deferredAllocationMergingConflictHandler) :
-        mergeSortedMaps(pts2.deferredAllocations, pts1.deferredAllocations, deferredAllocationMergingConflictHandler);
+      mergeSortedMaps(pts1.deferredAllocations, pts2.deferredAllocations, deferredAllocationMergingConflictHandler);
     for (final DeferredAllocationPool merged : mergedDeferredAllocationPools.keySet()) {
       for (final String pointerVariable : merged.getPointerVariables()) {
         mergedDeferredAllocations = mergedDeferredAllocations.putAndCopy(pointerVariable, merged);
