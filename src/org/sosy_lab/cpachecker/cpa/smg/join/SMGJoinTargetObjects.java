@@ -130,6 +130,7 @@ final class SMGJoinTargetObjects {
                                             target1, target2, newObject);
     if (jss.isDefined()) {
       defined = true;
+      status = jss.getStatus();
     }
   }
 
