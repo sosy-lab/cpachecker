@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpalien" timelimit="60">
+  <option name="-disable-java-assertions"/>
+  <option name="-heap">12000M</option>
+  <option name="-preprocess" />
+
+  <sourcefiles name="cpalien-goal">
+    <includesfile>../programs/cpalien/cpalien-goal.set</includesfile>
+    <option name="-CPAlien"/>
+  </sourcefiles>
+
+  <sourcefiles name="cpalien-label-goal">
+    <includesfile>../programs/cpalien/cpalien-label-goal.set</includesfile>
+    <option name="-CPAlien-label"/>
+  </sourcefiles>
+
+  <rundefinition name="cpalien">
+  </rundefinition>
+</benchmark>
+
