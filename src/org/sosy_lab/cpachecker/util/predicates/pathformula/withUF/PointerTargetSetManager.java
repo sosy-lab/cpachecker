@@ -179,28 +179,24 @@ public class PointerTargetSetManager {
                       mergeSortedSets(pts2.fields, pts1.fields, MapMerger.<CompositeField, Boolean>getExceptionOnConflictHandler());
 
     final boolean reverseTargets = pts2.targets.size() > pts1.targets.size();
-    final PersistentSortedMap<String, PersistentList<PointerTarget>> mergedTargets =
+    PersistentSortedMap<String, PersistentList<PointerTarget>> mergedTargets =
       !reverseTargets ? mergeSortedMaps(pts1.targets, pts2.targets,PointerTargetSetManager.<String, PointerTarget>mergeOnConflict()) :
                         mergeSortedMaps(pts2.targets, pts1.targets, PointerTargetSetManager.<String, PointerTarget>mergeOnConflict());
 
-    final PointerTargetSetBuilder builder1 = PointerTargetSet.emptyPointerTargetSet()
-                                                             .builder(formulaManager, this, options),
-                                  builder2 = PointerTargetSet.emptyPointerTargetSet()
-                                                             .builder(formulaManager, this, options);
+    // Targets is always the cross product of bases and fields.
+    // So when we merge the bases, fields, and targets by taking the union,
+    // there are missing targets:
+    // (b1+b2) x (f1+f2) != (t1+t2) == ((b1 x f1) + (b2 x f2))
+    // The following targets are missing:
+    // (b1 x f2) and (b2 x f1)
+    // So we add exactly these targets:
+
     if (reverseBases == reverseFields) {
-      builder1.setFields(mergedFields.getFirst());
-      builder2.setFields(mergedFields.getSecond());
+      mergedTargets = addAllTargets(mergedTargets, mergedBases.getSecond(), mergedFields.getFirst());
+      mergedTargets = addAllTargets(mergedTargets, mergedBases.getFirst(), mergedFields.getSecond());
     } else {
-      builder1.setFields(mergedFields.getSecond());
-      builder2.setFields(mergedFields.getFirst());
-    }
-
-    for (final Map.Entry<String, CType> entry : mergedBases.getSecond().entrySet()) {
-      builder1.addBase(entry.getKey(), entry.getValue());
-    }
-
-    for (final Map.Entry<String, CType> entry : mergedBases.getFirst().entrySet()) {
-      builder2.addBase(entry.getKey(), entry.getValue());
+      mergedTargets = addAllTargets(mergedTargets, mergedBases.getSecond(), mergedFields.getSecond());
+      mergedTargets = addAllTargets(mergedTargets, mergedBases.getFirst(), mergedFields.getFirst());
     }
 
     final PersistentSortedMap<String, DeferredAllocationPool> mergedDeferredAllocations =
@@ -237,20 +233,12 @@ public class PointerTargetSetManager {
                                                  pts2.getNextBaseAddressInequality(fakeBaseName, pts2.lastBase, typeHandler, formulaManager));
     }
 
-    final ConflictHandler<String, PersistentList<PointerTarget>> conflictHandler =
-                                                           PointerTargetSetManager.<String, PointerTarget>destructiveMergeOnConflict();
-
     final PointerTargetSet result  =
       new PointerTargetSet(mergedBases.getThird(),
                            lastBase,
                            mergedFields.getThird(),
                            mergedDeferredAllocations,
-                           mergeSortedMaps(
-                             mergeSortedMaps(mergedTargets,
-                                             builder1.targets,
-                                             conflictHandler),
-                             builder2.targets,
-                             conflictHandler));
+                           mergedTargets);
     return Triple.of(result,
                      basesMergeFormula,
                      !reverseBases ? Pair.of(mergedBases.getFirst(), mergedBases.getSecond()) :
@@ -348,15 +336,6 @@ public class PointerTargetSetManager {
       @Override
       public PersistentList<T> resolveConflict(K key, PersistentList<T> list1, PersistentList<T> list2) {
         return DeferredAllocationPool.mergeLists(list1, list2);
-      }
-    };
-  }
-
-  private static <K, T> ConflictHandler<K, PersistentList<T>> destructiveMergeOnConflict() {
-    return new ConflictHandler<K, PersistentList<T>>() {
-      @Override
-      public PersistentList<T> resolveConflict(K key, PersistentList<T> list1, PersistentList<T> list2) {
-        return list1.withAll(list2);
       }
     };
   }
@@ -508,6 +487,23 @@ public class PointerTargetSetManager {
       targets = addToTarget(base, cType, containerType, properOffset, containerOffset, targets);
     }
 
+    return targets;
+  }
+
+  /**
+   * Compute all targets for a given set of bases and fields,
+   * and add them to a map.
+   */
+  @CheckReturnValue
+  private PersistentSortedMap<String, PersistentList<PointerTarget>> addAllTargets(
+      PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
+      final PersistentSortedMap<String, CType> bases,
+      final PersistentSortedMap<CompositeField, Boolean> fields) {
+    for (final Map.Entry<String, CType> entry : bases.entrySet()) {
+      String name = entry.getKey();
+      CType type = CTypeUtils.simplifyType(entry.getValue());
+      targets = addToTargets(name, type, null, 0, 0, targets, fields);
+    }
     return targets;
   }
 }

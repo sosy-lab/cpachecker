@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
 
 import static com.google.common.base.Objects.firstNonNull;
-import static com.google.common.base.Preconditions.*;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 
@@ -322,11 +321,6 @@ public class PointerTargetSet implements Serializable {
       final String type = CTypeUtils.typeToString(composite);
       final CompositeField field = CompositeField.of(type, fieldName);
       fields = fields.removeAndCopy(field);
-    }
-
-    void setFields(PersistentSortedMap<CompositeField, Boolean> fields) {
-      checkState(this.fields.isEmpty());
-      this.fields = checkNotNull(fields);
     }
 
     private void addDeferredAllocation(final String pointerVariable,
