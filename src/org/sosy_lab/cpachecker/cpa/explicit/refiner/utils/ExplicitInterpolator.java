@@ -193,27 +193,11 @@ public class ExplicitInterpolator {
 
     for (MemoryLocation currentMemoryLocation : determineInterpolationCandidates(initialSuccessor)) {
       shutdownNotifier.shutdownIfNecessary();
-      ExplicitState successor = initialSuccessor.clone();
-
-      // remove the value of the current and all already-found-to-be-irrelevant variables from the successor
-      successor.forget(currentMemoryLocation);
-      for (Map.Entry<MemoryLocation, ExplicitValueBase> interpolantVariable : rawInterpolant.entrySet()) {
-        if (interpolantVariable.getValue() == null) {
-          successor.forget(interpolantVariable.getKey());
-        }
-      }
 
       // temporarily remove the value of the current memory location from the rawInterpolant
       ExplicitValueBase value = initialSuccessor.forget(currentMemoryLocation);
 
       // check if the remaining path now becomes feasible,
-
-      // and mark variables as relevant or irrelevant
-      if (isRemainingPathFeasible(remainingErrorPath, successor)) {
-        rawInterpolant.put(currentMemoryLocation, initialSuccessor.getValueFor(currentMemoryLocation));
-      } else {
-        rawInterpolant.put(currentMemoryLocation, null);
-
       if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
         initialSuccessor.assignConstant(currentMemoryLocation, value);
       }
