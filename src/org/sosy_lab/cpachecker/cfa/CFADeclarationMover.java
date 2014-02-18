@@ -132,9 +132,12 @@ public class CFADeclarationMover {
       actNode = middleNode;
     }
 
-    // set new predecessors for bevore deleted leavingedges
-    for (CFAEdge e : secondRealFunctionEdge) {
-      moveEdgeToOtherPredecessor(e, actNode);
+    // set new predecessors for before deleted leavingedges if there were some
+    // declarations inserted
+    if (!declarations.isEmpty()) {
+      for (CFAEdge e : secondRealFunctionEdge) {
+        moveEdgeToOtherPredecessor(e, actNode);
+      }
     }
   }
 
