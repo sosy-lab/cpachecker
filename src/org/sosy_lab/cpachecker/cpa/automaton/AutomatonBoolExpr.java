@@ -291,7 +291,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       if (handleAsEpsilonEdge(pArgs.getCfaEdge())) {
         edgeTokens = Collections.emptySet();
       } else {
-        edgeTokens = SourceLocationMapper.getTokensFromCFAEdge(pArgs.getCfaEdge(), true);
+        edgeTokens = SourceLocationMapper.getAbsoluteTokensFromCFAEdge(pArgs.getCfaEdge(), true);
       }
 
       return edgeTokens.size() > 0 ? CONST_TRUE : CONST_FALSE;
@@ -322,7 +322,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       if (handleAsEpsilonEdge(pArgs.getCfaEdge())) {
         edgeTokens = Collections.emptySet();
       } else {
-        edgeTokens = SourceLocationMapper.getTokensFromCFAEdge(pArgs.getCfaEdge(), true);
+        edgeTokens = SourceLocationMapper.getAbsoluteTokensFromCFAEdge(pArgs.getCfaEdge(), true);
       }
 
       match = tokensMatching(edgeTokens);

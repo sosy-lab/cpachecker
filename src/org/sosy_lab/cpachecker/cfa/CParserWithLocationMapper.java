@@ -90,7 +90,7 @@ public class CParserWithLocationMapper implements CParser {
   @Override
   public ParseResult parseFile(String pFilename) throws ParserException, IOException, InvalidConfigurationException, InterruptedException {
     char[] tokenizedCode = tokenizeSourcefile(pFilename);
-    return realParser.parseString(pFilename, tokenizedCode.toString().toCharArray());
+    return realParser.parseString(pFilename, tokenizedCode);
   }
 
   private char[] tokenizeSourcefile(String pFilename) throws CParserException {
@@ -131,21 +131,23 @@ public class CParserWithLocationMapper implements CParser {
       Lexer lx = new Lexer(pCode, options, log, source);
 
       try {
-        int tokenNumber = 0;
-        int lineNumber = 1;
-        int adjustedLineNumber = lineNumber;
+        int absoluteTokenNumber = 0;
+        int relativeTokenNumber = absoluteTokenNumber;
+        int absoluteLineNumber = 1;
+        int relativeLineNumber = absoluteLineNumber;
 
         String rangeLinesOriginFilename = fileName;
-        int includeStartedIn = 0;
-        int newLineStartedWithToken = tokenNumber;
+        int includeStartedWithAbsoluteLine = 0;
+        int includeStartedWithAbsoluteToken = 0;
+        int newLineStartedWithAbsoluteToken = absoluteTokenNumber;
 
         Token token;
         while ((token = lx.nextToken()).getType() != Token.tEND_OF_INPUT) {
           if (token.getType() == Lexer.tNEWLINE) {
-            CSourceOriginMapping.INSTANCE.mapTokenRangeToInputLine(newLineStartedWithToken, tokenNumber, lineNumber);
-            lineNumber += 1;
-            adjustedLineNumber += 1;
-            newLineStartedWithToken = tokenNumber;
+            CSourceOriginMapping.INSTANCE.mapAbsoluteTokenRangeToInputLine(newLineStartedWithAbsoluteToken, absoluteTokenNumber, absoluteLineNumber);
+            absoluteLineNumber += 1;
+            relativeLineNumber += 1;
+            newLineStartedWithAbsoluteToken = absoluteTokenNumber;
           }
 
           if (token.getType() == Token.tPOUND) { // match #
@@ -156,8 +158,8 @@ public class CParserWithLocationMapper implements CParser {
               directiveTokens.add(token);
               token = lx.nextToken();
             }
-            lineNumber += 1;
-            adjustedLineNumber += 1;
+            absoluteLineNumber += 1;
+            relativeLineNumber += 1;
 
             // Evaluate the preprocessor directive...
             if (directiveTokens.size() > 0) {
@@ -165,27 +167,32 @@ public class CParserWithLocationMapper implements CParser {
               if (firstTokenImage.equals("line")) {
 
               } else if (firstTokenImage.matches("[0-9]+")) {
-                putRangeMapping(rangeLinesOriginFilename, includeStartedIn, lineNumber, adjustedLineNumber - lineNumber);
+                putLineRangeMapping(rangeLinesOriginFilename, includeStartedWithAbsoluteLine, absoluteLineNumber, relativeLineNumber - absoluteLineNumber);
+                putTokenRangeMapping(rangeLinesOriginFilename, includeStartedWithAbsoluteLine, absoluteLineNumber, 0 - absoluteTokenNumber);
 
-                includeStartedIn = lineNumber;
-                adjustedLineNumber = Integer.parseInt(firstTokenImage);
+                includeStartedWithAbsoluteLine = absoluteLineNumber;
+                includeStartedWithAbsoluteToken = absoluteTokenNumber;
+                relativeLineNumber = Integer.parseInt(firstTokenImage);
                 rangeLinesOriginFilename = directiveTokens.get(1).getImage();
+                relativeTokenNumber = 0;
               }
             }
           } else if (!token.getImage().trim().isEmpty()) {
             if (tokenizeCode) {
-              tokenNumber += 1;
+              absoluteTokenNumber += 1;
+              relativeTokenNumber += 1;
+
               for (Appendable out: tokenizingTargets) {
                 out.append(token.toString());
                 out.append(System.lineSeparator());
               }
             }
           }
-
         }
 
-        putRangeMapping(rangeLinesOriginFilename, includeStartedIn + 1, lineNumber, adjustedLineNumber - lineNumber);
-        CSourceOriginMapping.INSTANCE.mapTokenRangeToInputLine(newLineStartedWithToken, tokenNumber, lineNumber);
+        putLineRangeMapping(rangeLinesOriginFilename, includeStartedWithAbsoluteLine + 1, absoluteLineNumber, relativeLineNumber - absoluteLineNumber);
+        putTokenRangeMapping(rangeLinesOriginFilename, includeStartedWithAbsoluteToken + 1, absoluteTokenNumber, relativeTokenNumber - absoluteTokenNumber);
+        CSourceOriginMapping.INSTANCE.mapAbsoluteTokenRangeToInputLine(newLineStartedWithAbsoluteToken, absoluteTokenNumber, absoluteLineNumber);
       } catch (OffsetLimitReachedException | IOException e) {
         throw new CParserException("Tokenizing failed", e);
       }
@@ -198,8 +205,12 @@ public class CParserWithLocationMapper implements CParser {
     }
   }
 
-  private void putRangeMapping(String originFilename, int fromLine, int toLine, int deltaToOrigin) {
+  private void putLineRangeMapping(String originFilename, int fromLine, int toLine, int deltaToOrigin) {
     CSourceOriginMapping.INSTANCE.mapInputLineRangeToDelta(originFilename, fromLine, toLine, deltaToOrigin);
+  }
+
+  private void putTokenRangeMapping(String originFilename, int fromToken, int toToken, int deltaToOrigin) {
+    CSourceOriginMapping.INSTANCE.mapInputTokenRangeToDelta(originFilename, fromToken, toToken, deltaToOrigin);
   }
 
   @Override

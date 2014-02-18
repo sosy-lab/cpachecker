@@ -31,6 +31,9 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.eclipse.cdt.internal.core.parser.scanner.Token;
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
+import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping.NoOriginMappingAvailable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -264,7 +267,12 @@ public class SourceLocationMapper {
     return result;
   }
 
-  public static synchronized Set<Integer> getTokensFromCFAEdge(CFAEdge pEdge, boolean overApproximateTokens) {
+  public static synchronized Pair<String, Set<Integer>> getRelativeTokensFromCFAEdge(CFAEdge pEdge, boolean overApproximateTokens) throws NoOriginMappingAvailable {
+    Set<Integer> absolute = getAbsoluteTokensFromCFAEdge(pEdge, overApproximateTokens);
+    return CSourceOriginMapping.INSTANCE.getRelativeTokensFromAbsolute(absolute);
+  }
+
+  public static synchronized Set<Integer> getAbsoluteTokensFromCFAEdge(CFAEdge pEdge, boolean overApproximateTokens) {
     final TreeSet<Integer> result = Sets.newTreeSet();
     final Deque<CFAEdge> edges = Queues.newArrayDeque();
     final Deque<CAstNode> astNodes = Queues.newArrayDeque();
@@ -364,7 +372,7 @@ public class SourceLocationMapper {
 
   public static synchronized void getKnownToEdge(CFAEdge edge) {
     Set<String> variables = getEdgeVariableNames(edge);
-    Set<Integer> tokens = getTokensFromCFAEdge(edge, true);
+    Set<Integer> tokens = getAbsoluteTokensFromCFAEdge(edge, true);
 
     // Store for each variable the related tokens
     for (String variable: variables) {

@@ -44,6 +44,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
+import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping.NoOriginMappingAvailable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -309,7 +310,12 @@ public class ARGPathExport {
         final String to, final CFAEdge edge, final ARGState fromState,
         final Map<ARGState, CFAEdgeWithAssignments> valueMap) throws IOException {
 
-      TransitionCondition desc = constructTransitionCondition(from, to, edge, fromState, valueMap);
+      TransitionCondition desc;
+      try {
+        desc = constructTransitionCondition(from, to, edge, fromState, valueMap);
+      } catch (NoOriginMappingAvailable e) {
+        throw new RuntimeException(e);
+      }
 
       if (aggregateToPrevEdge(from, to, desc)) {
         return;
@@ -371,7 +377,7 @@ public class ARGPathExport {
     }
 
     private TransitionCondition constructTransitionCondition(String from, String to, CFAEdge edge, ARGState fromState,
-        Map<ARGState, CFAEdgeWithAssignments> valueMap) {
+        Map<ARGState, CFAEdgeWithAssignments> valueMap) throws NoOriginMappingAvailable {
       TransitionCondition desc = new TransitionCondition();
 
       if (exportFunctionCallsAndReturns) {
@@ -406,8 +412,11 @@ public class ARGPathExport {
 
         if (exportTokenNumbers) {
           if (CSourceOriginMapping.INSTANCE.getHasOneInputLinePerToken()) {
-            Set<Integer> tokens = SourceLocationMapper.getTokensFromCFAEdge(edge, false);
-            desc.put(KeyDef.TOKENS, tokensToText(tokens));
+            Set<Integer> absoluteTokens = SourceLocationMapper.getAbsoluteTokensFromCFAEdge(edge, false);
+            desc.put(KeyDef.TOKENS, tokensToText(absoluteTokens));
+
+            Pair<String, Set<Integer>> relativeTokens = CSourceOriginMapping.INSTANCE.getRelativeTokensFromAbsolute(absoluteTokens);
+            desc.put(KeyDef.ORIGINTOKENS, tokensToText(relativeTokens.getSecond()));
           }
         }
 
@@ -439,6 +448,7 @@ public class ARGPathExport {
       doc.appendNewKeyDef(KeyDef.SOURCECODE, null);
       doc.appendNewKeyDef(KeyDef.SOURCECODELANGUAGE, null);
       doc.appendNewKeyDef(KeyDef.TOKENS, null);
+      doc.appendNewKeyDef(KeyDef.ORIGINTOKENS, null);
       doc.appendNewKeyDef(KeyDef.TOKENSNEGATED, "false");
       doc.appendNewKeyDef(KeyDef.ORIGINLINE, null);
       doc.appendNewKeyDef(KeyDef.ORIGINFILE, defaultSourcefileName);
