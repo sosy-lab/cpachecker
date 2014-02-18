@@ -168,7 +168,7 @@ public class CParserWithLocationMapper implements CParser {
 
               } else if (firstTokenImage.matches("[0-9]+")) {
                 putLineRangeMapping(rangeLinesOriginFilename, includeStartedWithAbsoluteLine, absoluteLineNumber, relativeLineNumber - absoluteLineNumber);
-                putTokenRangeMapping(rangeLinesOriginFilename, includeStartedWithAbsoluteLine, absoluteLineNumber, 0 - absoluteTokenNumber);
+                putTokenRangeMapping(rangeLinesOriginFilename, includeStartedWithAbsoluteToken, absoluteTokenNumber, relativeTokenNumber - absoluteTokenNumber);
 
                 includeStartedWithAbsoluteLine = absoluteLineNumber;
                 includeStartedWithAbsoluteToken = absoluteTokenNumber;
