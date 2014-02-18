@@ -305,48 +305,50 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    */
   private Pair<Pair<BooleanFormula, BooleanFormula>, SSAMap> mergeSSAMaps(
       SSAMap ssa1, SSAMap ssa2) {
-    Pair<SSAMap, List<Triple<String, Integer, Integer>>> result = SSAMap.merge(ssa1, ssa2);
-    SSAMap resultSSA = result.getFirst();
-    List<Triple<String, Integer, Integer>> varDifferences = result.getSecond();
+    final Pair<SSAMap, List<Triple<String, Integer, Integer>>> result = SSAMap.merge(ssa1, ssa2);
+    final SSAMap resultSSA = result.getFirst();
+    final List<Triple<String, Integer, Integer>> symbolDifferences = result.getSecond();
 
-    BooleanFormula mt1 = bfmgr.makeBoolean(true);
-    BooleanFormula mt2 = bfmgr.makeBoolean(true);
+    BooleanFormula mergeFormula1 = bfmgr.makeBoolean(true);
+    BooleanFormula mergeFormula2 = bfmgr.makeBoolean(true);
 
-    for (Triple<String, Integer, Integer> difference : varDifferences) {
-      String name = difference.getFirst();
-      int i1 = Objects.firstNonNull(difference.getSecond(), 1);
-      int i2 = Objects.firstNonNull(difference.getThird(), 1);
+    for (final Triple<String, Integer, Integer> symbolDifference : symbolDifferences) {
+      final String symbolName = symbolDifference.getFirst();
+      final int index1 = Objects.firstNonNull(symbolDifference.getSecond(), 1);
+      final int index2 = Objects.firstNonNull(symbolDifference.getThird(), 1);
 
-      if (i1 > i2 && i1 > 1) {
+      if (index1 > index2 && index1 > 1) {
         // i2:smaller, i1:bigger
         // => need correction term for i2
-        BooleanFormula t;
+        BooleanFormula mergeFormula;
 
-        if (useNondetFlags && name.equals(NONDET_FLAG_VARIABLE)) {
-          t = makeNondetFlagMerger(Math.max(i2, 1), i1);
+        assert index2 > 0;
+        if (useNondetFlags && symbolName.equals(NONDET_FLAG_VARIABLE)) {
+          mergeFormula = makeNondetFlagMerger(index2, index1);
         } else {
-          t = makeSSAMerger(name, resultSSA.getType(name), Math.max(i2, 1), i1);
+          mergeFormula = makeSSAMerger(symbolName, resultSSA.getType(symbolName), index2, index1);
         }
 
-        mt2 = bfmgr.and(mt2, t);
+        mergeFormula2 = bfmgr.and(mergeFormula2, mergeFormula);
 
-      } else if (i2 > 1) {
-        assert i1 < i2;
+      } else if (index2 > 1) {
+        assert index1 < index2;
         // i1:smaller, i2:bigger
         // => need correction term for i1
         BooleanFormula t;
 
-        if (useNondetFlags && name.equals(NONDET_FLAG_VARIABLE)) {
-          t = makeNondetFlagMerger(Math.max(i1, 1), i2);
+        assert index1 > 0;
+        if (useNondetFlags && symbolName.equals(NONDET_FLAG_VARIABLE)) {
+          t = makeNondetFlagMerger(index1, index2);
         } else {
-          t = makeSSAMerger(name, resultSSA.getType(name), Math.max(i1, 1), i2);
+          t = makeSSAMerger(symbolName, resultSSA.getType(symbolName), index1, index2);
         }
 
-        mt1 = bfmgr.and(mt1, t);
+        mergeFormula1 = bfmgr.and(mergeFormula1, t);
       }
     }
 
-    return Pair.of(Pair.of(mt1, mt2), resultSSA);
+    return Pair.of(Pair.of(mergeFormula1, mergeFormula2), resultSSA);
   }
 
   private Pair<Pair<BooleanFormula, BooleanFormula>, SSAMap> mergeSSAMaps(
@@ -371,14 +373,15 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         // i2:smaller, i1:bigger
         // => need correction term for i2
 
-        if (useNondetFlags && index2 > 0 && symbolName.equals(NONDET_FLAG_VARIABLE)) {
+        assert index2 > 0;
+        if (useNondetFlags && symbolName.equals(NONDET_FLAG_VARIABLE)) {
           mergeFormula = makeNondetFlagMerger(index2, index1);
-        } else if (index2 > 0 && !symbolName.startsWith(CToFormulaWithUFConverter.UF_NAME_PREFIX)) {
+        } else if (!symbolName.startsWith(CToFormulaWithUFConverter.UF_NAME_PREFIX)) {
           mergeFormula = makeNondetMiddleVariableMerger(symbolName,
                                                         resultSSA.getType(symbolName),
                                                         index2,
                                                         index1);
-        } else if (index2 > 0) {
+        } else {
           final CType symbolType = resultSSA.getType(symbolName);
           mergeFormula = makeNondetMiddleUFMerger(CToFormulaWithUFConverter.getUFName(symbolType),
                                                   symbolType,
@@ -394,14 +397,15 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         // i1:smaller, i2:bigger
         // => need correction term for i1
 
-        if (useNondetFlags && index1 > 0 && symbolName.equals(NONDET_FLAG_VARIABLE)) {
+        assert index1 > 0;
+        if (useNondetFlags && symbolName.equals(NONDET_FLAG_VARIABLE)) {
           mergeFormula = makeNondetFlagMerger(index1, index2);
-        } else if (index1 > 0 && !symbolName.startsWith(CToFormulaWithUFConverter.UF_NAME_PREFIX)) {
+        } else if (!symbolName.startsWith(CToFormulaWithUFConverter.UF_NAME_PREFIX)) {
           mergeFormula = makeNondetMiddleVariableMerger(symbolName,
                                                         resultSSA.getType(symbolName),
                                                         index1,
                                                         index2);
-        } else if (index2 > 0) {
+        } else {
           final CType symbolType = resultSSA.getType(symbolName);
           mergeFormula = makeNondetMiddleUFMerger(CToFormulaWithUFConverter.getUFName(symbolType),
                                                   symbolType,
