@@ -85,6 +85,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 
 
@@ -397,7 +398,7 @@ public enum PointerTransferRelation implements TransferRelation {
             return new Variable(pInput.getId()  + "." + pIastFieldReference.getFieldName());
           }
 
-        });
+        }).filter(Predicates.notNull());
       }
 
       @Override
@@ -420,7 +421,7 @@ public enum PointerTransferRelation implements TransferRelation {
       public Iterable<Location> visit(CPointerExpression pPointerExpression) throws UnrecognizedCCodeException {
         Iterable<Location> starredLocations = asLocations(pPointerExpression.getOperand(), pState);
         if (starredLocations == null) {
-          return null;
+          return Collections.emptySet();
         }
         Set<Location> result = new HashSet<>();
         for (Location location : starredLocations) {
@@ -479,24 +480,24 @@ public enum PointerTransferRelation implements TransferRelation {
 
       @Override
       public Iterable<Location> visit(CTypeIdExpression pIastTypeIdExpression) throws UnrecognizedCCodeException {
-        return null;
+        return Collections.emptySet();
       }
 
       @Override
       public Iterable<Location> visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression)
           throws UnrecognizedCCodeException {
-        return null;
+        return Collections.emptySet();
       }
 
       @Override
       public Iterable<Location> visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCCodeException {
-        return null;
+        return Collections.emptySet();
       }
 
       @Override
       public Iterable<Location> visit(CImaginaryLiteralExpression PIastLiteralExpression)
           throws UnrecognizedCCodeException {
-        return null;
+        return Collections.emptySet();
       }});
   }
 
