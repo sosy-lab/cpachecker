@@ -33,6 +33,7 @@ import java.util.SortedSet;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentLinkedList;
@@ -53,7 +54,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
 
-public class PointerTargetSet implements Serializable {
+@Immutable
+public final class PointerTargetSet implements Serializable {
 
   /**
    * The objects of the class are used to keep the set of currently tracked fields in a {@link PersistentSortedMap}.
@@ -129,16 +131,6 @@ public class PointerTargetSet implements Serializable {
     return baseName.replaceFirst(BASE_PREFIX, "");
   }
 
-  public Iterable<PointerTarget> getMatchingTargets(final CType type,
-                                                    final PointerTargetPattern pattern) {
-    return from(getAllTargets(type)).filter(pattern);
-  }
-
-  public Iterable<PointerTarget> getSpuriousTargets(final CType type,
-                                                    final PointerTargetPattern pattern) {
-    return from(getAllTargets(type)).filter(not(pattern));
-  }
-
   public PersistentList<PointerTarget> getAllTargets(final CType type) {
     return firstNonNull(targets.get(CTypeUtils.typeToString(type)),
                         PersistentLinkedList.<PointerTarget>of());
@@ -152,21 +144,28 @@ public class PointerTargetSet implements Serializable {
    *
    * This class is not thread-safe.
    */
-  public final static class PointerTargetSetBuilder extends PointerTargetSet {
+  public final static class PointerTargetSetBuilder {
 
     private final FormulaManagerView formulaManager;
     private final PointerTargetSetManager ptsMgr;
     private final FormulaEncodingWithUFOptions options;
 
+    // These fields all exist in PointerTargetSet and are documented there.
+    private PersistentSortedMap<String, CType> bases;
+    private String lastBase;
+    private PersistentSortedMap<CompositeField, Boolean> fields;
+    private PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations;
+    private PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
+
     private PointerTargetSetBuilder(final PointerTargetSet pointerTargetSet,
         final FormulaManagerView pFormulaManager,
         final PointerTargetSetManager pPtsMgr,
         final FormulaEncodingWithUFOptions pOptions) {
-      super(pointerTargetSet.bases,
-            pointerTargetSet.lastBase,
-            pointerTargetSet.fields,
-            pointerTargetSet.deferredAllocations,
-            pointerTargetSet.targets);
+      bases = pointerTargetSet.bases;
+      lastBase = pointerTargetSet.lastBase;
+      fields = pointerTargetSet.fields;
+      deferredAllocations = pointerTargetSet.deferredAllocations;
+      targets = pointerTargetSet.targets;
       formulaManager = pFormulaManager;
       ptsMgr = pPtsMgr;
       options = pOptions;
@@ -384,6 +383,50 @@ public class PointerTargetSet implements Serializable {
       return dynamicAllocationCounter++;
     }
 
+    public boolean isTemporaryDeferredAllocationPointer(final String pointerVariable) {
+      final DeferredAllocationPool deferredAllocationPool = deferredAllocations.get(pointerVariable);
+      assert deferredAllocationPool == null || deferredAllocationPool.getBaseVariables().size() >= 1 :
+             "Inconsistent deferred alloction pool: no bases";
+      return deferredAllocationPool != null && deferredAllocationPool.getBaseVariables().get(0).equals(pointerVariable);
+    }
+
+    public boolean isDeferredAllocationPointer(final String pointerVariable) {
+      return deferredAllocations.containsKey(pointerVariable);
+    }
+
+    public boolean isActualBase(final String name) {
+      return bases.containsKey(name) && !PointerTargetSetManager.isFakeBaseType(bases.get(name));
+    }
+
+    public boolean isPreparedBase(final String name) {
+      return bases.containsKey(name);
+    }
+
+    public boolean isBase(final String name, CType type) {
+      type = CTypeUtils.simplifyType(type);
+      final CType baseType = bases.get(name);
+      return baseType != null && baseType.equals(type);
+    }
+
+    public SortedSet<String> getAllBases() {
+      return bases.keySet();
+    }
+
+    public PersistentList<PointerTarget> getAllTargets(final CType type) {
+      return firstNonNull(targets.get(CTypeUtils.typeToString(type)),
+                          PersistentLinkedList.<PointerTarget>of());
+    }
+
+    public Iterable<PointerTarget> getMatchingTargets(final CType type,
+        final PointerTargetPattern pattern) {
+      return from(getAllTargets(type)).filter(pattern);
+    }
+
+    public Iterable<PointerTarget> getSpuriousTargets(final CType type,
+        final PointerTargetPattern pattern) {
+      return from(getAllTargets(type)).filter(not(pattern));
+    }
+
     /**
      * Returns an immutable PointerTargetSet with all the changes made to the builder.
      */
@@ -394,37 +437,6 @@ public class PointerTargetSet implements Serializable {
                                   deferredAllocations,
                                   targets);
     }
-
-    private static final long serialVersionUID = 5692271309582052121L;
-  }
-
-  public boolean isTemporaryDeferredAllocationPointer(final String pointerVariable) {
-    final DeferredAllocationPool deferredAllocationPool = deferredAllocations.get(pointerVariable);
-    assert deferredAllocationPool == null || deferredAllocationPool.getBaseVariables().size() >= 1 :
-           "Inconsistent deferred alloction pool: no bases";
-    return deferredAllocationPool != null && deferredAllocationPool.getBaseVariables().get(0).equals(pointerVariable);
-  }
-
-  public boolean isDeferredAllocationPointer(final String pointerVariable) {
-    return deferredAllocations.containsKey(pointerVariable);
-  }
-
-  public boolean isActualBase(final String name) {
-    return bases.containsKey(name) && !PointerTargetSetManager.isFakeBaseType(bases.get(name));
-  }
-
-  public boolean isPreparedBase(final String name) {
-    return bases.containsKey(name);
-  }
-
-  public boolean isBase(final String name, CType type) {
-    type = CTypeUtils.simplifyType(type);
-    final CType baseType = bases.get(name);
-    return baseType != null && baseType.equals(type);
-  }
-
-  public SortedSet<String> getAllBases() {
-    return bases.keySet();
   }
 
   public static final PointerTargetSet emptyPointerTargetSet() {
@@ -490,16 +502,16 @@ public class PointerTargetSet implements Serializable {
   // The key of the map is the name of the base (without the BASE_PREFIX).
   // There are also "fake" bases in the map for variables that have their address
   // taken somewhere but are not yet tracked.
-  protected /*final*/ PersistentSortedMap<String, CType> bases;
+  final PersistentSortedMap<String, CType> bases;
 
   // The last added memory region (used to create the chain of inequalities between bases).
-  protected /*final*/ String lastBase;
+  final String lastBase;
 
   // The set of "shared" fields that are accessed directly via pointers,
   // so they are represented with UFs instead of as variables.
-  protected /*final*/ PersistentSortedMap<CompositeField, Boolean> fields;
+  final PersistentSortedMap<CompositeField, Boolean> fields;
 
-  protected /*final*/ PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations;
+  final PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations;
 
   // The complete set of tracked memory locations.
   // The map key is the type of the memory location.
@@ -508,7 +520,7 @@ public class PointerTargetSet implements Serializable {
   // for all values of i from this map).
   // This means that when a location is not present in this map,
   // its value is not tracked and might get lost.
-  protected /*final*/ PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
+  final PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
 
   // The counter that guarantees a unique name for each allocated memory region.
   private static int dynamicAllocationCounter = 0;
