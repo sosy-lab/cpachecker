@@ -136,7 +136,7 @@ class ExpressionToFormulaWithUFVisitor
       assert base.isAliasedLocation();
     } else {
       // The address of the first element is needed i.e. the value of the pointer in the array expression
-      base = AliasedLocation.ofAddress(asValueFormula(base, CToFormulaWithUFConverter.implicitCastToPointer(baseType)));
+      base = AliasedLocation.ofAddress(asValueFormula(base, CTypeUtils.implicitCastToPointer(baseType)));
     }
     // Now we should always have the aliased location of the first array element
     assert base.isAliasedLocation();
@@ -241,7 +241,7 @@ class ExpressionToFormulaWithUFVisitor
     }
 
     final CType operandType = CTypeUtils.simplifyType(operand.getExpressionType());
-    if (CToFormulaWithUFConverter.isSimpleType(resultType)) {
+    if (CTypeUtils.isSimpleType(resultType)) {
       return Value.ofValue(conv.makeCast(operandType, resultType, asValueFormula(result, operandType), edge));
     } else if (CTypes.withoutConst(resultType).equals(CTypes.withoutConst(operandType))) {
       // Special case: conversion of non-scalar type to itself is allowed (and ignored)

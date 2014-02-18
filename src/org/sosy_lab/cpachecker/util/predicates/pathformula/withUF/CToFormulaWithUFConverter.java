@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
 
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.CTypeUtils.*;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -79,7 +81,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -441,15 +442,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
   }
 
-  boolean isCompositeType(CType type) {
-    type = CTypeUtils.simplifyType(type);
-    assert !(type instanceof CElaboratedType) : "Unresolved elaborated type";
-    assert !(type instanceof CCompositeType) || ((CCompositeType) type).getKind() == ComplexTypeKind.STRUCT ||
-                                                ((CCompositeType) type).getKind() == ComplexTypeKind.UNION :
-           "Enums are not composite";
-    return type instanceof CArrayType || type instanceof CCompositeType;
-  }
-
   private void addRetentionConstraints(final PointerTargetPattern pattern,
                                        final CType lvalueType,
                                        final String ufName,
@@ -563,23 +555,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final int newIndex = getIndex(ufName, type, ssa) + 1;
       ssa.setIndex(ufName, type, newIndex);
     }
-  }
-
-  public static CType implicitCastToPointer(CType type) {
-    type = CTypeUtils.simplifyType(type);
-    if (type instanceof CArrayType) {
-      return new CPointerType(false,
-                              false,
-                              CTypeUtils.simplifyType(((CArrayType) type).getType()));
-    } else if (type instanceof CFunctionType) {
-      return new CPointerType(false, false, type);
-    } else {
-      return type;
-    }
-  }
-
-  static boolean isSimpleType(final CType type) {
-    return !(type instanceof CArrayType) && !(type instanceof CCompositeType);
   }
 
   BooleanFormula makeAssignment(@Nonnull CType lvalueType,
