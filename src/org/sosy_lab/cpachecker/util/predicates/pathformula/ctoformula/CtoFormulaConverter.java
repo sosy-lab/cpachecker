@@ -121,7 +121,8 @@ public class CtoFormulaConverter {
   public static final Set<String> PURE_EXTERNAL_FUNCTIONS
       = ImmutableSet.of("__assert_fail", "free", "kfree",
           "fprintf", "printf", "puts", "printk", "sprintf", "swprintf",
-          "strcasecmp", "strchr", "strcmp", "strlen", "strncmp", "strrchr", "strstr"
+          "strcasecmp", "strchr", "strcmp", "strlen", "strncmp", "strrchr", "strstr",
+          "__VERIFIER_error"
           );
 
   // set of functions that may not appear in the source code
