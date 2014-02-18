@@ -180,6 +180,13 @@ public class PersistentSortedMaps {
       final MergeConflictHandler<? super K, V> conflictHandler,
       final @Nullable List<Triple<K, V, V>> collectDifferences) {
 
+    if (map1 == map2) {
+      // Check for identity may be profitable for persistent data structures.
+      // Check for equality is equally expensive as the rest of the method,
+      // so it would not be worth it.
+      return map1;
+    }
+
     // Assume map1 is the bigger one, so we use it as the base.
     PersistentSortedMap<K, V> result = map1;
 

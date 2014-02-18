@@ -230,25 +230,21 @@ public class SSAMap implements Serializable {
           PersistentSortedMaps.<String, Integer>getMaximumMergeConflictHandler(), differences);
     }
 
-    PersistentSortedMap<String, CType> varTypes;
-    if (s1.varTypes == s2.varTypes) {
-      varTypes = s1.varTypes;
+    PersistentSortedMap<String, CType> varTypes = PersistentSortedMaps.merge(
+        s1.varTypes, s2.varTypes,
+        new Equivalence<CType>() {
+          @Override
+          protected boolean doEquivalent(CType pA, CType pB) {
+            return pA.getCanonicalType().equals(pB.getCanonicalType());
+          }
 
-    } else {
-      varTypes = PersistentSortedMaps.merge(s1.varTypes, s2.varTypes,
-          new Equivalence<CType>() {
-            @Override
-            protected boolean doEquivalent(CType pA, CType pB) {
-              return pA.getCanonicalType().equals(pB.getCanonicalType());
-            }
-
-            @Override
-            protected int doHash(CType pT) {
-              return pT.hashCode();
-            }
-          },
-          PersistentSortedMaps.<Object, CType>getExceptionMergeConflictHandler(), null);
-    }
+          @Override
+          protected int doHash(CType pT) {
+            return pT.hashCode();
+          }
+        },
+        PersistentSortedMaps.<Object, CType>getExceptionMergeConflictHandler(),
+        null);
 
     return Pair.of(new SSAMap(vars, 0, varTypes), differences);
   }
