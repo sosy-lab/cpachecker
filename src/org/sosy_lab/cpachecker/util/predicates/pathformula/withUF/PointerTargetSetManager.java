@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
 
 import static com.google.common.base.Objects.firstNonNull;
+import static org.sosy_lab.common.collect.PersistentSortedMaps.*;
 import static org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes.VOID;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.PersistentSortedMaps.*;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -41,6 +41,8 @@ import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
+import org.sosy_lab.common.collect.PersistentSortedMaps;
+import org.sosy_lab.common.collect.PersistentSortedMaps.MergeConflictHandler;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
@@ -55,8 +57,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PersistentSortedMaps;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PersistentSortedMaps.MergeConflictHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.CompositeField;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;

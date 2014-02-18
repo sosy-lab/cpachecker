@@ -304,6 +304,10 @@ cfa.file = "cfa.dot"
 # uninitialized.
 cfa.initializeAllVariables = false
 
+# With this option, all declarations in each function will be movedto the
+# beginning of each function.
+cfa.moveDeclarationsToFunctionStart = false
+
 # remove paths from CFA that cannot lead to a specification violation
 cfa.removeIrrelevantForSpecification = false
 
@@ -723,6 +727,14 @@ cpa.explicit.refiner.exportInterpolationTree = "NEVER"
 # use heuristic to extract a precision from the CFA statically on first
 # refinement
 cpa.explicit.refiner.performInitialStaticRefinement = false
+
+# whether or not to stop further interpolation once no new interpolants are
+# identified between two subsequent path interpolations
+cpa.explicit.refiner.stopOnEmptyInterpolationIncrement = false
+
+# whether or not to stop further interpolation once no new refinement roots
+# identified between two subsequent path interpolations
+cpa.explicit.refiner.stopOnIdenticalRefinementRoots = false
 
 # which stop operator to use for ExplicitCPA
 cpa.explicit.stop = "SEP"
