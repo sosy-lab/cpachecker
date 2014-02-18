@@ -198,7 +198,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
       result.shift(containerType);
       final Integer index = tryEvaluateExpression(e.getSubscriptExpression());
       if (index != null) {
-        result.setProperOffset(index * conv.ptsMgr.getSize(elementType));
+        result.setProperOffset(index * conv.getSizeof(elementType));
       }
       return result;
     } else {

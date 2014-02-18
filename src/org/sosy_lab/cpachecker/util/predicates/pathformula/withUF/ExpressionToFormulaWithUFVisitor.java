@@ -149,7 +149,7 @@ class ExpressionToFormulaWithUFVisitor
                                         asValueFormula(subscript.accept(this), subscriptType),
                                         edge);
 
-    final Formula coeff = conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.ptsMgr.getSize(elementType));
+    final Formula coeff = conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.getSizeof(elementType));
     final Formula baseAddress = base.asAliasedLocation().getAddress();
     final Formula address = conv.fmgr.makePlus(baseAddress, conv.fmgr.makeMultiply(coeff, index));
     addEqualBaseAdressConstraint(baseAddress, address);
@@ -293,7 +293,7 @@ class ExpressionToFormulaWithUFVisitor
   private Value handleSizeof(final CExpression e, final CType type) throws UnrecognizedCCodeException {
     return Value.ofValue(
              conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(CTypeUtils.simplifyType(e.getExpressionType())),
-                                                               conv.ptsMgr.getSize(type)));
+                                                               conv.getSizeof(type)));
   }
 
   @Override
@@ -422,7 +422,7 @@ class ExpressionToFormulaWithUFVisitor
   }
 
   private Formula getPointerTargetSizeLiteral(final CPointerType pointerType, final CType implicitType) {
-    final int pointerTargetSize = conv.ptsMgr.getSize(pointerType.getType());
+    final int pointerTargetSize = conv.getSizeof(pointerType.getType());
     return conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(implicitType), pointerTargetSize);
   }
 

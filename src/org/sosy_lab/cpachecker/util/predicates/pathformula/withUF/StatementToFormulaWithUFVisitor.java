@@ -152,7 +152,7 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
   private CType refineType(final @Nonnull CType type, final @Nonnull CIntegerLiteralExpression sizeLiteral) {
     if (sizeLiteral.getValue() != null) {
       final int size = sizeLiteral.getValue().intValue();
-      final int typeSize = conv.ptsMgr.getSize(type);
+      final int typeSize = conv.getSizeof(type);
       if (type instanceof CArrayType) {
         if (typeSize != size) {
           conv.logger.logf(Level.WARNING,

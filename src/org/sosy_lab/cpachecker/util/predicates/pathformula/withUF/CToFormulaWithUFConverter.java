@@ -308,7 +308,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                           final String fieldName) {
     return !variableClassification.isPresent() ||
            !options.ignoreIrrelevantVariables() ||
-           ptsMgr.getSize(compositeType) <= options.maxPreFilledAllocationSize() ||
+           getSizeof(compositeType) <= options.maxPreFilledAllocationSize() ||
            variableClassification.get().getRelevantFields().containsEntry(compositeType, fieldName);
   }
 
@@ -369,7 +369,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       pts.shareBase(base, type);
     }
     if (forcePreFill ||
-        (options.maxPreFilledAllocationSize() > 0 && ptsMgr.getSize(type) <= options.maxPreFilledAllocationSize())) {
+        (options.maxPreFilledAllocationSize() > 0 && getSizeof(type) <= options.maxPreFilledAllocationSize())) {
       addAllFields(type, pts);
     }
   }
@@ -436,7 +436,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                     pts);
         }
         if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
-          offset += ptsMgr.getSize(memberType);
+          offset += getSizeof(memberType);
         }
       }
     } else {
@@ -646,7 +646,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                          final @Nonnull Constraints constraints,
                                          final @Nonnull PointerTargetSetBuilder pts) {
     lvalueType = CTypeUtils.simplifyType(lvalueType);
-    final int size = ptsMgr.getSize(lvalueType);
+    final int size = getSizeof(lvalueType);
     if (isSimpleType(lvalueType)) {
       Preconditions.checkArgument(startAddress != null,
                                   "Start address is mandatory for assigning to lvalues of simple types");
@@ -842,7 +842,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                      ssa,
                                                      errorConditions,
                                                      pts));
-         offset += ptsMgr.getSize(lvalueArrayType.getType());
+         offset += getSizeof(lvalueArrayType.getType());
       }
       return result;
     } else if (lvalueType instanceof CCompositeType) {
@@ -893,7 +893,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         }
 
         if (lvalueCompositeType.getKind() == ComplexTypeKind.STRUCT) {
-          offset += ptsMgr.getSize(memberDeclaration.getType());
+          offset += getSizeof(memberDeclaration.getType());
         }
       }
       return result;
@@ -1557,5 +1557,10 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   protected Formula makeCast(CType pFromType, CType pToType, Formula pFormula, CFAEdge pEdge)
       throws UnrecognizedCCodeException {
     return super.makeCast(pFromType, pToType, pFormula, pEdge);
+  }
+
+  @Override
+  protected int getSizeof(CType pType) {
+    return super.getSizeof(pType);
   }
 }
