@@ -222,10 +222,6 @@ class ASTConverter {
     this.binExprBuilder = new CBinaryExpressionBuilder(pMachineModel, pLogger);
   }
 
-  BigInteger parseIntegerLiteral(String s, final IASTNode e) {
-    return literalConverter.parseIntegerLiteral(s, e);
-  }
-
   public CExpression convertExpressionWithoutSideEffects(
       IASTExpression e) {
 
@@ -855,14 +851,15 @@ class ASTConverter {
     return new CIdExpression(getLocation(e), type, name, declaration);
   }
 
-  private CAstNode convert(IASTUnaryExpression e) {
-    CExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
-    FileLocation fileLoc = getLocation(e);
+  private CAstNode convert(final IASTUnaryExpression e) {
+    final CExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
+    final FileLocation fileLoc = getLocation(e);
     CType type = typeConverter.convert(e.getExpressionType());
     final CType operandType = operand.getExpressionType();
 
     switch (e.getOperator()) {
     case IASTUnaryExpression.op_bracketedPrimary:
+    case IASTUnaryExpression.op_plus:
       return operand;
 
     case IASTUnaryExpression.op_star:
@@ -883,14 +880,14 @@ class ASTConverter {
 
     case IASTUnaryExpression.op_amper:
 
-      if (containsProblemType(type)) {
-        type = new CPointerType(true, false, operandType);
-      }
-
       // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
       // in case of *& both can be left out
       if (simplifyPointerExpressions && operand instanceof CPointerExpression) {
         return ((CPointerExpression)operand).getOperand();
+      }
+
+      if (containsProblemType(type)) {
+        type = new CPointerType(true, false, operandType);
       }
 
       // if none of the special cases before fits the default unaryExpression is created
