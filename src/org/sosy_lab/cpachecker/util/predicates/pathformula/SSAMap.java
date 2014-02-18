@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.MapMerger.ConflictHandler;
 
 import com.google.common.base.Equivalence;
 import com.google.common.base.Joiner;
@@ -227,8 +226,8 @@ public class SSAMap implements Serializable {
 
     } else {
       differences = new ArrayList<>();
-      vars = MapMerger.merge(s1.vars, s2.vars, Equivalence.equals(),
-          MAXIMUM_ON_CONFLICT, differences);
+      vars = PersistentSortedMaps.merge(s1.vars, s2.vars, Equivalence.equals(),
+          PersistentSortedMaps.<String, Integer>getMaximumMergeConflictHandler(), differences);
     }
 
     PersistentSortedMap<String, CType> varTypes;
@@ -236,7 +235,7 @@ public class SSAMap implements Serializable {
       varTypes = s1.varTypes;
 
     } else {
-      varTypes = MapMerger.merge(s1.varTypes, s2.varTypes,
+      varTypes = PersistentSortedMaps.merge(s1.varTypes, s2.varTypes,
           new Equivalence<CType>() {
             @Override
             protected boolean doEquivalent(CType pA, CType pB) {
@@ -248,18 +247,11 @@ public class SSAMap implements Serializable {
               return pT.hashCode();
             }
           },
-          MapMerger.<Object, CType>getExceptionOnConflictHandler(), null);
+          PersistentSortedMaps.<Object, CType>getExceptionMergeConflictHandler(), null);
     }
 
     return Pair.of(new SSAMap(vars, 0, varTypes), differences);
   }
-
-  private static final ConflictHandler<Object, Integer> MAXIMUM_ON_CONFLICT = new ConflictHandler<Object, Integer>() {
-    @Override
-    public Integer resolveConflict(Object key, Integer value1, Integer value2) {
-      return Math.max(value1, value2);
-    }
-  };
 
   private final PersistentSortedMap<String, Integer> vars;
   private final PersistentSortedMap<String, CType> varTypes;

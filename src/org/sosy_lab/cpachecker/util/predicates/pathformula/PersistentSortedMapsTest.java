@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import static org.junit.Assert.*;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.MapMerger.*;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.PersistentSortedMaps.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,7 +39,7 @@ import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableMap;
 
 
-public class MapMergerTest {
+public class PersistentSortedMapsTest {
 
   private static final PersistentSortedMap<String, String> EMPTY_MAP =
       PathCopyingPersistentTreeMap.<String, String>of();
@@ -66,7 +66,7 @@ public class MapMergerTest {
         merge(FULL_MAP,
               FULL_MAP,
               Equivalence.equals(),
-              MapMerger.<String, String>getExceptionOnConflictHandler(),
+              PersistentSortedMaps.<String, String>getExceptionMergeConflictHandler(),
               differences);
 
     assertEquals(FULL_MAP, result);
@@ -81,7 +81,7 @@ public class MapMergerTest {
         merge(EMPTY_MAP,
               FULL_MAP,
               Equivalence.equals(),
-              MapMerger.<String, String>getExceptionOnConflictHandler(),
+              PersistentSortedMaps.<String, String>getExceptionMergeConflictHandler(),
               differences);
 
     assertEquals(FULL_MAP, result);
@@ -105,7 +105,7 @@ public class MapMergerTest {
         merge(FULL_MAP,
               EMPTY_MAP,
               Equivalence.equals(),
-              MapMerger.<String, String>getExceptionOnConflictHandler(),
+              PersistentSortedMaps.<String, String>getExceptionMergeConflictHandler(),
               differences);
 
     assertEquals(FULL_MAP, result);
@@ -129,7 +129,7 @@ public class MapMergerTest {
         merge(HALF1_MAP,
               FULL_MAP,
               Equivalence.equals(),
-              MapMerger.<String, String>getExceptionOnConflictHandler(),
+              PersistentSortedMaps.<String, String>getExceptionMergeConflictHandler(),
               differences);
 
     assertEquals(FULL_MAP, result);
@@ -151,7 +151,7 @@ public class MapMergerTest {
         merge(HALF2_MAP,
               FULL_MAP,
               Equivalence.equals(),
-              MapMerger.<String, String>getExceptionOnConflictHandler(),
+              PersistentSortedMaps.<String, String>getExceptionMergeConflictHandler(),
               differences);
 
     assertEquals(FULL_MAP, result);
@@ -173,7 +173,7 @@ public class MapMergerTest {
         merge(FULL_MAP,
               HALF1_MAP,
               Equivalence.equals(),
-              MapMerger.<String, String>getExceptionOnConflictHandler(),
+              PersistentSortedMaps.<String, String>getExceptionMergeConflictHandler(),
               differences);
 
     assertEquals(FULL_MAP, result);
@@ -195,7 +195,7 @@ public class MapMergerTest {
         merge(FULL_MAP,
               HALF2_MAP,
               Equivalence.equals(),
-              MapMerger.<String, String>getExceptionOnConflictHandler(),
+              PersistentSortedMaps.<String, String>getExceptionMergeConflictHandler(),
               differences);
 
     assertEquals(FULL_MAP, result);
@@ -217,7 +217,7 @@ public class MapMergerTest {
         merge(HALF1_MAP,
               HALF2_MAP,
               Equivalence.equals(),
-              MapMerger.<String, String>getExceptionOnConflictHandler(),
+              PersistentSortedMaps.<String, String>getExceptionMergeConflictHandler(),
               differences);
 
     assertEquals(FULL_MAP, result);
@@ -241,7 +241,7 @@ public class MapMergerTest {
         merge(HALF2_MAP,
               HALF1_MAP,
               Equivalence.equals(),
-              MapMerger.<String, String>getExceptionOnConflictHandler(),
+              PersistentSortedMaps.<String, String>getExceptionMergeConflictHandler(),
               differences);
 
     assertEquals(FULL_MAP, result);
@@ -260,100 +260,100 @@ public class MapMergerTest {
 
 
   @Test
-  public void testMergeSortedMaps_Equal() {
+  public void testMerge0_Equal() {
 
     PersistentSortedMap<String, String> result =
-        mergeSortedMaps(FULL_MAP,
+        merge(FULL_MAP,
               FULL_MAP,
-              MapMerger.<String, String>getExceptionOnConflictHandler());
+              PersistentSortedMaps.<String, String>getExceptionMergeConflictHandler());
 
     assertEquals(FULL_MAP, result);
   }
 
   @Test
-  public void testMergeSortedMaps_map1Empty() {
+  public void testMerge0_map1Empty() {
 
     PersistentSortedMap<String, String> result =
-        mergeSortedMaps(EMPTY_MAP,
+        merge(EMPTY_MAP,
               FULL_MAP,
-              MapMerger.<String, String>getExceptionOnConflictHandler());
+              PersistentSortedMaps.<String, String>getExceptionMergeConflictHandler());
 
     assertEquals(FULL_MAP, result);
   }
 
   @Test
-  public void testMergeSortedMaps_map2Empty() {
+  public void testMerge0_map2Empty() {
 
     PersistentSortedMap<String, String> result =
-        mergeSortedMaps(FULL_MAP,
+        merge(FULL_MAP,
               EMPTY_MAP,
-              MapMerger.<String, String>getExceptionOnConflictHandler());
+              PersistentSortedMaps.<String, String>getExceptionMergeConflictHandler());
 
     assertEquals(FULL_MAP, result);
   }
 
   @Test
-  public void testMergeSortedMaps_map1Half1() {
+  public void testMerge0_map1Half1() {
 
     PersistentSortedMap<String, String> result =
-        mergeSortedMaps(HALF1_MAP,
+        merge(HALF1_MAP,
               FULL_MAP,
-              MapMerger.<String, String>getExceptionOnConflictHandler());
+              PersistentSortedMaps.<String, String>getExceptionMergeConflictHandler());
 
     assertEquals(FULL_MAP, result);
   }
 
   @Test
-  public void testMergeSortedMaps_map1Half2() {
+  public void testMerge0_map1Half2() {
 
     PersistentSortedMap<String, String> result =
-        mergeSortedMaps(HALF2_MAP,
+        merge(HALF2_MAP,
               FULL_MAP,
-              MapMerger.<String, String>getExceptionOnConflictHandler());
+              PersistentSortedMaps.<String, String>getExceptionMergeConflictHandler());
 
     assertEquals(FULL_MAP, result);
   }
 
   @Test
-  public void testMergeSortedMaps_map2Half1() {
+  public void testMerge0_map2Half1() {
 
     PersistentSortedMap<String, String> result =
-        mergeSortedMaps(FULL_MAP,
+        merge(FULL_MAP,
               HALF1_MAP,
-              MapMerger.<String, String>getExceptionOnConflictHandler());
+              PersistentSortedMaps.<String, String>getExceptionMergeConflictHandler());
 
     assertEquals(FULL_MAP, result);
   }
 
   @Test
-  public void testMergeSortedMaps_map2Half2() {
+  public void testMerge0_map2Half2() {
 
     PersistentSortedMap<String, String> result =
-        mergeSortedMaps(FULL_MAP,
+        merge(FULL_MAP,
               HALF2_MAP,
-              MapMerger.<String, String>getExceptionOnConflictHandler());
+              PersistentSortedMaps.<String, String>getExceptionMergeConflictHandler());
 
     assertEquals(FULL_MAP, result);
   }
 
   @Test
-  public void testMergeSortedMaps_map1Half1_map2Half2() {
+  public void testMerge0_map1Half1_map2Half2() {
 
     PersistentSortedMap<String, String> result =
-        mergeSortedMaps(HALF1_MAP,
+        merge(HALF1_MAP,
               HALF2_MAP,
-              MapMerger.<String, String>getExceptionOnConflictHandler());
+              PersistentSortedMaps.<String, String>getExceptionMergeConflictHandler());
 
     assertEquals(FULL_MAP, result);
   }
 
   @Test
-  public void testMergeSortedMaps_map1Half2_map2Half1() {
+  public void testMerge0_map1Half2_map2Half1() {
 
     PersistentSortedMap<String, String> result =
-        mergeSortedMaps(HALF2_MAP,
+        merge(HALF2_MAP,
               HALF1_MAP,
-              MapMerger.<String, String>getExceptionOnConflictHandler());
+              PersistentSortedMaps.<String, String>getExceptionMergeConflictHandler());
 
     assertEquals(FULL_MAP, result);
   }
@@ -361,12 +361,12 @@ public class MapMergerTest {
 
 
   @Test
-  public void testMergeSortedSets_Equal() {
+  public void testMergeWithKeyDifferences_Equal() {
 
     Triple<PersistentSortedMap<String, String>, PersistentSortedMap<String, String>, PersistentSortedMap<String, String>> result =
-        mergeSortedSets(FULL_MAP,
+        mergeWithKeyDifferences(FULL_MAP,
                         FULL_MAP,
-                        MapMerger.<String, String>getExceptionOnConflictHandler());
+                        PersistentSortedMaps.<String, String>getExceptionMergeConflictHandler());
 
     assertEquals(FULL_MAP, result.getThird());
     assertTrue(result.getFirst().isEmpty());
@@ -374,12 +374,12 @@ public class MapMergerTest {
   }
 
   @Test
-  public void testMergeSortedSets_map1Empty() {
+  public void testMergeWithKeyDifferences_map1Empty() {
 
     Triple<PersistentSortedMap<String, String>, PersistentSortedMap<String, String>, PersistentSortedMap<String, String>> result =
-        mergeSortedSets(EMPTY_MAP,
+        mergeWithKeyDifferences(EMPTY_MAP,
                         FULL_MAP,
-                        MapMerger.<String, String>getExceptionOnConflictHandler());
+                        PersistentSortedMaps.<String, String>getExceptionMergeConflictHandler());
 
     assertTrue(result.getFirst().isEmpty());
     assertEquals(FULL_MAP, result.getSecond());
@@ -387,12 +387,12 @@ public class MapMergerTest {
   }
 
   @Test
-  public void testMergeSortedSets_map2Empty() {
+  public void testMergeWithKeyDifferences_map2Empty() {
 
     Triple<PersistentSortedMap<String, String>, PersistentSortedMap<String, String>, PersistentSortedMap<String, String>> result =
-        mergeSortedSets(FULL_MAP,
+        mergeWithKeyDifferences(FULL_MAP,
                         EMPTY_MAP,
-                        MapMerger.<String, String>getExceptionOnConflictHandler());
+                        PersistentSortedMaps.<String, String>getExceptionMergeConflictHandler());
 
     assertEquals(FULL_MAP, result.getFirst());
     assertTrue(result.getSecond().isEmpty());
@@ -400,12 +400,12 @@ public class MapMergerTest {
   }
 
   @Test
-  public void testMergeSortedSets_map1Half1() {
+  public void testMergeWithKeyDifferences_map1Half1() {
 
     Triple<PersistentSortedMap<String, String>, PersistentSortedMap<String, String>, PersistentSortedMap<String, String>> result =
-        mergeSortedSets(HALF1_MAP,
+        mergeWithKeyDifferences(HALF1_MAP,
                         FULL_MAP,
-                        MapMerger.<String, String>getExceptionOnConflictHandler());
+                        PersistentSortedMaps.<String, String>getExceptionMergeConflictHandler());
 
     assertEquals(EMPTY_MAP, result.getFirst());
     assertEquals(HALF2_MAP, result.getSecond());
@@ -413,12 +413,12 @@ public class MapMergerTest {
   }
 
   @Test
-  public void testMergeSortedSets_map1Half2() {
+  public void testMergeWithKeyDifferences_map1Half2() {
 
     Triple<PersistentSortedMap<String, String>, PersistentSortedMap<String, String>, PersistentSortedMap<String, String>> result =
-        mergeSortedSets(HALF2_MAP,
+        mergeWithKeyDifferences(HALF2_MAP,
               FULL_MAP,
-              MapMerger.<String, String>getExceptionOnConflictHandler());
+              PersistentSortedMaps.<String, String>getExceptionMergeConflictHandler());
 
     assertEquals(EMPTY_MAP, result.getFirst());
     assertEquals(HALF1_MAP, result.getSecond());
@@ -426,12 +426,12 @@ public class MapMergerTest {
   }
 
   @Test
-  public void testMergeSortedSets_map2Half1() {
+  public void testMergeWithKeyDifferences_map2Half1() {
 
     Triple<PersistentSortedMap<String, String>, PersistentSortedMap<String, String>, PersistentSortedMap<String, String>> result =
-        mergeSortedSets(FULL_MAP,
+        mergeWithKeyDifferences(FULL_MAP,
               HALF1_MAP,
-              MapMerger.<String, String>getExceptionOnConflictHandler());
+              PersistentSortedMaps.<String, String>getExceptionMergeConflictHandler());
 
     assertEquals(HALF2_MAP, result.getFirst());
     assertEquals(EMPTY_MAP, result.getSecond());
@@ -439,12 +439,12 @@ public class MapMergerTest {
   }
 
   @Test
-  public void testMergeSortedSets_map2Half2() {
+  public void testMergeWithKeyDifferences_map2Half2() {
 
     Triple<PersistentSortedMap<String, String>, PersistentSortedMap<String, String>, PersistentSortedMap<String, String>> result =
-        mergeSortedSets(FULL_MAP,
+        mergeWithKeyDifferences(FULL_MAP,
               HALF2_MAP,
-              MapMerger.<String, String>getExceptionOnConflictHandler());
+              PersistentSortedMaps.<String, String>getExceptionMergeConflictHandler());
 
     assertEquals(HALF1_MAP, result.getFirst());
     assertEquals(EMPTY_MAP, result.getSecond());
@@ -452,12 +452,12 @@ public class MapMergerTest {
   }
 
   @Test
-  public void testMergeSortedSets_map1Half1_map2Half2() {
+  public void testMergeWithKeyDifferences_map1Half1_map2Half2() {
 
     Triple<PersistentSortedMap<String, String>, PersistentSortedMap<String, String>, PersistentSortedMap<String, String>> result =
-        mergeSortedSets(HALF1_MAP,
+        mergeWithKeyDifferences(HALF1_MAP,
               HALF2_MAP,
-              MapMerger.<String, String>getExceptionOnConflictHandler());
+              PersistentSortedMaps.<String, String>getExceptionMergeConflictHandler());
 
     assertEquals(HALF1_MAP, result.getFirst());
     assertEquals(HALF2_MAP, result.getSecond());
@@ -465,12 +465,12 @@ public class MapMergerTest {
   }
 
   @Test
-  public void testMergeSortedSets_map1Half2_map2Half1() {
+  public void testMergeWithKeyDifferences_map1Half2_map2Half1() {
 
     Triple<PersistentSortedMap<String, String>, PersistentSortedMap<String, String>, PersistentSortedMap<String, String>> result =
-        mergeSortedSets(HALF2_MAP,
+        mergeWithKeyDifferences(HALF2_MAP,
               HALF1_MAP,
-              MapMerger.<String, String>getExceptionOnConflictHandler());
+              PersistentSortedMaps.<String, String>getExceptionMergeConflictHandler());
 
     assertEquals(HALF2_MAP, result.getFirst());
     assertEquals(HALF1_MAP, result.getSecond());

@@ -36,28 +36,90 @@ import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 
 import com.google.common.base.Equivalence;
+import com.google.common.collect.Ordering;
 
-public class MapMerger {
+/**
+ * Utility class for {@link PersistentSortedMap}s.
+ *
+ * Currently this class provides a merge operation.
+ * The result of merging two maps is defined as a map
+ * whose keyset is the union of the keyset of both input maps.
+ * The values of the resulting map are the corresponding values of the input maps
+ * as long as they are not differing.
+ * Differing values for one key are resolved by passing them to a callback function.
+ */
+public class PersistentSortedMaps {
 
-  public static interface ConflictHandler<K, V> {
+  private PersistentSortedMaps() { } // utility class
+
+  /**
+   * A callback that is used when a key with two different values
+   * is encountered during the merge of two maps.
+   */
+  public static interface MergeConflictHandler<K, V> {
+
+    /**
+     * Resolve a conflict for one given key.
+     * This handler is called only with two values
+     * that are not considered equal according to the used {@link Equivalence}.
+     * One of the values may be {@code null},
+     * which means that the corresponding map contains {@code null} as value
+     * for this key.
+     * The handler may return {@code null}, and in this case the resulting map
+     * will contain a mapping (key -> null).
+     * @param key The key.
+     * @param value1 The value from the first map.
+     * @param value2 The value from the second map.
+     * @return The value that should be put into the resulting map.
+     */
     V resolveConflict(K key, V value1, V value2);
   }
 
-  private static final ConflictHandler<Object, ?> EXCEPTION_ON_CONFLICT = new ConflictHandler<Object, Object>() {
-    @Override
-    public Void resolveConflict(Object key, Object value1, Object value2) {
-      throw new IllegalArgumentException("Conflicting value when merging maps for key " + key + ": " + value1 + " and " + value2);
-    }
-  };
-
-  @SuppressWarnings("unchecked")
-  public static <K, V> ConflictHandler<K, V> getExceptionOnConflictHandler() {
-    return (ConflictHandler<K, V>) EXCEPTION_ON_CONFLICT;
+  /**
+   * Returns a {@link MergeConflictHandler} that will always throw an
+   * {@link IllegalArgumentException}.
+   * Use this in cases where you never expect differing values for one key.
+   */
+  public static <K, V> MergeConflictHandler<K, V> getExceptionMergeConflictHandler() {
+    return new MergeConflictHandler<K, V>() {
+      @Override
+      public V resolveConflict(K key, V value1, V value2) {
+        throw new IllegalArgumentException("Conflicting value when merging maps for key " + key + ": " + value1 + " and " + value2);
+      }
+    };
   }
 
-  private static <K, V> ConflictHandler<K, V> inverseConflictHandler(
-      final ConflictHandler<K, V> delegate) {
-    return new ConflictHandler<K, V>() {
+  /**
+   * Returns a {@link MergeConflictHandler} that will always return the maximum
+   * (according to the natural order).
+   * This may not be used if the map contains {@code null} as value.
+   */
+  public static <K, V extends Comparable<? super V>> MergeConflictHandler<K, V> getMaximumMergeConflictHandler() {
+    return new MergeConflictHandler<K, V>() {
+      @Override
+      public V resolveConflict(K key, V value1, V value2) {
+        return Ordering.natural().max(value1, value2);
+      }
+    };
+  }
+
+  /**
+   * Returns a {@link MergeConflictHandler} that will always return the minimum
+   * (according to the natural order).
+   * This may not be used if the map contains {@code null} as value.
+   */
+  public static <K, V extends Comparable<? super V>> MergeConflictHandler<K, V> getMinimumMergeConflictHandler() {
+    return new MergeConflictHandler<K, V>() {
+      @Override
+      public V resolveConflict(K key, V value1, V value2) {
+        return Ordering.natural().min(value1, value2);
+      }
+    };
+  }
+
+  private static <K, V> MergeConflictHandler<K, V> inverseMergeConflictHandler(
+      final MergeConflictHandler<K, V> delegate) {
+    return new MergeConflictHandler<K, V>() {
       @Override
       public V resolveConflict(K pKey, V pValue1, V pValue2) {
         return delegate.resolveConflict(pKey, pValue2, pValue1);
@@ -74,17 +136,17 @@ public class MapMerger {
    * @param map1 The first map.
    * @param map2 The second map.
    * @param conflictHandler The handler that is called for a key with two different values.
-   * @return
+   * @return The merged map.
    */
-  public static <K extends Comparable<? super K>, V> PersistentSortedMap<K, V> mergeSortedMaps(
+  public static <K extends Comparable<? super K>, V> PersistentSortedMap<K, V> merge(
     final PersistentSortedMap<K, V> map1,
     final PersistentSortedMap<K, V> map2,
-    final ConflictHandler<K, V> conflictHandler) {
+    final MergeConflictHandler<K, V> conflictHandler) {
 
     if (map1.size() >= map2.size()) {
       return merge(map1, map2, Equivalence.equals(), conflictHandler, null);
     } else {
-      return merge(map2, map1, Equivalence.equals(), inverseConflictHandler(conflictHandler), null);
+      return merge(map2, map1, Equivalence.equals(), inverseMergeConflictHandler(conflictHandler), null);
     }
   }
 
@@ -95,21 +157,27 @@ public class MapMerger {
    * and for those keys that have a different value in both maps a handler is called,
    * and the result is put in the resulting map.
    *
+   * Optionally you can pass a list that will receive all encountered differences,
+   * i.e., keys which are present in only one map, or have different values.
+   * The list will contain triples with key and both values,
+   * where missing values are replaced by null.
+   *
    * Implementation note:
    * It may be faster to call this method with the bigger of the input maps
    * as the first parameter.
    *
    * @param map1 The first map.
    * @param map2 The second map.
+   * @param valueEquals The {@link Equivalence} that will determine whether two values are considered equal.
    * @param conflictHandler The handler that is called for a key with two different values.
    * @param collectDifferences Null or a modifiable list into which keys with different values are put.
-   * @return
+   * @return The merged map.
    */
   public static <K extends Comparable<? super K>, V> PersistentSortedMap<K, V> merge(
       final PersistentSortedMap<K, V> map1,
       final PersistentSortedMap<K, V> map2,
       final Equivalence<? super V> valueEquals,
-      final ConflictHandler<? super K, V> conflictHandler,
+      final MergeConflictHandler<? super K, V> conflictHandler,
       final @Nullable List<Triple<K, V, V>> collectDifferences) {
 
     // Assume map1 is the bigger one, so we use it as the base.
@@ -231,27 +299,30 @@ public class MapMerger {
   }
 
   /**
-   * Merges two {@link PersistentSortedMap}s with the given conflict handler (in the same way as
-   * {@link #mergeSortedMaps(set1, set2, conflictHandler)} does) and returns two additional
-   * {@link PersistentSortedMap}s: one with elements form the first map that don't contain in the second one and the
-   * second with the elements from the second map that don't contain in the first.
+   * Merges two {@link PersistentSortedMap}s with the given conflict handler
+   * (in the same way as {@link #merge(set1, set2, conflictHandler)} does)
+   * and returns two additional {@link PersistentSortedMap}s:
+   * one with elements from the first map that do not exist in the second map,
+   * and the other with the elements from the second map that do not exist in the first map.
+   * If both maps contain the same key with different values,
+   * the conflict handler will be used to resolve this,
+   * and the key won't be in any of the difference maps.
    * @param set1 the first map
    * @param set2 the second map
    * @param conflictHandler the conflict handler
-   * @return The {@link Triple} {@link Triple#of(from1, from2, union)} where {@code from1} and {@code from2} are the
+   * @return The {@link Triple} {@code (from1, from2, union)} where {@code from1} and {@code from2} are the
    * first and the second map mentioned above.
    */
-  public static <K extends Comparable<? super K>, V> Triple<PersistentSortedMap<K, V>,
-                                                             PersistentSortedMap<K, V>,
-                                                             PersistentSortedMap<K, V>> mergeSortedSets(
-    final PersistentSortedMap<K, V> set1,
-    final PersistentSortedMap<K, V> set2,
-    final ConflictHandler<K, V> conflictHandler) {
+  public static <K extends Comparable<? super K>, V>
+  Triple<PersistentSortedMap<K, V>, PersistentSortedMap<K, V>, PersistentSortedMap<K, V>>
+  mergeWithKeyDifferences(final PersistentSortedMap<K, V> set1,
+      final PersistentSortedMap<K, V> set2,
+      final MergeConflictHandler<K, V> conflictHandler) {
 
     if (set1.size() < set2.size()) {
       // swap order for more efficient implementation
       Triple<PersistentSortedMap<K, V>, PersistentSortedMap<K, V>, PersistentSortedMap<K, V>> result =
-          mergeSortedSets(set2, set1, inverseConflictHandler(conflictHandler));
+          mergeWithKeyDifferences(set2, set1, inverseMergeConflictHandler(conflictHandler));
       return Triple.of(result.getSecond(), result.getFirst(), result.getThird());
     }
 

@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
 
 import static com.google.common.base.Objects.firstNonNull;
 import static org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes.VOID;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.MapMerger.*;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.PersistentSortedMaps.*;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -55,8 +55,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.MapMerger;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.MapMerger.ConflictHandler;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PersistentSortedMaps;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PersistentSortedMaps.MergeConflictHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.CompositeField;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
@@ -110,15 +110,15 @@ public class PointerTargetSetManager {
     Triple<PersistentSortedMap<String, CType>,
            PersistentSortedMap<String, CType>,
            PersistentSortedMap<String, CType>> mergedBases =
-      mergeSortedSets(pts1.bases, pts2.bases, BaseUnitingConflictHandler.INSTANCE);
+      mergeWithKeyDifferences(pts1.bases, pts2.bases, BaseUnitingConflictHandler.INSTANCE);
 
     final Triple<PersistentSortedMap<CompositeField, Boolean>,
                  PersistentSortedMap<CompositeField, Boolean>,
                  PersistentSortedMap<CompositeField, Boolean>> mergedFields =
-      mergeSortedSets(pts1.fields, pts2.fields, MapMerger.<CompositeField, Boolean>getExceptionOnConflictHandler());
+      mergeWithKeyDifferences(pts1.fields, pts2.fields, PersistentSortedMaps.<CompositeField, Boolean>getExceptionMergeConflictHandler());
 
     PersistentSortedMap<String, PersistentList<PointerTarget>> mergedTargets =
-      mergeSortedMaps(pts1.targets, pts2.targets, PointerTargetSetManager.<String, PointerTarget>mergeOnConflict());
+      merge(pts1.targets, pts2.targets, PointerTargetSetManager.<String, PointerTarget>mergeOnConflict());
 
     // Targets is always the cross product of bases and fields.
     // So when we merge the bases, fields, and targets by taking the union,
@@ -190,8 +190,8 @@ public class PointerTargetSetManager {
   private PersistentSortedMap<String, DeferredAllocationPool> mergeDeferredAllocationPools(final PointerTargetSet pts1,
       final PointerTargetSet pts2) {
     final Map<DeferredAllocationPool, DeferredAllocationPool> mergedDeferredAllocationPools = new HashMap<>();
-    final ConflictHandler<String, DeferredAllocationPool> deferredAllocationMergingConflictHandler =
-      new ConflictHandler<String, DeferredAllocationPool>() {
+    final MergeConflictHandler<String, DeferredAllocationPool> deferredAllocationMergingConflictHandler =
+      new MergeConflictHandler<String, DeferredAllocationPool>() {
       @Override
       public DeferredAllocationPool resolveConflict(String key, DeferredAllocationPool a, DeferredAllocationPool b) {
         final DeferredAllocationPool result = a.mergeWith(b);
@@ -207,7 +207,7 @@ public class PointerTargetSetManager {
       }
     };
     PersistentSortedMap<String, DeferredAllocationPool> mergedDeferredAllocations =
-      mergeSortedMaps(pts1.deferredAllocations, pts2.deferredAllocations, deferredAllocationMergingConflictHandler);
+      merge(pts1.deferredAllocations, pts2.deferredAllocations, deferredAllocationMergingConflictHandler);
     for (final DeferredAllocationPool merged : mergedDeferredAllocationPools.keySet()) {
       for (final String pointerVariable : merged.getPointerVariables()) {
         mergedDeferredAllocations = mergedDeferredAllocations.putAndCopy(pointerVariable, merged);
@@ -216,7 +216,7 @@ public class PointerTargetSetManager {
     return mergedDeferredAllocations;
   }
 
-  private static enum BaseUnitingConflictHandler implements ConflictHandler<String, CType> {
+  private static enum BaseUnitingConflictHandler implements MergeConflictHandler<String, CType> {
     INSTANCE;
 
     @Override
@@ -270,8 +270,8 @@ public class PointerTargetSetManager {
     }
   }
 
-  private static <K, T> ConflictHandler<K, PersistentList<T>> mergeOnConflict() {
-    return new ConflictHandler<K, PersistentList<T>>() {
+  private static <K, T> MergeConflictHandler<K, PersistentList<T>> mergeOnConflict() {
+    return new MergeConflictHandler<K, PersistentList<T>>() {
       @Override
       public PersistentList<T> resolveConflict(K key, PersistentList<T> list1, PersistentList<T> list2) {
         return DeferredAllocationPool.mergeLists(list1, list2);
