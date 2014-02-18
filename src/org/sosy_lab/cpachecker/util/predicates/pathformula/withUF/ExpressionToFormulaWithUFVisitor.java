@@ -274,7 +274,7 @@ class ExpressionToFormulaWithUFVisitor
         return Value.ofValue(conv.makeConstant(variable));
       }
     } else {
-      variable = conv.scopedIfNecessary(e, ssa, function);
+      variable = conv.scopedIfNecessary(e, function);
       final Formula address = conv.makeConstant(PointerTargetSet.getBaseName(variable.getName()),
                                                 CTypeUtils.getBaseType(resultType));
       return AliasedLocation.ofAddress(address);

@@ -138,7 +138,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
 
     @Override
     public PointerTargetPattern visit(final CIdExpression e) throws UnrecognizedCCodeException {
-      final Variable variable = conv.scopedIfNecessary(e, null, null);
+      final Variable variable = conv.scopedIfNecessary(e, null);
       final CType expressionType = CTypeUtils.simplifyType(e.getExpressionType());
       if (!pts.isBase(variable.getName(), expressionType) && !CTypeUtils.containsArray(expressionType)) {
         return null;
@@ -234,7 +234,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
 
   @Override
   public PointerTargetPattern visit(final CIdExpression e) throws UnrecognizedCCodeException {
-    final Variable variable = conv.scopedIfNecessary(e, null, null);
+    final Variable variable = conv.scopedIfNecessary(e, null);
     if (!pts.isActualBase(variable.getName()) &&
         !CTypeUtils.containsArray(CTypeUtils.simplifyType(e.getExpressionType()))) {
       return null;

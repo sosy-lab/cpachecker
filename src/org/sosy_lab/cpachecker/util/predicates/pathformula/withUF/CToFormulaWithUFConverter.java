@@ -193,7 +193,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   @Override
-  protected Variable scopedIfNecessary(CIdExpression var, SSAMapBuilder ssa, String function) {
+  protected Variable scopedIfNecessary(CIdExpression var, String function) {
     return Variable.create(var.getDeclaration().getQualifiedName(),
                            CTypeUtils.simplifyType(var.getExpressionType()));
   }
@@ -300,8 +300,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   boolean isRelevantField(final CCompositeType compositeType,
-                          final String fieldName,
-                          final PointerTargetSetBuilder pts) {
+                          final String fieldName) {
     return !variableClassification.isPresent() ||
            !options.ignoreIrrelevantVariables() ||
            ptsMgr.getSize(compositeType) <= options.maxPreFilledAllocationSize() ||
@@ -341,7 +340,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     if (type instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) type;
       for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-        if (isRelevantField(compositeType, memberDeclaration.getName(), pts)) {
+        if (isRelevantField(compositeType, memberDeclaration.getName())) {
           pts.addField(compositeType, memberDeclaration.getName());
           final CType memberType = CTypeUtils.simplifyType(memberDeclaration.getType());
           addAllFields(memberType, pts);
@@ -421,7 +420,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         final Variable newBase = Variable.create(base.getName() + FIELD_NAME_SEPARATOR + memberName,
                                                  memberType);
         if (hasIndex(newBase.getName(), newBase.getType(), ssa) &&
-            isRelevantField(compositeType, memberName, pts)) {
+            isRelevantField(compositeType, memberName)) {
           fields.add(Pair.of(compositeType, memberName));
           addValueImportConstraints(cfaEdge,
                                     fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, offset)),
@@ -883,7 +882,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         final String memberName = memberDeclaration.getName();
         final CType newLvalueType = CTypeUtils.simplifyType(memberDeclaration.getType());
         // Optimizing away the assignments from uninitialized fields
-        if (isRelevantField(lvalueCompositeType, memberName, pts) &&
+        if (isRelevantField(lvalueCompositeType, memberName) &&
              (!lvalue.isAliased() || // Assignment to a variable, no profit in optimizing it
               !isSimpleType(newLvalueType) || // That's not a simple assignment, check the nested composite
                rvalue.isValue() || // This is initialization, so the assignment is mandatory

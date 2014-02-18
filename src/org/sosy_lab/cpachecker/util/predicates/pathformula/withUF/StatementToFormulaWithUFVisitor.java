@@ -491,7 +491,7 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
         fieldOwnerType = ((CPointerType) fieldOwnerType).getType();
       }
       assert fieldOwnerType instanceof CCompositeType : "Field owner should have composite type";
-      return conv.isRelevantField((CCompositeType) fieldOwnerType, e.getFieldName(), pts);
+      return conv.isRelevantField((CCompositeType) fieldOwnerType, e.getFieldName());
     }
 
     @Override

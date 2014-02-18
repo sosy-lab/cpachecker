@@ -211,7 +211,7 @@ public class CtoFormulaConverter {
     return typeHandler.getSizeof(pType);
   }
 
-  protected Variable scopedIfNecessary(CIdExpression var, SSAMapBuilder ssa, String function) {
+  protected Variable scopedIfNecessary(CIdExpression var, String function) {
     return Variable.create(var.getDeclaration().getQualifiedName(), var.getExpressionType());
   }
 
