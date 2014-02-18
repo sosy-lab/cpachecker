@@ -46,10 +46,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTarget;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
 
@@ -195,7 +192,7 @@ public class PointerTargetSet implements Serializable {
         return formulaManager.getBooleanFormulaManager().makeBoolean(true);
       }
       bases = bases.putAndCopy(name, type); // To get proper inequalities
-      final BooleanFormula nextInequality = getNextBaseAddressInequality(name, lastBase, ptsMgr.typeHandler, formulaManager);
+      final BooleanFormula nextInequality = ptsMgr.getNextBaseAddressInequality(name, bases, lastBase);
       bases = bases.putAndCopy(name, PointerTargetSetManager.getFakeBaseType(ptsMgr.getSize(type))); // To prevent adding spurious targets when merging
       lastBase = name;
       return nextInequality;
@@ -228,7 +225,7 @@ public class PointerTargetSet implements Serializable {
       addTargets(name, type);
       bases = bases.putAndCopy(name, type);
 
-      final BooleanFormula nextInequality = getNextBaseAddressInequality(name, lastBase, ptsMgr.typeHandler, formulaManager);
+      final BooleanFormula nextInequality = ptsMgr.getNextBaseAddressInequality(name, bases, lastBase);
       lastBase = name;
       return nextInequality;
     }
@@ -410,24 +407,6 @@ public class PointerTargetSet implements Serializable {
 
   public boolean isDeferredAllocationPointer(final String pointerVariable) {
     return deferredAllocations.containsKey(pointerVariable);
-  }
-
-  protected BooleanFormula getNextBaseAddressInequality(final String newBase,
-                                                        final String lastBase,
-                                                        final CtoFormulaTypeHandler typeHandler,
-                                                        final FormulaManagerView fm) {
-    final FormulaType<?> pointerType = typeHandler.getPointerType();
-    final Formula newBaseFormula = fm.makeVariable(pointerType, getBaseName(newBase));
-    if (lastBase != null) {
-      final Integer lastSize = typeHandler.getSizeof(bases.get(lastBase));
-      final Formula rhs = fm.makePlus(fm.makeVariable(pointerType, getBaseName(lastBase)),
-                                      fm.makeNumber(pointerType, lastSize));
-      // The condition rhs > 0 prevents overflows in case of bit-vector encoding
-      return fm.makeAnd(fm.makeGreaterThan(rhs, fm.makeNumber(pointerType, 0L), true),
-                        fm.makeGreaterOrEqual(newBaseFormula, rhs, true));
-    } else {
-      return fm.makeGreaterThan(newBaseFormula, fm.makeNumber(pointerType, 0L), true);
-    }
   }
 
   public boolean isActualBase(final String name) {

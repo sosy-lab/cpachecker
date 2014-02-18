@@ -91,7 +91,7 @@ public class PointerTargetSetManager {
   private final FormulaManagerView formulaManager;
   private final BooleanFormulaManagerView bfmgr;
   private final FunctionFormulaManagerView ffmgr;
-  final CToFormulaWithUFTypeHandler typeHandler;
+  private final CToFormulaWithUFTypeHandler typeHandler;
 
   public PointerTargetSetManager(FormulaEncodingWithUFOptions pOptions,
       FormulaManagerView pFormulaManager, CToFormulaWithUFTypeHandler pTypeHandler) {
@@ -161,8 +161,8 @@ public class PointerTargetSetManager {
                   mergedBases.getSecond(),
                   mergedBases.getThird().putAndCopy(fakeBaseName, fakeBaseType));
       lastBase = fakeBaseName;
-      basesMergeFormula = formulaManager.makeAnd(pts1.getNextBaseAddressInequality(fakeBaseName, pts1.lastBase, typeHandler, formulaManager),
-                                                 pts2.getNextBaseAddressInequality(fakeBaseName, pts2.lastBase, typeHandler, formulaManager));
+      basesMergeFormula = formulaManager.makeAnd(getNextBaseAddressInequality(fakeBaseName, pts1.bases, pts1.lastBase),
+                                                 getNextBaseAddressInequality(fakeBaseName, pts2.bases, pts2.lastBase));
     }
 
     PointerTargetSet resultPTS =
@@ -375,6 +375,25 @@ public class PointerTargetSetManager {
   public int getOffset(CCompositeType compositeType, final String memberName) {
     return typeHandler.getOffset(compositeType, memberName);
   }
+
+
+  BooleanFormula getNextBaseAddressInequality(final String newBase,
+                                                        final PersistentSortedMap<String, CType> bases,
+                                                        final String lastBase) {
+    final FormulaType<?> pointerType = typeHandler.getPointerType();
+    final Formula newBaseFormula = formulaManager.makeVariable(pointerType, PointerTargetSet.getBaseName(newBase));
+    if (lastBase != null) {
+      final Integer lastSize = typeHandler.getSizeof(bases.get(lastBase));
+      final Formula rhs = formulaManager.makePlus(formulaManager.makeVariable(pointerType, PointerTargetSet.getBaseName(lastBase)),
+                                                  formulaManager.makeNumber(pointerType, lastSize));
+      // The condition rhs > 0 prevents overflows in case of bit-vector encoding
+      return formulaManager.makeAnd(formulaManager.makeGreaterThan(rhs, formulaManager.makeNumber(pointerType, 0L), true),
+                                    formulaManager.makeGreaterOrEqual(newBaseFormula, rhs, true));
+    } else {
+      return formulaManager.makeGreaterThan(newBaseFormula, formulaManager.makeNumber(pointerType, 0L), true);
+    }
+  }
+
 
   @CheckReturnValue
   private static PersistentSortedMap<String, PersistentList<PointerTarget>> addToTarget(final String base,
