@@ -172,6 +172,10 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
   }
 
+  public static boolean isUF(final String symbol) {
+    return symbol.startsWith(UF_NAME_PREFIX);
+  }
+
   @Override
   @Deprecated
   protected int makeFreshIndex(final String name, final CType type, final SSAMapBuilder ssa) {
@@ -1507,7 +1511,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   @SuppressWarnings("hiding")
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of("printf", "printk");
 
-  public static final String UF_NAME_PREFIX = "*";
+  static final String UF_NAME_PREFIX = "*";
 
   public static final String FIELD_NAME_SEPARATOR = "$";
 
