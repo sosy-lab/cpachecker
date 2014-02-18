@@ -107,6 +107,12 @@ public class PointerTargetSetManager {
                                    final PointerTargetSet pts2,
                                    final SSAMap resultSSA) {
 
+    if (pts1.isEmpty() && pts2.isEmpty()) {
+      return Pair.of(
+          Triple.of(bfmgr.makeBoolean(true), bfmgr.makeBoolean(true), bfmgr.makeBoolean(true)),
+          PointerTargetSet.emptyPointerTargetSet());
+    }
+
     Triple<PersistentSortedMap<String, CType>,
            PersistentSortedMap<String, CType>,
            PersistentSortedMap<String, CType>> mergedBases =

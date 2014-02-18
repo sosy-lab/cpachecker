@@ -431,20 +431,22 @@ public final class PointerTargetSet implements Serializable {
      * Returns an immutable PointerTargetSet with all the changes made to the builder.
      */
     public PointerTargetSet build() {
-      return new PointerTargetSet(bases,
-                                  lastBase,
-                                  fields,
-                                  deferredAllocations,
-                                  targets);
+      PointerTargetSet result = new PointerTargetSet(bases, lastBase, fields,
+          deferredAllocations, targets);
+      if (result.isEmpty()) {
+        return EMPTY_INSTANCE;
+      } else {
+        return result;
+      }
     }
   }
 
   public static final PointerTargetSet emptyPointerTargetSet() {
-    return new PointerTargetSet(PathCopyingPersistentTreeMap.<String, CType>of(),
-                                null,
-                                PathCopyingPersistentTreeMap.<CompositeField, Boolean>of(),
-                                PathCopyingPersistentTreeMap.<String, DeferredAllocationPool>of(),
-                                PathCopyingPersistentTreeMap.<String, PersistentList<PointerTarget>>of());
+    return EMPTY_INSTANCE;
+  }
+
+  public boolean isEmpty() {
+    return bases.isEmpty() && fields.isEmpty();
   }
 
   @Override
@@ -481,6 +483,14 @@ public final class PointerTargetSet implements Serializable {
     this.deferredAllocations = deferredAllocations;
 
     this.targets = targets;
+
+    if (isEmpty()) {
+      // Inside isEmpty(), we do not check the following fields,
+      // so we assert here that isEmpty() implies that they are also empty.
+      assert lastBase == null;
+      assert targets.isEmpty();
+      assert deferredAllocations.isEmpty();
+    }
   }
 
   /**
@@ -492,6 +502,14 @@ public final class PointerTargetSet implements Serializable {
       FormulaEncodingWithUFOptions options) {
     return new PointerTargetSetBuilder(this, fmgr, ptsMgr, options);
   }
+
+  private static final PointerTargetSet EMPTY_INSTANCE = new PointerTargetSet(
+      PathCopyingPersistentTreeMap.<String, CType>of(),
+      null,
+      PathCopyingPersistentTreeMap.<CompositeField, Boolean>of(),
+      PathCopyingPersistentTreeMap.<String, DeferredAllocationPool>of(),
+      PathCopyingPersistentTreeMap.<String, PersistentList<PointerTarget>>of()
+      );
 
   private static final Joiner joiner = Joiner.on(" ");
 
