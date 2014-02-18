@@ -182,6 +182,11 @@ public class CFACreator {
         + "single loop and an artificial program counter.")
   private boolean transformIntoSingleLoop = false;
 
+  @Option(name="cfa.moveDeclarationsToFunctionStart",
+      description="With this option, all declarations in each function will be moved"
+          + "to the beginning of each function.")
+  private boolean moveDeclarationsToFunctionStart = false;
+
   @Option(description="C or Java?")
   private Language language = Language.C;
 
@@ -376,6 +381,11 @@ public class CFACreator {
 
       // remove all edges which don't have any effect on the program
       CFASimplifier.simplifyCFA(cfa);
+
+      if (moveDeclarationsToFunctionStart) {
+        CFADeclarationMover declarationMover = new CFADeclarationMover(logger);
+        declarationMover.moveDeclarationsToFunctionStart(cfa);
+      }
 
       if (checkNullPointers) {
         CFATransformations transformations = new CFATransformations(logger, config);
