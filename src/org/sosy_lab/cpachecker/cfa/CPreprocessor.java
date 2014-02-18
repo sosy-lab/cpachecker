@@ -49,7 +49,7 @@ public class CPreprocessor {
                       "The source file name will be appended to this string. " +
                       "The preprocessor needs to print the output to stdout.")
 
-  private String preprocessor = "cpp"; // -P  Inhibit generation of linemarkers (this make problems when running a tokenizer)
+  private String preprocessor = "cpp";
 
   private final LogManager logger;
 
