@@ -107,36 +107,6 @@ public class PointerTargetSetManager {
                                    final PointerTargetSet pts2,
                                    final SSAMap resultSSA) {
 
-
-    final Triple<PointerTargetSet,
-                 BooleanFormula,
-                 Pair<PersistentSortedMap<String, CType>, PersistentSortedMap<String, CType>>>
-      ptsMergeResult = merge(pts1, pts2);
-
-    final PersistentSortedMap<String, CType> basesFromPTS1 = ptsMergeResult.getThird().getFirst();
-    final PersistentSortedMap<String, CType> basesFromPTS2 = ptsMergeResult.getThird().getSecond();
-
-    final List<Pair<CCompositeType, String>> sharedFields = new ArrayList<>();
-    final BooleanFormula mergeFormula2 = makeSharingConstraints(basesFromPTS1, sharedFields, resultSSA, pts2);
-    final BooleanFormula mergeFormula1 = makeSharingConstraints(basesFromPTS2, sharedFields, resultSSA, pts1);
-
-    PointerTargetSet resultPTS = ptsMergeResult.getFirst();
-    if (!sharedFields.isEmpty()) {
-      final PointerTargetSetBuilder resultPTSBuilder = resultPTS.builder(formulaManager, this, options);
-      for (final Pair<CCompositeType, String> sharedField : sharedFields) {
-        resultPTSBuilder.addField(sharedField.getFirst(), sharedField.getSecond());
-      }
-      resultPTS = resultPTSBuilder.build();
-    }
-
-    return Pair.of(Triple.of(mergeFormula1, mergeFormula2, ptsMergeResult.getSecond()), resultPTS);
-  }
-
-  private Triple<PointerTargetSet,
-                BooleanFormula,
-                Pair<PersistentSortedMap<String, CType>, PersistentSortedMap<String, CType>>>
-    merge(final PointerTargetSet pts1, final PointerTargetSet pts2) {
-
     Triple<PersistentSortedMap<String, CType>,
            PersistentSortedMap<String, CType>,
            PersistentSortedMap<String, CType>> mergedBases =
@@ -195,15 +165,26 @@ public class PointerTargetSetManager {
                                                  pts2.getNextBaseAddressInequality(fakeBaseName, pts2.lastBase, typeHandler, formulaManager));
     }
 
-    final PointerTargetSet result  =
+    PointerTargetSet resultPTS =
       new PointerTargetSet(mergedBases.getThird(),
                            lastBase,
                            mergedFields.getThird(),
                            mergedDeferredAllocations,
                            mergedTargets);
-    return Triple.of(result,
-                     basesMergeFormula,
-                     Pair.of(mergedBases.getFirst(), mergedBases.getSecond()));
+
+    final List<Pair<CCompositeType, String>> sharedFields = new ArrayList<>();
+    final BooleanFormula mergeFormula2 = makeSharingConstraints(mergedBases.getFirst(), sharedFields, resultSSA, pts2);
+    final BooleanFormula mergeFormula1 = makeSharingConstraints(mergedBases.getSecond(), sharedFields, resultSSA, pts1);
+
+    if (!sharedFields.isEmpty()) {
+      final PointerTargetSetBuilder resultPTSBuilder = resultPTS.builder(formulaManager, this, options);
+      for (final Pair<CCompositeType, String> sharedField : sharedFields) {
+        resultPTSBuilder.addField(sharedField.getFirst(), sharedField.getSecond());
+      }
+      resultPTS = resultPTSBuilder.build();
+    }
+
+    return Pair.of(Triple.of(mergeFormula1, mergeFormula2, basesMergeFormula), resultPTS);
   }
 
   private PersistentSortedMap<String, DeferredAllocationPool> mergeDeferredAllocationPools(final PointerTargetSet pts1,
