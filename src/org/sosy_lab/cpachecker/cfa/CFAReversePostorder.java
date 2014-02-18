@@ -42,6 +42,7 @@ public class CFAReversePostorder {
   private final Set<CFANode> visited   = new HashSet<>();
   private int                reversePostorderId2 = 0;
 
+  @SuppressWarnings("unused")
   private boolean checkIds(CFANode node) {
     // This is the (original) recursive algorithm.
     // We keep this implementation as an assertion check
@@ -126,6 +127,9 @@ public class CFAReversePostorder {
         iteratorStack.pop();
       }
     }
-    assert checkIds(start);
+
+    // Disabled because the recursive algorithm throws StackOverflowError
+    // for large files.
+    //assert checkIds(start);
   }
 }
