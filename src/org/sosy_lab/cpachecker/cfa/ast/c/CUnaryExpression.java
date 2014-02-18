@@ -77,6 +77,7 @@ public class CUnaryExpression extends AUnaryExpression implements CExpression {
     MINUS  ("-"),
     AMPER  ("&"),
     TILDE  ("~"),
+    @Deprecated
     NOT    ("!"),
     SIZEOF ("sizeof"),
     ;
