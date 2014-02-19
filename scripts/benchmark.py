@@ -55,6 +55,8 @@ import benchmark.runexecutor as runexecutor
 import benchmark.util as Util
 import benchmark.filewriter as filewriter
 from benchmark.outputHandler import OutputHandler
+import cloudRunexecutor as CloudRunExecutor
+
 
 MEMLIMIT = runexecutor.MEMLIMIT
 TIMELIMIT = runexecutor.TIMELIMIT
@@ -403,24 +405,23 @@ def parseCloudResultFile(filePath):
     returnValue = None
 
     with open(filePath, 'rt') as file:
+        content = file.read()
 
+        parsingFailed = False
         try:
-            wallTime = float(file.readline().split(":")[-1])
-        except ValueError:
-            pass
-        try:
-            cpuTime = float(file.readline().split(":")[-1])
-        except ValueError:
-            pass
-        try:
-            memUsage = int(file.readline().split(":")[-1]);
-        except ValueError:
-            pass
-        try:
-            returnValue = int(file.readline().split(":")[-1])
-        except ValueError:
-            pass
+            info = eval(content)
+        except SyntaxError:
+            parsingFailed = True
 
+        if parsingFailed or not isinstance(info, dict):
+            logging.warning('parsing result-values failed, unexpected input from {0}: {1}'.format(filePath, content))
+
+        else:
+            wallTime    = info[CloudRunExecutor.WALLTIME_STR]
+            cpuTime     = info[CloudRunExecutor.CPUTIME_STR]
+            memUsage    = info[CloudRunExecutor.MEMORYUSAGE_STR]
+            returnValue = info[CloudRunExecutor.RETURNVALUE_STR]
+        
     return (wallTime, cpuTime, memUsage, returnValue)
 
 

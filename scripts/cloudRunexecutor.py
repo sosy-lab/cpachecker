@@ -14,6 +14,11 @@ MEMLIMIT = runexecutor.MEMLIMIT
 TIMELIMIT = runexecutor.TIMELIMIT
 CORELIMIT = runexecutor.CORELIMIT
 
+WALLTIME_STR    = "wallTime"
+CPUTIME_STR     = "cpuTime"
+MEMORYUSAGE_STR = "memoryUsage"
+RETURNVALUE_STR = "returnvalue"
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv
@@ -54,12 +59,15 @@ def main(argv=None):
 
         logging.debug("runExecutor.executeRun() ended.")
 
-        print("Walltime: " + str(wallTime))
-        print("CpuTime: " + str(cpuTime))
-        print("MemoryUsage: " + str(memUsage))
-        print("Returnvalue: " + str(returnvalue))
+        out = {WALLTIME_STR    : wallTime,
+               CPUTIME_STR     : cpuTime,
+               MEMORYUSAGE_STR : memUsage,
+               RETURNVALUE_STR : returnvalue,
+              }
 
-        return returnvalue
+        # this line dumps the result to the stdout-file.
+        # the stdout-file is automatically copied back to VCloud-client.
+        print(repr(out))
 
     else:
         sys.exit("Wrong number of arguments, expected exactly 4 or 5: <command> <memlimit in MB> <timelimit in s> <output file name> <core limit(optional)>")
