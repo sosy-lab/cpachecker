@@ -46,6 +46,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -333,7 +334,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return isAddressedVariable(parsedName.getFirst(), parsedName.getSecond());
   }
 
-  void addAllFields(final CType type, final PointerTargetSetBuilder pts) {
+  private void addAllFields(final CType type, final PointerTargetSetBuilder pts) {
     if (type instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) type;
       for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
@@ -364,6 +365,30 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         (options.maxPreFilledAllocationSize() > 0 && getSizeof(type) <= options.maxPreFilledAllocationSize())) {
       addAllFields(type, pts);
     }
+  }
+
+  private void declareSharedBase(final CDeclaration declaration, final boolean shareImmediately,
+      final Constraints constraints, final PointerTargetSetBuilder pts) {
+    if (shareImmediately) {
+      addPreFilledBase(declaration.getQualifiedName(), declaration.getType(), false, false, constraints, pts);
+    } else if (isAddressedVariable(declaration.getQualifiedName()) ||
+               CTypeUtils.containsArray(declaration.getType())) {
+      constraints.addConstraint(pts.prepareBase(declaration.getQualifiedName(),
+                                                CTypeUtils.simplifyType(declaration.getType())));
+    }
+  }
+
+  private void declareSharedBase(final CParameterDeclaration declaration, final boolean shareImmediately,
+      final Constraints constraints, final PointerTargetSetBuilder pts) {
+    CVariableDeclaration decl = new CVariableDeclaration(declaration.getFileLocation(),
+         false,
+         CStorageClass.AUTO,
+         declaration.getType(),
+         declaration.getName(),
+         declaration.getOrigName(),
+         declaration.getQualifiedName(),
+         null);
+    declareSharedBase(decl, shareImmediately, constraints, pts);
   }
 
   Formula makeAllocation(final boolean isZeroing,
@@ -1133,6 +1158,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   protected BooleanFormula makeReturn(final CExpression resultExpression,
                                       final CReturnStatementEdge returnEdge,
+                                      final Constraints constraints,
+                                      final PointerTargetSetBuilder pts,
                                       final StatementToFormulaWithUFVisitor statementVisitor)
   throws CPATransferException {
     if (resultExpression == null) {
@@ -1165,7 +1192,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                              returnVariableDeclaration),
                                            resultExpression);
       final BooleanFormula result = assignment.accept(statementVisitor);
-      statementVisitor.declareSharedBase(returnVariableDeclaration, CTypeUtils.containsArray(returnType));
+      declareSharedBase(returnVariableDeclaration, CTypeUtils.containsArray(returnType), constraints, pts);
       return result;
     }
   }
@@ -1193,7 +1220,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final CType declarationType = CTypeUtils.simplifyType(
                                       ((CTypeDeclaration) declarationEdge.getDeclaration()).getType());
       if (declarationType instanceof CCompositeType) {
-        statementVisitor.declareCompositeType((CCompositeType) declarationType);
+        typeHandler.addCompositeTypeToCache((CCompositeType) declarationType);
       }
     }
 
@@ -1264,7 +1291,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     final CIdExpression lhs =
         new CIdExpression(declaration.getFileLocation(), declarationType, declaration.getName(), declaration);
     if (initializer instanceof CInitializerExpression || initializer == null) {
-      statementVisitor.declareSharedBase(declaration, false);
+      declareSharedBase(declaration, false, constraints, pts);
 
       final BooleanFormula result;
       if (initializer != null) {
@@ -1285,7 +1312,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
       return result;
     } else if (initializer instanceof CInitializerList) {
-      statementVisitor.declareSharedBase(declaration, false);
+      declareSharedBase(declaration, false, constraints, pts);
 
       List<CExpressionAssignmentStatement> assignments =
         CInitializers.convertToAssignments(declaration, declarationEdge);
@@ -1316,6 +1343,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   private BooleanFormula makeFunctionCall(final CFunctionCallEdge edge,
+                                          final Constraints constraints,
+                                          final PointerTargetSetBuilder pts,
                                           final StatementToFormulaWithUFVisitor statementVisitor)
   throws CPATransferException {
 
@@ -1354,7 +1383,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         argument);
       final BooleanFormula assignment = assignmentStatement.accept(statementVisitor);
       result = bfmgr.and(result, assignment);
-      statementVisitor.declareSharedBase(formalParameter, CTypeUtils.containsArray(parameterType));
+      declareSharedBase(formalParameter, CTypeUtils.containsArray(parameterType), constraints, pts);
     }
 
     return result;
@@ -1435,7 +1464,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
     case ReturnStatementEdge: {
       final CReturnStatementEdge returnEdge = (CReturnStatementEdge) edge;
-      return makeReturn(returnEdge.getExpression(), returnEdge, statementVisitor);
+      return makeReturn(returnEdge.getExpression(), returnEdge, constraints, pts, statementVisitor);
     }
 
     case DeclarationEdge: {
@@ -1453,7 +1482,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
 
     case FunctionCallEdge: {
-      return makeFunctionCall((CFunctionCallEdge) edge, statementVisitor);
+      return makeFunctionCall((CFunctionCallEdge) edge, constraints, pts, statementVisitor);
     }
 
     case FunctionReturnEdge: {

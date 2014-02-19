@@ -71,7 +71,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Val
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-class ExpressionToFormulaWithUFVisitor
+abstract class ExpressionToFormulaWithUFVisitor
        extends DefaultCExpressionVisitor<Expression, UnrecognizedCCodeException> {
 
   public ExpressionToFormulaWithUFVisitor(final CToFormulaWithUFConverter cToFormulaConverter,
