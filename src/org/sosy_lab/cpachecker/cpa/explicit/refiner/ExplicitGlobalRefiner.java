@@ -544,6 +544,8 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     private boolean addInterpolants(Map<ARGState, ExplicitValueInterpolant> newItps) {
       boolean result = interpolants.values().containsAll(newItps.values());
 
+      assert !interpolants.keySet().removeAll(newItps.keySet()) : "multiple interpolants for single state";
+
       interpolants.putAll(newItps);
 
       return result;
