@@ -106,9 +106,8 @@ import com.google.common.collect.ImmutableMap;
 
 public class OctTransferRelation extends ForwardingTransferRelation<OctState, Precision> {
 
-  private static final String TEMP_BOOLEAN_VAR_NAME = "___cpa_temp_bool_var_";
   private static final String FUNCTION_RETURN_VAR = "___cpa_temp_result_var_";
-  private static final String TEMP_VISITOR_VAR_NAME = "___cpa_temp_visitor_var_";
+  private static final String TEMP_VAR_PREFIX = "___cpa_temp_var_";
 
   /**
    * counter for temporary variables which should be increased after every
@@ -193,11 +192,20 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
       }
     }
 
+    Set<OctState> cleanedUpStates = new HashSet<>();
+    // TODO overapproximation here, we should not need to remove those vars
+    // instead it would be much better if we could omit creating them, p.e. through
+    // creating the temporary vars in the cfa, before analyzing the program
+    for (OctState st : successors) {
+      cleanedUpStates.add(st.removeTempVars(functionName, TEMP_VAR_PREFIX));
+    }
+
     resetInfo();
 
-    return successors;
+    return cleanedUpStates;
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   protected OctState handleAssumption(CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
       throws CPATransferException {
@@ -310,7 +318,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
     // is checked
     case MINUS:
     case PLUS:
-      String tempVarName = buildVarName(functionName, TEMP_BOOLEAN_VAR_NAME + temporaryVariableCounter + "_");
+      String tempVarName = buildVarName(functionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
       temporaryVariableCounter++;
       Set<IOctCoefficients> coeffsList = binExp.accept(new COctagonCoefficientVisitor());
       for (IOctCoefficients coeffs : coeffsList) {
@@ -445,7 +453,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
       if (coeffsLeft.isEmpty()) {
         return state;
       } else {
-        String tempLeft = buildVarName(functionName, TEMP_BOOLEAN_VAR_NAME + temporaryVariableCounter + "_");
+        String tempLeft = buildVarName(functionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
         temporaryVariableCounter++;
         List<OctState> tmpList = new ArrayList<>();
         for (IOctCoefficients coeffs : coeffsLeft) {
@@ -665,7 +673,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
       if (coeffsLeft.isEmpty()) {
         return state;
       } else {
-        String tempLeft = buildVarName(functionName, TEMP_BOOLEAN_VAR_NAME + temporaryVariableCounter + "_");
+        String tempLeft = buildVarName(functionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
         temporaryVariableCounter++;
         List<OctState> tmpList = new ArrayList<>();
         for (IOctCoefficients coeffs : coeffsLeft) {
@@ -688,7 +696,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
       if (coeffsRight.isEmpty()) {
         return state;
       } else {
-        String tempRight = buildVarName(functionName, TEMP_BOOLEAN_VAR_NAME + temporaryVariableCounter + "_");
+        String tempRight = buildVarName(functionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
         temporaryVariableCounter++;
         List<OctState> tmpList = new ArrayList<>();
         for (OctState st : states) {
@@ -1114,7 +1122,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
             if (returnCoefficients.size() == 2) {
               return returnCoefficients;
             }
-            String tempVarLeft = buildVarName(functionName, TEMP_VISITOR_VAR_NAME + temporaryVariableCounter + "_");
+            String tempVarLeft = buildVarName(functionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
             temporaryVariableCounter++;
             state = state.declareVariable(tempVarLeft);
             state = state.makeAssignment(tempVarLeft, leftCoeffs.expandToSize(state.sizeOfVariables(), state));
@@ -1194,30 +1202,6 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
               } else {
                 returnCoefficients.add(OctSimpleCoefficients.getBoolFALSECoeffs(state.sizeOfVariables(), state));
               }
-//              List<OctState> tmp = state.addIneqConstraint(tempVarLeft, rightCoeffs);
-//              for (OctState t : tmp) {
-//                returnCoefficients.contains(OctSimpleCoefficients.getBoolTRUECoeffs(state.sizeOfVariables(), state));
-//                if (t.isEmpty()) {
-//                  returnCoefficients.add(OctSimpleCoefficients.getBoolFALSECoeffs(state.sizeOfVariables(), state));
-//                } else {
-//                  returnCoefficients.add(OctSimpleCoefficients.getBoolTRUECoeffs(state.sizeOfVariables(), state));
-//                }
-//              }
-//              System.out.print(e);
-//              if (tmpState.isEmpty()) {
-//                System.out.println(" true");
-//                returnCoefficients.add(new OctSimpleCoefficients(state.sizeOfVariables(), 1));
-//              } else {
-//                System.out.print(" false");
-//                returnCoefficients.add(new OctSimpleCoefficients(state.sizeOfVariables(), 0));
-//
-//                if (!state.addSmallerConstraint(tempVarLeft, rightCoeffs).isEmpty() || !state.addGreaterConstraint(tempVarLeft, rightCoeffs).isEmpty()) {
-//                  returnCoefficients.add(new OctSimpleCoefficients(state.sizeOfVariables(), 1));
-//                  System.out.println(" + true");
-//                } else {
-//                  System.out.println();
-//                }
-//              }
               break;
             }
           }
@@ -1284,6 +1268,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
       return Collections.singleton((IOctCoefficients)new OctSimpleCoefficients(state.sizeOfVariables(), (int) e.asLong(), state));
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public Set<IOctCoefficients> visit(CUnaryExpression e) throws CPATransferException {
       Set<IOctCoefficients> operand = e.getOperand().accept(this);
@@ -1299,7 +1284,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
       case MINUS:
         Set<IOctCoefficients> returnCoefficients = new HashSet<>();
         for (IOctCoefficients coeffs : operand) {
-          String tempVar = buildVarName(functionName, TEMP_VISITOR_VAR_NAME + temporaryVariableCounter + "_");
+          String tempVar = buildVarName(functionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
           temporaryVariableCounter++;
           state = state.declareVariable(tempVar).makeAssignment(tempVar, coeffs.expandToSize(state.sizeOfVariables()+1, state));
 
