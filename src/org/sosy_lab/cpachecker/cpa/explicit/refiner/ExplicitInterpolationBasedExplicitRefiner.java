@@ -405,6 +405,29 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
           : Collections.unmodifiableSet(assignment.keySet());
     }
 
+    /**
+     * This method joins to explicit-value interpolants. If the underlying map contains different values for a key
+     * contained in both maps, the behaviour is undefined.
+     *
+     * @param other the explicit-value interpolant to join with this one
+     * @return a new explicit-value interpolant containing the joined mapping of this and the other explicit-value
+     * interpolant
+     */
+    public ExplicitValueInterpolant join(ExplicitValueInterpolant other) {
+
+      Map<MemoryLocation, Long> newAssignment = new HashMap<>();
+
+      if(assignment != null) {
+        newAssignment.putAll(assignment);
+      }
+
+      if(other.assignment != null) {
+        newAssignment.putAll(other.assignment);
+      }
+
+      return new ExplicitValueInterpolant(newAssignment);
+    }
+
     @Override
     public int hashCode() {
       return (assignment == null) ? 0 : assignment.hashCode();
