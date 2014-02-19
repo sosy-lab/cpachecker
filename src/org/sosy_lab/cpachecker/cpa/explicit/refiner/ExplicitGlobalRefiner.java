@@ -200,7 +200,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
         itpTree.exportToDot(totalRefinements, i);
       }
 
-      if(!stopOnEmptyInterpolationIncrement && !newInterpolantAdded) {
+      if(stopOnEmptyInterpolationIncrement && !newInterpolantAdded) {
         break;
       }
 
