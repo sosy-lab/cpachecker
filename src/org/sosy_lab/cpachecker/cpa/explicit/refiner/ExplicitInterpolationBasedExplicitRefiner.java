@@ -101,8 +101,9 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   private UniqueAssignmentsInPathConditionState assignments = null;
 
   // statistics
-  private int totalItps        = 0;
-  private Timer timerInterpolation          = new Timer();
+  private int totalInterpolations       = 0;
+  private int totalInterpolationQueries = 0;
+  private Timer timerInterpolation      = new Timer();
 
   private final CFA cfa;
   private final LogManager logger;
@@ -124,6 +125,8 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
   protected Map<ARGState, ExplicitValueInterpolant> performInterpolation(ARGPath errorPath,
       ExplicitValueInterpolant interpolant) throws CPAException, InterruptedException {
+    totalInterpolations++;
+    timerInterpolation.start();
 
     interpolationOffset = -1;
 
@@ -132,8 +135,8 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     for (int i = 0; i < errorPath.size(); i++) {
       shutdownNotifier.shutdownIfNecessary();
 
-      interpolant = interpolator.deriveInterpolant(cfaTrace, i, interpolant);
-      totalItps   = totalItps + interpolator.getNumberOfInterpolations();
+      interpolant               = interpolator.deriveInterpolant(cfaTrace, i, interpolant);
+      totalInterpolationQueries = totalInterpolationQueries + interpolator.getNumberOfInterpolationQueries();
 
       // stop once interpolant is false
       if (interpolant.isFalse()) {
@@ -141,6 +144,8 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
           pathInterpolants.put(errorPath.get(i).getFirst(), ExplicitValueInterpolant.FALSE);
           i++;
         }
+
+        timerInterpolation.stop();
         return pathInterpolants;
       }
 
@@ -157,6 +162,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       pathInterpolants.put(errorPath.get(i).getFirst(), interpolant);
     }
 
+    timerInterpolation.stop();
     return pathInterpolants;
   }
 
@@ -168,9 +174,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
     Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
 
-    timerInterpolation.start();
     Map<ARGState, ExplicitValueInterpolant> itps = performInterpolation(errorPath, ExplicitValueInterpolant.createInitial());
-    timerInterpolation.stop();
 
     int i = 0;
     for(Map.Entry<ARGState, ExplicitValueInterpolant> itp : itps.entrySet()) {
@@ -339,9 +343,10 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-    out.println("  number of explicit interpolations:                   " + totalItps);
-    out.println("  max. time for singe interpolation:                   " + timerInterpolation.getMaxTime().formatAs(TimeUnit.SECONDS));
-    out.println("  total time for interpolation:                        " + timerInterpolation);
+    out.println("  Number of explicit interpolations:                   " + totalInterpolations);
+    out.println("  Number of interpolation queries:                     " + totalInterpolationQueries);
+    out.println("  Max. time for singe interpolation:                   " + timerInterpolation.getMaxTime().formatAs(TimeUnit.SECONDS));
+    out.println("  Total time for interpolation:                        " + timerInterpolation);
   }
 
   public int getInterpolationOffset() {

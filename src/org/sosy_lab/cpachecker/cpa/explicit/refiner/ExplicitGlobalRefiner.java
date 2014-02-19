@@ -114,7 +114,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
   // statistics
   private int totalRefinements        = 0;
   private int totalTargetsFound       = 0;
-  private int totalPathsInterpolated  = 0;
+
   private final Timer totalTime       = new Timer();
 
   public static ExplicitGlobalRefiner create(final ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {

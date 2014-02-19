@@ -111,7 +111,7 @@ public class ExplicitInterpolator {
   /**
    * the number of interpolations
    */
-  private int numberOfInterpolations = 0;
+  private int numberOfInterpolationQueries = 0;
 
   /**
    * This method acts as the constructor of the class.
@@ -152,7 +152,7 @@ public class ExplicitInterpolator {
       final List<CFAEdge> pErrorPath,
       final int pOffset,
       final ExplicitValueInterpolant pInputInterpolant) throws CPAException, InterruptedException {
-    numberOfInterpolations = 0;
+    numberOfInterpolationQueries = 0;
 
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
     ExplicitState initialState      = pInputInterpolant.createExplicitValueState();
@@ -232,8 +232,8 @@ public class ExplicitInterpolator {
    *
    * @return the number of performed interpolations
    */
-  public int getNumberOfInterpolations() {
-    return numberOfInterpolations;
+  public int getNumberOfInterpolationQueries() {
+    return numberOfInterpolationQueries;
   }
 
   /**
@@ -264,7 +264,7 @@ public class ExplicitInterpolator {
    */
   private boolean isRemainingPathFeasible(Iterable<CFAEdge> remainingErrorPath, ExplicitState state)
       throws CPATransferException {
-    numberOfInterpolations++;
+    numberOfInterpolationQueries++;
 
     for(CFAEdge currentEdge : remainingErrorPath) {
       if(loopExitAssumes.contains(currentEdge)) {
