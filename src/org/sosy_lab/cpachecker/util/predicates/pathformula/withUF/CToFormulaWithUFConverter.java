@@ -378,19 +378,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
   }
 
-  private void declareSharedBase(final CParameterDeclaration declaration, final boolean shareImmediately,
-      final Constraints constraints, final PointerTargetSetBuilder pts) {
-    CVariableDeclaration decl = new CVariableDeclaration(declaration.getFileLocation(),
-         false,
-         CStorageClass.AUTO,
-         declaration.getType(),
-         declaration.getName(),
-         declaration.getOrigName(),
-         declaration.getQualifiedName(),
-         null);
-    declareSharedBase(decl, shareImmediately, constraints, pts);
-  }
-
   Formula makeAllocation(final boolean isZeroing,
                          final CType type,
                          final String base,
@@ -1383,7 +1370,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         argument);
       final BooleanFormula assignment = assignmentStatement.accept(statementVisitor);
       result = bfmgr.and(result, assignment);
-      declareSharedBase(formalParameter, CTypeUtils.containsArray(parameterType), constraints, pts);
+      declareSharedBase(formalParameter.asVariableDeclaration(), CTypeUtils.containsArray(parameterType), constraints, pts);
     }
 
     return result;
