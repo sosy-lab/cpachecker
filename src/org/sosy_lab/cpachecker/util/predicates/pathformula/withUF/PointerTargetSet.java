@@ -29,6 +29,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.SortedSet;
 
 import javax.annotation.Nonnull;
@@ -446,7 +447,8 @@ public final class PointerTargetSet implements Serializable {
   }
 
   public boolean isEmpty() {
-    return bases.isEmpty() && fields.isEmpty();
+    return bases.isEmpty() && fields.isEmpty()
+        && lastBase == null && deferredAllocations.isEmpty();
   }
 
   @Override
@@ -456,7 +458,13 @@ public final class PointerTargetSet implements Serializable {
 
   @Override
   public int hashCode() {
-    return (31 + bases.keySet().hashCode()) * 31 + fields.hashCode();
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + bases.hashCode();
+    result = prime * result + fields.hashCode();
+    result = prime * result + Objects.hashCode(lastBase);
+    result = prime * result + deferredAllocations.hashCode();
+    return result;
   }
 
   @Override
@@ -467,7 +475,12 @@ public final class PointerTargetSet implements Serializable {
       return false;
     } else {
       PointerTargetSet other = (PointerTargetSet) obj;
-      return bases.equals(other.bases) && fields.equals(other.fields);
+      // No need to check for equality of targets
+      // because if bases and fields are equal, targets is equal, too.
+      return Objects.equals(lastBase, other.lastBase)
+          && bases.equals(other.bases)
+          && fields.equals(other.fields)
+          && deferredAllocations.equals(other.deferredAllocations);
     }
   }
 
@@ -485,11 +498,9 @@ public final class PointerTargetSet implements Serializable {
     this.targets = targets;
 
     if (isEmpty()) {
-      // Inside isEmpty(), we do not check the following fields,
-      // so we assert here that isEmpty() implies that they are also empty.
-      assert lastBase == null;
+      // Inside isEmpty(), we do not check the following the targets field.
+      // so we assert here that isEmpty() implies that it is also empty.
       assert targets.isEmpty();
-      assert deferredAllocations.isEmpty();
     }
   }
 
