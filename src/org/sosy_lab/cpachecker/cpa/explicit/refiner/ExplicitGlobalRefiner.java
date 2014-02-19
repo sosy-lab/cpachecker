@@ -193,7 +193,6 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
         continue;
       }
 
-      totalPathsInterpolated++;
       boolean newInterpolantAdded = itpTree.addInterpolants(interpolatingRefiner.performInterpolation(errorPath, initialItp));
 
       if(exportInterpolationTree.equals("ALWAYS")) {
@@ -344,7 +343,6 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     if (totalRefinements > 0) {
       out.println("Total time for global refinement:    " + totalTime);
       out.println("Total number of targets found:       " + totalTargetsFound);
-      out.println("Total number of interpolated paths:  " + totalPathsInterpolated);
 
       interpolatingRefiner.printStatistics(out, pResult, pReached);
     }
