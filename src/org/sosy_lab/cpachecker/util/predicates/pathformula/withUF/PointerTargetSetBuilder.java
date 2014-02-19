@@ -449,4 +449,119 @@ public interface PointerTargetSetBuilder {
       }
     }
   }
+
+
+  /**
+   * Dummy implementation of {@link PointerTargetSetBuilder}
+   * that throws an exception on all methods except for {@link #build()},
+   * where it returns an empty {@link PointerTargetSet}.
+   */
+  public static enum DummyPointerTargetSetBuilder implements PointerTargetSetBuilder {
+    INSTANCE;
+
+    @Override
+    public BooleanFormula prepareBase(String pName, CType pType) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void shareBase(String pName, CType pType) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public BooleanFormula addBase(String pName, CType pType) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean tracksField(CCompositeType pCompositeType, String pFieldName) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean addField(CCompositeType pComposite, String pFieldName) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void shallowRemoveField(CCompositeType pComposite, String pFieldName) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void addTemporaryDeferredAllocation(boolean pIsZeroing, CIntegerLiteralExpression pSize, String pBaseVariable) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void addDeferredAllocationPointer(String pNewPointerVariable, String pOriginalPointerVariable) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean removeDeferredAllocatinPointer(String pOldPointerVariable) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public DeferredAllocationPool removeDeferredAllocation(String pAllocatedPointerVariable) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Collection<String> getDeferredAllocationVariables() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isTemporaryDeferredAllocationPointer(String pPointerVariable) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isDeferredAllocationPointer(String pPointerVariable) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isActualBase(String pName) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isPreparedBase(String pName) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isBase(String pName, CType pType) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public SortedSet<String> getAllBases() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public PersistentList<PointerTarget> getAllTargets(CType pType) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Iterable<PointerTarget> getMatchingTargets(CType pType, PointerTargetPattern pPattern) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Iterable<PointerTarget> getSpuriousTargets(CType pType, PointerTargetPattern pPattern) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public PointerTargetSet build() {
+      return PointerTargetSet.emptyPointerTargetSet();
+    }
+  }
 }
