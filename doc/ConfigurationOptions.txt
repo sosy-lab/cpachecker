@@ -709,6 +709,7 @@ cpa.explicit.precisionFile = no default value
 cpa.explicit.refiner.avoidAssumes = false
 
 # checkForRepeatedRefinements
+# checkForRepeatedRefinements
 # whether or not to check for repeated refinements, to then reset the
 # refinement root
 cpa.explicit.refiner.checkForRepeatedRefinements = true
@@ -824,10 +825,21 @@ cpa.invariants.useBinaryVariableInterrelations = true
 # invariant approximations from states.
 cpa.invariants.useBitvectors = false
 
+# this option controls how the maxLoopIterations condition is adjusted when a
+# condition adjustment is invoked.
+cpa.loopstack.maxLoopIterationAdjusterFactory = STATIC
+  enum:     [STATIC, INCREMENT, DOUBLE]
+
 # threshold for unrolling loops of the program (0 is infinite)
 # works only if assumption storage CPA is enabled, because otherwise it would
 # be unsound
 cpa.loopstack.maxLoopIterations = 0
+
+# threshold for adjusting the threshold for unrolling loops of the program (0
+# is infinite).
+# only relevant in combination with a non-static maximum loop iteration
+# adjuster.
+cpa.loopstack.maxLoopIterationsUpperBound = 0
 
 # time limit for a single post computation (use milliseconds or specify a
 # unit; 0 for infinite)

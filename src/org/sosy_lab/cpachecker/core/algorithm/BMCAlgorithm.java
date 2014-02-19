@@ -64,6 +64,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
+import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
+import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -78,10 +80,12 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -94,6 +98,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
@@ -200,6 +205,10 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private final ReachedSetFactory reachedSetFactory;
   private final CFA cfa;
 
+  private final ShutdownNotifier shutdownNotifier;
+
+  private final List<? extends AdjustableConditionCPA> conditionCPAs;
+
   private BooleanFormulaManagerView bfmgr;
 
   public BMCAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa,
@@ -229,6 +238,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = predCpa.getPathFormulaManager();
     solver = predCpa.getSolver();
+
+    this.shutdownNotifier = pShutdownNotifier;
+    conditionCPAs = CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class).toList();
   }
 
   @Override
@@ -238,52 +250,75 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     try {
       logger.log(Level.INFO, "Creating formula for program");
-      final boolean soundInner = algorithm.run(pReachedSet);
+      boolean soundInner;
 
-      if (from(pReachedSet)
-          .skip(1) // first state of reached is always an abstraction state, so skip it
-          .transform(toState(PredicateAbstractState.class))
-          .anyMatch(FILTER_ABSTRACTION_STATES)) {
-
-        logger.log(Level.WARNING, "BMC algorithm does not work with abstractions. Could not check for satisfiability!");
-        return soundInner;
-      }
 
       try (ProverEnvironment prover = solver.newProverEnvironmentWithModelGeneration()) {
+      KInductionProver kInductionProver = new KInductionProver(prover);
 
-        // first check safety
-        boolean safe = checkTargetStates(pReachedSet, prover);
-        logger.log(Level.FINER, "Program is safe?:", safe);
+        do {
+          shutdownNotifier.shutdownIfNecessary();
+          soundInner = unroll(pReachedSet);
+          if (from(pReachedSet)
+              .skip(1) // first state of reached is always an abstraction state, so skip it
+              .transform(toState(PredicateAbstractState.class))
+              .anyMatch(FILTER_ABSTRACTION_STATES)) {
 
-        if (!safe) {
-          createErrorPath(pReachedSet, prover);
-        }
-
-        prover.pop(); // remove program formula from solver stack
-
-        // second check soundness
-        boolean sound = false;
-
-        // verify soundness, but don't bother if we are unsound anyway or we have found a bug
-        if (soundInner && safe) {
-
-          // check bounding assertions
-          sound = checkBoundingAssertions(pReachedSet, prover);
-
-          // try to prove program safety via induction
-          if (induction) {
-            sound = sound || checkWithInduction(prover);
+            logger.log(Level.WARNING, "BMC algorithm does not work with abstractions. Could not check for satisfiability!");
+            return soundInner;
           }
-        }
 
-        return sound && soundInner;
+            // first check safety
+            boolean safe = checkTargetStates(pReachedSet, prover);
+            logger.log(Level.FINER, "Program is safe?:", safe);
+
+            if (!safe) {
+              createErrorPath(pReachedSet, prover);
+            }
+
+            prover.pop(); // remove program formula from solver stack
+
+            if (!safe) {
+              return soundInner;
+            }
+
+            // second check soundness
+            boolean sound = false;
+
+            // verify soundness, but don't bother if we are unsound anyway or we have found a bug
+            if (soundInner && safe) {
+
+              // check bounding assertions
+              sound = checkBoundingAssertions(pReachedSet, prover);
+
+              // try to prove program safety via induction
+              if (induction) {
+                sound = sound || kInductionProver.check();
+              }
+              if (sound) {
+                return true;
+              }
+            }
+        }
+        while (soundInner && adjustConditions());
       }
+
+      return false;
 
     } finally {
-      if (invariantGenerator != null) {
-        invariantGenerator.cancel();
+      invariantGenerator.cancel();
+    }
+  }
+
+  private boolean adjustConditions() {
+    for (AdjustableConditionCPA condCpa : conditionCPAs) {
+      if (!condCpa.adjustPrecision()) {
+        // this cpa said "do not continue"
+        logger.log(Level.INFO, "Terminating because of", condCpa.getClass().getSimpleName());
+        return false;
       }
     }
+    return !conditionCPAs.isEmpty();
   }
 
   /**
@@ -441,6 +476,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   /**
    * Create a disjunctive formula of all the path formulas in the supplied iterable.
+    //invariantGenerator = null; // so that GC can collect the generator and the reached set
    */
   private BooleanFormula createFormulaFor(Iterable<AbstractState> states) {
     BooleanFormula f = bfmgr.makeBoolean(false);
@@ -452,269 +488,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     return f;
   }
 
-  private boolean checkWithInduction(final ProverEnvironment prover) throws CPAException, InterruptedException {
-    if (!cfa.getLoopStructure().isPresent()) {
-      logger.log(Level.WARNING, "Could not use induction for proving program safety, loop structure of program could not be determined.");
-      return false;
-    }
-    Multimap<String, Loop> loops = cfa.getLoopStructure().get();
-
-    // Induction is currently only possible if there is a single loop.
-    // This check can be weakened in the future,
-    // e.g. it is ok if there is only a single loop on each path.
-    if (loops.size() > 1) {
-      logger.log(Level.WARNING, "Could not use induction for proving program safety, program has too many loops");
-      return false;
-    }
-
-    if (loops.isEmpty()) {
-      // induction is unnecessary, program has no loops
-      return true;
-    }
-
-    stats.inductionPreparation.start();
-
-    final Loop loop = Iterables.getOnlyElement(loops.values());
-
-    // function edges do not count as incoming/outgoing edges
-    FluentIterable<CFAEdge> incomingEdges = from(loop.getIncomingEdges())
-                                                 .filter(not(instanceOf(CFunctionReturnEdge.class)));
-    FluentIterable<CFAEdge> outgoingEdges = from(loop.getOutgoingEdges())
-        .filter(new Predicate<CFAEdge>(){
-          @Override
-          public boolean apply(CFAEdge pInput) {
-            if (!(pInput instanceof CFunctionCallEdge)) {
-              return true;
-            }
-            CFANode nodeAfterFunction = ((CFunctionCallEdge)pInput).getSummaryEdge().getSuccessor();
-            if (nodeAfterFunction.getNumEnteringEdges() == 0) {
-              // This is a function call without the chance to return
-              // to the node after the function (a non-terminating function).
-              // This is an exception where the edge counts as an outgoing edge.
-              return true;
-            }
-            return false;
-          }
-        });
-
-    if (incomingEdges.size() > 1) {
-      logger.log(Level.WARNING, "Could not use induction for proving program safety, loop has too many incoming edges", incomingEdges);
-      return false;
-    }
-
-    if (loop.getLoopHeads().size() > 1) {
-      logger.log(Level.WARNING, "Could not use induction for proving program safety, loop has too many loop heads");
-      return false;
-    }
-
-    final CFANode loopHead = Iterables.getOnlyElement(loop.getLoopHeads());
-
-    // check that the loop head is unambiguous
-    assert loopHead.equals(Iterables.getOnlyElement(incomingEdges).getSuccessor());
-
-    // Proving program safety with induction consists of two parts:
-    // 1) Prove all paths safe that go only one iteration through the loop.
-    //    This is part of the classic bounded model checking done above,
-    //    so we don't care about this here.
-    // 2) Assume that one loop iteration is safe and prove that the next one is safe, too.
-
-    // Suppose that the loop has a single outgoing edge,
-    // which leads to the error location. This edge is always an CAssumeEdge,
-    // and it has a "sibling" which is an inner edge of the loop and leads to
-    // the next iteration. We call the latter the continuation edge.
-    // The common predecessor node of these two edges will be called cut point.
-    // Now we want to show that the control flow of the program will never take
-    // the outgoing edge and reach the error location,
-    // if it didn't take it in the iteration before.
-    // We create three formulas:
-    // A is the assumption from the continuation edge in the previous iteration
-    // B is the formula for the loop body in the current iteration up to the cut point
-    // C is the negation of the formula for the path from the cut point to the error location
-    // Then we try to prove that the formula (A & B) => C holds.
-    // This implies that control flow cannot reach the error location.
-
-    // The conjunction (A & B) is created by running the CPAAlgorithm starting
-    // at the cut point and letting it run until the end of the current iteration
-    // (i.e. let it finish the iteration it starts in and complete one more iteration).
-    // Then we get the abstract state at the cut point in the last iteration
-    // and take its path formula, which is exactly (A & B).
-    // C is created by letting the CPAAlgorithm run starting at the cut point,
-    // taking the outgoing edge (and not staying within the loop).
-    // Then we can take the disjunction of the path formulas at all reached
-    // target states. Two things are important here:
-    // CPAAlgorithm needs to take only the path out of the loop,
-    // and the path formula needs to be created with the SSAMap from (A & B)
-    // in order to get the indices right.
-
-    // Everything above is easily extended to k-induction with k >= 1
-    // and to loops that have several outgoing edges (and therefore several
-    // cut points).
-    // For k-induction, just let the algorithm run a few iterations. Of course
-    // the formula for the induction basis needs to contain the same number of
-    // iterations. This is ensured because we use the same algorithm and the
-    // same CPAs to create the formulas in both cases, so they'll run the same
-    // number of iterations in both cases.
-    // For several exiting edges, we add each cut-point to the initial reached
-    // set, so that A will contain the assumptions from all continuation edges,
-    // and we'll create several (A & B) and C formulas, one for each cut point.
-
-
-    // Create initial reached set
-    ReachedSet reached = reachedSetFactory.create();
-    reached.add(cpa.getInitialState(loopHead), cpa.getInitialPrecision(loopHead));
-
-    // Run algorithm in order to create formula (A & B)
-
-    logger.log(Level.INFO, "Running algorithm to create induction hypothesis");
-    algorithm.run(reached);
-
-    final Multimap<CFANode, AbstractState> reachedPerLocation = Multimaps.index(reached, EXTRACT_LOCATION);
-
-    // live view of reached set with only the states in the loop
-    FluentIterable<AbstractState> loopStates = from(reached).filter(new Predicate<AbstractState>() {
-      @Override
-      public boolean apply(AbstractState pArg0) {
-        LoopstackState loopState = extractStateByType(pArg0, LoopstackState.class);
-        if (loop.equals(loopState.getLoop())) {
-          CallstackState callstackState = extractStateByType(pArg0, CallstackState.class);
-          /*
-           * If there is callstack information and the state is contained in
-           * any exit function, the state is no loop state.
-           */
-          while (callstackState.getPreviousState() != null
-              && !callstackState.getCurrentFunction().equals(loopHead.getFunctionName())) {
-            if (cfa.getAllFunctions().get(callstackState.getCurrentFunction()).getExitNode().getNumLeavingEdges() <= 0) {
-              return false;
-            }
-            callstackState = callstackState.getPreviousState();
-          }
-          return true;
-        }
-        return false;
-      }
-    });
-
-    assert !loopStates.isEmpty();
-
-    // get global invariants
-    BooleanFormula invariants = extractInvariantsAt(loopHead);
-    invariants = fmgr.instantiate(invariants, SSAMap.emptySSAMap().withDefault(1));
-
-    // Create formula
-    BooleanFormula inductions = bfmgr.makeBoolean(true);
-
-    /*
-     * Consider the predecessors of all edges that lead from the loop to a
-     * target location. This is the combination of all edges leaving the loop
-     * leading to a target location and all edges leading to target locations
-     * within the loop, but not any target locations preceding the loop.
-     */
-    final Iterable<CFAEdge> cutPointEdges;
-    {
-      Iterable<CFAEdge> relevantOutgoingEdges = outgoingEdges.filter(new Predicate<CFAEdge>() {@Override
-        public boolean apply(@Nullable CFAEdge pEdge) {
-          if (pEdge == null) {
-            return false;
-          }
-          // filter out exit edges that do not lead to a target state, we don't care about them
-          CFANode exitLocation = pEdge.getSuccessor();
-          Iterable<AbstractState> exitStates = reachedPerLocation.get(exitLocation);
-          ARGState lastExitState = (ARGState) Iterables.getLast(exitStates);
-
-          // the states reachable from the exit edge
-          Set<ARGState> outOfLoopStates = lastExitState.getSubgraph();
-          if (!from(outOfLoopStates).anyMatch(IS_TARGET_STATE)) {
-            return false;
-          }
-          return true;
-        }
-
-      });
-      Iterable<CFAEdge> relevantInsideEdges = loopStates.filter(IS_TARGET_STATE).transformAndConcat(ENTERING_EDGES);
-      cutPointEdges = Iterables.concat(relevantOutgoingEdges, relevantInsideEdges);
-    }
-
-    for (CFAEdge cutPointEdge : cutPointEdges) {
-
-      stats.inductionCutPoints++;
-      logger.log(Level.FINEST, "Considering cut point edge", cutPointEdge);
-
-      CFANode cutPoint = cutPointEdge.getPredecessor();
-      Iterable<AbstractState> cutPointStates = reachedPerLocation.get(cutPoint);
-      AbstractState lastcutPointState = Iterables.getLast(cutPointStates);
-
-      // Create (A & B)
-      PathFormula pathFormulaAB = extractStateByType(lastcutPointState, PredicateAbstractState.class).getPathFormula();
-      BooleanFormula formulaAB = bfmgr.and(invariants, pathFormulaAB.getFormula());
-
-      BooleanFormula formulaC;
-      { // Create C
-        // We want to continue exploration from lastCutPointState,
-        // but with an empty path formula. However, the SSAMap needs to be the one
-        // from lastCutPointState, so we can use a fresh initial state.
-        PathFormula empty = pmgr.makeEmptyPathFormula(pathFormulaAB); // empty has correct SSAMap
-        AbstractState freshCutPointState = cpa.getInitialState(cutPoint);
-        extractStateByType(freshCutPointState, PredicateAbstractState.class)
-            .setPathFormula(empty);
-
-        // Prepare CFA such that there is only the path out of the loop
-        // VERY ugly hack.
-        List<CFAEdge> savedEdges = CFAUtils.leavingEdges(cutPoint).toList();
-        for (CFAEdge edge : savedEdges) {
-          if (!edge.equals(cutPointEdge)) {
-            cutPoint.removeLeavingEdge(edge);
-          }
-        }
-        assert cutPoint.getNumLeavingEdges() == 1;
-
-        // Create path formulas by running CPAAlgorithm
-        reached = reachedSetFactory.create();
-        reached.add(freshCutPointState, cpa.getInitialPrecision(cutPoint));
-        algorithm.run(reached);
-
-        Iterable<AbstractState> targetStates = from(reached).filter(IS_TARGET_STATE);
-        formulaC = bfmgr.not(createFormulaFor(targetStates));
-        reached.clear();
-
-        // Reset changed CFA
-        cutPoint.removeLeavingEdge(cutPointEdge);
-        for (CFAEdge edge : savedEdges) {
-          cutPoint.addLeavingEdge(edge);
-        }
-      }
-
-      // Create (A & B) => C
-      BooleanFormula f = bfmgr.or(bfmgr.not(formulaAB), formulaC);
-
-      inductions = bfmgr.and(inductions, f);
-    }
-
-    // now prove that (A & B) => C is a tautology by checking if the negation is unsatisfiable
-
-    inductions = bfmgr.not(inductions);
-
-    stats.inductionPreparation.stop();
-
-    logger.log(Level.INFO, "Starting induction check...");
-
-    stats.inductionCheck.start();
-    prover.push(inductions);
-    boolean sound = prover.isUnsat();
-    prover.pop();
-    stats.inductionCheck.stop();
-
-    if (!sound && logger.wouldBeLogged(Level.ALL)) {
-      logger.log(Level.ALL, "Model returned for induction check:", prover.getModel());
-    }
-
-    logger.log(Level.FINER, "Soundness after induction check:", sound);
-    return sound;
-  }
-
   private BooleanFormula extractInvariantsAt(CFANode loc) throws CPAException, InterruptedException {
-    BooleanFormula invariant =bfmgr.makeBoolean(false);
+    BooleanFormula invariant = bfmgr.makeBoolean(false);
     UnmodifiableReachedSet reached = invariantGenerator.get();
-    invariantGenerator = null; // so that GC can collect the generator and the reached set
 
     if (reached.isEmpty()) {
       return bfmgr.makeBoolean(true); // no invariants available
@@ -736,5 +512,356 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       ((StatisticsProvider)algorithm).collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);
+  }
+
+  private class KInductionProver {
+
+    private final ProverEnvironment prover;
+
+    private final Boolean trivialResult;
+
+    private final FluentIterable<CFAEdge> incomingEdges;
+
+    private final FluentIterable<CFAEdge> outgoingEdges;
+
+    private final ReachedSet reachedSet;
+
+    public KInductionProver(ProverEnvironment pProver) {
+      this.prover = pProver;
+      FluentIterable<CFAEdge> incomingEdges = null;
+      FluentIterable<CFAEdge> outgoingEdges = null;
+      ReachedSet reachedSet = null;
+      if (!cfa.getLoopStructure().isPresent()) {
+        logger.log(Level.WARNING, "Could not use induction for proving program safety, loop structure of program could not be determined.");
+        trivialResult = false;
+      } else {
+        Multimap<String, Loop> loops = cfa.getLoopStructure().get();
+
+        // Induction is currently only possible if there is a single loop.
+        // This check can be weakened in the future,
+        // e.g. it is ok if there is only a single loop on each path.
+        if (loops.size() > 1) {
+          logger.log(Level.WARNING, "Could not use induction for proving program safety, program has too many loops");
+          trivialResult = false;
+        } else if (loops.isEmpty()) {
+          // induction is unnecessary, program has no loops
+          trivialResult = true;
+        } else {
+          stats.inductionPreparation.start();
+
+          final Loop loop = Iterables.getOnlyElement(loops.values());
+          // function edges do not count as incoming/outgoing edges
+          incomingEdges = from(loop.getIncomingEdges())
+                                                       .filter(not(instanceOf(CFunctionReturnEdge.class)));
+          outgoingEdges = from(loop.getOutgoingEdges())
+              .filter(new Predicate<CFAEdge>() {
+                @Override
+                public boolean apply(CFAEdge pInput) {
+                  if (!(pInput instanceof CFunctionCallEdge)) {
+                    return true;
+                  }
+                  CFANode nodeAfterFunction = ((CFunctionCallEdge)pInput).getSummaryEdge().getSuccessor();
+                  if (nodeAfterFunction.getNumEnteringEdges() == 0) {
+                    // This is a function call without the chance to return
+                    // to the node after the function (a non-terminating function).
+                    // This is an exception where the edge counts as an outgoing edge.
+                    return true;
+                  }
+                  return false;
+                }
+              });
+
+          if (incomingEdges.size() > 1) {
+            logger.log(Level.WARNING, "Could not use induction for proving program safety, loop has too many incoming edges", incomingEdges);
+            trivialResult = false;
+          } else if (loop.getLoopHeads().size() > 1) {
+            logger.log(Level.WARNING, "Could not use induction for proving program safety, loop has too many loop heads");
+            trivialResult = false;
+          } else {
+            trivialResult = null;
+          }
+          reachedSet = reachedSetFactory.create();
+          CFANode loopHead = Iterables.getOnlyElement(loop.getLoopHeads());
+          reachedSet.add(cpa.getInitialState(loopHead), cpa.getInitialPrecision(loopHead));
+          stats.inductionPreparation.stop();
+        }
+      }
+      this.incomingEdges = trivialResult == null ? incomingEdges : null;
+      this.outgoingEdges = trivialResult == null ? outgoingEdges : null;
+      this.reachedSet = reachedSet;
+    }
+
+    private boolean isTrivial() {
+      return this.trivialResult != null;
+    }
+
+    private boolean getTrivialResult() {
+      Preconditions.checkState(isTrivial(), "The proof is non-trivial.");
+      return trivialResult;
+    }
+
+    private FluentIterable<CFAEdge> getIncomingEdges() {
+      Preconditions.checkState(!isTrivial(), "No incoming edges computed, because the proof is trivial.");
+      assert incomingEdges != null;
+      return incomingEdges;
+    }
+
+    private FluentIterable<CFAEdge> getOutgoingEdges() {
+      Preconditions.checkState(!isTrivial(), "No outgoing edges computed, because the proof is trivial.");
+      assert outgoingEdges != null;
+      return outgoingEdges;
+    }
+
+    private ReachedSet getCurrentReachedSet() {
+      Preconditions.checkState(!isTrivial(), "No reached set created, because the proof is trivial.");
+      assert this.reachedSet != null;
+      return this.reachedSet;
+    }
+
+    public final boolean check() throws CPAException, InterruptedException {
+      if (isTrivial()) {
+        return getTrivialResult();
+      }
+
+      stats.inductionPreparation.start();
+
+      assert cfa.getLoopStructure().isPresent();
+      Multimap<String, Loop> loops = cfa.getLoopStructure().get();
+
+      assert loops.size() == 1;
+      final Loop loop = Iterables.getOnlyElement(loops.values());
+
+      final CFANode loopHead = Iterables.getOnlyElement(loop.getLoopHeads());
+
+      // check that the loop head is unambiguous
+      assert loopHead.equals(Iterables.getOnlyElement(getIncomingEdges()).getSuccessor());
+
+
+      // Proving program safety with induction consists of two parts:
+      // 1) Prove all paths safe that go only one iteration through the loop.
+      //    This is part of the classic bounded model checking done above,
+      //    so we don't care about this here.
+      // 2) Assume that one loop iteration is safe and prove that the next one is safe, too.
+
+      // Suppose that the loop has a single outgoing edge,
+      // which leads to the error location. This edge is always an CAssumeEdge,
+      // and it has a "sibling" which is an inner edge of the loop and leads to
+      // the next iteration. We call the latter the continuation edge.
+      // The common predecessor node of these two edges will be called cut point.
+      // Now we want to show that the control flow of the program will never take
+      // the outgoing edge and reach the error location,
+      // if it didn't take it in the iteration before.
+      // We create three formulas:
+      // A is the assumption from the continuation edge in the previous iteration
+      // B is the formula for the loop body in the current iteration up to the cut point
+      // C is the negation of the formula for the path from the cut point to the error location
+      // Then we try to prove that the formula (A & B) => C holds.
+      // This implies that control flow cannot reach the error location.
+
+      // The conjunction (A & B) is created by running the CPAAlgorithm starting
+      // at the cut point and letting it run until the end of the current iteration
+      // (i.e. let it finish the iteration it starts in and complete one more iteration).
+      // Then we get the abstract state at the cut point in the last iteration
+      // and take its path formula, which is exactly (A & B).
+      // C is created by letting the CPAAlgorithm run starting at the cut point,
+      // taking the outgoing edge (and not staying within the loop).
+      // Then we can take the disjunction of the path formulas at all reached
+      // target states. Two things are important here:
+      // CPAAlgorithm needs to take only the path out of the loop,
+      // and the path formula needs to be created with the SSAMap from (A & B)
+      // in order to get the indices right.
+
+      // Everything above is easily extended to k-induction with k >= 1
+      // and to loops that have several outgoing edges (and therefore several
+      // cut points).
+      // For k-induction, just let the algorithm run a few iterations. Of course
+      // the formula for the induction basis needs to contain the same number of
+      // iterations. This is ensured because we use the same algorithm and the
+      // same CPAs to create the formulas in both cases, so they'll run the same
+      // number of iterations in both cases.
+      // For several exiting edges, we add each cut-point to the initial reached
+      // set, so that A will contain the assumptions from all continuation edges,
+      // and we'll create several (A & B) and C formulas, one for each cut point.
+
+
+      // Create initial reached set:
+      // Run algorithm in order to create formula (A & B)
+      logger.log(Level.INFO, "Running algorithm to create induction hypothesis");
+      ReachedSet reached = getCurrentReachedSet();
+      unroll(reached);
+
+      final Multimap<CFANode, AbstractState> reachedPerLocation = Multimaps.index(reached, EXTRACT_LOCATION);
+
+      // live view of reached set with only the states in the loop
+      FluentIterable<AbstractState> loopStates = from(reached).filter(new Predicate<AbstractState>() {
+        @Override
+        public boolean apply(AbstractState pArg0) {
+          LoopstackState loopState = extractStateByType(pArg0, LoopstackState.class);
+          if (loop.equals(loopState.getLoop())) {
+            CallstackState callstackState = extractStateByType(pArg0, CallstackState.class);
+            /*
+             * If there is callstack information and the state is contained in
+             * any exit function, the state is no loop state.
+             */
+            while (callstackState.getPreviousState() != null
+                && !callstackState.getCurrentFunction().equals(loopHead.getFunctionName())) {
+              if (cfa.getAllFunctions().get(callstackState.getCurrentFunction()).getExitNode().getNumLeavingEdges() <= 0) {
+                return false;
+              }
+              callstackState = callstackState.getPreviousState();
+            }
+            return true;
+          }
+          return false;
+        }
+      });
+
+      assert !loopStates.isEmpty();
+
+      // get global invariants
+      BooleanFormula invariants = extractInvariantsAt(loopHead);
+      invariants = fmgr.instantiate(invariants, SSAMap.emptySSAMap().withDefault(1));
+
+      // Create formula
+      BooleanFormula inductions = bfmgr.makeBoolean(true);
+
+      /*
+       * Consider the predecessors of all edges that lead from the loop to a
+       * target location. This is the combination of all edges leaving the loop
+       * leading to a target location and all edges leading to target locations
+       * within the loop, but not any target locations preceding the loop.
+       */
+      final Iterable<CFAEdge> cutPointEdges;
+      {
+        Iterable<CFAEdge> relevantOutgoingEdges = getOutgoingEdges().filter(new Predicate<CFAEdge>() {@Override
+          public boolean apply(@Nullable CFAEdge pEdge) {
+            if (pEdge == null) {
+              return false;
+            }
+            // filter out exit edges that do not lead to a target state, we don't care about them
+            CFANode exitLocation = pEdge.getSuccessor();
+            Iterable<AbstractState> exitStates = reachedPerLocation.get(exitLocation);
+            ARGState lastExitState = (ARGState) Iterables.getLast(exitStates);
+
+            // the states reachable from the exit edge
+            Set<ARGState> outOfLoopStates = lastExitState.getSubgraph();
+            if (!from(outOfLoopStates).anyMatch(IS_TARGET_STATE)) {
+              return false;
+            }
+            return true;
+          }
+
+        });
+        Iterable<CFAEdge> relevantInsideEdges = loopStates.filter(IS_TARGET_STATE).transformAndConcat(ENTERING_EDGES);
+        cutPointEdges = Iterables.concat(relevantOutgoingEdges, relevantInsideEdges);
+      }
+
+      for (CFAEdge cutPointEdge : cutPointEdges) {
+
+        stats.inductionCutPoints++;
+        logger.log(Level.FINEST, "Considering cut point edge", cutPointEdge);
+
+        CFANode cutPoint = cutPointEdge.getPredecessor();
+        Iterable<AbstractState> cutPointStates = reachedPerLocation.get(cutPoint);
+        AbstractState lastcutPointState = Iterables.getLast(cutPointStates);
+
+        // Create (A & B)
+        PathFormula pathFormulaAB = extractStateByType(lastcutPointState, PredicateAbstractState.class).getPathFormula();
+        BooleanFormula formulaAB = bfmgr.and(invariants, pathFormulaAB.getFormula());
+
+        BooleanFormula formulaC;
+        { // Create C
+          // We want to continue exploration from lastCutPointState,
+          // but with an empty path formula. However, the SSAMap needs to be the one
+          // from lastCutPointState, so we can use a fresh initial state.
+          PathFormula empty = pmgr.makeEmptyPathFormula(pathFormulaAB); // empty has correct SSAMap
+          AbstractState freshCutPointState = cpa.getInitialState(cutPoint);
+
+          // Modify the path formula but save the previous one to restore it later
+          PredicateAbstractState predicateAbstractState = extractStateByType(freshCutPointState, PredicateAbstractState.class);
+          PathFormula savedPathFormula = predicateAbstractState.getPathFormula();
+          predicateAbstractState.setPathFormula(empty);
+
+          // Prepare CFA such that there is only the path out of the loop
+          // VERY ugly hack.
+          List<CFAEdge> savedEdges = CFAUtils.leavingEdges(cutPoint).toList();
+          for (CFAEdge edge : savedEdges) {
+            if (!edge.equals(cutPointEdge)) {
+              cutPoint.removeLeavingEdge(edge);
+            }
+          }
+          assert cutPoint.getNumLeavingEdges() == 1;
+
+          // Create path formulas by running CPAAlgorithm
+          reached = reachedSetFactory.create();
+          reached.add(freshCutPointState, cpa.getInitialPrecision(cutPoint));
+          algorithm.run(reached);
+
+          Iterable<AbstractState> targetStates = from(reached).filter(IS_TARGET_STATE);
+          formulaC = bfmgr.not(createFormulaFor(targetStates));
+          reached.clear();
+
+          // Reset changed CFA
+          cutPoint.removeLeavingEdge(cutPointEdge);
+          for (CFAEdge edge : savedEdges) {
+            cutPoint.addLeavingEdge(edge);
+          }
+
+          // Reset predicate path formula
+          predicateAbstractState.setPathFormula(savedPathFormula);
+        }
+
+        // Create (A & B) => C
+        BooleanFormula f = bfmgr.or(bfmgr.not(formulaAB), formulaC);
+
+        inductions = bfmgr.and(inductions, f);
+      }
+
+      // now prove that (A & B) => C is a tautology by checking if the negation is unsatisfiable
+
+      inductions = bfmgr.not(inductions);
+
+      stats.inductionPreparation.stop();
+
+      logger.log(Level.INFO, "Starting induction check...");
+
+      stats.inductionCheck.start();
+      prover.push(inductions);
+      boolean sound = prover.isUnsat();
+
+      if (!sound && logger.wouldBeLogged(Level.ALL)) {
+        logger.log(Level.ALL, "Model returned for induction check:", prover.getModel());
+      }
+
+      prover.pop();
+      stats.inductionCheck.stop();
+
+      logger.log(Level.FINER, "Soundness after induction check:", sound);
+      return sound;
+    }
+
+  }
+
+  public boolean unroll(ReachedSet pReachedSet) throws PredicatedAnalysisPropertyViolationException, CPAException, InterruptedException {
+    adjust(pReachedSet);
+    return algorithm.run(pReachedSet);
+  }
+
+  private void adjust(ReachedSet pReachedSet) {
+    Preconditions.checkArgument(!pReachedSet.isEmpty());
+    for (AdjustableConditionCPA conditionCPA : conditionCPAs) {
+      if (conditionCPA instanceof ReachedSetAdjustingCPA) {
+        ((ReachedSetAdjustingCPA) conditionCPA).adjustReachedSet(pReachedSet);
+      } else {
+        pReachedSet.clear();
+        logger.log(Level.WARNING, "Completely clearing the reached set after condition adjustment due to " + conditionCPA.getClass()
+            + ". This may drastically impede the efficiency of iterative deepening. Implement ReachedSetAdjustingCPA to avoid this problem.");
+        break;
+      }
+    }
+    if (pReachedSet.isEmpty()) {
+      CFANode initialLocation = extractLocation(pReachedSet.getFirstState());
+      pReachedSet.add(cpa.getInitialState(initialLocation), cpa.getInitialPrecision(initialLocation));
+    }
   }
 }
