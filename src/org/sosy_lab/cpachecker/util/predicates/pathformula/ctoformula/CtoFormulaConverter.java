@@ -794,7 +794,7 @@ public class CtoFormulaConverter {
 
     if (bfmgr.isTrue(edgeFormula)
         && (newSsa == oldFormula.getSsa())
-        && newPts.equals(pts)) {
+        && newPts.equals(oldFormula.getPointerTargetSet())) {
       // formula is just "true" and rest is equal
       // i.e. no writes to SSAMap, no branching and length should stay the same
       return Pair.of(oldFormula, errorConditions);
