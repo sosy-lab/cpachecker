@@ -138,7 +138,6 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA 
       maxLoopIterations = maxLoopIterationAdjuster.adjust(maxLoopIterations);
       try {
         this.transferRelation.setDelegate(new LoopstackTransferRelation(maxLoopIterations, this.cfa));
-        System.out.println("New k: " + maxLoopIterations);
       } catch (InvalidCFAException e) {
         logger.logException(Level.WARNING, e,
             "Exception while trying to adjust the maximum amount of loop iterations.");
