@@ -103,6 +103,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CFieldTrackType;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetBuilder.DummyPointerTargetSetBuilder;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
@@ -780,21 +783,26 @@ public class CtoFormulaConverter {
 
     SSAMapBuilder ssa = oldFormula.getSsa().builder();
     Constraints constraints = new Constraints(bfmgr);
+    PointerTargetSetBuilder pts = createPointerTargetSetBuilder(oldFormula.getPointerTargetSet());
 
-    BooleanFormula edgeFormula = createFormulaForEdge(edge, function, ssa, constraints);
+    BooleanFormula edgeFormula = createFormulaForEdge(edge, function, ssa, constraints, errorConditions, pts);
 
     edgeFormula = bfmgr.and(edgeFormula, constraints.get());
 
     SSAMap newSsa = ssa.build();
-    if (bfmgr.isTrue(edgeFormula) && (newSsa == oldFormula.getSsa())) {
-      // formula is just "true" and SSAMap is identical
+    PointerTargetSet newPts = pts.build();
+
+    if (bfmgr.isTrue(edgeFormula)
+        && (newSsa == oldFormula.getSsa())
+        && newPts.equals(pts)) {
+      // formula is just "true" and rest is equal
       // i.e. no writes to SSAMap, no branching and length should stay the same
       return Pair.of(oldFormula, errorConditions);
     }
 
     BooleanFormula newFormula = bfmgr.and(oldFormula.getFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;
-    return Pair.of(new PathFormula(newFormula, newSsa, oldFormula.getPointerTargetSet(), newLength),
+    return Pair.of(new PathFormula(newFormula, newSsa, newPts, newLength),
                    errorConditions);
   }
 
@@ -808,7 +816,10 @@ public class CtoFormulaConverter {
    * @return the formula for the edge
    * @throws CPATransferException
    */
-  private BooleanFormula createFormulaForEdge(CFAEdge edge, String function, SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
+  protected BooleanFormula createFormulaForEdge(CFAEdge edge, String function,
+      SSAMapBuilder ssa, Constraints constraints, ErrorConditions errorConditions,
+      PointerTargetSetBuilder pts)
+          throws CPATransferException {
     switch (edge.getEdgeType()) {
     case StatementEdge: {
       CStatementEdge statementEdge = (CStatementEdge) edge;
@@ -853,7 +864,7 @@ public class CtoFormulaConverter {
         if (singleEdge instanceof BlankEdge) {
           continue;
         }
-        multiEdgeFormulas.add(createFormulaForEdge(singleEdge, function, ssa, constraints));
+        multiEdgeFormulas.add(createFormulaForEdge(singleEdge, function, ssa, constraints, errorConditions, pts));
       }
 
       return bfmgr.and(multiEdgeFormulas);
@@ -1145,6 +1156,10 @@ public class CtoFormulaConverter {
     Constraints constraints = new Constraints(bfmgr);
     BooleanFormula f = makePredicate(exp, true, edge, function, ssa, constraints);
     return bfmgr.and(f, constraints.get());
+  }
+
+  protected PointerTargetSetBuilder createPointerTargetSetBuilder(PointerTargetSet pts) {
+    return DummyPointerTargetSetBuilder.INSTANCE;
   }
 
   private StatementToFormulaVisitor getStatementVisitor(CFAEdge pEdge, String pFunction,

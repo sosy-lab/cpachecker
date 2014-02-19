@@ -97,8 +97,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
@@ -1113,31 +1111,9 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   @Override
-  public Pair<PathFormula, ErrorConditions> makeAnd(final PathFormula oldFormula,
-      final CFAEdge edge)
-          throws CPATransferException {
-    ErrorConditions errorConditions = new ErrorConditions(bfmgr);
-
-    if (edge.getEdgeType() == CFAEdgeType.BlankEdge) {
-      return Pair.<PathFormula, ErrorConditions>of(oldFormula, errorConditions);
-    }
-
-    final String function = edge.getPredecessor() != null ? edge.getPredecessor().getFunctionName() : null;
-    final SSAMapBuilder ssa = oldFormula.getSsa().builder();
-    final Constraints constraints = new Constraints(bfmgr);
-    final PointerTargetSetBuilder pts = oldFormula.getPointerTargetSet().builder(fmgr, ptsMgr, options);
-
-    BooleanFormula edgeFormula = createFormulaForEdge(edge, function, ssa, constraints, errorConditions, pts);
-    edgeFormula = bfmgr.and(edgeFormula, constraints.get());
-
-    final SSAMap newSsa = ssa.build();
-    final PointerTargetSet newPts = pts.build();
-    final BooleanFormula newFormula = bfmgr.and(oldFormula.getFormula(), edgeFormula);
-    int newLength = oldFormula.getLength() + 1;
-    PathFormula result = new PathFormula(newFormula, newSsa, newPts, newLength);
-    return Pair.of(result, errorConditions);
+  protected PointerTargetSetBuilder createPointerTargetSetBuilder(PointerTargetSet pts) {
+    return new RealPointerTargetSetBuilder(pts, fmgr, ptsMgr, options);
   }
-
 
   private LvalueToPointerTargetPatternVisitor getLvalueToPointerTargetPatternVisitor(
     final CFAEdge cfaEdge,
@@ -1423,7 +1399,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return result;
   }
 
-  private BooleanFormula createFormulaForEdge(final CFAEdge edge,
+  @Override
+  protected BooleanFormula createFormulaForEdge(final CFAEdge edge,
                                               final String function, final SSAMapBuilder ssa,
                                               final Constraints constraints,
                                               final ErrorConditions errorConditions,

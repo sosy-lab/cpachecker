@@ -183,7 +183,8 @@ public class PointerTargetSetManager {
     final BooleanFormula mergeFormula1 = makeSharingConstraints(mergedBases.getSecond(), sharedFields, resultSSA, pts1);
 
     if (!sharedFields.isEmpty()) {
-      final PointerTargetSetBuilder resultPTSBuilder = resultPTS.builder(formulaManager, this, options);
+      final PointerTargetSetBuilder resultPTSBuilder = new RealPointerTargetSetBuilder(
+          resultPTS, formulaManager, this, options);
       for (final Pair<CCompositeType, String> sharedField : sharedFields) {
         resultPTSBuilder.addField(sharedField.getFirst(), sharedField.getSecond());
       }

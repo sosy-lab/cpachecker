@@ -36,8 +36,6 @@ import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTarget;
 
 import com.google.common.base.Joiner;
@@ -184,16 +182,6 @@ public final class PointerTargetSet implements Serializable {
       // so we assert here that isEmpty() implies that it is also empty.
       assert targets.isEmpty();
     }
-  }
-
-  /**
-   * Returns a PointerTargetSetBuilder that is initialized with the current PointerTargetSet.
-   */
-  public PointerTargetSetBuilder builder(
-      FormulaManagerView fmgr,
-      PointerTargetSetManager ptsMgr,
-      FormulaEncodingWithUFOptions options) {
-    return new RealPointerTargetSetBuilder(this, fmgr, ptsMgr, options);
   }
 
   private static final PointerTargetSet EMPTY_INSTANCE = new PointerTargetSet(
