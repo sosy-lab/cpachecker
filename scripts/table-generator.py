@@ -317,9 +317,8 @@ class RunSetResult():
             print("Empty resultfile found: " + resultFile)
             return []
         else: # show all available columns
-            # the tag 'columns' is a special tag in the xml-file and contains all available columns,
             return [Column(c.get("title"), None, None)
-                    for c in resultElem.find('columns').findall('column')
+                    for c in resultElem.find('sourcefile').findall('column')
                     if c.get("title") != 'category']
 
     @staticmethod
