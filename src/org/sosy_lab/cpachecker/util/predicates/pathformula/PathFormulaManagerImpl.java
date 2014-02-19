@@ -69,7 +69,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEnc
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.CToFormulaWithUFConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.CToFormulaWithUFTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.FormulaEncodingWithUFOptions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PathFormulaWithUF;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTarget;
@@ -188,7 +187,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         //setSsaIndex(ssa, Variable.create(NONDET_FLAG_VARIABLE, getNondetType()), lNondetIndex);
         ssa.setIndex(NONDET_FLAG_VARIABLE, NONDET_TYPE, lNondetIndex);
 
-        result = Pair.of(new PathFormula(edgeFormula, ssa.build(), pf.getLength()),
+        result = Pair.of(new PathFormula(edgeFormula, ssa.build(), pf.getPointerTargetSet(), pf.getLength()),
                          result.getSecond());
       }
     }
@@ -203,34 +202,26 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Override
   public PathFormula makeEmptyPathFormula() {
-    if (!handlePointerAliasing) {
-      return new PathFormula(bfmgr.makeBoolean(true), SSAMap.emptySSAMap(), 0);
-    } else {
-      return ((CToFormulaWithUFConverter)converter).makeEmptyPathFormula();
-    }
+    return new PathFormula(bfmgr.makeBoolean(true),
+                           SSAMap.emptySSAMap(),
+                           PointerTargetSet.emptyPointerTargetSet(),
+                           0);
   }
 
   @Override
   public PathFormula makeEmptyPathFormula(PathFormula oldFormula) {
-    if (!handlePointerAliasing) {
-      return new PathFormula(bfmgr.makeBoolean(true), oldFormula.getSsa(), 0);
-    } else {
-      return new PathFormulaWithUF(bfmgr.makeBoolean(true),
-                                   oldFormula.getSsa(),
-                                   ((PathFormulaWithUF) oldFormula).getPointerTargetSet(), 0);
-    }
+    return new PathFormula(bfmgr.makeBoolean(true),
+                           oldFormula.getSsa(),
+                           oldFormula.getPointerTargetSet(),
+                           0);
   }
 
   @Override
   public PathFormula makeNewPathFormula(PathFormula oldFormula, SSAMap m) {
-    if (!handlePointerAliasing) {
-      return new PathFormula(oldFormula.getFormula(), m, oldFormula.getLength());
-    } else {
-      return new PathFormulaWithUF(oldFormula.getFormula(),
-                                   m,
-                                   ((PathFormulaWithUF) oldFormula).getPointerTargetSet(),
-                                   oldFormula.getLength());
-    }
+    return new PathFormula(oldFormula.getFormula(),
+                           m,
+                           oldFormula.getPointerTargetSet(),
+                           oldFormula.getLength());
   }
 
   @Override
@@ -241,43 +232,26 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final SSAMap ssa1 = pathFormula1.getSsa();
     final SSAMap ssa2 = pathFormula2.getSsa();
 
-    if (!handlePointerAliasing) {
-      final Pair<Pair<BooleanFormula, BooleanFormula>, SSAMap> mergeResult = mergeSSAMaps(
-          ssa2, PointerTargetSet.emptyPointerTargetSet(),
-          ssa1, PointerTargetSet.emptyPointerTargetSet());
+    final PointerTargetSet pts1 = pathFormula1.getPointerTargetSet();
+    final PointerTargetSet pts2 = pathFormula2.getPointerTargetSet();
 
-      // Do not swap these two lines, that makes a huge difference in performance!
-      final BooleanFormula newFormula2 = bfmgr.and(formula2, mergeResult.getFirst().getFirst());
-      final BooleanFormula newFormula1 = bfmgr.and(formula1, mergeResult.getFirst().getSecond());
+    final Pair<Pair<BooleanFormula, BooleanFormula>, SSAMap> mergeSSAResult = mergeSSAMaps(ssa1, pts1, ssa2, pts2);
+    final SSAMap newSSA = mergeSSAResult.getSecond();
 
-      final BooleanFormula newFormula = bfmgr.or(newFormula1, newFormula2);
-      final SSAMap newSsa = mergeResult.getSecond();
+    final Pair<Triple<BooleanFormula, BooleanFormula, BooleanFormula>, PointerTargetSet> mergePtsResult =
+      ptsManager.mergePointerTargetSets(pts1, pts2, newSSA);
 
-      final int newLength = Math.max(pathFormula1.getLength(), pathFormula2.getLength());
+    // (?) Do not swap these two lines, that makes a huge difference in performance (?) !
+    final BooleanFormula newFormula1 = bfmgr.and(formula1,
+        bfmgr.and(mergeSSAResult.getFirst().getFirst(), mergePtsResult.getFirst().getFirst()));
+    final BooleanFormula newFormula2 = bfmgr.and(formula2,
+        bfmgr.and(mergeSSAResult.getFirst().getSecond(), mergePtsResult.getFirst().getSecond()));
+    final BooleanFormula newFormula = bfmgr.and(bfmgr.or(newFormula1, newFormula2),
+                                                         mergePtsResult.getFirst().getThird());
+    final PointerTargetSet newPTS = mergePtsResult.getSecond();
+    final int newLength = Math.max(pathFormula1.getLength(), pathFormula2.getLength());
 
-      return new PathFormula(newFormula, newSsa, newLength);
-    } else {
-      final PointerTargetSet pts1 = ((PathFormulaWithUF) pathFormula1).getPointerTargetSet();
-      final PointerTargetSet pts2 = ((PathFormulaWithUF) pathFormula2).getPointerTargetSet();
-
-      final Pair<Pair<BooleanFormula, BooleanFormula>, SSAMap> mergeSSAResult = mergeSSAMaps(ssa1, pts1, ssa2, pts2);
-      final SSAMap newSSA = mergeSSAResult.getSecond();
-
-      final Pair<Triple<BooleanFormula, BooleanFormula, BooleanFormula>, PointerTargetSet> mergePtsResult =
-        ptsManager.mergePointerTargetSets(pts1, pts2, newSSA);
-
-      // (?) Do not swap these two lines, that makes a huge difference in performance (?) !
-      final BooleanFormula newFormula1 = bfmgr.and(formula1,
-          bfmgr.and(mergeSSAResult.getFirst().getFirst(), mergePtsResult.getFirst().getFirst()));
-      final BooleanFormula newFormula2 = bfmgr.and(formula2,
-          bfmgr.and(mergeSSAResult.getFirst().getSecond(), mergePtsResult.getFirst().getSecond()));
-      final BooleanFormula newFormula = bfmgr.and(bfmgr.or(newFormula1, newFormula2),
-                                                           mergePtsResult.getFirst().getThird());
-      final PointerTargetSet newPTS = mergePtsResult.getSecond();
-      final int newLength = Math.max(pathFormula1.getLength(), pathFormula2.getLength());
-
-      return new PathFormulaWithUF(newFormula, newSSA, newPTS, newLength);
-    }
+    return new PathFormula(newFormula, newSSA, newPTS, newLength);
   }
 
   @Override
@@ -285,12 +259,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     SSAMap ssa = pPathFormula.getSsa();
     BooleanFormula otherFormula =  fmgr.instantiate(pOtherFormula, ssa);
     BooleanFormula resultFormula = bfmgr.and(pPathFormula.getFormula(), otherFormula);
-    if (!handlePointerAliasing) {
-      return new PathFormula(resultFormula, ssa, pPathFormula.getLength());
-    } else {
-      final PointerTargetSet pts = ((PathFormulaWithUF) pPathFormula).getPointerTargetSet();
-      return new PathFormulaWithUF(resultFormula, ssa, pts, pPathFormula.getLength());
-    }
+    final PointerTargetSet pts = pPathFormula.getPointerTargetSet();
+    return new PathFormula(resultFormula, ssa, pts, pPathFormula.getLength());
   }
 
   /**
