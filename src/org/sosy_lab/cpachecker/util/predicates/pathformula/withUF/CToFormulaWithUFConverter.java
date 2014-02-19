@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.CTypeUtils.*;
 
 import java.math.BigInteger;
@@ -557,7 +558,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   BooleanFormula makeAssignment(@Nonnull CType lvalueType,
                                 final @Nonnull CType rvalueType,
                                 final @Nonnull Location lvalue,
-                                      @Nullable Expression rvalue,
+                                final @Nonnull Expression rvalue,
                                 final @Nullable PointerTargetPattern pattern,
                                 final boolean useOldSSAIndices,
                                       @Nullable Set<CType> updatedTypes,
@@ -570,7 +571,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     // Its a definite value assignment, a nondet assignment (SSA index update) or a nondet assignment among other
     // assignments to the same UF version (in this case an absense of aliasing should be somehow guaranteed, as in the
     // case of initialization assignments)
-    assert rvalue != null || !useOldSSAIndices || updatedTypes != null; // otherwise the call is useless
+    //assert rvalue != null || !useOldSSAIndices || updatedTypes != null; // otherwise the call is useless
+    checkNotNull(rvalue);
 
     lvalueType = CTypeUtils.simplifyType(lvalueType);
 
@@ -618,7 +620,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   void finishAssignments(@Nonnull CType lvalueType,
                          final @Nonnull AliasedLocation lvalue,
-                         final @Nullable PointerTargetPattern pattern,
+                         final @Nonnull PointerTargetPattern pattern,
                          final @Nonnull Set<CType> updatedTypes,
                          final @Nonnull CFAEdge edge,
                          final @Nonnull SSAMapBuilder ssa,
@@ -772,7 +774,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   private BooleanFormula makeDestructiveAssignment(@Nonnull CType lvalueType,
                                                    @Nonnull CType rvalueType,
                                                    final @Nonnull  Location lvalue,
-                                                         @Nonnull  Expression rvalue,
+                                                   final @Nonnull  Expression rvalue,
                                                    final boolean useOldSSAIndices,
                                                    final @Nullable Set<CType> updatedTypes,
                                                    final @Nullable Set<Variable> updatedVariables,

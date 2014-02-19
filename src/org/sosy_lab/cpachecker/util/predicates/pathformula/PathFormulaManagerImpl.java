@@ -238,8 +238,13 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final Pair<Pair<BooleanFormula, BooleanFormula>, SSAMap> mergeSSAResult = mergeSSAMaps(ssa1, pts1, ssa2, pts2);
     final SSAMap newSSA = mergeSSAResult.getSecond();
 
-    final Pair<Triple<BooleanFormula, BooleanFormula, BooleanFormula>, PointerTargetSet> mergePtsResult =
-      ptsManager.mergePointerTargetSets(pts1, pts2, newSSA);
+    final Pair<Triple<BooleanFormula, BooleanFormula, BooleanFormula>, PointerTargetSet> mergePtsResult;
+    if (ptsManager != null) {
+      mergePtsResult = ptsManager.mergePointerTargetSets(pts1, pts2, newSSA);
+    } else {
+      BooleanFormula trueFormula = bfmgr.makeBoolean(true);
+      mergePtsResult = Pair.of(Triple.of(trueFormula, trueFormula, trueFormula), pts1);
+    }
 
     // (?) Do not swap these two lines, that makes a huge difference in performance (?) !
     final BooleanFormula newFormula1 = bfmgr.and(formula1,
