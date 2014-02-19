@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -483,13 +484,19 @@ class CFABuilder extends ASTVisitor {
     return functionDeclarations.size() == 1;
   }
 
-  public ParseResult createCFA() {
-
+  public ParseResult createCFA() throws CParserException {
+    ParseResult result;
     if (isSingleFileEvaluation()) {
-      return createSingleFileCFA();
+      result = createSingleFileCFA();
     } else {
-      return createMultipleFileCFA();
+      result = createMultipleFileCFA();
     }
+
+    if (checkBinding.foundUndefinedIdentifiers()) {
+      throw new CParserException("Invalid C code because of undefined identifiers mentioned above.");
+    }
+
+    return result;
   }
 
   private ParseResult createSingleFileCFA() {
@@ -530,7 +537,8 @@ class CFABuilder extends ASTVisitor {
     CFAFunctionBuilder functionBuilder;
 
     try {
-      functionBuilder = new CFAFunctionBuilder(config, logger, localScope, machine, pair.getSecond().getFirst(), sideAssignmentStack);
+      functionBuilder = new CFAFunctionBuilder(config, logger, localScope, machine,
+          pair.getSecond().getFirst(), sideAssignmentStack, checkBinding);
     } catch (InvalidConfigurationException e) {
       throw new CFAGenerationRuntimeException("Invalid configuration");
     }

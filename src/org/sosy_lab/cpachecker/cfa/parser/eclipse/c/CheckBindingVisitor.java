@@ -76,8 +76,14 @@ class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRu
 
   private final Set<String> printedWarnings = Sets.newHashSet();
 
+  private boolean foundUndefinedIdentifiers = false;
+
   CheckBindingVisitor(LogManager pLogger) {
     logger = pLogger;
+  }
+
+  public boolean foundUndefinedIdentifiers() {
+    return foundUndefinedIdentifiers;
   }
 
   @Override
@@ -117,6 +123,7 @@ class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRu
     if (e.getDeclaration() == null) {
       if (printedWarnings.add(e.getName())) {
         logger.log(Level.WARNING, "Undefined identifier", e.getName(), "found, first referenced in line", e.getFileLocation().getStartingLineNumber());
+        foundUndefinedIdentifiers = true;
       }
     }
     return null;

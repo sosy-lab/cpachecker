@@ -180,7 +180,7 @@ public class AutomatonTest {
 
 
       TestResults results = run(prop, "test/programs/simple/simple_setuid_test.c");
-      assertThat(results.getLog(), containsString("Systemcall in line 10 with userid 2"));
+      assertThat(results.getLog(), containsString("Systemcall in line 14 with userid 2"));
       assertThat(results.getLog(), containsString("going to ErrorState on edge \"system(40);\""));
       Assert.assertTrue(results.isUnsafe());
   }

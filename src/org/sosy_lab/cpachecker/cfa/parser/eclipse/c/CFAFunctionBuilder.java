@@ -183,13 +183,14 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   public CFAFunctionBuilder(Configuration config, LogManager pLogger, FunctionScope pScope,
       MachineModel pMachine, String staticVariablePrefix,
-      Sideassignments pSideAssignmentStack) throws InvalidConfigurationException {
+      Sideassignments pSideAssignmentStack,
+      CheckBindingVisitor pCheckBinding) throws InvalidConfigurationException {
     config.inject(this);
 
     logger = pLogger;
     scope = pScope;
     astCreator = new ASTConverter(config, pScope, pLogger, pMachine, staticVariablePrefix, false, pSideAssignmentStack);
-    checkBinding = new CheckBindingVisitor(pLogger);
+    checkBinding = pCheckBinding;
     expressionSimplificator = new ExpressionSimplificationVisitor(pMachine, pLogger);
     binExprBuilder = new CBinaryExpressionBuilder(pMachine, pLogger);
 
