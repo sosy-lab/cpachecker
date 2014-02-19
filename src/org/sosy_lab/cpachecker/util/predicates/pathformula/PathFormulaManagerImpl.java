@@ -242,7 +242,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final SSAMap ssa2 = pathFormula2.getSsa();
 
     if (!handlePointerAliasing) {
-      final Pair<Pair<BooleanFormula, BooleanFormula>, SSAMap> mergeResult = mergeSSAMaps(ssa2, ssa1);
+      final Pair<Pair<BooleanFormula, BooleanFormula>, SSAMap> mergeResult = mergeSSAMaps(
+          ssa2, PointerTargetSet.emptyPointerTargetSet(),
+          ssa1, PointerTargetSet.emptyPointerTargetSet());
 
       // Do not swap these two lines, that makes a huge difference in performance!
       final BooleanFormula newFormula2 = bfmgr.and(formula2, mergeResult.getFirst().getFirst());
@@ -300,57 +302,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    * of the two.
    *
    * @param ssa1 an SSAMap
+   * @param pts1 the PointerTargetSet for ssa1
    * @param ssa2 an SSAMap
-   * @return A pair (Formula, SSAMap)
+   * @param pts2 the PointerTargetSet for ssa1
+   * @return A pair (formulas, SSAMap) where the formulas need to be added to the path formulas before disjuncting them.
    */
-  private Pair<Pair<BooleanFormula, BooleanFormula>, SSAMap> mergeSSAMaps(
-      SSAMap ssa1, SSAMap ssa2) {
-    final Pair<SSAMap, List<Triple<String, Integer, Integer>>> result = SSAMap.merge(ssa1, ssa2);
-    final SSAMap resultSSA = result.getFirst();
-    final List<Triple<String, Integer, Integer>> symbolDifferences = result.getSecond();
-
-    BooleanFormula mergeFormula1 = bfmgr.makeBoolean(true);
-    BooleanFormula mergeFormula2 = bfmgr.makeBoolean(true);
-
-    for (final Triple<String, Integer, Integer> symbolDifference : symbolDifferences) {
-      final String symbolName = symbolDifference.getFirst();
-      final int index1 = Objects.firstNonNull(symbolDifference.getSecond(), 1);
-      final int index2 = Objects.firstNonNull(symbolDifference.getThird(), 1);
-
-      if (index1 > index2 && index1 > 1) {
-        // i2:smaller, i1:bigger
-        // => need correction term for i2
-        BooleanFormula mergeFormula;
-
-        assert index2 > 0;
-        if (useNondetFlags && symbolName.equals(NONDET_FLAG_VARIABLE)) {
-          mergeFormula = makeSsaNondetFlagMerger(index2, index1);
-        } else {
-          mergeFormula = makeSSAMerger(symbolName, resultSSA.getType(symbolName), index2, index1);
-        }
-
-        mergeFormula2 = bfmgr.and(mergeFormula2, mergeFormula);
-
-      } else if (index2 > 1) {
-        assert index1 < index2;
-        // i1:smaller, i2:bigger
-        // => need correction term for i1
-        BooleanFormula t;
-
-        assert index1 > 0;
-        if (useNondetFlags && symbolName.equals(NONDET_FLAG_VARIABLE)) {
-          t = makeSsaNondetFlagMerger(index1, index2);
-        } else {
-          t = makeSSAMerger(symbolName, resultSSA.getType(symbolName), index1, index2);
-        }
-
-        mergeFormula1 = bfmgr.and(mergeFormula1, t);
-      }
-    }
-
-    return Pair.of(Pair.of(mergeFormula1, mergeFormula2), resultSSA);
-  }
-
   private Pair<Pair<BooleanFormula, BooleanFormula>, SSAMap> mergeSSAMaps(
                                      final SSAMap ssa1,
                                      final PointerTargetSet pts1,
@@ -424,6 +380,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
                                                         final int newIndex) {
     assert oldIndex < newIndex;
 
+    // TODO Previously we called makeMerger,
+    // which creates the terms (var@oldIndex = var@oldIndex+1; ...; var@oldIndex = var@newIndex).
+    // Now we only create a single term (var@oldIndex = var@newIndex).
+    // This should not make a difference except maybe for the model,
+    // but this could be investigated to be sure.
+
     final FormulaType<?> variableFormulaType = converter.getFormulaTypeFromCType(variableType);
     final Formula oldVariable = fmgr.makeVariable(variableFormulaType, variableName, oldIndex);
     final Formula newVariable = fmgr.makeVariable(variableFormulaType, variableName, newIndex);
@@ -475,14 +437,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     }
 
     return lResult;
-  }
-
-  // creates the mathsat terms
-  // (var@iSmaller = var@iSmaller+1; ...; var@iSmaller = var@iBigger)
-  private BooleanFormula makeSSAMerger(String name, CType type, int iSmaller, int iBigger) {
-    FormulaType<?> t = converter.getFormulaTypeFromCType(type);
-    return makeMerger(name, iSmaller, iBigger,
-        fmgr.makeVariable(t, name, iSmaller));
   }
 
   @Override
