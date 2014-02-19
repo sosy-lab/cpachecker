@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -343,10 +344,10 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-    out.println("  Number of explicit interpolations:                   " + totalInterpolations);
-    out.println("  Number of interpolation queries:                     " + totalInterpolationQueries);
-    out.println("  Max. time for singe interpolation:                   " + timerInterpolation.getMaxTime().formatAs(TimeUnit.SECONDS));
-    out.println("  Total time for interpolation:                        " + timerInterpolation);
+    out.println("  Number of explicit interpolations: " + String.format(Locale.US, "%9d",totalInterpolations));
+    out.println("  Number of interpolation queries:   " + String.format(Locale.US, "%9d",totalInterpolationQueries));
+    out.println("  Max. time for singe interpolation:     " + timerInterpolation.getMaxTime().formatAs(TimeUnit.SECONDS));
+    out.println("  Total time for interpolation:          " + timerInterpolation);
   }
 
   public int getInterpolationOffset() {

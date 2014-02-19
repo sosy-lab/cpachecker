@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -341,8 +342,9 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
 
   private void printStatistics(final PrintStream out, final Result pResult, final ReachedSet pReached) {
     if (totalRefinements > 0) {
-      out.println("Total time for global refinement:    " + totalTime);
-      out.println("Total number of targets found:       " + totalTargetsFound);
+      out.println("Total number of refinements:      " + String.format(Locale.US, "%9d", totalRefinements));
+      out.println("Total number of targets found:    " + String.format(Locale.US, "%9d", totalTargetsFound));
+      out.println("Total time for global refinement:     " + totalTime);
 
       interpolatingRefiner.printStatistics(out, pResult, pReached);
     }
