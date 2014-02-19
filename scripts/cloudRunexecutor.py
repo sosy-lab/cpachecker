@@ -18,6 +18,8 @@ WALLTIME_STR    = "wallTime"
 CPUTIME_STR     = "cpuTime"
 MEMORYUSAGE_STR = "memoryUsage"
 RETURNVALUE_STR = "returnvalue"
+ENERGY_STR      = "energy"
+
 
 def main(argv=None):
     if argv is None:
@@ -54,7 +56,7 @@ def main(argv=None):
 
         logging.debug("runExecutor.executeRun() started.")
 
-        (wallTime, cpuTime, memUsage, returnvalue, output) = \
+        (wallTime, cpuTime, memUsage, returnvalue, output, energy) = \
             runExecutor.executeRun(args, rlimits, outputFileName, environments=env, maxLogfileSize=logfileSize);
 
         logging.debug("runExecutor.executeRun() ended.")
@@ -63,6 +65,7 @@ def main(argv=None):
                CPUTIME_STR     : cpuTime,
                MEMORYUSAGE_STR : memUsage,
                RETURNVALUE_STR : returnvalue,
+               ENERGY_STR      : energy,
               }
 
         # this line dumps the result to the stdout-file.

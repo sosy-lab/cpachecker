@@ -134,7 +134,7 @@ class Worker(threading.Thread):
         self.outputHandler.outputBeforeRun(run)
 
         benchmark = run.runSet.benchmark
-        (run.wallTime, run.cpuTime, run.memUsage, returnvalue, output) = \
+        (run.wallTime, run.cpuTime, run.memUsage, returnvalue, output, run.energy) = \
             self.runExecutor.executeRun(
                 run.getCmdline(), benchmark.rlimits, run.logFile,
                 myCpuIndex=self.numberOfThread,
@@ -355,6 +355,7 @@ def executeBenchmarkLocaly(benchmark, outputHandler):
             # get times before runSet
             ruBefore = resource.getrusage(resource.RUSAGE_CHILDREN)
             wallTimeBefore = time.time()
+            energyBefore = Util.getEnergy()
 
             outputHandler.outputBeforeRunSet(runSet)
 
@@ -383,12 +384,14 @@ def executeBenchmarkLocaly(benchmark, outputHandler):
 
             # get times after runSet
             wallTimeAfter = time.time()
+            energyAfter = Util.getEnergy()
+            energy = (energyAfter - energyBefore) if (energyAfter and energyBefore) else None
             usedWallTime = wallTimeAfter - wallTimeBefore
             ruAfter = resource.getrusage(resource.RUSAGE_CHILDREN)
             usedCpuTime = (ruAfter.ru_utime + ruAfter.ru_stime) \
                         - (ruBefore.ru_utime + ruBefore.ru_stime)
 
-            outputHandler.outputAfterRunSet(runSet, usedCpuTime, usedWallTime)
+            outputHandler.outputAfterRunSet(runSet, cpuTime=usedCpuTime, wallTime=usedWallTime, energy=energy)
 
     outputHandler.outputAfterBenchmark(STOPPED_BY_INTERRUPT)
 
@@ -403,6 +406,7 @@ def parseCloudResultFile(filePath):
     cpuTime = None
     memUsage = None
     returnValue = None
+    energy = None
 
     with open(filePath, 'rt') as file:
         content = file.read()
@@ -421,8 +425,9 @@ def parseCloudResultFile(filePath):
             cpuTime     = info[CloudRunExecutor.CPUTIME_STR]
             memUsage    = info[CloudRunExecutor.MEMORYUSAGE_STR]
             returnValue = info[CloudRunExecutor.RETURNVALUE_STR]
+            energy      = info[CloudRunExecutor.ENERGY_STR]
         
-    return (wallTime, cpuTime, memUsage, returnValue)
+    return (wallTime, cpuTime, memUsage, returnValue, energy)
 
 
 def parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
@@ -656,7 +661,7 @@ def handleCloudResults(benchmark, outputHandler):
                 continue
 
             try:
-                (run.wallTime, run.cpuTime, run.memUsage, returnValue) = parseCloudResultFile(stdoutFile)
+                (run.wallTime, run.cpuTime, run.memUsage, returnValue, run.energy) = parseCloudResultFile(stdoutFile)
 
                 if run.sourcefile in runToHostMap:
                     run.host = runToHostMap[run.sourcefile]
@@ -687,7 +692,7 @@ def handleCloudResults(benchmark, outputHandler):
             run.afterExecution(returnValue, output)
             outputHandler.outputAfterRun(run)
 
-        outputHandler.outputAfterRunSet(runSet, None, None)
+        outputHandler.outputAfterRunSet(runSet)
 
     outputHandler.outputAfterBenchmark(STOPPED_BY_INTERRUPT)
 
@@ -793,7 +798,7 @@ def handleAppEngineResults(benchmark, outputHandler):
             run.afterExecution(returnValue, output, hasTimedOut)
             outputHandler.outputAfterRun(run)
 
-        outputHandler.outputAfterRunSet(runSet, None, totalWallTime)
+        outputHandler.outputAfterRunSet(runSet, wallTime=totalWallTime)
 
     outputHandler.outputAfterBenchmark(STOPPED_BY_INTERRUPT)
     

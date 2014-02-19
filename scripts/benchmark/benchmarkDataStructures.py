@@ -521,6 +521,7 @@ class Run():
         self.wallTime = 0
         self.memUsage = None
         self.host = None
+        self.energy = None
         self.category = result.CATEGORY_UNKNOWN
 
 
