@@ -24,36 +24,23 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
 
 import static com.google.common.base.Objects.firstNonNull;
-import static com.google.common.base.Predicates.not;
-import static com.google.common.collect.FluentIterable.from;
 
 import java.io.Serializable;
-import java.util.Collection;
 import java.util.Objects;
-import java.util.SortedSet;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTarget;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableSet;
 
 @Immutable
 public final class PointerTargetSet implements Serializable {
@@ -137,311 +124,6 @@ public final class PointerTargetSet implements Serializable {
                         PersistentLinkedList.<PointerTarget>of());
   }
 
-  /**
-   * Builder for PointerTargetSet. Its state starts with an existing set, but may be
-   * changed later. It supports read access, but it is not recommended to use
-   * instances of this class except for the short period of time
-   * while creating a new set.
-   *
-   * This class is not thread-safe.
-   */
-  public final static class PointerTargetSetBuilder {
-
-    private final FormulaManagerView formulaManager;
-    private final PointerTargetSetManager ptsMgr;
-    private final FormulaEncodingWithUFOptions options;
-
-    // These fields all exist in PointerTargetSet and are documented there.
-    private PersistentSortedMap<String, CType> bases;
-    private String lastBase;
-    private PersistentSortedMap<CompositeField, Boolean> fields;
-    private PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations;
-    private PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
-
-    private PointerTargetSetBuilder(final PointerTargetSet pointerTargetSet,
-        final FormulaManagerView pFormulaManager,
-        final PointerTargetSetManager pPtsMgr,
-        final FormulaEncodingWithUFOptions pOptions) {
-      bases = pointerTargetSet.bases;
-      lastBase = pointerTargetSet.lastBase;
-      fields = pointerTargetSet.fields;
-      deferredAllocations = pointerTargetSet.deferredAllocations;
-      targets = pointerTargetSet.targets;
-      formulaManager = pFormulaManager;
-      ptsMgr = pPtsMgr;
-      options = pOptions;
-    }
-
-
-    /**
-     * Recursively adds pointer targets for every used (tracked) (sub)field of the newly allocated base.
-     *
-     * Note: the recursion doesn't proceed on unused (untracked) (sub)fields.
-     *
-     * @param base the name of the newly allocated base variable
-     * @param currentType type of the allocated base or the next added pointer target
-     */
-    private void addTargets(final String name, CType type) {
-      targets = ptsMgr.addToTargets(name, type, null, 0, 0, targets, fields);
-    }
-
-    public BooleanFormula prepareBase(final String name, CType type) {
-      type = CTypeUtils.simplifyType(type);
-      if (bases.containsKey(name)) {
-        // The base has already been added
-        return formulaManager.getBooleanFormulaManager().makeBoolean(true);
-      }
-      bases = bases.putAndCopy(name, type); // To get proper inequalities
-      final BooleanFormula nextInequality = ptsMgr.getNextBaseAddressInequality(name, bases, lastBase);
-      bases = bases.putAndCopy(name, PointerTargetSetManager.getFakeBaseType(ptsMgr.getSize(type))); // To prevent adding spurious targets when merging
-      lastBase = name;
-      return nextInequality;
-    }
-
-    public void shareBase(final String name, CType type) {
-      type = CTypeUtils.simplifyType(type);
-//      Preconditions.checkArgument(bases.containsKey(name),
-//                                  "The base should be prepared beforehead with prepareBase()");
-
-      addTargets(name, type);
-      bases = bases.putAndCopy(name, type);
-
-      lastBase = name;
-    }
-
-    /**
-     * Adds the newly allocated base of the given type for tracking along with all its tracked (sub)fields
-     * (if its a structure/union) or all its elements (if its an array).
-     * @param name
-     * @param type
-     */
-    public BooleanFormula addBase(final String name, CType type) {
-      type = CTypeUtils.simplifyType(type);
-      if (bases.containsKey(name)) {
-        // The base has already been added
-        return formulaManager.getBooleanFormulaManager().makeBoolean(true);
-      }
-
-      addTargets(name, type);
-      bases = bases.putAndCopy(name, type);
-
-      final BooleanFormula nextInequality = ptsMgr.getNextBaseAddressInequality(name, bases, lastBase);
-      lastBase = name;
-      return nextInequality;
-    }
-
-    public boolean tracksField(final CCompositeType compositeType, final String fieldName) {
-      return fields.containsKey(CompositeField.of(CTypeUtils.typeToString(compositeType), fieldName));
-    }
-
-    /**
-     * Recursively adds pointer targets for the given base variable when the newly used field is added for tracking.
-     * @param base the base variable
-     * @param currentType the type of the base variable or of the next subfield
-     * @param containerType either {@code null} or the type of the innermost container of the next considered subfield
-     * @param properOffset either {@code 0} or the offset of the next subfield in its innermost container
-     * @param containerOffset either {code 0} or the offset of the innermost container relative to the base address
-     * @param composite the composite of the newly used field
-     * @param memberName the name of the newly used field
-     */
-    private void addTargets(final String base,
-                            final CType currentType,
-                            final @Nullable CType containerType,
-                            final int properOffset,
-                            final int containerOffset,
-                            final String composite,
-                            final String memberName) {
-      final CType cType = CTypeUtils.simplifyType(currentType);
-      assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type:" + cType;
-      if (cType instanceof CArrayType) {
-        final CArrayType arrayType = (CArrayType) cType;
-        Integer length = CTypeUtils.getArrayLength(arrayType);
-        if (length == null) {
-          length = options.defaultArrayLength();
-        } else if (length > options.maxArrayLength()) {
-          length = options.maxArrayLength();
-        }
-        int offset = 0;
-        for (int i = 0; i < length; ++i) {
-          addTargets(base, arrayType.getType(), arrayType, offset, containerOffset + properOffset,
-                     composite, memberName);
-          offset += ptsMgr.getSize(arrayType.getType());
-        }
-      } else if (cType instanceof CCompositeType) {
-        final CCompositeType compositeType = (CCompositeType) cType;
-        assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
-        final String type = CTypeUtils.typeToString(compositeType);
-        int offset = 0;
-        final boolean isTargetComposite = type.equals(composite);
-        for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-          if (fields.containsKey(CompositeField.of(type, memberDeclaration.getName()))) {
-            addTargets(base, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset,
-                       composite, memberName);
-          }
-          if (isTargetComposite && memberDeclaration.getName().equals(memberName)) {
-            targets = ptsMgr.addToTargets(base, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset, targets, fields);
-          }
-          if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
-            offset += ptsMgr.getSize(memberDeclaration.getType());
-          }
-        }
-      }
-    }
-
-    public boolean addField(final CCompositeType composite, final String fieldName) {
-      final String type = CTypeUtils.typeToString(composite);
-      final CompositeField field = CompositeField.of(type, fieldName);
-      if (fields.containsKey(field)) {
-        return true; // The field has already been added
-      }
-
-      final PersistentSortedMap<String, PersistentList<PointerTarget>> oldTargets = targets;
-      for (final PersistentSortedMap.Entry<String, CType> baseEntry : bases.entrySet()) {
-        addTargets(baseEntry.getKey(), baseEntry.getValue(), null, 0, 0, type, fieldName);
-      }
-      fields = fields.putAndCopy(field, true);
-
-      if (oldTargets != targets) {
-        // Target added
-        return true;
-      }
-      return false;
-    }
-
-    /**
-     * Should be used to remove the newly added field if it didn't turn out to correspond to any actual pointer target.
-     * This can happen if we try to track a field of a composite that has no corresponding allocated bases.
-     * @param composite
-     * @param fieldName
-     */
-    public void shallowRemoveField(final CCompositeType composite, final String fieldName) {
-      final String type = CTypeUtils.typeToString(composite);
-      final CompositeField field = CompositeField.of(type, fieldName);
-      fields = fields.removeAndCopy(field);
-    }
-
-    private void addDeferredAllocation(final String pointerVariable,
-                                      final boolean isZeroing,
-                                      final CIntegerLiteralExpression size,
-                                      final String baseVariable) {
-      deferredAllocations = deferredAllocations.putAndCopy(pointerVariable,
-                                                           new DeferredAllocationPool(pointerVariable,
-                                                                                      isZeroing,
-                                                                                      size,
-                                                                                      baseVariable));
-    }
-
-    public void addTemporaryDeferredAllocation(final boolean isZeroing,
-                                               final CIntegerLiteralExpression size,
-                                               final String baseVariable) {
-      addDeferredAllocation(baseVariable, isZeroing, size, baseVariable);
-    }
-
-    public void addDeferredAllocationPointer(final String newPointerVariable,
-                                             final String originalPointerVariable) {
-      final DeferredAllocationPool newDeferredAllocationPool =
-        deferredAllocations.get(originalPointerVariable).addPointerVariable(newPointerVariable);
-
-      for (final String pointerVariable : newDeferredAllocationPool.getPointerVariables()) {
-        deferredAllocations = deferredAllocations.putAndCopy(pointerVariable, newDeferredAllocationPool);
-      }
-      deferredAllocations = deferredAllocations.putAndCopy(newPointerVariable, newDeferredAllocationPool);
-    }
-
-    /**
-     * Removes pointer to a deferred memory allocation from tracking.
-     * @param oldPointerVariable
-     * @return whether the removed variable was the only pointer to the corresponding referred allocation
-     */
-    public boolean removeDeferredAllocatinPointer(final String oldPointerVariable) {
-      final DeferredAllocationPool newDeferredAllocationPool =
-        deferredAllocations.get(oldPointerVariable).removePointerVariable(oldPointerVariable);
-
-      deferredAllocations = deferredAllocations.removeAndCopy(oldPointerVariable);
-      if (!newDeferredAllocationPool.getPointerVariables().isEmpty()) {
-        for (final String pointerVariable : newDeferredAllocationPool.getPointerVariables()) {
-          deferredAllocations = deferredAllocations.putAndCopy(pointerVariable, newDeferredAllocationPool);
-        }
-        return false;
-      } else {
-        return true;
-      }
-    }
-
-    public DeferredAllocationPool removeDeferredAllocation(final String allocatedPointerVariable) {
-      final DeferredAllocationPool deferredAllocationPool = deferredAllocations.get(allocatedPointerVariable);
-      for (final String pointerVariable : deferredAllocationPool.getPointerVariables()) {
-        deferredAllocations = deferredAllocations.removeAndCopy(pointerVariable);
-      }
-      return deferredAllocationPool;
-    }
-
-    public Collection<String> getDeferredAllocationVariables() {
-      return ImmutableSet.copyOf(deferredAllocations.keySet());
-    }
-
-    public static int getNextDynamicAllocationIndex() {
-      return dynamicAllocationCounter++;
-    }
-
-    public boolean isTemporaryDeferredAllocationPointer(final String pointerVariable) {
-      final DeferredAllocationPool deferredAllocationPool = deferredAllocations.get(pointerVariable);
-      assert deferredAllocationPool == null || deferredAllocationPool.getBaseVariables().size() >= 1 :
-             "Inconsistent deferred alloction pool: no bases";
-      return deferredAllocationPool != null && deferredAllocationPool.getBaseVariables().get(0).equals(pointerVariable);
-    }
-
-    public boolean isDeferredAllocationPointer(final String pointerVariable) {
-      return deferredAllocations.containsKey(pointerVariable);
-    }
-
-    public boolean isActualBase(final String name) {
-      return bases.containsKey(name) && !PointerTargetSetManager.isFakeBaseType(bases.get(name));
-    }
-
-    public boolean isPreparedBase(final String name) {
-      return bases.containsKey(name);
-    }
-
-    public boolean isBase(final String name, CType type) {
-      type = CTypeUtils.simplifyType(type);
-      final CType baseType = bases.get(name);
-      return baseType != null && baseType.equals(type);
-    }
-
-    public SortedSet<String> getAllBases() {
-      return bases.keySet();
-    }
-
-    public PersistentList<PointerTarget> getAllTargets(final CType type) {
-      return firstNonNull(targets.get(CTypeUtils.typeToString(type)),
-                          PersistentLinkedList.<PointerTarget>of());
-    }
-
-    public Iterable<PointerTarget> getMatchingTargets(final CType type,
-        final PointerTargetPattern pattern) {
-      return from(getAllTargets(type)).filter(pattern);
-    }
-
-    public Iterable<PointerTarget> getSpuriousTargets(final CType type,
-        final PointerTargetPattern pattern) {
-      return from(getAllTargets(type)).filter(not(pattern));
-    }
-
-    /**
-     * Returns an immutable PointerTargetSet with all the changes made to the builder.
-     */
-    public PointerTargetSet build() {
-      PointerTargetSet result = new PointerTargetSet(bases, lastBase, fields,
-          deferredAllocations, targets);
-      if (result.isEmpty()) {
-        return EMPTY_INSTANCE;
-      } else {
-        return result;
-      }
-    }
-  }
-
   public static final PointerTargetSet emptyPointerTargetSet() {
     return EMPTY_INSTANCE;
   }
@@ -511,7 +193,7 @@ public final class PointerTargetSet implements Serializable {
       FormulaManagerView fmgr,
       PointerTargetSetManager ptsMgr,
       FormulaEncodingWithUFOptions options) {
-    return new PointerTargetSetBuilder(this, fmgr, ptsMgr, options);
+    return new RealPointerTargetSetBuilder(this, fmgr, ptsMgr, options);
   }
 
   private static final PointerTargetSet EMPTY_INSTANCE = new PointerTargetSet(
@@ -550,9 +232,6 @@ public final class PointerTargetSet implements Serializable {
   // This means that when a location is not present in this map,
   // its value is not tracked and might get lost.
   final PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
-
-  // The counter that guarantees a unique name for each allocated memory region.
-  private static int dynamicAllocationCounter = 0;
 
   private static final String BASE_PREFIX = "__ADDRESS_OF_";
 

@@ -59,7 +59,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.CompositeField;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTarget;
 
 import com.google.common.collect.ImmutableList;
@@ -161,7 +161,7 @@ public class PointerTargetSetManager {
       final String fakeBaseName = FAKE_ALLOC_FUNCTION_NAME +
                                   CToFormulaWithUFConverter.getUFName(fakeBaseType) +
                                   CToFormulaWithUFConverter.FRESH_INDEX_SEPARATOR +
-                                  PointerTargetSetBuilder.getNextDynamicAllocationIndex();
+                                  RealPointerTargetSetBuilder.getNextDynamicAllocationIndex();
       mergedBases =
         Triple.of(mergedBases.getFirst(),
                   mergedBases.getSecond(),
