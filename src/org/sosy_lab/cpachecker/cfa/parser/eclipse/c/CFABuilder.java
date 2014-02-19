@@ -492,6 +492,10 @@ class CFABuilder extends ASTVisitor {
       result = createMultipleFileCFA();
     }
 
+    if (encounteredAsm) {
+      logger.log(Level.WARNING, "Inline assembler ignored, analysis is probably unsound!");
+    }
+
     if (checkBinding.foundUndefinedIdentifiers()) {
       throw new CParserException("Invalid C code because of undefined identifiers mentioned above.");
     }
@@ -514,10 +518,6 @@ class CFABuilder extends ASTVisitor {
       for (IASTFunctionDefinition declaration : pair.getFirst()) {
         handleFunctionDefinition(functions, types, typedefs, globalVars, pair, declaration);
       }
-    }
-
-    if (encounteredAsm) {
-      logger.log(Level.WARNING, "Inline assembler ignored, analysis is probably unsound!");
     }
 
     return new ParseResult(cfas, cfaNodes, globalDeclarations, Language.C);
@@ -612,10 +612,6 @@ class CFABuilder extends ASTVisitor {
 
         handleFunctionDefinition(functions, ImmutableMap.copyOf(localTypes), typedefs, globalVars, pair, declaration);
       }
-    }
-
-    if (encounteredAsm) {
-      logger.log(Level.WARNING, "Inline assembler ignored, analysis is probably unsound!");
     }
 
     return new ParseResult(cfas, cfaNodes, globalDeclarations, Language.C);
