@@ -135,7 +135,7 @@ public class CtoFormulaConverter {
       = ImmutableMap.of("pthread_create", "threads");
 
   //names for special variables needed to deal with functions
-  protected static final String VAR_RETURN_NAME = "__retval__";
+  protected static final String RETURN_VARIABLE_NAME = "__retval__";
 
   private static final String EXPAND_VARIABLE = "__expandVariable__";
   private int expands = 0;
@@ -254,14 +254,6 @@ public class CtoFormulaConverter {
   */
   public static String scoped(String var, String function) {
     return (function + "::" + var).intern();
-  }
-
-  /**
-   * Create a variable name that is used to store the return value of a function
-   * temporarily (between the return statement and the re-entrance in the caller function).
-   */
-  static String getReturnVarName(String function) {
-    return scoped(VAR_RETURN_NAME, function);
   }
 
   /**
@@ -927,7 +919,7 @@ public class CtoFormulaConverter {
   }
 
   protected BooleanFormula makeExitFunction(
-      final CFunctionSummaryEdge ce, final String function,
+      final CFunctionSummaryEdge ce, final String calledFunction,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
           throws CPATransferException {
@@ -939,20 +931,17 @@ public class CtoFormulaConverter {
 
     } else if (retExp instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement)retExp;
-      String retVarName = getReturnVarName(function);
-
       CFunctionCallExpression funcCallExp = exp.getRightHandSide();
-      CType retType = getReturnType(funcCallExp, ce);
-
-      Formula retVar = makeVariable(retVarName, retType, ssa);
-      CLeftHandSide e = exp.getLeftHandSide();
 
       String callerFunction = ce.getSuccessor().getFunctionName();
-      Formula outvarFormula = buildLvalueTerm(e, ce, callerFunction, ssa, constraints);
-      retVar = makeCast(retType, e.getExpressionType(), retVar, ce);
-      BooleanFormula assignments = fmgr.assignment(outvarFormula, retVar);
 
-      return assignments;
+      final CVariableDeclaration returnVariableDeclaration = createReturnVariable(funcCallExp.getDeclaration());
+      final CIdExpression rhs = new CIdExpression(funcCallExp.getFileLocation(),
+                         returnVariableDeclaration.getType(),
+                         returnVariableDeclaration.getName(),
+                         returnVariableDeclaration);
+
+      return makeAssignment(exp.getLeftHandSide(), rhs, ce, callerFunction, ssa, pts, constraints, errorConditions);
     } else {
       throw new UnrecognizedCCodeException("Unknown function exit expression", ce, retExp);
     }
@@ -1053,33 +1042,37 @@ public class CtoFormulaConverter {
       // so that we can use it later on, if it is assigned to
       // a variable. We create a function::__retval__ variable
       // that will hold the return value
-      String retVarName = VAR_RETURN_NAME;
-      final CFunctionDeclaration functionDeclaration = ((CFunctionEntryNode) edge.getSuccessor()
-          .getEntryNode())
-          .getFunctionDefinition();
-
-      CType returnType =
-          ((CFunctionEntryNode)edge.getSuccessor().getEntryNode())
-            .getFunctionDefinition()
-            .getType()
-            .getReturnType();
-      final CVariableDeclaration returnVariableDeclaration =
-          new CVariableDeclaration(functionDeclaration.getFileLocation(),
-                                   false,
-                                   CStorageClass.AUTO,
-                                   returnType,
-                                   retVarName,
-                                   retVarName,
-                                   scoped(retVarName, function),
-                                   null);
+      final CFunctionDeclaration functionDeclaration =
+          ((CFunctionEntryNode) edge.getSuccessor().getEntryNode()).getFunctionDefinition();
+      final CVariableDeclaration returnVariableDeclaration = createReturnVariable(functionDeclaration);
       final CIdExpression lhs = new CIdExpression(rightExp.getFileLocation(),
-                         returnType,
-                         retVarName,
+                         returnVariableDeclaration.getType(),
+                         returnVariableDeclaration.getName(),
                          returnVariableDeclaration);
 
-      StatementToFormulaVisitor statementVisitor = getStatementVisitor(edge, function, ssa, constraints);
-      return statementVisitor.handleAssignment(lhs, rightExp);
+      return makeAssignment(lhs, rightExp, edge, function, ssa, pts, constraints, errorConditions);
     }
+  }
+
+  protected final CVariableDeclaration createReturnVariable(
+      final CFunctionDeclaration functionDeclaration) {
+    final String retVarName = RETURN_VARIABLE_NAME;
+    final CType returnType = functionDeclaration.getType().getReturnType();
+
+    return new CVariableDeclaration(functionDeclaration.getFileLocation(), false,
+        CStorageClass.AUTO, returnType,
+        retVarName, retVarName, scoped(retVarName, functionDeclaration.getName()), null);
+  }
+
+  protected BooleanFormula makeAssignment(
+      final CLeftHandSide lhs, final CExpression rhs,
+      final CFAEdge edge, final String function,
+      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+      final Constraints constraints, final ErrorConditions errorConditions)
+          throws UnrecognizedCCodeException {
+
+    StatementToFormulaVisitor statementVisitor = getStatementVisitor(edge, function, ssa, constraints);
+    return statementVisitor.handleAssignment(lhs, rhs);
   }
 
   protected BooleanFormula makeAssume(

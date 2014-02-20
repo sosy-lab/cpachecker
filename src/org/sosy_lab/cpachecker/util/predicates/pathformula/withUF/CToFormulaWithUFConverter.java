@@ -50,10 +50,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -81,7 +78,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -179,10 +175,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   Formula makeBaseAddressOfTerm(final Formula address) {
     return ffmgr.createFuncAndCall("__BASE_ADDRESS_OF__", voidPointerFormulaType, ImmutableList.of(address));
-  }
-
-  static String getReturnVarName() {
-    return RETURN_VARIABLE_NAME;
   }
 
   @Override
@@ -1147,37 +1139,30 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                       final Constraints constraints,
                                       final ErrorConditions errorConditions)
   throws CPATransferException {
-    if (resultExpression == null) {
-      // this is a return from a void function, do nothing
-      return bfmgr.makeBoolean(true);
-    } else {
-      // we have to save the information about the return value,
-      // so that we can use it later on, if it is assigned to
-      // a variable. We create a function::__retval__ variable
-      // that will hold the return value
-      final String returnVariableName = getReturnVarName();
-      final CFunctionDeclaration functionDeclaration = ((CFunctionEntryNode) returnEdge.getSuccessor()
-                                                                                       .getEntryNode())
-                                                                                         .getFunctionDefinition();
-      final CType returnType = CTypeUtils.simplifyType(functionDeclaration.getType().getReturnType());
-      final CVariableDeclaration returnVariableDeclaration =
-        new CVariableDeclaration(functionDeclaration.getFileLocation(),
-                                 false,
-                                 CStorageClass.AUTO,
-                                 returnType,
-                                 returnVariableName,
-                                 returnVariableName,
-                                 scoped(returnVariableName, function),
-                                 null);
-      final CIdExpression lhs = new CIdExpression(resultExpression.getFileLocation(),
-                         returnType,
-                         returnVariableName,
-                         returnVariableDeclaration);
-      final StatementToFormulaWithUFVisitor statementVisitor = getStatementToFormulaWithUFVisitor(returnEdge, function, ssa, constraints, errorConditions, pts);
-      final BooleanFormula result = statementVisitor.handleAssignment(lhs, resultExpression, false, null);
-      declareSharedBase(returnVariableDeclaration, CTypeUtils.containsArray(returnType), constraints, pts);
-      return result;
+    BooleanFormula result = super.makeReturn(resultExpression, returnEdge, function, ssa, pts, constraints, errorConditions);
+
+    if (resultExpression != null) {
+      final CFunctionDeclaration functionDeclaration =
+          ((CFunctionEntryNode) returnEdge.getSuccessor().getEntryNode()).getFunctionDefinition();
+
+      final CVariableDeclaration returnVariableDeclaraton = createReturnVariable(functionDeclaration);
+      final boolean containsArray = CTypeUtils.containsArray(returnVariableDeclaraton.getType());
+
+      declareSharedBase(returnVariableDeclaraton, containsArray, constraints, pts);
     }
+    return result;
+  }
+
+  @Override
+  protected BooleanFormula makeAssignment(
+      final CLeftHandSide lhs, final CExpression rhs,
+      final CFAEdge edge, final String function,
+      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+      final Constraints constraints, final ErrorConditions errorConditions)
+          throws UnrecognizedCCodeException {
+
+    final StatementToFormulaWithUFVisitor statementVisitor = getStatementToFormulaWithUFVisitor(edge, function, ssa, constraints, errorConditions, pts);
+    return statementVisitor.handleAssignment(lhs, rhs, false, null);
   }
 
   private static String getLogMessage(final String msg, final CFAEdge edge) {
@@ -1385,40 +1370,14 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   @Override
   protected BooleanFormula makeExitFunction(
-      final CFunctionSummaryEdge summaryEdge, final String function,
+      final CFunctionSummaryEdge summaryEdge, final String calledFunction,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
           throws CPATransferException {
-    final CFunctionCall returnExpression = summaryEdge.getExpression();
 
-    final BooleanFormula result;
-    if (returnExpression instanceof CFunctionCallStatement) {
-      // this should be a void return, just do nothing...
-      result = bfmgr.makeBoolean(true);
-    } else if (returnExpression instanceof CFunctionCallAssignmentStatement) {
-      final CFunctionCallAssignmentStatement expression = (CFunctionCallAssignmentStatement) returnExpression;
-      final String returnVariableName = getReturnVarName();
-      final CFunctionCallExpression functionCallExpression = expression.getRightHandSide();
-      final CType returnType = getReturnType(functionCallExpression, summaryEdge);
-      final CIdExpression rhs = new CIdExpression(functionCallExpression.getFileLocation(),
-                                                  returnType,
-                                                  returnVariableName,
-                                                  new CVariableDeclaration(functionCallExpression.getDeclaration()
-                                                                                                 .getFileLocation(),
-                                                                           false,
-                                                                           CStorageClass.AUTO,
-                                                                           returnType,
-                                                                           returnVariableName,
-                                                                           returnVariableName,
-                                                                           scoped(returnVariableName, function),
-                                                                           null));
-      final StatementToFormulaWithUFVisitor statementVisitor = getStatementToFormulaWithUFVisitor(summaryEdge, function, ssa, constraints, errorConditions, pts);
-      result = statementVisitor.handleAssignment(expression.getLeftHandSide(), rhs, false, null);
-    } else {
-      throw new UnrecognizedCCodeException("Unknown function exit expression", summaryEdge, returnExpression);
-    }
+    final BooleanFormula result = super.makeExitFunction(summaryEdge, calledFunction, ssa, pts, constraints, errorConditions);
 
-    handleDeferredAllocationInFunctionExit(summaryEdge, function, pts);
+    handleDeferredAllocationInFunctionExit(summaryEdge, calledFunction, pts);
 
     return result;
   }
@@ -1440,8 +1399,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   static final String SSA_INDEX_SEPARATOR =  FormulaManagerView.makeName("", 0).substring(0, 1);
 
   static final String SCOPE_SEPARATOR = CtoFormulaConverter.scoped("", "");
-
-  private static final String RETURN_VARIABLE_NAME = VAR_RETURN_NAME;
 
   private static final Map<CType, String> ufNameCache = new IdentityHashMap<>();
 
