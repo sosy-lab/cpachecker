@@ -84,6 +84,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -270,8 +271,8 @@ public abstract class AbstractExplicitExpressionValueVisitor
 
     // special handling for UNSIGNED_LONGLONG (32 and 64bit), UNSIGNED_LONG (64bit)
     // because Java only has SIGNED_LONGLONG
-    if (calculationType instanceof CSimpleType) {
-      final CSimpleType st = (CSimpleType) calculationType;
+    CSimpleType st = getArithmeticType(calculationType);
+    if (st != null) {
       if (machineModel.getSizeof(st) * machineModel.getSizeofCharInBits() >= SIZE_OF_JAVA_LONG
           && st.isUnsigned()) {
         switch (op) {
@@ -415,38 +416,37 @@ public abstract class AbstractExplicitExpressionValueVisitor
       final BinaryOperator op, final CType calculationType,
       final MachineModel machineModel, final LogManager logger) {
 
-    try {
-      // At this point we're only handling explicit values of simple types.
-      CSimpleType type = (CSimpleType) calculationType;
+    // At this point we're only handling explicit values of simple types.
+    CSimpleType type = getArithmeticType(calculationType);
+    if(type == null) {
+      logger.logf(Level.INFO, "unsupported type for result of binary operation %s", calculationType.toString());
+      return ExplicitValueBase.ExplicitUnknownValue.getInstance();
+    }
 
-      // TODO explicitfloat: give a better debug message if lNum or rNum are not numeric
+    // TODO explicitfloat: give a better debug message if lNum or rNum are not numeric
 
-      // arithmetic operations are currently only supported for numeric values
-      ExplicitNumericValue lNum = (ExplicitNumericValue) l;
-      ExplicitNumericValue rNum = (ExplicitNumericValue) r;
+    // arithmetic operations are currently only supported for numeric values
+    ExplicitNumericValue lNum = (ExplicitNumericValue) l;
+    ExplicitNumericValue rNum = (ExplicitNumericValue) r;
 
-      if (type.getType() == CBasicType.INT) {
-        // Both l and r must be of the same type, which in this case is INT, so we can cast to long.
-        long lVal = lNum.getNumber().longValue();
-        long rVal = rNum.getNumber().longValue();
-        long result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
-        return new ExplicitNumericValue(result);
-      } else if (type.getType() == CBasicType.DOUBLE) {
-        double lVal = lNum.doubleValue();
-        double rVal = rNum.doubleValue();
-        double result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
-        return new ExplicitNumericValue(result);
-      } else if (type.getType() == CBasicType.FLOAT) {
-        float lVal = lNum.floatValue();
-        float rVal = rNum.floatValue();
-        float result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
-        return new ExplicitNumericValue(result);
-      } else {
-        logger.logf(Level.FINE, "unsupported type for result of binary operation %s", type.toString());
-        return ExplicitValueBase.ExplicitUnknownValue.getInstance();
-      }
-    } catch (ClassCastException e) {
-      logger.logf(Level.FINE, "unsupported type for result of binary operation %s", calculationType.toString());
+    if (type.getType() == CBasicType.INT) {
+      // Both l and r must be of the same type, which in this case is INT, so we can cast to long.
+      long lVal = lNum.getNumber().longValue();
+      long rVal = rNum.getNumber().longValue();
+      long result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
+      return new ExplicitNumericValue(result);
+    } else if (type.getType() == CBasicType.DOUBLE) {
+      double lVal = lNum.doubleValue();
+      double rVal = rNum.doubleValue();
+      double result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
+      return new ExplicitNumericValue(result);
+    } else if (type.getType() == CBasicType.FLOAT) {
+      float lVal = lNum.floatValue();
+      float rVal = rNum.floatValue();
+      float result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
+      return new ExplicitNumericValue(result);
+    } else {
+      logger.logf(Level.FINE, "unsupported type for result of binary operation %s", type.toString());
       return ExplicitValueBase.ExplicitUnknownValue.getInstance();
     }
   }
@@ -1070,6 +1070,25 @@ public abstract class AbstractExplicitExpressionValueVisitor
 
     } else {
       return value; // pointer like (void)*, (struct s)*, ...
+    }
+  }
+
+  /**
+   * @return A numeric type that can be used to perform arithmetics on an instance
+   *         of the type directly, or null if none.
+   *
+   *         Most notably, CPointerType will be converted to the unsigned integer type
+   *         of correct size.
+   */
+  public static CSimpleType getArithmeticType(CType type) {
+    type = type.getCanonicalType();
+    if(type instanceof org.sosy_lab.cpachecker.cfa.types.c.CPointerType) {
+      // TODO: introduce an integer type of the right size, similar to intptr_t
+      return CNumericTypes.INT;
+    } else if(type instanceof CSimpleType) {
+      return (CSimpleType) type;
+    } else {
+      return null;
     }
   }
 
