@@ -358,10 +358,16 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
     }
   }
 
-  BooleanFormula handleAssignment(final CLeftHandSide lhs, final CRightHandSide rhs,
+  BooleanFormula handleAssignment(final CLeftHandSide lhs,
+                                  final @Nullable CRightHandSide rhs,
                                   final boolean batchMode,
-                                  final Set<CType> destroyedTypes)
+                                  final @Nullable Set<CType> destroyedTypes)
   throws UnrecognizedCCodeException {
+    if (!lhs.accept(isRelevantLhsVisitor)) {
+      // Optimization for unused variables and fields
+      return conv.bfmgr.makeBoolean(true);
+    }
+
     final CType lhsType = CTypeUtils.simplifyType(lhs.getExpressionType());
     final CType rhsType = rhs != null ? CTypeUtils.simplifyType(rhs.getExpressionType()) :
                                         CNumericTypes.SIGNED_CHAR;
@@ -506,15 +512,8 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
     }
   }
 
-  public BooleanFormula visit(final CAssignment e) throws UnrecognizedCCodeException {
-    final CLeftHandSide lhs = e.getLeftHandSide();
-
-    // Optimization for unused variables and fields
-    if (lhs.accept(isRelevantLhsVisitor)) {
-      return handleAssignment(lhs, e.getRightHandSide(), false, null);
-    } else {
-      return conv.bfmgr.makeBoolean(true);
-    }
+  private BooleanFormula visit(final CAssignment e) throws UnrecognizedCCodeException {
+    return handleAssignment(e.getLeftHandSide(), e.getRightHandSide(), false, null);
   }
 
   public BooleanFormula handleInitializationAssignments(final CLeftHandSide variable,
@@ -525,12 +524,10 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
     BooleanFormula result = conv.bfmgr.makeBoolean(true);
     for (CExpressionAssignmentStatement assignment : assignments) {
       final CLeftHandSide lhs = assignment.getLeftHandSide();
-      if (lhs.accept(isRelevantLhsVisitor)) {
-        result = conv.bfmgr.and(result, handleAssignment(lhs,
-                                                         assignment.getRightHandSide(),
-                                                         lhsLocation.isAliased(), // Defer index update for UFs, but not for variables
-                                                         updatedTypes));
-      }
+      result = conv.bfmgr.and(result, handleAssignment(lhs,
+                                                       assignment.getRightHandSide(),
+                                                       lhsLocation.isAliased(), // Defer index update for UFs, but not for variables
+                                                       updatedTypes));
     }
     if (lhsLocation.isAliased()) {
       conv.finishAssignments(CTypeUtils.simplifyType(variable.getExpressionType()),

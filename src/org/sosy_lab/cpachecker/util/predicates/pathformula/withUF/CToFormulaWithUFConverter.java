@@ -1169,15 +1169,12 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                  returnVariableName,
                                  scoped(returnVariableName, function),
                                  null);
-      final CExpressionAssignmentStatement assignment =
-        new CExpressionAssignmentStatement(resultExpression.getFileLocation(),
-                                           new CIdExpression(resultExpression.getFileLocation(),
-                                                             returnType,
-                                                             returnVariableName,
-                                                             returnVariableDeclaration),
-                                           resultExpression);
+      final CIdExpression lhs = new CIdExpression(resultExpression.getFileLocation(),
+                         returnType,
+                         returnVariableName,
+                         returnVariableDeclaration);
       final StatementToFormulaWithUFVisitor statementVisitor = getStatementToFormulaWithUFVisitor(returnEdge, function, ssa, constraints, errorConditions, pts);
-      final BooleanFormula result = assignment.accept(statementVisitor);
+      final BooleanFormula result = statementVisitor.handleAssignment(lhs, resultExpression, false, null);
       declareSharedBase(returnVariableDeclaration, CTypeUtils.containsArray(returnType), constraints, pts);
       return result;
     }
@@ -1293,11 +1290,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
       final BooleanFormula result;
       if (initializer != null) {
-        final CExpressionAssignmentStatement assignment =
-          new CExpressionAssignmentStatement(declaration.getFileLocation(),
-                                             lhs,
-                                             ((CInitializerExpression) initializer).getExpression());
-        result = assignment.accept(statementVisitor);
+        result = statementVisitor.handleAssignment(lhs, ((CInitializerExpression) initializer).getExpression(), false, null);
       } else if (isRelevantVariable(declaration.getQualifiedName())) {
         result = statementVisitor.handleAssignment(lhs, null, false, null);
       } else {
@@ -1381,11 +1374,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     for (CParameterDeclaration formalParameter : parameters) {
       final CExpression argument = arguments.get(i++);
       final CType parameterType = CTypeUtils.simplifyType(formalParameter.getType());
-      final CExpressionAssignmentStatement assignmentStatement = new CExpressionAssignmentStatement(
-        argument.getFileLocation(),
-        new CIdExpression(argument.getFileLocation(), parameterType, formalParameter.getName(), formalParameter),
-        argument);
-      final BooleanFormula assignment = assignmentStatement.accept(statementVisitor);
+      final CIdExpression lhs = new CIdExpression(argument.getFileLocation(), parameterType, formalParameter.getName(), formalParameter);
+      final BooleanFormula assignment = statementVisitor.handleAssignment(lhs, argument, false, null);
       result = bfmgr.and(result, assignment);
       declareSharedBase(formalParameter.asVariableDeclaration(), CTypeUtils.containsArray(parameterType), constraints, pts);
     }
@@ -1423,10 +1413,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                                            returnVariableName,
                                                                            scoped(returnVariableName, function),
                                                                            null));
-      CLeftHandSide lhs = expression.getLeftHandSide();
-
-      result = statementVisitor.visit(
-        new CExpressionAssignmentStatement(functionCallExpression.getFileLocation(), lhs, rhs));
+      result = statementVisitor.handleAssignment(expression.getLeftHandSide(), rhs, false, null);
     } else {
       throw new UnrecognizedCCodeException("Unknown function exit expression", summaryEdge, returnExpression);
     }
