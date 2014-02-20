@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGMergeJoinPredicatedAnalysis;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.Iterables;
 
@@ -275,7 +276,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
             stats.stopTimer.stop();
           }
 
-          if (stop) {
+          if (AbstractStates.isTargetState(successor) && stop) {
             // don't signal BREAK for covered states
             // no need to call merge and stop either, so just ignore this state
             // and handle next successor
