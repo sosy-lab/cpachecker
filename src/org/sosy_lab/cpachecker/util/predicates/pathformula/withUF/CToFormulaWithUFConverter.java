@@ -1390,7 +1390,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final Constraints constraints, final ErrorConditions errorConditions)
           throws CPATransferException {
     final CFunctionCall returnExpression = summaryEdge.getExpression();
-    final StatementToFormulaWithUFVisitor statementVisitor = getStatementToFormulaWithUFVisitor(summaryEdge, function, ssa, constraints, errorConditions, pts);
 
     final BooleanFormula result;
     if (returnExpression instanceof CFunctionCallStatement) {
@@ -1413,12 +1412,13 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                                            returnVariableName,
                                                                            scoped(returnVariableName, function),
                                                                            null));
+      final StatementToFormulaWithUFVisitor statementVisitor = getStatementToFormulaWithUFVisitor(summaryEdge, function, ssa, constraints, errorConditions, pts);
       result = statementVisitor.handleAssignment(expression.getLeftHandSide(), rhs, false, null);
     } else {
       throw new UnrecognizedCCodeException("Unknown function exit expression", summaryEdge, returnExpression);
     }
 
-    statementVisitor.handleDeferredAllocationInFunctionExit();
+    handleDeferredAllocationInFunctionExit(summaryEdge, function, pts);
 
     return result;
   }
@@ -1482,5 +1482,36 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   @Override
   protected int getSizeof(CType pType) {
     return super.getSizeof(pType);
+  }
+
+  void handleDeferredAllocationPointerRemoval(final String pointerVariable,
+      final boolean isReturn, final PointerTargetSetBuilder pts,
+      final CFAEdge edge) {
+    if (pts.removeDeferredAllocatinPointer(pointerVariable)) {
+      logger.logfOnce(Level.WARNING,
+                           (!isReturn ? "Assignment to the" : "Destroying the") +
+                             " void * pointer  %s produces garbage! (in the following line(s):\n %s)",
+                           pointerVariable,
+                           edge);
+    }
+  }
+
+  /**
+   * The function removes local void * pointers (deferred allocations)
+   * declared in current function scope from tracking after returning from the function.
+   * @param pStatementToFormulaWithUFVisitor TODO
+   */
+  private void handleDeferredAllocationInFunctionExit(
+      final CFAEdge edge, final String function,
+      final PointerTargetSetBuilder pts) {
+    for (final String variable : pts.getDeferredAllocationVariables()) {
+      final int position = variable.indexOf(CToFormulaWithUFConverter.SCOPE_SEPARATOR);
+      if (position >= 0) { // Consider only local variables (in current function scope)
+        final String variableFunction = variable.substring(0, position);
+        if (function.equals(variableFunction)) {
+          handleDeferredAllocationPointerRemoval(variable, true, pts, edge);
+        }
+      }
+    }
   }
 }

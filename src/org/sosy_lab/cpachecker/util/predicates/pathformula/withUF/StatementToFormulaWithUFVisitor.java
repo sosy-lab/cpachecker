@@ -205,16 +205,6 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
     }
   }
 
-  private void handleDeferredAllocationPointerRemoval(final String pointerVariable, final boolean isReturn) {
-    if (pts.removeDeferredAllocatinPointer(pointerVariable)) {
-      conv.logger.logfOnce(Level.WARNING,
-                           (!isReturn ? "Assignment to the" : "Destroying the") +
-                             " void * pointer  %s produces garbage! (in the following line(s):\n %s)",
-                           pointerVariable,
-                           edge);
-    }
-  }
-
   private void handleDeferredAllocationPointerEscape(final String pointerVariable)
   throws UnrecognizedCCodeException {
     final DeferredAllocationPool deferredAllocationPool = pts.removeDeferredAllocation(pointerVariable);
@@ -279,7 +269,7 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
                   (rhsExpression.asUnaliasedLocation().getVariableName()).equals(lhsUsedPointer.getKey())) :
                  "Wrong assumptions on deferred allocations tracking: unrecognized lhs";
           if (lhsUsedPointer != null) {
-            handleDeferredAllocationPointerRemoval(lhsUsedPointer.getKey(), false);
+            conv.handleDeferredAllocationPointerRemoval(lhsUsedPointer.getKey(), false, pts, edge);
           }
           pts.addDeferredAllocationPointer(lhsLocation.asUnaliased().getVariableName(), usedPointer.getKey());
           passed = true;
@@ -303,7 +293,7 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
                lhsUsedDeferredAllocationPointers.size() == 1 :
                "Wrong assumptions on deferred allocations tracking: lhs is not a single pointer";
         if (!passed) {
-          handleDeferredAllocationPointerRemoval(usedPointer.getKey(), false);
+          conv.handleDeferredAllocationPointerRemoval(usedPointer.getKey(), false, pts, edge);
         }
       } else {
         handleDeferredAllocationPointerEscape(usedPointer.getKey());
@@ -337,22 +327,6 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
             handleDeferredAllocationTypeRevelation(usedPointer.getKey(), type);
           }
           break;
-        }
-      }
-    }
-  }
-
-  /**
-   * The function removes local void * pointers (deferred allocations)
-   * declared in current function scope from tracking after returning from the function.
-   */
-  void handleDeferredAllocationInFunctionExit() {
-    for (final String variable : pts.getDeferredAllocationVariables()) {
-      final int position = variable.indexOf(CToFormulaWithUFConverter.SCOPE_SEPARATOR);
-      if (position >= 0) { // Consider only local variables (in current function scope)
-        final String variableFunction = variable.substring(0, position);
-        if (function.equals(variableFunction)) {
-          handleDeferredAllocationPointerRemoval(variable, true);
         }
       }
     }
@@ -424,11 +398,11 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
                        lhsLocation.isUnaliasedLocation()) {
               final String variableName = lhsLocation.asUnaliasedLocation().getVariableName();
               if (pts.isDeferredAllocationPointer(variableName)) {
-                handleDeferredAllocationPointerRemoval(variableName, false);
+                conv.handleDeferredAllocationPointerRemoval(variableName, false, pts, edge);
               }
               pts.addDeferredAllocationPointer(variableName, variable); // Now we track the LHS
               // And not the RHS, because the LHS is its only alias
-              handleDeferredAllocationPointerRemoval(variable, false);
+              conv.handleDeferredAllocationPointerRemoval(variable, false, pts, edge);
             } else {
               handleDeferredAllocationPointerEscape(variable);
             }
