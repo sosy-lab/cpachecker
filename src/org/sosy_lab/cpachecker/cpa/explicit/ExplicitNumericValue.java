@@ -99,8 +99,6 @@ public class ExplicitNumericValue implements ExplicitValueBase {
   public boolean equals(Object other) {
     if(other instanceof ExplicitNumericValue) {
       return this.getNumber().equals(((ExplicitNumericValue) other).getNumber());
-    } else if(other instanceof Number) {
-      return this.getNumber().equals(other);
     } else {
       return false;
     }
@@ -145,7 +143,9 @@ public class ExplicitNumericValue implements ExplicitValueBase {
 
   @Override
   public int hashCode() {
-    return super.hashCode();
+    // fulfills contract that if this.equals(other),
+    // then this.hashCode() == other.hashCode()
+    return number.hashCode();
   }
 
 }
