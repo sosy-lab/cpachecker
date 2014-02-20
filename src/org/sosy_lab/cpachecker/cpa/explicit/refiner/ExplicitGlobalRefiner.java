@@ -477,7 +477,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
      * @return the initial interpolant for the given path
      */
     private ExplicitValueInterpolant getInitialInterpolantForPath(ARGPath errorPath) {
-      return strategy.getInitialInterpolantForRoot(predecessorRelation.get(errorPath.getFirst().getFirst()));
+      return strategy.getInitialInterpolantForRoot(errorPath.getFirst().getFirst());
     }
 
     /**
@@ -622,7 +622,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
       public ARGPath getNextPathForInterpolation() {
         ARGPath errorPath = new ARGPath();
 
-        ARGState current = sources.removeLast();
+        ARGState current = sources.pop();
 
         if(!isValidInterpolationRoot(current)) {
           logger.log(Level.FINEST, "interpolant of predecessor of ", current.getStateId(), " is already false ... return empty path");
@@ -654,8 +654,8 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
       /**
        * The given state is not a valid interpolation root if it is associated with a interpolant representing "false"
        */
-      public boolean isValidInterpolationRoot(ARGState state) {
-        ARGState predecessor = predecessorRelation.get(state);
+      public boolean isValidInterpolationRoot(ARGState root) {
+        ARGState predecessor = predecessorRelation.get(root);
 
         if(!interpolants.containsKey(predecessor)) {
           return true;
