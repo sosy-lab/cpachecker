@@ -10,7 +10,7 @@
 <listEntry value="org.eclipse.debug.ui.launchGroup.run"/>
 </listAttribute>
 <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="org.sosy_lab.cpachecker.cmdline.CPAMain"/>
-<stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-CPAlien&#13;&#10;&quot;${file_prompt:the C program to verify:${workspace_loc}/${project_path}/test/programs/simple/loop1.c}&quot;&#13;&#10;-preprocess"/>
+<stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-CPAlien&#10;&quot;${file_prompt:the C program to verify:${workspace_loc}/${project_path}/test/programs/simple/loop1.c}&quot;&#10;-preprocess"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="CPAchecker"/>
-<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-ea&#13;&#10;-Xmx1200m"/>
+<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-ea&#10;-Xmx1200m"/>
 </launchConfiguration>
