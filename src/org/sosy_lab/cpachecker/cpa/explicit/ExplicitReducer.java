@@ -76,7 +76,7 @@ public class ExplicitReducer implements Reducer {
     }*/
     for (String trackedVar : reducedState.getTrackedVariableNames()) {
       ExplicitValueBase value = reducedState.getValueFor(trackedVar);
-      if (value != null) {
+      if (!value.isUnknown()) {
         diffElement.assignConstant(trackedVar, reducedState.getValueFor(trackedVar));
       } else {
         diffElement.forget(trackedVar);

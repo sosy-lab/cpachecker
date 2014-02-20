@@ -36,9 +36,9 @@ import java.util.Set;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithTargetVariable;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
@@ -358,7 +358,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
       String[] parts = pProperty.split("==");
       if (parts.length != 2) {
         ExplicitValueBase value = this.constantsMap.get(MemoryLocation.valueOf(pProperty));
-        if (value != null) {
+        if (!value.isUnknown()) {
           return value;
         } else {
           throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not find the variable \""
