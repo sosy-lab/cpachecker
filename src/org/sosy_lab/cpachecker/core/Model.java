@@ -781,7 +781,7 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
       }
 
       private boolean belongsToVariable(String pAssignableTermVarName, Variable pTerm) {
-        return pTerm.getName().equals(pAssignableTermVarName);
+        return pTerm.equals(pAssignableTermVarName);
       }
 
       @Nullable

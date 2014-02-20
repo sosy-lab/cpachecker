@@ -2262,6 +2262,8 @@ private void handleTernaryExpression(ConditionalExpression condExp,
           filelocStart, nextNode, loopStart, "");
       addToCFA(blankEdge);
 
+      assert (nextNode != null) : "Null Pointer not expected. Unexpected behaviour in For Statementen";
+
     }
   }
 

@@ -1769,7 +1769,7 @@ public class SMGTransferRelation implements TransferRelation {
         new SMGExplicitCommunicator(pExplicitState, functionName,
             pSmgState, machineModel, logger, edge);
 
-    return cc.evaluateExpression(rValue);
+    return cc.evaluateExpression(rValue).asLong(rValue.getExpressionType());
   }
 
   @SuppressWarnings("unused")
@@ -1825,7 +1825,7 @@ public class SMGTransferRelation implements TransferRelation {
       SMGExplicitCommunicator cc = new SMGExplicitCommunicator(explicitState, functionName,
           pState, machineModel, logger, pCfaEdge);
 
-      Long value = cc.evaluateExpression(pRValue);
+      Long value = cc.evaluateExpression(pRValue).asLong(pRValue.getExpressionType());
 
       if (value == null) {
         return SMGUnknownValue.getInstance();

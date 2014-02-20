@@ -30,6 +30,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
@@ -49,6 +50,7 @@ import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitValueBase;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.ExplicitInterpolationBasedExplicitRefiner.ExplicitValueInterpolant;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -183,6 +185,7 @@ public class ExplicitInterpolator {
       return ExplicitValueInterpolant.TRUE;
     }
 
+    Map<MemoryLocation, ExplicitValueBase> rawInterpolant = new HashMap<>();
     // optimization, which however, leads to too strong interpolants, as the successor is used directly as interpolant
     //if (!isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
       //return new ExplicitValueInterpolant(initialSuccessor.getConstantsMapView());
@@ -192,7 +195,7 @@ public class ExplicitInterpolator {
       shutdownNotifier.shutdownIfNecessary();
 
       // temporarily remove the value of the current memory location from the rawInterpolant
-      Long value = initialSuccessor.forget(currentMemoryLocation);
+      ExplicitValueBase value = initialSuccessor.forget(currentMemoryLocation);
 
       // check if the remaining path now becomes feasible,
       if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {

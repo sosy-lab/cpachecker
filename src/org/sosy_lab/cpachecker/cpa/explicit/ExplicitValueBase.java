@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
+
+
 /**
  * Base class for values that can be tracked by the ExplicitCPA.
  *
@@ -31,5 +35,49 @@ package org.sosy_lab.cpachecker.cpa.explicit;
  * also be supported.
  */
 public interface ExplicitValueBase {
+  public boolean isNumericValue();
 
+  public boolean isUnknown();
+
+  /** Return the ExplicitNumericValue if this is a numeric value, null otherwise. **/
+  public ExplicitNumericValue asNumericValue();
+
+  /** Return the long value if this is a long value, null otherwise. **/
+  public Long asLong(CType type);
+
+  /** Singleton class used to signify that the explicit value us unknown(could be anything). **/
+  public static final class ExplicitUnknownValue implements ExplicitValueBase {
+
+    private static final ExplicitUnknownValue instance = new ExplicitUnknownValue();
+
+    @Override
+    public String toString() {
+      return "UNKNOWN";
+    }
+
+    public static ExplicitUnknownValue getInstance() {
+      return instance;
+    }
+
+    @Override
+    public boolean isNumericValue() {
+      return false;
+    }
+
+    @Override
+    public ExplicitNumericValue asNumericValue() {
+      return null;
+    }
+
+    @Override
+    public Long asLong(CType type) {
+      return null;
+    }
+
+    @Override
+    public boolean isUnknown() {
+      return true;
+    }
+
+  }
 }

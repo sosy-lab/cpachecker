@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitExpressionValueVisitor;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitNumericValue;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -56,6 +57,8 @@ import com.google.common.collect.ImmutableSet;
  */
 public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpressionVisitor
     <CExpression, RuntimeException> {
+
+  // TODO explicitfloat: improve this entire class to use ExplicitValueBase instead of Long
 
   private final Set<UnaryOperator> EVALUATABLE_UNARY_OPERATORS =
       ImmutableSet.of(UnaryOperator.PLUS, UnaryOperator.MINUS, UnaryOperator.NOT);
@@ -125,7 +128,7 @@ public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpress
     }
 
     long result = ExplicitExpressionValueVisitor.calculateBinaryOperation(
-        v1, v2, expr, machineModel, logger, null);
+        new ExplicitNumericValue(v1), new ExplicitNumericValue(v2), expr, machineModel, logger, null).asLong(expr.getExpressionType());
 
     return new CIntegerLiteralExpression(expr.getFileLocation(),
             expr.getExpressionType(), BigInteger.valueOf(result));
@@ -140,7 +143,7 @@ public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpress
     }
 
     final long castedValue = ExplicitExpressionValueVisitor.castCValue(
-        v, expr.getExpressionType(), machineModel, logger, null);
+        new ExplicitNumericValue(v), expr.getOperand().getExpressionType(), expr.getExpressionType(), machineModel, logger, null).asLong(expr.getExpressionType());
 
     return new CIntegerLiteralExpression(expr.getFileLocation(),
             expr.getExpressionType(), BigInteger.valueOf(castedValue));

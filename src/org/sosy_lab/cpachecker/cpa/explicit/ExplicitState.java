@@ -36,6 +36,7 @@ import java.util.Set;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -76,7 +77,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
   /**
    * the map that keeps the name of variables and their constant values
    */
-  private PersistentMap<MemoryLocation, Long> constantsMap;
+  private PersistentMap<MemoryLocation, ExplicitValueBase> constantsMap;
 
   /**
    * the current delta of this state to the previous state
@@ -87,7 +88,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     constantsMap = PathCopyingPersistentTreeMap.of();
   }
 
-  public ExplicitState(PersistentMap<MemoryLocation, Long> pConstantsMap) {
+  public ExplicitState(PersistentMap<MemoryLocation, ExplicitValueBase> pConstantsMap) {
     this.constantsMap = pConstantsMap;
   }
 
@@ -97,7 +98,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    * @param variableName name of the variable.
    * @param value value to be assigned.
    */
-  void assignConstant(String variableName, Long value) {
+  void assignConstant(String variableName, ExplicitValueBase value) {
     if (blacklist.contains(MemoryLocation.valueOf(variableName))) {
       return;
     }
@@ -111,7 +112,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    * @param pMemoryLocation the location in the memory.
    * @param value value to be assigned.
    */
-  public void assignConstant(MemoryLocation pMemoryLocation, Long value) {
+  public void assignConstant(MemoryLocation pMemoryLocation, ExplicitValueBase value) {
     if (blacklist.contains(pMemoryLocation)) {
       return;
     }
@@ -125,7 +126,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    * @param variableName the name of the variable to remove
    * @return the value of the removed variable
    */
-  public Long forget(String variableName) {
+  public ExplicitValueBase forget(String variableName) {
     return forget(MemoryLocation.valueOf(variableName));
   }
 
@@ -135,8 +136,8 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    * @param variableName the name of the memory location to remove
    * @return the value of the removed memory location
    */
-  public Long forget(MemoryLocation pMemoryLocation) {
-    Long value   = constantsMap.get(pMemoryLocation);
+  public ExplicitValueBase forget(MemoryLocation pMemoryLocation) {
+    ExplicitValueBase value = constantsMap.get(pMemoryLocation);
     constantsMap = constantsMap.removeAndCopy(pMemoryLocation);
 
     return value;
@@ -173,7 +174,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    * @throws NullPointerException - if no value is present in this state for the given variable
    * @return the value associated with the given variable
    */
-  public Long getValueFor(String variableName) {
+  public ExplicitValueBase getValueFor(String variableName) {
     return getValueFor(MemoryLocation.valueOf(variableName));
   }
 
@@ -184,7 +185,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    * @throws NullPointerException - if no value is present in this state for the given variable
    * @return the value associated with the given variable
    */
-  public Long getValueFor(MemoryLocation variableName) {
+  public ExplicitValueBase getValueFor(MemoryLocation variableName) {
     return checkNotNull(constantsMap.get(variableName));
   }
 
@@ -242,9 +243,9 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    * @return a new state representing the join of this element and the other element
    */
   ExplicitState join(ExplicitState reachedState) {
-    PersistentMap<MemoryLocation, Long> newConstantsMap = PathCopyingPersistentTreeMap.of();
+    PersistentMap<MemoryLocation, ExplicitValueBase> newConstantsMap = PathCopyingPersistentTreeMap.of();
 
-    for (Map.Entry<MemoryLocation, Long> otherEntry : reachedState.constantsMap.entrySet()) {
+    for (Map.Entry<MemoryLocation, ExplicitValueBase> otherEntry : reachedState.constantsMap.entrySet()) {
       MemoryLocation key = otherEntry.getKey();
 
       if (equal(otherEntry.getValue(), constantsMap.get(key))) {
@@ -275,7 +276,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
 
     // also, this element is not less or equal than the other element,
     // if any one constant's value of the other element differs from the constant's value in this element
-    for (Map.Entry<MemoryLocation, Long> otherEntry : other.constantsMap.entrySet()) {
+    for (Map.Entry<MemoryLocation, ExplicitValueBase> otherEntry : other.constantsMap.entrySet()) {
       MemoryLocation key = otherEntry.getKey();
 
       if (!otherEntry.getValue().equals(constantsMap.get(key))) {
@@ -319,7 +320,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("[");
-    for (Map.Entry<MemoryLocation, Long> entry : constantsMap.entrySet()) {
+    for (Map.Entry<MemoryLocation, ExplicitValueBase> entry : constantsMap.entrySet()) {
       MemoryLocation key = entry.getKey();
       sb.append(" <");
       sb.append(key.getAsSimpleString());
@@ -356,7 +357,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     } else {
       String[] parts = pProperty.split("==");
       if (parts.length != 2) {
-        Long value = this.constantsMap.get(MemoryLocation.valueOf(pProperty));
+        ExplicitValueBase value = this.constantsMap.get(MemoryLocation.valueOf(pProperty));
         if (value != null) {
           return value;
         } else {
@@ -378,13 +379,14 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
       throw new InvalidQueryException("The Query \"" + pProperty
           + "\" is invalid. Could not split the property string correctly.");
     } else {
-      Long value = this.constantsMap.get(MemoryLocation.valueOf(parts[0]));
+      // The following is a hack
+      Long value = this.constantsMap.get(MemoryLocation.valueOf(parts[0])).asLong(CNumericTypes.INT);
 
       if (value == null) {
         return false;
       } else {
         try {
-          return value.longValue() == Long.parseLong(parts[1]);
+          return value == Long.parseLong(parts[1]);
         } catch (NumberFormatException e) {
           // The command might contains something like "main::p==cmd" where the user wants to compare the variable p to the variable cmd (nearest in scope)
           // perhaps we should omit the "main::" and find the variable via static scoping ("main::p" is also not intuitive for a user)
@@ -433,7 +435,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
         } else {
           String varName = assignmentParts[0].trim();
           try {
-            long newValue = Long.parseLong(assignmentParts[1].trim());
+            ExplicitValueBase newValue = new ExplicitNumericValue(Long.parseLong(assignmentParts[1].trim()));
             this.assignConstant(varName, newValue);
           } catch (NumberFormatException e) {
             throw new InvalidQueryException("The Query \"" + pModification
@@ -455,9 +457,11 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     RationalFormulaManager nfmgr = manager.getRationalFormulaManager();
     BooleanFormula formula = bfmgr.makeBoolean(true);
 
-    for (Map.Entry<MemoryLocation, Long> entry : constantsMap.entrySet()) {
+    for (Map.Entry<MemoryLocation, ExplicitValueBase> entry : constantsMap.entrySet()) {
       RationalFormula var = nfmgr.makeVariable(entry.getKey().getAsSimpleString());
-      RationalFormula val = nfmgr.makeNumber(entry.getValue());
+      // TODO explicitfloat: handle the case that it's not a long
+      // The following is a hack
+      RationalFormula val = nfmgr.makeNumber(entry.getValue().asLong(CNumericTypes.INT));
       formula = bfmgr.and(formula, nfmgr.equal(var, val));
     }
 
@@ -523,8 +527,8 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    * @param valueMapping the mapping from variable name to the set of values of this variable
    * @return the new mapping
    */
-  public Multimap<String, Long> addToValueMapping(Multimap<String, Long> valueMapping) {
-    for (Map.Entry<MemoryLocation, Long> entry : constantsMap.entrySet()) {
+  public Multimap<String, ExplicitValueBase> addToValueMapping(Multimap<String, ExplicitValueBase> valueMapping) {
+    for (Map.Entry<MemoryLocation, ExplicitValueBase> entry : constantsMap.entrySet()) {
       valueMapping.put(entry.getKey().getAsSimpleString(), entry.getValue());
     }
 
@@ -563,12 +567,12 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    * @return the internal mapping of this state
    * @TODO: eliminate this - breaks encapsulation
    */
-  Map<MemoryLocation, Long> getConstantsMap() {
+  Map<MemoryLocation, ExplicitValueBase> getConstantsMap() {
     //TODO Investigate if this API change breaks functionality
     return constantsMap;
   }
 
-  public Map<MemoryLocation, Long> getConstantsMapView() {
+  public Map<MemoryLocation, ExplicitValueBase> getConstantsMapView() {
     return Collections.unmodifiableMap(constantsMap);
   }
 

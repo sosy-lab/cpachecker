@@ -41,6 +41,10 @@ public class CNumericTypes {
   public final static CSimpleType SHORT_INT     = new CSimpleType(false, false, CBasicType.INT, false, true, false, false, false, false, false);
   public final static CSimpleType LONG_INT      = new CSimpleType(false, false, CBasicType.INT, true, false, false, false, false, false, false);
   public final static CSimpleType LONG_LONG_INT = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, true);
+
+  public final static CSimpleType FLOAT         = new CSimpleType(false, false, CBasicType.FLOAT, false, false, false, false, false, false, false);
+  public final static CSimpleType DOUBLE        = new CSimpleType(false, false, CBasicType.DOUBLE, false, false, false, false, false, false, false);
+  public final static CSimpleType LONG_DOUBLE   = new CSimpleType(false, false, CBasicType.DOUBLE, true, false, false, false, false, false, false);
   public final static CSimpleType VOID          = new CSimpleType(false, false, CBasicType.VOID, false, false, false, false, false, false, false);
 
   private static CIntegerLiteralExpression create(long l, CType type) {

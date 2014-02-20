@@ -25,17 +25,15 @@ package org.sosy_lab.cpachecker.cpa.explicit;
 
 import java.math.BigDecimal;
 
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
  * Stores a numeric value that can be tracked by the
  * ExplicitCPA.
  */
 public class ExplicitNumericValue implements ExplicitValueBase {
-
-  private CSimpleType type;
-
   private Number number;
 
   /**
@@ -44,26 +42,8 @@ public class ExplicitNumericValue implements ExplicitValueBase {
    * @param pType the inital type of the number.
    * @param pNumber the value of the number (must be a <code>BigDecimal</code>)
    */
-  public ExplicitNumericValue(CSimpleType pType, Number pNumber) {
-    type = pType;
+  public ExplicitNumericValue(Number pNumber) {
     number = pNumber;
-  }
-
-  /**
-   * Shortcut for creating a new ExplicitNumberValue
-   */
-  public ExplicitNumericValue(long longValue) {
-    this(CNumericTypes.LONG_INT, longValue);
-  }
-
-  /**
-   * Returns the C type of the number stored in the container.
-   *
-   * @return The type of the number stored in the container. Must be a CSimpleType
-   *         which represents a numeric type.
-   */
-  public CSimpleType getType() {
-    return type;
   }
 
   /**
@@ -112,6 +92,55 @@ public class ExplicitNumericValue implements ExplicitValueBase {
    */
   @Override
   public String toString() {
-    return "ExplicitNumericValue [type=" + type.toString() + ", number=" + number + "]";
+    return "ExplicitNumericValue [number=" + number + "]";
   }
+
+  @Override
+  public boolean equals(Object other) {
+    if(other instanceof ExplicitNumericValue) {
+      return this.getNumber().equals(((ExplicitNumericValue) other).getNumber());
+    } else if(other instanceof Number) {
+      return this.getNumber().equals(other);
+    } else {
+      return false;
+    }
+  }
+
+  @Override
+  public boolean isNumericValue() {
+    return true;
+  }
+
+  public ExplicitNumericValue negate() {
+    // TODO explicitfloat: handle the different implementations of Number properly
+    return new ExplicitNumericValue(this.bigDecimalValue().negate());
+  }
+
+  public boolean isNull() {
+    return bigDecimalValue().compareTo(new BigDecimal(0)) == 0;
+  }
+
+  @Override
+  public ExplicitNumericValue asNumericValue() {
+    return this;
+  }
+
+  @Override
+  public Long asLong(CType type) {
+    if(!(type instanceof CSimpleType)) {
+      return null;
+    }
+
+    if(((CSimpleType)type).getType() == CBasicType.INT) {
+      return longValue();
+    } else {
+      return null;
+    }
+  }
+
+  @Override
+  public boolean isUnknown() {
+    return false;
+  }
+
 }
