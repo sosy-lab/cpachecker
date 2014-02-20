@@ -30,7 +30,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
@@ -185,7 +184,6 @@ public class ExplicitInterpolator {
       return ExplicitValueInterpolant.TRUE;
     }
 
-    Map<MemoryLocation, ExplicitValueBase> rawInterpolant = new HashMap<>();
     // optimization, which however, leads to too strong interpolants, as the successor is used directly as interpolant
     //if (!isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
       //return new ExplicitValueInterpolant(initialSuccessor.getConstantsMapView());

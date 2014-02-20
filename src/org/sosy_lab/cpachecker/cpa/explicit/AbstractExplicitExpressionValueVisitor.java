@@ -27,6 +27,7 @@ import java.math.BigDecimal;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.eclipse.cdt.internal.core.dom.parser.c.CArrayType;
@@ -923,7 +924,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
    * @param logger for logging
    * @param edge only for logging
    */
-  public static ExplicitValueBase castCValue(@Nullable final ExplicitValueBase value, final CType sourceType,
+  public static ExplicitValueBase castCValue(@Nonnull final ExplicitValueBase value, final CType sourceType,
       final CType targetType,
       final MachineModel machineModel, final LogManager logger, @Nullable final CFAEdge edge) {
     if (value.isUnknown()) { return ExplicitValueBase.ExplicitUnknownValue.getInstance(); }

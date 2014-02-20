@@ -99,7 +99,11 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
         }
       }
     }
-    logger.logf(Level.FINE, "Can not handle result of expression %s", numericResult.toString());
+    if (numericResult != null) {
+      logger.logf(Level.FINE, "Can not handle result of expression %s", numericResult.toString());
+    } else {
+      logger.logf(Level.FINE, "Can not handle result of expression, numericResult is null.");
+    }
     return Pair.<CExpression, Number> of(expr, null);
   }
 

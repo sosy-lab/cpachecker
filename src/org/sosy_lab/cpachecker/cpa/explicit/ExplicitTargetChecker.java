@@ -54,7 +54,7 @@ public class ExplicitTargetChecker {
 
   public boolean isTarget(PersistentMap<MemoryLocation, ExplicitValueBase> pConstantsMap) {
     ExplicitValueBase value = pConstantsMap.get(errorVarRep);
-    if (value == null || !value.equals(allowedValue)) { return true; }
+    if (value == null || !value.equals(new ExplicitNumericValue(allowedValue))) { return true; }
     return false;
   }
 

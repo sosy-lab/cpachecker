@@ -143,4 +143,9 @@ public class ExplicitNumericValue implements ExplicitValueBase {
     return false;
   }
 
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
 }
