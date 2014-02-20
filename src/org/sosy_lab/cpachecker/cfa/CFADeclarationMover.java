@@ -75,53 +75,47 @@ public class CFADeclarationMover {
     List<CFAEdge> secondRealFunctionEdge = new ArrayList<>();
     String functionName = startNode.getFunctionName();
 
-    CFAEdge tmpEdge;
     // all Blank -or Declarationedges are valid before we insert the moved declarations
     // if we would not take this order, there could be some problems with initializing
     // variables
-    while (firstRealFunctionEdge instanceof CDeclarationEdge || firstRealFunctionEdge instanceof BlankEdge) {
-      // we found an end of the cfa, so we can just skip here
-      if (firstRealFunctionEdge.getSuccessor().getNumLeavingEdges() == 0) {
-        return;
-      }
-      // get next edge
-      tmpEdge =  firstRealFunctionEdge.getSuccessor().getLeavingEdge(0);
-
-      // we can skip this loop here if we have more than one leaving edge or something
-      // else than Blank or Declarationedges
-      if (firstRealFunctionEdge.getSuccessor().getNumLeavingEdges() == 1 && (tmpEdge instanceof CDeclarationEdge || tmpEdge instanceof BlankEdge)) {
-        // these are for example Loops like Label Error: -> GOTO: Error
-        if (tmpEdge.equals(firstRealFunctionEdge)) {
-          return;
-        }
-        firstRealFunctionEdge = tmpEdge;
-
-      } else {
-        // check if there is more than one successor
-        if (firstRealFunctionEdge.getSuccessor().getNumLeavingEdges() == 1) {
-          secondRealFunctionEdge.add(tmpEdge);
-        } else if (firstRealFunctionEdge.getSuccessor().getNumLeavingEdges() == 2) {
-          secondRealFunctionEdge.add(tmpEdge);
-          secondRealFunctionEdge.add(firstRealFunctionEdge.getSuccessor().getLeavingEdge(1));
-        } else {
-          assert false;
-        }
-        break;
-      }
+    while (!firstRealFunctionEdge.getDescription().equals("Function start dummy edge")) {
+      firstRealFunctionEdge =  firstRealFunctionEdge.getSuccessor().getLeavingEdge(0);
     }
 
     CFANode actNode = firstRealFunctionEdge.getSuccessor();
+    for (int i = 0; i < actNode.getNumLeavingEdges(); i++) {
+      secondRealFunctionEdge.add(actNode.getLeavingEdge(i));
+    }
     List<CFAEdge> declarations = collectDeclarations(actNode);
 
-    Iterator<CFAEdge> it = declarations.iterator();
 
-    // if some declarations were found we need to remove the leaving edges from the
+
+    // if some declarations were found we need to create the blank edge which
+    // should occur after the declarations, and then remove the leaving edges from the
     // node where we want to insert the declarations
-    if (it.hasNext()) {
-      for (CFAEdge e : secondRealFunctionEdge) {
+    if (!declarations.isEmpty()) {
+      // create declaration end edge, no need to add it as leaving edge to the actNode
+      // this will be done in the end
+      CFANode tmpNode = new CFANode(0, functionName);
+      cfa.addNode(tmpNode);
+      CFAEdge declEndEdge = new BlankEdge("End of Declarations", 0, actNode, tmpNode, "End of Declarations");
+      tmpNode.addEnteringEdge(declEndEdge);
+
+      // move former second function edge to node after declEndEdge and set
+      // second function edge to declEndedge
+      for (CFAEdge e: secondRealFunctionEdge) {
+        CFAEdge tmpEdge = moveEdgeToOtherPredecessor(e, tmpNode);
         actNode.removeLeavingEdge(e);
+        if (declarations.contains(e)) {
+          declarations.add(declarations.indexOf(e), tmpEdge);
+          declarations.remove(e);
+        }
       }
+      secondRealFunctionEdge.clear();
+      secondRealFunctionEdge.add(declEndEdge);
     }
+
+    Iterator<CFAEdge> it = declarations.iterator();
 
     // insert declarations into the desired destination
     while (it.hasNext()) {
@@ -141,7 +135,7 @@ public class CFADeclarationMover {
     }
   }
 
-  private void moveEdgeToOtherPredecessor(CFAEdge edge, CFANode pred) {
+  private CFAEdge moveEdgeToOtherPredecessor(CFAEdge edge, CFANode pred) {
     CFANode succ = edge.getSuccessor();
     succ.removeEnteringEdge(edge);
     switch (edge.getEdgeType()) {
@@ -154,16 +148,16 @@ public class CFADeclarationMover {
                              ((CAssumeEdge)edge).getTruthAssumption());
       pred.addLeavingEdge(edge);
       succ.addEnteringEdge(edge);
-      return;
+      return edge;
     case BlankEdge:
       edge = new BlankEdge(((BlankEdge)edge).getRawStatement(),
                             edge.getLineNumber(),
                             pred,
                             edge.getSuccessor(),
-                            ((CAssumeEdge)edge).getDescription());
+                            ((BlankEdge)edge).getDescription());
       pred.addLeavingEdge(edge);
       succ.addEnteringEdge(edge);
-      return;
+      return edge;
     case DeclarationEdge:
       edge = new CDeclarationEdge(((CDeclarationEdge)edge).getRawStatement(),
                                   edge.getLineNumber(),
@@ -172,7 +166,7 @@ public class CFADeclarationMover {
                                   ((CDeclarationEdge)edge).getDeclaration());
       pred.addLeavingEdge(edge);
       succ.addEnteringEdge(edge);
-      return;
+      return edge;
     case ReturnStatementEdge:
       edge = new CReturnStatementEdge(((CReturnStatementEdge)edge).getRawStatement(),
                                       ((CReturnStatementEdge)edge).getRawAST().orNull(),
@@ -181,7 +175,7 @@ public class CFADeclarationMover {
                                       (FunctionExitNode) edge.getSuccessor());
       pred.addLeavingEdge(edge);
       succ.addEnteringEdge(edge);
-      return;
+      return edge;
     case StatementEdge:
       edge = new CStatementEdge(((CStatementEdge)edge).getRawStatement(),
                                 ((CStatementEdge)edge).getStatement(),
@@ -190,13 +184,12 @@ public class CFADeclarationMover {
                                 edge.getSuccessor());
       pred.addLeavingEdge(edge);
       succ.addEnteringEdge(edge);
-      break;
+      return edge;
     case CallToReturnEdge:
     case FunctionReturnEdge:
     case MultiEdge:
-      throw new AssertionError("should never happen");
     default:
-      break;
+      throw new AssertionError("should never happen");
     }
   }
 
