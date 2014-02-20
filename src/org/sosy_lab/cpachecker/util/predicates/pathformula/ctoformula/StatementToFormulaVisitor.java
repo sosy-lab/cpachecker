@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
-import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -50,15 +48,13 @@ public class StatementToFormulaVisitor extends RightHandSideToFormulaVisitor imp
   }
 
   /**
-   * Creates formulas for the given assignment (left and right side).
-   * And returns all formulas to be able to create aliasing formulas.
+   * Creates formula for the given assignment.
    * @param assignment the assignment to process
-   * @return a triple of right, left and assignment formula (in this order which is chronological)
+   * @return the assignment formula
    * @throws UnrecognizedCCodeException
    */
-  public Triple<Formula, Formula, BooleanFormula> visitAssignment(CAssignment assignment) throws UnrecognizedCCodeException {
-    CRightHandSide rhs = assignment.getRightHandSide();
-    CLeftHandSide lhs = assignment.getLeftHandSide();
+  public BooleanFormula handleAssignment(final CLeftHandSide lhs,
+      CRightHandSide rhs) throws UnrecognizedCCodeException {
 
     if (rhs instanceof CExpression) {
       rhs = conv.makeCastFromArrayToPointerIfNecessary((CExpression)rhs, lhs.getExpressionType());
@@ -72,24 +68,17 @@ public class StatementToFormulaVisitor extends RightHandSideToFormulaVisitor imp
           r,
           edge);
 
-    BooleanFormula a = conv.fmgr.assignment(l, r);
-    return Triple.of(r, l, a);
-  }
-
-  public BooleanFormula visit(CAssignment assignment) throws UnrecognizedCCodeException {
-    // No need to alias anything so just return the assignment
-    return
-          visitAssignment(assignment).getThird();
+    return conv.fmgr.assignment(l, r);
   }
 
   @Override
-  public BooleanFormula visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement) throws UnrecognizedCCodeException {
-    return visit((CAssignment)pIastExpressionAssignmentStatement);
+  public BooleanFormula visit(CExpressionAssignmentStatement assignment) throws UnrecognizedCCodeException {
+    return handleAssignment(assignment.getLeftHandSide(), assignment.getRightHandSide());
   }
 
   @Override
-  public BooleanFormula visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement) throws UnrecognizedCCodeException {
-    return visit((CAssignment)pIastFunctionCallAssignmentStatement);
+  public BooleanFormula visit(CFunctionCallAssignmentStatement assignment) throws UnrecognizedCCodeException {
+    return handleAssignment(assignment.getLeftHandSide(), assignment.getRightHandSide());
   }
 
   @Override

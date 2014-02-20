@@ -82,6 +82,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -521,28 +522,6 @@ public class CtoFormulaConverter {
     }
 
     return result;
-  }
-
-  /**
-   * Makes a fresh variable out of the varName and assigns the rightHandSide to it.
-   * To be used when the left-hand side is no expression
-   * (e.g. because we assign to a special hard-coded variable like __retval__).
-   *
-   * @param leftName has to be scoped already
-   * @param rightHandSide The expression to evaluate and assign to left.
-   * @param function The function where rightHandSide should be evaluated in.
-   * @return the new Formula (lhs = rhs)
-   */
-  private BooleanFormula makeAssignment(String leftName, CType leftType,
-      CExpression rightHandSide,
-      String function, SSAMapBuilder ssa, CFAEdge edge, Constraints constraints) throws UnrecognizedCCodeException {
-
-    Formula rhs = buildTerm(rightHandSide, edge, function, ssa, constraints);
-    rhs = makeCast(rightHandSide.getExpressionType(), leftType, rhs, edge);
-
-    Formula lhs = makeFreshVariable(leftName, leftType, ssa);
-
-    return fmgr.assignment(lhs, rhs);
   }
 
   /**
@@ -1044,19 +1023,15 @@ public class CtoFormulaConverter {
       }
     }
 
+    StatementToFormulaVisitor statementVisitor = getStatementVisitor(edge, callerFunction, ssa, constraints);
     int i = 0;
     BooleanFormula result = bfmgr.makeBoolean(true);
     for (CParameterDeclaration formalParam : formalParams) {
-      final String varName = formalParam.getQualifiedName();
       final CType paramType = formalParam.getType();
       CExpression paramExpression = actualParams.get(i++);
       paramExpression = makeCastFromArrayToPointerIfNecessary(paramExpression, paramType);
-
-      BooleanFormula eq =
-          makeAssignment(
-              varName, paramType,
-              paramExpression,
-              callerFunction, ssa, edge, constraints);
+      CIdExpression lhs = new CIdExpression(paramExpression.getFileLocation(), paramType, formalParam.getName(), formalParam);
+      BooleanFormula eq = statementVisitor.handleAssignment(lhs, paramExpression);
 
       result = bfmgr.and(result, eq);
     }
@@ -1078,17 +1053,32 @@ public class CtoFormulaConverter {
       // so that we can use it later on, if it is assigned to
       // a variable. We create a function::__retval__ variable
       // that will hold the return value
-      String retVarName = getReturnVarName(function);
+      String retVarName = VAR_RETURN_NAME;
+      final CFunctionDeclaration functionDeclaration = ((CFunctionEntryNode) edge.getSuccessor()
+          .getEntryNode())
+          .getFunctionDefinition();
 
       CType returnType =
           ((CFunctionEntryNode)edge.getSuccessor().getEntryNode())
             .getFunctionDefinition()
             .getType()
             .getReturnType();
-      BooleanFormula assignments = makeAssignment(retVarName, returnType,
-          rightExp, function, ssa, edge, constraints);
+      final CVariableDeclaration returnVariableDeclaration =
+          new CVariableDeclaration(functionDeclaration.getFileLocation(),
+                                   false,
+                                   CStorageClass.AUTO,
+                                   returnType,
+                                   retVarName,
+                                   retVarName,
+                                   scoped(retVarName, function),
+                                   null);
+      final CIdExpression lhs = new CIdExpression(rightExp.getFileLocation(),
+                         returnType,
+                         retVarName,
+                         returnVariableDeclaration);
 
-      return assignments;
+      StatementToFormulaVisitor statementVisitor = getStatementVisitor(edge, function, ssa, constraints);
+      return statementVisitor.handleAssignment(lhs, rightExp);
     }
   }
 
