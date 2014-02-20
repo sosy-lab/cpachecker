@@ -1012,16 +1012,14 @@ public class CtoFormulaConverter {
       }
     }
 
-    StatementToFormulaVisitor statementVisitor = getStatementVisitor(edge, callerFunction, ssa, constraints);
     int i = 0;
     BooleanFormula result = bfmgr.makeBoolean(true);
     for (CParameterDeclaration formalParam : formalParams) {
       final CType paramType = formalParam.getType();
       CExpression paramExpression = actualParams.get(i++);
-      paramExpression = makeCastFromArrayToPointerIfNecessary(paramExpression, paramType);
       CIdExpression lhs = new CIdExpression(paramExpression.getFileLocation(), paramType, formalParam.getName(), formalParam);
-      BooleanFormula eq = statementVisitor.handleAssignment(lhs, paramExpression);
 
+      BooleanFormula eq = makeAssignment(lhs, paramExpression, edge, callerFunction, ssa, pts, constraints, errorConditions);
       result = bfmgr.and(result, eq);
     }
 

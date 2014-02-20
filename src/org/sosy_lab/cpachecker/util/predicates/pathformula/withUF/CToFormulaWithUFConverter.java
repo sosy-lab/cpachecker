@@ -104,7 +104,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 
 public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
@@ -1329,39 +1328,11 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final Constraints constraints, final ErrorConditions errorConditions)
           throws CPATransferException {
 
-    final List<CExpression> arguments = edge.getArguments();
     final CFunctionEntryNode entryNode = edge.getSuccessor();
-    final List<CParameterDeclaration> parameters = entryNode.getFunctionParameters();
+    BooleanFormula result = super.makeFunctionCall(edge, callerFunction, ssa, pts, constraints, errorConditions);
 
-    if (entryNode.getFunctionDefinition().getType().takesVarArgs()) {
-      if (parameters.size() > arguments.size()) {
-        throw new UnrecognizedCCodeException("Number of parameters on function call does " +
-                                             "not match function definition",
-                                             edge);
-      }
-      if (!SAFE_VAR_ARG_FUNCTIONS.contains(entryNode.getFunctionName())) {
-        logger.logfOnce(Level.WARNING,
-                        "Ignoring parameters passed as varargs to function %s in line %d",
-                        entryNode.getFunctionName(),
-                        edge.getLineNumber());
-      }
-    } else {
-      if (parameters.size() != arguments.size()) {
-        throw new UnrecognizedCCodeException("Number of parameters on function call does " +
-                                             "not match function definition",
-                                             edge);
-      }
-    }
-
-    final StatementToFormulaWithUFVisitor statementVisitor = getStatementToFormulaWithUFVisitor(edge, callerFunction, ssa, constraints, errorConditions, pts);
-    int i = 0;
-    BooleanFormula result = bfmgr.makeBoolean(true);
-    for (CParameterDeclaration formalParameter : parameters) {
-      final CExpression argument = arguments.get(i++);
+    for (CParameterDeclaration formalParameter : entryNode.getFunctionParameters()) {
       final CType parameterType = CTypeUtils.simplifyType(formalParameter.getType());
-      final CIdExpression lhs = new CIdExpression(argument.getFileLocation(), parameterType, formalParameter.getName(), formalParameter);
-      final BooleanFormula assignment = statementVisitor.handleAssignment(lhs, argument, false, null);
-      result = bfmgr.and(result, assignment);
       declareSharedBase(formalParameter.asVariableDeclaration(), CTypeUtils.containsArray(parameterType), constraints, pts);
     }
 
@@ -1386,9 +1357,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   final FormulaEncodingWithUFOptions options;
 
   private final Optional<VariableClassification> variableClassification;
-
-  @SuppressWarnings("hiding")
-  private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of("printf", "printk");
 
   static final String UF_NAME_PREFIX = "*";
 
