@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -55,7 +54,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
@@ -64,7 +62,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
@@ -72,7 +69,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitNumericValue;
@@ -88,7 +84,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.StatementToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Location;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Value;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
 
 import com.google.common.collect.ImmutableList;
@@ -153,7 +148,7 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
   private CType refineType(final @Nonnull CType type, final @Nonnull CIntegerLiteralExpression sizeLiteral) {
     if (sizeLiteral.getValue() != null) {
       final int size = sizeLiteral.getValue().intValue();
-      final int typeSize = conv.ptsMgr.getSize(type);
+      final int typeSize = conv.getSizeof(type);
       if (type instanceof CArrayType) {
         if (typeSize != size) {
           conv.logger.logf(Level.WARNING,
@@ -492,7 +487,7 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
         fieldOwnerType = ((CPointerType) fieldOwnerType).getType();
       }
       assert fieldOwnerType instanceof CCompositeType : "Field owner should have composite type";
-      return conv.isRelevantField((CCompositeType) fieldOwnerType, e.getFieldName(), pts);
+      return conv.isRelevantField((CCompositeType) fieldOwnerType, e.getFieldName());
     }
 
     @Override
@@ -896,32 +891,6 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
 
   public String getFuncitonName() {
     return function;
-  }
-
-  public void declareSharedBase(final CDeclaration declaration, final boolean shareImmediately) {
-    if (shareImmediately) {
-      conv.addPreFilledBase(declaration.getQualifiedName(), declaration.getType(), false, false, constraints, pts);
-    } else if (conv.isAddressedVariable(declaration.getQualifiedName()) ||
-               CTypeUtils.containsArray(declaration.getType())) {
-      constraints.addConstraint(pts.prepareBase(declaration.getQualifiedName(),
-                                                CTypeUtils.simplifyType(declaration.getType())));
-    }
-  }
-
-  public void declareSharedBase(final CParameterDeclaration declaration, final boolean shareImmediately) {
-    declareSharedBase(new CVariableDeclaration(declaration.getFileLocation(),
-                                               false,
-                                               CStorageClass.AUTO,
-                                               declaration.getType(),
-                                               declaration.getName(),
-                                               declaration.getOrigName(),
-                                               declaration.getQualifiedName(),
-                                               null),
-                      shareImmediately);
-  }
-
-  public void declareCompositeType(final CCompositeType compositeType) {
-    conv.typeHandler.addCompositeTypeToCache(compositeType);
   }
 
   private final StatementToFormulaVisitor statementDelegate;

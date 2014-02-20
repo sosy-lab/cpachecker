@@ -64,7 +64,7 @@ class Tool(benchmark.tools.template.BaseTool):
         if process.returncode:
             sys.exit('CPAchecker returned exit code {0}'.format(process.returncode))
         stdout = Util.decodeToString(stdout)
-        version = ' '.join(stdout.splitlines()[0].split()[1:])  # first word is 'CPAchecker'
+        version = stdout.splitlines()[0].split()[1]  # first word is 'CPAchecker'
 
         # CPAchecker might be within a SVN repository
         # Determine the revision and add it to the version.

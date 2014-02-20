@@ -136,7 +136,7 @@ class OutputHandler:
             # store systemInfo in XML
             self.storeSystemInfo(opSystem, cpuModel, numberOfCores, maxFrequency, memory, hostname)
 
-        # store columnTitles in XML
+        # store columnTitles in XML, this are the default columns, that are shown in a default html-table from table-generator
         columntitlesElem = ET.Element("columns")
         columntitlesElem.append(ET.Element("column", {"title": "status"}))
         columntitlesElem.append(ET.Element("column", {"title": "cputime"}))
@@ -347,7 +347,7 @@ class OutputHandler:
                 " ".join(runSet.propertyFiles))
 
         titleLine = self.createOutputLine("sourcefile", "status", "cpu time",
-                            "wall time", self.benchmark.columns, True)
+                            "wall time", "host", "energy", self.benchmark.columns, True)
 
         runSet.simpleLine = "-" * (len(titleLine))
 
@@ -407,7 +407,7 @@ class OutputHandler:
 
         # store information in run
         run.resultline = self.createOutputLine(run.sourcefile, run.status,
-                cpuTimeStr, wallTimeStr, run.columns)
+                cpuTimeStr, wallTimeStr, run.host, run.energy, run.columns, run.energy)
         self.addValuesToRunXML(run, cpuTimeStr, wallTimeStr)
 
         # output in terminal/console
@@ -441,7 +441,7 @@ class OutputHandler:
             OutputHandler.printLock.release()
 
 
-    def outputAfterRunSet(self, runSet, cpuTime, wallTime):
+    def outputAfterRunSet(self, runSet, cpuTime=None, wallTime=None, energy=None):
         """
         The method outputAfterRunSet() stores the times of a run set in XML.
         @params cpuTime, wallTime: accumulated times of the run set
@@ -459,10 +459,10 @@ class OutputHandler:
                 )
                 self.allCreatedFiles.append(blockFileName)
 
-        self.TXTFile.append(self.runSetToTXT(runSet, True, cpuTime, wallTime))
+        self.TXTFile.append(self.runSetToTXT(runSet, True, cpuTime, wallTime, energy))
 
 
-    def runSetToTXT(self, runSet, finished=False, cpuTime=0, wallTime=0):
+    def runSetToTXT(self, runSet, finished=False, cpuTime=0, wallTime=0, energy=None):
         lines = []
 
         # store values of each run
@@ -475,17 +475,10 @@ class OutputHandler:
             endline = ("Run set {0}".format(runSet.index))
 
             # format time, type is changed from float to string!
-            if(cpuTime == None):
-                cpuTimeStr = str(cpuTime)
-            else:
-                cpuTimeStr = Util.formatNumber(cpuTime, TIME_PRECISION)
-            if(wallTime == None):
-                wallTimeStr = str(wallTime)
-            else:
-                wallTimeStr = Util.formatNumber(wallTime, TIME_PRECISION)
-
+            cpuTimeStr  = "None" if cpuTime  is None else Util.formatNumber(cpuTime, TIME_PRECISION)
+            wallTimeStr = "None" if wallTime is None else Util.formatNumber(wallTime, TIME_PRECISION)
             lines.append(self.createOutputLine(endline, "done", cpuTimeStr,
-                             wallTimeStr, []))
+                             wallTimeStr, "-", energy, []))
 
         return "\n".join(lines) + "\n"
 
@@ -524,13 +517,15 @@ class OutputHandler:
             runElem.append(ET.Element("column", {"title": "memUsage", "value": str(run.memUsage)}))
         if run.host:
             runElem.append(ET.Element("column", {"title": "host", "value": run.host}))
+        if run.energy is not None:
+            runElem.append(ET.Element("column", {"title": "energy", "value": str(run.energy)}))
 
         for column in run.columns:
             runElem.append(ET.Element("column",
                         {"title": column.title, "value": column.value}))
 
 
-    def createOutputLine(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, columns, isFirstLine=False):
+    def createOutputLine(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, host, energy, columns, isFirstLine=False):
         """
         @param sourcefile: title of a sourcefile
         @param status: status of programm
@@ -547,7 +542,9 @@ class OutputHandler:
         outputLine = self.formatSourceFileName(sourcefile) + \
                      status.ljust(LEN_OF_STATUS) + \
                      cpuTimeDelta.rjust(lengthOfTime) + \
-                     wallTimeDelta.rjust(lengthOfTime)
+                     wallTimeDelta.rjust(lengthOfTime) + \
+                     str(host).rjust(lengthOfTime) + \
+                     str(energy).rjust(lengthOfTime)
 
         for column in columns:
             columnLength = max(minLengthOfColumns, len(column.title)) + 2

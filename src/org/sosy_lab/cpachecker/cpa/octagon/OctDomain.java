@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.octagon.Octagon;
@@ -90,9 +91,13 @@ class OctDomain implements AbstractDomain {
     OctState octEl2 = (OctState) element2;
 
     if (octEl1.sizeOfVariables() > octEl2.sizeOfVariables()) {
-      octEl1 = octEl1.shrinkToSize(octEl2);
-    } else if (octEl2.sizeOfVariables() > octEl1.sizeOfVariables()) {
-      octEl2 = octEl2.shrinkToSize(octEl1);
+      Pair<OctState, OctState> tmp = octEl1.shrinkToFittingSize(octEl2);
+      octEl1 = tmp.getFirst();
+      octEl2 = tmp.getSecond();
+    } else {
+      Pair<OctState, OctState> tmp = octEl2.shrinkToFittingSize(octEl1);
+      octEl1 = tmp.getFirst();
+      octEl2 = tmp.getSecond();
     }
 
     Octagon newOctagon = OctagonManager.union(octEl1.getOctagon(), octEl2.getOctagon());

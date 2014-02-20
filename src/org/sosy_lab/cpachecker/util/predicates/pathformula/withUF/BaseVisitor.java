@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
 
 
 class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeException>{
@@ -91,7 +90,7 @@ class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeExcep
   public Variable visit(final CIdExpression e) throws UnrecognizedCCodeException {
     if (!pts.isActualBase(e.getDeclaration().getQualifiedName()) &&
         !CTypeUtils.containsArray(CTypeUtils.simplifyType(e.getExpressionType()))) {
-      return lastBase = conv.scopedIfNecessary(e, null, null);
+      return lastBase = conv.scopedIfNecessary(e, null);
     } else {
       return null;
     }

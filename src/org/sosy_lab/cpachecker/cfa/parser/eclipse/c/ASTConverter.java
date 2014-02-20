@@ -222,10 +222,6 @@ class ASTConverter {
     this.binExprBuilder = new CBinaryExpressionBuilder(pMachineModel, pLogger);
   }
 
-  BigInteger parseIntegerLiteral(String s, final IASTNode e) {
-    return literalConverter.parseIntegerLiteral(s, e);
-  }
-
   public CExpression convertExpressionWithoutSideEffects(
       IASTExpression e) {
 
@@ -855,14 +851,15 @@ class ASTConverter {
     return new CIdExpression(getLocation(e), type, name, declaration);
   }
 
-  private CAstNode convert(IASTUnaryExpression e) {
-    CExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
-    FileLocation fileLoc = getLocation(e);
+  private CAstNode convert(final IASTUnaryExpression e) {
+    final CExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
+    final FileLocation fileLoc = getLocation(e);
     CType type = typeConverter.convert(e.getExpressionType());
     final CType operandType = operand.getExpressionType();
 
     switch (e.getOperator()) {
     case IASTUnaryExpression.op_bracketedPrimary:
+    case IASTUnaryExpression.op_plus:
       return operand;
 
     case IASTUnaryExpression.op_star:
@@ -879,49 +876,9 @@ class ASTConverter {
                       operand.getExpressionType().toString());
         }
       }
-
-      // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
-      if (simplifyPointerExpressions) {
-
-        // if there is a dereference on a field of a struct a temporary variable is needed
-        if (operand instanceof CFieldReference) {
-          CIdExpression tmpVar = createInitializedTemporaryVariable(fileLoc, operandType, operand);
-          return new CPointerExpression(fileLoc, type, tmpVar);
-        }
-
-        // in case of *(a[index])
-        else if(operand instanceof CArraySubscriptExpression) {
-          CIdExpression tmpVar = createInitializedTemporaryVariable(fileLoc, operandType, operand);
-          return new CPointerExpression(fileLoc, type, tmpVar);
-        }
-
-        // in case of *& both can be left out
-        else if(operand instanceof CUnaryExpression
-            && ((CUnaryExpression)operand).getOperator() == UnaryOperator.AMPER) {
-          return ((CUnaryExpression)operand).getOperand();
-        }
-
-        // in case of ** a temporary variable is needed
-        else if(operand instanceof CPointerExpression) {
-          CIdExpression tmpVar = createInitializedTemporaryVariable(fileLoc, operandType, operand);
-          return new CPointerExpression(fileLoc, type, tmpVar);
-        }
-
-        // in case of p.e. *(a+b) or *(a-b) or *(a ANY_OTHER_OPERATOR b) a temporary variable is needed
-        else if(operand instanceof CBinaryExpression) {
-          CIdExpression tmpVar = createInitializedTemporaryVariable(fileLoc, operandType, operand);
-          return new CPointerExpression(fileLoc, type, tmpVar);
-        }
-      }
-
-      // if none of the special cases before fits the default unaryExpression is created
-      return new CPointerExpression(fileLoc, type, operand);
+      return simplifyUnaryPointerExpression(operand, fileLoc, type);
 
     case IASTUnaryExpression.op_amper:
-
-      if (containsProblemType(type)) {
-        type = new CPointerType(true, false, operandType);
-      }
 
       // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
       // in case of *& both can be left out
@@ -929,18 +886,15 @@ class ASTConverter {
         return ((CPointerExpression)operand).getOperand();
       }
 
+      if (containsProblemType(type)) {
+        type = new CPointerType(true, false, operandType);
+      }
+
       // if none of the special cases before fits the default unaryExpression is created
       return new CUnaryExpression(fileLoc, type, operand, UnaryOperator.AMPER);
 
-
-
     case IASTUnaryExpression.op_prefixIncr:
     case IASTUnaryExpression.op_prefixDecr:
-
-      if (containsProblemType(type)) {
-        type = operand.getExpressionType();
-      }
-
       // instead of ++x, create "x = x+1"
 
       BinaryOperator preOp;
@@ -961,11 +915,6 @@ class ASTConverter {
 
     case IASTUnaryExpression.op_postFixIncr:
     case IASTUnaryExpression.op_postFixDecr:
-
-      if (containsProblemType(type)) {
-        type = operand.getExpressionType();
-      }
-
       // instead of x++ create "x = x + 1"
 
       BinaryOperator postOp;
@@ -994,17 +943,91 @@ class ASTConverter {
       return tmp;
 
     case IASTUnaryExpression.op_not:
-      // Eclipse CDT produces pointer type if operand is a pointer.
-      // C §6.5.3.3 (5) says it is always type int.
-      if (!(type.getCanonicalType() instanceof CSimpleType)) {
-        logger.log(Level.FINER, "Replacing type", type, " by int for negation expression", e);
-      }
-      type = CNumericTypes.INT;
+      return simplifyUnaryNotExpression(operand);
 
-      //$FALL-THROUGH$
     default:
       return new CUnaryExpression(fileLoc, type, operand, ASTOperatorConverter.convertUnaryOperator(e));
     }
+  }
+
+  private static BinaryOperator getNegatedOperator(final BinaryOperator op) {
+    switch (op) {
+      case EQUALS:
+        return BinaryOperator.NOT_EQUALS;
+      case NOT_EQUALS:
+        return BinaryOperator.EQUALS;
+      case LESS_THAN:
+        return BinaryOperator.GREATER_EQUAL;
+      case LESS_EQUAL:
+        return BinaryOperator.GREATER_THAN;
+      case GREATER_THAN:
+        return BinaryOperator.LESS_EQUAL;
+      case GREATER_EQUAL:
+        return BinaryOperator.LESS_THAN;
+      default:
+        throw new AssertionError("operator can not be negated");
+    }
+  }
+
+  /** returns an expression, that is exactly the negation of the input. */
+  private CExpression simplifyUnaryNotExpression(final CExpression expr) {
+    // some binary expressions can be directly negated: "!(a==b)" --> "a!=b"
+    if (expr instanceof CBinaryExpression) {
+      final CBinaryExpression binExpr = (CBinaryExpression)expr;
+      if (CBinaryExpressionBuilder.relationalOperators.contains(binExpr.getOperator())) {
+        BinaryOperator inverseOperator = getNegatedOperator(binExpr.getOperator());
+        return binExprBuilder.buildBinaryExpression(binExpr.getOperand1(), binExpr.getOperand2(), inverseOperator);
+      }
+    }
+
+    // at this point, we have an expression, that is not directly boolean (!a, !(a+b), !123), so we compare it with Zero.
+    // ISO-C 6.5.3.3: Unary arithmetic operators: The expression !E is equivalent to (0==E).
+    // TODO do not wrap numerals, replace them directly with the result? This may be done later with SimplificationVisitor.
+    return binExprBuilder.buildBinaryExpression(CNumericTypes.ZERO, expr, BinaryOperator.EQUALS);
+  }
+
+  /** returns a CPointerExpression, that may be simplified. */
+  private CExpression simplifyUnaryPointerExpression(
+          final CExpression operand, final FileLocation fileLoc, final CType type) {
+
+    // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
+    if (simplifyPointerExpressions) {
+
+      final CType operandType = operand.getExpressionType();
+
+      // if there is a dereference on a field of a struct a temporary variable is needed
+      if (operand instanceof CFieldReference) {
+        CIdExpression tmpVar = createInitializedTemporaryVariable(fileLoc, operandType, operand);
+        return new CPointerExpression(fileLoc, type, tmpVar);
+      }
+
+      // in case of *(a[index])
+      else if(operand instanceof CArraySubscriptExpression) {
+        CIdExpression tmpVar = createInitializedTemporaryVariable(fileLoc, operandType, operand);
+        return new CPointerExpression(fileLoc, type, tmpVar);
+      }
+
+      // in case of *& both can be left out
+      else if(operand instanceof CUnaryExpression
+          && ((CUnaryExpression)operand).getOperator() == UnaryOperator.AMPER) {
+        return ((CUnaryExpression)operand).getOperand();
+      }
+
+      // in case of ** a temporary variable is needed
+      else if(operand instanceof CPointerExpression) {
+        CIdExpression tmpVar = createInitializedTemporaryVariable(fileLoc, operandType, operand);
+        return new CPointerExpression(fileLoc, type, tmpVar);
+      }
+
+      // in case of p.e. *(a+b) or *(a-b) or *(a ANY_OTHER_OPERATOR b) a temporary variable is needed
+      else if(operand instanceof CBinaryExpression) {
+        CIdExpression tmpVar = createInitializedTemporaryVariable(fileLoc, operandType, operand);
+        return new CPointerExpression(fileLoc, type, tmpVar);
+      }
+    }
+
+    // if none of the special cases before fits the default unaryExpression is created
+    return new CPointerExpression(fileLoc, type, operand);
   }
 
   private CTypeIdExpression convert(IASTTypeIdExpression e) {

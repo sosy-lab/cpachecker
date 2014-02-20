@@ -168,7 +168,7 @@ def appendFileToFile(sourcename, targetname):
         source.close()
 
 
-def findExecutable(program, fallback=None):
+def findExecutable(program, fallback=None, exitOnError=True):
     def isExecutable(programPath):
         return os.path.isfile(programPath) and os.access(programPath, os.X_OK)
 
@@ -183,7 +183,10 @@ def findExecutable(program, fallback=None):
     if fallback is not None and isExecutable(fallback):
         return fallback
 
-    sys.exit("ERROR: Could not find '{0}' executable".format(program))
+    if exitOnError:
+        sys.exit("ERROR: Could not find '{0}' executable".format(program))
+    else:
+        return fallback
 
 
 def addFilesToGitRepository(baseDir, files, description):
@@ -239,3 +242,26 @@ def addFilesToGitRepository(baseDir, files, description):
     if gitCommit.returncode != 0:
         printOut('Git commit failed!')
         return
+
+
+
+def getEnergy():
+    '''
+    returns a current value of energy consumption (like a time-stamp)
+    or None, if measurement is not available.
+    '''
+    executable = findExecutable('read-energy.sh', exitOnError=False)
+    if executable is None: # not availableon current system
+        return None
+
+    # TODO support more ids like CPU, CORE, UNCORE, EXTERNAL, ...
+    energysh = subprocess.Popen([executable, 'cpu'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    (stdout, stderr) = energysh.communicate()
+    if energysh.returncode:
+        logging.warning('error while reading energy: out={0}, err={1}, retval={2}'.format(stdout, stderr, energysh.returncode))
+    try:
+        energyVal = int(stdout)
+    except ValueError:
+        return None
+
+    return energyVal

@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -91,6 +92,14 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
   @Option(description="checkForRepeatedRefinements")
   private boolean checkForRepeatedRefinements = true;
 
+  @Option(description="whether or not to stop further interpolation once no new interpolants are identified "
+      + "between two subsequent path interpolations")
+  private boolean stopOnEmptyInterpolationIncrement = false;
+
+  @Option(description="whether or not to stop further interpolation once no new refinement roots identified "
+      + "between two subsequent path interpolations")
+  private boolean stopOnIdenticalRefinementRoots = false;
+
   @Option(description="when to export the interpolation tree"
       + "\nNEVER:   never export the interpolation tree"
       + "\nFINAL:   export the interpolation tree once after each refinement"
@@ -106,6 +115,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
   // statistics
   private int totalRefinements        = 0;
   private int totalTargetsFound       = 0;
+
   private final Timer totalTime       = new Timer();
 
   public static ExplicitGlobalRefiner create(final ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
@@ -140,7 +150,6 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
   @Override
   public boolean performRefinement(final ReachedSet pReached) throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "performing global refinement ...");
-    //System.out.println("performing global refinement ...");
     totalTime.start();
     totalRefinements++;
 
@@ -158,7 +167,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     Deque<ARGState> interpolationRoots = new ArrayDeque<>(Collections.singleton(((ARGState)pReached.getFirstState())));
 
     int i = 0;
-    Set<ARGState> r = new HashSet<>();
+    Set<ARGState> refinementRoots = new HashSet<>();
     while(!interpolationRoots.isEmpty()) {
       i++;
       ARGState currentRoot = interpolationRoots.pop();
@@ -185,26 +194,22 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
         continue;
       }
 
-      if(!itpTree.addInterpolants(interpolatingRefiner.performInterpolation(errorPath, initialItp))) {
-        //System.out.println(new TreeSet<>(itpTree.extractPrecisionIncrement(errorPath.getFirst().getFirst()).values()));
-        //System.out.println("BREAK BREAK BREAK BREAK BREAK BREAK BREAK BREAK BREAK BREAK BREAK BREAK ");
-        //break;
-      }
-
-      //System.out.println(new TreeSet<>(itpTree.extractPrecisionIncrement(errorPath.getFirst().getFirst()).values()));
-
-      //System.out.print("\tcurrent roots: ");
-      for(ARGState root : itpTree.obtainRefinementRoots(doLazyAbstraction)) {
-        //System.out.print(root.getStateId() + " / " + AbstractStates.extractLocation(root) + ", ");
-        if(!r.add(root)) {
-          // stop further interpolation if same root was found twice -> runs into exception
-          //interpolationRoots.clear();
-        }
-      }
-      //System.out.println();
+      boolean newInterpolantAdded = itpTree.addInterpolants(interpolatingRefiner.performInterpolation(errorPath, initialItp));
 
       if(exportInterpolationTree.equals("ALWAYS")) {
         itpTree.exportToDot(totalRefinements, i);
+      }
+
+      if(stopOnEmptyInterpolationIncrement && !newInterpolantAdded) {
+        break;
+      }
+
+      boolean newRootFound = false;
+      for(ARGState root : itpTree.obtainRefinementRoots(doLazyAbstraction)) {
+        newRootFound = newRootFound || refinementRoots.add(root);
+      }
+      if(stopOnIdenticalRefinementRoots && !newRootFound) {
+        break;
       }
 
       logger.log(Level.FINEST, "itp done");
@@ -230,8 +235,10 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
 
       final ExplicitPrecision refinedPrecision = new ExplicitPrecision(inital, itpTree.extractPrecisionIncrement(root));
 
-      root = root.getChildren().iterator().next();
-//System.out.println("root: " + root.getStateId() + " [" + AbstractStates.extractLocation(root).getNodeNumber() +"]");
+      // replace the refinement root with its first child, if the refinement root equals the root of the ARG
+      if(root == pReached.getFirstState()) {
+        root = root.getChildren().iterator().next();
+      }
       reached.removeSubtree(root, refinedPrecision, ExplicitPrecision.class);
     }
 
@@ -335,8 +342,9 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
 
   private void printStatistics(final PrintStream out, final Result pResult, final ReachedSet pReached) {
     if (totalRefinements > 0) {
-      out.println("Total time for global refinement: " + totalTime);
-      out.println("Total number of targets found:    " + totalTargetsFound);
+      out.println("Total number of refinements:      " + String.format(Locale.US, "%9d", totalRefinements));
+      out.println("Total number of targets found:    " + String.format(Locale.US, "%9d", totalTargetsFound));
+      out.println("Total time for global refinement:     " + totalTime);
 
       interpolatingRefiner.printStatistics(out, pResult, pReached);
     }
@@ -535,6 +543,8 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
      */
     private boolean addInterpolants(Map<ARGState, ExplicitValueInterpolant> newItps) {
       boolean result = interpolants.values().containsAll(newItps.values());
+
+      assert !interpolants.keySet().removeAll(newItps.keySet()) : "multiple interpolants for single state";
 
       interpolants.putAll(newItps);
 

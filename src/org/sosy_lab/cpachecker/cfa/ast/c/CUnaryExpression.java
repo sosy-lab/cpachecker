@@ -73,10 +73,12 @@ public class CUnaryExpression extends AUnaryExpression implements CExpression {
   }
 
   public static enum UnaryOperator implements AUnaryExpression.AUnaryOperator {
+    @Deprecated
     PLUS   ("+"),
     MINUS  ("-"),
     AMPER  ("&"),
     TILDE  ("~"),
+    @Deprecated
     NOT    ("!"),
     SIZEOF ("sizeof"),
     ;

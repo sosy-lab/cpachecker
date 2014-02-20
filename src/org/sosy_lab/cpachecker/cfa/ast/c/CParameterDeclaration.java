@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.*;
 
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 
@@ -57,6 +58,11 @@ public final class CParameterDeclaration extends AParameterDeclaration implement
   @Override
   public CType getType() {
     return (CType)super.getType();
+  }
+
+  public CVariableDeclaration asVariableDeclaration() {
+    return new CVariableDeclaration(getFileLocation(), false, CStorageClass.AUTO,
+        getType(), getName(), getOrigName(), getQualifiedName(), null);
   }
 
   @Override

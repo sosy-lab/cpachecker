@@ -89,7 +89,8 @@ class CmdLineArguments {
 
   private static final Pattern SPECIFICATION_FILES_PATTERN = DEFAULT_CONFIG_FILES_PATTERN;
   private static final String SPECIFICATION_FILES_TEMPLATE = "config/specification/%s.spc";
-  private static final String REACHABILITY_SPECIFICATION_FILE = "config/specification/sv-comp.spc";
+  private static final String REACHABILITY_LABEL_SPECIFICATION_FILE = "config/specification/sv-comp.spc";
+  private static final String REACHABILITY_SPECIFICATION_FILE = "config/specification/sv-comp-reachability.spc";
 
   private static final Pattern PROPERTY_FILE_PATTERN = Pattern.compile("(.)+\\.prp");
 
@@ -360,6 +361,9 @@ class CmdLineArguments {
                 putIfNotExistent(options, "memorysafety.check", "true");
                 newValue = null;
 
+              } else if (properties.equals(EnumSet.of(PropertyType.REACHABILITY_LABEL))) {
+                newValue = REACHABILITY_LABEL_SPECIFICATION_FILE;
+
               } else if (properties.equals(EnumSet.of(PropertyType.REACHABILITY))) {
                 newValue = REACHABILITY_SPECIFICATION_FILE;
 
@@ -490,6 +494,7 @@ class CmdLineArguments {
   }
 
   private enum PropertyType {
+    REACHABILITY_LABEL,
     REACHABILITY,
     VALID_FREE,
     VALID_DEREF,
@@ -497,7 +502,8 @@ class CmdLineArguments {
     ;
 
     private static ImmutableMap<String, PropertyType> AVAILABLE_PROPERTIES = ImmutableMap.of(
-        "G ! label(ERROR)", PropertyType.REACHABILITY,
+        "G ! label(ERROR)", PropertyType.REACHABILITY_LABEL,
+        "G ! call(__VERIFIER_error())", PropertyType.REACHABILITY,
         "G valid-free",     PropertyType.VALID_FREE,
         "G valid-deref",    PropertyType.VALID_DEREF,
         "G valid-memtrack", PropertyType.VALID_MEMTRACK

@@ -235,6 +235,7 @@ class RunExecutor():
 
         timelimitThread = None
         oomThread = None
+        energyBefore = Util.getEnergy()
         wallTimeBefore = time.time()
 
         p = None
@@ -297,9 +298,11 @@ class RunExecutor():
                 _killAllTasksInCgroup(cgroup)
 
         wallTimeAfter = time.time()
+        energyAfter = Util.getEnergy()
+        energy = (energyAfter - energyBefore) if (energyAfter and energyBefore) else None
         wallTime = wallTimeAfter - wallTimeBefore
         cpuTime = ru_child.ru_utime + ru_child.ru_stime if ru_child else 0
-        return (returnvalue, wallTime, cpuTime)
+        return (returnvalue, wallTime, cpuTime, energy)
 
 
 
@@ -377,7 +380,7 @@ class RunExecutor():
         (cgroups, myCpuCount) = self._setupCGroups(args, rlimits, myCpuIndex)
 
         logging.debug("executeRun: executing tool.")
-        (returnvalue, wallTime, cpuTime) = \
+        (returnvalue, wallTime, cpuTime, energy) = \
             self._execute(args, rlimits, outputFileName, cgroups, myCpuCount, environments, runningDir)
 
         logging.debug("executeRun: getting exact measures.")
@@ -401,10 +404,10 @@ class RunExecutor():
         output = output[6:] # first 6 lines are for logging, rest is output of subprocess
 
 
-        logging.debug("executeRun: Run execution returns with code {0}, walltime={1}, cputime={2}, memory={3}"
-                      .format(returnvalue, wallTime, cpuTime, memUsage))
+        logging.debug("executeRun: Run execution returns with code {0}, walltime={1}, cputime={2}, memory={3}, energy={4}"
+                      .format(returnvalue, wallTime, cpuTime, memUsage, energy))
 
-        return (wallTime, cpuTime, memUsage, returnvalue, '\n'.join(output))
+        return (wallTime, cpuTime, memUsage, returnvalue, '\n'.join(output), energy)
 
 
     def kill(self):

@@ -31,6 +31,9 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.eclipse.cdt.internal.core.parser.scanner.Token;
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
+import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping.NoOriginMappingAvailable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -53,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
@@ -63,6 +67,33 @@ public class SourceLocationMapper {
   private static Map<String, Set<Integer>> variableRelatedTokens = Maps.newHashMap();
   private static Map<Integer, Token> tokenNumberToTokenMap = Maps.newHashMap();
   private static Map<Integer, Integer> tokenNumberToLineNumberMap = Maps.newHashMap();
+
+  public static class OriginDescriptor implements Comparable<OriginDescriptor> {
+    public final Optional<String> originFileName;
+    public final int originLineNumber;
+
+    public OriginDescriptor(Optional<String> pOriginFileName, int pOriginLineNumber) {
+      this.originFileName = pOriginFileName;
+      this.originLineNumber = pOriginLineNumber;
+    }
+
+    @Override
+    public int compareTo(OriginDescriptor pO) {
+      if (this.originFileName.isPresent() != pO.originFileName.isPresent()) {
+        return -1;
+      }
+
+      if (this.originFileName.isPresent()) {
+        int result = this.originFileName.get().compareTo(pO.originFileName.get());
+        if (result != 0) {
+          return result;
+        }
+      }
+
+      return Integer.compare(this.originLineNumber, pO.originLineNumber);
+    }
+  }
+
 
   public static Set<String> matchTokenNumbersToTokenStrings(final Set<Integer> tokenNumbers) {
     return Collections.emptySet();
@@ -236,7 +267,12 @@ public class SourceLocationMapper {
     return result;
   }
 
-  public static synchronized Set<Integer> getTokensFromCFAEdge(CFAEdge pEdge, boolean overApproximateTokens) {
+  public static synchronized Pair<String, Set<Integer>> getRelativeTokensFromCFAEdge(CFAEdge pEdge, boolean overApproximateTokens) throws NoOriginMappingAvailable {
+    Set<Integer> absolute = getAbsoluteTokensFromCFAEdge(pEdge, overApproximateTokens);
+    return CSourceOriginMapping.INSTANCE.getRelativeTokensFromAbsolute(absolute);
+  }
+
+  public static synchronized Set<Integer> getAbsoluteTokensFromCFAEdge(CFAEdge pEdge, boolean overApproximateTokens) {
     final TreeSet<Integer> result = Sets.newTreeSet();
     final Deque<CFAEdge> edges = Queues.newArrayDeque();
     final Deque<CAstNode> astNodes = Queues.newArrayDeque();
@@ -336,7 +372,7 @@ public class SourceLocationMapper {
 
   public static synchronized void getKnownToEdge(CFAEdge edge) {
     Set<String> variables = getEdgeVariableNames(edge);
-    Set<Integer> tokens = getTokensFromCFAEdge(edge, true);
+    Set<Integer> tokens = getAbsoluteTokensFromCFAEdge(edge, true);
 
     // Store for each variable the related tokens
     for (String variable: variables) {

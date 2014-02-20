@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpalien" timelimit="60">
+  <option name="-disable-java-assertions"/>
+  <option name="-heap">12000M</option>
+  <option name="-preprocess" />
+
+  <sourcefiles name="cpalien-goal">
+    <includesfile>../programs/cpalien/cpalien-goal.set</includesfile>
+    <option name="-CPAlien"/>
+    <option name="-setprop">memorysafety.config=config/CPAlien.properties</option>
+    <propertyfile>../programs/benchmarks/PropertyMemSafety.prp</propertyfile>
+  </sourcefiles>
+
+  <sourcefiles name="cpalien-label-goal">
+    <includesfile>../programs/cpalien/cpalien-label-goal.set</includesfile>
+    <option name="-CPAlien-label"/>
+    <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
+  </sourcefiles>
+
+  <rundefinition name="cpalien">
+  </rundefinition>
+</benchmark>
+

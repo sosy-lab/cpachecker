@@ -67,12 +67,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Loc
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Value;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-class ExpressionToFormulaWithUFVisitor
+abstract class ExpressionToFormulaWithUFVisitor
        extends DefaultCExpressionVisitor<Expression, UnrecognizedCCodeException> {
 
   public ExpressionToFormulaWithUFVisitor(final CToFormulaWithUFConverter cToFormulaConverter,
@@ -136,7 +135,7 @@ class ExpressionToFormulaWithUFVisitor
       assert base.isAliasedLocation();
     } else {
       // The address of the first element is needed i.e. the value of the pointer in the array expression
-      base = AliasedLocation.ofAddress(asValueFormula(base, CToFormulaWithUFConverter.implicitCastToPointer(baseType)));
+      base = AliasedLocation.ofAddress(asValueFormula(base, CTypeUtils.implicitCastToPointer(baseType)));
     }
     // Now we should always have the aliased location of the first array element
     assert base.isAliasedLocation();
@@ -149,7 +148,7 @@ class ExpressionToFormulaWithUFVisitor
                                         asValueFormula(subscript.accept(this), subscriptType),
                                         edge);
 
-    final Formula coeff = conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.ptsMgr.getSize(elementType));
+    final Formula coeff = conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.getSizeof(elementType));
     final Formula baseAddress = base.asAliasedLocation().getAddress();
     final Formula address = conv.fmgr.makePlus(baseAddress, conv.fmgr.makeMultiply(coeff, index));
     addEqualBaseAdressConstraint(baseAddress, address);
@@ -241,7 +240,7 @@ class ExpressionToFormulaWithUFVisitor
     }
 
     final CType operandType = CTypeUtils.simplifyType(operand.getExpressionType());
-    if (CToFormulaWithUFConverter.isSimpleType(resultType)) {
+    if (CTypeUtils.isSimpleType(resultType)) {
       return Value.ofValue(conv.makeCast(operandType, resultType, asValueFormula(result, operandType), edge));
     } else if (CTypes.withoutConst(resultType).equals(CTypes.withoutConst(operandType))) {
       // Special case: conversion of non-scalar type to itself is allowed (and ignored)
@@ -274,7 +273,7 @@ class ExpressionToFormulaWithUFVisitor
         return Value.ofValue(conv.makeConstant(variable));
       }
     } else {
-      variable = conv.scopedIfNecessary(e, ssa, function);
+      variable = conv.scopedIfNecessary(e, function);
       final Formula address = conv.makeConstant(PointerTargetSet.getBaseName(variable.getName()),
                                                 CTypeUtils.getBaseType(resultType));
       return AliasedLocation.ofAddress(address);
@@ -293,7 +292,7 @@ class ExpressionToFormulaWithUFVisitor
   private Value handleSizeof(final CExpression e, final CType type) throws UnrecognizedCCodeException {
     return Value.ofValue(
              conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(CTypeUtils.simplifyType(e.getExpressionType())),
-                                                               conv.ptsMgr.getSize(type)));
+                                                               conv.getSizeof(type)));
   }
 
   @Override
@@ -422,7 +421,7 @@ class ExpressionToFormulaWithUFVisitor
   }
 
   private Formula getPointerTargetSizeLiteral(final CPointerType pointerType, final CType implicitType) {
-    final int pointerTargetSize = conv.ptsMgr.getSize(pointerType.getType());
+    final int pointerTargetSize = conv.getSizeof(pointerType.getType());
     return conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(implicitType), pointerTargetSize);
   }
 

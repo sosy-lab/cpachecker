@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
 
 
@@ -138,7 +137,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
 
     @Override
     public PointerTargetPattern visit(final CIdExpression e) throws UnrecognizedCCodeException {
-      final Variable variable = conv.scopedIfNecessary(e, null, null);
+      final Variable variable = conv.scopedIfNecessary(e, null);
       final CType expressionType = CTypeUtils.simplifyType(e.getExpressionType());
       if (!pts.isBase(variable.getName(), expressionType) && !CTypeUtils.containsArray(expressionType)) {
         return null;
@@ -198,7 +197,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
       result.shift(containerType);
       final Integer index = tryEvaluateExpression(e.getSubscriptExpression());
       if (index != null) {
-        result.setProperOffset(index * conv.ptsMgr.getSize(elementType));
+        result.setProperOffset(index * conv.getSizeof(elementType));
       }
       return result;
     } else {
@@ -234,7 +233,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
 
   @Override
   public PointerTargetPattern visit(final CIdExpression e) throws UnrecognizedCCodeException {
-    final Variable variable = conv.scopedIfNecessary(e, null, null);
+    final Variable variable = conv.scopedIfNecessary(e, null);
     if (!pts.isActualBase(variable.getName()) &&
         !CTypeUtils.containsArray(CTypeUtils.simplifyType(e.getExpressionType()))) {
       return null;

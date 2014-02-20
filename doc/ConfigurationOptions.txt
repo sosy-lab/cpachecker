@@ -304,6 +304,10 @@ cfa.file = "cfa.dot"
 # uninitialized.
 cfa.initializeAllVariables = false
 
+# With this option, all declarations in each function will be movedto the
+# beginning of each function.
+cfa.moveDeclarationsToFunctionStart = false
+
 # remove paths from CFA that cannot lead to a specification violation
 cfa.removeIrrelevantForSpecification = false
 
@@ -705,6 +709,7 @@ cpa.explicit.precisionFile = no default value
 cpa.explicit.refiner.avoidAssumes = false
 
 # checkForRepeatedRefinements
+# checkForRepeatedRefinements
 # whether or not to check for repeated refinements, to then reset the
 # refinement root
 cpa.explicit.refiner.checkForRepeatedRefinements = true
@@ -723,6 +728,14 @@ cpa.explicit.refiner.exportInterpolationTree = "NEVER"
 # use heuristic to extract a precision from the CFA statically on first
 # refinement
 cpa.explicit.refiner.performInitialStaticRefinement = false
+
+# whether or not to stop further interpolation once no new interpolants are
+# identified between two subsequent path interpolations
+cpa.explicit.refiner.stopOnEmptyInterpolationIncrement = false
+
+# whether or not to stop further interpolation once no new refinement roots
+# identified between two subsequent path interpolations
+cpa.explicit.refiner.stopOnIdenticalRefinementRoots = false
 
 # which stop operator to use for ExplicitCPA
 cpa.explicit.stop = "SEP"
@@ -812,10 +825,21 @@ cpa.invariants.useBinaryVariableInterrelations = true
 # invariant approximations from states.
 cpa.invariants.useBitvectors = false
 
+# this option controls how the maxLoopIterations condition is adjusted when a
+# condition adjustment is invoked.
+cpa.loopstack.maxLoopIterationAdjusterFactory = STATIC
+  enum:     [STATIC, INCREMENT, DOUBLE]
+
 # threshold for unrolling loops of the program (0 is infinite)
 # works only if assumption storage CPA is enabled, because otherwise it would
 # be unsound
 cpa.loopstack.maxLoopIterations = 0
+
+# threshold for adjusting the threshold for unrolling loops of the program (0
+# is infinite).
+# only relevant in combination with a non-static maximum loop iteration
+# adjuster.
+cpa.loopstack.maxLoopIterationsUpperBound = 0
 
 # time limit for a single post computation (use milliseconds or specify a
 # unit; 0 for infinite)
@@ -1357,6 +1381,9 @@ limits.time.cpu = -1
 # Limit for wall time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)
 limits.time.wall = -1
+
+# Write the tokenized version of the input program to this file.
+locmapper.dumpTokenizedProgramToFile = no default value
 
 # Whether to check for memory safety properties (this can be specified by
 # passing an appropriate .prp file to the -spec parameter).

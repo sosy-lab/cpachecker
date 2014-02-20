@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
 
 import static com.google.common.base.Objects.firstNonNull;
+import static org.sosy_lab.common.collect.PersistentSortedMaps.*;
 import static org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes.VOID;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.MapMerger.*;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -41,6 +41,8 @@ import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
+import org.sosy_lab.common.collect.PersistentSortedMaps;
+import org.sosy_lab.common.collect.PersistentSortedMaps.MergeConflictHandler;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
@@ -55,11 +57,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.MapMerger;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.MapMerger.ConflictHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.CompositeField;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTarget;
 
 import com.google.common.collect.ImmutableList;
@@ -91,7 +91,7 @@ public class PointerTargetSetManager {
   private final FormulaManagerView formulaManager;
   private final BooleanFormulaManagerView bfmgr;
   private final FunctionFormulaManagerView ffmgr;
-  final CToFormulaWithUFTypeHandler typeHandler;
+  private final CToFormulaWithUFTypeHandler typeHandler;
 
   public PointerTargetSetManager(FormulaEncodingWithUFOptions pOptions,
       FormulaManagerView pFormulaManager, CToFormulaWithUFTypeHandler pTypeHandler) {
@@ -107,48 +107,24 @@ public class PointerTargetSetManager {
                                    final PointerTargetSet pts2,
                                    final SSAMap resultSSA) {
 
-
-    final Triple<PointerTargetSet,
-                 BooleanFormula,
-                 Pair<PersistentSortedMap<String, CType>, PersistentSortedMap<String, CType>>>
-      ptsMergeResult = merge(pts1, pts2);
-
-    final PersistentSortedMap<String, CType> basesFromPTS1 = ptsMergeResult.getThird().getFirst();
-    final PersistentSortedMap<String, CType> basesFromPTS2 = ptsMergeResult.getThird().getSecond();
-
-    final List<Pair<CCompositeType, String>> sharedFields = new ArrayList<>();
-    final BooleanFormula mergeFormula2 = makeSharingConstraints(basesFromPTS1, sharedFields, resultSSA, pts2);
-    final BooleanFormula mergeFormula1 = makeSharingConstraints(basesFromPTS2, sharedFields, resultSSA, pts1);
-
-    PointerTargetSet resultPTS = ptsMergeResult.getFirst();
-    if (!sharedFields.isEmpty()) {
-      final PointerTargetSetBuilder resultPTSBuilder = resultPTS.builder(formulaManager, this, options);
-      for (final Pair<CCompositeType, String> sharedField : sharedFields) {
-        resultPTSBuilder.addField(sharedField.getFirst(), sharedField.getSecond());
-      }
-      resultPTS = resultPTSBuilder.build();
+    if (pts1.isEmpty() && pts2.isEmpty()) {
+      return Pair.of(
+          Triple.of(bfmgr.makeBoolean(true), bfmgr.makeBoolean(true), bfmgr.makeBoolean(true)),
+          PointerTargetSet.emptyPointerTargetSet());
     }
-
-    return Pair.of(Triple.of(mergeFormula1, mergeFormula2, ptsMergeResult.getSecond()), resultPTS);
-  }
-
-  private Triple<PointerTargetSet,
-                BooleanFormula,
-                Pair<PersistentSortedMap<String, CType>, PersistentSortedMap<String, CType>>>
-    merge(final PointerTargetSet pts1, final PointerTargetSet pts2) {
 
     Triple<PersistentSortedMap<String, CType>,
            PersistentSortedMap<String, CType>,
            PersistentSortedMap<String, CType>> mergedBases =
-      mergeSortedSets(pts1.bases, pts2.bases, BaseUnitingConflictHandler.INSTANCE);
+      mergeWithKeyDifferences(pts1.bases, pts2.bases, BaseUnitingConflictHandler.INSTANCE);
 
     final Triple<PersistentSortedMap<CompositeField, Boolean>,
                  PersistentSortedMap<CompositeField, Boolean>,
                  PersistentSortedMap<CompositeField, Boolean>> mergedFields =
-      mergeSortedSets(pts1.fields, pts2.fields, MapMerger.<CompositeField, Boolean>getExceptionOnConflictHandler());
+      mergeWithKeyDifferences(pts1.fields, pts2.fields, PersistentSortedMaps.<CompositeField, Boolean>getExceptionMergeConflictHandler());
 
     PersistentSortedMap<String, PersistentList<PointerTarget>> mergedTargets =
-      mergeSortedMaps(pts1.targets, pts2.targets, PointerTargetSetManager.<String, PointerTarget>mergeOnConflict());
+      merge(pts1.targets, pts2.targets, PointerTargetSetManager.<String, PointerTarget>mergeOnConflict());
 
     // Targets is always the cross product of bases and fields.
     // So when we merge the bases, fields, and targets by taking the union,
@@ -185,32 +161,44 @@ public class PointerTargetSetManager {
       final String fakeBaseName = FAKE_ALLOC_FUNCTION_NAME +
                                   CToFormulaWithUFConverter.getUFName(fakeBaseType) +
                                   CToFormulaWithUFConverter.FRESH_INDEX_SEPARATOR +
-                                  PointerTargetSetBuilder.getNextDynamicAllocationIndex();
+                                  RealPointerTargetSetBuilder.getNextDynamicAllocationIndex();
       mergedBases =
         Triple.of(mergedBases.getFirst(),
                   mergedBases.getSecond(),
                   mergedBases.getThird().putAndCopy(fakeBaseName, fakeBaseType));
       lastBase = fakeBaseName;
-      basesMergeFormula = formulaManager.makeAnd(pts1.getNextBaseAddressInequality(fakeBaseName, pts1.lastBase, typeHandler, formulaManager),
-                                                 pts2.getNextBaseAddressInequality(fakeBaseName, pts2.lastBase, typeHandler, formulaManager));
+      basesMergeFormula = formulaManager.makeAnd(getNextBaseAddressInequality(fakeBaseName, pts1.bases, pts1.lastBase),
+                                                 getNextBaseAddressInequality(fakeBaseName, pts2.bases, pts2.lastBase));
     }
 
-    final PointerTargetSet result  =
+    PointerTargetSet resultPTS =
       new PointerTargetSet(mergedBases.getThird(),
                            lastBase,
                            mergedFields.getThird(),
                            mergedDeferredAllocations,
                            mergedTargets);
-    return Triple.of(result,
-                     basesMergeFormula,
-                     Pair.of(mergedBases.getFirst(), mergedBases.getSecond()));
+
+    final List<Pair<CCompositeType, String>> sharedFields = new ArrayList<>();
+    final BooleanFormula mergeFormula2 = makeSharingConstraints(mergedBases.getFirst(), sharedFields, resultSSA, pts2);
+    final BooleanFormula mergeFormula1 = makeSharingConstraints(mergedBases.getSecond(), sharedFields, resultSSA, pts1);
+
+    if (!sharedFields.isEmpty()) {
+      final PointerTargetSetBuilder resultPTSBuilder = new RealPointerTargetSetBuilder(
+          resultPTS, formulaManager, this, options);
+      for (final Pair<CCompositeType, String> sharedField : sharedFields) {
+        resultPTSBuilder.addField(sharedField.getFirst(), sharedField.getSecond());
+      }
+      resultPTS = resultPTSBuilder.build();
+    }
+
+    return Pair.of(Triple.of(mergeFormula1, mergeFormula2, basesMergeFormula), resultPTS);
   }
 
   private PersistentSortedMap<String, DeferredAllocationPool> mergeDeferredAllocationPools(final PointerTargetSet pts1,
       final PointerTargetSet pts2) {
     final Map<DeferredAllocationPool, DeferredAllocationPool> mergedDeferredAllocationPools = new HashMap<>();
-    final ConflictHandler<String, DeferredAllocationPool> deferredAllocationMergingConflictHandler =
-      new ConflictHandler<String, DeferredAllocationPool>() {
+    final MergeConflictHandler<String, DeferredAllocationPool> deferredAllocationMergingConflictHandler =
+      new MergeConflictHandler<String, DeferredAllocationPool>() {
       @Override
       public DeferredAllocationPool resolveConflict(String key, DeferredAllocationPool a, DeferredAllocationPool b) {
         final DeferredAllocationPool result = a.mergeWith(b);
@@ -226,7 +214,7 @@ public class PointerTargetSetManager {
       }
     };
     PersistentSortedMap<String, DeferredAllocationPool> mergedDeferredAllocations =
-      mergeSortedMaps(pts1.deferredAllocations, pts2.deferredAllocations, deferredAllocationMergingConflictHandler);
+      merge(pts1.deferredAllocations, pts2.deferredAllocations, deferredAllocationMergingConflictHandler);
     for (final DeferredAllocationPool merged : mergedDeferredAllocationPools.keySet()) {
       for (final String pointerVariable : merged.getPointerVariables()) {
         mergedDeferredAllocations = mergedDeferredAllocations.putAndCopy(pointerVariable, merged);
@@ -235,7 +223,7 @@ public class PointerTargetSetManager {
     return mergedDeferredAllocations;
   }
 
-  private static enum BaseUnitingConflictHandler implements ConflictHandler<String, CType> {
+  private static enum BaseUnitingConflictHandler implements MergeConflictHandler<String, CType> {
     INSTANCE;
 
     @Override
@@ -289,8 +277,8 @@ public class PointerTargetSetManager {
     }
   }
 
-  private static <K, T> ConflictHandler<K, PersistentList<T>> mergeOnConflict() {
-    return new ConflictHandler<K, PersistentList<T>>() {
+  private static <K, T> MergeConflictHandler<K, PersistentList<T>> mergeOnConflict() {
+    return new MergeConflictHandler<K, PersistentList<T>>() {
       @Override
       public PersistentList<T> resolveConflict(K key, PersistentList<T> list1, PersistentList<T> list2) {
         return DeferredAllocationPool.mergeLists(list1, list2);
@@ -394,6 +382,25 @@ public class PointerTargetSetManager {
   public int getOffset(CCompositeType compositeType, final String memberName) {
     return typeHandler.getOffset(compositeType, memberName);
   }
+
+
+  BooleanFormula getNextBaseAddressInequality(final String newBase,
+                                                        final PersistentSortedMap<String, CType> bases,
+                                                        final String lastBase) {
+    final FormulaType<?> pointerType = typeHandler.getPointerType();
+    final Formula newBaseFormula = formulaManager.makeVariable(pointerType, PointerTargetSet.getBaseName(newBase));
+    if (lastBase != null) {
+      final Integer lastSize = typeHandler.getSizeof(bases.get(lastBase));
+      final Formula rhs = formulaManager.makePlus(formulaManager.makeVariable(pointerType, PointerTargetSet.getBaseName(lastBase)),
+                                                  formulaManager.makeNumber(pointerType, lastSize));
+      // The condition rhs > 0 prevents overflows in case of bit-vector encoding
+      return formulaManager.makeAnd(formulaManager.makeGreaterThan(rhs, formulaManager.makeNumber(pointerType, 0L), true),
+                                    formulaManager.makeGreaterOrEqual(newBaseFormula, rhs, true));
+    } else {
+      return formulaManager.makeGreaterThan(newBaseFormula, formulaManager.makeNumber(pointerType, 0L), true);
+    }
+  }
+
 
   @CheckReturnValue
   private static PersistentSortedMap<String, PersistentList<PointerTarget>> addToTarget(final String base,

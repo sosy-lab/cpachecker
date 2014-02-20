@@ -27,27 +27,11 @@ int main() {
 
 	x = 0;
 
-
-	if (y != 1) {
-		goto ERROR;
-	}
-
 	unlock();
-
-	if (y != 0) {
-		goto ERROR;
-	}
 
 	lock(); // remains locked. This should result in a Warning?
 
 	x  = /* comment */  x +   1 ;
 
-	if (y != 1) {
-		goto ERROR;
-	}
-
 	return (0);
-
-ERROR:
-	goto ERROR;
 }

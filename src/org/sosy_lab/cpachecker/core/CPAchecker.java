@@ -65,6 +65,7 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Resources;
@@ -142,7 +143,9 @@ public class CPAchecker {
   }
 
   public static String getVersion() {
-    return version;
+    return version
+        + " (" + StandardSystemProperty.JAVA_VM_NAME.value()
+        +  " " + StandardSystemProperty.JAVA_VERSION.value() + ")";
   }
 
   public CPAchecker(Configuration pConfiguration, LogManager pLogManager,

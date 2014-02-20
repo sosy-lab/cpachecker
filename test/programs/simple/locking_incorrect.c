@@ -21,15 +21,10 @@ int main() {
 
 	init();
 
-	x = 5;
+	int x = 5;
 
 	// unlocking after init() is not allowed by the automaton
 	unlock();
-
-	if (y != 0) {
-	ERROR:
-			goto ERROR;
-		}
 
 	return (0);
 }

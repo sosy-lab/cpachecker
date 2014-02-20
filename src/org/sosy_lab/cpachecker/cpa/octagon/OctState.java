@@ -29,6 +29,7 @@ import java.util.Objects;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.IOctCoefficients;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctEmptyCoefficients;
@@ -136,10 +137,12 @@ public class OctState implements AbstractState {
     if (variableToIndexMap.equals(state.variableToIndexMap)) {
       return OctagonManager.isIncludedInLazy(octagon, state.octagon);
     } else {
+      logger.log(Level.FINEST, "Removing some temporary (in the transferrelation)"
+                 + " introduced variables from the octagon to compute #isLessOrEquals()");
 
-      logger.log(Level.FINEST, "----------\n" + variableToIndexMap.keySet() + "\n"+ state.variableToIndexMap.keySet());
-      if (variableToIndexMap.keySet().containsAll(state.variableToIndexMap.keySet())) {
-        return OctagonManager.isIncludedInLazy(shrinkToSize(state).octagon, state.octagon);
+      if (variableToIndexMap.entrySet().containsAll(state.variableToIndexMap.entrySet())) {
+        Pair<OctState, OctState> checkStates = shrinkToFittingSize(state);
+        return OctagonManager.isIncludedInLazy(checkStates.getFirst().octagon, checkStates.getSecond().octagon);
       } else {
         return 2;
       }
@@ -156,13 +159,36 @@ public class OctState implements AbstractState {
    *             are matching if not an Exception is thrown
    * @return
    */
-  public OctState shrinkToSize(OctState oct) {
-    if (variableToIndexMap.keySet().containsAll(oct.variableToIndexMap.keySet())) {
-      Octagon newOct =  OctagonManager.removeDimension(octagon, variableToIndexMap.size()-oct.variableToIndexMap.size());
-      return new OctState(newOct, oct.variableToIndexMap, logger);
-    } else {
-      throw new AssertionError("Shrinking of OctState with a not compatible OctState.");
+  public Pair<OctState, OctState> shrinkToFittingSize(OctState oct) {
+    int maxEqualIndex = oct.sizeOfVariables()-1;
+    BiMap<Integer, String> inverseThis = variableToIndexMap.inverse();
+    BiMap<Integer, String> inverseOther = oct.variableToIndexMap.inverse();
+    for (int i = maxEqualIndex; i >= 0; i--) {
+      if (!inverseThis.get(i).equals(inverseOther.get(i))) {
+        maxEqualIndex = i-1;
+      }
     }
+
+    BiMap<String, Integer> newMap1 = HashBiMap.<String, Integer>create(variableToIndexMap);
+    for (int i = variableToIndexMap.size()-1; i > maxEqualIndex; i--) {
+      newMap1.inverse().remove(i);
+    }
+    Octagon newOct1 =  OctagonManager.removeDimension(octagon, variableToIndexMap.size()-(maxEqualIndex+1));
+    OctState newState1 = new OctState(newOct1, newMap1, logger);
+
+    OctState newState2;
+    if (oct.variableToIndexMap.size() != maxEqualIndex +1) {
+      BiMap<String, Integer> newMap2 = HashBiMap.<String, Integer>create(oct.variableToIndexMap);
+      for (int i = oct.variableToIndexMap.size()-1; i > maxEqualIndex; i--) {
+        newMap2.inverse().remove(i);
+      }
+      Octagon newOct2 =  OctagonManager.removeDimension(oct.octagon, oct.variableToIndexMap.size()-(maxEqualIndex+1));
+      newState2 = new OctState(newOct2, newMap2, logger);
+    } else {
+      newState2 = oct;
+    }
+
+    return Pair.of(newState1, newState2);
   }
 
   @Override
@@ -447,13 +473,24 @@ public class OctState implements AbstractState {
                         logger);
   }
 
-  public OctState removeLocalVars(String functionName) {
+  public OctState removeTempVars(String functionName, String varPrefix) {
+    return removeVars(functionName, varPrefix);
+  }
 
+  public OctState removeLocalVars(String functionName) {
+    return removeVars(functionName, "");
+  }
+
+  private OctState removeVars(String functionName, String varPrefix) {
     List<String> keysToRemove = new ArrayList<>();
     for (String var : variableToIndexMap.keySet()) {
-      if (var.startsWith(functionName+"::")) {
+      if (var.startsWith(functionName+"::"+varPrefix)) {
         keysToRemove.add(var);
       }
+    }
+
+    if (keysToRemove.size() == 0) {
+      return this;
     }
 
     OctState newState = new OctState(OctagonManager.removeDimension(octagon, keysToRemove.size()),
