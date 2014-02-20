@@ -169,12 +169,17 @@ public class OctState implements AbstractState {
       }
     }
 
-    BiMap<String, Integer> newMap1 = HashBiMap.<String, Integer>create(variableToIndexMap);
-    for (int i = variableToIndexMap.size()-1; i > maxEqualIndex; i--) {
-      newMap1.inverse().remove(i);
+    OctState newState1;
+    if (variableToIndexMap.size() != maxEqualIndex +1) {
+      BiMap<String, Integer> newMap1 = HashBiMap.<String, Integer>create(variableToIndexMap);
+      for (int i = variableToIndexMap.size()-1; i > maxEqualIndex; i--) {
+        newMap1.inverse().remove(i);
+      }
+      Octagon newOct1 = OctagonManager.removeDimension(octagon, variableToIndexMap.size()-(maxEqualIndex+1));
+      newState1 =  new OctState(newOct1, newMap1, logger);
+    } else {
+      newState1 = this;
     }
-    Octagon newOct1 =  OctagonManager.removeDimension(octagon, variableToIndexMap.size()-(maxEqualIndex+1));
-    OctState newState1 = new OctState(newOct1, newMap1, logger);
 
     OctState newState2;
     if (oct.variableToIndexMap.size() != maxEqualIndex +1) {
