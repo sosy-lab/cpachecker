@@ -218,9 +218,6 @@ public class SourceLocationMapper {
       case CallToReturnEdge:
         CFunctionSummaryEdge fnSumEdge = (CFunctionSummaryEdge) edge;
         result.add(fnSumEdge.getExpression());
-        result.add(fnSumEdge.getExpression().getFunctionCallExpression());
-        result.add(fnSumEdge.getExpression().getFunctionCallExpression().getFunctionNameExpression());
-        result.addAll(fnSumEdge.getExpression().getFunctionCallExpression().getParameterExpressions());
       break;
       case DeclarationEdge:
         result.add(((CDeclarationEdge) edge).getDeclaration());
@@ -331,11 +328,7 @@ public class SourceLocationMapper {
       case CallToReturnEdge:
         CFunctionSummaryEdge fnSumEdge = (CFunctionSummaryEdge) edge;
         result.add(fnSumEdge.getLineNumber());
-        result.addAll(collectTokensFrom(fnSumEdge.getExpression(), overApproximateTokens));
-        result.addAll(collectTokensFrom(fnSumEdge.getExpression().getFunctionCallExpression().getFunctionNameExpression(), overApproximateTokens));
-        collectLine(result, fnSumEdge.getExpression().getFileLocation(), overApproximateTokens);
-        collectLine(result, fnSumEdge.getExpression().getFunctionCallExpression().getFileLocation(), overApproximateTokens);
-        astNodes.addAll(fnSumEdge.getExpression().getFunctionCallExpression().getParameterExpressions());
+        astNodes.add(fnSumEdge.getExpression());
       break;
       case DeclarationEdge:
         CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
