@@ -785,7 +785,7 @@ public class CtoFormulaConverter {
     Constraints constraints = new Constraints(bfmgr);
     PointerTargetSetBuilder pts = createPointerTargetSetBuilder(oldFormula.getPointerTargetSet());
 
-    BooleanFormula edgeFormula = createFormulaForEdge(edge, function, ssa, constraints, errorConditions, pts);
+    BooleanFormula edgeFormula = createFormulaForEdge(edge, function, ssa, pts, constraints, errorConditions);
 
     edgeFormula = bfmgr.and(edgeFormula, constraints.get());
 
@@ -816,9 +816,10 @@ public class CtoFormulaConverter {
    * @return the formula for the edge
    * @throws CPATransferException
    */
-  protected BooleanFormula createFormulaForEdge(CFAEdge edge, String function,
-      SSAMapBuilder ssa, Constraints constraints, ErrorConditions errorConditions,
-      PointerTargetSetBuilder pts)
+  private BooleanFormula createFormulaForEdge(
+      final CFAEdge edge, final String function,
+      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+      final Constraints constraints, final ErrorConditions errorConditions)
           throws CPATransferException {
     switch (edge.getEdgeType()) {
     case StatementEdge: {
@@ -866,9 +867,11 @@ public class CtoFormulaConverter {
         if (singleEdge instanceof BlankEdge) {
           continue;
         }
-        multiEdgeFormulas.add(createFormulaForEdge(singleEdge, function, ssa, constraints, errorConditions, pts));
+        multiEdgeFormulas.add(createFormulaForEdge(singleEdge, function, ssa, pts, constraints, errorConditions));
       }
 
+      // Big conjunction at the end is better than creating a new conjunction
+      // after each edge for some SMT solvers.
       return bfmgr.and(multiEdgeFormulas);
     }
 

@@ -66,15 +66,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -89,7 +85,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -1439,74 +1434,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     statementVisitor.handleDeferredAllocationInFunctionExit();
 
     return result;
-  }
-
-  @Override
-  protected BooleanFormula createFormulaForEdge(final CFAEdge edge,
-                                              final String function, final SSAMapBuilder ssa,
-                                              final Constraints constraints,
-                                              final ErrorConditions errorConditions,
-                                              final PointerTargetSetBuilder pts)
-  throws CPATransferException {
-
-    if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
-      List<BooleanFormula> multiEdgeFormulas = new ArrayList<>(((MultiEdge)edge).getEdges().size());
-
-      // unroll the MultiEdge
-      for (CFAEdge singleEdge : (MultiEdge)edge) {
-        if (singleEdge instanceof BlankEdge) {
-          continue;
-        }
-        multiEdgeFormulas.add(createFormulaForEdge(singleEdge, function, ssa, constraints, errorConditions, pts));
-      }
-
-      // Big conjunction at the end is better than creating a new conjunction
-      // after each edge for some SMT solvers.
-      return bfmgr.and(multiEdgeFormulas);
-    }
-
-    switch (edge.getEdgeType()) {
-    case StatementEdge: {
-      return makeStatement((CStatementEdge) edge, function,
-          ssa, pts, constraints, errorConditions);
-    }
-
-    case ReturnStatementEdge: {
-      final CReturnStatementEdge returnEdge = (CReturnStatementEdge) edge;
-      return makeReturn(returnEdge.getExpression(), returnEdge, function,
-          ssa, pts, constraints, errorConditions);
-    }
-
-    case DeclarationEdge: {
-      return makeDeclaration((CDeclarationEdge) edge, function,
-          ssa, pts, constraints, errorConditions);
-    }
-
-    case AssumeEdge: {
-      return makeAssume((CAssumeEdge) edge, function,
-          ssa, pts, constraints, errorConditions);
-    }
-
-    case BlankEdge: {
-      assert false : "Handled above";
-      return bfmgr.makeBoolean(true);
-    }
-
-    case FunctionCallEdge: {
-      return makeFunctionCall((CFunctionCallEdge) edge, function,
-          ssa, pts, constraints, errorConditions);
-    }
-
-    case FunctionReturnEdge: {
-      // get the expression from the summary edge
-      final CFunctionSummaryEdge summaryEdge = ((CFunctionReturnEdge) edge).getSummaryEdge();
-      return makeExitFunction(summaryEdge, function,
-          ssa, pts, constraints, errorConditions);
-    }
-
-    default:
-      throw new UnrecognizedCFAEdgeException(edge);
-    }
   }
 
   @SuppressWarnings("hiding") // same instance with narrower type
