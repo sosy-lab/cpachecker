@@ -163,7 +163,7 @@ public class OctagonManager {
   /* int widening = 0 -> OCT_WIDENING_FAST
    * int widening = 1 ->  OCT_WIDENING_ZERO
    * int widening = 2 -> OCT_WIDENING_UNIT*/
-  public Octagon widening(Octagon oct1, Octagon oct2) {
+  public static Octagon widening(Octagon oct1, Octagon oct2) {
     long l = J_widening(oct1.getOctId(), oct2.getOctId(), false, 1);
     return new Octagon(l);
   }
@@ -237,7 +237,6 @@ public class OctagonManager {
     StringBuilder str = new StringBuilder();
     int dimension = dimension(oct);
     long pointer = oct.getOctId();
-    str.append(map.values() + "\n");
     str.append("Octagon (id: " + pointer + ") (dimension: " + dimension + ")\n");
     if (isEmpty(oct)) {
       str.append("[Empty]\n");
@@ -248,17 +247,17 @@ public class OctagonManager {
     NumArray upper = OctagonManager.init_num_t(1);
 
     for (int i = 0; i < map.size(); i++) {
-      str.append(map.get(i) + " -> [");
+      str.append(" ").append(map.get(i)).append(" -> [");
       J_get_bounds(oct.getOctId(), i, upper.getArray(), lower.getArray());
       if (J_num_infty(lower.getArray(), 0)) {
         str.append("-INFINITY, ");
       } else {
-        str.append(J_num_get_int(lower.getArray(), 0)*-1 + ", ");
+        str.append(J_num_get_int(lower.getArray(), 0)*-1).append(", ");
       }
       if (J_num_infty(upper.getArray(), 0)) {
         str.append("INFINITY]\n");
       } else {
-        str.append(J_num_get_int(upper.getArray(), 0) + "]\n");
+        str.append(J_num_get_int(upper.getArray(), 0)).append("]\n");
       }
     }
     J_num_clear_n(lower.getArray(), 1);
