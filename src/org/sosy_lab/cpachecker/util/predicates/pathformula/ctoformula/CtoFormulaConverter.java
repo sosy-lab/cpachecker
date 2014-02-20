@@ -822,23 +822,23 @@ public class CtoFormulaConverter {
           throws CPATransferException {
     switch (edge.getEdgeType()) {
     case StatementEdge: {
-      CStatementEdge statementEdge = (CStatementEdge) edge;
-      StatementToFormulaVisitor v = getStatementVisitor(edge, function, ssa, constraints);
-      return statementEdge.getStatement().accept(v);
+      return makeStatement((CStatementEdge) edge, function,
+          ssa, pts, constraints, errorConditions);
     }
 
     case ReturnStatementEdge: {
       CReturnStatementEdge returnEdge = (CReturnStatementEdge)edge;
-      return makeReturn(returnEdge.getExpression(), returnEdge, function, ssa, constraints);
+      return makeReturn(returnEdge.getExpression(), returnEdge, function,
+          ssa, pts, constraints, errorConditions);
     }
 
     case DeclarationEdge: {
-      CDeclarationEdge d = (CDeclarationEdge)edge;
-      return makeDeclaration(d, function, ssa, constraints);
+      return makeDeclaration((CDeclarationEdge)edge, function, ssa, pts, constraints, errorConditions);
     }
 
     case AssumeEdge: {
-      return makeAssume((CAssumeEdge)edge, function, ssa, constraints);
+      return makeAssume((CAssumeEdge)edge, function,
+          ssa, pts, constraints, errorConditions);
     }
 
     case BlankEdge: {
@@ -847,13 +847,15 @@ public class CtoFormulaConverter {
     }
 
     case FunctionCallEdge: {
-      return makeFunctionCall((CFunctionCallEdge)edge, function, ssa, constraints);
+      return makeFunctionCall((CFunctionCallEdge)edge, function,
+          ssa, pts, constraints, errorConditions);
     }
 
     case FunctionReturnEdge: {
       // get the expression from the summary edge
       CFunctionSummaryEdge ce = ((CFunctionReturnEdge)edge).getSummaryEdge();
-      return makeExitFunction(ce, function, ssa, constraints);
+      return makeExitFunction(ce, function,
+          ssa, pts, constraints, errorConditions);
     }
 
     case MultiEdge: {
@@ -875,9 +877,20 @@ public class CtoFormulaConverter {
     }
   }
 
-  private BooleanFormula makeDeclaration(
-      CDeclarationEdge edge, String function, SSAMapBuilder ssa,
-      Constraints constraints) throws CPATransferException {
+  protected BooleanFormula makeStatement(
+      final CStatementEdge statement, final String function,
+      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+      final Constraints constraints, final ErrorConditions errorConditions)
+          throws CPATransferException {
+    StatementToFormulaVisitor v = getStatementVisitor(statement, function, ssa, constraints);
+    return statement.getStatement().accept(v);
+  }
+
+  protected BooleanFormula makeDeclaration(
+      final CDeclarationEdge edge, final String function,
+      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+      final Constraints constraints, final ErrorConditions errorConditions)
+          throws CPATransferException {
 
     if (!(edge.getDeclaration() instanceof CVariableDeclaration)) {
       // struct prototype, function declaration, typedef etc.
@@ -931,8 +944,11 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  private BooleanFormula makeExitFunction(CFunctionSummaryEdge ce, String function,
-      SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
+  protected BooleanFormula makeExitFunction(
+      final CFunctionSummaryEdge ce, final String function,
+      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+      final Constraints constraints, final ErrorConditions errorConditions)
+          throws CPATransferException {
 
     CFunctionCall retExp = ce.getExpression();
     if (retExp instanceof CFunctionCallStatement) {
@@ -949,8 +965,8 @@ public class CtoFormulaConverter {
       Formula retVar = makeVariable(retVarName, retType, ssa);
       CLeftHandSide e = exp.getLeftHandSide();
 
-      function = ce.getSuccessor().getFunctionName();
-      Formula outvarFormula = buildLvalueTerm(e, ce, function, ssa, constraints);
+      String callerFunction = ce.getSuccessor().getFunctionName();
+      Formula outvarFormula = buildLvalueTerm(e, ce, callerFunction, ssa, constraints);
       retVar = makeCast(retType, e.getExpressionType(), retVar, ce);
       BooleanFormula assignments = fmgr.assignment(outvarFormula, retVar);
 
@@ -995,8 +1011,11 @@ public class CtoFormulaConverter {
   }
 
 
-  private BooleanFormula makeFunctionCall(CFunctionCallEdge edge,
-      String callerFunction, SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
+  protected BooleanFormula makeFunctionCall(
+      final CFunctionCallEdge edge, final String callerFunction,
+      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+      final Constraints constraints, final ErrorConditions errorConditions)
+          throws CPATransferException {
 
     List<CExpression> actualParams = edge.getArguments();
 
@@ -1042,8 +1061,11 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  private BooleanFormula makeReturn(CExpression rightExp, CReturnStatementEdge edge, String function,
-      SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
+  protected BooleanFormula makeReturn(final CExpression rightExp,
+      final CReturnStatementEdge edge, final String function,
+      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+      final Constraints constraints, final ErrorConditions errorConditions)
+          throws CPATransferException {
     if (rightExp == null) {
       // this is a return from a void function, do nothing
       return bfmgr.makeBoolean(true);
@@ -1067,8 +1089,11 @@ public class CtoFormulaConverter {
     }
   }
 
-  private BooleanFormula makeAssume(CAssumeEdge assume, String function,
-      SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
+  protected BooleanFormula makeAssume(
+      final CAssumeEdge assume, final String function,
+      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+      final Constraints constraints, final ErrorConditions errorConditions)
+          throws CPATransferException {
 
     return makePredicate(assume.getExpression(), assume.getTruthAssumption(),
         assume, function, ssa, constraints);

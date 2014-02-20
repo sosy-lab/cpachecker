@@ -1143,11 +1143,14 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return new StatementToFormulaWithUFVisitor(lvalueVisitor, this, cfaEdge, function, ssa, constraints, errorConditions, pts);
   }
 
+  @Override
   protected BooleanFormula makeReturn(final CExpression resultExpression,
                                       final CReturnStatementEdge returnEdge,
-                                      final Constraints constraints,
+                                      final String function,
+                                      final SSAMapBuilder ssa,
                                       final PointerTargetSetBuilder pts,
-                                      final StatementToFormulaWithUFVisitor statementVisitor)
+                                      final Constraints constraints,
+                                      final ErrorConditions errorConditions)
   throws CPATransferException {
     if (resultExpression == null) {
       // this is a return from a void function, do nothing
@@ -1169,7 +1172,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                  returnType,
                                  returnVariableName,
                                  returnVariableName,
-                                 scoped(returnVariableName, statementVisitor.getFuncitonName()),
+                                 scoped(returnVariableName, function),
                                  null);
       final CExpressionAssignmentStatement assignment =
         new CExpressionAssignmentStatement(resultExpression.getFileLocation(),
@@ -1178,6 +1181,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                              returnVariableName,
                                                              returnVariableDeclaration),
                                            resultExpression);
+      final StatementToFormulaWithUFVisitor statementVisitor = getStatementToFormulaWithUFVisitor(returnEdge, function, ssa, constraints, errorConditions, pts);
       final BooleanFormula result = assignment.accept(statementVisitor);
       declareSharedBase(returnVariableDeclaration, CTypeUtils.containsArray(returnType), constraints, pts);
       return result;
@@ -1196,12 +1200,23 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
   }
 
-  private BooleanFormula makeDeclaration(final CDeclarationEdge declarationEdge,
-                                         final Constraints constraints,
-                                         final PointerTargetSetBuilder pts,
-                                         final @Nullable ErrorConditions errorConditions,
-                                         final StatementToFormulaWithUFVisitor statementVisitor)
-  throws CPATransferException {
+  @Override
+  protected BooleanFormula makeStatement(
+      final CStatementEdge statement, final String function,
+      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+      final Constraints constraints, final ErrorConditions errorConditions)
+          throws CPATransferException {
+    final StatementToFormulaWithUFVisitor statementVisitor =
+        getStatementToFormulaWithUFVisitor(statement, function, ssa, constraints, errorConditions, pts);
+    return statement.getStatement().accept(statementVisitor);
+  }
+
+  @Override
+  protected BooleanFormula makeDeclaration(
+      final CDeclarationEdge declarationEdge, final String function,
+      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+      final Constraints constraints, final ErrorConditions errorConditions)
+          throws CPATransferException {
 
     if (declarationEdge.getDeclaration() instanceof CTypeDeclaration) {
       final CType declarationType = CTypeUtils.simplifyType(
@@ -1277,6 +1292,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     // Special handling for string literal initializers -- convert them into character arrays
     final CIdExpression lhs =
         new CIdExpression(declaration.getFileLocation(), declarationType, declaration.getName(), declaration);
+    final StatementToFormulaWithUFVisitor statementVisitor = getStatementToFormulaWithUFVisitor(declarationEdge, function, ssa, constraints, errorConditions, pts);
     if (initializer instanceof CInitializerExpression || initializer == null) {
       declareSharedBase(declaration, false, constraints, pts);
 
@@ -1322,18 +1338,23 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
   }
 
-  private BooleanFormula makeAssume(final CAssumeEdge assume,
-                                    final StatementToFormulaWithUFVisitor statementVisitor)
-  throws CPATransferException {
+  @Override
+  protected BooleanFormula makeAssume(
+      final CAssumeEdge assume, final String function,
+      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+      final Constraints constraints, final ErrorConditions errorConditions)
+          throws CPATransferException {
 
+    final StatementToFormulaWithUFVisitor statementVisitor = getStatementToFormulaWithUFVisitor(assume, function, ssa, constraints, errorConditions, pts);
     return statementVisitor.visitAssume(assume.getExpression(), assume.getTruthAssumption());
   }
 
-  private BooleanFormula makeFunctionCall(final CFunctionCallEdge edge,
-                                          final Constraints constraints,
-                                          final PointerTargetSetBuilder pts,
-                                          final StatementToFormulaWithUFVisitor statementVisitor)
-  throws CPATransferException {
+  @Override
+  protected BooleanFormula makeFunctionCall(
+      final CFunctionCallEdge edge, final String callerFunction,
+      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+      final Constraints constraints, final ErrorConditions errorConditions)
+          throws CPATransferException {
 
     final List<CExpression> arguments = edge.getArguments();
     final CFunctionEntryNode entryNode = edge.getSuccessor();
@@ -1359,6 +1380,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       }
     }
 
+    final StatementToFormulaWithUFVisitor statementVisitor = getStatementToFormulaWithUFVisitor(edge, callerFunction, ssa, constraints, errorConditions, pts);
     int i = 0;
     BooleanFormula result = bfmgr.makeBoolean(true);
     for (CParameterDeclaration formalParameter : parameters) {
@@ -1376,10 +1398,15 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return result;
   }
 
-  protected BooleanFormula makeExitFunction(final CFunctionSummaryEdge summaryEdge,
-                                            final StatementToFormulaWithUFVisitor statementVisitor)
-  throws CPATransferException {
+  @Override
+  protected BooleanFormula makeExitFunction(
+      final CFunctionSummaryEdge summaryEdge, final String function,
+      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+      final Constraints constraints, final ErrorConditions errorConditions)
+          throws CPATransferException {
     final CFunctionCall returnExpression = summaryEdge.getExpression();
+    final StatementToFormulaWithUFVisitor statementVisitor = getStatementToFormulaWithUFVisitor(summaryEdge, function, ssa, constraints, errorConditions, pts);
+
     final BooleanFormula result;
     if (returnExpression instanceof CFunctionCallStatement) {
       // this should be a void return, just do nothing...
@@ -1399,8 +1426,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                                            returnType,
                                                                            returnVariableName,
                                                                            returnVariableName,
-                                                                           scoped(returnVariableName,
-                                                                                  statementVisitor.getFuncitonName()),
+                                                                           scoped(returnVariableName, function),
                                                                            null));
       CLeftHandSide lhs = expression.getLeftHandSide();
 
@@ -1439,28 +1465,26 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       return bfmgr.and(multiEdgeFormulas);
     }
 
-    // A new visitor for each edge produces correct log and error messages.
-    final StatementToFormulaWithUFVisitor statementVisitor =
-            getStatementToFormulaWithUFVisitor(edge, function, ssa, constraints, errorConditions, pts);
-
     switch (edge.getEdgeType()) {
     case StatementEdge: {
-      final CStatementEdge statementEdge = (CStatementEdge) edge;
-      return statementEdge.getStatement().accept(statementVisitor);
+      return makeStatement((CStatementEdge) edge, function,
+          ssa, pts, constraints, errorConditions);
     }
 
     case ReturnStatementEdge: {
       final CReturnStatementEdge returnEdge = (CReturnStatementEdge) edge;
-      return makeReturn(returnEdge.getExpression(), returnEdge, constraints, pts, statementVisitor);
+      return makeReturn(returnEdge.getExpression(), returnEdge, function,
+          ssa, pts, constraints, errorConditions);
     }
 
     case DeclarationEdge: {
-      final CDeclarationEdge declarationEdge = (CDeclarationEdge) edge;
-      return makeDeclaration(declarationEdge, constraints, pts, errorConditions, statementVisitor);
+      return makeDeclaration((CDeclarationEdge) edge, function,
+          ssa, pts, constraints, errorConditions);
     }
 
     case AssumeEdge: {
-      return makeAssume((CAssumeEdge) edge, statementVisitor);
+      return makeAssume((CAssumeEdge) edge, function,
+          ssa, pts, constraints, errorConditions);
     }
 
     case BlankEdge: {
@@ -1469,13 +1493,15 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
 
     case FunctionCallEdge: {
-      return makeFunctionCall((CFunctionCallEdge) edge, constraints, pts, statementVisitor);
+      return makeFunctionCall((CFunctionCallEdge) edge, function,
+          ssa, pts, constraints, errorConditions);
     }
 
     case FunctionReturnEdge: {
       // get the expression from the summary edge
       final CFunctionSummaryEdge summaryEdge = ((CFunctionReturnEdge) edge).getSummaryEdge();
-      return makeExitFunction(summaryEdge, statementVisitor);
+      return makeExitFunction(summaryEdge, function,
+          ssa, pts, constraints, errorConditions);
     }
 
     default:
