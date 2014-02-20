@@ -888,10 +888,6 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
     return Value.nondetValue(); // free does not return anything, so nondet is ok
   }
 
-  public String getFuncitonName() {
-    return function;
-  }
-
   private final StatementToFormulaVisitor statementDelegate;
   private final LvalueToPointerTargetPatternVisitor lvalueVisitor;
   private final IsRelevantLhsVisitor isRelevantLhsVisitor;
