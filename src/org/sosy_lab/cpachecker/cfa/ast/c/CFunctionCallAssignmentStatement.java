@@ -57,6 +57,11 @@ public final class CFunctionCallAssignmentStatement extends AFunctionCallAssignm
   }
 
   @Override
+  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
+
+  @Override
   public String toASTString() {
     return getLeftHandSide().toASTString()
         + " = " + getRightHandSide().toASTString() + ";";
@@ -81,4 +86,5 @@ public final class CFunctionCallAssignmentStatement extends AFunctionCallAssignm
 
     return super.equals(obj);
   }
+
 }

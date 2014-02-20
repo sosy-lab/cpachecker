@@ -51,6 +51,11 @@ public final class CStringLiteralExpression extends AStringLiteralExpression imp
   }
 
   @Override
+  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
+
+  @Override
   public String toASTString() {
     return getValue();
   }

@@ -72,6 +72,11 @@ public class CUnaryExpression extends AUnaryExpression implements CExpression {
     return v.visit(this);
   }
 
+  @Override
+  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
+
   public static enum UnaryOperator implements AUnaryExpression.AUnaryOperator {
     @Deprecated
     PLUS   ("+"),

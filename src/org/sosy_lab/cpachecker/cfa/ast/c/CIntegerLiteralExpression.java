@@ -57,6 +57,11 @@ public class CIntegerLiteralExpression extends AIntegerLiteralExpression impleme
   }
 
   @Override
+  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
+
+  @Override
   public String toASTString() {
     String suffix = "";
 

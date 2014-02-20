@@ -31,11 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import com.google.common.collect.Sets;
 
 
-public class FileLocationCollectingVisitor implements
-  CStatementVisitor<Set<FileLocation>, RuntimeException>,
-  CInitializerVisitor<Set<FileLocation>, RuntimeException>,
-  CSimpleDeclarationVisitor<Set<FileLocation>, RuntimeException>,
-  CExpressionVisitor<Set<FileLocation>, RuntimeException> {
+public class FileLocationCollectingVisitor implements CAstNodeVisitor<Set<FileLocation>, RuntimeException>{
 
   @Override
   public Set<FileLocation> visit(CArraySubscriptExpression pE) throws RuntimeException {
@@ -115,10 +111,7 @@ public class FileLocationCollectingVisitor implements
     Set<FileLocation> result = Sets.newHashSet();
     result.add(pS.getFileLocation());
     result.addAll(pS.getLeftHandSide().accept(this));
-    result.addAll(pS.getRightHandSide().getFunctionNameExpression().accept(this));
-    for (CExpression expr : pS.getRightHandSide().getParameterExpressions()) {
-      result.addAll(expr.accept(this));
-    }
+    result.addAll(pS.getRightHandSide().accept(this));
     return result;
   }
 
@@ -173,19 +166,19 @@ public class FileLocationCollectingVisitor implements
     return Collections.singleton(pE.getFileLocation());
   }
 
-  public Set<FileLocation> collectTokensFrom(CExpression astNode) {
+  public Set<FileLocation> collectLocationsFrom(CExpression astNode) {
     return astNode.accept(this);
   }
 
-  public Set<FileLocation> collectTokensFrom(CDeclaration astNode) {
+  public Set<FileLocation> collectLocationsFrom(CDeclaration astNode) {
     return astNode.accept(this);
   }
 
-  public Set<FileLocation> collectTokensFrom(CStatement astNode) {
+  public Set<FileLocation> collectLocationsFrom(CStatement astNode) {
     return astNode.accept(this);
   }
 
-  public Set<FileLocation> collectTokensFrom(CInitializer astNode) {
+  public Set<FileLocation> collectLocationsFrom(CInitializer astNode) {
     return astNode.accept(this);
   }
 
@@ -197,11 +190,6 @@ public class FileLocationCollectingVisitor implements
       result.addAll(expr.accept(this));
     }
     return result;
-  }
-
-  @Override
-  public Set<FileLocation> visit(CTypeDeclaration astNode) throws RuntimeException {
-    return Collections.singleton(astNode.getFileLocation());
   }
 
   @Override
@@ -228,6 +216,57 @@ public class FileLocationCollectingVisitor implements
   public Set<FileLocation> visit(org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator pDecl)
       throws RuntimeException {
     return Collections.singleton(pDecl.getFileLocation());
+  }
+
+  @Override
+  public Set<FileLocation> visit(CArrayDesignator pNode) throws RuntimeException {
+    Set<FileLocation> result = Collections.singleton(pNode.getFileLocation());
+    if (pNode.getSubscriptExpression() != null) {
+      result = Sets.union(result, pNode.getSubscriptExpression().accept(this));
+    }
+    return result;
+  }
+
+  @Override
+  public Set<FileLocation> visit(CArrayRangeDesignator pNode) throws RuntimeException {
+    Set<FileLocation> result = Collections.singleton(pNode.getFileLocation());
+    if (pNode.getCeilExpression() != null) {
+      result = Sets.union(result, pNode.getCeilExpression().accept(this));
+    }
+    if (pNode.getFloorExpression() != null) {
+      result = Sets.union(result, pNode.getFloorExpression().accept(this));
+    }
+    return result;
+  }
+
+  @Override
+  public Set<FileLocation> visit(CFieldDesignator pNode) throws RuntimeException {
+    return Collections.singleton(pNode.getFileLocation());
+  }
+
+  @Override
+  public Set<FileLocation> visit(CReturnStatement pNode) throws RuntimeException {
+    Set<FileLocation> result = Collections.singleton(pNode.getFileLocation());
+    if (pNode.getReturnValue() != null) {
+      result = Sets.union(result, pNode.getReturnValue().accept(this));
+    }
+    return result;
+  }
+
+  @Override
+  public Set<FileLocation> visit(CFunctionCallExpression pNode) throws RuntimeException {
+    Set<FileLocation> result = Sets.newHashSet();
+    result.add(pNode.getFileLocation());
+    result.addAll(pNode.getFunctionNameExpression().accept(this));
+    for (CExpression expr : pNode.getParameterExpressions()) {
+      result.addAll(expr.accept(this));
+    }
+    return result;
+  }
+
+  @Override
+  public Set<FileLocation> visit(CTypeDefDeclaration pNode) throws RuntimeException {
+    return Collections.singleton(pNode.getFileLocation());
   }
 
 }

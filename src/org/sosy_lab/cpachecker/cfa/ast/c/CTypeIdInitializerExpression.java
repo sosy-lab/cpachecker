@@ -71,6 +71,11 @@ public final class CTypeIdInitializerExpression extends AExpression implements C
   }
 
   @Override
+  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
+
+  @Override
   public String toASTString() {
     return "(" + type.toASTString("") + ")" + initializer.toParenthesizedASTString();
   }

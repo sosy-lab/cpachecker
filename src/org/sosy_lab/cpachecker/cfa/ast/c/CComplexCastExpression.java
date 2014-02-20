@@ -72,6 +72,11 @@ public final class CComplexCastExpression extends AExpression implements CLeftHa
   }
 
   @Override
+  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
+
+  @Override
   public <R, X extends Exception> R accept(CExpressionVisitor<R, X> v) throws X {
     return v.visit(this);
   }

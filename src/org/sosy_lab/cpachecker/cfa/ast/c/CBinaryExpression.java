@@ -54,6 +54,11 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
   }
 
   @Override
+  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
+
+  @Override
   public CType getExpressionType() {
     return (CType) super.getExpressionType();
   }

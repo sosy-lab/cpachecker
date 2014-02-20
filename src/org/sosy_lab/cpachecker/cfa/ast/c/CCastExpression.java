@@ -67,6 +67,11 @@ public final class CCastExpression extends AExpression implements CExpression {
   }
 
   @Override
+  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
+
+  @Override
   public String toASTString() {
     return "(" + getExpressionType().toASTString("") + ")" + operand.toParenthesizedASTString();
   }

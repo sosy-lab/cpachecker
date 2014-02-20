@@ -44,7 +44,6 @@ public final class CParameterDeclaration extends AParameterDeclaration implement
     super(pFileLocation, pType, checkNotNull(pName));
   }
 
-
   public void setQualifiedName(String pQualifiedName) {
     checkState(qualifiedName == null);
     qualifiedName = checkNotNull(pQualifiedName);
@@ -90,4 +89,10 @@ public final class CParameterDeclaration extends AParameterDeclaration implement
   public <R, X extends Exception> R accept(CSimpleDeclarationVisitor<R, X> pV) throws X {
     return pV.visit(this);
   }
+
+  @Override
+  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
+
 }

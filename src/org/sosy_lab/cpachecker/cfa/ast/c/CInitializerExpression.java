@@ -42,7 +42,10 @@ public final class CInitializerExpression extends AInitializerExpression impleme
     return (CExpression) super.getExpression();
   }
 
-
+  @Override
+  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
 
   @Override
   public <R, X extends Exception> R accept(CInitializerVisitor<R, X> pV) throws X {
