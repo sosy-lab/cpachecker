@@ -40,8 +40,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectingVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.FileLocationCollectingVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -75,6 +73,23 @@ public class SourceLocationMapper {
     public OriginDescriptor(Optional<String> pOriginFileName, int pOriginLineNumber) {
       this.originFileName = pOriginFileName;
       this.originLineNumber = pOriginLineNumber;
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((originFileName == null) ? 0 : originFileName.hashCode());
+      result = prime * result + originLineNumber;
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      if (!(pObj instanceof OriginDescriptor)) {
+        return false;
+      }
+      return this.compareTo((OriginDescriptor)pObj) == 0;
     }
 
     @Override
@@ -181,19 +196,7 @@ public class SourceLocationMapper {
 
   public static synchronized Set<FileLocation> collectFileLocationsFrom(CAstNode astNode) {
     final FileLocationCollectingVisitor visitor = new FileLocationCollectingVisitor();
-    Set<FileLocation> locs = Collections.emptySet();
-
-    if (astNode instanceof CStatement) {
-      locs = visitor.collectTokensFrom((CStatement) astNode);
-    } else if (astNode instanceof CExpression) {
-      locs = visitor.collectTokensFrom((CExpression) astNode);
-    } else if (astNode instanceof CInitializer) {
-      locs = visitor.collectTokensFrom((CInitializer) astNode);
-    } else if (astNode instanceof CDeclaration) {
-      locs = visitor.collectTokensFrom((CDeclaration) astNode);
-    }
-
-    return locs;
+    return astNode.accept(visitor);
   }
 
   public static synchronized Set<CAstNode> getAstNodesFromCfaEdge(CFAEdge pEdge) {
@@ -231,7 +234,12 @@ public class SourceLocationMapper {
       case FunctionReturnEdge:
       break;
       case ReturnStatementEdge:
-        CExpression expr = ((CReturnStatementEdge) edge).getExpression();
+        CReturnStatementEdge retStmt = (CReturnStatementEdge) edge;
+        if (retStmt.getRawAST().isPresent()) {
+          result.add(retStmt.getRawAST().get());
+        }
+
+        CExpression expr = retStmt.getExpression();
         if (expr != null) {
           result.add(expr);
         }

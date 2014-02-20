@@ -50,8 +50,10 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.SourceLocationMapper;
+import org.sosy_lab.cpachecker.util.SourceLocationMapper.OriginDescriptor;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
 /**
@@ -306,9 +308,9 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   static abstract class MatchEdgeTokens extends OnRelevantEdgesBoolExpr {
 
-    protected final Set<Integer> matchTokens;
+    protected final Set<Comparable<Integer>> matchTokens;
 
-    public MatchEdgeTokens(Set<Integer> pTokens) {
+    public MatchEdgeTokens(Set<Comparable<Integer>> pTokens) {
       matchTokens = pTokens;
     }
 
@@ -337,7 +339,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       return match ? CONST_TRUE : CONST_FALSE;
     }
 
-    public Set<Integer> getMatchTokens() {
+    public Set<Comparable<Integer>> getMatchTokens() {
       return matchTokens;
     }
 
@@ -351,7 +353,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   static class SubsetMatchEdgeTokens extends MatchEdgeTokens {
 
-    public SubsetMatchEdgeTokens(Set<Integer> pTokens) {
+    public SubsetMatchEdgeTokens(Set<Comparable<Integer>> pTokens) {
       super(pTokens);
     }
 
@@ -373,7 +375,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   static class IntersectionMatchEdgeTokens extends MatchEdgeTokens {
 
-    public IntersectionMatchEdgeTokens(Set<Integer> pTokens) {
+    public IntersectionMatchEdgeTokens(Set<Comparable<Integer>> pTokens) {
       super(pTokens);
     }
 
@@ -398,16 +400,24 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     private final Optional<String> matchOriginFileName;
     private final int matchStartingLineInOrigin;
     private final boolean matchExtractedBaseName;
+    private final OriginDescriptor matchOriginDescriptor;
 
-    public MatchStartingLineInOrigin(Optional<String> pOriginFileName, int pStartingLineInOrigin, boolean bMatchExtractedBaseName) {
-      this.matchStartingLineInOrigin = pStartingLineInOrigin;
+    public MatchStartingLineInOrigin(OriginDescriptor pOriginDescriptor, boolean bMatchExtractedBaseName) {
+      Preconditions.checkNotNull(pOriginDescriptor);
+
       this.matchExtractedBaseName = bMatchExtractedBaseName;
+      this.matchOriginDescriptor = pOriginDescriptor;
+      this.matchStartingLineInOrigin = pOriginDescriptor.originLineNumber;
 
-      if (pOriginFileName.isPresent()) {
-        this.matchOriginFileName = Optional.of(bMatchExtractedBaseName ? getBaseName(pOriginFileName.get()) : pOriginFileName.get());
+      if (pOriginDescriptor.originFileName.isPresent()) {
+        this.matchOriginFileName = Optional.of(bMatchExtractedBaseName ? getBaseName(pOriginDescriptor.originFileName.get()) : pOriginDescriptor.originFileName.get());
       } else {
         this.matchOriginFileName = Optional.absent();
       }
+    }
+
+    public Comparable<OriginDescriptor> getMatchOriginDescriptor() {
+      return matchOriginDescriptor;
     }
 
     public String getBaseName(String pOf) {
