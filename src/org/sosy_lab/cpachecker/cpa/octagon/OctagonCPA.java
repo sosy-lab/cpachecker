@@ -67,7 +67,7 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
   private OctagonCPA(Configuration config, LogManager log) throws InvalidConfigurationException {
     config.inject(this);
     logger = log;
-    OctDomain octagonDomain = new OctDomain(logger);
+    OctDomain octagonDomain = new OctDomain(logger, config);
 
     this.transferRelation = new OctTransferRelation(logger);
 
