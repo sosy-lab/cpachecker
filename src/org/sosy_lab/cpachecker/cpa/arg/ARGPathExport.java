@@ -54,8 +54,8 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
@@ -381,12 +381,12 @@ public class ARGPathExport {
       TransitionCondition desc = new TransitionCondition();
 
       if (exportFunctionCallsAndReturns) {
-        if (edge instanceof FunctionCallEdge) {
-          FunctionCallEdge f = (FunctionCallEdge) edge;
-          desc.put(KeyDef.FUNCTIONENTRY, f.getSuccessor().getFunctionName());
-        } else if (edge instanceof FunctionReturnEdge) {
-          FunctionReturnEdge f = (FunctionReturnEdge) edge;
-          desc.put(KeyDef.FUNCTIONEXIT, f.getPredecessor().getFunctionName());
+        if (edge.getSuccessor() instanceof FunctionEntryNode) {
+          FunctionEntryNode in = (FunctionEntryNode) edge.getSuccessor();
+          desc.put(KeyDef.FUNCTIONENTRY, in.getFunctionName());
+        } else if (edge.getSuccessor() instanceof FunctionExitNode) {
+          FunctionExitNode out = (FunctionExitNode) edge.getSuccessor();
+          desc.put(KeyDef.FUNCTIONEXIT, out.getFunctionName());
         }
       }
 
