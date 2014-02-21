@@ -93,6 +93,14 @@ public class FormulaEncodingWithUFOptions extends FormulaEncodingOptions {
     return memoryAllocationFunctionsWithSuperfluousParameters.contains(name);
   }
 
+  public boolean isDynamicMemoryFunction(final String name) {
+    return isSuccessfulAllocFunctionName(name)
+        || isSuccessfulZallocFunctionName(name)
+        || isMemoryAllocationFunction(name)
+        || isMemoryAllocationFunctionWithZeroing(name)
+        || isMemoryFreeFunction(name);
+  }
+
   public boolean isSuccessfulAllocFunctionName(final String name) {
     return successfulAllocFunctionName.equals(name);
   }

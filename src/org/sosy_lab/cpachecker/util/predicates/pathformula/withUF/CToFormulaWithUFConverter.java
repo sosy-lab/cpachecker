@@ -165,13 +165,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     throw new UnsupportedOperationException("Use more specific methods instead");
   }
 
-  String makeAllocVariableName(final String functionName,
-                               final CType type,
-                               final CType baseType) {
-    final String allocVariableName = functionName + "_" + getUFName(type);
-    return  allocVariableName + FRESH_INDEX_SEPARATOR + RealPointerTargetSetBuilder.getNextDynamicAllocationIndex();
-  }
-
   Formula makeBaseAddressOfTerm(final Formula address) {
     return ffmgr.createFuncAndCall("__BASE_ADDRESS_OF__", voidPointerFormulaType, ImmutableList.of(address));
   }
@@ -362,37 +355,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       constraints.addConstraint(pts.prepareBase(declaration.getQualifiedName(),
                                                 CTypeUtils.simplifyType(declaration.getType())));
     }
-  }
-
-  Formula makeAllocation(final boolean isZeroing,
-                         final CType type,
-                         final String base,
-                         final CFAEdge edge,
-                         final SSAMapBuilder ssa,
-                         final Constraints constraints,
-                         final @Nullable ErrorConditions errorConditions,
-                         final PointerTargetSetBuilder pts)
-  throws UnrecognizedCCodeException {
-    final CType baseType = CTypeUtils.getBaseType(type);
-    final Formula result = makeConstant(PointerTargetSet.getBaseName(base), baseType);
-    if (isZeroing) {
-      final BooleanFormula initialization = makeAssignment(
-        type,
-        CNumericTypes.SIGNED_CHAR,
-        AliasedLocation.ofAddress(result),
-        Value.ofValue(fmgr.makeNumber(getFormulaTypeFromCType(CNumericTypes.SIGNED_CHAR), 0)),
-        new PointerTargetPattern(base, 0, 0),
-        true,
-        null,
-        edge,
-        ssa,
-        constraints,
-        errorConditions,
-        pts);
-      constraints.addConstraint(initialization);
-    }
-    addPreFilledBase(base, type, false, isZeroing, constraints, pts);
-    return result;
   }
 
   void addValueImportConstraints(final CFAEdge cfaEdge,
@@ -1350,7 +1312,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
     final BooleanFormula result = super.makeExitFunction(summaryEdge, calledFunction, ssa, pts, constraints, errorConditions);
 
-    handleDeferredAllocationInFunctionExit(summaryEdge, calledFunction, pts);
+    DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(this, summaryEdge, ssa, pts, constraints, errorConditions);
+    memoryHandler.handleDeferredAllocationInFunctionExit(calledFunction);
 
     return result;
   }
@@ -1409,36 +1372,5 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   @Override
   protected int getSizeof(CType pType) {
     return super.getSizeof(pType);
-  }
-
-  void handleDeferredAllocationPointerRemoval(final String pointerVariable,
-      final boolean isReturn, final PointerTargetSetBuilder pts,
-      final CFAEdge edge) {
-    if (pts.removeDeferredAllocatinPointer(pointerVariable)) {
-      logger.logfOnce(Level.WARNING,
-                           (!isReturn ? "Assignment to the" : "Destroying the") +
-                             " void * pointer  %s produces garbage! (in the following line(s):\n %s)",
-                           pointerVariable,
-                           edge);
-    }
-  }
-
-  /**
-   * The function removes local void * pointers (deferred allocations)
-   * declared in current function scope from tracking after returning from the function.
-   * @param pStatementToFormulaWithUFVisitor TODO
-   */
-  private void handleDeferredAllocationInFunctionExit(
-      final CFAEdge edge, final String function,
-      final PointerTargetSetBuilder pts) {
-    for (final String variable : pts.getDeferredAllocationVariables()) {
-      final int position = variable.indexOf(CToFormulaWithUFConverter.SCOPE_SEPARATOR);
-      if (position >= 0) { // Consider only local variables (in current function scope)
-        final String variableFunction = variable.substring(0, position);
-        if (function.equals(variableFunction)) {
-          handleDeferredAllocationPointerRemoval(variable, true, pts, edge);
-        }
-      }
-    }
   }
 }
