@@ -100,7 +100,7 @@ class DynamicMemoryHandler {
 
     if ((conv.options.isSuccessfulAllocFunctionName(functionName) ||
         conv.options.isSuccessfulZallocFunctionName(functionName))) {
-      return Value.ofValue(handleSucessfulMemoryAllocation(functionName, e));
+      return Value.ofValue(handleSucessfulMemoryAllocation(functionName, e.getParameterExpressions(), e));
 
     } else if ((conv.options.isMemoryAllocationFunction(functionName) ||
             conv.options.isMemoryAllocationFunctionWithZeroing(functionName))) {
@@ -166,10 +166,10 @@ class DynamicMemoryHandler {
                                                     CPointerType.POINTER_TO_VOID,
                                                     ssa);
       return conv.bfmgr.ifThenElse(conv.bfmgr.not(conv.fmgr.makeEqual(nondet, conv.nullPointer)),
-                                    handleSucessfulMemoryAllocation(delegateFunctionName, e),
+                                    handleSucessfulMemoryAllocation(delegateFunctionName, parameters, e),
                                     conv.nullPointer);
     } else {
-      return handleSucessfulMemoryAllocation(delegateFunctionName, e);
+      return handleSucessfulMemoryAllocation(delegateFunctionName, parameters, e);
     }
   }
 
@@ -178,10 +178,10 @@ class DynamicMemoryHandler {
    * (i.e., do not return NULL) and do not zero the memory.
    */
   private Formula handleSucessfulMemoryAllocation(final String functionName,
+      List<CExpression> parameters,
       final CFunctionCallExpression e) throws UnrecognizedCCodeException {
     // e.getFunctionNameExpression() should not be used
     // as it might refer to another function if this method is called from handleMemoryAllocation()
-    List<CExpression> parameters = e.getParameterExpressions();
     if (parameters.size() != 1) {
       if (parameters.size() > 1 && conv.options.hasSuperfluousParameters(functionName)) {
         parameters = Collections.singletonList(parameters.get(0));
