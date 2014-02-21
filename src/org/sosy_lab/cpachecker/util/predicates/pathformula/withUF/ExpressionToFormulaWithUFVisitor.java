@@ -41,8 +41,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -54,9 +52,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
@@ -286,67 +282,16 @@ abstract class ExpressionToFormulaWithUFVisitor
   }
 
   @Override
-  public Expression visit(final CTypeIdExpression e) throws UnrecognizedCCodeException {
-    if (e.getOperator() == TypeIdOperator.SIZEOF) {
-      return handleSizeof(e, e.getType());
-    } else {
-      return visitDefault(e);
-    }
-  }
-
-  private Value handleSizeof(final CExpression e, final CType type) throws UnrecognizedCCodeException {
-    return Value.ofValue(
-             conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(CTypeUtils.simplifyType(e.getExpressionType())),
-                                                               conv.getSizeof(type)));
-  }
-
-  @Override
   public Expression visit(CTypeIdInitializerExpression e) throws UnrecognizedCCodeException {
     throw new UnrecognizedCCodeException("Unhandled initializer", edge, e);
   }
 
   @Override
   public Value visit(final CUnaryExpression e) throws UnrecognizedCCodeException {
-    final CExpression operand = e.getOperand();
-    final CType operandType = CTypeUtils.simplifyType(operand.getExpressionType());
-    final CType resultType = CTypeUtils.simplifyType(e.getExpressionType());
-    final UnaryOperator operator = e.getOperator();
-    switch (e.getOperator()) {
-    case MINUS:
-    case PLUS:
-    case TILDE: {
-      // Handle Integer Promotion
-      final CType promoted = conv.getPromotedCType(operandType);
-      Formula operandFormula = asValueFormula(operand.accept(this), operandType);
-      operandFormula = conv.makeCast(operandType, promoted, operandFormula, edge);
-      Formula result;
-      if (operator == UnaryOperator.PLUS) {
-        result = operandFormula;
-      } else if (operator == UnaryOperator.MINUS) {
-        result = conv.fmgr.makeNegate(operandFormula);
-      } else {
-        assert operator == UnaryOperator.TILDE
-              : "This case should be impossible because of switch";
-        result = conv.fmgr.makeNot(operandFormula);
-      }
+    if (e.getOperator() == UnaryOperator.AMPER) {
+      final CExpression operand = e.getOperand();
+      final CType resultType = CTypeUtils.simplifyType(e.getExpressionType());
 
-      final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(resultType);
-      assert resultFormulaType == conv.fmgr.getFormulaType(result)
-            : "Returntype and Formulatype do not match in visit(CUnaryExpression)";
-
-      return Value.ofValue(result);
-    }
-
-    case NOT: {
-      final Formula f = asValueFormula(operand.accept(this), operandType);
-      final BooleanFormula term = conv.toBooleanFormula(f);
-      return Value.ofValue(conv.ifTrueThenOneElseZero(conv.getFormulaTypeFromCType(resultType),
-                                                      conv.bfmgr.not(term)));
-    }
-
-    case SIZEOF:
-      return handleSizeof(e, CTypeUtils.simplifyType(operand.getExpressionType()));
-    case AMPER:
       if (!(resultType instanceof CFunctionType)) {
         final Variable baseVariable = operand.accept(baseVisitor);
         if (baseVariable == null) {
@@ -413,8 +358,8 @@ abstract class ExpressionToFormulaWithUFVisitor
       } else {
         return operand.accept(this).asValue();
       }
-      default:
-        throw new UnrecognizedCCodeException("Unknown unary operator", edge, e);
+    } else {
+      return visitDefault(e);
     }
   }
 
