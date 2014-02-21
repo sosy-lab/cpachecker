@@ -121,12 +121,12 @@ public class CtoFormulaConverter {
 
   public static final String ASSUME_FUNCTION_NAME = "__VERIFIER_assume";
 
-  // list of functions that are pure (no side-effects)
+  // list of functions that are pure (no side-effects from the perspective of this analysis)
   public static final Set<String> PURE_EXTERNAL_FUNCTIONS
-      = ImmutableSet.of("__assert_fail", "free", "kfree",
+      = ImmutableSet.of("abort", "exit", "__assert_fail", "__VERIFIER_error",
+          "free", "kfree",
           "fprintf", "printf", "puts", "printk", "sprintf", "swprintf",
-          "strcasecmp", "strchr", "strcmp", "strlen", "strncmp", "strrchr", "strstr",
-          "__VERIFIER_error"
+          "strcasecmp", "strchr", "strcmp", "strlen", "strncmp", "strrchr", "strstr"
           );
 
   // set of functions that may not appear in the source code
