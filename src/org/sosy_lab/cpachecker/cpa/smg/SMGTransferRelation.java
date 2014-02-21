@@ -1289,12 +1289,8 @@ public class SMGTransferRelation implements TransferRelation {
           assert false : "In this case, the assume should be able to be calculated";
           return null;
         case MINUS:
-        case PLUS:
         case TILDE:
           // don't change the truth value
-          return operand.accept(this);
-        case NOT:
-          truthValue = !truthValue;
           return operand.accept(this);
         case SIZEOF:
           assert false : "At the moment, this cae should be able to be calculated";
@@ -1332,16 +1328,6 @@ public class SMGTransferRelation implements TransferRelation {
 
       private CExpression unwrap(CExpression expression) {
         // is this correct for e.g. [!a != !(void*)(int)(!b)] !?!?!
-
-        if (expression instanceof CUnaryExpression) {
-          CUnaryExpression exp = (CUnaryExpression) expression;
-          if (exp.getOperator() == UnaryOperator.NOT) { // TODO why only C-UnaryOperator?
-            expression = exp.getOperand();
-            truthValue = !truthValue;
-
-            expression = unwrap(expression);
-          }
-        }
 
         if (expression instanceof CCastExpression) {
           CCastExpression exp = (CCastExpression) expression;

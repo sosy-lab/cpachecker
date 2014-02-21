@@ -501,9 +501,7 @@ public class SMGExpressionEvaluator {
             + " as pointer type", cfaEdge, unaryExpression);
 
       case MINUS:
-      case NOT:
       case TILDE:
-      case PLUS:
       default:
         // Can't evaluate these Addresses
         // TODO we can, when the pointer points to the Null Object
@@ -1216,10 +1214,6 @@ public class SMGExpressionEvaluator {
       case SIZEOF:
         int size = getSizeof(cfaEdge, getRealExpressionType(unaryOperand));
         return (size == 0) ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
-
-      case NOT:
-        return handleNot(unaryOperand);
-
       case TILDE:
 
       default:
@@ -1240,24 +1234,6 @@ public class SMGExpressionEvaluator {
         return dereferenceArray(operand, expType);
       } else {
         throw new UnrecognizedCCodeException("on pointer expression", cfaEdge, pointerExpression);
-      }
-    }
-
-    private SMGSymbolicValue handleNot(CExpression pUnaryOperand) throws CPATransferException {
-      CType unaryOperandType = getRealExpressionType(pUnaryOperand);
-
-      SMGSymbolicValue value;
-
-      if (unaryOperandType instanceof CPointerType || unaryOperandType instanceof CArrayType) {
-        value = evaluateAddress(smgState, cfaEdge, pUnaryOperand);
-      } else {
-        value = pUnaryOperand.accept(this);
-      }
-
-      if (isUnequal(smgState, value, SMGKnownSymValue.ZERO)) {
-        return SMGKnownSymValue.ZERO;
-      } else {
-        return SMGUnknownValue.getInstance();
       }
     }
 
