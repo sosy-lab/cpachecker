@@ -107,8 +107,7 @@ public class SSAMap implements Serializable {
         oldType = oldType.getCanonicalType();
         type = type.getCanonicalType();
         Preconditions.checkArgument(
-            name.startsWith("__content__")
-            || type instanceof CFunctionType || oldType instanceof CFunctionType
+            type instanceof CFunctionType || oldType instanceof CFunctionType
             || (isEnumPointerType(type) && isEnumPointerType(oldType))
             || oldType.equals(type)
             , "Cannot change type of variable %s in SSAMap from %s to %s", name, oldType, type);
