@@ -71,6 +71,7 @@
           <div class="form-group">
           </#if>
             <label for="programText" class="control-label">${msg["programText"]}</label>
+            <span class="help-block">${msg["programText.HelpBlock"]}</span>
             <textarea name="programText" id="programText" rows="3" class="form-control"></textarea>
           </div>
           <span class="help-block">${msg["submitTask.submissionDisclaimer"]}</span>
