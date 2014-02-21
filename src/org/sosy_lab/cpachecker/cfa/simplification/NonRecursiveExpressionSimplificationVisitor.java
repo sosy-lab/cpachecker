@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitExpressionValueVisitor;
@@ -127,8 +128,9 @@ public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpress
       return expr;
     }
 
+    // Just assume result to be an integer regardless of expression type.
     long result = ExplicitExpressionValueVisitor.calculateBinaryOperation(
-        new ExplicitNumericValue(v1), new ExplicitNumericValue(v2), expr, machineModel, logger, null).asLong(expr.getExpressionType());
+        new ExplicitNumericValue(v1), new ExplicitNumericValue(v2), expr, machineModel, logger, null).asLong(CNumericTypes.INT);
 
     return new CIntegerLiteralExpression(expr.getFileLocation(),
             expr.getExpressionType(), BigInteger.valueOf(result));
@@ -142,8 +144,9 @@ public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpress
       return expr;
     }
 
+    // Just assume the cast value to be an integer type regardless of expression type
     final long castedValue = ExplicitExpressionValueVisitor.castCValue(
-        new ExplicitNumericValue(v), expr.getOperand().getExpressionType(), expr.getExpressionType(), machineModel, logger, null).asLong(expr.getExpressionType());
+        new ExplicitNumericValue(v), expr.getOperand().getExpressionType(), expr.getExpressionType(), machineModel, logger, null).asLong(CNumericTypes.INT);
 
     return new CIntegerLiteralExpression(expr.getFileLocation(),
             expr.getExpressionType(), BigInteger.valueOf(castedValue));
