@@ -162,59 +162,17 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
     // LHS handling
     reset();
     final Location lhsLocation = lhs.accept(this).asLocation();
+    ImmutableMap<String, CType> lhsUsedDeferredAllocationPointers = getUsedDeferredAllocationPointers();
     addEssentialFields(getInitializedFields(), pts);
     final ImmutableList<Pair<CCompositeType, String>> lhsUsedFields = getUsedFields();
     // the pattern matching possibly aliased locations
     final PointerTargetPattern pattern = lhsLocation.isUnaliasedLocation() ? null : lhs.accept(lvalueVisitor);
 
-    // Handle allocations: reveal the actual type form the LHS type or defer the allocation until later
-    DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions);
-    boolean isAllocation = false;
-    if ((conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) &&
-        rhs instanceof CFunctionCallExpression &&
-        !rhsExpression.isNondetValue() && rhsExpression.isValue()) {
-      final Set<String> rhsVariables = conv.fmgr.extractVariables(rhsExpression.asValue().getValue());
-      // Actually there is always either 1 variable (just address) or 2 variables (nondet + allocation address)
-      for (String variable : rhsVariables) {
-        if (PointerTargetSet.isBaseName(variable)) {
-          variable = PointerTargetSet.getBase(variable);
-        }
-        if (pts.isTemporaryDeferredAllocationPointer(variable)) {
-          if (!isAllocation) {
-            // We can reveal the type from the LHS
-            if (ExpressionToFormulaWithUFVisitor.isRevealingType(lhsType)) {
-              memoryHandler.handleDeferredAllocationTypeRevelation(variable, lhsType);
-            // We can defer the allocation and start tracking the variable in the LHS
-            } else if (lhsType.equals(CPointerType.POINTER_TO_VOID) &&
-                       // TODO: remove the double-check (?)
-                       ExpressionToFormulaWithUFVisitor.isUnaliasedLocation(lhs) &&
-                       lhsLocation.isUnaliasedLocation()) {
-              final String variableName = lhsLocation.asUnaliasedLocation().getVariableName();
-              if (pts.isDeferredAllocationPointer(variableName)) {
-                memoryHandler.handleDeferredAllocationPointerRemoval(variableName, false);
-              }
-              pts.addDeferredAllocationPointer(variableName, variable); // Now we track the LHS
-              // And not the RHS, because the LHS is its only alias
-              memoryHandler.handleDeferredAllocationPointerRemoval(variable, false);
-            } else {
-              memoryHandler.handleDeferredAllocationPointerEscape(variable);
-            }
-            isAllocation = true;
-          } else {
-            throw new UnrecognizedCCodeException("Can't handle ambiguous allocation", edge, rhs);
-          }
-        }
-      }
-    }
-
-    // Track currently deferred allocations
-    if (conv.options.deferUntypedAllocations() && !isAllocation) {
-      memoryHandler.handleDeferredAllocationsInAssignment(lhs,
-                                            rhs,
-                                            lhsLocation,
-                                            rhsExpression,
-                                            getUsedDeferredAllocationPointers(),
-                                            rhsUsedDeferredAllocationPointers);
+    if (conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) {
+      DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions);
+      memoryHandler.handleDeferredAllocationsInAssignment(lhs, rhs,
+          lhsLocation, rhsExpression, lhsType,
+          lhsUsedDeferredAllocationPointers, rhsUsedDeferredAllocationPointers);
     }
 
     final BooleanFormula result =

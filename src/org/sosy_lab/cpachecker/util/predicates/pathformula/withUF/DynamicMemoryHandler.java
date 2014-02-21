@@ -27,6 +27,7 @@ import java.math.BigInteger;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
@@ -62,6 +63,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Loc
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Value;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
  * This class is responsible for handling everything related to dynamic memory,
@@ -383,7 +386,7 @@ class DynamicMemoryHandler {
     }
   }
 
-  void handleDeferredAllocationTypeRevelation(final @Nonnull String pointerVariable,
+  private void handleDeferredAllocationTypeRevelation(final @Nonnull String pointerVariable,
                                                       final @Nonnull CType type)
                                                           throws UnrecognizedCCodeException {
     final DeferredAllocationPool deferredAllocationPool = pts.removeDeferredAllocation(pointerVariable);
@@ -394,7 +397,7 @@ class DynamicMemoryHandler {
     }
   }
 
-  void handleDeferredAllocationPointerEscape(final String pointerVariable)
+  private void handleDeferredAllocationPointerEscape(final String pointerVariable)
       throws UnrecognizedCCodeException {
     final DeferredAllocationPool deferredAllocationPool = pts.removeDeferredAllocation(pointerVariable);
     final CIntegerLiteralExpression size = deferredAllocationPool.getSize() != null ?
@@ -419,7 +422,61 @@ class DynamicMemoryHandler {
     }
   }
 
-  void handleDeferredAllocationsInAssignment(final CLeftHandSide lhs,
+  void handleDeferredAllocationsInAssignment(final CLeftHandSide lhs, final CRightHandSide rhs,
+      final Location lhsLocation, final Expression rhsExpression, final CType lhsType,
+      ImmutableMap<String, CType> lhsUsedDeferredAllocationPointers,
+      final ImmutableMap<String, CType> rhsUsedDeferredAllocationPointers) throws UnrecognizedCCodeException {
+    // Handle allocations: reveal the actual type form the LHS type or defer the allocation until later
+    boolean isAllocation = false;
+    if ((conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) &&
+        rhs instanceof CFunctionCallExpression &&
+        !rhsExpression.isNondetValue() && rhsExpression.isValue()) {
+      final Set<String> rhsVariables = conv.fmgr.extractVariables(rhsExpression.asValue().getValue());
+      // Actually there is always either 1 variable (just address) or 2 variables (nondet + allocation address)
+      for (String variable : rhsVariables) {
+        if (PointerTargetSet.isBaseName(variable)) {
+          variable = PointerTargetSet.getBase(variable);
+        }
+        if (pts.isTemporaryDeferredAllocationPointer(variable)) {
+          if (!isAllocation) {
+            // We can reveal the type from the LHS
+            if (ExpressionToFormulaWithUFVisitor.isRevealingType(lhsType)) {
+              handleDeferredAllocationTypeRevelation(variable, lhsType);
+            // We can defer the allocation and start tracking the variable in the LHS
+            } else if (lhsType.equals(CPointerType.POINTER_TO_VOID) &&
+                       // TODO: remove the double-check (?)
+                       ExpressionToFormulaWithUFVisitor.isUnaliasedLocation(lhs) &&
+                       lhsLocation.isUnaliasedLocation()) {
+              final String variableName = lhsLocation.asUnaliasedLocation().getVariableName();
+              if (pts.isDeferredAllocationPointer(variableName)) {
+                handleDeferredAllocationPointerRemoval(variableName, false);
+              }
+              pts.addDeferredAllocationPointer(variableName, variable); // Now we track the LHS
+              // And not the RHS, because the LHS is its only alias
+              handleDeferredAllocationPointerRemoval(variable, false);
+            } else {
+              handleDeferredAllocationPointerEscape(variable);
+            }
+            isAllocation = true;
+          } else {
+            throw new UnrecognizedCCodeException("Can't handle ambiguous allocation", edge, rhs);
+          }
+        }
+      }
+    }
+
+    // Track currently deferred allocations
+    if (conv.options.deferUntypedAllocations() && !isAllocation) {
+      handleDeferredAllocationsInAssignment(lhs,
+                                            rhs,
+                                            lhsLocation,
+                                            rhsExpression,
+                                            lhsUsedDeferredAllocationPointers,
+                                            rhsUsedDeferredAllocationPointers);
+    }
+  }
+
+  private void handleDeferredAllocationsInAssignment(final CLeftHandSide lhs,
                                                      final CRightHandSide rhs,
                                                      final Location lhsLocation,
                                                      final Expression rhsExpression,
@@ -516,7 +573,7 @@ class DynamicMemoryHandler {
     }
   }
 
-  void handleDeferredAllocationPointerRemoval(final String pointerVariable,
+  private void handleDeferredAllocationPointerRemoval(final String pointerVariable,
       final boolean isReturn) {
     if (pts.removeDeferredAllocatinPointer(pointerVariable)) {
       conv.logger.logfOnce(Level.WARNING,
