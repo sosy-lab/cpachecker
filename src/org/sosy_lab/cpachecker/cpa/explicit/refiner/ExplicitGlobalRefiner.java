@@ -78,6 +78,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -186,31 +187,41 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
       interpolationTree.exportToDot(totalRefinements, i);
     }
 
-    ARGReachedSet reached = new ARGReachedSet(pReached);
-
+    Map<ARGState, ExplicitPrecision> refinementInformation = new HashMap<>();
     for(ARGState root : interpolationTree.obtainRefinementRoots(doLazyAbstraction)) {
       Collection<ARGState> targetsReachableFromRoot = interpolationTree.getTargetsInSubtree(root);
 
-      // get precision of first target, and make it initial one
-      final ExplicitPrecision inital = Precisions.extractPrecisionByType(pReached.getPrecision(targetsReachableFromRoot.iterator().next()), ExplicitPrecision.class);
-      for(ARGState target : targetsReachableFromRoot) {
-        ExplicitPrecision precisionOfTarget = Precisions.extractPrecisionByType(pReached.getPrecision(target), ExplicitPrecision.class);
+      // join the precisions of the subtree of this roots into a single precision
+      final ExplicitPrecision subTreePrecision = joinSubtreePrecisions(pReached, targetsReachableFromRoot);
 
-        // join precision of target state it with the original one
-        inital.getRefinablePrecision().join(precisionOfTarget.getRefinablePrecision());
-      }
+      refinementInformation.put(root, new ExplicitPrecision(subTreePrecision, interpolationTree.extractPrecisionIncrement(root)));
+    }
 
-      final ExplicitPrecision refinedPrecision = new ExplicitPrecision(inital, interpolationTree.extractPrecisionIncrement(root));
-
-      // replace the refinement root with its first child, if the refinement root equals the root of the ARG
-      if(root == pReached.getFirstState()) {
-        root = root.getChildren().iterator().next();
-      }
-      reached.removeSubtree(root, refinedPrecision, ExplicitPrecision.class);
+    ARGReachedSet reached = new ARGReachedSet(pReached);
+    for(Map.Entry<ARGState, ExplicitPrecision> info : refinementInformation.entrySet()) {
+      reached.removeSubtree(info.getKey(), info.getValue(), ExplicitPrecision.class);
     }
 
     totalTime.stop();
     return true;
+  }
+
+  private ExplicitPrecision joinSubtreePrecisions(final ReachedSet pReached,
+      Collection<ARGState> targetsReachableFromRoot) {
+
+    final ExplicitPrecision precision = extractPrecision(pReached, Iterables.getLast(targetsReachableFromRoot));
+    // join precisions of all target states
+    for(ARGState target : targetsReachableFromRoot) {
+      ExplicitPrecision precisionOfTarget = extractPrecision(pReached, target);
+      precision.getRefinablePrecision().join(precisionOfTarget.getRefinablePrecision());
+    }
+
+    return precision;
+  }
+
+  private ExplicitPrecision extractPrecision(final ReachedSet pReached,
+      ARGState state) {
+    return Precisions.extractPrecisionByType(pReached.getPrecision(state), ExplicitPrecision.class);
   }
 
   private boolean isAnyPathFeasible(final ARGReachedSet pReached, final Collection<ARGPath> errorPaths)
@@ -509,7 +520,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     private Multimap<CFANode, MemoryLocation> extractPrecisionIncrement(ARGState refinmentRoot) {
       Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
 
-      Deque<ARGState> todo = new ArrayDeque<>(Collections.singleton(refinmentRoot));
+      Deque<ARGState> todo = new ArrayDeque<>(Collections.singleton(predecessorRelation.get(refinmentRoot)));
       while (!todo.isEmpty()) {
         final ARGState currentState = todo.removeFirst();
 
@@ -547,7 +558,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
         final ARGState currentState = todo.removeFirst();
 
         if (isNonTrivialInterpolantAvailable(currentState)) {
-          refinementRoots.add(currentState);
+          refinementRoots.addAll(successorRelation.get(currentState));
           continue;
         }
 
