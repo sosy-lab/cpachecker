@@ -82,7 +82,13 @@ abstract class ExpressionToFormulaWithUFVisitor
                                           final @Nullable ErrorConditions errorConditions,
                                           final PointerTargetSetBuilder pts) {
 
-    delegate = new ExpressionToFormulaVisitor(cToFormulaConverter, cfaEdge, function, ssa, constraints);
+    delegate = new ExpressionToFormulaVisitor(cToFormulaConverter, cfaEdge, function, ssa, constraints) {
+      @Override
+      protected Formula toFormula(CExpression e) throws UnrecognizedCCodeException {
+        return asValueFormula(e.accept(ExpressionToFormulaWithUFVisitor.this),
+                              CTypeUtils.simplifyType(e.getExpressionType()));
+      }
+    };
 
     this.conv = cToFormulaConverter;
     this.edge = cfaEdge;
@@ -635,7 +641,7 @@ abstract class ExpressionToFormulaWithUFVisitor
   protected final PointerTargetSetBuilder pts;
 
   private final BaseVisitor baseVisitor;
-  protected final ExpressionToFormulaVisitor delegate;
+  private final ExpressionToFormulaVisitor delegate;
 
   // This fields are made private to prevent reading them in StatementToFormulaWIthUFVisitor
   // The accessors for these fields return the copies of the original collections, these copies can be

@@ -79,6 +79,10 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     return conv.makeVariableUnsafe(exp, function, ssa, false);
   }
 
+  protected Formula toFormula(CExpression e) throws UnrecognizedCCodeException {
+    return e.accept(this);
+  }
+
   private Formula getPointerTargetSizeLiteral(final CPointerType pointerType, final CType implicitType) {
     final int pointerTargetSize = conv.getSizeof(pointerType.getType());
     return conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(implicitType), pointerTargetSize);
@@ -99,8 +103,8 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     e2 = conv.makeCastFromArrayToPointerIfNecessary(e2, returnType);
     final CType t1 = e1.getExpressionType();
     final CType t2 = e2.getExpressionType();
-    Formula f1 = e1.accept(this);
-    Formula f2 = e2.accept(this);
+    Formula f1 = toFormula(e1);
+    Formula f2 = toFormula(e2);
 
     f1 = conv.makeCast(t1, calculationType, f1, edge);
     f2 = conv.makeCast(t2, calculationType, f2, edge);
@@ -246,13 +250,12 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
 
 
 
-
   @Override
   public Formula visit(CCastExpression cexp) throws UnrecognizedCCodeException {
     CExpression op = cexp.getOperand();
     op = conv.makeCastFromArrayToPointerIfNecessary(op, cexp.getExpressionType());
 
-    Formula operand = op.accept(this);
+    Formula operand = toFormula(op);
 
     CType after = cexp.getExpressionType();
     CType before = op.getExpressionType();
@@ -280,7 +283,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
   public Formula visit(CFieldReference fExp) throws UnrecognizedCCodeException {
     if (conv.options.handleFieldAccess()) {
       CExpression fieldOwner = getRealFieldOwner(fExp);
-      Formula f = fieldOwner.accept(this);
+      Formula f = toFormula(fieldOwner);
       return conv.accessField(fExp, f);
     }
 
@@ -377,7 +380,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       // Handle Integer Promotion
       CType t = operand.getExpressionType();
       CType promoted = conv.getPromotedCType(t);
-      Formula operandFormula = operand.accept(this);
+      Formula operandFormula = toFormula(operand);
       operandFormula = conv.makeCast(t, promoted, operandFormula, edge);
       Formula ret;
       if (op == UnaryOperator.PLUS) {
@@ -398,7 +401,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     }
 
     case NOT: {
-      Formula f = operand.accept(this);
+      Formula f = toFormula(operand);
       BooleanFormula term = conv.toBooleanFormula(f);
       return conv.ifTrueThenOneElseZero(conv.getFormulaTypeFromCType(exp.getExpressionType()), conv.bfmgr.not(term));
     }
