@@ -357,19 +357,11 @@ public class CtoFormulaConverter {
    * Create a formula for a given variable, which is assumed to be constant.
    * This method does not handle scoping!
    */
-  protected Formula makeConstant(String name, CType type, SSAMapBuilder ssa) {
-    // TODO better use variables without index (this piece of code prevents
-    // SSAMapBuilder from checking for strict monotony)
-    int idx = ssa.getIndex(name);
-    assert idx <= 1 : name + " is assumed to be constant there was an assignment to it";
-    if (idx != 1) {
-      setSsaIndex(ssa, name, type, 1); // set index so that predicates will be instantiated correctly
-    }
-
-    return fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, 1);
+  protected Formula makeConstant(String name, CType type) {
+    return fmgr.makeVariable(getFormulaTypeFromCType(type), name);
   }
-  protected Formula makeConstant(Variable var, SSAMapBuilder ssa) {
-    return makeConstant(var.getName(), var.getType(), ssa);
+  protected Formula makeConstant(Variable var) {
+    return makeConstant(var.getName(), var.getType());
   }
 
   /**

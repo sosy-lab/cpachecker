@@ -108,7 +108,7 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
 
     if (pexps.isEmpty()) {
       // This is a function of arity 0 and we assume its constant.
-      return conv.makeConstant(func, expType, ssa);
+      return conv.makeConstant(func, expType);
 
     } else {
       CFunctionDeclaration declaration = fexp.getDeclaration();

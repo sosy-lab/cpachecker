@@ -210,28 +210,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   @Override
-  @Deprecated
-  protected Formula makeConstant(final String name, final CType type, final SSAMapBuilder ssa) {
-    // throw new UnsupportedOperationException("Use the method with pts argument instead");
-    return super.makeConstant(name, type, ssa);
-  }
-
-  @Override
-  @Deprecated
-  protected Formula makeConstant(final Variable var, final SSAMapBuilder ssa) {
-    throw new UnsupportedOperationException("Use the method with pts argument instead");
-  }
-
-  Formula makeConstant(final String name,
-                       final CType type) {
-    return fmgr.makeVariable(getFormulaTypeFromCType(type), name);
-  }
-
-  Formula makeConstant(final Variable var) {
-    return makeConstant(var.getName(), var.getType());
-  }
-
-  @Override
   protected Formula makeVariable(final String name,
                        final CType type,
                        final SSAMapBuilder ssa) {
@@ -1365,6 +1343,16 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   protected Formula makeCast(CType pFromType, CType pToType, Formula pFormula, CFAEdge pEdge)
       throws UnrecognizedCCodeException {
     return super.makeCast(pFromType, pToType, pFormula, pEdge);
+  }
+
+  @Override
+  protected Formula makeConstant(String pName, CType pType) {
+    return super.makeConstant(pName, pType);
+  }
+
+  @Override
+  protected Formula makeConstant(Variable pVar) {
+    return super.makeConstant(pVar);
   }
 
   @Override

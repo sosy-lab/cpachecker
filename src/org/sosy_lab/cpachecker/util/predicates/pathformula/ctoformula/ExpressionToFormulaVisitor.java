@@ -281,7 +281,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
         return conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(t), enumerator.getValue());
       } else {
         // We don't know the value here, but we know it is constant.
-        return conv.makeConstant(enumerator.getName(), t, ssa);
+        return conv.makeConstant(enumerator.getName(), t);
       }
     }
 
@@ -341,7 +341,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     } else {
       if (t.isBitvectorType()) {
         // not representible
-        return conv.makeConstant("__float_constant__" + val, fExp.getExpressionType(), ssa);
+        return conv.makeConstant("__float_constant__" + val, fExp.getExpressionType());
       }
 
       // represent x.y by xy / (10^z) where z is the number of digits in y
