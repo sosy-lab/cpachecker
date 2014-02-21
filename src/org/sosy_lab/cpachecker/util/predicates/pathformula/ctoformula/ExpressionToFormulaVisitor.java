@@ -83,6 +83,13 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     return e.accept(this);
   }
 
+  public Formula processOperand(CExpression e, CType calculationType, CType returnType) throws UnrecognizedCCodeException {
+    e = conv.makeCastFromArrayToPointerIfNecessary(e, returnType);
+    final CType t = e.getExpressionType();
+    Formula f = toFormula(e);
+    return conv.makeCast(t, calculationType, f, edge);
+  }
+
   private Formula getPointerTargetSizeLiteral(final CPointerType pointerType, final CType implicitType) {
     final int pointerTargetSize = conv.getSizeof(pointerType.getType());
     return conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(implicitType), pointerTargetSize);
@@ -90,25 +97,6 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
 
   @Override
   public Formula visit(final CBinaryExpression exp) throws UnrecognizedCCodeException {
-    final BinaryOperator op = exp.getOperator();
-    final CType returnType = exp.getExpressionType();
-    final CType calculationType = exp.getCalculationType();
-
-    // these operators expect numeric arguments
-    final FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
-
-    CExpression e1 = exp.getOperand1();
-    CExpression e2 = exp.getOperand2();
-    e1 = conv.makeCastFromArrayToPointerIfNecessary(e1, returnType);
-    e2 = conv.makeCastFromArrayToPointerIfNecessary(e2, returnType);
-    final CType t1 = e1.getExpressionType();
-    final CType t2 = e2.getExpressionType();
-    Formula f1 = toFormula(e1);
-    Formula f2 = toFormula(e2);
-
-    f1 = conv.makeCast(t1, calculationType, f1, edge);
-    f2 = conv.makeCast(t2, calculationType, f2, edge);
-
     /* FOR SHIFTS:
      * We would not need to cast the second operand, but we do casting,
      * because Mathsat assumes 2 bitvectors of same length.
@@ -122,6 +110,25 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
      * to the width of the promoted left operand, the behavior is undefined.
      */
 
+    final CType returnType = exp.getExpressionType();
+    final CType calculationType = exp.getCalculationType();
+
+    final Formula f1 = processOperand(exp.getOperand1(), calculationType, returnType);
+    final Formula f2 = processOperand(exp.getOperand2(), calculationType, returnType);
+
+    return handleBinaryExpression(exp, f1, f2);
+  }
+
+  public final Formula handleBinaryExpression(final CBinaryExpression exp,
+      final Formula f1, final Formula f2) throws UnrecognizedCCodeException {
+    final BinaryOperator op = exp.getOperator();
+    final CType returnType = exp.getExpressionType();
+    final CType calculationType = exp.getCalculationType();
+
+    // these operators expect numeric arguments
+    final FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
+
+
     final boolean signed;
     if (calculationType instanceof CSimpleType) {
       signed = conv.machineModel.isSigned((CSimpleType)calculationType);
@@ -130,6 +137,8 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     }
 
     // to INT or bigger
+    final CType t1 = exp.getOperand1().getExpressionType();
+    final CType t2 = exp.getOperand2().getExpressionType();
     final CType promT1 = conv.getPromotedCType(t1).getCanonicalType();
     final CType promT2 = conv.getPromotedCType(t2).getCanonicalType();
 
