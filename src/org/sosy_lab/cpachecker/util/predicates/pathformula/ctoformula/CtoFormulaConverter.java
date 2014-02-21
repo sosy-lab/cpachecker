@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -84,7 +83,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -215,7 +213,7 @@ public class CtoFormulaConverter {
     return typeHandler.getSizeof(pType);
   }
 
-  protected Variable scopedIfNecessary(CIdExpression var, String function) {
+  protected Variable scopedIfNecessary(CIdExpression var) {
     return Variable.create(var.getDeclaration().getQualifiedName(), var.getExpressionType());
   }
 
@@ -265,26 +263,6 @@ public class CtoFormulaConverter {
    */
   public static String exprToVarName(IAstNode e) {
     return e.toASTString().replaceAll("[ \n\t]", "");
-  }
-
-  static String getTypeName(final CType tp) {
-
-    if (tp instanceof CPointerType) {
-      return getTypeName(((CPointerType)tp).getType());
-
-    } else if (tp instanceof CTypedefType) {
-      return getTypeName(((CTypedefType)tp).getRealType());
-
-    } else if (tp instanceof CCompositeType) {
-      CCompositeType compositeType = ((CCompositeType)tp);
-      return compositeType.getKind().toASTString() + " " + compositeType.getName();
-
-    } else if (tp instanceof CSimpleType) {
-      return tp.toASTString("");
-
-    } else {
-      throw new AssertionError("Unknown type " + tp.getClass().getName());
-    }
   }
 
   /**
@@ -1302,20 +1280,6 @@ public class CtoFormulaConverter {
     }
 
     throw new AssertionError("field " + fieldName + " was not found in " + structType);
-  }
-
-  static CExpression removeCast(CExpression exp) {
-    if (exp instanceof CCastExpression) {
-      return removeCast(((CCastExpression) exp).getOperand());
-    }
-    return exp;
-  }
-
-  static CRightHandSide removeCast(CRightHandSide exp) {
-    if (exp instanceof CCastExpression) {
-      return removeCast(((CCastExpression) exp).getOperand());
-    }
-    return exp;
   }
 
   /**

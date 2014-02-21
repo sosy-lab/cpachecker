@@ -285,7 +285,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       }
     }
 
-    return conv.makeVariable(conv.scopedIfNecessary(idExp, function), ssa);
+    return conv.makeVariable(conv.scopedIfNecessary(idExp), ssa);
   }
 
   @Override

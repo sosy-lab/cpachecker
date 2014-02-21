@@ -68,7 +68,7 @@ class LvalueVisitor extends
 
   @Override
   public Formula visit(CIdExpression idExp) {
-    Variable var = conv.scopedIfNecessary(idExp, function);
+    Variable var = conv.scopedIfNecessary(idExp);
     return conv.makeFreshVariable(var.getName(), var.getType(), ssa);
   }
 

@@ -170,7 +170,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   @Override
-  protected Variable scopedIfNecessary(CIdExpression var, String function) {
+  protected Variable scopedIfNecessary(CIdExpression var) {
     return Variable.create(var.getDeclaration().getQualifiedName(),
                            CTypeUtils.simplifyType(var.getExpressionType()));
   }
@@ -1325,11 +1325,9 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   static final String UF_NAME_PREFIX = "*";
 
-  public static final String FIELD_NAME_SEPARATOR = "$";
+  static final String FIELD_NAME_SEPARATOR = "$";
 
-  public static final String FRESH_INDEX_SEPARATOR = "#";
-
-  static final String SSA_INDEX_SEPARATOR =  FormulaManagerView.makeName("", 0).substring(0, 1);
+  static final String FRESH_INDEX_SEPARATOR = "#";
 
   static final String SCOPE_SEPARATOR = CtoFormulaConverter.scoped("", "");
 
