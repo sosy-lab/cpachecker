@@ -481,10 +481,6 @@ public class SMGTransferRelation implements TransferRelation {
     case FunctionReturnEdge:
       CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge) cfaEdge;
       successor = handleFunctionReturn(smgState, functionReturnEdge);
-      successor.dropStackFrame();
-      if (checkForMemLeaksAtEveryFrameDrop) {
-        successor.pruneUnreachable();
-      }
       plotWhenConfigured("interesting", null, successor, cfaEdge.getDescription());
       break;
 
@@ -579,14 +575,6 @@ public class SMGTransferRelation implements TransferRelation {
 
     SMGState newState = new SMGState(smgState);
 
-    // We create a temporary State to get the LValue of the Stack_Frame above
-    // the current one
-    //TODO A method in the SMG to get Variables from a Stack above the current Stack.
-    SMGState tmpState = new SMGState(smgState);
-
-    tmpState.dropStackFrame();
-    tmpState.pruneUnreachable(); // TODO necessary?
-
     if (exprOnSummary instanceof CFunctionCallAssignmentStatement) {
 
       // Assign the return value to the lValue of the functionCallAssignment
@@ -599,9 +587,11 @@ public class SMGTransferRelation implements TransferRelation {
 
       SMGSymbolicValue rValue = getFunctionReturnValue(newState, rValueType, functionReturnEdge);
 
+      newState.dropStackFrame();
+
       SMGAddress address = null;
 
-      LValueAssignmentVisitor visitor = expressionEvaluator.getLValueAssignmentVisitor(functionReturnEdge, tmpState);
+      LValueAssignmentVisitor visitor = expressionEvaluator.getLValueAssignmentVisitor(functionReturnEdge, newState);
 
       address = lValue.accept(visitor);
 
@@ -617,8 +607,15 @@ public class SMGTransferRelation implements TransferRelation {
 
         assignFieldToState(newState, functionReturnEdge, object, offset, lValueType, rValue, rValueType);
       } else {
+
+        newState.dropStackFrame();
+
         //TODO missingInformation, exception
       }
+    }
+
+    if (checkForMemLeaksAtEveryFrameDrop) {
+      newState.pruneUnreachable();
     }
 
     return newState;
