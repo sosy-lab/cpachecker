@@ -253,8 +253,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       boolean soundInner;
 
 
-      try (ProverEnvironment prover = solver.newProverEnvironmentWithModelGeneration()) {
-      KInductionProver kInductionProver = new KInductionProver(prover);
+      try (ProverEnvironment prover = solver.newProverEnvironmentWithModelGeneration();
+          KInductionProver kInductionProver = new KInductionProver()) {
 
         do {
           shutdownNotifier.shutdownIfNecessary();
@@ -514,9 +514,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     pStatsCollection.add(stats);
   }
 
-  private class KInductionProver {
+  private class KInductionProver implements AutoCloseable {
 
-    private final ProverEnvironment prover;
+    private ProverEnvironment prover = null;
 
     private final Boolean trivialResult;
 
@@ -526,11 +526,13 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     private final ReachedSet reachedSet;
 
-    public KInductionProver(ProverEnvironment pProver) {
-      this.prover = pProver;
+    private final Loop loop;
+
+    public KInductionProver() {
       FluentIterable<CFAEdge> incomingEdges = null;
       FluentIterable<CFAEdge> outgoingEdges = null;
       ReachedSet reachedSet = null;
+      Loop loop = null;
       if (!cfa.getLoopStructure().isPresent()) {
         logger.log(Level.WARNING, "Could not use induction for proving program safety, loop structure of program could not be determined.");
         trivialResult = false;
@@ -549,7 +551,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         } else {
           stats.inductionPreparation.start();
 
-          final Loop loop = Iterables.getOnlyElement(loops.values());
+          loop = Iterables.getOnlyElement(loops.values());
           // function edges do not count as incoming/outgoing edges
           incomingEdges = from(loop.getIncomingEdges())
                                                        .filter(not(instanceOf(CFunctionReturnEdge.class)));
@@ -589,6 +591,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       this.incomingEdges = trivialResult == null ? incomingEdges : null;
       this.outgoingEdges = trivialResult == null ? outgoingEdges : null;
       this.reachedSet = reachedSet;
+      this.loop = loop;
     }
 
     private boolean isTrivial() {
@@ -614,8 +617,39 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     private ReachedSet getCurrentReachedSet() {
       Preconditions.checkState(!isTrivial(), "No reached set created, because the proof is trivial.");
-      assert this.reachedSet != null;
-      return this.reachedSet;
+      assert reachedSet != null;
+      return reachedSet;
+    }
+
+    private Loop getLoop() {
+      Preconditions.checkState(!isTrivial(), "No loop computed, because the proof is trivial.");
+      assert loop != null;
+      return loop;
+    }
+
+    private boolean isProverInitialized() {
+      return prover != null;
+    }
+
+    private ProverEnvironment getProver() throws CPAException, InterruptedException {
+      if (!isProverInitialized()) {
+        // get global invariants
+        CFANode loopHead = Iterables.getOnlyElement(getLoop().getLoopHeads());
+        BooleanFormula invariants = extractInvariantsAt(loopHead);
+        invariants = fmgr.instantiate(invariants, SSAMap.emptySSAMap().withDefault(1));
+
+        prover = solver.newProverEnvironmentWithModelGeneration();
+        prover.push(invariants);
+      }
+      return prover;
+    }
+
+    @Override
+    public void close() {
+      if (isProverInitialized()) {
+        //prover.pop();
+        prover.close();
+      }
     }
 
     public final boolean check() throws CPAException, InterruptedException {
@@ -624,12 +658,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       stats.inductionPreparation.start();
-
-      assert cfa.getLoopStructure().isPresent();
-      Multimap<String, Loop> loops = cfa.getLoopStructure().get();
-
-      assert loops.size() == 1;
-      final Loop loop = Iterables.getOnlyElement(loops.values());
+      final Loop loop = getLoop();
 
       final CFANode loopHead = Iterables.getOnlyElement(loop.getLoopHeads());
 
@@ -718,10 +747,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
       assert !loopStates.isEmpty();
 
-      // get global invariants
-      BooleanFormula invariants = extractInvariantsAt(loopHead);
-      invariants = fmgr.instantiate(invariants, SSAMap.emptySSAMap().withDefault(1));
-
       // Create formula
       BooleanFormula inductions = bfmgr.makeBoolean(true);
 
@@ -767,7 +792,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
         // Create (A & B)
         PathFormula pathFormulaAB = extractStateByType(lastcutPointState, PredicateAbstractState.class).getPathFormula();
-        BooleanFormula formulaAB = bfmgr.and(invariants, pathFormulaAB.getFormula());
+        BooleanFormula formulaAB = pathFormulaAB.getFormula();
 
         BooleanFormula formulaC;
         { // Create C
@@ -820,6 +845,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       // now prove that (A & B) => C is a tautology by checking if the negation is unsatisfiable
 
       inductions = bfmgr.not(inductions);
+
+      ProverEnvironment prover = getProver();
 
       stats.inductionPreparation.stop();
 
