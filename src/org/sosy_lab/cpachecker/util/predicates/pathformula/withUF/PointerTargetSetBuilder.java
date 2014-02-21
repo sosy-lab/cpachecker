@@ -27,7 +27,6 @@ import static com.google.common.base.Objects.firstNonNull;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.Collection;
 import java.util.SortedSet;
 
 import javax.annotation.Nullable;
@@ -47,8 +46,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.CompositeField;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTarget;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
-
-import com.google.common.collect.ImmutableSet;
 
 
 public interface PointerTargetSetBuilder {
@@ -93,7 +90,7 @@ public interface PointerTargetSetBuilder {
 
   DeferredAllocationPool removeDeferredAllocation(String allocatedPointerVariable);
 
-  Collection<String> getDeferredAllocationVariables();
+  SortedSet<String> getDeferredAllocationVariables();
 
   boolean isTemporaryDeferredAllocationPointer(String pointerVariable);
 
@@ -374,8 +371,8 @@ public interface PointerTargetSetBuilder {
     }
 
     @Override
-    public Collection<String> getDeferredAllocationVariables() {
-      return ImmutableSet.copyOf(deferredAllocations.keySet());
+    public SortedSet<String> getDeferredAllocationVariables() {
+      return deferredAllocations.keySet();
     }
 
     public static int getNextDynamicAllocationIndex() {
@@ -510,7 +507,7 @@ public interface PointerTargetSetBuilder {
     }
 
     @Override
-    public Collection<String> getDeferredAllocationVariables() {
+    public SortedSet<String> getDeferredAllocationVariables() {
       throw new UnsupportedOperationException();
     }
 

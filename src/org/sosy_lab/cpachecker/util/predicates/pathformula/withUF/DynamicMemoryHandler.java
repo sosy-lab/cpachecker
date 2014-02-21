@@ -28,11 +28,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -58,6 +60,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Location;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Value;
@@ -589,14 +592,11 @@ class DynamicMemoryHandler {
    * declared in current function scope from tracking after returning from the function.
    */
   void handleDeferredAllocationInFunctionExit(final String function) {
-    for (final String variable : pts.getDeferredAllocationVariables()) {
-      final int position = variable.indexOf(CToFormulaWithUFConverter.SCOPE_SEPARATOR);
-      if (position >= 0) { // Consider only local variables (in current function scope)
-        final String variableFunction = variable.substring(0, position);
-        if (function.equals(variableFunction)) {
-          handleDeferredAllocationPointerRemoval(variable, true);
-        }
-      }
+    String prefix = function + CtoFormulaConverter.scoped("", function);
+    SortedSet<String> localVariables = Collections3.subSetWithPrefix(pts.getDeferredAllocationVariables(), prefix);
+
+    for (final String variable : localVariables) {
+      handleDeferredAllocationPointerRemoval(variable, true);
     }
   }
 }
