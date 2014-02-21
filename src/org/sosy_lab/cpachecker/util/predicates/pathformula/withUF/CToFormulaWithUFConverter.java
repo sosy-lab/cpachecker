@@ -798,7 +798,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         rvalue.asLocation().isAliased() &&
         rvalueType instanceof CArrayType &&
         CTypeUtils.simplifyType(((CArrayType) rvalueType).getType()).equals(lvalueElementType),
-        "Array assignment only possible from an array of the same type");
+        "Impossible array assignment due to incompatible types: assignment of %s to %s",
+        rvalueType, lvalueType);
 
       Integer length = CTypeUtils.getArrayLength(lvalueArrayType);
       // Try to fix the length if it's unknown (or too big)
@@ -844,8 +845,9 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
           // Initialization with a value (possibly nondet), useful for stack declarations and memset implementation
           rvalue.isValue() && isSimpleType(rvalueType) ||
           // Structure assignment
-          CTypeUtils.simplifyType(rvalueType).equals(lvalueType),
-          "Structure assignment only possible from a structure of the same type");
+          rvalueType.equals(lvalueType),
+          "Impossible structure assignment due to incompatible types: assignment of %s to %s",
+          rvalueType, lvalueType);
       result = bfmgr.makeBoolean(true);
       int offset = 0;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : lvalueCompositeType.getMembers()) {
