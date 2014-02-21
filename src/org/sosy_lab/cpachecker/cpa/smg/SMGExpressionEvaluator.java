@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -67,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cpa.explicit.AbstractExplicitExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitNumericValue;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitValueBase;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitValueBase.ExplicitUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
@@ -265,7 +267,7 @@ public class SMGExpressionEvaluator {
 
     ExplicitValueBase value = rValue.accept(visitor);
 
-    if (value.isUnknown()) {
+    if (value.isUnknown() || !value.isNumericValue()) {
       return SMGUnknownValue.getInstance();
     } else {
       Long longValue = value.asLong(getRealExpressionType(rValue));
@@ -1443,43 +1445,49 @@ public class SMGExpressionEvaluator {
       smgState = pSmgState;
     }
 
-    private Long getExplicitValue(SMGSymbolicValue pValue) {
+    private SMGExplicitValue getExplicitValue(SMGSymbolicValue pValue) {
 
       if (pValue.isUnknown()) {
-        return null;
+        return SMGUnknownValue.getInstance();
       }
 
       SMGExplicitValue explicitValue = smgState.getExplicit((SMGKnownSymValue) pValue);
 
-      if (explicitValue.isUnknown()) {
-        return null;
-      }
-
-      return explicitValue.getAsLong();
+      return explicitValue;
     }
 
     @Override
-    protected ExplicitValueBase evaluateCPointerExpression(CPointerExpression pCPointerExpression) throws UnrecognizedCCodeException {
+    protected ExplicitValueBase evaluateCPointerExpression(CPointerExpression pCPointerExpression)
+        throws UnrecognizedCCodeException {
+      return evaluateLeftHandSideExpression(pCPointerExpression);
+    }
+
+    private ExplicitValueBase evaluateLeftHandSideExpression(CLeftHandSide leftHandSide)
+        throws UnrecognizedCCodeException {
+
+      SMGSymbolicValue value = SMGUnknownValue.getInstance();
+
       try {
-        return new ExplicitNumericValue(getExplicitValue(evaluateExpressionValue(smgState, getEdge(), pCPointerExpression)));
+        value = evaluateExpressionValue(smgState, getEdge(), leftHandSide);
       } catch (CPATransferException e) {
         UnrecognizedCCodeException e2 =
-            new UnrecognizedCCodeException("SMG cannot be evaluated", getEdge(), pCPointerExpression);
+            new UnrecognizedCCodeException("SMG cannot be evaluated", getEdge(), leftHandSide);
         e2.initCause(e);
         throw e2;
+      }
+
+      SMGExplicitValue expValue = getExplicitValue(value);
+
+      if (expValue.isUnknown()) {
+        return ExplicitUnknownValue.getInstance();
+      } else {
+        return new ExplicitNumericValue(expValue.getAsLong());
       }
     }
 
     @Override
     protected ExplicitValueBase evaluateCIdExpression(CIdExpression pCIdExpression) throws UnrecognizedCCodeException {
-      try {
-        return new ExplicitNumericValue(getExplicitValue(evaluateExpressionValue(smgState, getEdge(), pCIdExpression)));
-      } catch (CPATransferException e) {
-        UnrecognizedCCodeException e2 =
-            new UnrecognizedCCodeException("SMG cannot be evaluated", getEdge(), pCIdExpression);
-        e2.initCause(e);
-        throw e2;
-      }
+      return evaluateLeftHandSideExpression(pCIdExpression);
     }
 
     @Override
@@ -1489,25 +1497,13 @@ public class SMGExpressionEvaluator {
 
     @Override
     protected ExplicitValueBase evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
-      try {
-        return new ExplicitNumericValue(getExplicitValue(evaluateExpressionValue(smgState, getEdge(), pLValue)));
-      } catch (CPATransferException e) {
-        UnrecognizedCCodeException e2 = new UnrecognizedCCodeException("SMG cannot be evaluated", getEdge(), pLValue);
-        e2.initCause(e);
-        throw e2;
-      }
+      return evaluateLeftHandSideExpression(pLValue);
     }
 
     @Override
     protected ExplicitValueBase evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue)
         throws UnrecognizedCCodeException {
-      try {
-        return new ExplicitNumericValue(getExplicitValue(evaluateExpressionValue(smgState, getEdge(), pLValue)));
-      } catch (CPATransferException e) {
-        UnrecognizedCCodeException e2 = new UnrecognizedCCodeException("SMG cannot be evaluated", getEdge(), pLValue);
-        e2.initCause(e);
-        throw e2;
-      }
+      return evaluateLeftHandSideExpression(pLValue);
     }
 
   }
