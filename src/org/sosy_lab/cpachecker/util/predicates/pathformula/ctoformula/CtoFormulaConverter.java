@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -86,6 +87,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -144,11 +146,14 @@ public class CtoFormulaConverter {
       "printf", "printk"
       );
 
+  private static final String SCOPE_SEPARATOR = "::";
+
   private final Map<String, BitvectorFormula> stringLitToFormula = new HashMap<>();
   private int nextStringLitIndex = 0;
 
   final FormulaEncodingOptions options;
   protected final MachineModel machineModel;
+  private final Optional<VariableClassification> variableClassification;
   final CtoFormulaTypeHandler typeHandler;
 
   protected final FormulaManagerView fmgr;
@@ -164,12 +169,14 @@ public class CtoFormulaConverter {
   private final FunctionFormulaType<BitvectorFormula> stringUfDecl;
 
   public CtoFormulaConverter(FormulaEncodingOptions pOptions, FormulaManagerView fmgr,
-      MachineModel pMachineModel, LogManager logger,
+      MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification,
+      LogManager logger,
       CtoFormulaTypeHandler pTypeHandler) {
 
     this.fmgr = fmgr;
     this.options = pOptions;
     this.machineModel = pMachineModel;
+    this.variableClassification = pVariableClassification;
     this.typeHandler = pTypeHandler;
 
     this.bfmgr = fmgr.getBooleanFormulaManager();
@@ -213,6 +220,35 @@ public class CtoFormulaConverter {
     return typeHandler.getSizeof(pType);
   }
 
+  protected boolean isRelevantField(final CCompositeType compositeType,
+                          final String fieldName) {
+    return !variableClassification.isPresent() ||
+           !options.ignoreIrrelevantVariables() ||
+           variableClassification.get().getRelevantFields().containsEntry(compositeType, fieldName);
+  }
+
+  protected static Pair<String, String> parseQualifiedName(final String qualifiedName) {
+    final int position = qualifiedName.indexOf(SCOPE_SEPARATOR);
+    return Pair.of(position >= 0 ? qualifiedName.substring(0, position) : null,
+                   position >= 0 ? qualifiedName.substring(position + SCOPE_SEPARATOR.length()) : qualifiedName);
+  }
+
+  protected boolean isRelevantLeftHandSide(final CLeftHandSide lhs) {
+    return lhs.accept(new IsRelevantLhsVisitor(this));
+  }
+
+  protected final boolean isRelevantVariable(final CSimpleDeclaration var) {
+    final String qualifiedName = var.getQualifiedName();
+    final Pair<String, String> parsedName = parseQualifiedName(qualifiedName);
+    final String function = parsedName.getFirst();
+    final String name = parsedName.getSecond();
+    if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
+      return name.equals(RETURN_VARIABLE_NAME) ||
+           variableClassification.get().getRelevantVariables().containsEntry(function, name);
+    }
+    return true;
+  }
+
   protected Variable scopedIfNecessary(CIdExpression var) {
     return Variable.create(var.getDeclaration().getQualifiedName(), var.getExpressionType());
   }
@@ -251,7 +287,7 @@ public class CtoFormulaConverter {
   * Call only if you are sure you have a local variable!
   */
   public static String scoped(String var, String function) {
-    return (function + "::" + var).intern();
+    return (function + SCOPE_SEPARATOR + var).intern();
   }
 
   /**

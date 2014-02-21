@@ -149,7 +149,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     } else {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel, pFmgr);
-      converter = new CtoFormulaConverter(options, pFmgr, pMachineModel, pLogger, typeHandler);
+      converter = new CtoFormulaConverter(options, pFmgr, pMachineModel, pVariableClassification, pLogger, typeHandler);
       ptsManager = null;
 
       logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");

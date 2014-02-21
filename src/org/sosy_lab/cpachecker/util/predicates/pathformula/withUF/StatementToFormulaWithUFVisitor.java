@@ -33,29 +33,22 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
@@ -90,7 +83,6 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
     super(cToFormulaConverter, cfaEdge, function, ssa, constraints, errorConditions, pts);
 
     this.lvalueVisitor = lvalueVisitor;
-    this.isRelevantLhsVisitor = new IsRelevantLhsVisitor();
   }
 
   @Override
@@ -130,7 +122,7 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
                                   final boolean batchMode,
                                   final @Nullable Set<CType> destroyedTypes)
   throws UnrecognizedCCodeException {
-    if (!lhs.accept(isRelevantLhsVisitor)) {
+    if (!conv.isRelevantLeftHandSide(lhs)) {
       // Optimization for unused variables and fields
       return conv.bfmgr.makeBoolean(true);
     }
@@ -192,49 +184,6 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
     addEssentialFields(lhsUsedFields, pts);
     addEssentialFields(rhsUsedFields, pts);
     return result;
-  }
-
-  class IsRelevantLhsVisitor extends DefaultCExpressionVisitor<Boolean, RuntimeException> {
-
-    @Override
-    public Boolean visit(final CArraySubscriptExpression e) {
-      return e.getArrayExpression().accept(this);
-    }
-
-    @Override
-    public Boolean visit(final CCastExpression e) {
-      return e.getOperand().accept(this);
-    }
-
-    @Override
-    public Boolean visit(final CComplexCastExpression e) {
-      return e.getOperand().accept(this);
-    }
-
-    @Override
-    public Boolean visit(final CFieldReference e) {
-      CType fieldOwnerType = CTypeUtils.simplifyType(e.getFieldOwner().getExpressionType());
-      if (fieldOwnerType instanceof CPointerType) {
-        fieldOwnerType = ((CPointerType) fieldOwnerType).getType();
-      }
-      assert fieldOwnerType instanceof CCompositeType : "Field owner should have composite type";
-      return conv.isRelevantField((CCompositeType) fieldOwnerType, e.getFieldName());
-    }
-
-    @Override
-    public Boolean visit(final CIdExpression e) {
-      return conv.isRelevantVariable(e.getDeclaration().getQualifiedName());
-    }
-
-    @Override
-    public Boolean visit(CPointerExpression e) {
-      return true;
-    }
-
-    @Override
-    protected Boolean visitDefault(CExpression e) {
-      throw new IllegalArgumentException("Undexpected left hand side: " + e.toString());
-    }
   }
 
   private BooleanFormula visit(final CAssignment e) throws UnrecognizedCCodeException {
@@ -403,5 +352,4 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
   }
 
   private final LvalueToPointerTargetPatternVisitor lvalueVisitor;
-  private final IsRelevantLhsVisitor isRelevantLhsVisitor;
 }

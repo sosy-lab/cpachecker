@@ -73,9 +73,6 @@ public class FormulaEncodingWithUFOptions extends FormulaEncodingOptions {
   @Option(description = "Function that is used to free allocated memory.")
   private String memoryFreeFunctionName = "free";
 
-  @Option(description = "Ignore variables that are not relevant for reachability properties.")
-  private boolean ignoreIrrelevantVariables = true;
-
   @Option(description = "When a string literal initializer is encountered, initialize the contents of the char array "
                       + "with the contents of the string literal instead of just assigning a fresh non-det address "
                       + "to it")
@@ -151,10 +148,6 @@ public class FormulaEncodingWithUFOptions extends FormulaEncodingOptions {
 
   public boolean isMemoryFreeFunction(final String name) {
     return memoryFreeFunctionName.equals(name);
-  }
-
-  public boolean ignoreIrrelevantVariables() {
-    return ignoreIrrelevantVariables;
   }
 
   public boolean handleStringLiteralInitializers() {

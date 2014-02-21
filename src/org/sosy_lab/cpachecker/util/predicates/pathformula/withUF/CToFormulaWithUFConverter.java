@@ -134,7 +134,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                    final LogManager logger,
                                    final CToFormulaWithUFTypeHandler pTypeHandler)
   throws InvalidConfigurationException {
-    super(pOptions, formulaManagerView, pMachineModel, logger, pTypeHandler);
+    super(pOptions, formulaManagerView, pMachineModel, pVariableClassification, logger, pTypeHandler);
     variableClassification = pVariableClassification;
     options = pOptions;
     ptsMgr = pPtsMgr;
@@ -236,20 +236,11 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return ffmgr.createFuncAndCall(ufName, index, returnType, ImmutableList.of(address));
   }
 
-  boolean isRelevantField(final CCompositeType compositeType,
+  @Override
+  protected boolean isRelevantField(final CCompositeType compositeType,
                           final String fieldName) {
-    return !variableClassification.isPresent() ||
-           !options.ignoreIrrelevantVariables() ||
-           getSizeof(compositeType) <= options.maxPreFilledAllocationSize() ||
-           variableClassification.get().getRelevantFields().containsEntry(compositeType, fieldName);
-  }
-
-  boolean isRelevantVariable(final String function, final String name) {
-    if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
-      return name.equals(RETURN_VARIABLE_NAME) ||
-           variableClassification.get().getRelevantVariables().containsEntry(function, name);
-    }
-    return true;
+    return super.isRelevantField(compositeType, fieldName)
+        || getSizeof(compositeType) <= options.maxPreFilledAllocationSize();
   }
 
   boolean isAddressedVariable(final String function, final String name) {
@@ -257,18 +248,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
            variableClassification.get().getAddressedVariables().containsEntry(function, name);
   }
 
-  private static Pair<String, String> parseQualifiedName(final String qualifiedName) {
-    final int position = qualifiedName.indexOf(SCOPE_SEPARATOR);
-    return Pair.of(position >= 0 ? qualifiedName.substring(0, position) : null,
-                   position >= 0 ? qualifiedName.substring(position + SCOPE_SEPARATOR.length()) : qualifiedName);
-  }
-
-  boolean isRelevantVariable(final String qualifiedName) {
-    final Pair<String, String> parsedName = parseQualifiedName(qualifiedName);
-    return isRelevantVariable(parsedName.getFirst(), parsedName.getSecond());
-  }
-
-  boolean isAddressedVariable(final String qualifiedName) {
+  boolean isAddressedVariable(CDeclaration var) {
+    final String qualifiedName = var.getQualifiedName();
     final Pair<String, String> parsedName = parseQualifiedName(qualifiedName);
     return isAddressedVariable(parsedName.getFirst(), parsedName.getSecond());
   }
@@ -310,7 +291,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final Constraints constraints, final PointerTargetSetBuilder pts) {
     if (shareImmediately) {
       addPreFilledBase(declaration.getQualifiedName(), declaration.getType(), false, false, constraints, pts);
-    } else if (isAddressedVariable(declaration.getQualifiedName()) ||
+    } else if (isAddressedVariable(declaration) ||
                CTypeUtils.containsArray(declaration.getType())) {
       constraints.addConstraint(pts.prepareBase(declaration.getQualifiedName(),
                                                 CTypeUtils.simplifyType(declaration.getType())));
@@ -1139,8 +1120,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
     CType declarationType = CTypeUtils.simplifyType(declaration.getType());
 
-    if (!isRelevantVariable(declaration.getQualifiedName()) &&
-        !isAddressedVariable(declaration.getQualifiedName())) {
+    if (!isRelevantVariable(declaration) &&
+        !isAddressedVariable(declaration)) {
       // The variable is unused
       logDebug("Ignoring declaration of unused variable", declarationEdge);
       return bfmgr.makeBoolean(true);
@@ -1199,7 +1180,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final BooleanFormula result;
       if (initializer != null) {
         result = statementVisitor.handleAssignment(lhs, ((CInitializerExpression) initializer).getExpression(), false, null);
-      } else if (isRelevantVariable(declaration.getQualifiedName())) {
+      } else if (isRelevantVariable(declaration)) {
         result = statementVisitor.handleAssignment(lhs, null, false, null);
       } else {
         result = bfmgr.makeBoolean(true);
@@ -1289,8 +1270,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   static final String FRESH_INDEX_SEPARATOR = "#";
 
-  static final String SCOPE_SEPARATOR = CtoFormulaConverter.scoped("", "");
-
   private static final Map<CType, String> ufNameCache = new IdentityHashMap<>();
 
 
@@ -1340,5 +1319,10 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   @Override
   protected int getSizeof(CType pType) {
     return super.getSizeof(pType);
+  }
+
+  @Override
+  protected boolean isRelevantLeftHandSide(CLeftHandSide pLhs) {
+    return super.isRelevantLeftHandSide(pLhs);
   }
 }
