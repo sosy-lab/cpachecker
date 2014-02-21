@@ -175,7 +175,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                            CTypeUtils.simplifyType(var.getExpressionType()));
   }
 
-  private void checkSsaSavedType(final String name, final CType type, final SSAMapBuilder ssa) {
+  @Override
+  protected void checkSsaSavedType(final String name, final CType type, final SSAMapBuilder ssa) {
     CType ssaSavedType = ssa.getType(name);
     if (ssaSavedType != null) {
       ssaSavedType = CTypeUtils.simplifyType(ssaSavedType);
@@ -190,20 +191,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
   }
 
-  @Override
-  protected int getIndex(final String name, final CType type, final SSAMapBuilder ssa) {
-    int index = ssa.getIndex(name);
-    if (index <= 0) {
-      logger.log(Level.ALL, "WARNING: Auto-instantiating variable:", name);
-      index = 1;
-      checkSsaSavedType(name, type, ssa);
-      ssa.setIndex(name, type, index);
-    } else {
-      checkSsaSavedType(name, type, ssa);
-    }
-    return index;
-  }
-
   boolean hasIndex(final String name, final CType type, final SSAMapBuilder ssa) {
     checkSsaSavedType(name, type, ssa);
     return ssa.getIndex(name) > 0;
@@ -215,11 +202,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                        final SSAMapBuilder ssa) {
     final int index = getIndex(name, type, ssa);
     return fmgr.makeVariable(getFormulaTypeFromCType(type), name, index);
-  }
-
-  @Override
-  protected Formula makeVariable(final Variable var, final SSAMapBuilder ssa) {
-    return makeVariable(var.getName(), var.getType(), ssa);
   }
 
   @Override

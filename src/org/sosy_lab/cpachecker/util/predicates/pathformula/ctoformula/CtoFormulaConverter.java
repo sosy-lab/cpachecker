@@ -307,7 +307,7 @@ public class CtoFormulaConverter {
     return idx;
   }
 
-  private void checkSsaSavedType(String name, CType type, SSAMapBuilder ssa) {
+  protected void checkSsaSavedType(String name, CType type, SSAMapBuilder ssa) {
 
     // Check if types match
 
@@ -412,7 +412,7 @@ public class CtoFormulaConverter {
   protected Formula makeVariable(String name, CType type, SSAMapBuilder ssa) {
     return resolveFields(name, type, ssa, false);
   }
-  protected Formula makeVariable(Variable var, SSAMapBuilder ssa) {
+  protected final Formula makeVariable(Variable var, SSAMapBuilder ssa) {
     return makeVariable(var.getName(), var.getType(), ssa);
   }
 
