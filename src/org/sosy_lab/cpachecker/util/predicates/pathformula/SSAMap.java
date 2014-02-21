@@ -104,15 +104,13 @@ public class SSAMap implements Serializable {
       checkNotNull(type);
       CType oldType = varTypes.get(name);
       if (oldType != null) {
-        oldType = oldType.getCanonicalType();
-        type = type.getCanonicalType();
         Preconditions.checkArgument(
             type instanceof CFunctionType || oldType instanceof CFunctionType
             || (isEnumPointerType(type) && isEnumPointerType(oldType))
             || oldType.equals(type)
             , "Cannot change type of variable %s in SSAMap from %s to %s", name, oldType, type);
       } else {
-        varTypes = varTypes.putAndCopy(name, type);
+        varTypes = varTypes.putAndCopy(name, type.getCanonicalType());
       }
 
       if (idx > oldIdx) {
