@@ -151,7 +151,7 @@ public class CtoFormulaConverter {
 
   final FormulaEncodingOptions options;
   protected final MachineModel machineModel;
-  private final CtoFormulaTypeHandler typeHandler;
+  final CtoFormulaTypeHandler typeHandler;
 
   protected final FormulaManagerView fmgr;
   protected final BooleanFormulaManagerView bfmgr;

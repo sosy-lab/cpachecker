@@ -81,7 +81,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.StatementToFormulaVisitor;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExternModelLoader;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Location;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Value;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
@@ -104,7 +104,6 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
                                          final PointerTargetSetBuilder pts) {
     super(cToFormulaConverter, cfaEdge, function, ssa, constraints, errorConditions, pts);
 
-    this.statementDelegate = new StatementToFormulaVisitor(delegate);
     this.lvalueVisitor = lvalueVisitor;
     this.isRelevantLhsVisitor = new IsRelevantLhsVisitor();
   }
@@ -121,7 +120,7 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
 
   @Override
   public BooleanFormula visit(CExpressionStatement s) {
-    return statementDelegate.visit(s);
+    return conv.bfmgr.makeBoolean(true);
   }
 
   @Override
@@ -595,7 +594,10 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
         return Value.nondetValue();
 
       } else if (conv.options.isExternModelFunction(functionName)) {
-        return Value.ofValue(statementDelegate.handleExternModelFunction(e, parameters));
+        ExternModelLoader loader = new ExternModelLoader(conv.typeHandler, conv.bfmgr, conv.fmgr);
+        BooleanFormula result = loader.handleExternModelFunction(e, parameters, ssa);
+        FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(e.getExpressionType());
+        return Value.ofValue(conv.ifTrueThenOneElseZero(returnFormulaType, result));
 
       } else if (CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
         throw new UnsupportedCCodeException(CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.get(functionName), edge, e);
@@ -860,7 +862,6 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
     return Value.nondetValue(); // free does not return anything, so nondet is ok
   }
 
-  private final StatementToFormulaVisitor statementDelegate;
   private final LvalueToPointerTargetPatternVisitor lvalueVisitor;
   private final IsRelevantLhsVisitor isRelevantLhsVisitor;
 
