@@ -52,6 +52,7 @@ import org.sosy_lab.common.log.FileLogFormatter;
 import org.sosy_lab.cpachecker.appengine.common.GAEConfigurationBuilder;
 import org.sosy_lab.cpachecker.appengine.common.TaskMappingThreadFactory;
 import org.sosy_lab.cpachecker.appengine.dao.TaskDAO;
+import org.sosy_lab.cpachecker.appengine.dao.TaskFileDAO;
 import org.sosy_lab.cpachecker.appengine.entity.Task;
 import org.sosy_lab.cpachecker.appengine.entity.Task.Status;
 import org.sosy_lab.cpachecker.appengine.io.GAEPathFactory;
@@ -92,9 +93,18 @@ public class TaskRunnerServerResource extends WadlServerResource implements Task
   @Override
   public void runTask(Representation entity) throws Exception {
     Form requestValues = new Form(entity);
-    task = TaskDAO.load(requestValues.getFirstValue("taskKey"));
+    task = TaskDAO.loadWithoutSanitizing(requestValues.getFirstValue("taskKey"));
 
     if (task == null) { return; }
+
+    try {
+      if (TaskFileDAO.loadByName(ERROR_FILE_NAME, task) != null
+          || TaskFileDAO.loadByName(DefaultOptions.getImmutableOptions().get("statistics.file"), task) != null) {
+        return;
+      }
+    } catch (IOException e) {
+      // continue business as usual
+    }
 
     TaskMappingThreadFactory.registerTaskWithThread(task, Thread.currentThread());
     Threads.setThreadFactory(new TaskMappingThreadFactory());
@@ -337,6 +347,7 @@ public class TaskRunnerServerResource extends WadlServerResource implements Task
     try (OutputStream out = statisticsDumpFile.asByteSink().openBufferedStream()) {
       PrintStream stream = new PrintStream(out);
       result.printStatistics(stream);
+      stream.println();
 
       if (result != null) {
         result.printResult(stream);
@@ -352,7 +363,7 @@ public class TaskRunnerServerResource extends WadlServerResource implements Task
 
     if (logLevel != Level.OFF) {
       Formatter fileLogFormatter = new FileLogFormatter();
-      OutputStream logFileStream = Paths.get("CPALog.txt").asByteSink().openStream();
+      OutputStream logFileStream = Paths.get("CPALog.txt").asByteSink().openBufferedStream();
       logHandler = new GAELogHandler(logFileStream, fileLogFormatter, logLevel);
       logManager = new GAELogManager(config, new DummyHandler(), logHandler);
     } else {
@@ -370,15 +381,13 @@ public class TaskRunnerServerResource extends WadlServerResource implements Task
 
     ConfigurationBuilder configurationBuilder = Configuration.builder();
     configurationBuilder.setOptions(DefaultOptions.getDefaultOptions());
-
     if (task.getConfiguration() != null) {
-      configurationBuilder.loadFromFile(Paths.get("WEB-INF", "configurations", task.getConfiguration()));
+      configurationBuilder.loadFromFile(Paths.get(DefaultOptions.CONFIGURATIONS_DIR, task.getConfiguration()));
     }
-    configurationBuilder
-        .setOption("analysis.programNames", task.getProgram().getPath())
-        .setOptions(task.getOptions());
+    configurationBuilder.setOptions(task.getOptions());
+
     if (task.getSpecification() != null) {
-      configurationBuilder.setOption("specification", "WEB-INF/specifications/" + task.getSpecification());
+      configurationBuilder.setOption("specification", DefaultOptions.SPECIFICATIONS_DIR +"/"+ task.getSpecification());
     }
 
     Configuration configuration = configurationBuilder.build();

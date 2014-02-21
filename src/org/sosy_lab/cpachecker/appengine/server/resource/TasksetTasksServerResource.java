@@ -24,10 +24,11 @@
 package org.sosy_lab.cpachecker.appengine.server.resource;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.restlet.data.MediaType;
 import org.restlet.data.Status;
@@ -48,12 +49,12 @@ import org.sosy_lab.cpachecker.appengine.json.TaskMixinAnnotations;
 import org.sosy_lab.cpachecker.appengine.json.TaskStatisticMixinAnnotations;
 import org.sosy_lab.cpachecker.appengine.server.TaskQueueTaskRunner;
 import org.sosy_lab.cpachecker.appengine.server.common.TasksetTasksResource;
+import org.sosy_lab.cpachecker.appengine.util.TaskBuilder;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 
@@ -75,53 +76,34 @@ public class TasksetTasksServerResource extends WadlServerResource implements Ta
   @SuppressWarnings("unchecked")
   @Override
   public Representation createTasksFromJson(Representation entity) {
-
-    ObjectMapper mapper = new ObjectMapper();
-    mapper.enable(MapperFeature.USE_STATIC_TYPING);
-
-    List<String> errors = new ArrayList<>();
-    List<Map<String, Object>> objects = null;
+    TaskBuilder taskBuilder = new TaskBuilder();
+    List<String> errors = new LinkedList<>();
+    Map<Task, String> tasks = null;
     try {
-      if (entity != null) {
-        objects = mapper.readValue(entity.getStream(), new TypeReference<List<Map<String, Object>>>() {});
-      }
-    } catch (JsonParseException e) {
-      errors.add("error.jsonNotWellFormed");
-    } catch (JsonMappingException e) {
-      errors.add("error.jsonNotMapped");
+      tasks = taskBuilder.fromJsonList(entity.getStream());
+      errors = taskBuilder.getErrors();
     } catch (IOException e) {
       errors.add("error.requestBodyNotRead");
     }
 
-    Map<String, Object> taskKeys = new HashMap<>();
-    if (errors.isEmpty() && objects != null) {
-      for (Map<String, Object> object : objects) {
-        Task task = new Task();
-        task.setConfiguration((String) object.get("configuration"));
-        task.setSpecification((String) object.get("specification"));
-        task.setOptions((Map<String, String>) object.get("options"));
+    Map<String, String> taskKeys = new HashMap<>();
+    if (errors.isEmpty()) {
+      for (Entry<Task, String> taskPair : tasks.entrySet()) {
+        Task task = taskPair.getKey();
+        try {
+          Configuration config = Configuration.builder()
+              .setOptions(task.getOptions()).build();
+          new TaskQueueTaskRunner(config).run(task);
 
-        TaskFile program = new TaskFile();
-        program.setPath((String) object.get("sourceFileName"));
-        program.setContent((String) object.get("programText"));
-
-        List<String> validationErrors = TaskDAO.validateAndSave(task, program);
-
-        if (validationErrors.isEmpty()) {
-          try {
-            Configuration config = Configuration.builder()
-                .setOptions(task.getOptions()).build();
-            new TaskQueueTaskRunner(config).run(task);
-
-            taskKeys.put(task.getKey(), object.get("identifier"));
-            taskset.addTask(task);
-          } catch (InvalidConfigurationException e) {
-            // nothing to do about it
-          }
+          taskKeys.put(task.getKey(), taskPair.getValue());
+          taskset.addTask(task);
+        } catch (InvalidConfigurationException e) {
+          // nothing to do about it
         }
       }
     }
 
+    ObjectMapper mapper = new ObjectMapper();
     try {
       if (!errors.isEmpty()) {
         getResponse().setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
@@ -143,11 +125,11 @@ public class TasksetTasksServerResource extends WadlServerResource implements Ta
 
     ObjectMapper mapper = new ObjectMapper();
 
-    List<String> errors = new ArrayList<>();
-    String[] keys = null;
+    List<String> errors = new LinkedList<>();
+    List<String> keys = null;
     try {
       if (entity != null) {
-        keys = mapper.readValue(entity.getStream(), String[].class);
+        keys = mapper.readValue(entity.getStream(), new TypeReference<List<String>>() {});
       }
     } catch (JsonParseException e) {
       errors.add("error.jsonNotWellFormed");
@@ -163,11 +145,11 @@ public class TasksetTasksServerResource extends WadlServerResource implements Ta
         return new StringRepresentation(mapper.writeValueAsString(errors), MediaType.APPLICATION_JSON);
       }
 
-      for (String key : keys) {
-        taskset.setProcessed(key);
+      List<Task> tasks = TaskDAO.load(keys);
+      for (Task task : tasks) {
+        task.setProcessed(true);
       }
-      TasksetDAO.save(taskset);
-
+      TaskDAO.save(tasks);
       getResponse().setStatus(Status.SUCCESS_NO_CONTENT);
     } catch (JsonProcessingException e) {
       getResponse().setStatus(Status.SERVER_ERROR_INTERNAL);
@@ -179,32 +161,31 @@ public class TasksetTasksServerResource extends WadlServerResource implements Ta
   @Override
   public Representation getTasks() {
 
-    List<Task> tasks = null;
-
-    if (taskset.getTasks() != null && !taskset.getTasks().isEmpty()) {
-      if (getQueryValue("processed") != null) {
-        if (getQueryValue("processed").equals("true")) {
-          tasks = TaskDAO.load(taskset.getProcessedKeys());
-        } else if (getQueryValue("processed").equals("false")) {
-          tasks = TaskDAO.load(taskset.getUnprocessedKeys());
-        }
+    int limit = -1;
+    if (getQueryValue("limit") != null) {
+      try {
+        limit = Integer.parseInt(getQueryValue("limit"));
+      } catch (NumberFormatException e) {
+        limit = -1;
       }
     }
+
+    List<Task> allTasks = null;
 
     if (taskset.getTasks() != null && !taskset.getTasks().isEmpty()) {
       if (getQueryValue("finished") != null) {
         if (getQueryValue("finished").equals("true")) {
-          if (tasks == null) { tasks = new ArrayList<>(); }
-          tasks.retainAll(TaskDAO.finishedTasks(taskset.getTaskKeys()));
+         allTasks = TaskDAO.finishedTasks(taskset, limit);
         } else if (getQueryValue("finished").equals("false")) {
-          if (tasks == null) { tasks = new ArrayList<>(); }
-          tasks.retainAll(TaskDAO.unfinishedTasks(taskset.getTaskKeys()));
-        }
+          allTasks = TaskDAO.unfinishedTasks(taskset, limit);
+         }
       }
     }
 
-    if (tasks == null) {
-      tasks = TaskDAO.load(taskset.getTaskKeys());
+    // TODO add support for processed/unprocessed
+
+    if (allTasks == null) {
+      allTasks = TaskDAO.load(taskset.getTasks());
     }
 
     ObjectMapper mapper = new ObjectMapper();
@@ -214,7 +195,7 @@ public class TasksetTasksServerResource extends WadlServerResource implements Ta
 
     try {
       getResponse().setStatus(Status.SUCCESS_OK);
-      return new StringRepresentation(mapper.writeValueAsString(tasks), MediaType.APPLICATION_JSON);
+      return new StringRepresentation(mapper.writeValueAsString(allTasks), MediaType.APPLICATION_JSON);
     } catch (JsonProcessingException e) {
       getResponse().setStatus(Status.SERVER_ERROR_INTERNAL);
       return getResponseEntity();

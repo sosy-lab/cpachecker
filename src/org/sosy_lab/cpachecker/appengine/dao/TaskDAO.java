@@ -26,28 +26,27 @@ package org.sosy_lab.cpachecker.appengine.dao;
 import static com.googlecode.objectify.ObjectifyService.ofy;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.appengine.entity.Task;
 import org.sosy_lab.cpachecker.appengine.entity.Task.Status;
 import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 import org.sosy_lab.cpachecker.appengine.entity.TaskStatistic;
+import org.sosy_lab.cpachecker.appengine.entity.Taskset;
 import org.sosy_lab.cpachecker.appengine.server.TaskQueueTaskRunner;
 import org.sosy_lab.cpachecker.appengine.server.common.TaskRunnerResource;
 import org.sosy_lab.cpachecker.appengine.util.DefaultOptions;
 
-import com.google.appengine.api.log.AppLogLine;
 import com.google.appengine.api.log.LogQuery;
 import com.google.appengine.api.log.LogServiceFactory;
 import com.google.appengine.api.log.RequestLogs;
 import com.google.appengine.api.taskqueue.Queue;
 import com.google.appengine.api.taskqueue.QueueFactory;
-import com.google.apphosting.api.ApiProxy.RequestTooLargeException;
-import com.google.common.base.Preconditions;
+import com.google.appengine.labs.repackaged.com.google.common.collect.Lists;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
 import com.googlecode.objectify.VoidWork;
@@ -65,7 +64,7 @@ public class TaskDAO {
   public static Task load(String key) {
     try {
       Key<Task> taskKey = Key.create(key);
-      return load(taskKey);
+      return load(taskKey, false);
     } catch (IllegalArgumentException e) {
       return null;
     }
@@ -73,12 +72,44 @@ public class TaskDAO {
 
   /**
    * Retrieves and returns a {@link Task} with the given key.
+   * The task will be sanitized before returning.
    *
    * @param key The key of the desired {@link Task}
    * @return The desired {@link Task} or null if it cannot be found
    */
   public static Task load(Key<Task> key) {
-    return sanitizeStateAndSetStatistics(ofy().load().key(key).now());
+    return load(key, false);
+  }
+
+  /**
+   * @see #loadWithoutSanitizing(Key)
+   */
+  public static Task loadWithoutSanitizing(String key) {
+    try {
+      Key<Task> taskKey = Key.create(key);
+      return load(taskKey, true);
+    } catch (IllegalArgumentException e) {
+      return null;
+    }
+  }
+
+  /**
+   * Retrieves and returns a {@link Task} with the given key.
+   * The task will not be sanitized before returning.
+   *
+   * @param key The key of the desired {@link Task}
+   * @return The desired {@link Task} or null if it cannot be found
+   */
+  public static Task loadWithoutSanitizing(Key<Task> key) {
+    return load(key, true);
+  }
+
+  private static Task load(Key<Task> key, boolean unSanitized) {
+    if (unSanitized) {
+      return ofy().load().key(key).now();
+    } else {
+      return sanitizeStateAndSetStatistics(ofy().load().key(key).now());
+    }
   }
 
   /**
@@ -88,7 +119,7 @@ public class TaskDAO {
    * @return A {@link List} of {@link Task}s
    */
   public static List<Task> load(List<String> keys) {
-    List<Key<Task>> taskKeys = new ArrayList<>();
+    List<Key<Task>> taskKeys = new LinkedList<>();
     for (String key : keys) {
       Key<Task> taskKey = Key.create(key);
       taskKeys.add(taskKey);
@@ -97,7 +128,7 @@ public class TaskDAO {
   }
 
   /**
-   * Returns a list containing all available {@link Task}.
+   * Returns a list containing all available {@link Task}s.
    * @return
    */
   public static List<Task> tasks() {
@@ -105,43 +136,42 @@ public class TaskDAO {
   }
 
   /**
-   * Returns a {@link List} of {@link Task}s whose status is {@link Status#DONE}.
+   * Returns a {@link List} of {@link Task}s whose status is either
+   * {@link Status#DONE}, {@link Status#ERROR} or {@link Status#TIMEOUT} and which
+   * have not been marked as processed yet.
    *
-   * @param keys The {@link List} containing the keys of the {@link Task}s
+   * @param taskset The {@link Taskset} to which the desired {@link Task}s belong.
+   * @param limit The maximum number of {@link Task}s to retrieve. If -1 then no limit will be applied.
    * @return A {@link List} of {@link Task}s
    */
-  public static List<Task> finishedTasks(List<String> keys) {
-    return tasksWithStatus(keys, true);
+  public static List<Task> finishedTasks(Taskset taskset, int limit) {
+    return tasksWithStatus(taskset, true, limit);
   }
 
   /**
-   * Returns a {@link List} of {@link Task}s whose status is not {@link Status#DONE}.
+   * Returns a {@link List} of {@link Task}s whose status is either
+   * {@link Status#PENDING} of {@link Status#RUNNING} and which
+   * have not been marked as processed yet.
    *
-   * @param keys The {@link List} containing the keys of the {@link Task}s
+   * @param taskset The {@link Taskset} to which the desired {@link Task}s belong.
+   * @param limit The maximum number of {@link Task}s to retrieve. If -1 then no limit will be applied.
    * @return A {@link List} of {@link Task}s
    */
-  public static List<Task> unfinishedTasks(List<String> keys) {
-    return tasksWithStatus(keys, false);
+  public static List<Task> unfinishedTasks(Taskset taskset, int limit) {
+    return tasksWithStatus(taskset, false, limit);
   }
 
-  private static List<Task> tasksWithStatus(List<String> keys, boolean statusDone) {
-    List<Task> tasks = new ArrayList<>();
-    for (Task task : load(keys)) {
-      if (statusDone
-          && (task.getStatus() == Status.DONE
-          || task.getStatus() == Status.ERROR
-          || task.getStatus() == Status.TIMEOUT)) {
-        tasks.add(task);
-      }
-
-      if (!statusDone
-          && (task.getStatus() == Status.PENDING
-          || task.getStatus() == Status.RUNNING)) {
-        tasks.add(task);
-      }
+  private static List<Task> tasksWithStatus(Taskset taskset, boolean statusDone, int limit) {
+    if (limit == -1) {
+      limit = Integer.MAX_VALUE;
     }
-
-    return tasks;
+    return sanitizeStateAndSetStatistics(ofy().load()
+        .type(Task.class)
+        .filter("taskset =", taskset)
+        .filter("processed =", false)
+        .filter("done =", statusDone)
+        .limit(limit)
+        .list());
   }
 
   /**
@@ -153,6 +183,17 @@ public class TaskDAO {
   public static Task save(Task task) {
     ofy().save().entity(task).now();
     return task;
+  }
+
+  /**
+   * Saves the given {@link Task}s.
+   *
+   * @param tasks The {@link Task}s to save
+   * @return The saved {@link Task}s
+   */
+  public static List<Task> save(List<Task> tasks) {
+    ofy().save().entities(tasks).now();
+    return tasks;
   }
 
   /**
@@ -209,77 +250,6 @@ public class TaskDAO {
   }
 
   /**
-   * Validates the given {@link Task} and the given {@link TaskFile} and saves
-   * them if the validation succeeds.
-   * The given {@link TaskFile} will be set as the {@link Task}s program.
-   * @see Task#setProgram(TaskFile)
-   *
-   * @param task The {@link Task} to validate and save
-   * @param program The {@link TaskFile} to validate and set as program
-   * @return A list of errors or an empty list if none occurred.
-   *         Each error is {@link String} representing a key in the resource bundle.
-   */
-  public static List<String> validateAndSave(Task task, TaskFile program) {
-    Preconditions.checkNotNull(task);
-    Preconditions.checkNotNull(program);
-
-    List<String> errors = new ArrayList<>();
-
-    if ((task.getSpecification() == null
-        || task.getSpecification().isEmpty())
-        && (task.getConfiguration() == null
-        || task.getConfiguration().isEmpty())) {
-      errors.add("task.specOrConf.IsBlank");
-    }
-
-    if (errors.isEmpty()) {
-      if (task.getSpecification() != null
-          && !task.getSpecification().isEmpty()
-          && !DefaultOptions.getSpecifications().contains(task.getSpecification())) {
-        errors.add("task.spec.DoesNotExist");
-      }
-
-      try {
-        if (task.getConfiguration() != null
-            && !task.getConfiguration().isEmpty()
-            && !DefaultOptions.getConfigurations().contains(task.getConfiguration())) {
-          errors.add("task.conf.DoesNotExist");
-        }
-      } catch (IOException e) {
-        errors.add("task.conf.DoesNotExist");
-      }
-    }
-
-    if (program.getContent() == null
-        || program.getContent().isEmpty()) {
-      errors.add("task.program.IsBlank");
-    }
-
-    if (program.getPath() == null
-        || program.getPath().isEmpty()) {
-      errors.add("task.program.NameIsBlank");
-    }
-
-    if (errors.isEmpty()) {
-      try {
-        task.setId(allocateKey().getId());
-        program.setTask(task);
-        TaskFileDAO.save(program);
-        task.setProgram(program);
-        save(task);
-      } catch (IOException e) {
-        if (e.getCause() instanceof RequestTooLargeException) {
-          errors.add("task.program.TooLarge");
-        } else {
-          errors.add("task.program.CouldNotUpload");
-        }
-      }
-    }
-
-    return errors;
-  }
-
-  /**
    * Sets the following properties to null. Does not save the {@link Task}!
    * <ul>
    * <li>executionDate</li>
@@ -333,24 +303,87 @@ public class TaskDAO {
   private static Task sanitizeStateAndSetStatistics(Task task) {
     if (task == null) { return task; }
 
-    /*
-     * Handle the case where the task has never started but no retries are left
-     * due to internal errors on behalf of GAE.
-     */
+    if (task.getRequestID() != null && task.getStatistic() == null) {
+      LogQuery query = LogQuery.Builder
+          .withRequestIds(Collections.singletonList(task.getRequestID()))
+          .includeIncomplete(false);
+      for (RequestLogs record : LogServiceFactory.getLogService().fetch(query)) {
+
+        if (task.getStatus() == Status.DONE
+            || task.getStatus() == Status.ERROR
+            || task.getStatus() == Status.TIMEOUT) {
+
+          if (task.getStatus() == Status.DONE) {
+            TaskFile file = TaskFileDAO.loadByName(TaskRunnerResource.ERROR_FILE_NAME, task);
+            if (file != null) {
+              TaskFileDAO.delete(file);
+            }
+          }
+          setStatistics(task, record);
+          return save(task);
+        }
+
+        if (task.getStatus() == Status.PENDING || task.getStatus() == Status.RUNNING) {
+          try {
+            if (TaskFileDAO.loadByName(DefaultOptions.getImmutableOptions().get("statistics.file"), task) != null) {
+              task.setStatus(Status.DONE);
+              if (task.getTerminationDate() == null) {
+                task.setTerminationDate(new Date());
+              }
+              setStatistics(task, record);
+              return save(task);
+            }
+          } catch (IOException e) {
+            // no stats file
+          }
+
+          TaskFile errorFile = TaskFileDAO.loadByName(TaskRunnerResource.ERROR_FILE_NAME, task);
+          if (errorFile != null) {
+            if (errorFile.getContent().contains("Deadline")
+                || errorFile.getContent().contains("Timeout")) {
+              task.setStatus(Status.TIMEOUT);
+            } else {
+              task.setStatus(Status.ERROR);
+            }
+            if (task.getTerminationDate() == null) {
+              task.setTerminationDate(new Date());
+            }
+            setStatistics(task, record);
+            return save(task);
+          }
+
+          // FIXME checking request might not work
+          // if tried once and fails second time without starting then retries is always < max_retries
+          if (record.getStatus() == 500 && task.getRetries() < TaskRunnerResource.MAX_RETRIES) {
+            reset(task);
+            task.setStatus(Status.PENDING);
+            return save(task);
+          }
+
+          task.setStatus(Status.ERROR);
+          task.setStatusMessage("The task's request has finished, the task's status did not reflect this and no retries are left");
+          task.setTerminationDate(new Date());
+          task.setRequestID(record.getRequestId());
+          setStatistics(task, record);
+          save(task);
+        }
+      }
+    }
+
     if (task.getRequestID() == null && task.getStatus() == Status.PENDING) {
+
       Date now = new Date();
       LogQuery query = LogQuery.Builder
           .withStartTimeMillis(task.getCreationDate().getTime())
           .endTimeMillis(now.getTime())
+          .includeIncomplete(false)
           .batchSize(Integer.MAX_VALUE);
 
       int amountOfDetectedRecords = 0;
       RequestLogs lastRecord = null;
       for (RequestLogs record : LogServiceFactory.getLogService().fetch(query)) {
-        if (record.isFinished()
-            && record.getTaskName() != null
-            && record.getStatus() == 500
-            && record.getTaskName().equals(task.getTaskName())) {
+        if (record.getTaskName() != null && record.getTaskName().equals(task.getTaskName())) {
+          //&& record.getStatus() == 500
           amountOfDetectedRecords = amountOfDetectedRecords + 1;
           lastRecord = record;
         }
@@ -362,57 +395,9 @@ public class TaskDAO {
         task.setStatus(Status.ERROR);
         task.setStatusMessage("The task's request has finished, the task's status did not reflect this and no retries are left");
         task.setRequestID(lastRecord.getRequestId());
+        task.setTerminationDate(new Date());
         setStatistics(task, lastRecord);
         return save(task);
-      }
-    }
-
-    // task has started and no statistics were set
-    if (task.getRequestID() != null && task.getStatistic() == null) {
-      LogQuery query = LogQuery.Builder.withRequestIds(Collections.singletonList(task.getRequestID()));
-      for (RequestLogs record : LogServiceFactory.getLogService().fetch(query)) {
-        if (record.isFinished()) {
-          if (task.getStatus() == Status.PENDING || task.getStatus() == Status.RUNNING) {
-            TaskDAO.reset(task);
-            task.setStatus(Status.ERROR);
-            task.setStatusMessage("The task's request has finished but the task's status did not reflect this.");
-          }
-
-          if (record.getStatus() == 500 && task.getStatus() != Status.TIMEOUT && task.getStatus() != Status.DONE) {
-            if (task.getRetries() < TaskRunnerResource.MAX_RETRIES) {
-              TaskDAO.reset(task);
-              task.setStatus(Status.PENDING);
-              task.setStatusMessage("Waiting for retry. Already failed " + (task.getRetries() + 1) + " times.");
-            } else {
-              TaskDAO.reset(task);
-              task.setStatus(Status.ERROR);
-              task.setStatusMessage("The task's request has finished, the task's status did not reflect this and no retries are left");
-
-              TaskFile errorFile = TaskFileDAO.loadByName(TaskRunnerResource.ERROR_FILE_NAME, task);
-              if (errorFile == null) {
-                errorFile = new TaskFile(TaskRunnerResource.ERROR_FILE_NAME, task);
-              }
-              StringBuilder errorString = new StringBuilder();
-              errorString.append(record.getCombined());
-              for (AppLogLine line : record.getAppLogLines()) {
-                errorString.append(line.getLogMessage());
-              }
-              errorString.append(errorFile.getContent());
-              errorFile.setContent(errorString.toString());
-              try {
-                TaskFileDAO.save(errorFile);
-              } catch (IOException e) {
-                // too bad, no information about the error can be saved.
-              }
-            }
-          }
-
-          if (task.getStatus() == Status.DONE || task.getStatus() == Status.ERROR || task.getStatus() == Status.TIMEOUT) {
-            setStatistics(task, record);
-          }
-
-          task = save(task);
-        }
       }
     }
 
@@ -420,11 +405,10 @@ public class TaskDAO {
   }
 
   private static List<Task> sanitizeStateAndSetStatistics(Collection<Task> tasks) {
-    List<Task> sanitizedTasks = new ArrayList<>();
     for (Task task : tasks) {
-      sanitizedTasks.add(sanitizeStateAndSetStatistics(task));
+      sanitizeStateAndSetStatistics(task);
     }
-    return sanitizedTasks;
+    return Lists.newLinkedList(tasks);
   }
 
   private static Task setStatistics(Task task, RequestLogs record) {
