@@ -265,10 +265,16 @@ public class SMGExpressionEvaluator {
 
     ExplicitValueBase value = rValue.accept(visitor);
 
-    if (value == null) {
+    if (value.isUnknown()) {
       return SMGUnknownValue.getInstance();
     } else {
-      return SMGKnownExpValue.valueOf(value.asLong(rValue.getExpressionType()));
+      Long longValue = value.asLong(getRealExpressionType(rValue));
+
+      if(longValue != null) {
+        return SMGKnownExpValue.valueOf(longValue);
+      } else {
+        return SMGUnknownValue.getInstance();
+      }
     }
   }
 
