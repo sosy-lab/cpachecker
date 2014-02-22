@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.*;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
@@ -115,27 +114,6 @@ public class BDDBooleanExpressionVisitor
       return rmgr.makeTrue();
     } else {
       throw new AssertionError("no boolean value: " + num);
-    }
-  }
-
-  @Override
-  public Region visit(final CUnaryExpression unaryExpression) {
-    final UnaryOperator unaryOperator = unaryExpression.getOperator();
-    final Region value = unaryExpression.getOperand().accept(this);
-
-    if (value == null) {
-      return null;
-    }
-
-    switch (unaryOperator) {
-      case PLUS:
-        return value;
-
-      case NOT:
-        return rmgr.makeNot(value);
-
-      default:
-        return null;
     }
   }
 }

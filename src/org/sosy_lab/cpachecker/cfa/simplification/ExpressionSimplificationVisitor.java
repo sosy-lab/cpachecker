@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.simplification;
 
 import java.math.BigInteger;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
@@ -55,8 +54,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitNumericValue;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitValueBase;
-
-import com.google.common.collect.Sets;
 
 /** This visitor visits an expression and evaluates it.
  * The returnvalue of the visit consists of the simplified expression and
@@ -250,49 +247,25 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
 
     final Pair<CExpression, Number> pair = op.accept(this);
 
-    final Set<UnaryOperator> evaluableUnaryOperators = Sets.newHashSet(
-        UnaryOperator.PLUS, UnaryOperator.MINUS, UnaryOperator.NOT);
+    if (unaryOperator == UnaryOperator.MINUS && pair.getSecond() != null) {
+      final long negatedValue = -pair.getSecond().longValue();
+      return Pair.<CExpression, Number> of(
+              new CIntegerLiteralExpression(expr.getFileLocation(),
+                      expr.getExpressionType(), BigInteger.valueOf(negatedValue)),
+              negatedValue);
 
-    // if expr can not be evaluated, build new expression
-    if (pair.getSecond() == null ||
-        !evaluableUnaryOperators.contains(unaryOperator)) {
-      final CUnaryExpression newExpr;
-      if (pair.getFirst() == op) {
-        // shortcut: if nothing has changed, use the original expression
-        newExpr = expr;
-      } else {
-        newExpr = new CUnaryExpression(
-            expr.getFileLocation(), expr.getExpressionType(),
-            pair.getFirst(), unaryOperator);
-      }
-      return Pair.of((CExpression) newExpr, null);
     }
 
-    long value = pair.getSecond().longValue();
-    long result;
-
-    // TODO machinemodel
-    switch (unaryOperator) {
-    case PLUS:
-      result = value;
-      break;
-
-    case MINUS:
-      result = -value;
-      break;
-
-    case NOT:
-      result = (value == 0L) ? 1L : 0L;
-      break;
-
-    default:
-      throw new AssertionError("unknown unary operation: " + unaryOperator);
+    final CUnaryExpression newExpr;
+    if (pair.getFirst() == op) {
+      // shortcut: if nothing has changed, use the original expression
+      newExpr = expr;
+    } else {
+      newExpr = new CUnaryExpression(
+          expr.getFileLocation(), expr.getExpressionType(),
+          pair.getFirst(), unaryOperator);
     }
-
-    return Pair.<CExpression, Number> of(
-        new CIntegerLiteralExpression(expr.getFileLocation(),
-            expr.getExpressionType(), BigInteger.valueOf(result)),
-        result);
+    return Pair.of((CExpression) newExpr, null);
   }
 
   @Override

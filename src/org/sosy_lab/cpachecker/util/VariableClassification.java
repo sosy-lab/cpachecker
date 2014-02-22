@@ -1441,17 +1441,10 @@ public class VariableClassification {
       Multimap<String, String> inner = exp.getOperand().accept(this);
       if (isNestedBinaryExp(exp)) { return inner; }
 
-      // if exp is unknown
-      if (inner == null) { return null; }
-
-      // if exp is a simple var
-      switch (exp.getOperator()) {
-      case PLUS: // this is no calculation, no usage of another param
-        return inner;
-      default: // *, ~, etc --> not numeral
+      if (inner != null) {
         nonIntEqVars.putAll(inner);
-        return null;
       }
+      return null;
     }
 
     @Override
@@ -1544,16 +1537,11 @@ public class VariableClassification {
     public Multimap<String, String> visit(CUnaryExpression exp) {
       Multimap<String, String> inner = exp.getOperand().accept(this);
       if (inner == null) { return null; }
+      if (exp.getOperator() == UnaryOperator.MINUS) { return inner; }
 
-      switch (exp.getOperator()) {
-      case PLUS:
-      case MINUS:
-      case NOT:
-        return inner;
-      default: // *, ~, etc --> not simple
-        nonIntAddVars.putAll(inner);
-        return null;
-      }
+      // *, ~, etc --> not simple
+      nonIntAddVars.putAll(inner);
+      return null;
     }
 
     @Override

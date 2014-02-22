@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.simplification;
 
 import java.math.BigInteger;
-import java.util.Set;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -47,8 +46,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitNumericValue;
 
-import com.google.common.collect.ImmutableSet;
-
 /**
  * This visitor visits an expression and evaluates it.
  * It tries to evaluate only the outermost operator,
@@ -60,9 +57,6 @@ public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpress
     <CExpression, RuntimeException> {
 
   // TODO explicitfloat: improve this entire class to use ExplicitValueBase instead of Long
-
-  private final Set<UnaryOperator> EVALUATABLE_UNARY_OPERATORS =
-      ImmutableSet.of(UnaryOperator.PLUS, UnaryOperator.MINUS, UnaryOperator.NOT);
 
   private final MachineModel machineModel;
   private final LogManager logger;
@@ -181,35 +175,13 @@ public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpress
               expr.getExpressionType(), BigInteger.valueOf(result));
     }
 
-    if (!EVALUATABLE_UNARY_OPERATORS.contains(unaryOperator)) {
-      return expr;
-    }
-
     final Long value = getValue(op);
-    if (value == null) {
-      return expr;
-    }
-    long result;
-
-    // TODO machinemodel
-    switch (unaryOperator) {
-    case PLUS:
-      result = value;
-      break;
-
-    case MINUS:
-      result = -value;
-      break;
-
-    case NOT:
-      result = (value == 0L) ? 1L : 0L;
-      break;
-
-    default:
-      throw new AssertionError("unknown unary operation: " + unaryOperator);
+    if (unaryOperator == UnaryOperator.MINUS && value != null) {
+      final long negatedValue = -value;
+      return new CIntegerLiteralExpression(expr.getFileLocation(),
+            expr.getExpressionType(), BigInteger.valueOf(negatedValue));
     }
 
-    return new CIntegerLiteralExpression(expr.getFileLocation(),
-            expr.getExpressionType(), BigInteger.valueOf(result));
+    return expr;
   }
 }
