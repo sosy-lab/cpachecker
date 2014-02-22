@@ -292,6 +292,13 @@ public class TaskDAO {
   }
 
   /**
+   * Clears the entity cache.
+   */
+  public static void clearCache() {
+    ObjectifyService.ofy().clear();
+  }
+
+  /**
    * Retrieves the log entry associated with the given {@link Task} and uses
    * the entry together with the {@link Task}'s state to fix the {@link Task} if
    * it is in an undefined state.
