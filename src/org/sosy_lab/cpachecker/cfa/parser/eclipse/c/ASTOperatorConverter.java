@@ -50,10 +50,6 @@ class ASTOperatorConverter {
       return UnaryOperator.AMPER;
     case IASTUnaryExpression.op_minus:
       return UnaryOperator.MINUS;
-    case IASTUnaryExpression.op_not:
-      return UnaryOperator.NOT;
-    case IASTUnaryExpression.op_plus:
-      return UnaryOperator.PLUS;
     case IASTUnaryExpression.op_sizeof:
       return UnaryOperator.SIZEOF;
     case IASTUnaryExpression.op_star:
