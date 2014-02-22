@@ -179,6 +179,8 @@ public class TaskBuilder {
 
     taskIdentifier = input.identifier;
 
+    DefaultOptions optionParser = new DefaultOptions();
+
     if (input.commandline != null) {
       parseCmdLine(input, task);
     }
@@ -200,12 +202,11 @@ public class TaskBuilder {
     }
     if (input.programName != null) {
       program.setPath(input.programName.substring(input.programName.lastIndexOf('/')+1));
+      optionParser.setOption("analysis.programNames", program.getPath());
     }
     program.setContent(input.programText);
 
-    DefaultOptions optionParser = new DefaultOptions();
     optionParser.setOptions(input.options);
-    optionParser.setOption("analysis.programNames", program.getPath());
     task.setOptions(optionParser.getOptions());
 
     if (input.taskset != null) {
@@ -435,13 +436,10 @@ public class TaskBuilder {
     try {
       inputBean = mapper.readValue(in, InputBean.class);
     } catch (JsonParseException e) {
-      e.printStackTrace();
       errors.add("error.jsonNotWellFormed");
     } catch (JsonMappingException e) {
-      e.printStackTrace();
       errors.add("error.jsonNotMapped");
     } catch (IOException e) {
-      e.printStackTrace();
       errors.add("error.requestBodyNotRead");
     }
 
