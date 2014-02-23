@@ -24,16 +24,15 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -43,47 +42,39 @@ import com.google.common.collect.Multimap;
 
 
 /** This class allows to dump functioncalls in a tree-like structure.
- * If the sourcefile contains recursion, there are loops.
- * Normally there is only one root-node. However in special cases,
- * we declare functions only in the "init-global-vars-block" and never use them.
- * Then they appear as additional roots in the graph. */
+ * For most cases the structure is a tree, but for special cases the graph can contain
+ * loops (-> recursion) or several root-nodes (-> one for each unused functions).
+ */
 public class FunctionCallDumper {
 
   /** This method iterates over the CFA, searches for functioncalls
    * and after that, dumps them in a dot-format. */
   public static void dump(final Appendable pAppender, final CFA pCfa) throws IOException {
 
-    final FunctionEntryNode main = pCfa.getMainFunction();
-    final String mainFunction = main.getFunctionName();
-
     // get all function calls
     final CFAFunctionCallFinder finder = new CFAFunctionCallFinder();
-    final FunctionEntryNode functionEntry = pCfa.getFunctionHead(mainFunction);
-    CFATraversal.dfs().traverseOnce(functionEntry, finder);
+    for (final FunctionEntryNode entryNode : pCfa.getAllFunctionHeads()) {
+      CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(entryNode, finder);
+    }
 
     // build dot-file
     pAppender.append("digraph functioncalls {\n");
     pAppender.append("rankdir=LR;\n\n"); // node-order from Left to Right is nicer
 
-    // write each caller-callee pair only once
-    final Set<Pair<String, String>> callerCalleePair = new HashSet<>();
-
     // external functions are not part of functionNames
     final Set<String> functionNames = pCfa.getAllFunctionNames();
 
-    callerCalleePair.add(Pair.of("init", mainFunction));
+    final String mainFunction = pCfa.getMainFunction().getFunctionName();
     pAppender.append(mainFunction + " [shape=\"box\", color=blue];\n");
 
-    for (final String callerFunctionName : finder.functionCalls.keys()) {
+    for (final String callerFunctionName : finder.functionCalls.keySet()) {
       for (final String calleeFunctionName : finder.functionCalls.get(callerFunctionName)) {
-        if (callerCalleePair.add(Pair.of(callerFunctionName, calleeFunctionName))) {
           // call to external function
           if (!functionNames.contains(calleeFunctionName)) {
             pAppender.append(calleeFunctionName + " [shape=\"box\", color=grey];\n");
           }
 
           pAppender.append(callerFunctionName + " -> " + calleeFunctionName + ";\n");
-        }
       }
     }
 
@@ -99,9 +90,19 @@ public class FunctionCallDumper {
     public TraversalProcess visitEdge(final CFAEdge pEdge) {
       switch (pEdge.getEdgeType()) {
 
+      case CallToReturnEdge: {
+        // the normal case of functioncall, both functions have their complete CFA
+        final FunctionSummaryEdge function = (FunctionSummaryEdge) pEdge;
+        final String functionName = function.getPredecessor().getFunctionName();
+        final String calledFunction = function.getPredecessor().getLeavingEdge(0).getSuccessor().getFunctionName();
+        functionCalls.put(functionName, calledFunction);
+        break;
+      }
+
       case StatementEdge: {
         final AStatementEdge edge = (AStatementEdge) pEdge;
         if (edge.getStatement() instanceof AFunctionCall) {
+          // called function has no body, only declaration available, external function
           final AFunctionCall functionCall = (AFunctionCall) edge.getStatement();
           final AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
           final AFunctionDeclaration declaration = functionCallExpression.getDeclaration();
@@ -115,10 +116,7 @@ public class FunctionCallDumper {
       }
 
       case FunctionCallEdge: {
-        final String functionName = pEdge.getPredecessor().getFunctionName();
-        final String calledFunction = pEdge.getSuccessor().getFunctionName();
-        functionCalls.put(functionName, calledFunction);
-        break;
+        throw new AssertionError("traversal-strategy should ignore functioncalls");
       }
 
       }
