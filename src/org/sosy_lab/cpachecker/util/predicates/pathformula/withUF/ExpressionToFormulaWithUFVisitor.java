@@ -97,7 +97,8 @@ abstract class ExpressionToFormulaWithUFVisitor
   }
 
   private void addEqualBaseAdressConstraint(final Formula p1, final Formula p2) {
-    if (errorConditions != null) {
+    if (errorConditions.isEnabled()) {
+      // Constraint is only necessary for correct error conditions
       constraints.addConstraint(conv.fmgr.makeEqual(conv.makeBaseAddressOfTerm(p1),
                                                     conv.makeBaseAddressOfTerm(p2)));
     }

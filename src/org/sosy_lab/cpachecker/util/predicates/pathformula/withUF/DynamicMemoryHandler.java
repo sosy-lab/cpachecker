@@ -248,7 +248,8 @@ class DynamicMemoryHandler {
       address = conv.makeConstant(PointerTargetSet.getBaseName(newBase), CPointerType.POINTER_TO_VOID);
     }
 
-    if (errorConditions != null) {
+    if (errorConditions.isEnabled()) {
+      // Constraint is only necessary for correct error conditions
       constraints.addConstraint(conv.fmgr.makeEqual(conv.makeBaseAddressOfTerm(address), address));
     }
     return address;
