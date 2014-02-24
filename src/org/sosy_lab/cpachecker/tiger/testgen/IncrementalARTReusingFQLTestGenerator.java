@@ -85,6 +85,8 @@ import org.sosy_lab.cpachecker.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.SingletonECPEdgeSet;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.GuardedEdgeLabel;
+import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.GuardedLabel;
+import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.GuardedLambdaLabel;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.InverseGuardedEdgeLabel;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.ToGuardedAutomatonTranslator;
 import org.sosy_lab.cpachecker.tiger.fql.translators.ecp.ClusteringCoverageSpecificationTranslator;
@@ -130,7 +132,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   private final TimeAccumulator mTimeInReach;
   private int mTimesInReach;
   private final GuardedEdgeLabel mAlphaLabel;
-  private final GuardedEdgeLabel mOmegaLabel;
+  //private final GuardedEdgeLabel mOmegaLabel;
+  private final GuardedLabel mOmegaLabel;
   private final GuardedEdgeLabel mInverseAlphaLabel;
   private final Map<TestCase, CFAEdge[]> mGeneratedTestCases;
 
@@ -236,6 +239,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     mAlphaLabel = new GuardedEdgeLabel(new SingletonECPEdgeSet(mWrapper.getAlphaEdge()));
     mInverseAlphaLabel = new InverseGuardedEdgeLabel(mAlphaLabel);
     mOmegaLabel = new GuardedEdgeLabel(new SingletonECPEdgeSet(mWrapper.getOmegaEdge()));
+    //mOmegaLabel = GuardedLambdaLabel.UNGUARDED_LAMBDA_LABEL;
 
 
     /*
@@ -831,7 +835,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
    * @return
    */
   private Goal constructGoal(ElementaryCoveragePattern pGoalPattern, GuardedEdgeLabel pAlphaLabel,
-      GuardedEdgeLabel pInverseAlphaLabel, GuardedEdgeLabel pOmegaLabel, boolean pUseAutomatonOptimization) {
+      GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel, boolean pUseAutomatonOptimization) {
 
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton = ToGuardedAutomatonTranslator.toAutomaton(pGoalPattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel);
     automaton = FQLSpecificationUtil.optimizeAutomaton(automaton, mUseAutomatonOptimization);

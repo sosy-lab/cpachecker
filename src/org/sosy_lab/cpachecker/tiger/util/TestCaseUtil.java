@@ -59,12 +59,12 @@ import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA;
 import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.AccessToUninitializedVariableException;
 import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.MissingInputException;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.tiger.core.CPAtigerResult.Factory;
 import org.sosy_lab.cpachecker.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.GuardedEdgeLabel;
+import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.GuardedLabel;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.ToGuardedAutomatonTranslator;
 import org.sosy_lab.cpachecker.tiger.fql.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.tiger.goals.Goal;
@@ -459,9 +459,12 @@ public class TestCaseUtil {
       throw new ImpreciseExecutionException(pTestCase, pCoverAutomatonCPA, pPassingAutomatonCPA);
     }
 
+    // TODO disabled to enable omega edges different from the return to wrapper code
+    /*
     if (!((LocationState)lEndNode.get(0)).getLocationNode().equals(pEndNode)) {
       throw new ImpreciseExecutionException(pTestCase, pCoverAutomatonCPA, pPassingAutomatonCPA);
     }
+    */
 
     AbstractState lProductAutomatonElement = lEndNode.get(lProductAutomatonCPAIndex);
 
@@ -482,7 +485,7 @@ public class TestCaseUtil {
 
   private FQLSpecification lIdStarFQLSpecification = null;
 
-  public void seed(Iterable<TestCase> pTestSuite, CoverageSpecificationTranslator pCoverageSpecificationTranslator, GuardedEdgeLabel pAlphaLabel, GuardedEdgeLabel pInverseAlphaLabel, GuardedEdgeLabel pOmegaLabel) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException, BuggyExecutionException {
+  public void seed(Iterable<TestCase> pTestSuite, CoverageSpecificationTranslator pCoverageSpecificationTranslator, GuardedEdgeLabel pAlphaLabel, GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException, BuggyExecutionException {
     if (lIdStarFQLSpecification == null) {
       try {
         lIdStarFQLSpecification = FQLSpecification.parse("COVER \"EDGES(ID)*\" PASSING EDGES(ID)*");
