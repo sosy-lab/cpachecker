@@ -598,6 +598,10 @@ public class SMGState implements AbstractQueryableState, Targetable {
    * a state represents is a subset of the set of concrete states the other
    * state represents.
    *
+   * If this state contains a memory leak and the given does not. The given state
+   * does not cover this state even if covering relation (join operation) claim that
+   * this state is covered by the other state.
+   *
    *
    * @param reachedState already reached state, that may cover this state already.
    * @return True, if this state is covered by the given state, false otherwise.
@@ -607,6 +611,20 @@ public class SMGState implements AbstractQueryableState, Targetable {
     SMGJoin join = new SMGJoin(reachedState.heap, heap);
     if (join.isDefined() &&
         (join.getStatus() == SMGJoinStatus.LEFT_ENTAIL || join.getStatus() == SMGJoinStatus.EQUAL)){
+
+      // check memory leaks
+      // if reached does NOT contain memory leak and this DOES
+      //   this shouldn't be drop
+      this.heap.pruneUnreachable();
+      if (heap.hasMemoryLeaks()){
+        reachedState.heap.pruneUnreachable();
+        if (!reachedState.heap.hasMemoryLeaks()){
+          return false;
+        }
+        // else return true
+      }
+
+
       return true;
     }
     return false;
