@@ -881,6 +881,11 @@ public class CtoFormulaConverter {
     CVariableDeclaration decl = (CVariableDeclaration)edge.getDeclaration();
     final String varName = decl.getQualifiedName();
 
+    if (!isRelevantVariable(decl)) {
+      logfOnce(Level.FINEST, decl, "Ignoring declaration of unused variable %s.", decl);
+      return bfmgr.makeBoolean(true);
+    }
+
     // if the var is unsigned, add the constraint that it should
     // be > 0
     //    if (((CSimpleType)spec).isUnsigned()) {

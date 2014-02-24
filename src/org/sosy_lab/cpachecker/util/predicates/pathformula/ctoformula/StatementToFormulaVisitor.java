@@ -55,6 +55,10 @@ public class StatementToFormulaVisitor extends RightHandSideToFormulaVisitor imp
    */
   public BooleanFormula handleAssignment(final CLeftHandSide lhs,
       CRightHandSide rhs) throws UnrecognizedCCodeException {
+    if (!conv.isRelevantLeftHandSide(lhs)) {
+      // Optimization for unused variables and fields
+      return conv.bfmgr.makeBoolean(true);
+    }
 
     if (rhs instanceof CExpression) {
       rhs = conv.makeCastFromArrayToPointerIfNecessary((CExpression)rhs, lhs.getExpressionType());
