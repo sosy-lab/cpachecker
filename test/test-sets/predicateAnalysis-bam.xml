@@ -23,12 +23,12 @@
 
   <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
 
-  <rundefinition name="abm">
-    <option name="-predicateAnalysis-abm"/>
+  <rundefinition name="bam">
+    <option name="-predicateAnalysis-bam"/>
   </rundefinition>
 
-  <rundefinition name="abm-auxiliaryPredicates">
-    <option name="-predicateAnalysis-abm-auxiliaryPredicates"/>
+  <rundefinition name="bam-auxiliaryPredicates">
+    <option name="-predicateAnalysis-bam-auxiliaryPredicates"/>
   </rundefinition>
 
   <columns>

@@ -10,7 +10,7 @@
 <option name="-setprop">pcc.proofFile=arg.obj</option>
 <option name="-setprop">analysis.traversal.order=DFS</option>
 <option name="-setprop">limits.time.cpu=5min</option>
-<option name="-explicitAnalysis-abm"/>
+<option name="-explicitAnalysis-bam"/>
 
 <rundefinition name="Analysis">
 	<sourcefiles>

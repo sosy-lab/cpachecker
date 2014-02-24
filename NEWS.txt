@@ -1,6 +1,10 @@
 Changes since CPAchecker 1.2
 ----------------------------
 
+* r11339: The renaming of ABM to BAM (Block-Abstraction Memoization)
+  was now applied in CPAchecker. This means that all classes and configuration options
+  as well as the respective configuration files were renamed.
+  Please update your configurations accordingly.
 * r10756: The much improved pointer-alias handling with UFs is now the default in PredicateCPA.
 * r10375: Many options regarding the analysis algorithm (algorithm.* options such as
   analysis.useRefinement and analysis.useCBMC) were renamed.
