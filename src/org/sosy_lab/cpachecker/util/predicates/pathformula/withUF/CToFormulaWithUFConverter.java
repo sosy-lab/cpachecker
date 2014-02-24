@@ -1172,7 +1172,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
     // Special handling for string literal initializers -- convert them into character arrays
     final CIdExpression lhs =
-        new CIdExpression(declaration.getFileLocation(), declarationType, declaration.getName(), declaration);
+        new CIdExpression(declaration.getFileLocation(), declaration);
     final StatementToFormulaWithUFVisitor statementVisitor = getStatementToFormulaWithUFVisitor(declarationEdge, function, ssa, constraints, errorConditions, pts);
     if (initializer instanceof CInitializerExpression || initializer == null) {
       declareSharedBase(declaration, false, constraints, pts);

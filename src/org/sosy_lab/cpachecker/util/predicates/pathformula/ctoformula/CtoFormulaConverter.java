@@ -946,8 +946,6 @@ public class CtoFormulaConverter {
 
       final CVariableDeclaration returnVariableDeclaration = createReturnVariable(funcCallExp.getDeclaration());
       final CIdExpression rhs = new CIdExpression(funcCallExp.getFileLocation(),
-                         returnVariableDeclaration.getType(),
-                         returnVariableDeclaration.getName(),
                          returnVariableDeclaration);
 
       return makeAssignment(exp.getLeftHandSide(), rhs, ce, callerFunction, ssa, pts, constraints, errorConditions);
@@ -1024,9 +1022,8 @@ public class CtoFormulaConverter {
     int i = 0;
     BooleanFormula result = bfmgr.makeBoolean(true);
     for (CParameterDeclaration formalParam : formalParams) {
-      final CType paramType = formalParam.getType();
       CExpression paramExpression = actualParams.get(i++);
-      CIdExpression lhs = new CIdExpression(paramExpression.getFileLocation(), paramType, formalParam.getName(), formalParam);
+      CIdExpression lhs = new CIdExpression(paramExpression.getFileLocation(), formalParam);
 
       BooleanFormula eq = makeAssignment(lhs, paramExpression, edge, callerFunction, ssa, pts, constraints, errorConditions);
       result = bfmgr.and(result, eq);
@@ -1053,8 +1050,6 @@ public class CtoFormulaConverter {
           ((CFunctionEntryNode) edge.getSuccessor().getEntryNode()).getFunctionDefinition();
       final CVariableDeclaration returnVariableDeclaration = createReturnVariable(functionDeclaration);
       final CIdExpression lhs = new CIdExpression(rightExp.getFileLocation(),
-                         returnVariableDeclaration.getType(),
-                         returnVariableDeclaration.getName(),
                          returnVariableDeclaration);
 
       return makeAssignment(lhs, rightExp, edge, function, ssa, pts, constraints, errorConditions);

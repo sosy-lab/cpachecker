@@ -42,6 +42,12 @@ public abstract class AIdExpression extends ALeftHandSide {
     declaration = pDeclaration;
   }
 
+
+  public AIdExpression(FileLocation pFileLocation, IASimpleDeclaration pDeclaration) {
+    this(pFileLocation, pDeclaration.getType(),
+        pDeclaration.getName(), pDeclaration);
+  }
+
   public String getName() {
     return name;
   }

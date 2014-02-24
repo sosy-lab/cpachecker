@@ -268,7 +268,7 @@ public class CFASingleLoopTransformation {
     String pcVarName = PROGRAM_COUNTER_VAR_NAME;
     CDeclaration pcDeclaration = new CVariableDeclaration(mainLocation, true, CStorageClass.AUTO, CNumericTypes.INT, pcVarName, pcVarName, pcVarName,
         new CInitializerExpression(mainLocation, new CIntegerLiteralExpression(mainLocation, CNumericTypes.INT, BigInteger.valueOf(pcValueOfStart))));
-    CIdExpression pcIdExpression = new CIdExpression(mainLocation, CNumericTypes.INT, pcVarName, pcDeclaration);
+    CIdExpression pcIdExpression = new CIdExpression(mainLocation, pcDeclaration);
     CFAEdge pcDeclarationEdge = new CDeclarationEdge(String.format("int %s = %d;", pcVarName, pcValueOfStart), 0, start, loopHead, pcDeclaration);
     start.addLeavingEdge(pcDeclarationEdge);
     loopHead.addEnteringEdge(pcDeclarationEdge);

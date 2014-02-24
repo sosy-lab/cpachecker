@@ -209,7 +209,7 @@ public class CFADeclarationMover {
       actPred.removeLeavingEdge(edge);
       actSucc.removeEnteringEdge(edge);
       CExpressionAssignmentStatement stmt = new CExpressionAssignmentStatement(varDecl.getFileLocation(),
-                                                                               new CIdExpression(varDecl.getFileLocation(), varDecl.getType(), varDecl.getName(), varDecl),
+                                                                               new CIdExpression(varDecl.getFileLocation(), varDecl),
                                                                                ((CInitializerExpression) init).getExpression());
       CStatementEdge midEdge = new CStatementEdge(edge.getRawStatement(), stmt, edge.getLineNumber(), actPred, actSucc);
       actPred.addLeavingEdge(midEdge);

@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -443,7 +442,7 @@ class ASTConverter {
     scope.registerDeclaration(decl);
     sideAssignmentStack.addPreSideAssignment(decl);
 
-    return new CIdExpression(loc, type, name, decl);
+    return new CIdExpression(loc, decl);
   }
 
   private CAstNode convert(IASTBinaryExpression e) {
@@ -1696,7 +1695,7 @@ class ASTConverter {
         if (declaration != null) {
           // This is a variable declaration like "int i = f();"
           // We can replace this with "int i; i = f();"
-          CIdExpression var = new CIdExpression(loc, declaration.getType(), declaration.getName(), declaration);
+          CIdExpression var = new CIdExpression(loc, declaration);
           sideAssignmentStack.addPostSideAssignment(new CFunctionCallAssignmentStatement(loc, var,
                                   (CFunctionCallExpression) initializer));
           return null; // empty initializer

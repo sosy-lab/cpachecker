@@ -38,7 +38,9 @@ public final class CIdExpression extends AIdExpression implements CLeftHandSide 
     super(pFileLocation, pType, pName, pDeclaration);
   }
 
-
+  public CIdExpression(final FileLocation pFileLocation, final CSimpleDeclaration pDeclaration) {
+    super(pFileLocation, pDeclaration);
+  }
 
   @Override
   public CType getExpressionType() {
