@@ -293,63 +293,11 @@ public class CFACreator {
     try {
 
       // FIRST, parse file(s) and create CFAs for each function
-      logger.log(Level.FINE, "Starting parsing of file");
-      ParseResult c;
+      logger.log(Level.FINE, "Starting parsing of file(s)");
 
-      if (language == Language.C) {
-        checkIfValidFiles(sourceFiles);
-      }
-
-      if (sourceFiles.size() == 1) {
-        /*
-         * The program file has to parsed as String since Google App Engine does not allow
-         * writes to the file system and therefore the input file is stored elsewhere.
-         */
-        String sourceFileName = sourceFiles.get(0);
-        if (usePreprocessor) {
-          c = parser.parseFile(sourceFileName);
-        } else {
-          char[] code = Paths.get(sourceFileName).asCharSource(Charset.defaultCharset()).read().toCharArray();
-          c = parser.parseString(sourceFileName, code);
-        }
-      } else {
-        // when there is more than one file which should be evaluated, the
-        // programdenotations are separated from each other and a prefix for
-        // static variables is generated
-        if (language != Language.C) {
-          throw new InvalidConfigurationException("Multiple program files not supported for languages other than C.");
-        }
-
-        List<FileContentToParse> programFragments = new ArrayList<>();
-        int counter = 0;
-        String staticVarPrefix;
-        for (String fileName : sourceFiles) {
-          String[] tmp = fileName.split("/");
-          staticVarPrefix = tmp[tmp.length-1].replaceAll("\\W", "_") + "__" + counter + "__";
-
-          /*
-           * The program file has to parsed as String since Google App Engine does not allow
-           * writes to the file system and therefore the input file is stored elsewhere.
-           */
-          char[] code = Paths.get(fileName).asCharSource(Charset.defaultCharset()).read().toCharArray();
-          programFragments.add(new FileContentToParse(fileName, code, staticVarPrefix));
-        }
-
-        c = ((CParser)parser).parseString(programFragments);
-      }
+      final ParseResult c = parseToCFAs(sourceFiles);
 
       logger.log(Level.FINE, "Parser Finished");
-
-      if (c.isEmpty()) {
-        switch (language) {
-        case JAVA:
-          throw new JParserException("No methods found in program");
-        case C:
-          throw new CParserException("No functions found in program");
-        default:
-          throw new AssertionError();
-        }
-      }
 
       FunctionEntryNode mainFunction;
 
@@ -379,64 +327,7 @@ public class CFACreator {
       // SECOND, do those post-processings that change the CFA by adding/removing nodes/edges
       stats.processingTime.start();
 
-      // remove all edges which don't have any effect on the program
-      CFASimplifier.simplifyCFA(cfa);
-
-      if (moveDeclarationsToFunctionStart) {
-        CFADeclarationMover declarationMover = new CFADeclarationMover(logger);
-        declarationMover.moveDeclarationsToFunctionStart(cfa);
-      }
-
-      if (checkNullPointers) {
-        CFATransformations transformations = new CFATransformations(logger, config);
-        transformations.detectNullPointers(cfa);
-      }
-
-      if (expandFunctionPointerArrayAssignments) {
-        ExpandFunctionPointerArrayAssignments transformer = new ExpandFunctionPointerArrayAssignments(logger, config);
-        transformer.replaceFunctionPointerArrayAssignments(cfa);
-      }
-
-      // add function pointer edges
-      if (language == Language.C && fptrCallEdges) {
-        CFunctionPointerResolver fptrResolver = new CFunctionPointerResolver(cfa, c.getGlobalDeclarations(), config, logger);
-        fptrResolver.resolveFunctionPointers();
-      }
-
-      // Transform dummy loops into edges to termination nodes
-      List<CFANode> toAdd = new ArrayList<>(1);
-      for (CFANode node : cfa.getAllNodes()) {
-        Set<CFANode> visited = new HashSet<>();
-        Queue<CFANode> waitlist = new ArrayDeque<>();
-        waitlist.offer(node);
-        visited.add(node);
-        while (!waitlist.isEmpty()) {
-          CFANode current = waitlist.poll();
-          for (CFAEdge leavingBlankEdge : CFAUtils.leavingEdges(current).filter(BlankEdge.class).toList()) {
-            CFANode succ = leavingBlankEdge.getSuccessor();
-            if (succ == node) {
-              leavingBlankEdge.getPredecessor().removeLeavingEdge(leavingBlankEdge);
-              leavingBlankEdge.getSuccessor().removeEnteringEdge(leavingBlankEdge);
-              CFANode terminationNode = new CFATerminationNode(node.getLineNumber(), node.getFunctionName());
-              BlankEdge terminationEdge =
-                  new BlankEdge(leavingBlankEdge.getRawStatement(),
-                      leavingBlankEdge.getLineNumber(),
-                      leavingBlankEdge.getPredecessor(),
-                      terminationNode,
-                      leavingBlankEdge.getDescription());
-              terminationEdge.getPredecessor().addLeavingEdge(terminationEdge);
-              terminationEdge.getSuccessor().addEnteringEdge(terminationEdge);
-              toAdd.add(terminationNode);
-            }
-            if (visited.add(succ)) {
-              waitlist.offer(succ);
-            }
-          }
-        }
-      }
-      for (CFANode nodeToAdd : toAdd) {
-        cfa.addNode(nodeToAdd);
-      }
+      postProcessingOnMutableCFAs(cfa, c.getGlobalDeclarations());
 
       // THIRD, do read-only post-processings on each single function CFA
 
@@ -466,16 +357,6 @@ public class CFACreator {
       // Mutating post-processings should be checked carefully for their effect
       // on the information collected above (such as loops and post-order ids).
 
-      if (simplifyExpressions) {
-        // this replaces some edges in the CFA with new edges.
-        // all expressions, that can be evaluated, will be replaced with their result.
-        // example: a=1+2; --> a=3;
-        // TODO support for constant propagation like "define MAGIC_NUMBER 1234".
-        ExpressionSimplifier es = new ExpressionSimplifier(machineModel, logger);
-        CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(mainFunction, es);
-        es.replaceEdges();
-      }
-
       if (useMultiEdges) {
         MultiEdgeCreator.createMultiEdges(cfa);
       }
@@ -495,6 +376,9 @@ public class CFACreator {
         }
       }
 
+      // SIXTH, get information about the CFA,
+      // the cfa should not be modified after this line (TODO except SingleLoopTransformation).
+
       // Get information about variables, needed for some analysis.
       final Optional<VariableClassification> varClassification
           = loopStructure.isPresent()
@@ -506,6 +390,8 @@ public class CFACreator {
       final ImmutableCFA immutableCFA;
 
       if (transformIntoSingleLoop) {
+        // special part of code, returns a transformed copy of the CFA.
+        // TODO SLTransformation contains some code copied from the lines above. Is this necessary?
         stats.processingTime.start();
         immutableCFA = CFASingleLoopTransformation.getSingleLoopTransformation(logger, config).apply(cfa);
         mainFunction = immutableCFA.getMainFunction();
@@ -531,6 +417,145 @@ public class CFACreator {
 
     } finally {
       stats.totalTime.stop();
+    }
+  }
+
+  /** This method parses the sourceFiles and builds a CFA for each function.
+   * The ParseResult is only a Wrapper for the CFAs of the functions and global declarations. */
+  private ParseResult parseToCFAs(final List<String> sourceFiles)
+          throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+    final ParseResult parseResult;
+
+    if (language == Language.C) {
+      checkIfValidFiles(sourceFiles);
+    }
+
+    if (sourceFiles.size() == 1) {
+        /*
+         * The program file has to parsed as String since Google App Engine does not allow
+         * writes to the file system and therefore the input file is stored elsewhere.
+         */
+      final String sourceFileName = sourceFiles.get(0);
+      if (usePreprocessor) {
+        parseResult = parser.parseFile(sourceFileName);
+      } else {
+        char[] code = Paths.get(sourceFileName).asCharSource(Charset.defaultCharset()).read().toCharArray();
+        parseResult = parser.parseString(sourceFileName, code);
+      }
+    } else {
+      // when there is more than one file which should be evaluated, the
+      // programdenotations are separated from each other and a prefix for
+      // static variables is generated
+      if (language != Language.C) {
+        throw new InvalidConfigurationException("Multiple program files not supported for languages other than C.");
+      }
+
+      final List<FileContentToParse> programFragments = new ArrayList<>();
+      int counter = 0;
+      String staticVarPrefix;
+      for (final String fileName : sourceFiles) {
+        final String[] tmp = fileName.split("/");
+        staticVarPrefix = tmp[tmp.length-1].replaceAll("\\W", "_") + "__" + counter + "__";
+
+          /*
+           * The program file has to parsed as String since Google App Engine does not allow
+           * writes to the file system and therefore the input file is stored elsewhere.
+           */
+        char[] code = Paths.get(fileName).asCharSource(Charset.defaultCharset()).read().toCharArray();
+        programFragments.add(new FileContentToParse(fileName, code, staticVarPrefix));
+      }
+
+      parseResult = ((CParser)parser).parseString(programFragments);
+    }
+
+    if (parseResult.isEmpty()) {
+      switch (language) {
+        case JAVA:
+          throw new JParserException("No methods found in program");
+        case C:
+          throw new CParserException("No functions found in program");
+        default:
+          throw new AssertionError();
+      }
+    }
+
+    return parseResult;
+  }
+
+  /** This method changes the CFAs of the functions with adding, removing, replacing or moving CFAEdges.
+   * The CFAs are independent, i.e. there are no super-edges (functioncall- and return-edges) between them. */
+  private void postProcessingOnMutableCFAs(final MutableCFA cfa, final List<Pair<IADeclaration, String>> globalDeclarations)
+          throws InvalidConfigurationException, CParserException {
+
+    // remove all edges which don't have any effect on the program
+    CFASimplifier.simplifyCFA(cfa);
+
+    if (simplifyExpressions) {
+      // this replaces some edges in the CFA with new edges.
+      // all expressions, that can be evaluated, will be replaced with their result.
+      // example: a=1+2; --> a=3;
+      // TODO support for constant propagation like "define MAGIC_NUMBER 1234".
+      for (final CFANode function : cfa.getAllFunctionHeads()) {
+        final ExpressionSimplifier es = new ExpressionSimplifier(machineModel, logger);
+        CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(function, es);
+        es.replaceEdges();
+      }
+    }
+
+    if (moveDeclarationsToFunctionStart) {
+      CFADeclarationMover declarationMover = new CFADeclarationMover(logger);
+      declarationMover.moveDeclarationsToFunctionStart(cfa);
+    }
+
+    if (checkNullPointers) {
+      CFATransformations transformations = new CFATransformations(logger, config);
+      transformations.detectNullPointers(cfa);
+    }
+
+    if (expandFunctionPointerArrayAssignments) {
+      ExpandFunctionPointerArrayAssignments transformer = new ExpandFunctionPointerArrayAssignments(logger, config);
+      transformer.replaceFunctionPointerArrayAssignments(cfa);
+    }
+
+    // add function pointer edges
+    if (language == Language.C && fptrCallEdges) {
+      CFunctionPointerResolver fptrResolver = new CFunctionPointerResolver(cfa, globalDeclarations, config, logger);
+      fptrResolver.resolveFunctionPointers();
+    }
+
+    // Transform dummy loops into edges to termination nodes
+    List<CFANode> toAdd = new ArrayList<>(1);
+    for (CFANode node : cfa.getAllNodes()) {
+      Set<CFANode> visited = new HashSet<>();
+      Queue<CFANode> waitlist = new ArrayDeque<>();
+      waitlist.offer(node);
+      visited.add(node);
+      while (!waitlist.isEmpty()) {
+        CFANode current = waitlist.poll();
+        for (CFAEdge leavingBlankEdge : CFAUtils.leavingEdges(current).filter(BlankEdge.class).toList()) {
+          CFANode succ = leavingBlankEdge.getSuccessor();
+          if (succ == node) {
+            leavingBlankEdge.getPredecessor().removeLeavingEdge(leavingBlankEdge);
+            leavingBlankEdge.getSuccessor().removeEnteringEdge(leavingBlankEdge);
+            CFANode terminationNode = new CFATerminationNode(node.getLineNumber(), node.getFunctionName());
+            BlankEdge terminationEdge =
+                    new BlankEdge(leavingBlankEdge.getRawStatement(),
+                            leavingBlankEdge.getLineNumber(),
+                            leavingBlankEdge.getPredecessor(),
+                            terminationNode,
+                            leavingBlankEdge.getDescription());
+            terminationEdge.getPredecessor().addLeavingEdge(terminationEdge);
+            terminationEdge.getSuccessor().addEnteringEdge(terminationEdge);
+            toAdd.add(terminationNode);
+          }
+          if (visited.add(succ)) {
+            waitlist.offer(succ);
+          }
+        }
+      }
+    }
+    for (CFANode nodeToAdd : toAdd) {
+      cfa.addNode(nodeToAdd);
     }
   }
 
