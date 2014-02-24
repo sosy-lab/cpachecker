@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -63,7 +63,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import com.google.common.base.Preconditions;
 
 @Options(prefix="cpa.arg")
-public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProgramAnalysisWithABM, ProofChecker {
+public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ARGCPA.class);
@@ -101,8 +101,8 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
       precisionAdjustment = new ARGPrecisionAdjustment(cpa.getPrecisionAdjustment(), inPredicatedAnalysis);
     }
 
-    if (cpa instanceof ConfigurableProgramAnalysisWithABM) {
-      Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithABM)cpa).getReducer();
+    if (cpa instanceof ConfigurableProgramAnalysisWithBAM) {
+      Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM)cpa).getReducer();
       if (wrappedReducer != null) {
         reducer = new ARGReducer(wrappedReducer);
       } else {

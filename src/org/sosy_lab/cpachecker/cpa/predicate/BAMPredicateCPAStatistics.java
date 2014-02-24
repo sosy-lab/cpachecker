@@ -29,11 +29,11 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
-class ABMPredicateCPAStatistics implements Statistics {
+class BAMPredicateCPAStatistics implements Statistics {
 
-  private final ABMPredicateReducer reducer;
+  private final BAMPredicateReducer reducer;
 
-  ABMPredicateCPAStatistics(ABMPredicateReducer pReducer) {
+  BAMPredicateCPAStatistics(BAMPredicateReducer pReducer) {
     reducer = pReducer;
   }
 

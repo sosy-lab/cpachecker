@@ -92,33 +92,33 @@ import com.google.common.collect.Lists;
  *                         |                                PredicateAbstractionRefinementStrategy
  *           +-------------+-------------+                                    ^
  *           |                           |                                    |
- * AbstractBAMBasedRefiner       PredicateCPARefiner ---> ABMPredicateAbstractionRefinementStrategy
+ * AbstractBAMBasedRefiner       PredicateCPARefiner ---> BAMPredicateAbstractionRefinementStrategy
  *           ^                           ^
  *           |                           |
- *   ABMPredicateRefiner ---> ExtendedPredicateRefiner
+ *   BAMPredicateRefiner ---> ExtendedPredicateRefiner
  *
  * Here ^ means inheritance and -> means reference.
  */
-public final class ABMPredicateRefiner extends AbstractBAMBasedRefiner implements StatisticsProvider {
+public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implements StatisticsProvider {
 
   private final ExtendedPredicateRefiner refiner;
 
 
   public static Refiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
-    return new ABMPredicateRefiner(pCpa);
+    return new BAMPredicateRefiner(pCpa);
   }
 
-  public ABMPredicateRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
+  public BAMPredicateRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
 
     super(pCpa);
 
     if (!(pCpa instanceof WrapperCPA)) {
-      throw new InvalidConfigurationException(ABMPredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
+      throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
     }
 
-    ABMPredicateCPA predicateCpa = ((WrapperCPA)pCpa).retrieveWrappedCpa(ABMPredicateCPA.class);
+    BAMPredicateCPA predicateCpa = ((WrapperCPA)pCpa).retrieveWrappedCpa(BAMPredicateCPA.class);
     if (predicateCpa == null) {
-      throw new InvalidConfigurationException(ABMPredicateRefiner.class.getSimpleName() + " needs an ABMPredicateCPA");
+      throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " needs an BAMPredicateCPA");
     }
 
     LogManager logger = predicateCpa.getLogger();
@@ -135,7 +135,7 @@ public final class ABMPredicateRefiner extends AbstractBAMBasedRefiner implement
                                           predicateCpa.getPathFormulaManager(),
                                           predicateCpa.getSolver());
 
-    RefinementStrategy strategy = new ABMPredicateAbstractionRefinementStrategy(
+    RefinementStrategy strategy = new BAMPredicateAbstractionRefinementStrategy(
                                           predicateCpa.getConfiguration(),
                                           logger,
                                           predicateCpa,
@@ -280,16 +280,16 @@ public final class ABMPredicateRefiner extends AbstractBAMBasedRefiner implement
    * This is an extension of {@link PredicateAbstractionRefinementStrategy}
    * that takes care of updating the ABM state.
    */
-  private static class ABMPredicateAbstractionRefinementStrategy extends PredicateAbstractionRefinementStrategy {
+  private static class BAMPredicateAbstractionRefinementStrategy extends PredicateAbstractionRefinementStrategy {
 
     private final RefineableRelevantPredicatesComputer relevantPredicatesComputer;
-    private final ABMPredicateCPA predicateCpa;
+    private final BAMPredicateCPA predicateCpa;
 
     private List<Region> lastAbstractions = null;
     private boolean refinedLastRelevantPredicatesComputer = false;
 
-    private ABMPredicateAbstractionRefinementStrategy(final Configuration config, final LogManager logger,
-        final ABMPredicateCPA predicateCpa,
+    private BAMPredicateAbstractionRefinementStrategy(final Configuration config, final LogManager logger,
+        final BAMPredicateCPA predicateCpa,
         final FormulaManagerView pFormulaManager, final Solver pSolver,
         final PredicateAbstractionManager pPredAbsMgr,
         final PredicateStaticRefiner pStaticRefiner)
@@ -380,7 +380,7 @@ public final class ABMPredicateRefiner extends AbstractBAMBasedRefiner implement
         }
       }
 
-      ((ABMPredicateReducer)predicateCpa.getReducer()).clearCaches();
+      ((BAMPredicateReducer)predicateCpa.getReducer()).clearCaches();
     }
 
     @Override

@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
@@ -50,28 +50,28 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * Implements an ABM-based predicate CPA.
  */
 @Options(prefix="cpa.predicate.abm")
-public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgramAnalysisWithABM {
+public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgramAnalysisWithBAM {
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(ABMPredicateCPA.class).withOptions(ABMBlockOperator.class);
+    return AutomaticCPAFactory.forType(BAMPredicateCPA.class).withOptions(BAMBlockOperator.class);
   }
 
-  private final ABMPredicateReducer reducer;
-  private final ABMBlockOperator blk;
-  private final ABMPredicateCPAStatistics stats;
+  private final BAMPredicateReducer reducer;
+  private final BAMBlockOperator blk;
+  private final BAMPredicateCPAStatistics stats;
   private final RelevantPredicatesComputer relevantPredicatesComputer;
 
   @Option(description="whether to use auxiliary predidates for reduction")
   private boolean auxiliaryPredicateComputer = true;
 
 
-  private ABMPredicateCPA(Configuration config, LogManager logger,
-      ABMBlockOperator pBlk, CFA pCfa, ReachedSetFactory reachedSetFactory,
+  private BAMPredicateCPA(Configuration config, LogManager logger,
+      BAMBlockOperator pBlk, CFA pCfa, ReachedSetFactory reachedSetFactory,
       ShutdownNotifier pShutdownNotifier)
           throws InvalidConfigurationException, CPAException {
     super(config, logger, pBlk, pCfa, reachedSetFactory, pShutdownNotifier);
 
-    config.inject(this, ABMPredicateCPA.class);
+    config.inject(this, BAMPredicateCPA.class);
 
     RelevantPredicatesComputer relevantPredicatesComputer;
     if (auxiliaryPredicateComputer) {
@@ -82,9 +82,9 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
     relevantPredicatesComputer = new CachingRelevantPredicatesComputer(relevantPredicatesComputer);
     this.relevantPredicatesComputer = relevantPredicatesComputer;
 
-    reducer = new ABMPredicateReducer(getFormulaManager().getBooleanFormulaManager(), this, relevantPredicatesComputer);
+    reducer = new BAMPredicateReducer(getFormulaManager().getBooleanFormulaManager(), this, relevantPredicatesComputer);
     blk = pBlk;
-    stats = new ABMPredicateCPAStatistics(reducer);
+    stats = new BAMPredicateCPAStatistics(reducer);
   }
 
   RelevantPredicatesComputer getRelevantPredicatesComputer() {
@@ -110,7 +110,7 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
     pStatsCollection.add(stats);
   }
 
-  ABMPredicateCPAStatistics getABMStats() {
+  BAMPredicateCPAStatistics getABMStats() {
     return stats;
   }
 }

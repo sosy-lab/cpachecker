@@ -55,7 +55,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 
 
-public class ABMPredicateReducer implements Reducer {
+public class BAMPredicateReducer implements Reducer {
 
   final Timer reduceTimer = new Timer();
   final Timer expandTimer = new Timer();
@@ -67,7 +67,7 @@ public class ABMPredicateReducer implements Reducer {
   private final LogManager logger;
   private final BooleanFormulaManager bfmgr;
 
-  public ABMPredicateReducer(BooleanFormulaManager bfmgr, ABMPredicateCPA cpa, RelevantPredicatesComputer pRelevantPredicatesComputer) {
+  public BAMPredicateReducer(BooleanFormulaManager bfmgr, BAMPredicateCPA cpa, RelevantPredicatesComputer pRelevantPredicatesComputer) {
     this.pmgr = cpa.getPathFormulaManager();
     this.pamgr = cpa.getPredicateManager();
     this.bfmgr = bfmgr;

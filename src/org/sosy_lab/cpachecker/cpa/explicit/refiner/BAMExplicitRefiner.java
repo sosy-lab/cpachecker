@@ -34,17 +34,17 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 
 
-public class ABMExplicitRefiner extends AbstractBAMBasedRefiner {
+public class BAMExplicitRefiner extends AbstractBAMBasedRefiner {
 
   private DelegatingExplicitRefiner refiner;
 
-  protected ABMExplicitRefiner(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException, CPAException {
+  protected BAMExplicitRefiner(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException, CPAException {
     super(pCpa);
     refiner = DelegatingExplicitRefiner.create(pCpa);
   }
 
   public static Refiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
-    return new ABMExplicitRefiner(pCpa);
+    return new BAMExplicitRefiner(pCpa);
   }
 
   @Override

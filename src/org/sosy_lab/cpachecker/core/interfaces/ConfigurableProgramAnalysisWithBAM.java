@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-public interface ConfigurableProgramAnalysisWithABM extends
+public interface ConfigurableProgramAnalysisWithBAM extends
     ConfigurableProgramAnalysis {
 
   Reducer getReducer();

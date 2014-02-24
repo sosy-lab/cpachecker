@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 @Options
-public class ABMBlockOperator extends BlockOperator {
+public class BAMBlockOperator extends BlockOperator {
 
   private BlockPartitioning partitioning = null;
 

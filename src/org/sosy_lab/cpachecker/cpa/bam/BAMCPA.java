@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
@@ -59,7 +59,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.predicate.ABMPredicateCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -99,9 +99,9 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     logger = pLogger;
     cfa = pCfa;
 
-    if (!(pCpa instanceof ConfigurableProgramAnalysisWithABM)) { throw new InvalidConfigurationException(
+    if (!(pCpa instanceof ConfigurableProgramAnalysisWithBAM)) { throw new InvalidConfigurationException(
         "ABM needs CPAs that are capable for ABM"); }
-    Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithABM) pCpa).getReducer();
+    Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM) pCpa).getReducer();
     if (wrappedReducer == null) { throw new InvalidConfigurationException("ABM needs CPAs that are capable for ABM"); }
 
     if (pCpa instanceof ProofChecker) {
@@ -126,7 +126,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       blockPartitioning = heuristic.buildPartitioning(node);
       transfer.setBlockPartitioning(blockPartitioning);
 
-      ABMPredicateCPA predicateCpa = ((WrapperCPA) getWrappedCpa()).retrieveWrappedCpa(ABMPredicateCPA.class);
+      BAMPredicateCPA predicateCpa = ((WrapperCPA) getWrappedCpa()).retrieveWrappedCpa(BAMPredicateCPA.class);
       if (predicateCpa != null) {
         predicateCpa.setPartitioning(blockPartitioning);
       }
