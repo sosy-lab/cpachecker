@@ -23,11 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
-
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -37,6 +33,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
@@ -72,6 +69,7 @@ import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 import com.google.common.collect.ImmutableSet;
+import org.sosy_lab.cpachecker.util.CFATraversal;
 
 /**
  * This class takes several CFAs (each for a single function) and combines them
@@ -92,7 +90,8 @@ public class CFASecondPassBuilder {
   protected final Language language;
   protected final LogManager logger;
 
-  public CFASecondPassBuilder(MutableCFA pCfa, Language pLanguage, LogManager pLogger, Configuration config) throws InvalidConfigurationException {
+  public CFASecondPassBuilder(final MutableCFA pCfa, final Language pLanguage, final LogManager pLogger,
+                              final Configuration config) throws InvalidConfigurationException {
     cfa = pCfa;
     language = pLanguage;
     logger = pLogger;
@@ -100,73 +99,44 @@ public class CFASecondPassBuilder {
   }
 
   /**
-   * Inserts call edges and return edges (@see {@link #insertCallEdges(CFANode)}
-   * in all functions.
-   * @param functionName  The function where to start processing.
-   * @throws ParserException
+   * Inserts call edges and return edges (@see {@link #insertCallEdges(AStatementEdge)} in all functions.
    */
   public void insertCallEdgesRecursively() throws ParserException {
-    for (FunctionEntryNode functionStartNode : cfa.getAllFunctionHeads()) {
-      insertCallEdges(functionStartNode);
+
+    // 1.Step: get all function calls
+    final FunctionCallCollector visitor = new FunctionCallCollector();
+    for (final FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
+      CFATraversal.dfs().traverseOnce(entryNode, visitor);
+      // No need for Traversal.ignoreFunctionCalls(), because there are no functioncall-edges.
+      // They are created in the next loop.
+    }
+
+    // 2.Step: replace functionCalls with functioncall- and return-edges
+    for (final AStatementEdge functionCall: visitor.functionCalls) {
+      insertCallEdges(functionCall);
     }
   }
 
   /**
-   * Traverses a CFA with the specified function name and insert call edges
-   * and return edges from the call site and to the return site of the function
-   * call.
-   * @param initialNode CFANode where to start processing
-   * @throws ParserException
+   * Inserts call edges and return edges from the call site and to the return site of the function call.
    */
-  private void insertCallEdges(FunctionEntryNode initialNode) throws ParserException {
-    // we use a worklist algorithm
-    Deque<CFANode> workList = new ArrayDeque<>();
-    Set<CFANode> processed = new HashSet<>();
-
-    workList.addLast(initialNode);
-
-    while (!workList.isEmpty()) {
-      CFANode node = workList.pollFirst();
-      if (!processed.add(node)) {
-        // already handled
-        continue;
-      }
-
-      for (CFAEdge edge : leavingEdges(node).toList()) {
-        if (edge instanceof AStatementEdge) {
-          AStatementEdge statementEdge = (AStatementEdge)edge;
-          if (statementEdge.getStatement() instanceof AFunctionCall) {
-            AFunctionCall call = (AFunctionCall)statementEdge.getStatement();
-
-            if (shouldCreateCallEdges(call)) {
-              createCallAndReturnEdges(statementEdge, call);
-            } else {
-              replaceBuiltinFunction(statementEdge, call);
-            }
-          }
-        }
-
-        // if successor node is not on a different CFA, add it to the worklist
-        CFANode successorNode = edge.getSuccessor();
-        if (node.getFunctionName().equals(successorNode.getFunctionName())) {
-          workList.add(successorNode);
-        }
-      }
+  private void insertCallEdges(final AStatementEdge statementEdge) throws ParserException {
+    final AFunctionCall call = (AFunctionCall)statementEdge.getStatement();
+    if (shouldCreateCallEdges(call)) {
+      createCallAndReturnEdges(statementEdge, call);
+    } else {
+      replaceBuiltinFunction(statementEdge, call);
     }
   }
 
-  private boolean shouldCreateCallEdges(AFunctionCall call) {
-    AFunctionCallExpression f = call.getFunctionCallExpression();
+  /** returns True, iff the called function has a body (and a CFA). */
+  private boolean shouldCreateCallEdges(final AFunctionCall call) {
+    final ADeclaration functionDecl = call.getFunctionCallExpression().getDeclaration();
 
     // If we have a function declaration, it is a normal call to this function,
-    // and neither a call to an undefined function,
-    // nor a function pointer call.
-    if (f.getDeclaration() != null) {
-      String name = f.getDeclaration().getName();
-      return cfa.getAllFunctionNames().contains(name);
-    }
-
-    return false;
+    // and neither a call to an undefined function nor a function pointer call.
+    return (functionDecl != null)
+            && cfa.getAllFunctionNames().contains(functionDecl.getName());
   }
 
   /**
@@ -346,5 +316,30 @@ public class CFASecondPassBuilder {
     cfa.addNode(elseNode);
     CFACreationUtils.addEdgeUnconditionallyToCFA(trueEdge);
     CFACreationUtils.addEdgeUnconditionallyToCFA(falseEdge);
+  }
+
+  /** This Visitor collects all functioncalls.
+   *  It should visit the CFA of each functions before creating super-edges (functioncall- and return-edges). */
+  private static class FunctionCallCollector extends CFATraversal.DefaultCFAVisitor {
+
+    final List<AStatementEdge> functionCalls = new LinkedList<>();
+
+    @Override
+    public CFATraversal.TraversalProcess visitEdge(final CFAEdge pEdge) {
+      switch (pEdge.getEdgeType()) {
+        case StatementEdge: {
+          final AStatementEdge edge = (AStatementEdge) pEdge;
+          if (edge.getStatement() instanceof AFunctionCall) {
+            functionCalls.add(edge);
+          }
+          break;
+        }
+
+        case FunctionCallEdge:
+        case CallToReturnEdge:
+          throw new AssertionError("functioncall- and return-edges should not exist at this time.");
+      }
+      return CFATraversal.TraversalProcess.CONTINUE;
+    }
   }
 }
