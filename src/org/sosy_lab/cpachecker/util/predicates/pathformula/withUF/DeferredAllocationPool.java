@@ -105,6 +105,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
   }
 
   DeferredAllocationPool addPointerVariable(final String pointerVariable) {
+    assert !pointerVariables.contains(pointerVariable);
     return new DeferredAllocationPool(this, this.pointerVariables.with(pointerVariable));
   }
 
@@ -147,10 +148,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
     return result;
   }
 
-  private final PersistentList<String> pointerVariables;
+  private final PersistentList<String> pointerVariables; // actually a set
   private final boolean isZeroing;
   private final CIntegerLiteralExpression size;
-  private final PersistentList<String> baseVariables;
+  private final PersistentList<String> baseVariables; // actually a set
 
 
   static <T> PersistentList<T> mergeLists(final PersistentList<T> list1,

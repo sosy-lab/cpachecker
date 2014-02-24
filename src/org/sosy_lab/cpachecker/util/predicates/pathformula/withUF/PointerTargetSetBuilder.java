@@ -337,7 +337,7 @@ public interface PointerTargetSetBuilder {
       for (final String pointerVariable : newDeferredAllocationPool.getPointerVariables()) {
         deferredAllocations = deferredAllocations.putAndCopy(pointerVariable, newDeferredAllocationPool);
       }
-      deferredAllocations = deferredAllocations.putAndCopy(newPointerVariable, newDeferredAllocationPool);
+      assert deferredAllocations.get(newPointerVariable) == newDeferredAllocationPool;
     }
 
     /**
