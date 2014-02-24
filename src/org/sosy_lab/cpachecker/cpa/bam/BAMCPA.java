@@ -100,9 +100,9 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     cfa = pCfa;
 
     if (!(pCpa instanceof ConfigurableProgramAnalysisWithBAM)) { throw new InvalidConfigurationException(
-        "ABM needs CPAs that are capable for ABM"); }
+        "BAM needs CPAs that are capable for BAM"); }
     Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM) pCpa).getReducer();
-    if (wrappedReducer == null) { throw new InvalidConfigurationException("ABM needs CPAs that are capable for ABM"); }
+    if (wrappedReducer == null) { throw new InvalidConfigurationException("BAM needs CPAs that are capable for BAM"); }
 
     if (pCpa instanceof ProofChecker) {
       this.wrappedProofChecker = (ProofChecker) pCpa;

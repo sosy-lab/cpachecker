@@ -354,17 +354,17 @@ public class BAMTransferRelation implements TransferRelation {
 
 
 
-  public BAMTransferRelation(Configuration pConfig, LogManager pLogger, BAMCPA abmCpa, ProofChecker wrappedChecker,
+  public BAMTransferRelation(Configuration pConfig, LogManager pLogger, BAMCPA bamCpa, ProofChecker wrappedChecker,
       ReachedSetFactory pReachedSetFactory, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = pLogger;
-    algorithmFactory = new CPAAlgorithmFactory(abmCpa, logger, pConfig, pShutdownNotifier);
+    algorithmFactory = new CPAAlgorithmFactory(bamCpa, logger, pConfig, pShutdownNotifier);
     reachedSetFactory = pReachedSetFactory;
-    wrappedTransfer = abmCpa.getWrappedCpa().getTransferRelation();
-    wrappedReducer = abmCpa.getReducer();
-    prec = abmCpa.getPrecisionAdjustment();
+    wrappedTransfer = bamCpa.getWrappedCpa().getTransferRelation();
+    wrappedReducer = bamCpa.getReducer();
+    prec = bamCpa.getPrecisionAdjustment();
     PCCInformation.instantiate(pConfig);
-    bamCPA = abmCpa;
+    bamCPA = bamCpa;
     wrappedProofChecker = wrappedChecker;
 
     assert wrappedReducer != null;
@@ -563,7 +563,7 @@ public class BAMTransferRelation implements TransferRelation {
       ARGState rootOfBlock = null;
       if (PCCInformation.isPCCEnabled()) {
         if (!(reached.getFirstState() instanceof ARGState)) { throw new CPATransferException(
-            "Cannot build proof, ARG, for ABM analysis."); }
+            "Cannot build proof, ARG, for BAM analysis."); }
         rootOfBlock = BAMARGUtils.copyARG((ARGState) reached.getFirstState());
       }
       argCache.put(reducedInitialState, reached.getPrecision(reached.getFirstState()), currentBlock, returnElements,
@@ -640,7 +640,7 @@ public class BAMTransferRelation implements TransferRelation {
   private void addBlockAnalysisInfo(AbstractState pElement) throws CPATransferException {
     if (PCCInformation.isPCCEnabled()) {
       if (argCache.getLastAnalyzedBlock() == null || !(pElement instanceof BAMARGBlockStartState)) { throw new CPATransferException(
-          "Cannot build proof, ARG, for ABM analysis."); }
+          "Cannot build proof, ARG, for BAM analysis."); }
       PredicateAbstractState pred = extractStateByType(pElement, PredicateAbstractState.class);
       if (pred == null) {
         ((BAMARGBlockStartState) pElement).setAnalyzedBlock(argCache.getLastAnalyzedBlock());

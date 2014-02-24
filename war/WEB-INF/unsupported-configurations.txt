@@ -2,7 +2,7 @@
 # that are not supported by CPAchecker on Google App Engine.
 CBMC.properties
 chc.properties
-explicitAnalysis-no-cbmc-abm.properties
+explicitAnalysis-no-cbmc-bam.properties
 explicitAnalysis-no-cbmc.properties
 lddAnalysis.properties
 octagonAnalysis.properties

@@ -68,9 +68,9 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
       throws InvalidConfigurationException {
     super(pCpa);
 
-    BAMCPA abmCpa = (BAMCPA)pCpa;
-    transfer = abmCpa.getTransferRelation();
-    abmCpa.getStatistics().addRefiner(this);
+    BAMCPA bamCpa = (BAMCPA)pCpa;
+    transfer = bamCpa.getTransferRelation();
+    bamCpa.getStatistics().addRefiner(this);
   }
 
   /**

@@ -80,7 +80,7 @@ import com.google.common.collect.Lists;
 
 
 /**
- * Implements predicate refinements when using ABM.
+ * Implements predicate refinements when using BAM.
  * It is based on the {@link AbstractBAMBasedRefiner} and delegates the work to
  * a {@link ExtendedPredicateRefiner}, which is a small extension of the regular
  * {@link PredicateCPARefiner}.
@@ -164,7 +164,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
 
   /**
    * This is a small extension of PredicateCPARefiner that overrides
-   * {@link #getFormulasForPath(List, ARGState)} so that it respects ABM.
+   * {@link #getFormulasForPath(List, ARGState)} so that it respects BAM.
    */
   private static final class ExtendedPredicateRefiner extends PredicateCPARefiner {
 
@@ -278,7 +278,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
 
   /**
    * This is an extension of {@link PredicateAbstractionRefinementStrategy}
-   * that takes care of updating the ABM state.
+   * that takes care of updating the BAM state.
    */
   private static class BAMPredicateAbstractionRefinementStrategy extends PredicateAbstractionRefinementStrategy {
 
@@ -385,7 +385,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
 
     @Override
     protected void analyzePathPrecisions(ARGReachedSet argReached, List<ARGState> path) {
-      // Not implemented for ABM (different sets of reached states have to be handled)
+      // Not implemented for BAM (different sets of reached states have to be handled)
     }
   }
 

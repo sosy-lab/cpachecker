@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 /**
- * Prints some ABM related statistics
+ * Prints some BAM related statistics
  */
 class BAMCPAStatistics implements Statistics {
 
@@ -97,7 +97,7 @@ class BAMCPAStatistics implements Statistics {
       out.println("  Searching path to error location:                             " + refiner.computeCounterexampleTimer);
     }
 
-    //Add to reached set all states from abm cache
+    //Add to reached set all states from BAM cache
     Collection<ReachedSet> cachedStates = transferRelation.getCachedReachedSet();
     for (ReachedSet set : cachedStates) {
       for (AbstractState state : set.asCollection()) {

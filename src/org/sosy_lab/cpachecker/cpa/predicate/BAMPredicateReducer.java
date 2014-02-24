@@ -119,7 +119,7 @@ public class BAMPredicateReducer implements Reducer {
     PredicateAbstractState reducedState = (PredicateAbstractState) pReducedState;
 
     if (!reducedState.isAbstractionState()) { return reducedState; }
-    //Note: ABM might introduce some additional abstraction if root region is not a cube
+    //Note: BAM might introduce some additional abstraction if root region is not a cube
     expandTimer.start();
     try {
 

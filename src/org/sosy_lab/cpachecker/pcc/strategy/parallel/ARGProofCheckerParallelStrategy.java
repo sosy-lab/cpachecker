@@ -110,21 +110,21 @@ public class ARGProofCheckerParallelStrategy extends AbstractStrategy {
         helperThreads[i].start();
       }
 
-      //check ABMARG blocks
+      //check BAMARG blocks
       Block block;
-      BAMARGBlockStartState abmState;
+      BAMARGBlockStartState bamState;
       Collection<ARGState> returnNodes;
       ArrayList<ARGState> partialReturnNodes = new ArrayList<>();
       List<ARGState> argStates;
       int numElems;
       for (int i = 0; i < args.length - 2; i++) {
-        abmState = (BAMARGBlockStartState) args[i];
+        bamState = (BAMARGBlockStartState) args[i];
         block =
             ((BAMCPA) checker).getTransferRelation().getBlockPartitioning()
-                .getBlockForCallNode(AbstractStates.extractLocation(abmState));
+                .getBlockForCallNode(AbstractStates.extractLocation(bamState));
 
         // traverse
-        argStates = getARGElements(abmState.getAnalyzedBlock());
+        argStates = getARGElements(bamState.getAnalyzedBlock());
 
         // init checking
         numElems = argStates.size() / numThreads;

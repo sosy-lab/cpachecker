@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 
 /**
- * Implements an ABM-based predicate CPA.
+ * Implements an BAM-based predicate CPA.
  */
 @Options(prefix="cpa.predicate.abm")
 public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgramAnalysisWithBAM {
