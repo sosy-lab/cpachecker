@@ -26,12 +26,10 @@ package org.sosy_lab.cpachecker.cfa;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Deque;
 import java.util.EnumSet;
-import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -43,6 +41,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -54,7 +53,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -69,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.base.Function;
@@ -219,43 +218,36 @@ public class CFunctionPointerResolver {
    * potentially replacing function pointer calls with regular function calls.
    */
   public void resolveFunctionPointers() {
+
+    // 1.Step: get all function calls
+    final FunctionPointerCallCollector visitor = new FunctionPointerCallCollector();
     for (FunctionEntryNode functionStartNode : cfa.getAllFunctionHeads()) {
-      resolveFunctionPointers(functionStartNode);
+      CFATraversal.dfs().traverseOnce(functionStartNode, visitor);
+    }
+
+    // 2.Step: replace functionCalls with functioncall- and return-edges
+    // This loop replaces function pointer calls inside the given function with regular function calls.
+    for (final CStatementEdge edge : visitor.functionPointerCalls) {
+      replaceFunctionPointerCall((CFunctionCall)edge.getStatement(), edge);
     }
   }
 
-  /**
-   * This method replaces function pointer calls inside the given function
-   * with regular function calls.
-   */
-  private void resolveFunctionPointers(FunctionEntryNode initialNode) {
-    // we use a worklist algorithm
-    Deque<CFANode> workList = new ArrayDeque<>();
-    Set<CFANode> processed = new HashSet<>();
+  /** This Visitor collects all functioncalls for functionPointers.
+   *  It should visit the CFA of each functions before creating super-edges (functioncall- and return-edges). */
+  private class FunctionPointerCallCollector extends CFATraversal.DefaultCFAVisitor {
 
-    workList.addLast(initialNode);
+    final List<CStatementEdge> functionPointerCalls = new LinkedList<>();
 
-    while (!workList.isEmpty()) {
-      CFANode node = workList.pollFirst();
-      if (!processed.add(node)) {
-        // already handled
-        continue;
-      }
-
-      for (CFAEdge edge : leavingEdges(node).toList()) {
-        if (edge instanceof CStatementEdge) {
-          CStatementEdge statement = (CStatementEdge)edge;
-          CStatement stmt = statement.getStatement();
-          if (stmt instanceof CFunctionCall) {
-            CFunctionCall call = (CFunctionCall)stmt;
-            if (isFunctionPointerCall(call)) {
-              replaceFunctionPointerCall(call, statement);
-            }
-          }
+    @Override
+    public CFATraversal.TraversalProcess visitEdge(final CFAEdge pEdge) {
+      if (pEdge instanceof CStatementEdge) {
+        final CStatementEdge edge = (CStatementEdge) pEdge;
+        final IAStatement stmt = edge.getStatement();
+        if (stmt instanceof CFunctionCall && isFunctionPointerCall((CFunctionCall)stmt)) {
+          functionPointerCalls.add(edge);
         }
-
-        workList.add(edge.getSuccessor());
       }
+      return CFATraversal.TraversalProcess.CONTINUE;
     }
   }
 
