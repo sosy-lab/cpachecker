@@ -29,7 +29,6 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -236,7 +235,7 @@ public class CFunctionPointerResolver {
    *  It should visit the CFA of each functions before creating super-edges (functioncall- and return-edges). */
   private class FunctionPointerCallCollector extends CFATraversal.DefaultCFAVisitor {
 
-    final List<CStatementEdge> functionPointerCalls = new LinkedList<>();
+    final List<CStatementEdge> functionPointerCalls = new ArrayList<>();
 
     @Override
     public CFATraversal.TraversalProcess visitEdge(final CFAEdge pEdge) {

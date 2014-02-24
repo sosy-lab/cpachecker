@@ -42,8 +42,8 @@ import com.google.common.collect.Multimap;
 
 
 /** This class allows to dump functioncalls in a tree-like structure.
- * For most cases the structure is a tree, but for special cases the graph can contain
- * loops (-> recursion) or several root-nodes (-> one for each unused functions).
+ * For most cases the structure is a tree, but for special cases the graph contains
+ * loops (-> recursion) or several root-nodes (-> one for each unused function).
  */
 public class FunctionCallDumper {
 

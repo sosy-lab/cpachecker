@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -322,7 +322,7 @@ public class CFASecondPassBuilder {
    *  It should visit the CFA of each functions before creating super-edges (functioncall- and return-edges). */
   private static class FunctionCallCollector extends CFATraversal.DefaultCFAVisitor {
 
-    final List<AStatementEdge> functionCalls = new LinkedList<>();
+    final List<AStatementEdge> functionCalls = new ArrayList<>();
 
     @Override
     public CFATraversal.TraversalProcess visitEdge(final CFAEdge pEdge) {
