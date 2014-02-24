@@ -743,16 +743,15 @@ public class CtoFormulaConverter {
   }
 
 //  @Override
-  public Pair<PathFormula, ErrorConditions> makeAnd(PathFormula oldFormula, CFAEdge edge)
+  public PathFormula makeAnd(PathFormula oldFormula,
+      CFAEdge edge, ErrorConditions errorConditions)
       throws CPATransferException {
     // this is where the "meat" is... We have to parse the statement
     // attached to the edge, and convert it to the appropriate formula
-    ErrorConditions errorConditions = new ErrorConditions(bfmgr);
-
     if (edge.getEdgeType() == CFAEdgeType.BlankEdge) {
 
       // in this case there's absolutely nothing to do, so take a shortcut
-      return Pair.of(oldFormula, errorConditions);
+      return oldFormula;
     }
 
     String function = (edge.getPredecessor() != null)
@@ -774,13 +773,12 @@ public class CtoFormulaConverter {
         && newPts.equals(oldFormula.getPointerTargetSet())) {
       // formula is just "true" and rest is equal
       // i.e. no writes to SSAMap, no branching and length should stay the same
-      return Pair.of(oldFormula, errorConditions);
+      return oldFormula;
     }
 
     BooleanFormula newFormula = bfmgr.and(oldFormula.getFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;
-    return Pair.of(new PathFormula(newFormula, newSsa, newPts, newLength),
-                   errorConditions);
+    return new PathFormula(newFormula, newSsa, newPts, newLength);
   }
 
   /**

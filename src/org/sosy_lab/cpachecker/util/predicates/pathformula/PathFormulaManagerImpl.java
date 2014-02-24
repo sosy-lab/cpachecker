@@ -161,10 +161,17 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Override
   public Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(PathFormula pOldFormula,
                              final CFAEdge pEdge) throws CPATransferException {
-    Pair<PathFormula, ErrorConditions> result = converter.makeAnd(pOldFormula, pEdge);
+    ErrorConditions errorConditions = new ErrorConditions(bfmgr);
+    PathFormula pf = makeAnd(pOldFormula, pEdge, errorConditions);
+
+    return Pair.of(pf, errorConditions);
+  }
+
+  private PathFormula makeAnd(PathFormula pOldFormula, final CFAEdge pEdge, ErrorConditions errorConditions)
+      throws CPATransferException {
+    PathFormula pf = converter.makeAnd(pOldFormula, pEdge, errorConditions);
 
     if (useNondetFlags) {
-      PathFormula pf = result.getFirst();
       SSAMapBuilder ssa = pf.getSsa().builder();
 
       int lNondetIndex = ssa.getIndex(NONDET_VARIABLE);
@@ -187,17 +194,16 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         //setSsaIndex(ssa, Variable.create(NONDET_FLAG_VARIABLE, getNondetType()), lNondetIndex);
         ssa.setIndex(NONDET_FLAG_VARIABLE, NONDET_TYPE, lNondetIndex);
 
-        result = Pair.of(new PathFormula(edgeFormula, ssa.build(), pf.getPointerTargetSet(), pf.getLength()),
-                         result.getSecond());
+        pf = new PathFormula(edgeFormula, ssa.build(), pf.getPointerTargetSet(), pf.getLength());
       }
     }
-
-    return result;
+    return pf;
   }
 
   @Override
   public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException {
-    return makeAndWithErrorConditions(pOldFormula, pEdge).getFirst();
+    ErrorConditions errorConditions = new ErrorConditions(bfmgr);
+    return makeAnd(pOldFormula, pEdge, errorConditions);
   }
 
   @Override
