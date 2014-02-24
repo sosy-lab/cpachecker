@@ -218,7 +218,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   Formula makeDereference(CType type,
                          final Formula address,
                          final SSAMapBuilder ssa,
-                         final @Nullable ErrorConditions errorConditions) {
+                         final ErrorConditions errorConditions) {
     if (errorConditions.isEnabled()) {
       errorConditions.addInvalidDerefCondition(fmgr.makeEqual(address, nullPointer));
       errorConditions.addInvalidDerefCondition(fmgr.makeLessThan(address, makeBaseAddressOfTerm(address), false));
@@ -464,7 +464,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                 final @Nonnull CFAEdge edge,
                                 final @Nonnull SSAMapBuilder ssa,
                                 final @Nonnull Constraints constraints,
-                                final @Nullable ErrorConditions errorConditions,
+                                final ErrorConditions errorConditions,
                                 final @Nonnull PointerTargetSetBuilder pts)
   throws UnrecognizedCCodeException {
     // Its a definite value assignment, a nondet assignment (SSA index update) or a nondet assignment among other
@@ -679,7 +679,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                    final @Nullable Set<Variable> updatedVariables,
                                                    final @Nonnull CFAEdge edge,
                                                    final @Nonnull SSAMapBuilder ssa,
-                                                   final @Nullable ErrorConditions errorConditions,
+                                                   final ErrorConditions errorConditions,
                                                    final @Nonnull PointerTargetSetBuilder pts)
   throws UnrecognizedCCodeException {
     lvalueType = CTypeUtils.simplifyType(lvalueType);
@@ -816,7 +816,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                          final @Nullable Set<Variable> updatedVariables,
                                                          final @Nonnull CFAEdge edge,
                                                          final @Nonnull SSAMapBuilder ssa,
-                                                         final @Nullable ErrorConditions errorConditions)
+                                                         final ErrorConditions errorConditions)
   throws UnrecognizedCCodeException {
     lvalueType = CTypeUtils.simplifyType(lvalueType);
     rvalueType = CTypeUtils.simplifyType(rvalueType);
@@ -1028,7 +1028,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                                              final String function,
                                                                              final SSAMapBuilder ssa,
                                                                              final Constraints constraints,
-                                                                             final @Nullable ErrorConditions errorConditions,
+                                                                             final ErrorConditions errorConditions,
                                                                              final PointerTargetSetBuilder pts) {
     final LvalueToPointerTargetPatternVisitor lvalueVisitor = getLvalueToPointerTargetPatternVisitor(cfaEdge, pts);
     return new StatementToFormulaWithUFVisitor(lvalueVisitor, this, cfaEdge, function, ssa, constraints, errorConditions, pts);

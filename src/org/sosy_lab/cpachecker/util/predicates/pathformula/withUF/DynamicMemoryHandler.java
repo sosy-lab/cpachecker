@@ -84,7 +84,7 @@ class DynamicMemoryHandler {
   private final SSAMapBuilder ssa;
   private final PointerTargetSetBuilder pts;
   private final Constraints constraints;
-  private final @Nullable ErrorConditions errorConditions;
+  private final ErrorConditions errorConditions;
 
   DynamicMemoryHandler(CToFormulaWithUFConverter pConv,
       CFAEdge pEdge, SSAMapBuilder pSsa,

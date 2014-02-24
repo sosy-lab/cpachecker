@@ -78,7 +78,7 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
                                          final String function,
                                          final SSAMapBuilder ssa,
                                          final Constraints constraints,
-                                         final @Nullable ErrorConditions errorConditions,
+                                         final ErrorConditions errorConditions,
                                          final PointerTargetSetBuilder pts) {
     super(cToFormulaConverter, cfaEdge, function, ssa, constraints, errorConditions, pts);
 

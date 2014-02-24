@@ -28,8 +28,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.cdt.internal.core.dom.parser.c.CFunctionType;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -74,7 +72,7 @@ abstract class ExpressionToFormulaWithUFVisitor
                                           final String function,
                                           final SSAMapBuilder ssa,
                                           final Constraints constraints,
-                                          final @Nullable ErrorConditions errorConditions,
+                                          final ErrorConditions errorConditions,
                                           final PointerTargetSetBuilder pts) {
 
     delegate = new ExpressionToFormulaVisitor(cToFormulaConverter, cfaEdge, function, ssa, constraints) {
@@ -441,7 +439,7 @@ abstract class ExpressionToFormulaWithUFVisitor
   protected final String function;
   protected final SSAMapBuilder ssa;
   protected final Constraints constraints;
-  protected final @Nullable ErrorConditions errorConditions;
+  protected final ErrorConditions errorConditions;
   protected final PointerTargetSetBuilder pts;
 
   private final BaseVisitor baseVisitor;
