@@ -86,7 +86,7 @@ public class ARGProofCheckerParallelStrategy extends AbstractStrategy {
   @Override
   public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) {
     if (correctReachedSetFormatForProof(pReached)) {
-      args = orderABMBlockStartStates((ARGState) pReached.getFirstState());
+      args = orderBAMBlockStartStates((ARGState) pReached.getFirstState());
       args[args.length - 1] = (ARGState) pReached.getFirstState();
     }
   }
@@ -297,7 +297,7 @@ public class ARGProofCheckerParallelStrategy extends AbstractStrategy {
     }
   }
 
-  private ARGState[] orderABMBlockStartStates(ARGState pMainRoot) {
+  private ARGState[] orderBAMBlockStartStates(ARGState pMainRoot) {
     HashMap<BAMARGBlockStartState, Pair<Integer, BitSet>> map = new HashMap<>();
     Stack<BAMARGBlockStartState> blocksToVisit = new Stack<>();
     int nextIndex = 0;

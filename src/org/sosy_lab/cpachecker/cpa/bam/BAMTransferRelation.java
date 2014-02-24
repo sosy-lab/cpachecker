@@ -327,7 +327,7 @@ public class BAMTransferRelation implements TransferRelation {
   private final ReachedSetFactory reachedSetFactory;
   private final Reducer wrappedReducer;
   private final BAMPrecisionAdjustment prec;
-  private final BAMCPA abmCPA;
+  private final BAMCPA bamCPA;
   private final ProofChecker wrappedProofChecker;
 
   private Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision;
@@ -364,7 +364,7 @@ public class BAMTransferRelation implements TransferRelation {
     wrappedReducer = abmCpa.getReducer();
     prec = abmCpa.getPrecisionAdjustment();
     PCCInformation.instantiate(pConfig);
-    abmCPA = abmCpa;
+    bamCPA = abmCpa;
     wrappedProofChecker = wrappedChecker;
 
     assert wrappedReducer != null;
@@ -1122,7 +1122,7 @@ public class BAMTransferRelation implements TransferRelation {
       try {
         if (!(pState instanceof BAMARGBlockStartState)
             || ((BAMARGBlockStartState) pState).getAnalyzedBlock() == null
-            || !abmCPA.isCoveredBy(wrappedReducer.getVariableReducedStateForProofChecking(pState, analyzedBlock, node),
+            || !bamCPA.isCoveredBy(wrappedReducer.getVariableReducedStateForProofChecking(pState, analyzedBlock, node),
                 ((BAMARGBlockStartState) pState).getAnalyzedBlock())) { return false; }
       } catch (CPAException e) {
         throw new CPATransferException("Missing information about block whose analysis is expected to be started at "
@@ -1155,7 +1155,7 @@ public class BAMTransferRelation implements TransferRelation {
           successorExists = false;
           expandedState = wrappedReducer.getVariableExpandedStateForProofChecking(pState, analyzedBlock, leaveB);
           for (AbstractState next : blockSuccessors.get(extractLocation(leaveB))) {
-            if (abmCPA.isCoveredBy(expandedState, next)) {
+            if (bamCPA.isCoveredBy(expandedState, next)) {
               successorExists = true;
               notFoundSuccessors.remove(next);
             }
@@ -1224,7 +1224,7 @@ public class BAMTransferRelation implements TransferRelation {
         coveredNodes.clear();
         coveredNodes.add(current);
         do {
-          if (!abmCPA.isCoveredBy(current, current.getCoveringState())) {
+          if (!bamCPA.isCoveredBy(current, current.getCoveringState())) {
             returnNodes = Collections.emptyList();
             return Pair.of(false, returnNodes);
           }

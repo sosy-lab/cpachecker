@@ -110,7 +110,7 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
     pStatsCollection.add(stats);
   }
 
-  BAMPredicateCPAStatistics getABMStats() {
+  BAMPredicateCPAStatistics getBAMStats() {
     return stats;
   }
 }
