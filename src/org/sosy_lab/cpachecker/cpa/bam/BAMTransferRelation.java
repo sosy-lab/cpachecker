@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.abm;
+package org.sosy_lab.cpachecker.cpa.bam;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
@@ -78,7 +78,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
 @Options(prefix = "cpa.abm")
-public class ABMTransferRelation implements TransferRelation {
+public class BAMTransferRelation implements TransferRelation {
 
   private class AbstractStateHash {
 
@@ -326,8 +326,8 @@ public class ABMTransferRelation implements TransferRelation {
   private final TransferRelation wrappedTransfer;
   private final ReachedSetFactory reachedSetFactory;
   private final Reducer wrappedReducer;
-  private final ABMPrecisionAdjustment prec;
-  private final ABMCPA abmCPA;
+  private final BAMPrecisionAdjustment prec;
+  private final BAMCPA abmCPA;
   private final ProofChecker wrappedProofChecker;
 
   private Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision;
@@ -354,7 +354,7 @@ public class ABMTransferRelation implements TransferRelation {
 
 
 
-  public ABMTransferRelation(Configuration pConfig, LogManager pLogger, ABMCPA abmCpa, ProofChecker wrappedChecker,
+  public BAMTransferRelation(Configuration pConfig, LogManager pLogger, BAMCPA abmCpa, ProofChecker wrappedChecker,
       ReachedSetFactory pReachedSetFactory, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = pLogger;
@@ -439,8 +439,8 @@ public class ABMTransferRelation implements TransferRelation {
           AbstractState reducedState = reducedPair.getFirst();
           Precision reducedPrecision = reducedPair.getSecond();
 
-          if (reducedState == ABMARGBlockStartState.getDummy()) {
-            ((ABMARGBlockStartState)reducedState).addParent((ARGState) pElement);
+          if (reducedState == BAMARGBlockStartState.getDummy()) {
+            ((BAMARGBlockStartState)reducedState).addParent((ARGState) pElement);
             expandedResult.add(reducedState);
             return expandedResult;
           }
@@ -553,7 +553,7 @@ public class ABMTransferRelation implements TransferRelation {
         //analysis failed -> also break this analysis
         prec.breakAnalysis();
         return Collections.singletonList(Pair.of(
-            (AbstractState) ABMARGBlockStartState.createDummy(reducedInitialState),
+            (AbstractState) BAMARGBlockStartState.createDummy(reducedInitialState),
             reducedInitialPrecision)); //dummy element
       } else {
         returnElements = AbstractStates.filterLocations(reached, currentBlock.getReturnNodes())
@@ -564,7 +564,7 @@ public class ABMTransferRelation implements TransferRelation {
       if (PCCInformation.isPCCEnabled()) {
         if (!(reached.getFirstState() instanceof ARGState)) { throw new CPATransferException(
             "Cannot build proof, ARG, for ABM analysis."); }
-        rootOfBlock = ABMARGUtils.copyARG((ARGState) reached.getFirstState());
+        rootOfBlock = BAMARGUtils.copyARG((ARGState) reached.getFirstState());
       }
       argCache.put(reducedInitialState, reached.getPrecision(reached.getFirstState()), currentBlock, returnElements,
           rootOfBlock);
@@ -591,7 +591,7 @@ public class ABMTransferRelation implements TransferRelation {
       List<AbstractState> successorsWithExtendedInfo = new ArrayList<>(pSuccessors.size());
       for (AbstractState elem : pSuccessors) {
         if (!(elem instanceof ARGState)) { return pSuccessors; }
-        if (!(elem instanceof ABMARGBlockStartState)) {
+        if (!(elem instanceof BAMARGBlockStartState)) {
           successorsWithExtendedInfo.add(createAdditionalInfo((ARGState) elem));
         } else {
           successorsWithExtendedInfo.add(elem);
@@ -603,14 +603,14 @@ public class ABMTransferRelation implements TransferRelation {
   }
 
   protected AbstractState attachAdditionalInfoToCallNode(AbstractState pElem) {
-    if (!(pElem instanceof ABMARGBlockStartState) && PCCInformation.isPCCEnabled() && pElem instanceof ARGState) { return createAdditionalInfo((ARGState) pElem); }
+    if (!(pElem instanceof BAMARGBlockStartState) && PCCInformation.isPCCEnabled() && pElem instanceof ARGState) { return createAdditionalInfo((ARGState) pElem); }
     return pElem;
   }
 
   private ARGState createAdditionalInfo(ARGState pElem) {
     CFANode node = AbstractStates.extractLocation(pElem);
     if (partitioning.isCallNode(node) && !partitioning.getBlockForCallNode(node).equals(currentBlock)) {
-      ABMARGBlockStartState replaceWith = new ABMARGBlockStartState(pElem.getWrappedState(), null);
+      BAMARGBlockStartState replaceWith = new BAMARGBlockStartState(pElem.getWrappedState(), null);
       replaceInARG(pElem, replaceWith);
       return replaceWith;
     }
@@ -639,13 +639,13 @@ public class ABMTransferRelation implements TransferRelation {
 
   private void addBlockAnalysisInfo(AbstractState pElement) throws CPATransferException {
     if (PCCInformation.isPCCEnabled()) {
-      if (argCache.getLastAnalyzedBlock() == null || !(pElement instanceof ABMARGBlockStartState)) { throw new CPATransferException(
+      if (argCache.getLastAnalyzedBlock() == null || !(pElement instanceof BAMARGBlockStartState)) { throw new CPATransferException(
           "Cannot build proof, ARG, for ABM analysis."); }
       PredicateAbstractState pred = extractStateByType(pElement, PredicateAbstractState.class);
       if (pred == null) {
-        ((ABMARGBlockStartState) pElement).setAnalyzedBlock(argCache.getLastAnalyzedBlock());
+        ((BAMARGBlockStartState) pElement).setAnalyzedBlock(argCache.getLastAnalyzedBlock());
       } else {
-        ((ABMARGBlockStartState) pElement).setAnalyzedBlock(argCache.getLastAnalyzedBlock());
+        ((BAMARGBlockStartState) pElement).setAnalyzedBlock(argCache.getLastAnalyzedBlock());
       }
     }
   }
@@ -1012,7 +1012,7 @@ public class ABMTransferRelation implements TransferRelation {
           //and remember to explore the parent later
           openElements.push(parent);
         }
-        CFAEdge edge = ABMARGUtils.getEdgeToChild(parent, currentElement);
+        CFAEdge edge = BAMARGUtils.getEdgeToChild(parent, currentElement);
         if (edge == null) {
           //this is a summarized call and thus an direct edge could not be found
           //we have the transfer function to handle this case, as our reachSet is wrong
@@ -1120,22 +1120,22 @@ public class ABMTransferRelation implements TransferRelation {
       // do not support nodes which are call nodes of multiple blocks
       Block analyzedBlock = partitioning.getBlockForCallNode(node);
       try {
-        if (!(pState instanceof ABMARGBlockStartState)
-            || ((ABMARGBlockStartState) pState).getAnalyzedBlock() == null
+        if (!(pState instanceof BAMARGBlockStartState)
+            || ((BAMARGBlockStartState) pState).getAnalyzedBlock() == null
             || !abmCPA.isCoveredBy(wrappedReducer.getVariableReducedStateForProofChecking(pState, analyzedBlock, node),
-                ((ABMARGBlockStartState) pState).getAnalyzedBlock())) { return false; }
+                ((BAMARGBlockStartState) pState).getAnalyzedBlock())) { return false; }
       } catch (CPAException e) {
         throw new CPATransferException("Missing information about block whose analysis is expected to be started at "
             + pState);
       }
       try {
         Collection<ARGState> endOfBlock;
-        Pair<ARGState, Block> key = Pair.of(((ABMARGBlockStartState) pState).getAnalyzedBlock(), analyzedBlock);
+        Pair<ARGState, Block> key = Pair.of(((BAMARGBlockStartState) pState).getAnalyzedBlock(), analyzedBlock);
         if (correctARGsForBlocks != null && correctARGsForBlocks.containsKey(key)) {
           endOfBlock = correctARGsForBlocks.get(key);
         } else {
           Pair<Boolean, Collection<ARGState>> result =
-              checkARGBlock(((ABMARGBlockStartState) pState).getAnalyzedBlock(), analyzedBlock);
+              checkARGBlock(((BAMARGBlockStartState) pState).getAnalyzedBlock(), analyzedBlock);
           if (!result.getFirst()) { return false; }
           endOfBlock = result.getSecond();
           setCorrectARG(key, endOfBlock);
@@ -1166,7 +1166,7 @@ public class ABMTransferRelation implements TransferRelation {
         if (!notFoundSuccessors.isEmpty()) { return false; }
 
       } catch (CPAException e) {
-        throw new CPATransferException("Checking ARG with root " + ((ABMARGBlockStartState) pState).getAnalyzedBlock()
+        throw new CPATransferException("Checking ARG with root " + ((BAMARGBlockStartState) pState).getAnalyzedBlock()
             + " for block " + currentBlock + "failed.");
       }
     } else {

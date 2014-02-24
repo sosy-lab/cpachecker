@@ -27,14 +27,14 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
-import org.sosy_lab.cpachecker.cpa.abm.AbstractABMBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
+import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMBasedRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 
 
-public class ABMExplicitRefiner extends AbstractABMBasedRefiner {
+public class ABMExplicitRefiner extends AbstractBAMBasedRefiner {
 
   private DelegatingExplicitRefiner refiner;
 
@@ -52,8 +52,9 @@ public class ABMExplicitRefiner extends AbstractABMBasedRefiner {
       InterruptedException {
     CounterexampleInfo refineResult = refiner.performRefinement(pReached, pPath);
     if (!refineResult.isSpurious()) {
-      if (refiner.isPathFeasable(pPath))
+      if (refiner.isPathFeasable(pPath)) {
         throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
+      }
     }
 
     return refineResult;

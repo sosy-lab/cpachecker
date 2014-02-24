@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.abm;
+package org.sosy_lab.cpachecker.cpa.bam;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
@@ -43,16 +43,16 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
-class ABMARGUtils {
-  private ABMARGUtils() {}
+class BAMARGUtils {
+  private BAMARGUtils() {}
 
-  public static Multimap<Block, ReachedSet> gatherReachedSets(ABMCPA cpa, ReachedSet finalReachedSet) {
+  public static Multimap<Block, ReachedSet> gatherReachedSets(BAMCPA cpa, ReachedSet finalReachedSet) {
     Multimap<Block, ReachedSet> result = HashMultimap.create();
     gatherReachedSets(cpa, cpa.getBlockPartitioning().getMainBlock(), finalReachedSet, result);
     return result;
   }
 
-  private static void gatherReachedSets(ABMCPA cpa, Block block, ReachedSet reachedSet, Multimap<Block, ReachedSet> blockToReachedSet) {
+  private static void gatherReachedSets(BAMCPA cpa, Block block, ReachedSet reachedSet, Multimap<Block, ReachedSet> blockToReachedSet) {
     if (blockToReachedSet.containsEntry(block, reachedSet)) {
       return; //avoid looping in recursive block calls
     }
@@ -160,9 +160,9 @@ class ABMARGUtils {
 
   private static ARGState copyNode(ARGState toCopy) {
     ARGState copyState;
-    if (toCopy instanceof ABMARGBlockStartState) {
-      copyState = new ABMARGBlockStartState(toCopy.getWrappedState(), null);
-      ((ABMARGBlockStartState) copyState).setAnalyzedBlock(((ABMARGBlockStartState) toCopy).getAnalyzedBlock());
+    if (toCopy instanceof BAMARGBlockStartState) {
+      copyState = new BAMARGBlockStartState(toCopy.getWrappedState(), null);
+      ((BAMARGBlockStartState) copyState).setAnalyzedBlock(((BAMARGBlockStartState) toCopy).getAnalyzedBlock());
     } else {
       copyState = new ARGState(toCopy.getWrappedState(), null);
     }

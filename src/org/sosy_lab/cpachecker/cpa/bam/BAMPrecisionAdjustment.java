@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.abm;
+package org.sosy_lab.cpachecker.cpa.bam;
 
 import java.util.Map;
 
@@ -32,18 +32,18 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class ABMPrecisionAdjustment implements PrecisionAdjustment {
+public class BAMPrecisionAdjustment implements PrecisionAdjustment {
 
   private Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision;
   private boolean breakAnalysis = false;
   private final PrecisionAdjustment wrappedPrecisionAdjustment;
-  private ABMTransferRelation trans = null;
+  private BAMTransferRelation trans = null;
 
-  public ABMPrecisionAdjustment(PrecisionAdjustment pWrappedPrecisionAdjustment) {
+  public BAMPrecisionAdjustment(PrecisionAdjustment pWrappedPrecisionAdjustment) {
     this.wrappedPrecisionAdjustment = pWrappedPrecisionAdjustment;
   }
 
-  public void setABMTransferRelation(ABMTransferRelation pTransfer) {
+  public void setBAMTransferRelation(BAMTransferRelation pTransfer) {
     if (trans == null) {
       trans = pTransfer;
     }

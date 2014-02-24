@@ -51,9 +51,9 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
-import org.sosy_lab.cpachecker.cpa.abm.ABMARGBlockStartState;
-import org.sosy_lab.cpachecker.cpa.abm.ABMCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.bam.BAMARGBlockStartState;
+import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.propertychecker.NoTargetStateChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
@@ -112,15 +112,15 @@ public class ARGProofCheckerParallelStrategy extends AbstractStrategy {
 
       //check ABMARG blocks
       Block block;
-      ABMARGBlockStartState abmState;
+      BAMARGBlockStartState abmState;
       Collection<ARGState> returnNodes;
       ArrayList<ARGState> partialReturnNodes = new ArrayList<>();
       List<ARGState> argStates;
       int numElems;
       for (int i = 0; i < args.length - 2; i++) {
-        abmState = (ABMARGBlockStartState) args[i];
+        abmState = (BAMARGBlockStartState) args[i];
         block =
-            ((ABMCPA) checker).getTransferRelation().getBlockPartitioning()
+            ((BAMCPA) checker).getTransferRelation().getBlockPartitioning()
                 .getBlockForCallNode(AbstractStates.extractLocation(abmState));
 
         // traverse
@@ -149,7 +149,7 @@ public class ARGProofCheckerParallelStrategy extends AbstractStrategy {
         }
 
         // add ARG as checked
-        ((ABMCPA) checker).getTransferRelation().setCorrectARG(Pair.of(args[i], block), returnNodes);
+        ((BAMCPA) checker).getTransferRelation().setCorrectARG(Pair.of(args[i], block), returnNodes);
       }
 
       // check main block
@@ -298,8 +298,8 @@ public class ARGProofCheckerParallelStrategy extends AbstractStrategy {
   }
 
   private ARGState[] orderABMBlockStartStates(ARGState pMainRoot) {
-    HashMap<ABMARGBlockStartState, Pair<Integer, BitSet>> map = new HashMap<>();
-    Stack<ABMARGBlockStartState> blocksToVisit = new Stack<>();
+    HashMap<BAMARGBlockStartState, Pair<Integer, BitSet>> map = new HashMap<>();
+    Stack<BAMARGBlockStartState> blocksToVisit = new Stack<>();
     int nextIndex = 0;
 
     HashSet<ARGState> seen = new HashSet<>();
@@ -318,10 +318,10 @@ public class ARGProofCheckerParallelStrategy extends AbstractStrategy {
         }
       } else {
 
-        if (current instanceof ABMARGBlockStartState && !map.containsKey(current)) {
-          map.put((ABMARGBlockStartState) current, Pair.of(nextIndex, new BitSet()));
+        if (current instanceof BAMARGBlockStartState && !map.containsKey(current)) {
+          map.put((BAMARGBlockStartState) current, Pair.of(nextIndex, new BitSet()));
           nextIndex++;
-          blocksToVisit.add((ABMARGBlockStartState) current);
+          blocksToVisit.add((BAMARGBlockStartState) current);
         }
 
         for (ARGState state : current.getChildren()) {
@@ -340,9 +340,9 @@ public class ARGProofCheckerParallelStrategy extends AbstractStrategy {
     return topologySort(map);
   }
 
-  private void traverseARG(ABMARGBlockStartState pRoot,
-      HashMap<ABMARGBlockStartState, Pair<Integer, BitSet>> graphToComplete,
-      Stack<ABMARGBlockStartState> pBlocksToVisit, int pNextIndex) {
+  private void traverseARG(BAMARGBlockStartState pRoot,
+      HashMap<BAMARGBlockStartState, Pair<Integer, BitSet>> graphToComplete,
+      Stack<BAMARGBlockStartState> pBlocksToVisit, int pNextIndex) {
 
     HashSet<ARGState> seen = new HashSet<>();
     Stack<ARGState> toVisit = new Stack<>();
@@ -360,11 +360,11 @@ public class ARGProofCheckerParallelStrategy extends AbstractStrategy {
         }
       } else {
 
-        if (current instanceof ABMARGBlockStartState) {
+        if (current instanceof BAMARGBlockStartState) {
           if (!graphToComplete.containsKey(current)) {
-            graphToComplete.put((ABMARGBlockStartState) current, Pair.of(pNextIndex, new BitSet()));
+            graphToComplete.put((BAMARGBlockStartState) current, Pair.of(pNextIndex, new BitSet()));
             pNextIndex++;
-            pBlocksToVisit.add((ABMARGBlockStartState) current);
+            pBlocksToVisit.add((BAMARGBlockStartState) current);
           }
           graphToComplete.get(pRoot).getSecond().set(graphToComplete.get(current).getFirst());
         }
@@ -381,12 +381,12 @@ public class ARGProofCheckerParallelStrategy extends AbstractStrategy {
   }
 
   // returns array which is one entry greater than pMap so at last position top most ARG can be added
-  private ARGState[] topologySort(HashMap<ABMARGBlockStartState, Pair<Integer, BitSet>> pMap) {
+  private ARGState[] topologySort(HashMap<BAMARGBlockStartState, Pair<Integer, BitSet>> pMap) {
     ARGState[] result = new ARGState[pMap.size() + 1];
 
     int nextPos = 0, size = 0;
     ArrayList<Integer> deleteEdges = new ArrayList<>();
-    ArrayList<ABMARGBlockStartState> consider = new ArrayList<>(pMap.keySet());
+    ArrayList<BAMARGBlockStartState> consider = new ArrayList<>(pMap.keySet());
     BitSet set;
 
     while (consider.size() > 0) {

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.abm;
+package org.sosy_lab.cpachecker.cpa.bam;
 
 import java.util.Collection;
 
@@ -31,18 +31,18 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 
-public class ABMStopOperator implements StopOperator {
+public class BAMStopOperator implements StopOperator {
 
   private StopOperator wrappedStop;
 
-  public ABMStopOperator(StopOperator pWrappedStopOperator) {
+  public BAMStopOperator(StopOperator pWrappedStopOperator) {
     wrappedStop = pWrappedStopOperator;
   }
 
   @Override
   public boolean stop(AbstractState pState, Collection<AbstractState> pReached, Precision pPrecision)
       throws CPAException, InterruptedException {
-    if (pState == ABMARGBlockStartState.getDummy()) { return false; }
+    if (pState == BAMARGBlockStartState.getDummy()) { return false; }
     return wrappedStop.stop(pState, pReached, pPrecision);
   }
 

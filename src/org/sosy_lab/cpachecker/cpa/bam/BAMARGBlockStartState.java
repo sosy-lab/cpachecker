@@ -21,20 +21,20 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.abm;
+package org.sosy_lab.cpachecker.cpa.bam;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-public class ABMARGBlockStartState extends ARGState {
+public class BAMARGBlockStartState extends ARGState {
 
-  private static ABMARGBlockStartState dummyElem = null;
+  private static BAMARGBlockStartState dummyElem = null;
 
   private static final long serialVersionUID = -5143941913753150639L;
 
   private ARGState analyzedBlock = null;
 
-  public ABMARGBlockStartState(AbstractState pWrappedState, ARGState pParentElement) {
+  public BAMARGBlockStartState(AbstractState pWrappedState, ARGState pParentElement) {
     super(pWrappedState, pParentElement);
   }
 
@@ -49,16 +49,16 @@ public class ABMARGBlockStartState extends ARGState {
 
   @Override
   public String toString() {
-    return "ABMARGBlockStartState " + super.toString();
+    return "BAMARGBlockStartState " + super.toString();
   }
 
-  public static ABMARGBlockStartState getDummy() {
+  public static BAMARGBlockStartState getDummy() {
     return dummyElem;
   }
 
-  public static ABMARGBlockStartState createDummy(AbstractState wrappedState) {
+  public static BAMARGBlockStartState createDummy(AbstractState wrappedState) {
     if (dummyElem == null) {
-      dummyElem = new ABMARGBlockStartState(wrappedState, null);
+      dummyElem = new BAMARGBlockStartState(wrappedState, null);
     }
     return dummyElem;
   }

@@ -21,19 +21,19 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.abm;
+package org.sosy_lab.cpachecker.cpa.bam;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class ABMMergeOperator implements MergeOperator {
+public class BAMMergeOperator implements MergeOperator {
 
   private MergeOperator wrappedMergeOp;
-  private ABMTransferRelation trans;
+  private BAMTransferRelation trans;
 
-  public ABMMergeOperator(MergeOperator pWrappedMerge, ABMTransferRelation pTrans) {
+  public BAMMergeOperator(MergeOperator pWrappedMerge, BAMTransferRelation pTrans) {
     wrappedMergeOp = pWrappedMerge;
     trans = pTrans;
   }

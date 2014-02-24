@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.abm;
+package org.sosy_lab.cpachecker.cpa.bam;
 
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
@@ -37,21 +37,21 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 /**
  * Prints some ABM related statistics
  */
-class ABMCPAStatistics implements Statistics {
+class BAMCPAStatistics implements Statistics {
 
-  private final ABMCPA cpa;
-  private AbstractABMBasedRefiner refiner = null;
+  private final BAMCPA cpa;
+  private AbstractBAMBasedRefiner refiner = null;
 
-  public ABMCPAStatistics(ABMCPA cpa) {
+  public BAMCPAStatistics(BAMCPA cpa) {
     this.cpa = cpa;
   }
 
   @Override
   public String getName() {
-    return "ABMCPA";
+    return "BAMCPA";
   }
 
-  public void addRefiner(AbstractABMBasedRefiner pRefiner) {
+  public void addRefiner(AbstractBAMBasedRefiner pRefiner) {
     checkState(refiner == null);
     refiner = pRefiner;
   }
@@ -59,13 +59,13 @@ class ABMCPAStatistics implements Statistics {
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
 
-    ABMTransferRelation transferRelation = cpa.getTransferRelation();
+    BAMTransferRelation transferRelation = cpa.getTransferRelation();
     TimedReducer reducer = cpa.getReducer();
 
     int sumCalls = transferRelation.cacheMisses + transferRelation.partialCacheHits + transferRelation.fullCacheHits;
 
     int sumARTElemets = 0;
-    for (ReachedSet subreached : ABMARGUtils.gatherReachedSets(cpa, reached).values()) {
+    for (ReachedSet subreached : BAMARGUtils.gatherReachedSets(cpa, reached).values()) {
       sumARTElemets += subreached.size();
     }
 

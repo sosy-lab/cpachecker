@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.abm;
+package org.sosy_lab.cpachecker.cpa.bam;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
@@ -31,18 +31,18 @@ import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.abm.ABMTransferRelation.BackwardARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation.BackwardARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -55,20 +55,20 @@ import com.google.common.base.Preconditions;
  * Warning: Although the ARG is flattened at this point, the elements in it have
  * not been expanded due to performance reasons.
  */
-public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
+public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
 
   final Timer computePathTimer = new Timer();
   final Timer computeSubtreeTimer = new Timer();
   final Timer computeCounterexampleTimer = new Timer();
 
-  private final ABMTransferRelation transfer;
+  private final BAMTransferRelation transfer;
   private final Map<ARGState, ARGState> pathStateToReachedState = new HashMap<>();
 
-  protected AbstractABMBasedRefiner(ConfigurableProgramAnalysis pCpa)
+  protected AbstractBAMBasedRefiner(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     super(pCpa);
 
-    ABMCPA abmCpa = (ABMCPA)pCpa;
+    BAMCPA abmCpa = (BAMCPA)pCpa;
     transfer = abmCpa.getTransferRelation();
     abmCpa.getStatistics().addRefiner(this);
   }
@@ -84,7 +84,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
     if (pPath == null) {
       return CounterexampleInfo.spurious();
     } else {
-      return performRefinement0(new ABMReachedSet(transfer, pReached, pPath, pathStateToReachedState), pPath);
+      return performRefinement0(new BAMReachedSet(transfer, pReached, pPath, pathStateToReachedState), pPath);
     }
   }
 
@@ -133,13 +133,13 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
     return path;
   }
 
-  private static class ABMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
+  private static class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
-    private final ABMTransferRelation transfer;
+    private final BAMTransferRelation transfer;
     private final ARGPath path;
     private final Map<ARGState, ARGState> pathStateToReachedState;
 
-    private ABMReachedSet(ABMTransferRelation pTransfer, ARGReachedSet pReached, ARGPath pPath, Map<ARGState, ARGState> pPathElementToReachedState) {
+    private BAMReachedSet(BAMTransferRelation pTransfer, ARGReachedSet pReached, ARGPath pPath, Map<ARGState, ARGState> pPathElementToReachedState) {
       super(pReached);
       this.transfer = pTransfer;
       this.path = pPath;

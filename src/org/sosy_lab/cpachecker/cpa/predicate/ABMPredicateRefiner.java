@@ -38,9 +38,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -55,10 +55,10 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.abm.AbstractABMBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RefineableRelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -81,7 +81,7 @@ import com.google.common.collect.Lists;
 
 /**
  * Implements predicate refinements when using ABM.
- * It is based on the {@link AbstractABMBasedRefiner} and delegates the work to
+ * It is based on the {@link AbstractBAMBasedRefiner} and delegates the work to
  * a {@link ExtendedPredicateRefiner}, which is a small extension of the regular
  * {@link PredicateCPARefiner}.
  *
@@ -92,14 +92,14 @@ import com.google.common.collect.Lists;
  *                         |                                PredicateAbstractionRefinementStrategy
  *           +-------------+-------------+                                    ^
  *           |                           |                                    |
- * AbstractABMBasedRefiner       PredicateCPARefiner ---> ABMPredicateAbstractionRefinementStrategy
+ * AbstractBAMBasedRefiner       PredicateCPARefiner ---> ABMPredicateAbstractionRefinementStrategy
  *           ^                           ^
  *           |                           |
  *   ABMPredicateRefiner ---> ExtendedPredicateRefiner
  *
  * Here ^ means inheritance and -> means reference.
  */
-public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implements StatisticsProvider {
+public final class ABMPredicateRefiner extends AbstractBAMBasedRefiner implements StatisticsProvider {
 
   private final ExtendedPredicateRefiner refiner;
 

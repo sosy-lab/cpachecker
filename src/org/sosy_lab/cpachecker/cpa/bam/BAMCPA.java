@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.abm;
+package org.sosy_lab.cpachecker.cpa.bam;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -67,21 +67,21 @@ import com.google.common.base.Preconditions;
 
 
 @Options(prefix = "cpa.abm")
-public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvider, ProofChecker {
+public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvider, ProofChecker {
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(ABMCPA.class);
+    return AutomaticCPAFactory.forType(BAMCPA.class);
   }
 
   private BlockPartitioning blockPartitioning;
 
   private final LogManager logger;
   private final TimedReducer reducer;
-  private final ABMTransferRelation transfer;
-  private final ABMPrecisionAdjustment prec;
-  private final ABMMergeOperator merge;
-  private final ABMStopOperator stop;
-  private final ABMCPAStatistics stats;
+  private final BAMTransferRelation transfer;
+  private final BAMPrecisionAdjustment prec;
+  private final BAMMergeOperator merge;
+  private final BAMStopOperator stop;
+  private final BAMCPAStatistics stats;
   private final PartitioningHeuristic heuristic;
   private final CFA cfa;
   private final ProofChecker wrappedProofChecker;
@@ -91,7 +91,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cfa.blocks.builder")
   private Class<? extends PartitioningHeuristic> blockHeuristic = FunctionAndLoopPartitioning.class;
 
-  public ABMCPA(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger,
+  public BAMCPA(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger,
       ReachedSetFactory pReachedSetFactory, ShutdownNotifier pShutdownNotifier, CFA pCfa) throws InvalidConfigurationException, CPAException {
     super(pCpa);
     config.inject(this);
@@ -110,13 +110,13 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       this.wrappedProofChecker = null;
     }
     reducer = new TimedReducer(wrappedReducer);
-    prec = new ABMPrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment());
-    transfer = new ABMTransferRelation(config, logger, this, wrappedProofChecker, pReachedSetFactory, pShutdownNotifier);
-    prec.setABMTransferRelation(transfer);
-    merge = new ABMMergeOperator(pCpa.getMergeOperator(), transfer);
-    stop = new ABMStopOperator(getWrappedCpa().getStopOperator());
+    prec = new BAMPrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment());
+    transfer = new BAMTransferRelation(config, logger, this, wrappedProofChecker, pReachedSetFactory, pShutdownNotifier);
+    prec.setBAMTransferRelation(transfer);
+    merge = new BAMMergeOperator(pCpa.getMergeOperator(), transfer);
+    stop = new BAMStopOperator(getWrappedCpa().getStopOperator());
 
-    stats = new ABMCPAStatistics(this);
+    stats = new BAMCPAStatistics(this);
     heuristic = getPartitioningHeuristic();
   }
 
@@ -164,12 +164,12 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   }
 
   @Override
-  public ABMPrecisionAdjustment getPrecisionAdjustment() {
+  public BAMPrecisionAdjustment getPrecisionAdjustment() {
     return prec;
   }
 
   @Override
-  public ABMTransferRelation getTransferRelation() {
+  public BAMTransferRelation getTransferRelation() {
     return transfer;
   }
 
@@ -194,7 +194,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     super.collectStatistics(pStatsCollection);
   }
 
-  ABMCPAStatistics getStatistics() {
+  BAMCPAStatistics getStatistics() {
     return stats;
   }
 
