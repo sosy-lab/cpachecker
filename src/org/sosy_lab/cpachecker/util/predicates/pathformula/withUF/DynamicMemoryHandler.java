@@ -265,7 +265,7 @@ class DynamicMemoryHandler {
           String.format("free() called with %d parameters", parameters.size()), edge, e);
     }
 
-    if (errorConditions != null) {
+    if (errorConditions.isEnabled()) {
       final Formula operand = expressionVisitor.asValueFormula(parameters.get(0).accept(expressionVisitor),
                                                  CTypeUtils.simplifyType(parameters.get(0).getExpressionType()));
       BooleanFormula validFree = conv.fmgr.makeEqual(operand, conv.nullPointer);

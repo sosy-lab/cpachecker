@@ -219,7 +219,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                          final Formula address,
                          final SSAMapBuilder ssa,
                          final @Nullable ErrorConditions errorConditions) {
-    if (errorConditions != null) {
+    if (errorConditions.isEnabled()) {
       errorConditions.addInvalidDerefCondition(fmgr.makeEqual(address, nullPointer));
       errorConditions.addInvalidDerefCondition(fmgr.makeLessThan(address, makeBaseAddressOfTerm(address), false));
     }
