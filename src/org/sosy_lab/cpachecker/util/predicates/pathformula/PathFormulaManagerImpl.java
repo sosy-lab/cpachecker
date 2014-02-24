@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions.DummyErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
@@ -202,7 +203,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Override
   public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException {
-    ErrorConditions errorConditions = new ErrorConditions(bfmgr);
+    ErrorConditions errorConditions = new DummyErrorConditions(bfmgr);
     return makeAnd(pOldFormula, pEdge, errorConditions);
   }
 
