@@ -37,6 +37,7 @@ except ImportError: # Queue was renamed to queue in Python 3
   import queue as Queue
 
 import time
+from datetime import datetime, timedelta
 import logging
 import argparse
 import os
@@ -45,6 +46,8 @@ import resource
 import signal
 import subprocess
 import threading
+import json
+import urllib2
 
 from benchmark.benchmarkDataStructures import *
 from benchmark.runexecutor import RunExecutor
@@ -57,12 +60,19 @@ MEMLIMIT = runexecutor.MEMLIMIT
 TIMELIMIT = runexecutor.TIMELIMIT
 CORELIMIT = runexecutor.CORELIMIT
 
-DEFAULT_CLOUD_TIMELIMIT = 3600 # s
+DEFAULT_CLOUD_TIMELIMIT = 300 # s
 DEFAULT_CLOUD_MEMLIMIT = None
 
-DEFAULT_CLOUD_MEMORY_REQUIREMENT = 15000 # MB
-DEFAULT_CLOUD_CPUCORE_REQUIREMENT = 1 # one core
+DEFAULT_CLOUD_MEMORY_REQUIREMENT = 7000 # MB
+DEFAULT_CLOUD_CPUCORE_REQUIREMENT = 2 # one core with hyperthreading
 DEFAULT_CLOUD_CPUMODEL_REQUIREMENT = "" # empty string matches every model
+
+DEFAULT_APPENGINE_URI = 'http://dev.ba-lab.appspot.com'
+DEFAULT_APPENGINE_POLLINTERVAL = 600 # seconds (== 10 minutes)
+APPENGINE_SUBMITTER_THREAD = None
+APPENGINE_POLLER_THREAD = None
+APPENGINE_JOBS = []
+APPENGINE_SETTINGS = {} # these will be fetched from the server
 
 # next lines are needed for stopping the script
 WORKER_THREADS = []
@@ -121,12 +131,13 @@ class Worker(threading.Thread):
         """
         self.outputHandler.outputBeforeRun(run)
 
+        benchmark = run.runSet.benchmark
         (run.wallTime, run.cpuTime, run.memUsage, returnvalue, output) = \
             self.runExecutor.executeRun(
-                run.getCmdline(), run.benchmark.rlimits, run.logFile,
+                run.getCmdline(), benchmark.rlimits, run.logFile,
                 myCpuIndex=self.numberOfThread,
-                environments=run.benchmark.getEnvironments(),
-                runningDir=run.benchmark.workingDirectory(),
+                environments=benchmark.getEnvironments(),
+                runningDir=benchmark.workingDirectory(),
                 maxLogfileSize=config.maxLogfileSize)
 
         if self.runExecutor.PROCESS_KILLED:
@@ -151,6 +162,147 @@ class Worker(threading.Thread):
         # the worker will stop asap, but not within this method.
         self.runExecutor.kill()
 
+class AppEngineSubmitter(threading.Thread):
+    def __init__(self, runDefinitions, benchmark):
+        threading.Thread.__init__(self)
+        self.runDefinitions = runDefinitions
+        self.benchmark = benchmark
+        self.done = False
+        self.submittedJobs = 0
+
+    def run(self):
+        for run in self.runDefinitions:
+            if STOPPED_BY_INTERRUPT: break
+            args = run['args']
+            with open(run['sourcefile'], 'r') as f:
+                args['programText'] = f.read()
+            
+            uri = config.appengineURI+'/tasks'
+            data = json.dumps(args)
+            headers = {'Content-type':'application/json', 'Accept':'application/json'}
+            try:
+                request = urllib2.Request(uri, data, headers)
+                response = urllib2.urlopen(request)
+                location = response.info()['Location']
+                jobID = location[location.rindex('/')+1:]
+                logging.debug('Submitted job: '+jobID)
+                APPENGINE_JOBS.append({'jobID':jobID, 'logFile':run['logFile'], 'status':''})
+            except urllib2.HTTPError as e:
+                msg = e.read()
+                try:
+                    with open(run['logFile']+'.stdErr', 'w') as logFile:
+                        logFile.write('NOT SUBMITTED\n{0}\n{1}\n{2}'.format(e.code, e.reason, msg))
+                except:
+                    pass
+                logging.warn('Job could not be submitted. HTTP Error: {0}: {1}, Message: {2}, Sourcefile: {3}'.format(e.code, e.reason, msg, run['sourcefile']))
+            except:
+                sys.exit('Error while submitting jobs. {0}'.format(sys.exc_info()[0]))
+            
+            self.submittedJobs += 1
+
+#             if self.submittedJobs == 10: break
+        
+        logging.debug('Submitting finished with %i submitted jobs.'%self.submittedJobs)
+        self.done = True
+                
+class AppEnginePoller(threading.Thread):
+    def __init__(self, benchmark):
+        threading.Thread.__init__(self)
+        self.benchmark = benchmark
+        self.done = False
+    
+    def run(self):
+        finishedJobs = 0
+        nextJobIndex = 0
+        while not self.done and not STOPPED_BY_INTERRUPT:
+            self.done = (APPENGINE_SUBMITTER_THREAD.done and finishedJobs == len(APPENGINE_JOBS))
+
+            if len(APPENGINE_JOBS) > nextJobIndex:
+                job = APPENGINE_JOBS[nextJobIndex]
+                jobID = job['jobID']
+                if job['status'] in ['DONE', 'TIMEOUT', 'ERROR']:
+                    nextJobIndex += 1
+                else:
+                    try:
+                        logging.debug('Polling job: '+jobID)
+                        uri = config.appengineURI+'/tasks/'+jobID
+                        headers = {'Accept':'application/json'}
+                        request = urllib2.Request(uri, headers=headers)
+                        response = json.loads(urllib2.urlopen(request).read())
+                        status = response['status']
+                        if status in ['DONE', 'TIMEOUT', 'ERROR']:
+                            logging.debug('Job {0} finished. Status: {1}'.format(jobID,status))
+                            job['status'] = status
+                            self.saveResult(job, response)
+                            finishedJobs += 1
+                            nextJobIndex += 1
+                        else:
+                            if status == 'PENDING':
+                                # TODO Detect stalled jobs.
+                                # Sometimes jobs will never be started because of
+                                # problems on GAE itself. 
+                                logging.debug('Job %s is still pending.'%jobID)
+                                nextJobIndex += 1
+                            elif status == 'RUNNING':
+                                logging.debug('Job %s is still running.'%jobID)
+                            time.sleep(config.appenginePollInterval)
+                            
+                    except urllib2.HTTPError as e:
+                        if 'OVER_QUOTA' in e.read():
+                            logging.warn('A resource on App Engine has been depleted and no more requests can be processed!')
+                            self.done = True
+                        else:
+                            nextJobIndex += 1
+                            logging.warn('Server error while polling job {0}: {1} {2}. Polling will be retried in the next iteration.'.format(jobID,e.code,e.reason))
+                    except:
+                        sys.exit('Error while polling jobs. {0}'.format(sys.exc_info()[0]))
+                
+                # never go out of bounds    
+                nextJobIndex = nextJobIndex % len(APPENGINE_JOBS)    
+            else:
+                time.sleep(config.appenginePollInterval)
+    
+    def saveResult(self, job, jsonObj):
+        jobID = job['jobID']
+        logFile = job['logFile']
+        headers = {'Accept':'text/plain'}
+
+        try:
+            uri = config.appengineURI+'/tasks/'+jobID+'/files/' + APPENGINE_SETTINGS['statisticsFileName']
+            request = urllib2.Request(uri, headers=headers)
+            response = urllib2.urlopen(request).read()
+            filewriter.writeFile(response, logFile)
+        except:
+            pass # no stats
+        
+        try:
+            filewriter.writeFile(json.dumps(jsonObj), logFile+'.stdOut')
+        except:
+            pass # no result
+
+        # save errors
+        status = job['status']
+        if status in ['ERROR','TIMEOUT']:
+            try:
+                uri = config.appengineURI+'/tasks/'+jobID+'/files/' + APPENGINE_SETTINGS['errorFileName']
+                request = urllib2.Request(uri, headers=headers)
+                response = urllib2.urlopen(request).read()
+                response = 'Job ID: {0}\n{1}'.format(jobID, response)
+                filewriter.writeFile(response, logFile+'.stdErr')
+            except:
+                pass # no error file
+
+        if config.appengineDeleteWhenDone:
+            try:
+                headers = {'Accept':'application/json'}
+                uri = config.appengineURI+'/tasks/'+jobID
+                request = urllib2.Request(uri, headers=headers)
+                request.get_method = lambda: 'DELETE'
+                urllib2.urlopen(request).read()
+                logging.debug('Deleted job {0} from App Engine.'.format(jobID))
+            except:
+                logging.warn('The job {0} could not be deleted from App Engine.'
+                             .format(jobID))
 
 def executeBenchmarkLocaly(benchmark, outputHandler):
     
@@ -282,6 +434,62 @@ def parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
         logging.warning("Host information file not found: " + filePath)
     return runToHostMap
 
+def parseArgsForAppEngine(args, absWorkingDir):
+    
+    appengineArgs = {}
+    options = {}
+    
+    if config.debug:
+        logLevel = 'FINER'
+    else:
+        logLevel = 'INFO'
+    options['log.level'] = logLevel
+    
+    for idx, arg in enumerate(args):
+        if STOPPED_BY_INTERRUPT: break
+        if '-noout' == arg:
+            options['output.disable'] = True
+        elif '-stats' == arg:
+            options['statistics.export'] = True
+        elif '-32' == arg:
+            options['analysis.machineModel'] = 'Linux32'
+        elif '-64' == arg:
+            options['analysis.machineModel'] = 'Linux64'
+        elif '-printUsedOptions' == arg:
+            options['log.usedOptions.export'] = True
+        elif '-nolog' == arg:
+            options['log.level'] = 'OFF'
+        elif '-setprop' == arg:
+            keyVal = args[idx+1].split('=')
+            options[keyVal[0]] = keyVal[1]
+        elif '-config' == arg:
+            conf = args[args.index(arg)+1]
+            conf = conf if conf.endswith('.properties') else '{0}.properties'.format(conf)
+            if os.path.isfile(os.path.join(absWorkingDir, 'config', conf)):
+                appengineArgs['configuration'] = conf
+            else:
+                sys.exit('Given configuration file {0} is not a valid file.'.format(conf))
+        elif '-spec' == arg:
+            spec = args[args.index('-spec')+1]
+            spec = spec if spec.endswith('.spc') else '{0}.spc'.format(spec)
+            if os.path.isfile(os.path.join(absWorkingDir, 'config/specification', spec)):
+                appengineArgs['specification'] = spec
+            else:
+                sys.exit('Given specification file {0} is not a valid file.'.format(spec))
+        elif arg.startswith('-'):
+            if not 'configuration' in appengineArgs:
+                argName = arg[1:]
+                if os.path.isfile(os.path.join(absWorkingDir, 'config', argName + '.properties')):
+                    appengineArgs['configuration'] = argName+'.properties'
+
+    if 'limits.time.wall' in options:
+        timeLimit = int(options['limits.time.wall'])
+        if timeLimit > int(APPENGINE_SETTINGS['timeLimit']):
+            logging.warn('Given timelimit is too large for App Engine. Using %s instead.'%APPENGINE_SETTINGS['timeLimit'])
+            options['limits.time.wall'] = int(APPENGINE_SETTINGS['timeLimit'])
+    
+    appengineArgs['options'] = options
+    return appengineArgs
 
 def toTabList(l):
     return "\t".join(map(str, l))
@@ -336,7 +544,7 @@ def getToolDataForCloud(benchmark):
 
     workingDir = benchmark.workingDirectory()
     if not os.path.isdir(workingDir):
-        sys.exit("Missing working directory {0}, cannot run tool.", format(workingDir))
+        sys.exit("Missing working directory {0}, cannot run tool.".format(workingDir))
     logging.debug("Working dir: " + workingDir)
 
     toolpaths = benchmark.requiredFiles()
@@ -386,7 +594,7 @@ def getBenchmarkDataForCloud(benchmark):
             assert not "\t" in argString # cannot call toTabList(), if there is a tab
 
             logFile = os.path.relpath(run.logFile, benchmark.logFolder)
-            runDefinitions.append(toTabList([argString, run.sourcefile, logFile]))
+            runDefinitions.append(toTabList([argString, logFile, run.sourcefile]))
             sourceFiles.append(run.sourcefile)
 
     if not sourceFiles: sys.exit("Benchmark has nothing to run.")
@@ -459,10 +667,154 @@ def handleCloudResults(benchmark, outputHandler):
     outputHandler.outputAfterBenchmark(STOPPED_BY_INTERRUPT)
 
     if not executedAllRuns:
-        logging.warning("Not all runs were executed in the cloud!")
+        logging.warning("Some expected result files could not be found")
     if runsProducedErrorOutput:
         logging.warning("Some runs produced unexpected warnings on stderr, please check the {0} files!"
                         .format(os.path.join(outputDir, '*.stdError')))
+        
+def parseAppEngineResult(run):
+    withError = []
+    withTimeout = []
+    notSubmitted = []
+    output = ''
+    returnValue = 0
+    hasTimedOut = False
+    overQuota = False
+    
+    hasLogFile = (os.path.exists(run.logFile) and os.path.isfile(run.logFile))
+    hasStdOutFile = (os.path.exists(run.logFile+'.stdOut') and os.path.isfile(run.logFile+'.stdOut'))
+    hasErrOutFile = (os.path.exists(run.logFile+'.stdErr') and os.path.isfile(run.logFile+'.stdErr'))
+    
+    if hasLogFile:
+        try:
+            with open(run.logFile, 'rt') as outputFile:
+                # first 6 lines are for logging, rest is output of subprocess, see RunExecutor.py for details
+                output = '\n'.join(map(Util.decodeToString, outputFile.readlines()[6:]))
+        except IOError as e:
+            logging.warning("Cannot read log file: " + e.strerror)
+            
+    if hasStdOutFile:
+        try:
+            with open(run.logFile+'.stdOut', 'rt') as file:
+                lines = file.read()
+                output += '\n'+lines
+                result = json.loads(lines)
+                if result['status'] == 'ERROR':
+                    returnValue = 256 # error; returncode != 0
+                    withError.append({'run':run, 'message':result['statusMessage']})
+                if result['status'] == 'TIMEOUT':
+                    returnValue = 9 # timeout
+                    hasTimedOut = True
+                    withTimeout.append(run)
+                if result['status'] == 'OVER_QUOTA':
+                    returnValue = 6 # aborted
+                    overQuota = True
+
+                run.wallTime = timedelta(microseconds=result['statistic']['latency']).total_seconds()
+                run.cpuTime = result['statistic']['CPUTime']
+                run.host = result['statistic']['host']
+        except:
+            pass # can't read std out file
+            
+    if hasErrOutFile:
+        try:
+            with open(run.logFile+'.stdErr', 'rt') as errFile:
+                lines = errFile.read()
+                output += '\n'+lines
+                if 'NOT SUBMITTED' in lines:
+                    returnValue = 6 # aborted
+                    notSubmitted.append({'run':run, 'messages':lines})
+                else:
+                    result = json.loads(lines)
+                    if result['status'] == 'ERROR':
+                        returnValue = 256 # error; returncode != 0
+                        withError.append({'run':run, 'message':result['statusMessage']})
+                    elif result['status'] == 'TIMEOUT':
+                        returnValue = 9 # timeout
+                        hasTimedOut = True
+                        withTimeout.append(run)
+        except:
+            pass # can't read err file
+    
+    return (returnValue, output, hasTimedOut, withError, withTimeout, notSubmitted, overQuota)
+        
+def handleAppEngineResults(benchmark, outputHandler):
+    withError = []
+    withTimeout = []
+    notSubmitted = []
+    isOverQuota = False
+    
+    for runSet in benchmark.runSets:
+        if not runSet.shouldBeExecuted():
+            outputHandler.outputForSkippingRunSet(runSet)
+            continue
+
+        outputHandler.outputBeforeRunSet(runSet)
+        
+        totalWallTime = 0
+        for run in runSet.runs:
+            outputHandler.outputBeforeRun(run)
+            
+            (returnValue, output, hasTimedOut, withErr, withTO, notSubmt, overQuota) = \
+                parseAppEngineResult(run)
+                
+            totalWallTime += run.wallTime
+
+            withError = withError + withErr
+            withTimeout = withTimeout + withTO
+            notSubmitted = notSubmitted + notSubmt
+            isOverQuota = True if overQuota or isOverQuota else False
+            
+            run.afterExecution(returnValue, output, hasTimedOut)
+            outputHandler.outputAfterRun(run)
+
+        outputHandler.outputAfterRunSet(runSet, None, totalWallTime)
+
+    outputHandler.outputAfterBenchmark(STOPPED_BY_INTERRUPT)
+    
+    if len(notSubmitted) > 0:
+        logging.warning("{0} runs were not submitted to App Engine!".format(len(notSubmitted)))
+    if len(withError) > 0:
+        logging.warning("{0} runs produced unexpected errors, please check the {1} files!"
+                        .format(len(withError), os.path.join(benchmark.logFolder, '*.stdErr')))
+    if len(withTimeout) > 0:
+        logging.warning("{0} runs timed out!".format(len(withTimeout)))
+    if isOverQuota:
+        logging.warning("Quota exceeded! Not all runs could be processed!")
+    
+
+def getBenchmarkDataForAppEngine(benchmark):
+    # TODO default CPU model??
+    cpuModel = benchmark.requirements.cpuModel
+
+    numberOfRuns = sum(len(runSet.runs) for runSet in benchmark.runSets if runSet.shouldBeExecuted())
+    
+    workingDir = benchmark.workingDirectory()
+    if not os.path.isdir(workingDir):
+        sys.exit("Missing working directory {0}, cannot run tool.".format(workingDir))
+    absWorkingDir = os.path.abspath(workingDir)
+    
+    sourceFiles = []
+    runDefinitions = []
+    for runSet in benchmark.runSets:
+        if not runSet.shouldBeExecuted(): continue
+        if STOPPED_BY_INTERRUPT: break
+
+        for run in runSet.runs:
+            if STOPPED_BY_INTERRUPT: break
+            logFile = os.path.relpath(run.logFile, benchmark.logFolder)
+            args = parseArgsForAppEngine(run.getCmdline(), absWorkingDir)
+            args['sourceFileName'] = run.sourcefile
+            runDefinitions.append({'args':args,
+                                   'debug':config.debug,
+                                   'maxLogfileSize':config.maxLogfileSize,
+                                   'sourcefile':os.path.join(absWorkingDir, run.sourcefile),
+                                   'logFile':os.path.join(benchmark.logFolder, logFile)})
+            sourceFiles.append(run.sourcefile)
+
+    if not sourceFiles: sys.exit("Benchmark has nothing to run.")
+    
+    return (cpuModel, numberOfRuns, runDefinitions, sourceFiles, absWorkingDir)
 
 
 def executeBenchmarkInCloud(benchmark, outputHandler):
@@ -488,6 +840,8 @@ def executeBenchmarkInCloud(benchmark, outputHandler):
     cmdLine = ["java", "-jar", libDir + "/vcloud.jar", "benchmark", "--loglevel", logLevel]
     if config.cloudMaster:
         cmdLine.extend(["--master", config.cloudMaster])
+    if config.debug:
+        cmdLine.extend(["--print-new-files", "true"])
     cloud = subprocess.Popen(cmdLine, stdin=subprocess.PIPE)
     try:
         (out, err) = cloud.communicate(cloudInput.encode('utf-8'))
@@ -506,9 +860,53 @@ def executeBenchmarkInCloud(benchmark, outputHandler):
 
     return returnCode
 
+def executeBenchmarkInAppengine(benchmark, outputHandler):
+    outputHandler.storeSystemInfo('unknown', 'unknown', 'unknown', APPENGINE_SETTINGS['CPUSpeed'], APPENGINE_SETTINGS['RAM'], 'Google App Engine')
+    (cpuModel, numberOfRuns, runDefinitions, sourceFiles, absWorkingDir) = getBenchmarkDataForAppEngine(benchmark)
+    
+    # submit jobs
+    global APPENGINE_SUBMITTER_THREAD
+    APPENGINE_SUBMITTER_THREAD = AppEngineSubmitter(runDefinitions, benchmark)
+    APPENGINE_SUBMITTER_THREAD.start()
+    
+    # poll jobs
+    global APPENGINE_POLLER_THREAD
+    APPENGINE_POLLER_THREAD = AppEnginePoller(benchmark)
+    APPENGINE_POLLER_THREAD.start()
+    try:
+        while not APPENGINE_POLLER_THREAD.done:
+            time.sleep(0.1)
+    except KeyboardInterrupt:
+        killScriptAppEngine()
+    APPENGINE_POLLER_THREAD.join()
+    
+    handleAppEngineResults(benchmark, outputHandler)
+    
+    if config.commit and not STOPPED_BY_INTERRUPT:
+        Util.addFilesToGitRepository(OUTPUT_PATH, outputHandler.allCreatedFiles,
+                                     config.commitMessage+'\n\n'+outputHandler.description)
+        
+
+def setupBenchmarkForAppengine(benchmark):
+    uri = config.appengineURI + '/settings'
+    logging.debug('Setting up benchmark for App Engine...')
+    logging.debug('Pulling settings from {0}.'.format(uri))
+    try:
+        headers = {'Accept':'application/json'}
+        request = urllib2.Request(uri, headers=headers)
+        response = json.loads(urllib2.urlopen(request).read())
+        global APPENGINE_SETTINGS
+        APPENGINE_SETTINGS = response
+        benchmark.toolVersion = response['cpacheckerVersion']
+        
+        logging.debug('Settings were successfully retrieved.')
+    except urllib2.URLError as e:
+        sys.exit('The settings could not be pulled. {0} is not available. Error: {1}'.format(uri, e.reason))
 
 def executeBenchmark(benchmarkFile):
     benchmark = Benchmark(benchmarkFile, config, OUTPUT_PATH)
+    # settings must be retrieved here to set the correct tool version
+    if config.appengine: setupBenchmarkForAppengine(benchmark)
     outputHandler = OutputHandler(benchmark)
     
     logging.debug("I'm benchmarking {0} consisting of {1} run sets.".format(
@@ -516,6 +914,8 @@ def executeBenchmark(benchmarkFile):
 
     if config.cloud:
         return executeBenchmarkInCloud(benchmark, outputHandler)
+    if config.appengine:
+        return executeBenchmarkInAppengine(benchmark, outputHandler)
     else:
         return executeBenchmarkLocaly(benchmark, outputHandler)
 
@@ -626,6 +1026,30 @@ def main(argv=None):
                       dest="maxLogfileSize", type=int, default=20,
                       metavar="SIZE",
                       help="Shrink logfiles to SIZE in MB, if they are too big. (-1 to disable, default value: 20 MB).")
+    
+    parser.add_argument("--appengine",
+                      dest="appengine",
+                      action="store_true",
+                      help="Use Google App Engine to execute benchmarks.")
+    
+    parser.add_argument("--appengineURI",
+                      dest="appengineURI",
+                      metavar="URI",
+                      default=DEFAULT_APPENGINE_URI,
+                      type=str,
+                      help="Sets the URI to use when submitting jobs to App Engine.")
+    
+    parser.add_argument("--appenginePollInterval",
+                      dest="appenginePollInterval",
+                      metavar="INTERVAL",
+                      default=DEFAULT_APPENGINE_POLLINTERVAL,
+                      type=int,
+                      help="Sets the interval in seconds after which App Engine is polled for results.")
+    
+    parser.add_argument("--appengineKeep",
+                        dest="appengineDeleteWhenDone",
+                        action="store_false",
+                        help="If set a job will NOT be deleted from App Engine after it has successfully been executed.")
 
     global config, OUTPUT_PATH
     config = parser.parse_args(argv[1:])
@@ -645,7 +1069,7 @@ def main(argv=None):
         if not os.path.exists(arg) or not os.path.isfile(arg):
             parser.error("File {0} does not exist.".format(repr(arg)))
 
-    if not config.cloud:
+    if not config.cloud and not config.appengine:
         try:
             processes = subprocess.Popen(['ps', '-eo', 'cmd'], stdout=subprocess.PIPE).communicate()[0]
             if len(re.findall("python.*benchmark\.py", Util.decodeToString(processes))) > 1:
@@ -688,18 +1112,30 @@ def killScriptCloud():
 
         # kill cloud-client, should be done automatically, when the subprocess is aborted
 
+def killScriptAppEngine():
+    global STOPPED_BY_INTERRUPT
+    STOPPED_BY_INTERRUPT = True
+    
+    Util.printOut("Killing subprocesses. May take up to %s seconds..."%config.appenginePollInterval)
+    if not APPENGINE_POLLER_THREAD == None:
+        APPENGINE_POLLER_THREAD.join()
+    if not APPENGINE_SUBMITTER_THREAD == None:
+        APPENGINE_SUBMITTER_THREAD.join()
 
 def signal_handler_ignore(signum, frame):
     logging.warn('Received signal %d, ignoring it' % signum)
 
 if __name__ == "__main__":
     # ignore SIGTERM
-#    signal.signal(signal.SIGTERM, signal_handler_ignore)
+    signal.signal(signal.SIGTERM, signal_handler_ignore)
     try:
         sys.exit(main())
     except KeyboardInterrupt: # this block is reached, when interrupt is thrown before or after a run set execution
         if config.cloud:
             killScriptCloud()
+        elif config.appengine:
+            killScriptAppEngine()
         else:
             killScriptLocal()
         Util.printOut("\n\nScript was interrupted by user, some runs may not be done.")
+
