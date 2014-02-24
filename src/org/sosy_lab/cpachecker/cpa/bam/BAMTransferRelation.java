@@ -77,7 +77,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
-@Options(prefix = "cpa.abm")
+@Options(prefix = "cpa.bam")
 public class BAMTransferRelation implements TransferRelation {
 
   private class AbstractStateHash {

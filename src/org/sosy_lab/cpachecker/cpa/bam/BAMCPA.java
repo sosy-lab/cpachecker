@@ -66,7 +66,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import com.google.common.base.Preconditions;
 
 
-@Options(prefix = "cpa.abm")
+@Options(prefix = "cpa.bam")
 public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvider, ProofChecker {
 
   public static CPAFactory factory() {

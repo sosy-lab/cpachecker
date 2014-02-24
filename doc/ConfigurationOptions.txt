@@ -256,9 +256,9 @@ cbmc.options.nuaf = false
 # specify the limit for unwindings (0 is infinite)
 cbmc.options.unwindings = 0
 
-# maximum time limit for CBMC (0 is infinite)
 # maximum time limit for CBMC (use milliseconds or specify a unit; 0 for
 # infinite)
+# maximum time limit for CBMC (0 is infinite)
 cbmc.timelimit = 0
 
 # Whether to do refinement immediately after finding an error state, or
@@ -390,19 +390,6 @@ coverage.file = "coverage.info"
 # CPA to use (see doc/Configuration.txt for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
 
-# if enabled, cache queries also consider blocks with non-matching precision
-# for reuse.
-cpa.abm.aggressiveCaching = true
-
-# Type of partitioning (FunctionAndLoopPartitioning or
-# DelayedFunctionAndLoopPartitioning)
-# or any class that implements a PartitioningHeuristic
-cpa.abm.blockHeuristic = FunctionAndLoopPartitioning.class
-
-# if enabled, the reached set cache is analysed for each cache miss to find
-# the cause of the miss.
-cpa.abm.gatherCacheMissStatistics = false
-
 # export one variable assignment for error path to file, if one is found
 cpa.arg.errorPath.assignment = "ErrorPath.%d.assignment.txt"
 
@@ -491,6 +478,19 @@ cpa.automaton.extraIterationsLimit = -1
 # file with automaton specification for ObserverAutomatonCPA and
 # ControlAutomatonCPA
 cpa.automaton.inputFile = no default value
+
+# if enabled, cache queries also consider blocks with non-matching precision
+# for reuse.
+cpa.bam.aggressiveCaching = true
+
+# Type of partitioning (FunctionAndLoopPartitioning or
+# DelayedFunctionAndLoopPartitioning)
+# or any class that implements a PartitioningHeuristic
+cpa.bam.blockHeuristic = FunctionAndLoopPartitioning.class
+
+# if enabled, the reached set cache is analysed for each cache miss to find
+# the cause of the miss.
+cpa.bam.gatherCacheMissStatistics = false
 
 # adding a new value to the state can be done from 0 to N or from N to 0
 cpa.bdd.addIncreasing = false
@@ -709,7 +709,6 @@ cpa.explicit.precisionFile = no default value
 cpa.explicit.refiner.avoidAssumes = false
 
 # checkForRepeatedRefinements
-# checkForRepeatedRefinements
 # whether or not to check for repeated refinements, to then reset the
 # refinement root
 cpa.explicit.refiner.checkForRepeatedRefinements = true
@@ -729,13 +728,9 @@ cpa.explicit.refiner.exportInterpolationTree = "NEVER"
 # refinement
 cpa.explicit.refiner.performInitialStaticRefinement = false
 
-# whether or not to stop further interpolation once no new interpolants are
-# identified between two subsequent path interpolations
-cpa.explicit.refiner.stopOnEmptyInterpolationIncrement = false
-
-# whether or not to stop further interpolation once no new refinement roots
-# identified between two subsequent path interpolations
-cpa.explicit.refiner.stopOnIdenticalRefinementRoots = false
+# whether to use the top-down interpolation strategy or the bottom-up
+# interpolation strategy
+cpa.explicit.refiner.useTopDownInterpolationStrategy = true
 
 # which stop operator to use for ExplicitCPA
 cpa.explicit.stop = "SEP"
@@ -849,6 +844,11 @@ cpa.monitor.limit = 0
 # or specify a unit; 0 for infinite)
 cpa.monitor.pathcomputationlimit = 0
 
+# of which type should the merge be? normal, for usual join, widening for a
+# widening instead of a join
+cpa.octagon.domain.joinType = "NORMAL"
+  allowed values: [NORMAL, WIDENING]
+
 # which merge operator to use for OctagonCPA?
 cpa.octagon.merge = "SEP"
   allowed values: [SEP, JOIN]
@@ -864,9 +864,6 @@ cpa.pointerA.merge = "JOIN"
 # which stop operator to use for PointerACPA
 cpa.pointerA.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
-
-# whether to use auxiliary predidates for reduction
-cpa.predicate.abm.auxiliaryPredicateComputer = true
 
 # use caching of region to formula conversions
 # use caching of abstractions
@@ -906,6 +903,9 @@ cpa.predicate.abstraction.type = "BDD"
 
 # file that consists of one abstraction formula for each abstraction state
 cpa.predicate.abstractions.file = "abstractions.txt"
+
+# whether to use auxiliary predidates for reduction
+cpa.predicate.bam.auxiliaryPredicateComputer = true
 
 # force abstractions immediately after threshold is reached (no effect if
 # threshold = 0)
