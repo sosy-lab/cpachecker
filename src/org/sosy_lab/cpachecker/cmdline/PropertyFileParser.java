@@ -40,6 +40,20 @@ import com.google.common.collect.ImmutableMap;
  * and maps the proposition to a file from where to read the specification automaton.
  */
 public class PropertyFileParser {
+
+  public static class InvalidPropertyFileException extends Exception {
+
+    private static final long serialVersionUID = -5880923544560903123L;
+
+    public InvalidPropertyFileException(String msg) {
+      super(msg);
+    }
+
+    public InvalidPropertyFileException(String msg, Throwable cause) {
+      super(msg, cause);
+    }
+  }
+
   private final Path propertyFile;
 
   private String entryFunction;
@@ -52,7 +66,7 @@ public class PropertyFileParser {
     propertyFile = pPropertyFile;
   }
 
-  public void parse() throws IllegalArgumentException {
+  public void parse() throws InvalidPropertyFileException {
     String rawProperty = null;
     try (BufferedReader br = propertyFile.asCharSource(Charset.defaultCharset()).openBufferedStream()) {
       while ((rawProperty = br.readLine()) != null) {
@@ -61,33 +75,33 @@ public class PropertyFileParser {
         }
       }
     } catch (IOException e) {
-      throw new IllegalArgumentException("The given property file could not be read: " + e.getMessage());
+      throw new InvalidPropertyFileException("Could not read file: " + e.getMessage(), e);
     }
 
     if (properties.isEmpty()) {
-      throw new IllegalArgumentException("Property file does not specify any property to verify.");
+      throw new InvalidPropertyFileException("No property in file.");
     }
   }
 
-  private PropertyType parsePropertyLine(String rawProperty) throws IllegalArgumentException {
+  private PropertyType parsePropertyLine(String rawProperty) throws InvalidPropertyFileException {
     Matcher matcher = PROPERTY_PATTERN.matcher(rawProperty);
 
     if (rawProperty == null || !matcher.matches() || matcher.groupCount() != 2) {
-      throw new IllegalArgumentException(String.format(
+      throw new InvalidPropertyFileException(String.format(
           "The given property '%s' is not well-formed!", rawProperty));
     }
 
     if (entryFunction == null) {
       entryFunction = matcher.group(1);
     } else if (!entryFunction.equals(matcher.group(1))) {
-      throw new IllegalArgumentException(String.format(
-          "Property file specifies two different entry functions %s and %s.", entryFunction, matcher.group(1)));
+      throw new InvalidPropertyFileException(String.format(
+          "Specifying two different entry functions %s and %s is not supported.", entryFunction, matcher.group(1)));
     }
 
     PropertyType property = PropertyType.AVAILABLE_PROPERTIES.get(matcher.group(2));
     if (property == null) {
-      throw new IllegalArgumentException(String.format(
-          "The property '%s' given in the property file is not supported.", matcher.group(2)));
+      throw new InvalidPropertyFileException(String.format(
+          "The property '%s' is not supported.", matcher.group(2)));
     }
     return property;
   }

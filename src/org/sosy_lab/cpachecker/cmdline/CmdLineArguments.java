@@ -38,6 +38,7 @@ import org.sosy_lab.common.configuration.OptionCollector;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.cpachecker.cmdline.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.cmdline.PropertyFileParser.PropertyType;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
@@ -64,6 +65,10 @@ public class CmdLineArguments {
 
     private InvalidCmdlineArgumentException(final String msg) {
       super(msg);
+    }
+
+    public InvalidCmdlineArgumentException(String msg, Throwable cause) {
+      super(msg, cause);
     }
   }
 
@@ -345,8 +350,8 @@ public class CmdLineArguments {
               PropertyFileParser parser = new PropertyFileParser(propertyFile);
               try {
                 parser.parse();
-              } catch (IllegalArgumentException e) {
-                throw new InvalidCmdlineArgumentException(e.getMessage());
+              } catch (InvalidPropertyFileException e) {
+                throw new InvalidCmdlineArgumentException("Invalid property file: " + e.getMessage(), e);
               }
               putIfNotExistent(options, "analysis.entryFunction", parser.getEntryFunction());
 

@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.appengine.entity.Task;
 import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 import org.sosy_lab.cpachecker.appengine.io.GAEPath;
 import org.sosy_lab.cpachecker.cmdline.PropertyFileParser;
+import org.sosy_lab.cpachecker.cmdline.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.cmdline.PropertyFileParser.PropertyType;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 
@@ -248,7 +249,7 @@ public class TaskBuilder {
     PropertyFileParser parser = new PropertyFileParser(propertyFile);
     try {
       parser.parse();
-    } catch (IllegalArgumentException e) {
+    } catch (InvalidPropertyFileException e) {
       errors.add("task.properties.ParseError");
     }
     if (input.options != null && !input.options.containsKey("analysis.entryFunction")) {
