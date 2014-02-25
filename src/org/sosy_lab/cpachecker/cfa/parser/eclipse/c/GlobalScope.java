@@ -225,6 +225,11 @@ class GlobalScope implements Scope {
       assert oldType instanceof CElaboratedType
           && !(type instanceof CElaboratedType);
 
+      // in case we are analyzing multiple files as one cfa there may be several
+      // identical type declarations, if it is one we just return false
+      if (((CElaboratedType)oldType).getRealType() == type) {
+        return false;
+      }
       // We now have a real declaration for a type for which we have seen a forward declaration
       // We set a reference to the full type in the old type
       // and update the types map with the full type.
