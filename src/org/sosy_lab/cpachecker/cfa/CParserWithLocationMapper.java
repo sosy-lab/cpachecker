@@ -23,11 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import java.io.BufferedReader;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -44,6 +43,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
@@ -93,19 +93,9 @@ public class CParserWithLocationMapper implements CParser {
     return realParser.parseString(pFilename, tokenizedCode);
   }
 
-  private String tokenizeSourcefile(String pFilename) throws CParserException {
-    StringBuffer code = new StringBuffer();
-    try (BufferedReader br = new BufferedReader(new FileReader(pFilename))) {
-      String line;
-      while ((line = br.readLine()) != null) {
-        code.append(line);
-        code.append(System.lineSeparator());
-      }
-    } catch (IOException e) {
-      throw new CParserException("Error reading input program file", e);
-    }
-
-    return processCode(pFilename, code.toString());
+  private String tokenizeSourcefile(String pFilename) throws CParserException, IOException {
+    String code = Paths.get(pFilename).asCharSource(Charset.defaultCharset()).read();
+    return processCode(pFilename, code);
   }
 
   private String processCode(String fileName, String pCode) throws CParserException {
