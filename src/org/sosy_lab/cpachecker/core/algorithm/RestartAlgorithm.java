@@ -205,10 +205,10 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
           currentCpa = currentAlg.getSecond();
           currentReached = currentAlg.getThird();
         } catch (InvalidConfigurationException e) {
-          logger.logUserException(Level.WARNING, e, "Skipping one analysis because its configuration is invalid");
+          logger.logUserException(Level.WARNING, e, "Skipping one analysis because the configuration file " + singleConfigFileName.toString() + " is invalid");
           continue;
         } catch (IOException e) {
-          logger.logUserException(Level.WARNING, e, "Skipping one analysis due to unreadable configuration file");
+          logger.logUserException(Level.WARNING, e, "Skipping one analysis because the configuration file " + singleConfigFileName.toString() + " could not be read");
           continue;
         }
 
