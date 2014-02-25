@@ -47,7 +47,7 @@ public class EclipseCDT7Parser extends AbstractEclipseCParser<FileContent> {
 
   @Override
   protected FileContent wrapCode(FileContentToParse pContent) {
-    return FileContent.create(pContent.fileName, pContent.fileContent.toCharArray());
+    return FileContent.create(pContent.getFileName(), pContent.getFileContent().toCharArray());
   }
 
   @Override
