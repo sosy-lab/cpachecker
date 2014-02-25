@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -80,6 +80,19 @@ public class PathToCTranslator {
 
   private PathToCTranslator() { }
 
+  /**
+   * Transform a set of paths into C code.
+   * All paths need to have a single root,
+   * and all paths need to be loop free.
+   *
+   * TODO: Detect loops in the paths and signal an error.
+   * Currently when there are loops, the generated C code is invalid
+   * because there is a goto to a missing label.
+   *
+   * @param argRoot The root of all given paths.
+   * @param elementsOnErrorPath The set of states that are on all paths.
+   * @return An appender that generates C code.
+   */
   public static Appender translatePaths(ARGState argRoot, Set<ARGState> elementsOnErrorPath) {
     PathToCTranslator translator = new PathToCTranslator();
 
@@ -88,6 +101,17 @@ public class PathToCTranslator {
     return translator.generateCCode();
   }
 
+  /**
+   * Transform a single linear path into C code.
+   * The path needs to be loop free.
+   *
+   * TODO: Detect loops in the paths and signal an error.
+   * Currently when there are loops, the generated C code is invalid
+   * because there is a goto to a missing label.
+   *
+   * @param pPath The path.
+   * @return An appender that generates C code.
+   */
   public static Appender translateSinglePath(ARGPath pPath) {
     PathToCTranslator translator = new PathToCTranslator();
 

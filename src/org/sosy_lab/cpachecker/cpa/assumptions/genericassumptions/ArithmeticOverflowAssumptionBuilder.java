@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -172,9 +172,7 @@ implements GenericAssumptionBuilder {
         CFunctionEntryNode fdefnode = fcallEdge.getSuccessor();
         List<CParameterDeclaration> formalParams = fdefnode.getFunctionParameters();
         for (CParameterDeclaration paramdecl : formalParams) {
-          String name = paramdecl.getName();
-          CType type = paramdecl.getType();
-          CExpression exp = new CIdExpression(paramdecl.getFileLocation(), type, name, paramdecl);
+          CExpression exp = new CIdExpression(paramdecl.getFileLocation(), paramdecl);
           visit(exp, result);
         }
       }

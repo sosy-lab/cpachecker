@@ -15,7 +15,7 @@
          if there is not default set of columns given directly inside the <table> tag -->
   </result>
 
-  <union>
+  <union title="My title">
     <!-- Merge the result of several runs into one column in the table. -->
     <result filename="test/results/benchmark-cpachecker-part1.11-??-??.????.results.xml"/>
     <result filename="test/results/benchmark-cpachecker-part2.11-??-??.????.results.xml"/>
@@ -26,5 +26,15 @@
   <column title="status"/>
   <column title="cputime"/>
   <column title="walltime"/>
+
+  <!--
+    Columns can optionally have a pattern
+    and the script will then extract the desired value from the log file
+    (only works for CPAchecker currently).
+    The <column> tag has the pattern as content,
+    "numberOfDigits" gives the number of digits after the decimal separator (optional).
+  -->
+  <column title="total" numberOfDigits="1">time for CPAchecker</column>
+  <column title="reached">reached set</column>
 
 </table>

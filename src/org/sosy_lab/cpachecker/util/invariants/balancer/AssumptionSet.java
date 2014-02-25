@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -137,21 +137,13 @@ public class AssumptionSet implements Iterable<Assumption> {
    * Diagnostic purposes.
    */
   public boolean add(Assumption a, boolean writeArgs) {
-    System.out.println("Set was:"+this.toString());
-    System.out.println("Adding:"+a.toString());
+    @SuppressWarnings("unused")
     Assumption b, c;
     for (int i = 0; i < aset.size(); i++) {
       b = aset.get(i);
-      System.out.println("Strengthening"+b+"by"+a);
       c = a.strengthen(b);
-      if (c != null) {
-        System.out.println("Got"+c);
-      } else {
-        System.out.println("Got null");
-      }
     }
     boolean bl = add(a);
-    System.out.println("Set is now:"+this.toString());
     return bl;
   }
 

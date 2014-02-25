@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,8 +29,8 @@ import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
 import java.util.Collection;
 
-import org.sosy_lab.common.NestedTimer;
-import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.time.NestedTimer;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -231,7 +231,7 @@ public class Z3TheoremProver implements ProverEnvironment {
       if (count == 0) {
         solveTime.stop();
         enumTime.startOuter();
-        regionTime = enumTime.getInnerTimer();
+        regionTime = enumTime.getCurentInnerTimer();
       }
 
       regionTime.start();

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,14 +32,25 @@ public final class FileLocation {
   private final int length;
   private final int offset;
   private final int startingLine;
+  private final int startingLineInOrigin;
 
   public FileLocation(int pEndineLine, String pFileName, int pLength,
       int pOffset, int pStartingLine) {
+    this(pEndineLine, pFileName, pLength, pOffset, pStartingLine, pStartingLine);
+  }
+
+  public FileLocation(int pEndineLine, String pFileName, int pLength,
+      int pOffset, int pStartingLine, int pStartingLineInOrigin) {
     endineLine = pEndineLine;
     fileName = pFileName;
     length = pLength;
     offset = pOffset;
     startingLine = pStartingLine;
+    startingLineInOrigin = pStartingLineInOrigin;
+  }
+
+  public int getStartingLineInOrigin() {
+    return startingLineInOrigin;
   }
 
   public int getEndingLineNumber() {

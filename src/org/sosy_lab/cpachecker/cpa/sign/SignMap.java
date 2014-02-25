@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,6 +48,24 @@ public class SignMap {
 
   public boolean containsKey(Object pKey) {
     return possibleSigns.containsKey(pKey);
+  }
+
+  public SignMap mergeWith(SignMap pSignMap) {
+      ImmutableMap.Builder<String, SIGN> mapBuilder = ImmutableMap.builder();
+      for(String key : possibleSigns.keySet()) {
+          if(pSignMap.containsKey(key)) {
+              // Use minimal sign if both maps contain the same key
+              mapBuilder.put(key, SIGN.min(possibleSigns.get(key), pSignMap.possibleSigns.get(key)));
+          } else {
+              mapBuilder.put(key, possibleSigns.get(key));
+          }
+      }
+      for(String key : pSignMap.keySet()) {
+          if(!possibleSigns.containsKey(key)) {
+              mapBuilder.put(key, pSignMap.possibleSigns.get(key));
+          }
+      }
+      return new SignMap(mapBuilder.build());
   }
 
   @Override

@@ -38,7 +38,7 @@ class Tool(benchmark.tools.template.BaseTool):
         return 'Threader'
 
 
-    def getCmdline(self, executable, options, sourcefile):
+    def getCmdline(self, executable, options, sourcefile, propertyfile):
         workingDir = self.getWorkingDirectory(executable)
         return [os.path.relpath(executable, start=workingDir)] + options + [os.path.relpath(sourcefile, start=workingDir)]
 
@@ -47,7 +47,7 @@ class Tool(benchmark.tools.template.BaseTool):
         if 'SSSAFE' in output:
             status = result.STR_TRUE
         elif 'UNSAFE' in output:
-            status = result.STR_FALSE
+            status = result.STR_FALSE_LABEL
         else:
             status = result.STR_UNKNOWN
 

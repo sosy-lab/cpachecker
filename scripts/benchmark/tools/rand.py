@@ -15,8 +15,8 @@ class Tool(benchmark.tools.template.BaseTool):
     def getName(self):
         return 'Random'
 
-    def getCmdline(self, executable, options, sourcefile):
+    def getCmdline(self, executable, options, sourcefile, propertyfile):
         return [executable]
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
-        return result.STR_TRUE if random() < 0.5 else result.STR_FALSE
+        return result.STR_TRUE if random() < 0.5 else result.STR_FALSE_LABEL

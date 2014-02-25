@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -62,6 +62,11 @@ public enum SIGN {
 
   public boolean covers(SIGN sign) {
     if ((sign.numVal | this.numVal)  == this.numVal) { return true; }
+    return false;
+  }
+
+  public boolean intersects(SIGN sign) {
+    if ((sign.numVal & this.numVal) != 0) { return true; }
     return false;
   }
 

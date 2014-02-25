@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
@@ -34,13 +33,14 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
@@ -123,18 +123,18 @@ public class PredicateMapParser {
    * @throws IOException If the file cannot be read.
    * @throws PredicateParsingFailedException If there is a syntax error in the file.
    */
-  public PredicatePrecision parsePredicates(File file)
+  public PredicatePrecision parsePredicates(Path file)
           throws IOException, PredicateParsingFailedException {
 
     Files.checkReadableFile(file);
 
-    try (BufferedReader reader = java.nio.file.Files.newBufferedReader(file.toPath(), Charsets.US_ASCII)) {
+    try (BufferedReader reader = file.asCharSource(Charsets.US_ASCII).openBufferedStream()) {
       return parsePredicates(reader, file.getName());
     }
   }
 
   /**
-   * @see #parsePredicates(File, CFA, Collection, FormulaManager, AbstractionManager, LogManager)
+   * @see #parsePredicates(Path, CFA, Collection, FormulaManager, AbstractionManager, LogManager)
    * Instead of reading from a file, this method reads from a BufferedReader
    * (available primarily for testing).
    */

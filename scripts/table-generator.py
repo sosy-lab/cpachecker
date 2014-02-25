@@ -4,7 +4,7 @@
 CPAchecker is a tool for configurable software verification.
 This file is part of CPAchecker.
 
-Copyright (C) 2007-2012  Dirk Beyer
+Copyright (C) 2007-2014  Dirk Beyer
 All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -256,7 +256,7 @@ def parseTableDefinitionFile(file):
                 result.append(resultsFile, parseResultsFile(resultsFile))
 
         if result.filelist:
-            result.attributes['name'] = unionTag.get('title', unionTag.get('name', result.attributes['name']))
+            result.attributes['name'] = [unionTag.get('title', unionTag.get('name', result.attributes['name']))]
             runSetResults.append(result)
 
     return runSetResults
@@ -286,7 +286,7 @@ class RunSetResult():
         self.columns = columns
 
     def getSourceFileNames(self):
-        return [file.get('name') for file in self.filelist if Util.getColumnValue(file, 'status')]
+        return [file.get('name') for file in self.filelist]
 
     def append(self, resultFile, resultElem):
         self.filelist += resultElem.findall('sourcefile')
@@ -318,7 +318,8 @@ class RunSetResult():
             return []
         else: # show all available columns
             return [Column(c.get("title"), None, None)
-                    for c in resultElem.find('sourcefile').findall('column')]
+                    for c in resultElem.find('sourcefile').findall('column')
+                    if c.get("title") != 'category']
 
     @staticmethod
     def _extractAttributesFromResult(resultFile, resultTag):
@@ -508,8 +509,14 @@ class RunResult:
             return None
 
         status = Util.getColumnValue(sourcefileTag, 'status', '')
-        category = result.getResultCategory(sourcefileTag.get('name'), status)
-        score = result.calculateScore(category)
+        category = Util.getColumnValue(sourcefileTag, 'category', 'placeholderForUnknown')
+        
+        # fallback for compatibility, 
+        # TODO: remove this block and set CATEGORY_UNKNOWN as default value
+        if category == 'placeholderForUnknown':
+            category = result.getResultCategory(sourcefileTag.get('name'), status)
+
+        score = result.calculateScore(category, status)
         logfileLines = None
 
         if status == '':
@@ -627,10 +634,10 @@ def getTableHead(runSetResults, commonFileNamePrefix):
         for key in runSetResult.attributes:
             runSetResult.attributes[key] = Util.prettylist(runSetResult.attributes[key])
 
-    def getRow(rowName, format, collapse=False, onlyIf=None):
+    def getRow(rowName, format, collapse=False, onlyIf=None, default='Unknown'):
         def formatCell(attributes):
             if onlyIf and not onlyIf in attributes:
-                formatStr = 'Unknown'
+                formatStr = default
             else:
                 formatStr = format
             return formatStr.format(**attributes)
@@ -662,6 +669,7 @@ def getTableHead(runSetResults, commonFileNamePrefix):
             'runset':  getRow('Run set', '{name}' if allBenchmarkNamesEqual else '{benchmarkname}.{name}'),
             'branch':  getRow('Branch', '{branch}'),
             'options': getRow('Options', '{options}'),
+            'property':getRow('Propertyfile', '{propertyfiles}', collapse=True, onlyIf='propertyfiles', default=''),
             'title':   titleRow}
 
 
@@ -677,7 +685,8 @@ def getStats(rows):
             tempita.bunch(default=None, title='correct results', description='(no bug exists + result is TRUE) OR (bug exists + result is FALSE)', content=rowsForStats[1]),
             tempita.bunch(default=None, title='false negatives', description='bug exists + result is TRUE', content=rowsForStats[2]),
             tempita.bunch(default=None, title='false positives', description='no bug exists + result is FALSE', content=rowsForStats[3]),
-            tempita.bunch(default=None, title='score ({0} files, max score: {1})'.format(len(rows), maxScore), id='score', description='{0} true files, {1} false files'.format(countTrue, countFalse), content=rowsForStats[4])
+            tempita.bunch(default=None, title='false properties', description='bug exists + bug found, but not searched for it', content=rowsForStats[4]),
+            tempita.bunch(default=None, title='score ({0} files, max score: {1})'.format(len(rows), maxScore), id='score', description='{0} true files, {1} false files'.format(countTrue, countFalse), content=rowsForStats[5])
             ]
 
 def getStatsOfRunSet(runResults):
@@ -693,44 +702,48 @@ def getStatsOfRunSet(runResults):
     listsOfValues = zip(*[runResult.values for runResult in runResults])
 
     columns = runResults[0].columns
-    statusList = [runResult.category for runResult in runResults]
+    statusList = [(runResult.category, runResult.status) for runResult in runResults]
 
     # collect some statistics
     sumRow = []
     correctRow = []
     wrongTrueRow = []
     wrongFalseRow = []
+    wrongPropertyRow = []
     scoreRow = []
 
     for column, values in zip(columns, listsOfValues):
         if column.title == 'status':
-            countCorrectTrue, countCorrectFalse, countWrongTrue, countWrongFalse = getCategoryCount(statusList)
+            countCorrectTrue, countCorrectFalse, countCorrectProperty, countWrongTrue, countWrongFalse, countWrongProperty = getCategoryCount(statusList)
 
-            sum     = StatValue(len(statusList))
-            correct = StatValue(countCorrectTrue + countCorrectFalse)
-            score   = StatValue(
-                                result.SCORE_CORRECT_TRUE   * countCorrectTrue + \
+            sum     = StatValue(len([status for (category, status) in statusList if status]))
+            correct = StatValue(countCorrectTrue + countCorrectFalse + countCorrectProperty)
+            score   = StatValue(result.SCORE_CORRECT_TRUE   * countCorrectTrue + \
                                 result.SCORE_CORRECT_FALSE * countCorrectFalse + \
+                                result.SCORE_CORRECT_FALSE * countCorrectProperty + \
                                 result.SCORE_WRONG_TRUE     * countWrongTrue + \
-                                result.SCORE_WRONG_FALSE   * countWrongFalse,
+                                result.SCORE_WRONG_FALSE   * countWrongFalse + \
+                                result.SCORE_WRONG_FALSE   * countWrongProperty,
                                 )
             wrongTrue   = StatValue(countWrongTrue)
             wrongFalse = StatValue(countWrongFalse)
+            wrongProperty = StatValue(countWrongProperty)
 
         else:
-            sum, correct, wrongTrue, wrongFalse = getStatsOfNumberColumn(values, statusList, column.title)
+            sum, correct, wrongTrue, wrongFalse, wrongProperty = getStatsOfNumberColumn(values, statusList, column.title)
             score = ''
 
-        if (sum.sum, correct.sum, wrongTrue.sum, wrongFalse.sum) == (0,0,0,0):
-            (sum, correct, wrongTrue, wrongFalse) = (None, None, None, None)
+        if (sum.sum, correct.sum, wrongTrue.sum, wrongFalse.sum) == (0,0,0,0,0):
+            (sum, correct, wrongTrue, wrongFalse) = (None, None, None, None, None)
 
         sumRow.append(sum)
         correctRow.append(correct)
         wrongTrueRow.append(wrongTrue)
         wrongFalseRow.append(wrongFalse)
+        wrongPropertyRow.append(wrongProperty)
         scoreRow.append(score)
 
-    return (sumRow, correctRow, wrongTrueRow, wrongFalseRow, scoreRow)
+    return (sumRow, correctRow, wrongTrueRow, wrongFalseRow, wrongPropertyRow, scoreRow)
 
 
 class StatValue:
@@ -763,10 +776,23 @@ def getCategoryCount(categoryList):
     for category in categoryList:
         counts[category] += 1
 
-    return (counts[result.RESULT_CORRECT_TRUE],
-            counts[result.RESULT_CORRECT_FALSE] + counts[result.RESULT_CORRECT_PROP_DEREF] + counts[result.RESULT_CORRECT_PROP_FREE] + counts[result.RESULT_CORRECT_PROP_MEMTRACK],
-            counts[result.RESULT_WRONG_TRUE],
-            counts[result.RESULT_WRONG_FALSE] + counts[result.RESULT_WRONG_PROP_DEREF] + counts[result.RESULT_WRONG_PROP_FREE] + counts[result.RESULT_WRONG_PROP_MEMTRACK]
+    # warning: read next lines carefully, there are some brackets and commas!
+    return (
+        # correctTrue, correctFalseLabel, correctProperty
+            counts[result.CATEGORY_CORRECT, result.STR_TRUE],
+            counts[result.CATEGORY_CORRECT, result.STR_FALSE_LABEL],
+            counts[result.CATEGORY_CORRECT, result.STR_FALSE_DEREF] \
+          + counts[result.CATEGORY_CORRECT, result.STR_FALSE_FREE] \
+          + counts[result.CATEGORY_CORRECT, result.STR_FALSE_MEMTRACK] \
+          + counts[result.CATEGORY_CORRECT, result.STR_FALSE_TERMINATION],
+
+        # wrongTrue, wrongFalseLabel, wrongProperty
+            counts[result.CATEGORY_WRONG, result.STR_TRUE],
+            counts[result.CATEGORY_WRONG, result.STR_FALSE_LABEL],
+            counts[result.CATEGORY_WRONG, result.STR_FALSE_DEREF] \
+          + counts[result.CATEGORY_WRONG, result.STR_FALSE_FREE] \
+          + counts[result.CATEGORY_WRONG, result.STR_FALSE_MEMTRACK] \
+          + counts[result.CATEGORY_WRONG, result.STR_FALSE_TERMINATION]
             )
 
 
@@ -777,21 +803,23 @@ def getStatsOfNumberColumn(values, categoryList, columnTitle):
     except InvalidOperation as e:
         if columnTitle != "host": # we ignore values of column host, used in cloud-mode
             print("Warning: {0}. Statistics may be wrong.".format(e))
-        return (StatValue(0), StatValue(0), StatValue(0), StatValue(0))
+        return (StatValue(0), StatValue(0), StatValue(0), StatValue(0), StatValue(0))
 
     valuesPerCategory = collections.defaultdict(list)
-    for value, category in zip(valueList, categoryList):
-        if category and 'correct' in category:
-            category = 'correct_tmp'
-        valuesPerCategory[category] += [value]
+    for value, catStat in zip(valueList, categoryList):
+        category, status = catStat
+        if category == result.CATEGORY_CORRECT:
+            status = None # ignore status, we do not need it, use None as DUMMY
+        valuesPerCategory[category, status].append(value)
 
     return (StatValue.fromList(valueList),
-            StatValue.fromList(valuesPerCategory['correct_tmp']),
-            StatValue.fromList(valuesPerCategory[result.RESULT_WRONG_TRUE]),
-            StatValue.fromList(valuesPerCategory[result.RESULT_WRONG_FALSE] +
-                               valuesPerCategory[result.RESULT_WRONG_PROP_DEREF] +
-                               valuesPerCategory[result.RESULT_WRONG_PROP_FREE] +
-                               valuesPerCategory[result.RESULT_WRONG_PROP_MEMTRACK]
+            StatValue.fromList(valuesPerCategory[result.CATEGORY_CORRECT, None]), # None as DUMMY
+            StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STR_TRUE]),
+            StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_LABEL]),
+            StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_DEREF] +
+                               valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_FREE] +
+                               valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_MEMTRACK] +
+                               valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_TERMINATION]
                                ),
             )
 
@@ -800,11 +828,11 @@ def getCounts(rows): # for options.dumpCounts
     countsList = []
 
     for runResults in rowsToColumns(rows):
-        statusList = [runResult.category for runResult in runResults]
-        correctTrue, correctFalse, wrongTrue, wrongFalse = getCategoryCount(statusList)
+        statusList = [(runResult.category, runResult.status) for runResult in runResults]
+        correctTrue, correctFalse, correctProperty, wrongTrue, wrongFalse, wrongProperty = getCategoryCount(statusList)
 
-        correct = correctTrue + correctFalse
-        wrong = wrongTrue + wrongFalse
+        correct = correctTrue + correctFalse + correctProperty
+        wrong = wrongTrue + wrongFalse + wrongProperty
         unknown = len(statusList) - correct - wrong
 
         countsList.append((correct, wrong, unknown))

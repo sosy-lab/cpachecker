@@ -8,11 +8,11 @@
   <rundefinition>
     <sourcefiles>
       <option name="-CPAlien2-with-explicitAnalysis-without-malloc-failure-Error"/>
-      <includesfile>integration-lists.set</includesfile>
+      <include>../programs/smg_Explicity_Test/lists/*.c</include>
     </sourcefiles>
     <sourcefiles>
       <option name="-CPAlien2-with-explicitAnalysis-without-malloc-failure"/>
-      <includesfile>integration-Heap-Mem-Expl.set</includesfile>
+      <include>../programs/smg_Explicity_Test/heap-memory/*.c</include>
     </sourcefiles>
   </rundefinition>
 

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -45,9 +45,9 @@ import org.eclipse.cdt.core.parser.ParserFactory;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -68,18 +68,19 @@ abstract class AbstractEclipseCParser<T> implements CParser {
   protected final IParserLogService parserLog = ParserFactory.createDefaultLogService();
 
   private final MachineModel machine;
+
   private final LogManager logger;
+  private final Configuration config;
 
   private final Timer parseTimer = new Timer();
   private final Timer cfaTimer = new Timer();
 
-  private final Configuration config;
+  protected AbstractEclipseCParser(Configuration pConfig, LogManager pLogger,
+      Dialect dialect, MachineModel pMachine) {
 
-  protected AbstractEclipseCParser(Configuration config, LogManager pLogger, Dialect dialect, MachineModel pMachine) {
-    logger = pLogger;
-    machine = pMachine;
-
-    this.config = config;
+    this.logger = pLogger;
+    this.machine = pMachine;
+    this.config = pConfig;
 
     switch (dialect) {
     case C99:
@@ -93,26 +94,26 @@ abstract class AbstractEclipseCParser<T> implements CParser {
     }
   }
 
-  protected abstract T wrapCode(String pCode);
+  protected abstract T wrapCode(String pFilename, char[] pCode);
 
   protected abstract T wrapFile(String pFilename) throws IOException;
 
   @Override
-  public ParseResult parseFile(List<Pair<String, String>> pFilenames) throws CParserException, IOException, InvalidConfigurationException {
+  public ParseResult parseFile(List<FileToParse> pFilenames) throws CParserException, IOException, InvalidConfigurationException {
 
     List<Pair<IASTTranslationUnit, String>> astUnits = new ArrayList<>();
-    for(Pair<String, String> pair : pFilenames) {
-      astUnits.add(Pair.of(parse(wrapFile(pair.getFirst())), pair.getSecond()));
+    for(FileToParse f: pFilenames) {
+      astUnits.add(Pair.of(parse(wrapFile(f.fileName)), f.staticVariablePrefix));
     }
     return buildCFA(astUnits);
   }
 
   @Override
-  public ParseResult parseString(List<Pair<String, String>> codeFragments) throws CParserException, InvalidConfigurationException {
+  public ParseResult parseString(List<FileContentToParse> codeFragments) throws CParserException, InvalidConfigurationException {
 
     List<Pair<IASTTranslationUnit, String>> astUnits = new ArrayList<>();
-    for(Pair<String, String> pair : codeFragments) {
-      astUnits.add(Pair.of(parse(wrapCode(pair.getFirst())), pair.getSecond()));
+    for(FileContentToParse f : codeFragments) {
+      astUnits.add(Pair.of(parse(wrapCode(f.fileName, f.fileContent)), f.staticVariablePrefix));
     }
     return buildCFA(astUnits);
   }
@@ -134,9 +135,9 @@ abstract class AbstractEclipseCParser<T> implements CParser {
    * This method parses a single string, where no prefix for static variables is needed.
    */
   @Override
-  public ParseResult parseString(String pCode) throws CParserException, InvalidConfigurationException {
+  public ParseResult parseString(String pFilename, char[] pCode) throws CParserException, InvalidConfigurationException {
 
-    IASTTranslationUnit unit = parse(wrapCode(pCode));
+    IASTTranslationUnit unit = parse(wrapCode(pFilename, pCode));
     String prefix = "";
     List<Pair<IASTTranslationUnit, String>> returnParam = new ArrayList<>();
     returnParam.add(Pair.of(unit, prefix));
@@ -144,9 +145,9 @@ abstract class AbstractEclipseCParser<T> implements CParser {
   }
 
   @Override
-  public CAstNode parseSingleStatement(String pCode) throws CParserException, InvalidConfigurationException {
+  public CAstNode parseSingleStatement(char[] pCode) throws CParserException, InvalidConfigurationException {
     // parse
-    IASTTranslationUnit ast = parse(wrapCode(pCode));
+    IASTTranslationUnit ast = parse(wrapCode("", pCode));
 
     // strip wrapping function header
     IASTDeclaration[] declarations = ast.getDeclarations();
@@ -167,7 +168,53 @@ abstract class AbstractEclipseCParser<T> implements CParser {
       throw new CParserException("Not exactly one statement in function body: " + body);
     }
 
-    return new ASTConverter(config, new FunctionScope(), logger, machine, "", false).convert(statements[0]);
+    Sideassignments sa = new Sideassignments();
+    sa.enterBlock();
+    return new ASTConverter(config, new FunctionScope(), logger, machine, "", false, sa).convert(statements[0]);
+  }
+
+  @Override
+  public List<CAstNode> parseStatements(char[] pCode) throws CParserException, InvalidConfigurationException {
+    // parse
+    IASTTranslationUnit ast = parse(wrapCode("", pCode));
+
+    // strip wrapping function header
+    IASTDeclaration[] declarations = ast.getDeclarations();
+    if (   declarations == null
+        || declarations.length != 1
+        || !(declarations[0] instanceof IASTFunctionDefinition)) {
+      throw new CParserException("Not a single function: " + ast.getRawSignature());
+    }
+
+    IASTFunctionDefinition func = (IASTFunctionDefinition)declarations[0];
+    IASTStatement body = func.getBody();
+    if (!(body instanceof IASTCompoundStatement)) {
+      throw new CParserException("Function has an unexpected " + body.getClass().getSimpleName() + " as body: " + func.getRawSignature());
+    }
+
+    IASTStatement[] statements = ((IASTCompoundStatement)body).getStatements();
+    if (statements.length == 1 && statements[0] == null || statements.length == 0) {
+      throw new CParserException("No statement found in function body: " + body);
+    }
+
+    Sideassignments sa = new Sideassignments();
+    sa.enterBlock();
+
+    ASTConverter converter = new ASTConverter(config, new FunctionScope(), logger, machine, "", false, sa);
+
+    List<CAstNode> nodeList = new ArrayList<>(statements.length);
+
+    for(IASTStatement statement : statements) {
+      if(statement != null) {
+        nodeList.add(converter.convert(statement));
+      }
+    }
+
+    if (nodeList.size() < 1) {
+      throw new CParserException("No statement found in function body: " + body);
+    }
+
+    return nodeList;
   }
 
   protected static final int PARSER_OPTIONS =
@@ -283,7 +330,7 @@ abstract class AbstractEclipseCParser<T> implements CParser {
       // parse them as functions.
       macrosBuilder.put("__builtin_va_arg", "__builtin_va_arg");
       macrosBuilder.put("__builtin_constant_p", "__builtin_constant_p");
-      macrosBuilder.put("__builtin_types_compatible_p", "__builtin_types_compatible_p");
+      macrosBuilder.put("__builtin_types_compatible_p(t1,t2)", "__builtin_types_compatible_p(({t1 arg1; arg1;}), ({t2 arg2; arg2;}))");
       macrosBuilder.put("__offsetof__", "__offsetof__");
 
       macrosBuilder.put("__func__", "\"__func__\"");

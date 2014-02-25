@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,10 +30,10 @@ import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Sets;
-
 
 
 public class SignState implements AbstractStateWithTargetVariable, TargetableWithPredicatedAnalysis {
@@ -41,6 +41,8 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
   private static final boolean DEBUG = false;
 
   private static SignTargetChecker targetChecker;
+
+  private final Optional<SignState> stateBeforeEnteredFunction;
 
   static void init(Configuration config) throws InvalidConfigurationException {
     targetChecker = new SignTargetChecker(config);
@@ -52,10 +54,16 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
     return signMap;
   }
 
-  public final static SignState TOP = new SignState(ImmutableMap.<String, SIGN> of());
+  public final static SignState TOP = new SignState();
 
-  public SignState(ImmutableMap<String, SIGN> pPossibleSigns) {
-    signMap = new SignMap(pPossibleSigns);
+  private SignState(SignMap pSignMap, Optional<SignState> pStateBeforeEnteredFunction) {
+    signMap = pSignMap;
+    stateBeforeEnteredFunction = pStateBeforeEnteredFunction;
+  }
+
+  private SignState() {
+    signMap = new SignMap(ImmutableMap.<String, SIGN> of());
+    stateBeforeEnteredFunction = Optional.absent();
   }
 
   public SignState union(SignState pToJoin) {
@@ -75,6 +83,12 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
 
   public boolean isSubsetOf(SignState pSuperset) {
     if (pSuperset.equals(this) || pSuperset.equals(TOP)) { return true; }
+    if (stateBeforeEnteredFunction.isPresent()) {
+      if (!pSuperset.stateBeforeEnteredFunction.isPresent()
+          || pSuperset.stateBeforeEnteredFunction.get() != stateBeforeEnteredFunction.get()) { return false; }
+    } else {
+      if (pSuperset.stateBeforeEnteredFunction.isPresent()) { return false; }
+    }
     // is subset if for every variable all sign assumptions are considered in pSuperset
     for (String varIdent : Sets.union(signMap.keySet(), pSuperset.signMap.keySet())) {
       if (!signMap.getSignForVariable(varIdent).isSubsetOf(pSuperset.signMap.getSignForVariable(varIdent))) { return false; }
@@ -82,17 +96,29 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
     return true;
   }
 
+  public SignState enterFunction(ImmutableMap<String, SIGN> pArguments) {
+    SignMap resultSignMap = signMap.mergeWith(new SignMap(pArguments));
+    return new SignState(resultSignMap, Optional.of(this));
+  }
+
+  public SignState leaveFunction() {
+      if(stateBeforeEnteredFunction.isPresent()) {
+          return stateBeforeEnteredFunction.get();
+      }
+      throw new IllegalStateException("No function has been entered before");
+  }
+
   public SignState assignSignToVariable(String pVarIdent, SIGN sign) {
     Builder<String, SIGN> mapBuilder = ImmutableMap.builder();
     if (!sign.isAll()) {
       mapBuilder.put(pVarIdent, sign);
     }
-    for (String varIdent : signMap.keySet()) {
-      if (!varIdent.equals(pVarIdent)) {
-        mapBuilder.put(varIdent, signMap.getSignForVariable(varIdent));
+    for (String varId : signMap.keySet()) {
+      if (!varId.equals(pVarIdent)) {
+        mapBuilder.put(varId, signMap.getSignForVariable(varId));
       }
     }
-    return new SignState(mapBuilder.build());
+    return new SignState(new SignMap(mapBuilder.build()), stateBeforeEnteredFunction);
   }
 
   public SignState removeSignAssumptionOfVariable(String pVarIdent) {

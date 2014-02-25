@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -84,7 +84,7 @@ import com.google.common.collect.Sets;
 public class CBinaryExpressionBuilder {
 
 
-  private final static Set<BinaryOperator> relationalOperators = Sets.immutableEnumSet(
+  public final static Set<BinaryOperator> relationalOperators = Sets.immutableEnumSet(
       BinaryOperator.EQUALS,
       BinaryOperator.NOT_EQUALS,
       BinaryOperator.LESS_THAN,
@@ -299,8 +299,8 @@ public class CBinaryExpressionBuilder {
 
 
     // both are pointer or function-pointer
-    if ((pType1 instanceof CPointerType || pType1 instanceof CFunctionType)
-        && (pType2 instanceof CPointerType || pType2 instanceof CFunctionType)) {
+    if ((pType1 instanceof CPointerType || pType1 instanceof CFunctionType || pType1 instanceof CArrayType)
+        && (pType2 instanceof CPointerType || pType2 instanceof CFunctionType || pType2 instanceof CArrayType)) {
 
       if (pBinOperator == BinaryOperator.MINUS) { return machineModel.getPointerDiffType(); }
 
@@ -327,7 +327,6 @@ public class CBinaryExpressionBuilder {
 
 
     // TODO check if there are other types, that can be used in binaryExp
-
     throw new AssertionError(String.format(
         "unhandled type-conversion: %s (%s, %s) of (%s, %s)",
         pBinOperator, pType1, pType2, pType1.getClass(), pType2.getClass()));

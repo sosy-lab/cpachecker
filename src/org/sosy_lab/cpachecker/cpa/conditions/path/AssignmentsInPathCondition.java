@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,38 +23,26 @@
  */
 package org.sosy_lab.cpachecker.cpa.conditions.path;
 
-import java.io.IOException;
 import java.io.PrintStream;
-import java.io.Writer;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.logging.Level;
+import java.util.HashSet;
+import java.util.Set;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitValueBase;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -69,189 +57,82 @@ import com.google.common.collect.Multimap;
 @Options(prefix="cpa.conditions.path.assignments")
 public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
-  @Option(description="maximum number of assignments (-1 for infinite)")
+  @Option(description="(soft) threshold for assignments (-1 for infinite)")
   @IntegerOption(min=-1)
-  private int threshold = -1;
+  private int softThreshold = -1;
 
-  @Option(description="whether or not to track unique assignments only")
-  private boolean demandUniqueness = true;
-
-  @Option(name = "extendedStatsFile",
-      description = "file name where to put the extended stats file")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path extendedStatsFile;
-
-  /**
-   * the reference to the current element
-   */
-  private AssignmentsInPathConditionState currentState = null;
+  @Option(description="(hard) threshold for assignments (-1 for infinite)")
+  @IntegerOption(min=-1)
+  private int hardThreshold = -1;
 
   /**
    * the maximal number of assignments over all variables for all elements seen to far
    */
   private int maxNumberOfAssignments = 0;
 
-  /**
-   * the maximal number of assignments for each variables over all elements seen to far
-   */
-  private Map<String, Integer> maxNumberOfAssignmentsPerIdentifier = new HashMap<>();
-
-  /**
-   * a reference to the logger
-   */
-  LogManager logger;
-
   public AssignmentsInPathCondition(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
-
-    this.logger = logger;
   }
 
   @Override
   public AvoidanceReportingState getInitialState(CFANode node) {
-
-    AvoidanceReportingState element = demandUniqueness ?
-                                        new UniqueAssignmentsInPathConditionState() :
-                                        new AllAssignmentsInPathConditionState();
-
-    return element;
+    return new UniqueAssignmentsInPathConditionState();
   }
 
   @Override
-  public AvoidanceReportingState getAbstractSuccessor(AbstractState element, CFAEdge edge) {
-    currentState = (AssignmentsInPathConditionState)element;
+  public AvoidanceReportingState getAbstractSuccessor(AbstractState pElement, CFAEdge pEdge) {
+    UniqueAssignmentsInPathConditionState current   = (UniqueAssignmentsInPathConditionState)pElement;
 
-    if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
-      for (CFAEdge singleEdge : (MultiEdge)edge) {
-        handleEdge(singleEdge);
-      }
-    } else {
-      handleEdge(edge);
-    }
+    UniqueAssignmentsInPathConditionState successor = new UniqueAssignmentsInPathConditionState(current.maximum,
+        HashMultimap.create(current.mapping));
 
-    maxNumberOfAssignments = Math.max(maxNumberOfAssignments, currentState.maximum);
+    maxNumberOfAssignments  = Math.max(maxNumberOfAssignments, successor.getMaximum());
 
-    for (Map.Entry<String, Integer> assignment : currentState.getAssignmentCounts().entrySet()) {
-      String variableName     = assignment.getKey();
-      Integer currentCounter  = maxNumberOfAssignmentsPerIdentifier.containsKey(variableName) ? maxNumberOfAssignmentsPerIdentifier.get(variableName) : 0;
-
-      currentCounter          = Math.max(currentCounter, assignment.getValue());
-
-      maxNumberOfAssignmentsPerIdentifier.put(variableName, currentCounter);
-    }
-
-    return currentState;
-  }
-
-  private void handleEdge(CFAEdge edge) {
-    if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
-      CStatement statement = ((CStatementEdge)edge).getStatement();
-
-      if (statement instanceof CAssignment) {
-        currentState = currentState.getSuccessor(getAssignedVariable((CAssignment)statement, edge));
-      }
-    }
-  }
-
-  /**
-   * This method returns the name of the variable being assigned.
-   *
-   * @param assignment the assignment statement
-   * @param edge the assignment edge
-   * @return the name of the variable being assigned
-   */
-  private String getAssignedVariable(CAssignment assignment, CFAEdge edge) {
-    CExpression leftHandSide = assignment.getLeftHandSide();
-
-    // if expression is an identifier expression, get qualified name from there
-    if (leftHandSide instanceof CIdExpression) {
-      return ((CIdExpression)leftHandSide).getDeclaration().getQualifiedName();
-    }
-
-    // otherwise, construct qualified name manually
-    return edge.getPredecessor().getFunctionName() + "::" + leftHandSide.toASTString();
+    return successor;
   }
 
   @Override
   public boolean adjustPrecision() {
-    threshold *= 2;
+    softThreshold *= 2;
+    hardThreshold *= 2;
     return true;
   }
 
   @Override
   public String getName() {
-    return (demandUniqueness ? "unique" : "all") + " assignments in path condition";
+    return "unique assignments in path condition";
   }
 
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reachedSet) {
-    out.println("Threshold value: " + threshold);
-    out.println("max. number of assignments: " + maxNumberOfAssignments);
+    out.println("Threshold value (soft):     " + softThreshold);
+    out.println("Threshold value (hard):     " + hardThreshold);
+    out.println("Max. number of assignments: " + maxNumberOfAssignments);
 
-    if (extendedStatsFile != null) {
-      writeLogFile();
-    }
   }
 
-  private void writeLogFile() {
-    try (Writer builder = Files.openOutputFile(extendedStatsFile)) {
+  public class UniqueAssignmentsInPathConditionState implements AbstractState, AvoidanceReportingState {
 
-      // log the last element found
-      builder.append("total number of variable assignments of last element:");
-      builder.append("\n");
-      builder.append(""+currentState);
-
-      // log the max-aggregation
-      builder.append("\n");
-      builder.append("\n");
-      builder.append("max. total number of variable assignments over all elements:");
-      builder.append("\n");
-      builder.append(assignmentsAsString(maxNumberOfAssignmentsPerIdentifier));
-
-    } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Could not write extended statistics to file");
-    }
-  }
-
-  /**
-   * This method returns a human-readable representation of an assignment map.
-   *
-   * @param assignments the assignment map to represent
-   * @return a human-readable representation of an assignment map
-   */
-  private static String assignmentsAsString(Map<String, Integer> assignments) {
-    StringBuilder builder = new StringBuilder();
-
-    for (Map.Entry<String, Integer> assignment : assignments.entrySet()) {
-      builder.append(assignment.getKey());
-      builder.append(" -> ");
-      builder.append(assignment.getValue());
-      builder.append("\n");
-    }
-
-    return builder.toString();
-  }
-
-  abstract public class AssignmentsInPathConditionState implements AbstractState, AvoidanceReportingState {
     /**
      * the maximal number of assignments over all variables
      */
-    protected Integer maximum = 0;
+    private int maximum;
 
-    /**
-     * This method creates the successor of the current element, based on the given assigned variable.
-     *
-     * @param assignedVariable the name of the assigned variable
-     * @return the successor of the current element, based on the given assigned variable
-     */
-    abstract public AssignmentsInPathConditionState getSuccessor(String assignedVariable);
+    private UniqueAssignmentsInPathConditionState() {
+      this(0, HashMultimap.<MemoryLocation, ExplicitValueBase>create());
+    }
+
+    public UniqueAssignmentsInPathConditionState(int pMaximum, Multimap<MemoryLocation, ExplicitValueBase> pMapping) {
+      maximum = pMaximum;
+      mapping = pMapping;
+    }
 
     /**
      * This method returns the maximal number of assignments over all variables.
      *
      * @return the maximal amount of assignments over all variables
      */
-    public Integer getMaximum() {
+    public int getMaximum() {
       return maximum;
     }
 
@@ -262,133 +143,89 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
     @Override
     public boolean mustDumpAssumptionForAvoidance() {
-      return threshold != -1 && maximum > AssignmentsInPathCondition.this.threshold;
+      return softThreshold != -1 && maximum > AssignmentsInPathCondition.this.softThreshold;
     }
 
     /**
-    * This method decides if the number of assignments for the given variable exceeds the threshold.
+    * This method decides if the number of assignments for the given variable would exceed the soft threshold, taking
+    * into account the current assignment from the given explicit-value state.
     *
-    * @param variableName the variable to check
-    * @return true, if the number of assignments for the given variable exceeds the threshold, else false
+    * @param state the current assignment in form of a explicit-value state
+    * @param memoryLocation the variable to check
+    * @return true, if the number of assignments for the given variable would exceed the soft threshold, else false
     */
-    abstract public boolean variableExceedsThreshold(String variableName);
+    public boolean wouldExceedSoftThreshold(ExplicitState state, MemoryLocation memoryLocation) {
+      if(softThreshold == -1) {
+        return false;
+      }
+
+      Set<ExplicitValueBase> values = new HashSet<>(mapping.get(memoryLocation));
+      values.add(state.getValueFor(memoryLocation));
+
+      return values.size() > softThreshold;
+    }
 
     /**
-     * This method returns the current number of assignments per variable.
-     *
-     * @return the current number of assignments per variable
-     */
-    abstract protected Map<String, Integer> getAssignmentCounts();
-
-    @Override
-    public String toString() {
-      StringBuilder builder = new StringBuilder();
-
-      return builder.append(assignmentsAsString(getAssignmentCounts())).toString();
+    * This method decides if the number of assignments for the given memory location exceeds the soft threshold.
+    *
+    * @param memoryLocation the memory location to check
+    * @return true, if the number of assignments for the given memory location exceeds the soft threshold, else false
+    */
+    public boolean exceedsSoftThreshold(MemoryLocation memoryLocation) {
+      return softThreshold > -1
+          && mapping.containsKey(memoryLocation)
+          && mapping.get(memoryLocation).size() > softThreshold;
     }
-  }
-
-  public class AllAssignmentsInPathConditionState extends AssignmentsInPathConditionState {
-
-    /**
-     * the mapping from variable name to the number of assignments to this variable
-     */
-    private HashMap<String, Integer> mapping = new HashMap<>();
-
-    /**
-     * default constructor for creating the initial element
-     */
-    public AllAssignmentsInPathConditionState() {}
-
-    /**
-     * copy constructor for successor computation
-     *
-     * @param original the original element to be copied
-     */
-    private AllAssignmentsInPathConditionState(AllAssignmentsInPathConditionState original) {
-      mapping = new HashMap<>(original.mapping);
-      maximum = original.maximum;
-    }
-
-    @Override
-    public AllAssignmentsInPathConditionState getSuccessor(String assignedVariable) {
-      // create a copy ...
-      AllAssignmentsInPathConditionState successor = new AllAssignmentsInPathConditionState(this);
-
-      // ... and update the mapping at the maximum
-      Integer numberOfAssignments = mapping.containsKey(assignedVariable) ? mapping.get(assignedVariable) + 1 : 1;
-      successor.mapping.put(assignedVariable, numberOfAssignments);
-
-      successor.maximum = Math.max(successor.maximum, numberOfAssignments);
-
-      return successor;
-    }
-
-    @Override
-    public boolean variableExceedsThreshold(String variableName) {
-      return threshold > -1 && mapping.containsKey(variableName) && mapping.get(variableName) > threshold;
-    }
-
-    @Override
-    protected Map<String, Integer> getAssignmentCounts() {
-      return Collections.unmodifiableMap(mapping);
-    }
-  }
-
-  public class UniqueAssignmentsInPathConditionState extends AssignmentsInPathConditionState {
 
     /**
      * the mapping from variable name to the set of assigned values to this variable
      */
-    private Multimap<String, Long> mapping = HashMultimap.create();
+    private Multimap<MemoryLocation, ExplicitValueBase> mapping = HashMultimap.create();
 
-    /**
-     * default constructor for creating the initial element
-     */
-    public UniqueAssignmentsInPathConditionState() {}
-
-    /**
-     * copy constructor for successor computation
-     *
-     * @param original the original element to be copied
-     */
-    private UniqueAssignmentsInPathConditionState(UniqueAssignmentsInPathConditionState original) {
-      mapping = HashMultimap.create(original.mapping);
-      maximum = original.maximum;
-    }
-
-    @Override
-    public UniqueAssignmentsInPathConditionState getSuccessor(String assignedVariable) {
-      return new UniqueAssignmentsInPathConditionState(this);
-    }
-
-    /**
-     * This method adds an assignment for the last assigned variable, if the current value of this assigned variable in the ExplicitState was not assigned before, i.e. if it is unique.
-     *
-     * @param element the ExplicitState from which to query assignment information
-     */
-    public void addAssignment(ExplicitState element) {
-      element.addToValueMapping(mapping);
-
-      for (String variableName : mapping.keys()) {
-        maximum = Math.max(maximum, mapping.get(variableName).size());
-      }
-    }
-
-    @Override
-    public boolean variableExceedsThreshold(String variableName) {
-      return threshold > -1 && mapping.containsKey(variableName) && mapping.get(variableName).size() > threshold;
-    }
-
-    @Override
-    protected Map<String, Integer> getAssignmentCounts() {
-      Map<String, Integer> map = new HashMap<>();
-
-      for (String variableName : mapping.keys()) {
-        map.put(variableName, mapping.get(variableName).size());
+    /*
+    * This method decides if the number of assignments for the given variable would exceed the hard threshold, taking
+    * into account the current assignment from the given explicit-value state.
+    *
+    * @param state the current assignment in form of a explicit-value state
+    * @param memoryLocation the variable to check
+    * @return true, if the number of assignments for the given variable would exceed the hard threshold, else false
+    */
+    public boolean wouldExceedHardThreshold(ExplicitState state, MemoryLocation memoryLocation) {
+      if(hardThreshold == -1) {
+        return false;
       }
 
-      return Collections.unmodifiableMap(map);
+      Set<ExplicitValueBase> values = new HashSet<>(mapping.get(memoryLocation));
+      values.add(state.getValueFor(memoryLocation));
+
+      return values.size() > hardThreshold;
+    }
+
+    /**
+    * This method decides if the number of assignments for the given memory location exceeds the hard threshold.
+    *
+    * @param memoryLocation the memory location to check
+    * @return true, if the number of assignments for the given memory location exceeds the hard threshold, else false
+    */
+    public boolean exceedsHardThreshold(MemoryLocation memoryLocation) {
+      return hardThreshold > -1
+          && mapping.containsKey(memoryLocation)
+          && mapping.get(memoryLocation).size() > hardThreshold;
+    }
+
+    /**
+     * This method updates this state's unique assignment information with an assignment of the given memory location.
+     *
+     * @param memoryLocation the memory location for which to set assignment information
+     */
+    public void updateAssignmentInformation(MemoryLocation memoryLocation, ExplicitValueBase value) {
+      mapping.put(memoryLocation, value);
+      maximum = Math.max(maximum, mapping.get(memoryLocation).size());
+    }
+
+    @Override
+    public String toString() {
+      return mapping.toString() + " [max: " + maximum + "]";
     }
   }
 }

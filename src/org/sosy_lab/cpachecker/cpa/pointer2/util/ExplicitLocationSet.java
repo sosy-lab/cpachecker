@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -159,11 +159,11 @@ public class ExplicitLocationSet implements LocationSet {
   @Override
   public int hashCode() {
     if (isBot()) {
-      return LocationSet.BOT.hashCode();
+      return LocationSetBot.INSTANCE.hashCode();
     }
     if (isTop()) {
       assert false;
-      return LocationSet.TOP.hashCode();
+      return LocationSetTop.INSTANCE.hashCode();
     }
     return explicitSet.hashCode();
   }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -76,6 +76,8 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.Location;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
+import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSetBot;
+import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSetTop;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.Struct;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.Union;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.Variable;
@@ -83,6 +85,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 
 
@@ -169,7 +172,7 @@ public enum PointerTransferRelation implements TransferRelation {
       } else {
         location = new Variable(formalParam.getQualifiedName());
       }
-      newState = handleAssignment(pState, pPrecision, location, LocationSet.BOT);
+      newState = handleAssignment(pState, pPrecision, location, LocationSetBot.INSTANCE);
     }
 
     return newState;
@@ -188,7 +191,7 @@ public enum PointerTransferRelation implements TransferRelation {
     if (locations != null) {
       return handleAssignment(pState, pPrecision, locations, pRightHandSide);
     }
-    return handleAssignment(pState, pPrecision, LocationSet.TOP, pRightHandSide);
+    return handleAssignment(pState, pPrecision, LocationSetTop.INSTANCE, pRightHandSide);
   }
 
   private PointerState handleAssignment(PointerState pState, Precision pPrecision, LocationSet pLocationSet,
@@ -212,7 +215,7 @@ public enum PointerTransferRelation implements TransferRelation {
   private PointerState handleAssignment(PointerState pState, Precision pPrecision, Iterable<Location> pLeftHandSide, CRightHandSide pRightHandSide) throws UnrecognizedCCodeException {
     PointerState result = pState;
     for (Location lhsLocation : pLeftHandSide) {
-      result = handleAssignment(pState, pPrecision, lhsLocation, pRightHandSide);
+      result = handleAssignment(result, pPrecision, lhsLocation, pRightHandSide);
     }
     return result;
   }
@@ -323,12 +326,12 @@ public enum PointerTransferRelation implements TransferRelation {
 
         @Override
         public LocationSet visit(CInitializerList pInitializerList) throws UnrecognizedCCodeException {
-          return LocationSet.TOP;
+          return LocationSetTop.INSTANCE;
         }
 
         @Override
         public LocationSet visit(CDesignatedInitializer pCStructInitializerPart) throws UnrecognizedCCodeException {
-          return LocationSet.TOP;
+          return LocationSetTop.INSTANCE;
         }
 
       });
@@ -347,7 +350,7 @@ public enum PointerTransferRelation implements TransferRelation {
     return pState;
   }
 
-  private static Iterable<Location> asLocations(CExpression pExpression, final PointerState pState) throws UnrecognizedCCodeException {
+  public static Iterable<Location> asLocations(CExpression pExpression, final PointerState pState) throws UnrecognizedCCodeException {
     return pExpression.accept(new CExpressionVisitor<Iterable<Location>, UnrecognizedCCodeException>() {
 
       @Override
@@ -358,7 +361,7 @@ public enum PointerTransferRelation implements TransferRelation {
           if (literal instanceof CIntegerLiteralExpression && ((CIntegerLiteralExpression) literal).getValue().equals(BigInteger.ZERO)) {
             Iterable<Location> starredLocations = asLocations(pIastArraySubscriptExpression.getArrayExpression(), pState);
             if (starredLocations == null) {
-              return null;
+              return Collections.emptySet();
             }
             Set<Location> result = new HashSet<>();
             for (Location location : starredLocations) {
@@ -376,14 +379,14 @@ public enum PointerTransferRelation implements TransferRelation {
             return result;
           }
         }
-        return null;
+        return Collections.emptySet();
       }
 
       @Override
       public Iterable<Location> visit(final CFieldReference pIastFieldReference) throws UnrecognizedCCodeException {
         Iterable<Location> ownerLocations = asLocations(pIastFieldReference.getFieldOwner(), pState);
         if (ownerLocations == null) {
-          return null;
+          return Collections.emptySet();
         }
         return FluentIterable.from(ownerLocations).transform(new Function<Location, Location>() {
 
@@ -395,7 +398,7 @@ public enum PointerTransferRelation implements TransferRelation {
             return new Variable(pInput.getId()  + "." + pIastFieldReference.getFieldName());
           }
 
-        });
+        }).filter(Predicates.notNull());
       }
 
       @Override
@@ -418,7 +421,7 @@ public enum PointerTransferRelation implements TransferRelation {
       public Iterable<Location> visit(CPointerExpression pPointerExpression) throws UnrecognizedCCodeException {
         Iterable<Location> starredLocations = asLocations(pPointerExpression.getOperand(), pState);
         if (starredLocations == null) {
-          return null;
+          return Collections.emptySet();
         }
         Set<Location> result = new HashSet<>();
         for (Location location : starredLocations) {
@@ -443,7 +446,7 @@ public enum PointerTransferRelation implements TransferRelation {
 
       @Override
       public Iterable<Location> visit(CBinaryExpression pIastBinaryExpression) throws UnrecognizedCCodeException {
-        return null;
+        return Collections.emptySet();
       }
 
       @Override
@@ -454,47 +457,47 @@ public enum PointerTransferRelation implements TransferRelation {
       @Override
       public Iterable<Location> visit(CCharLiteralExpression pIastCharLiteralExpression)
           throws UnrecognizedCCodeException {
-        return null;
+        return Collections.emptySet();
       }
 
       @Override
       public Iterable<Location> visit(CFloatLiteralExpression pIastFloatLiteralExpression)
           throws UnrecognizedCCodeException {
-        return null;
+        return Collections.emptySet();
       }
 
       @Override
       public Iterable<Location> visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
           throws UnrecognizedCCodeException {
-        return null;
+        return Collections.emptySet();
       }
 
       @Override
       public Iterable<Location> visit(CStringLiteralExpression pIastStringLiteralExpression)
           throws UnrecognizedCCodeException {
-        return null;
+        return Collections.emptySet();
       }
 
       @Override
       public Iterable<Location> visit(CTypeIdExpression pIastTypeIdExpression) throws UnrecognizedCCodeException {
-        return null;
+        return Collections.emptySet();
       }
 
       @Override
       public Iterable<Location> visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression)
           throws UnrecognizedCCodeException {
-        return null;
+        return Collections.emptySet();
       }
 
       @Override
       public Iterable<Location> visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCCodeException {
-        return null;
+        return Collections.emptySet();
       }
 
       @Override
       public Iterable<Location> visit(CImaginaryLiteralExpression PIastLiteralExpression)
           throws UnrecognizedCCodeException {
-        return null;
+        return Collections.emptySet();
       }});
   }
 
@@ -514,16 +517,16 @@ public enum PointerTransferRelation implements TransferRelation {
 
       @Override
       public LocationSet visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws UnrecognizedCCodeException {
-        return LocationSet.TOP;
+        return LocationSetTop.INSTANCE;
       }
 
       @Override
       public LocationSet visit(final CFieldReference pIastFieldReference) throws UnrecognizedCCodeException {
         Iterable<Location> fieldReferenceAsLocations = asLocations(pIastFieldReference, pState);
         if (fieldReferenceAsLocations == null) {
-          return LocationSet.TOP;
+          return LocationSetTop.INSTANCE;
         }
-        LocationSet result = LocationSet.BOT;
+        LocationSet result = LocationSetBot.INSTANCE;
         for (Location fieldReferenceAsLocation : fieldReferenceAsLocations) {
           result = result.addElements(pState.getPointsToSet(fieldReferenceAsLocation));
         }
@@ -534,9 +537,9 @@ public enum PointerTransferRelation implements TransferRelation {
       public LocationSet visit(CIdExpression pIastIdExpression) throws UnrecognizedCCodeException {
         Iterable<Location> isAsLocations = asLocations(pIastIdExpression, pState);
         if (isAsLocations == null) {
-          return LocationSet.TOP;
+          return LocationSetTop.INSTANCE;
         }
-        LocationSet result = LocationSet.BOT;
+        LocationSet result = LocationSetBot.INSTANCE;
         for (Location isAsLocation : isAsLocations) {
           result = result.addElements(pState.getPointsToSet(isAsLocation));
         }
@@ -547,12 +550,12 @@ public enum PointerTransferRelation implements TransferRelation {
       public LocationSet visit(CPointerExpression pPointerExpression) throws UnrecognizedCCodeException {
         LocationSet variableLocations = getLocationsOf(pState, pPointerExpression.getOperand());
         if (variableLocations.isTop()) {
-          return LocationSet.TOP;
+          return LocationSetTop.INSTANCE;
         } else if (variableLocations.isBot()) {
-          return LocationSet.BOT;
+          return LocationSetBot.INSTANCE;
         }
         ExplicitLocationSet explicitLocationSet = (ExplicitLocationSet) variableLocations;
-        LocationSet result = LocationSet.BOT;
+        LocationSet result = LocationSetBot.INSTANCE;
         for (Location pointerVariableLocation : explicitLocationSet.getElements()) {
           result = result.addElements(pState.getPointsToSet(pointerVariableLocation));
         }
@@ -566,7 +569,7 @@ public enum PointerTransferRelation implements TransferRelation {
 
       @Override
       public LocationSet visit(CBinaryExpression pIastBinaryExpression) throws UnrecognizedCCodeException {
-        return LocationSet.TOP;
+        return LocationSetTop.INSTANCE;
       }
 
       @Override
@@ -576,32 +579,32 @@ public enum PointerTransferRelation implements TransferRelation {
 
       @Override
       public LocationSet visit(CCharLiteralExpression pIastCharLiteralExpression) throws UnrecognizedCCodeException {
-        return LocationSet.TOP;
+        return LocationSetTop.INSTANCE;
       }
 
       @Override
       public LocationSet visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws UnrecognizedCCodeException {
-        return LocationSet.TOP;
+        return LocationSetTop.INSTANCE;
       }
 
       @Override
       public LocationSet visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) throws UnrecognizedCCodeException {
-        return LocationSet.TOP;
+        return LocationSetTop.INSTANCE;
       }
 
       @Override
       public LocationSet visit(CStringLiteralExpression pIastStringLiteralExpression) throws UnrecognizedCCodeException {
-        return LocationSet.TOP;
+        return LocationSetTop.INSTANCE;
       }
 
       @Override
       public LocationSet visit(CTypeIdExpression pIastTypeIdExpression) throws UnrecognizedCCodeException {
-        return LocationSet.TOP;
+        return LocationSetTop.INSTANCE;
       }
 
       @Override
       public LocationSet visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression) throws UnrecognizedCCodeException {
-        return LocationSet.TOP;
+        return LocationSetTop.INSTANCE;
       }
 
       @Override
@@ -625,17 +628,17 @@ public enum PointerTransferRelation implements TransferRelation {
             return ExplicitLocationSet.from(new Variable(idExpression.getName()));
           }
         }
-        return LocationSet.TOP;
+        return LocationSetTop.INSTANCE;
       }
 
       @Override
       public LocationSet visit(CImaginaryLiteralExpression pIastLiteralExpression) throws UnrecognizedCCodeException {
-        return LocationSet.TOP;
+        return LocationSetTop.INSTANCE;
       }
 
       @Override
       public LocationSet visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
-        return LocationSet.TOP;
+        return LocationSetTop.INSTANCE;
       }
 
     });

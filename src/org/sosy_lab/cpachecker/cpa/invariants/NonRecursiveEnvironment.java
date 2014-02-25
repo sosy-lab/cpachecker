@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundStateFormulaManager;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaManager;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ContainsVarVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvaluationVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaEvaluationVisitor;
@@ -43,7 +43,7 @@ public class NonRecursiveEnvironment implements Map<String, InvariantsFormula<Co
 
   private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
 
-  private static final InvariantsFormula<CompoundInterval> TOP = CompoundStateFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
+  private static final InvariantsFormula<CompoundInterval> TOP = CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
 
   private final ContainsVarVisitor<CompoundInterval> containsVarVisitor = new ContainsVarVisitor<>(this);
 
@@ -88,12 +88,12 @@ public class NonRecursiveEnvironment implements Map<String, InvariantsFormula<Co
       return this.inner.remove(pVarName);
     }
     if (pValue.accept(containsVarVisitor, pVarName)) {
-      return put(pVarName, CompoundStateFormulaManager.INSTANCE.asConstant(pValue.accept(FORMULA_EVALUATION_VISITOR, this)));
+      return put(pVarName, CompoundIntervalFormulaManager.INSTANCE.asConstant(pValue.accept(FORMULA_EVALUATION_VISITOR, this)));
     }
-    InvariantsFormula<CompoundInterval> variable = CompoundStateFormulaManager.INSTANCE.asVariable(pVarName);
+    InvariantsFormula<CompoundInterval> variable = CompoundIntervalFormulaManager.INSTANCE.asVariable(pVarName);
     for (String containedVarName : pValue.accept(COLLECT_VARS_VISITOR)) {
       if (variable.accept(containsVarVisitor, containedVarName)) {
-        return put(pVarName, CompoundStateFormulaManager.INSTANCE.asConstant(pValue.accept(FORMULA_EVALUATION_VISITOR, this)));
+        return put(pVarName, CompoundIntervalFormulaManager.INSTANCE.asConstant(pValue.accept(FORMULA_EVALUATION_VISITOR, this)));
       }
     }
     return this.inner.put(pVarName, pValue);

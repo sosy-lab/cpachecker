@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,6 +41,7 @@ public class TemplatePathFormulaBuilder {
 
   private PathFormulaManagerImpl pfmgr;
 
+  @SuppressWarnings("deprecation")
   public TemplatePathFormulaBuilder() {
     // Use this constructor if you only want a default configuration.
 
@@ -58,6 +59,7 @@ public class TemplatePathFormulaBuilder {
 
   }
 
+  @SuppressWarnings("deprecation")
   public TemplatePathFormulaBuilder(Configuration config,
                     LogManager logger, MachineModel machineModel) {
     // Use this constructor if you have a config and logger already.

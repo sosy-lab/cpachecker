@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,19 +27,26 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 
@@ -65,16 +72,32 @@ public class SignCExpressionVisitor
 
   @Override
   public SIGN visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCodeException {
+    // TODO possibly treat typedef types differently
     // e.g. x = non_det() where non_det is extern, unknown function allways assume returns any value
-    if(pIastFunctionCallExpression.getExpressionType() instanceof CSimpleType){
-      return SIGN.ALL;
-    }
+    if (pIastFunctionCallExpression.getExpressionType() instanceof CSimpleType
+        || pIastFunctionCallExpression.getExpressionType() instanceof CTypedefType) { return SIGN.ALL; }
     return null;
   }
 
   @Override
   protected SIGN visitDefault(CExpression pExp) throws UnrecognizedCodeException {
     throw new UnrecognizedCodeException("unsupported code found", edgeOfExpr);
+  }
+
+  @Override
+  public SIGN visit(CCastExpression e) throws UnrecognizedCodeException {
+    return e.getOperand().accept(this); // TODO correct?
+  }
+
+  @Override
+  public SIGN visit(CFieldReference e) throws UnrecognizedCodeException {
+    return state.getSignMap().getSignForVariable(transferRel.getScopedVariableName(e));
+  }
+
+  @Override
+  public SIGN visit(CArraySubscriptExpression e) throws UnrecognizedCodeException {
+    // TODO possibly may become preciser
+    return SIGN.ALL;
   }
 
   @Override
@@ -99,16 +122,19 @@ public class SignCExpressionVisitor
     SIGN result = SIGN.EMPTY;
     switch(pExp.getOperator()) {
     case PLUS:
-      result = evaluatePlusOp(pLeft, pExp.getOperand1(), pRight, pExp.getOperand2());
+      result = evaluatePlusOperator(pLeft, pExp.getOperand1(), pRight, pExp.getOperand2());
       break;
     case MINUS:
-      result = evaluateMinusOp(pLeft, pRight, pExp.getOperand2());
+      result = evaluateMinusOperator(pLeft, pRight, pExp.getOperand2());
       break;
     case MULTIPLY:
-      result = evaluateMulOp(pLeft, pRight);
+      result = evaluateMulOperator(pLeft, pRight);
       break;
     case DIVIDE:
-      result = evaluateDivideOp(pLeft, pRight);
+      result = evaluateDivideOperator(pLeft, pRight);
+      break;
+    case BINARY_AND:
+      result = evaluateAndOperator(pLeft, pRight);
       break;
     default:
       throw new UnsupportedCCodeException(
@@ -142,14 +168,23 @@ public class SignCExpressionVisitor
   }
 
   @Override
+  public SIGN visit(CStringLiteralExpression e) throws UnrecognizedCodeException {
+    return SIGN.ALL;
+  }
+
+  @Override
+  public SIGN visit(CCharLiteralExpression e) throws UnrecognizedCodeException {
+    return SIGN.ALL;
+  }
+
+  @Override
   public SIGN visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCodeException {
     switch(pIastUnaryExpression.getOperator()) {
-    case PLUS:
     case MINUS:
       SIGN result = SIGN.EMPTY;
       SIGN operandSign = pIastUnaryExpression.getOperand().accept(this);
       for(SIGN atomSign : operandSign.split()) {
-        result = result.combineWith(evaluateUnaryExpr(pIastUnaryExpression.getOperator(), atomSign));
+        result = result.combineWith(evaluateUnaryExpression(pIastUnaryExpression.getOperator(), atomSign));
       }
       return result;
     default:
@@ -159,26 +194,33 @@ public class SignCExpressionVisitor
     }
   }
 
-  private static SIGN evaluateUnaryExpr(UnaryOperator operator, SIGN operand) {
-    if(operator == UnaryOperator.PLUS && operand == SIGN.MINUS
-        || operator == UnaryOperator.MINUS && operand == SIGN.PLUS) {
+  private static SIGN evaluateUnaryExpression(UnaryOperator operator, SIGN operand) {
+    if(operand == SIGN.ZERO) {
+      return SIGN.ZERO;
+    }
+    if(operator == UnaryOperator.MINUS && operand == SIGN.PLUS) {
       return SIGN.MINUS;
     }
     return SIGN.PLUS;
   }
 
-  private SIGN evaluatePlusOp(SIGN pLeft, CExpression pLeftExp, SIGN pRight, CExpression pRightExp) {
+  private SIGN evaluatePlusOperator(SIGN pLeft, CExpression pLeftExp, SIGN pRight, CExpression pRightExp) {
     // Special case: - + 1 => -0, 1 + - => -0
     if(pLeft == SIGN.MINUS && (pRightExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pRightExp).getValue().equals(BigInteger.ONE)
         || (pLeftExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pLeftExp).getValue().equals(BigInteger.ONE) && pRight == SIGN.MINUS) {
       return SIGN.MINUS0;
     }
-    SIGN leftToRightResult = evaluateNonCommutativePlusOp(pLeft, pRight);
-    SIGN rightToLeftResult = evaluateNonCommutativePlusOp(pRight, pLeft);
+    // Special case: +0 + 1 => +, 1 + +0 => +
+    if(pLeft == SIGN.PLUS0 && (pRightExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pRightExp).getValue().equals(BigInteger.ONE)
+        || (pLeftExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pLeftExp).getValue().equals(BigInteger.ONE) && pRight == SIGN.PLUS0) {
+      return SIGN.PLUS;
+    }
+    SIGN leftToRightResult = evaluateNonCommutativePlusOperator(pLeft, pRight);
+    SIGN rightToLeftResult = evaluateNonCommutativePlusOperator(pRight, pLeft);
     return leftToRightResult.combineWith(rightToLeftResult);
   }
 
-  private SIGN evaluateNonCommutativePlusOp(SIGN pLeft, SIGN pRight) {
+  private SIGN evaluateNonCommutativePlusOperator(SIGN pLeft, SIGN pRight) {
     if(pRight == SIGN.ZERO) {
       return pLeft;
     }
@@ -194,10 +236,14 @@ public class SignCExpressionVisitor
     return SIGN.EMPTY;
   }
 
-  private SIGN evaluateMinusOp(SIGN pLeft, SIGN pRight, CExpression pRightExp) {
+  private SIGN evaluateMinusOperator(SIGN pLeft, SIGN pRight, CExpression pRightExp) {
     // Special case: + - 1 => +0
     if(pLeft == SIGN.PLUS && (pRightExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pRightExp).getValue().equals(BigInteger.ONE)) {
       return SIGN.PLUS0;
+    }
+    // Special case: -0 - 1 => -
+    if(pLeft == SIGN.MINUS0 && (pRightExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pRightExp).getValue().equals(BigInteger.ONE)) {
+      return SIGN.MINUS;
     }
     if(pRight == SIGN.ZERO) {
       return pLeft;
@@ -211,13 +257,13 @@ public class SignCExpressionVisitor
     return SIGN.ALL;
   }
 
-  private SIGN evaluateMulOp(SIGN pLeft, SIGN pRight) {
-    SIGN leftToRightResult = evaluateNonCommutativeMulOp(pLeft, pRight);
-    SIGN rightToLeftResult = evaluateNonCommutativeMulOp(pRight, pLeft);
+  private SIGN evaluateMulOperator(SIGN pLeft, SIGN pRight) {
+    SIGN leftToRightResult = evaluateNonCommutativeMulOperator(pLeft, pRight);
+    SIGN rightToLeftResult = evaluateNonCommutativeMulOperator(pRight, pLeft);
     return leftToRightResult.combineWith(rightToLeftResult);
   }
 
-  private SIGN evaluateNonCommutativeMulOp(SIGN left, SIGN right) {
+  private SIGN evaluateNonCommutativeMulOperator(SIGN left, SIGN right) {
     if(right == SIGN.ZERO) {
       return SIGN.ZERO;
     }
@@ -231,10 +277,26 @@ public class SignCExpressionVisitor
     return SIGN.EMPTY;
   }
 
-  private SIGN evaluateDivideOp(SIGN left, SIGN right) throws UnsupportedCCodeException {
+  private SIGN evaluateDivideOperator(SIGN left, SIGN right) throws UnsupportedCCodeException {
     if(right == SIGN.ZERO) {
-      throw new UnsupportedCCodeException("Dividing by zero is not supported", edgeOfExpr);
+      transferRel.logger.log(Level.WARNING, "Possibly dividing by zero", edgeOfExpr);
+      return SIGN.ALL;
     }
-    return evaluateMulOp(left, right);
+    return evaluateMulOperator(left, right);
+  }
+
+
+  // assumes that indicator bit for negative numbers is 1
+  private SIGN evaluateAndOperator(SIGN left, SIGN right) {
+    if(left == SIGN.ZERO || right == SIGN.ZERO) {
+      return SIGN.ZERO;
+    }
+    if(left == SIGN.PLUS || right == SIGN.PLUS) {
+      return SIGN.PLUS0;
+    }
+    if(left == SIGN.MINUS && right == SIGN.MINUS) {
+      return SIGN.MINUS0;
+    }
+    return SIGN.EMPTY;
   }
 }

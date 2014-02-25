@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -54,8 +54,6 @@ public class ExplicitTest {
       );
 
       TestResults results = run(prop, "test/programs/simple/explicit/explicitIgnoreFeatureVars.c");
-      System.out.println(results.getLog());
-      //System.out.println(results.getCheckerResult().getResult());
       Assert.assertTrue(results.isUnsafe());
   }
   @Test
@@ -69,8 +67,6 @@ public class ExplicitTest {
       );
 
       TestResults results = run(prop, "test/programs/simple/explicit/explicitIgnoreFeatureVars.c");
-      //System.out.println(results.getLog());
-      //System.out.println(results.getCheckerResult().getResult());
       Assert.assertTrue(results.isSafe());
   }
   private TestResults run(Map<String, String> pProperties, String pSourceCodeFilePath) throws Exception {
@@ -106,10 +102,10 @@ public class ExplicitTest {
      return log.contains(pattern);
     }
     boolean isSafe() {
-      return checkerResult.getResult().equals(CPAcheckerResult.Result.SAFE);
+      return checkerResult.getResult().equals(CPAcheckerResult.Result.TRUE);
     }
     boolean isUnsafe() {
-      return checkerResult.getResult().equals(CPAcheckerResult.Result.UNSAFE);
+      return checkerResult.getResult().equals(CPAcheckerResult.Result.FALSE);
     }
     @Override
     public String toString() {

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,8 +28,6 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 import java.io.IOException;
 import java.io.Writer;
 import java.math.BigInteger;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collection;
@@ -46,15 +44,17 @@ import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -408,7 +408,7 @@ public class VariableClassification {
           if (loopExitIncDecConditionVariables.containsEntry(function, var)) {
             type += 16;
           }
-          w.append(String.format("%s::%s\t%d\n", function, var, type));
+          w.append(String.format("%s::%s\t%d%n", function, var, type));
         }
       }
     } catch (IOException e) {
@@ -1034,7 +1034,7 @@ public class VariableClassification {
     return Pair.of(function, name);
   }
 
-  private boolean isGlobal(CExpression exp) {
+  public static boolean isGlobal(CExpression exp) {
     if (exp instanceof CIdExpression) {
       CSimpleDeclaration decl = ((CIdExpression) exp).getDeclaration();
       if (decl instanceof CDeclaration) { return ((CDeclaration) decl).isGlobal(); }
@@ -1053,8 +1053,6 @@ public class VariableClassification {
       BigInteger value = getNumber(unExp.getOperand());
       if (value == null) { return null; }
       switch (unExp.getOperator()) {
-      case PLUS:
-        return value;
       case MINUS:
         return value.negate();
       default:
@@ -1069,15 +1067,10 @@ public class VariableClassification {
     }
   }
 
-  /** returns true, if the expression contains a casted or negated binaryExpression. */
+  /** returns true, if the expression contains a casted binaryExpression. */
   private boolean isNestedBinaryExp(CExpression exp) {
     if (exp instanceof CBinaryExpression) {
       return true;
-
-    } else if (exp instanceof CUnaryExpression) {
-      CUnaryExpression unExp = (CUnaryExpression) exp;
-      return (UnaryOperator.NOT == unExp.getOperator()) &&
-          isNestedBinaryExp(unExp.getOperand());
 
     } else if (exp instanceof CCastExpression) {
       return isNestedBinaryExp(((CCastExpression) exp).getOperand());
@@ -1330,9 +1323,6 @@ public class VariableClassification {
 
       if (inner == null) {
         return null;
-      } else if (UnaryOperator.NOT == exp.getOperator()) {
-        // boolean operation, return inner vars
-        return inner;
       } else { // PLUS, MINUS, etc --> not boolean
         nonIntBoolVars.putAll(inner);
         return null;
@@ -1441,17 +1431,10 @@ public class VariableClassification {
       Multimap<String, String> inner = exp.getOperand().accept(this);
       if (isNestedBinaryExp(exp)) { return inner; }
 
-      // if exp is unknown
-      if (inner == null) { return null; }
-
-      // if exp is a simple var
-      switch (exp.getOperator()) {
-      case PLUS: // this is no calculation, no usage of another param
-        return inner;
-      default: // *, ~, etc --> not numeral
+      if (inner != null) {
         nonIntEqVars.putAll(inner);
-        return null;
       }
+      return null;
     }
 
     @Override
@@ -1544,16 +1527,11 @@ public class VariableClassification {
     public Multimap<String, String> visit(CUnaryExpression exp) {
       Multimap<String, String> inner = exp.getOperand().accept(this);
       if (inner == null) { return null; }
+      if (exp.getOperator() == UnaryOperator.MINUS) { return inner; }
 
-      switch (exp.getOperator()) {
-      case PLUS:
-      case MINUS:
-      case NOT:
-        return inner;
-      default: // *, ~, etc --> not simple
-        nonIntAddVars.putAll(inner);
-        return null;
-      }
+      // *, ~, etc --> not simple
+      nonIntAddVars.putAll(inner);
+      return null;
     }
 
     @Override
@@ -1945,6 +1923,19 @@ public class VariableClassification {
     }
   }
 
+  public static String getScopedName(CFAEdge edge, CIdExpression expr) {
+    if (isGlobal(expr)) {
+      return expr.getName();
+    } else {
+      String function = edge.getPredecessor().getFunctionName();
+      return function + SCOPE_SEPARATOR + expr.getName();
+    }
+  }
+
+  public static String getScoped(String function, String name) {
+    return function + SCOPE_SEPARATOR + name;
+  }
+
   private static class VariableOrField {
     private static class Variable extends VariableOrField {
       private Variable(final @Nullable String function, final @Nonnull String name) {
@@ -1962,7 +1953,7 @@ public class VariableClassification {
 
       @Override
       public String toString() {
-        return function + SCOPE_SEPARATOR + name;
+        return getScoped(function, name);
       }
 
       @Override

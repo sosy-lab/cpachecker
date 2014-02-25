@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,13 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
-import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -38,18 +32,18 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.configuration.OptionCollector;
-import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.cpachecker.cmdline.PropertyFileParser.PropertyType;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
 /**
@@ -57,14 +51,14 @@ import com.google.common.collect.Lists;
  * To add a new argument, handle it in {@link #processArguments(String[])}
  * and list it in {@link #printHelp()}.
  */
-class CmdLineArguments {
+public class CmdLineArguments {
 
   private static final Splitter SETPROP_OPTION_SPLITTER = Splitter.on('=').trimResults().limit(2);
 
   /**
    * Exception thrown when something invalid is specified on the command line.
    */
-  static class InvalidCmdlineArgumentException extends Exception {
+  public static class InvalidCmdlineArgumentException extends Exception {
 
     private static final long serialVersionUID = -6526968677815416436L;
 
@@ -90,6 +84,8 @@ class CmdLineArguments {
 
   private static final Pattern SPECIFICATION_FILES_PATTERN = DEFAULT_CONFIG_FILES_PATTERN;
   private static final String SPECIFICATION_FILES_TEMPLATE = "config/specification/%s.spc";
+  private static final String REACHABILITY_LABEL_SPECIFICATION_FILE = "config/specification/sv-comp.spc";
+  private static final String REACHABILITY_SPECIFICATION_FILE = "config/specification/sv-comp-reachability.spc";
 
   private static final Pattern PROPERTY_FILE_PATTERN = Pattern.compile("(.)+\\.prp");
 
@@ -110,7 +106,7 @@ class CmdLineArguments {
 
     while (argsIt.hasNext()) {
       String arg = argsIt.next();
-      if (   handleArgument0("-cbmc",    "analysis.useCBMC", "true",            arg, properties)
+      if (   handleArgument0("-cbmc",    "analysis.checkCounterexamples", "true", arg, properties)
           || handleArgument0("-stats",   "statistics.print", "true",            arg, properties)
           || handleArgument0("-noout",   "output.disable",   "true",            arg, properties)
           || handleArgument0("-java",    "language",         "JAVA",            arg, properties)
@@ -121,7 +117,7 @@ class CmdLineArguments {
           || handleArgument1("-logfile",       "log.file",                arg, argsIt, properties)
           || handleArgument1("-entryfunction", "analysis.entryFunction",  arg, argsIt, properties)
           || handleArgument1("-config",        CONFIGURATION_FILE_OPTION, arg, argsIt, properties)
-          || handleArgument1("-timelimit",     "cpa.conditions.global.time.wall", arg, argsIt, properties)
+          || handleArgument1("-timelimit",     "limits.time.cpu", arg, argsIt, properties)
           || handleArgument1("-sourcepath",    "java.sourcepath",         arg, argsIt, properties)
           || handleArgument1("-cp",            "java.classpath",          arg, argsIt, properties)
           || handleArgument1("-classpath",     "java.classpath",          arg, argsIt, properties)
@@ -178,7 +174,7 @@ class CmdLineArguments {
       } else if (arg.equals("-help") || arg.equals("-h")) {
         printHelp();
 
-      } else if (arg.startsWith("-") && !(new File(arg).exists())) {
+      } else if (arg.startsWith("-") && !(Paths.get(arg).exists())) {
         String argName = arg.substring(1); // remove "-"
 
         if (DEFAULT_CONFIG_FILES_PATTERN.matcher(argName).matches()) {
@@ -226,7 +222,7 @@ class CmdLineArguments {
       String newValue = argsIt.next();
 
       // replace "predicateAnalysis" with config/predicateAnalysis.properties etc.
-      if (DEFAULT_CONFIG_FILES_PATTERN.matcher(newValue).matches() && !(new File(newValue).exists())) {
+      if (DEFAULT_CONFIG_FILES_PATTERN.matcher(newValue).matches() && !(Paths.get(newValue).exists())) {
         Path configFile = findFile(DEFAULT_CONFIG_FILES_DIR, newValue);
 
         if (configFile != null) {
@@ -345,28 +341,35 @@ class CmdLineArguments {
           // the respective specification definition
           else if(PROPERTY_FILE_PATTERN.matcher(newValue).matches()) {
             Path propertyFile = Paths.get(newValue);
-            if (java.nio.file.Files.exists(propertyFile)) {
-              PropertyFileParser parser = new PropertyFileParser(propertyFile.toFile());
-              parser.parse();
-              putIfNotExistent(options, "analysis.entryFunction", parser.entryFunction);
+            if (propertyFile.toFile().exists()) {
+              PropertyFileParser parser = new PropertyFileParser(propertyFile);
+              try {
+                parser.parse();
+              } catch (IllegalArgumentException e) {
+                throw new InvalidCmdlineArgumentException(e.getMessage());
+              }
+              putIfNotExistent(options, "analysis.entryFunction", parser.getEntryFunction());
 
               // set the file from where to read the specification automaton
-              Set<PropertyType> properties = parser.properties;
+              Set<PropertyType> properties = parser.getProperties();
               assert !properties.isEmpty();
 
               if (properties.equals(EnumSet.of(PropertyType.VALID_DEREF,
                                                PropertyType.VALID_FREE,
                                                PropertyType.VALID_MEMTRACK))) {
                 putIfNotExistent(options, "memorysafety.check", "true");
+                newValue = null;
+
+              } else if (properties.equals(EnumSet.of(PropertyType.REACHABILITY_LABEL))) {
+                newValue = REACHABILITY_LABEL_SPECIFICATION_FILE;
 
               } else if (properties.equals(EnumSet.of(PropertyType.REACHABILITY))) {
-                // no change needed
+                newValue = REACHABILITY_SPECIFICATION_FILE;
 
               } else {
                 System.err.println("Checking for the properties " + properties + " is currently not supported by CPAchecker.");
                 System.exit(0);
               }
-              newValue = null;
             }
 
             else {
@@ -415,7 +418,7 @@ class CmdLineArguments {
     Path file = Paths.get(fileName);
 
     // look in current directory first
-    if (java.nio.file.Files.exists(file)) {
+    if (file.toFile().exists()) {
       return file.toAbsolutePath();
     }
 
@@ -424,84 +427,10 @@ class CmdLineArguments {
     Path baseDir = codeLocation.getParent();
 
     file = baseDir.resolve(fileName);
-    if (java.nio.file.Files.exists(file)) {
+    if (file.toFile().exists()) {
       return file.toAbsolutePath();
     }
 
     return null;
-  }
-
-  /**
-   * A simple class that reads a property, i.e. basically an entry function and a proposition, from a given property,
-   * and maps the proposition to a file from where to read the specification automaton.
-   */
-  private static class PropertyFileParser {
-    private final File propertyFile;
-
-    private String entryFunction;
-    private final EnumSet<PropertyType> properties = EnumSet.noneOf(PropertyType.class);
-
-    private static final Pattern PROPERTY_PATTERN =
-        Pattern.compile("CHECK\\( init\\((" + CFACreator.VALID_C_FUNCTION_NAME_PATTERN + ")\\(\\)\\), LTL\\((.+)\\) \\)");
-
-    private PropertyFileParser(final File pPropertyFile) {
-      propertyFile = pPropertyFile;
-    }
-
-    private void parse() throws InvalidCmdlineArgumentException {
-      String rawProperty = null;
-      try (BufferedReader br = java.nio.file.Files.newBufferedReader(propertyFile.toPath(), Charset.defaultCharset())) {
-        while ((rawProperty = br.readLine()) != null) {
-          if (!rawProperty.isEmpty()) {
-            properties.add(parsePropertyLine(rawProperty));
-          }
-        }
-      } catch (IOException e) {
-        throw new InvalidCmdlineArgumentException("The given property file could not be read: " + e.getMessage());
-      }
-
-      if (properties.isEmpty()) {
-        throw new InvalidCmdlineArgumentException("Property file does not specify any property to verify.");
-      }
-    }
-
-    private PropertyType parsePropertyLine(String rawProperty) throws InvalidCmdlineArgumentException {
-      Matcher matcher = PROPERTY_PATTERN.matcher(rawProperty);
-
-      if (rawProperty == null || !matcher.matches() || matcher.groupCount() != 2) {
-        throw new InvalidCmdlineArgumentException(String.format(
-            "The given property '%s' is not well-formed!", rawProperty));
-      }
-
-      if (entryFunction == null) {
-        entryFunction = matcher.group(1);
-      } else if (!entryFunction.equals(matcher.group(1))) {
-        throw new InvalidCmdlineArgumentException(String.format(
-            "Property file specifies two different entry functions %s and %s.", entryFunction, matcher.group(1)));
-      }
-
-      PropertyType property = PropertyType.AVAILABLE_PROPERTIES.get(matcher.group(2));
-      if (property == null) {
-        throw new InvalidCmdlineArgumentException(String.format(
-            "The property '%s' given in the property file is not supported.", matcher.group(2)));
-      }
-      return property;
-    }
-  }
-
-  private enum PropertyType {
-    REACHABILITY,
-    VALID_FREE,
-    VALID_DEREF,
-    VALID_MEMTRACK,
-    ;
-
-    private static ImmutableMap<String, PropertyType> AVAILABLE_PROPERTIES = ImmutableMap.of(
-        "G ! label(ERROR)", PropertyType.REACHABILITY,
-        "G valid-free",     PropertyType.VALID_FREE,
-        "G valid-deref",    PropertyType.VALID_DEREF,
-        "G valid-memtrack", PropertyType.VALID_MEMTRACK
-        );
-
   }
 }

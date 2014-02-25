@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,7 +29,7 @@ import javax.annotation.Nonnull;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetManager;
 
 import com.google.common.base.Predicate;
 
@@ -99,10 +99,10 @@ public class PointerTargetPattern implements Serializable, Predicate<PointerTarg
     return properOffset;
   }
 
-  public Integer getRemainingOffset(PointerTargetSetBuilder pts) {
+  public Integer getRemainingOffset(PointerTargetSetManager ptsMgr) {
     assert !matchRange : "Contradiction in target pattern: remaining offset";
     if (containerType != null && containerOffset != null && properOffset != null) {
-      return pts.getSize(containerType) - properOffset;
+      return ptsMgr.getSize(containerType) - properOffset;
     } else {
       return null;
     }

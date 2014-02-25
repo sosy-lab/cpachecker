@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -68,7 +68,7 @@ public class FormulaEncodingOptions {
   private String externModelFunctionName = "__VERIFIER_externModelSatisfied";
 
   @Option(description = "Set of functions that non-deterministically provide new memory on the heap, " +
-  		                  "i.e. they can return either a valid pointer or zero.")
+                        "i.e. they can return either a valid pointer or zero.")
   private Set<String> memoryAllocationFunctions = ImmutableSet.of(
       "malloc", "__kmalloc", "kmalloc"
       );
@@ -76,6 +76,9 @@ public class FormulaEncodingOptions {
   @Option(description = "Set of functions that non-deterministically provide new zeroed memory on the heap, " +
                         "i.e. they can return either a valid pointer or zero.")
   private Set<String> memoryAllocationFunctionsWithZeroing = ImmutableSet.of("kzalloc", "calloc");
+
+  @Option(description = "Ignore variables that are not relevant for reachability properties.")
+  private boolean ignoreIrrelevantVariables = true;
 
   public FormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this, FormulaEncodingOptions.class);
@@ -104,5 +107,9 @@ public class FormulaEncodingOptions {
 
   public boolean isMemoryAllocationFunctionWithZeroing(final String name) {
     return memoryAllocationFunctionsWithZeroing.contains(name);
+  }
+
+  public boolean ignoreIrrelevantVariables() {
+    return ignoreIrrelevantVariables;
   }
 }

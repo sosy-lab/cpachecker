@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,10 +25,6 @@ package org.sosy_lab.cpachecker.cpa.pointer2.util;
 
 
 public interface LocationSet {
-
-  public static final LocationSet TOP = LocationSetTop.INSTANCE;
-
-  public static final LocationSet BOT = LocationSetBot.INSTANCE;
 
   boolean mayPointTo(Location pElement);
 

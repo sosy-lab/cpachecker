@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -160,15 +159,6 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
       Integer constant = reduceToConstant(pExpression);
       if (constant == null || constant == 0) { return this.regionManager.makeFalse(); }
       return this.regionManager.makeTrue();
-    }
-    if (pExpression instanceof CUnaryExpression) {
-      CUnaryExpression unaryExpression = (CUnaryExpression) pExpression;
-      if (unaryExpression.getOperator() == UnaryOperator.NOT) {
-        LDDRegion assumeRegion = assumeToRegion(unaryExpression.getOperand());
-        if (assumeRegion == null) { return null; }
-        return this.regionManager.makeNot(assumeRegion);
-      }
-      return null;
     }
     if (pExpression instanceof CBinaryExpression) {
       CBinaryExpression binaryExpression = (CBinaryExpression) pExpression;
@@ -524,8 +514,6 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
       CUnaryExpression unaryExpression = (CUnaryExpression) expression;
       CExpression operand = unaryExpression.getOperand();
       switch (unaryExpression.getOperator()) {
-      case PLUS:
-        return reduceToRationalTerm(operand);
       case MINUS:
         Map<String, Pair<Integer, Integer>> innerTerm = reduceToRationalTerm(operand);
         if (innerTerm != null) {
@@ -605,8 +593,6 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
       Integer reducedInner = reduceToConstant(unaryExpression.getOperand());
       if (reducedInner == null) { return null; }
       switch (unaryExpression.getOperator()) {
-      case PLUS:
-        return reducedInner;
       case MINUS:
         return -reducedInner;
       case TILDE:

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,8 +25,8 @@ package org.sosy_lab.cpachecker.cfa;
 
 import java.io.IOException;
 
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
@@ -46,8 +46,9 @@ public interface Parser {
    * @return The CFA.
    * @throws IOException If file cannot be read.
    * @throws ParserException If parser or CFA builder cannot handle the  code.
+   * @throws InterruptedException
    */
-  ParseResult parseFile(String filename) throws ParserException, IOException, InvalidConfigurationException;
+  ParseResult parseFile(String filename) throws ParserException, IOException, InvalidConfigurationException, InterruptedException;
 
   /**
    * Parse the content of a String into a CFA.
@@ -56,7 +57,7 @@ public interface Parser {
    * @return The CFA.
    * @throws ParserException If parser or CFA builder cannot handle the C code.
    */
-  ParseResult parseString(String code) throws ParserException, InvalidConfigurationException;
+  ParseResult parseString(String filename, char[] code) throws ParserException, InvalidConfigurationException;
 
   /**
    * Return a timer that measured the time needed for parsing.

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitCPA;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -169,6 +170,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
         RefinementStrategy backupRefinementStrategy = new PredicateAbstractionRefinementStrategy(
             config,
             logger,
+            predicateCpa.getShutdownNotifier(),
             formulaManager,
             predicateCpa.getPredicateManager(),
             extractor,
@@ -230,6 +232,8 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
       if (performExplicitRefinement(reached, errorPath)) {
         return CounterexampleInfo.spurious();
       }
+    } else {
+
     }
 
     if(predicatingRefiner != null) {
@@ -270,7 +274,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
       initialStaticRefinementDone = true;
     }
     else {
-      Multimap<CFANode, String> increment = interpolatingRefiner.determinePrecisionIncrement(errorPath);
+      Multimap<CFANode, MemoryLocation> increment = interpolatingRefiner.determinePrecisionIncrement(errorPath);
       refinementRoot                      = interpolatingRefiner.determineRefinementRoot(errorPath, increment, false);
 
       // no increment - explicit refinement was not successful
@@ -313,7 +317,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
    * @param refinementRoot the current refinement root
    * @return true, if the current refinement is found to be similar to the previous one, else false
    */
-  private boolean isRepeatedRefinement(Multimap<CFANode, String> increment, Pair<ARGState, CFAEdge> refinementRoot) {
+  private boolean isRepeatedRefinement(Multimap<CFANode, MemoryLocation> increment, Pair<ARGState, CFAEdge> refinementRoot) {
     int currentRefinementId = refinementRoot.getSecond().getLineNumber();
     boolean result          = (previousRefinementId == currentRefinementId);
     previousRefinementId    = currentRefinementId;
@@ -365,7 +369,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
   }
 
   /**
-   * This method checks if the given path is feasible, when not tracking the given set of variables.
+   * This method checks if the given path is feasible, when doing a full-precision check.
    *
    * @param path the path to check
    * @return true, if the path is feasible, else false
@@ -373,12 +377,12 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
    */
   boolean isPathFeasable(ARGPath path) throws CPAException {
     try {
-      // create a new ExplicitPathChecker, which does not track any of the given variables
+      // create a new ExplicitPathChecker, which does check the given path at full precision
       ExplictFeasibilityChecker checker = new ExplictFeasibilityChecker(logger, cfa);
 
       return checker.isFeasible(path);
     }
-    catch (InterruptedException e) {
+    catch (InterruptedException | InvalidConfigurationException e) {
       throw new CPAException("counterexample-check failed: ", e);
     }
   }

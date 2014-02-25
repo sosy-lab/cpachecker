@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,6 +48,7 @@ public class CPreprocessor {
                       "May contain binary name and arguments, but won't be expanded by a shell. " +
                       "The source file name will be appended to this string. " +
                       "The preprocessor needs to print the output to stdout.")
+
   private String preprocessor = "cpp";
 
   private final LogManager logger;
@@ -57,7 +58,7 @@ public class CPreprocessor {
     logger = pLogger;
   }
 
-  public String preprocess(String file) throws CParserException, InterruptedException {
+  public char[] preprocess(String file) throws CParserException, InterruptedException {
     // create command line
     List<String> argList = Lists.newArrayList(Splitter.on(CharMatcher.WHITESPACE).omitEmptyStrings().split(preprocessor));
     argList.add(file);
@@ -79,9 +80,9 @@ public class CPreprocessor {
       }
 
       if (executor.buffer == null) {
-        return "";
+        return "".toCharArray();
       }
-      return executor.buffer.toString();
+      return executor.buffer.toString().toCharArray();
 
     } catch (IOException e) {
       throw new CParserException("Preprocessor failed", e);

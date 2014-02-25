@@ -3,7 +3,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,153 +27,205 @@ package org.sosy_lab.cpachecker.cpa.explicit.refiner.utils;
 import static com.google.common.collect.Iterables.skip;
 
 import java.util.Collection;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitValueBase;
+import org.sosy_lab.cpachecker.cpa.explicit.refiner.ExplicitInterpolationBasedExplicitRefiner.ExplicitValueInterpolant;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
+import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
+@Options(prefix="cpa.explicit.interpolation")
 public class ExplicitInterpolator {
+  @Option(description="whether or not to ignore the semantics of loop-leaving-assume-edges during interpolation - "
+      + "this avoids to have loop-counters in the interpolant")
+  private boolean ignoreLoopsExitAssumes = true;
+
+  @Option(description="whether or not to use use-definition information from the error paths" +
+      "to optimize the interpolation process")
+  private boolean applyUseDefInformation = true;
 
   /**
-   * the configuration of the interpolator
+   * the shutdownNotifier in use
    */
-  private Configuration config = null;
-
   private final ShutdownNotifier shutdownNotifier;
+
+  /**
+   * the current cfa
+   */
+  private final CFA cfa;
 
   /**
    * the transfer relation in use
    */
-  private ExplicitTransferRelation transfer = null;
+  private final ExplicitTransferRelation transfer;
 
   /**
    * the precision in use
    */
-  private ExplicitPrecision precision = null;
+  private final ExplicitPrecision precision;
 
   /**
-   * the first path element without any successors
+   * the collector to get the use-definition information from an error trace
    */
-  public Integer conflictingOffset = null;
-
-  public Integer currentOffset = null;
+  private final AssumptionClosureCollector assumeCollector;
 
   /**
-   * boolean flag telling whether the current path is feasible
+   * the set of relevant variables found by the collector
    */
-  private boolean isFeasible = false;
+  private Set<String> relevantVariables = null;
+
+  /**
+   * the set of assume edges leading out of loops
+   */
+  private final Set<CAssumeEdge> loopExitAssumes = new HashSet<>();
+
+  /**
+   * the set of memory locations appearing in assume edges leading out of loops
+   */
+  private final Set<MemoryLocation> loopExitMemoryLocations = new HashSet<>();
 
   /**
    * the number of interpolations
    */
-  private int numberOfInterpolations = 0;
+  private int numberOfInterpolationQueries = 0;
 
   /**
    * This method acts as the constructor of the class.
    */
-  public ExplicitInterpolator(final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier, final CFA pCfa) throws CPAException {
-    shutdownNotifier = pShutdownNotifier;
+  public ExplicitInterpolator(final Configuration pConfig,final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
+          throws InvalidConfigurationException {
+
+    pConfig.inject(this);
+
+
     try {
-      config      = Configuration.builder().build();
-      transfer    = new ExplicitTransferRelation(config, pLogger, pCfa);
-      precision   = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
+      shutdownNotifier  = pShutdownNotifier;
+      assumeCollector   = new AssumptionClosureCollector();
+
+      cfa               = pCfa;
+      transfer          = new ExplicitTransferRelation(Configuration.builder().build(), pLogger, pCfa);
+      precision         = new ExplicitPrecision("", Configuration.builder().build(),
+          Optional.<VariableClassification>absent());
+
+      initializeLoopInformation();
     }
     catch (InvalidConfigurationException e) {
-      throw new CounterexampleAnalysisFailed("Invalid configuration for checking path: " + e.getMessage(), e);
+      throw new InvalidConfigurationException("Invalid configuration for checking path: " + e.getMessage(), e);
     }
   }
 
   /**
    * This method derives an interpolant for the given error path and interpolation state.
    *
-   * @param errorPath the path to check
-   * @param offset offset of the state at where to start the current interpolation
-   * @param inputInterpolant the input interpolant
+   * @param pErrorPath the path to check
+   * @param pOffset offset of the state at where to start the current interpolation
+   * @param pInputInterpolant the input interpolant
    * @throws CPAException
    * @throws InterruptedException
    */
-  public Set<Pair<String, Long>> deriveInterpolant(
-      List<CFAEdge> errorPath,
-      int offset,
-      Map<String, Long> inputInterpolant) throws CPAException, InterruptedException {
-    numberOfInterpolations = 0;
-
-    currentOffset = offset;
-
-    // cancel the interpolation if we are interpolating at the conflicting element
-    if (conflictingOffset != null && currentOffset >= conflictingOffset) {
-      return null;
-    }
+  public ExplicitValueInterpolant deriveInterpolant(
+      final List<CFAEdge> pErrorPath,
+      final int pOffset,
+      final ExplicitValueInterpolant pInputInterpolant) throws CPAException, InterruptedException {
+    numberOfInterpolationQueries = 0;
 
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
-    ExplicitState initialState      = new ExplicitState(MemoryLocation.transform(PathCopyingPersistentTreeMap.copyOf(inputInterpolant)));
-    ExplicitState initialSuccessor  = getInitialSuccessor(initialState, errorPath.get(offset));
+    ExplicitState initialState      = pInputInterpolant.createExplicitValueState();
+    ExplicitState initialSuccessor  = getInitialSuccessor(initialState, pErrorPath.get(pOffset));
     if (initialSuccessor == null) {
-      return null;
+      return ExplicitValueInterpolant.FALSE;
+    }
+
+    // if initial state and successor are equal, return the input interpolant
+    if (initialState.equals(initialSuccessor)) {
+      return pInputInterpolant;
+    }
+
+    // check if input-interpolant is still strong enough
+    if(applyUseDefInformation && !isUseDefInformationAffected(pErrorPath, initialState, initialSuccessor)) {
+      return pInputInterpolant;
+    }
+
+    // if the current edge just changes the names of variables (e.g. function arguments, returned variables)
+    // then return the input interpolant with those renamings
+    if (isOnlyVariableRenamingEdge(pErrorPath.get(pOffset))) {
+      return new ExplicitValueInterpolant(new HashMap<>(initialSuccessor.getConstantsMapView()));
     }
 
     // if the remaining path is infeasible by itself, i.e., contradicting by itself, skip interpolation
-    if (initialSuccessor.getSize() > 1 && !isRemainingPathFeasible(skip(errorPath, offset + 1), new ExplicitState())) {
-      return Collections.emptySet();
+    Iterable<CFAEdge> remainingErrorPath = skip(pErrorPath, pOffset + 1);
+    if (initialSuccessor.getSize() > 1 && !isRemainingPathFeasible(remainingErrorPath, new ExplicitState())) {
+      return ExplicitValueInterpolant.TRUE;
     }
 
-    Set<Pair<String, Long>> interpolant = new HashSet<>();
-    List<String> list = Lists.newArrayList(initialSuccessor.getTrackedVariableNames());
-    for (String currentVariable : list) {
+    // optimization, which however, leads to too strong interpolants, as the successor is used directly as interpolant
+    //if (!isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
+      //return new ExplicitValueInterpolant(initialSuccessor.getConstantsMapView());
+    //}
+
+    for (MemoryLocation currentMemoryLocation : determineInterpolationCandidates(initialSuccessor)) {
       shutdownNotifier.shutdownIfNecessary();
-      ExplicitState successor = initialSuccessor.clone();
 
-      // remove the value of the current and all already-found-to-be-irrelevant variables from the successor
-      successor.forget(currentVariable);
-      for (Pair<String, Long> interpolantVariable : interpolant) {
-        if (interpolantVariable.getSecond() == null) {
-          successor.forget(interpolantVariable.getFirst());
-        }
-      }
+      // temporarily remove the value of the current memory location from the rawInterpolant
+      ExplicitValueBase value = initialSuccessor.forget(currentMemoryLocation);
 
-      // check if the remaining path now becomes feasible
-      isFeasible = isRemainingPathFeasible(skip(errorPath, offset + 1), successor);
-
-      if (isFeasible) {
-        interpolant.add(Pair.of(currentVariable, initialSuccessor.getValueFor(currentVariable)));
-      } else {
-        interpolant.add(Pair.<String, Long>of(currentVariable, null));
+      // check if the remaining path now becomes feasible,
+      if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
+        initialSuccessor.assignConstant(currentMemoryLocation, value);
       }
     }
 
-    return interpolant;
+    return new ExplicitValueInterpolant(new HashMap<>(initialSuccessor.getConstantsMapView()));
   }
 
   /**
-   * This method returns whether or not the last error path was feasible.
+   * This method returns a (possibly) reordered collection of interpolation candidates, which favors non-loop variables
+   * to be part of the interpolant.
    *
-   * @return whether or not the last error path was feasible
+   * @param explicitState the collection of interpolation candidates, encoded in an explicit-value state
+   * @return a (possibly) reordered collection of interpolation candidates
    */
-  public boolean isFeasible() {
-    return isFeasible;
+  private Collection<MemoryLocation> determineInterpolationCandidates(ExplicitState explicitState) {
+    Set<MemoryLocation> trackedMemoryLocations = explicitState.getTrackedMemoryLocations();
+
+    List<MemoryLocation> reOrderedMemoryLocations = Lists.newArrayListWithCapacity(trackedMemoryLocations.size());
+
+    // move loop-variables to the front - being checked for relevance earlier minimizes their impact on feasibility
+    for(MemoryLocation currentMemoryLocation : trackedMemoryLocations) {
+      if(loopExitMemoryLocations.contains(currentMemoryLocation)) {
+        reOrderedMemoryLocations.add(0, currentMemoryLocation);
+      } else {
+        reOrderedMemoryLocations.add(currentMemoryLocation);
+      }
+    }
+
+    return reOrderedMemoryLocations;
   }
 
   /**
@@ -181,8 +233,8 @@ public class ExplicitInterpolator {
    *
    * @return the number of performed interpolations
    */
-  public int getNumberOfInterpolations() {
-    return numberOfInterpolations;
+  public int getNumberOfInterpolationQueries() {
+    return numberOfInterpolationQueries;
   }
 
   /**
@@ -199,67 +251,117 @@ public class ExplicitInterpolator {
         initialState,
         precision,
         initialEdge);
-    ExplicitState initialSuccessor = extractSuccessorState(successors);
 
-    return initialSuccessor;
+    return successors.isEmpty() ? null : successors.iterator().next();
   }
 
   /**
    * This method checks, whether or not the (remaining) error path is feasible when starting with the given (pseudo) initial state.
    *
-   * @param errorPath the error path to check feasibility on
-   * @param initialState the (pseudo) initial state
+   * @param remainingErrorPath the error path to check feasibility on
+   * @param state the (pseudo) initial state
    * @return true, it the path is feasible, else false
    * @throws CPATransferException
    */
-  private boolean isRemainingPathFeasible(Iterable<CFAEdge> errorPath, ExplicitState initialState)
+  private boolean isRemainingPathFeasible(Iterable<CFAEdge> remainingErrorPath, ExplicitState state)
       throws CPATransferException {
-    numberOfInterpolations++;
+    numberOfInterpolationQueries++;
 
-    List<CFAEdge> path = Lists.newArrayList(errorPath);
-    for (int i = 0; i < path.size(); i++) {
-      CFAEdge currentEdge = path.get(i);
+    for(CFAEdge currentEdge : remainingErrorPath) {
+      if(loopExitAssumes.contains(currentEdge)) {
+        continue;
+      }
+
       Collection<ExplicitState> successors = transfer.getAbstractSuccessors(
-        initialState,
+        state,
         precision,
         currentEdge);
 
-      initialState = extractSuccessorState(successors);
-
-      // there is no successor and the end of the path is not reached => error path is spurious
-      if (initialState == null && currentEdge != Iterables.getLast(path)) {
-        /* needed for sequences like ...
-          ...
-          status = 259;
-          [status == 0] <- first conflictingElement
-          ...
-          [!(status >= 0)]
-          ... as this would otherwise stop interpolation after first conflicting element,
-          as the path to first conflicting element always is infeasible here
-        */
-        //if ((conflictingOffset == null) || (conflictingOffset <= i + currentOffset))
-
-        if ((conflictingOffset == null) || (conflictingOffset <= i + currentOffset)) {
-          conflictingOffset = i + currentOffset + 1;
-        }
+      if(successors.isEmpty()) {
         return false;
       }
+
+      state = successors.iterator().next();
     }
     return true;
   }
 
   /**
-   * This method extracts the single successor out of the (hopefully singleton) successor collection.
+   * This method checks if through the initial edge, memory locations in the use-def chain got changed.
    *
-   * @param successors the collection of successors
-   * @return the successor, or null if none exists
+   * @param pErrorPath the error current path
+   * @param initialState the initial state
+   * @param initialSuccessor the immediate successor of the initial state
+   * @return true, if memory locations in the use-def chain got changed, else false
    */
-  private ExplicitState extractSuccessorState(Collection<ExplicitState> successors) {
-    if (successors.isEmpty()) {
-      return null;
-    } else {
-      assert (successors.size() == 1);
-      return Lists.newArrayList(successors).get(0);
+  private boolean isUseDefInformationAffected(final List<CFAEdge> pErrorPath,
+      ExplicitState initialState, ExplicitState initialSuccessor) {
+    relevantVariables = assumeCollector.obtainUseDefInformation(pErrorPath);
+
+    boolean isUseDefInformationAffected = false;
+    for(MemoryLocation memoryLocation : initialState.getDifference(initialSuccessor)) {
+      if(relevantVariables.contains(memoryLocation.getAsSimpleString())) {
+        isUseDefInformationAffected = true;
+      } else {
+        initialSuccessor.forget(memoryLocation.getAsSimpleString());
+      }
+    }
+
+    return isUseDefInformationAffected;
+  }
+
+  /**
+   * This method checks, if the given edge is only renaming variables.
+   *
+   * @param cfaEdge the CFA edge to check
+   * @return true, if the given edge is only renaming variables
+   */
+  private boolean isOnlyVariableRenamingEdge(CFAEdge cfaEdge) {
+    return
+        // renames from calledFn::___cpa_temp_result_var_ to callerFN::assignedVar
+        // if the former is relevant, so is the latter
+        cfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge
+
+        // for the next two edge types this would also work, but variables
+        // from the calling/returning function would be added to interpolant
+        // as they are not "cleaned up" by the transfer relation
+        // so these two stay out for now
+
+        //|| cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge
+        //|| cfaEdge.getEdgeType() == CFAEdgeType.ReturnStatementEdge
+        ;
+  }
+
+  /**
+   * This method initializes the loop-information which is used during interpolation.
+   */
+  private void initializeLoopInformation() {
+    for(Loop l : cfa.getLoopStructure().get().values()) {
+      for(CFAEdge currentEdge : l.getOutgoingEdges()) {
+        if(currentEdge instanceof CAssumeEdge) {
+          loopExitAssumes.add((CAssumeEdge)currentEdge);
+        }
+      }
+    }
+
+    for(CAssumeEdge assumeEdge : loopExitAssumes) {
+      CIdExpressionCollectorVisitor collector = new CIdExpressionCollectorVisitor();
+      assumeEdge.getExpression().accept(collector);
+
+      for (CIdExpression id : collector.getReferencedIdExpressions()) {
+        String scope = ForwardingTransferRelation.isGlobal(id) ? null : assumeEdge.getPredecessor().getFunctionName();
+
+        if(scope == null) {
+          loopExitMemoryLocations.add(MemoryLocation.valueOf(id.getName()));
+        } else {
+          loopExitMemoryLocations.add(MemoryLocation.valueOf(scope, id.getName(), 0));
+        }
+      }
+    }
+
+    // clear the set of assume edges if the respective option is not set
+    if(!ignoreLoopsExitAssumes) {
+      loopExitAssumes.clear();
     }
   }
 }

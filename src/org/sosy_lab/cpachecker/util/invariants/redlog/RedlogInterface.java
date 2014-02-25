@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -154,7 +154,7 @@ public class RedlogInterface {
       // The statement must be wrapped inside a function
       // declaration. This however gets stripped away.
       f = "void foo() { "+f+" }";
-      root = parser.parseSingleStatement(f);
+      root = parser.parseSingleStatement(f.toCharArray());
     } catch (Exception e) {
       logger.log(Level.FINEST, "Parser failed to parse Redlog output formula.", e.getMessage());
     }

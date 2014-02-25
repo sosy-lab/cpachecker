@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.octagon;
 
 import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.*;
 
+import com.google.common.collect.BiMap;
+
 
 public class OctagonManager {
 
@@ -44,6 +46,10 @@ public class OctagonManager {
   /* num copy */
   public static void num_set(NumArray n1, NumArray n2) {
     J_num_set(n1.getArray(), n2.getArray());
+  }
+
+  public static Octagon set_bounds(Octagon oct, int pos, NumArray lower, NumArray upper) {
+    return new Octagon(J_set_bounds(oct.getOctId(), pos, lower.getArray(), upper.getArray(), false));
   }
 
   /* set int */
@@ -87,8 +93,8 @@ public class OctagonManager {
     long l = J_universe(n);
     return new Octagon(l);
   }
-  public static void free(Octagon oct) {
-    J_free(oct.getOctId());
+  static void free(Long oct) {
+    J_free(oct);
   }
 
   public static Octagon copy(Octagon oct) {
@@ -157,7 +163,7 @@ public class OctagonManager {
   /* int widening = 0 -> OCT_WIDENING_FAST
    * int widening = 1 ->  OCT_WIDENING_ZERO
    * int widening = 2 -> OCT_WIDENING_UNIT*/
-  public Octagon widening(Octagon oct1, Octagon oct2) {
+  public static Octagon widening(Octagon oct1, Octagon oct2) {
     long l = J_widening(oct1.getOctId(), oct2.getOctId(), false, 1);
     return new Octagon(l);
   }
@@ -219,7 +225,44 @@ public class OctagonManager {
     return new Octagon(l);
   }
 
-  public static void print(Octagon oct) {
+  public static void printNum(NumArray arr, int size) {
+      J_printNum(arr.getArray(), size);
+  }
+
+  public static void printOct(Octagon oct) {
     J_print(oct.getOctId());
   }
+
+  public static String print(Octagon oct, BiMap<Integer, String> map) {
+    StringBuilder str = new StringBuilder();
+    int dimension = dimension(oct);
+    long pointer = oct.getOctId();
+    str.append("Octagon (id: " + pointer + ") (dimension: " + dimension + ")\n");
+    if (isEmpty(oct)) {
+      str.append("[Empty]\n");
+      return str.toString();
+    }
+
+    NumArray lower = OctagonManager.init_num_t(1);
+    NumArray upper = OctagonManager.init_num_t(1);
+
+    for (int i = 0; i < map.size(); i++) {
+      str.append(" ").append(map.get(i)).append(" -> [");
+      J_get_bounds(oct.getOctId(), i, upper.getArray(), lower.getArray());
+      if (J_num_infty(lower.getArray(), 0)) {
+        str.append("-INFINITY, ");
+      } else {
+        str.append(J_num_get_int(lower.getArray(), 0)*-1).append(", ");
+      }
+      if (J_num_infty(upper.getArray(), 0)) {
+        str.append("INFINITY]\n");
+      } else {
+        str.append(J_num_get_int(upper.getArray(), 0)).append("]\n");
+      }
+    }
+    J_num_clear_n(lower.getArray(), 1);
+    J_num_clear_n(upper.getArray(), 1);
+    return str.toString();
+  }
+
 }

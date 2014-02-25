@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -130,7 +130,7 @@ public class CPASelfCheck {
                 + "}\n";
 
     CParser parser = CParser.Factory.getParser(config, logManager, CParser.Factory.getDefaultOptions(), MachineModel.LINUX32);
-    ParseResult cfas = parser.parseString(code);
+    ParseResult cfas = parser.parseString("", code.toCharArray());
     MutableCFA cfa = new MutableCFA(MachineModel.LINUX32, cfas.getFunctions(), cfas.getCFANodes(), cfas.getFunctions().get("main"), Language.C);
     return cfa.makeImmutableCFA(Optional.<ImmutableMultimap<String, Loop>>absent(),
         Optional.<VariableClassification>absent());

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,9 +28,9 @@ import java.util.Collection;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
@@ -55,8 +55,8 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
       pOut.println("Time for Analysis:          " + analysisTimer);
       pOut.println("Time for Result Check:      " + checkTimer);
 
-      if (checkTimer.getSumTime() != 0) {
-        pOut.println("Speed up checking:        " + ((float) analysisTimer.getSumTime()) / checkTimer.getSumTime());
+      if (checkTimer.getNumberOfIntervals() > 0) {
+        pOut.println("Speed up checking:        " + ((float) analysisTimer.getSumTime().asNanos()) / checkTimer.getSumTime().asNanos());
       }
 
     }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,6 +38,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -71,8 +72,9 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState.EdgeBasedAbstractionStrategyFactories;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundStateFormulaManager;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaManager;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor.VariableNameExtractor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
@@ -125,6 +127,9 @@ public class InvariantsCPA extends AbstractCPA {
 
     @Option(description="whether or not to use a bit vector formula manager when extracting invariant approximations from states.")
     private boolean useBitvectors = false;
+
+    @Option(description="controls whether to use abstract evaluation always, never, or only on already previously visited edges.")
+    private EdgeBasedAbstractionStrategyFactories edgeBasedAbstractionStrategyFactory = EdgeBasedAbstractionStrategyFactories.VISITED_EDGES;
 
   }
 
@@ -199,19 +204,26 @@ public class InvariantsCPA extends AbstractCPA {
     boolean determineTargetLocations = options.analyzeTargetPathsOnly || options.interestingPredicatesLimit != 0 || options.interestingVariableLimit != 0;
     if (determineTargetLocations) {
       try {
-        Configuration.Builder configurationBuilder = Configuration.builder().copyFrom(config);
+        ConfigurationBuilder configurationBuilder = Configuration.builder();
         configurationBuilder.setOption("output.disable", "true");
         configurationBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPA");
-        configurationBuilder.setOption("specification", "config/specification/default.spc");
+        String specification = config.getProperty("specification");
+        specification = "config/specification/default.spc";
+        configurationBuilder.setOption("specification", specification);
 
         ConfigurableProgramAnalysis cpa = new CPABuilder(configurationBuilder.build(), logManager, shutdownNotifier, reachedSetFactory).buildCPAs(cfa);
         ReachedSet reached = reachedSetFactory.create();
         reached.add(cpa.getInitialState(pNode), cpa.getInitialPrecision(pNode));
-        new CPAAlgorithm(cpa, logManager, config, shutdownNotifier).run(reached);
+        CPAAlgorithm targetFindingAlgorithm = CPAAlgorithm.create(cpa, logManager, config, shutdownNotifier);
 
-        for (AbstractState state : FluentIterable.from(reached).filter(AbstractStates.IS_TARGET_STATE)) {
-          CFANode location = AbstractStates.extractLocation(state);
-          targetLocations.add(location);
+        boolean changed = true;
+        while (changed) {
+          changed = false;
+          targetFindingAlgorithm.run(reached);
+          for (AbstractState state : FluentIterable.from(reached).filter(AbstractStates.IS_TARGET_STATE)) {
+            CFANode location = AbstractStates.extractLocation(state);
+            changed |= targetLocations.add(location);
+          }
         }
       } catch (InvalidConfigurationException | CPAException | InterruptedException e) {
         this.logManager.logException(Level.SEVERE, e, "Unable to find target locations. Defaulting to selecting all locations.");
@@ -289,7 +301,7 @@ public class InvariantsCPA extends AbstractCPA {
           InvariantsFormula<CompoundInterval> assumption = ((CAssumeEdge) edge).getExpression().accept(etfv);
           relevantVariables.addAll(assumption.accept(COLLECT_VARS_VISITOR));
         } catch (UnrecognizedCCodeException e) {
-          this.logManager.logException(Level.SEVERE, e, "Found unrecognized C code on an edge. Cannot specify relevant variables explicitly. Considering all variables as relevant.");
+          this.logManager.logException(Level.WARNING, e, "Found unrecognized C code on an edge. Cannot specify relevant variables explicitly. Considering all variables as relevant.");
           specifyRelevantVariables = false;
         }
       }
@@ -318,7 +330,8 @@ public class InvariantsCPA extends AbstractCPA {
         ImmutableSet.copyOf(limit(interestingPredicates, options.interestingPredicatesLimit)),
         ImmutableSet.copyOf(limit(interestingVariables, options.interestingVariableLimit)),
         options.maximumFormulaDepth,
-        options.useBinaryVariableInterrelations);
+        options.useBinaryVariableInterrelations,
+        options.edgeBasedAbstractionStrategyFactory);
 
     initialPrecisionMap.put(pNode, precision);
 
@@ -464,7 +477,7 @@ public class InvariantsCPA extends AbstractCPA {
       CExpression init = ((CInitializerExpression)decl.getInitializer()).getExpression();
       value = init.accept(InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(pEdge));
     } else {
-      value = CompoundStateFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
+      value = CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
     }
 
     if (pRelevantVariables.contains(varName)) {
@@ -532,7 +545,7 @@ public class InvariantsCPA extends AbstractCPA {
 
       String returnValueName = InvariantsTransferRelation.scope(InvariantsTransferRelation.RETURN_VARIABLE_BASE_NAME, calledFunctionName);
 
-      InvariantsFormula<CompoundInterval> value = CompoundStateFormulaManager.INSTANCE.asVariable(returnValueName);
+      InvariantsFormula<CompoundInterval> value = CompoundIntervalFormulaManager.INSTANCE.asVariable(returnValueName);
 
       // expression is an assignment operation, e.g. a = g(b);
       if (expression instanceof CFunctionCallAssignmentStatement) {

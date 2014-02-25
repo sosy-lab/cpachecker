@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,16 +28,32 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.octagon.Octagon;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
-import com.google.common.collect.BiMap;
-
+@Options(prefix="cpa.octagon.domain")
 class OctDomain implements AbstractDomain {
 
-  static long totaltime = 0;
+  private static long totaltime = 0;
+  private LogManager logger;
+
+  @Option(name="joinType", toUppercase=true, values={"NORMAL", "WIDENING"},
+      description="of which type should the merge be? normal, for usual join, widening for"
+                + " a widening instead of a join")
+  private String joinType = "NORMAL";
+
+  public OctDomain(LogManager log, Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
+    logger = log;
+  }
 
   @Override
   public boolean isLessOrEqual(AbstractState element1, AbstractState element2) {
@@ -52,7 +68,7 @@ class OctDomain implements AbstractDomain {
       return true;
     }
 
-    int result = OctagonManager.isIncludedInLazy(octState1.getOctagon(), octState2.getOctagon());
+    int result = octState1.isLessOrEquals(octState2);
     if (result == 1) {
       totaltime = totaltime + (System.currentTimeMillis() - start);
       return true;
@@ -78,16 +94,57 @@ class OctDomain implements AbstractDomain {
   }
 
   @Override
-  public AbstractState join(AbstractState element1, AbstractState element2) {
-    OctState octEl1 = (OctState) element1;
-    OctState octEl2 = (OctState) element2;
-    Octagon newOctagon = OctagonManager.union(octEl1.getOctagon(), octEl2.getOctagon());
-    BiMap<String, Integer> newMap =
-      octEl1.sizeOfVariables() > octEl2.sizeOfVariables()? octEl1.getVariableToIndexMap() : octEl2.getVariableToIndexMap();
+  public AbstractState join(AbstractState successor, AbstractState reached) {
+    OctState octEl1 = (OctState) successor;
+    OctState octEl2 = (OctState) reached;
 
-      // TODO should it be null
-      return new OctState(newOctagon, newMap, null);
-      // TODO add widening
-      //    return LibraryAccess.widening(octEl1, octEl2);
+    if (octEl1.sizeOfVariables() > octEl2.sizeOfVariables()) {
+      Pair<OctState, OctState> tmp = octEl1.shrinkToFittingSize(octEl2);
+      octEl1 = tmp.getFirst();
+      octEl2 = tmp.getSecond();
+    } else {
+      Pair<OctState, OctState> tmp = octEl2.shrinkToFittingSize(octEl1);
+      octEl1 = tmp.getSecond();
+      octEl2 = tmp.getFirst();
+    }
+    if (joinType.equals("NORMAL")) {
+      return joinNormal(octEl1, octEl2, successor, reached);
+    } else if (joinType.equals("WIDENING")) {
+      return joinWidening(octEl1, octEl2);
+
+      // default should be normal
+    } else {
+      return joinNormal(octEl1, octEl2, successor, reached);
+    }
+  }
+
+  private AbstractState joinNormal(OctState successorOct, OctState reachedOct, AbstractState successorAbs, AbstractState reachedAbs) {
+    assert (successorOct.sizeOfVariables() == reachedOct.sizeOfVariables());
+
+    Octagon newOctagon = OctagonManager.union(successorOct.getOctagon(), reachedOct.getOctagon());
+
+    OctState newState = new OctState(newOctagon, successorOct.getVariableToIndexMap(), logger);
+    if (newState.equals(reachedAbs)) {
+      return reachedAbs;
+    } else if (newState.equals(successorAbs)) {
+      return successorAbs;
+    } else {
+      return newState;
+    }
+  }
+
+  private AbstractState joinWidening(OctState successorOct, OctState reachedOct) {
+    assert (successorOct.sizeOfVariables() == reachedOct.sizeOfVariables());
+
+    Octagon newOctagon = OctagonManager.widening(reachedOct.getOctagon(), successorOct.getOctagon());
+
+    OctState newState = new OctState(newOctagon, successorOct.getVariableToIndexMap(), logger);
+    if (newState.equals(successorOct)) {
+      return successorOct;
+    } else if (newState.equals(reachedOct)) {
+      return reachedOct;
+    } else {
+      return newState;
+    }
   }
 }

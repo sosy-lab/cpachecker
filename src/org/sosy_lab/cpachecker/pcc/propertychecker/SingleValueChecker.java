@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,8 @@ package org.sosy_lab.cpachecker.pcc.propertychecker;
 import java.util.Collection;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.CLabelNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
@@ -52,7 +53,8 @@ public class SingleValueChecker implements PropertyChecker {
     // check if value correctly specified at location
     CFANode node = AbstractStates.extractLocation(pElemToCheck);
     if (node instanceof CLabelNode && ((CLabelNode) node).getLabel().equals(labelLocVarVal)) {
-      if (AbstractStates.extractStateByType(pElemToCheck, ExplicitState.class).getValueFor(varValName) != varVal) { return false; }
+      // The following is a hack
+      if (AbstractStates.extractStateByType(pElemToCheck, ExplicitState.class).getValueFor(varValName).asLong(CNumericTypes.INT) != varVal) { return false; }
     }
     return true;
   }

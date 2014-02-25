@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 import static com.google.common.base.Preconditions.*;
 
-import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
@@ -42,7 +41,6 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Appender;
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -50,6 +48,9 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -61,7 +62,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing.ReplacingFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -109,7 +109,7 @@ public class FormulaManagerView {
 
   @Option(name = "formulaDumpFilePattern", description = "where to dump interpolation and abstraction problems (format string)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File formulaDumpFile = new File("%s%04d-%s%03d.smt2");
+  private Path formulaDumpFile = Paths.get("%s%04d-%s%03d.smt2");
   private String formulaDumpFilePattern;
 
   @Option(description="try to add some useful static-learning-like axioms for "
@@ -156,7 +156,7 @@ public class FormulaManagerView {
     logger = pLogger;
 
     if (formulaDumpFile != null) {
-      formulaDumpFilePattern = formulaDumpFile.getAbsolutePath();
+      formulaDumpFilePattern = formulaDumpFile.toAbsolutePath().getPath();
     } else {
       formulaDumpFilePattern = null;
     }
@@ -170,15 +170,15 @@ public class FormulaManagerView {
     this(DEFAULTMANAGERS, wrapped);
   }
 
-  public File formatFormulaOutputFile(String function, int call, String formula, int index) {
+  public Path formatFormulaOutputFile(String function, int call, String formula, int index) {
     if (formulaDumpFilePattern == null) {
       return null;
     }
 
-    return new File(String.format(formulaDumpFilePattern, function, call, formula, index));
+    return Paths.get(String.format(formulaDumpFilePattern, function, call, formula, index));
   }
 
-  public void dumpFormulaToFile(BooleanFormula f, File outputFile) {
+  public void dumpFormulaToFile(BooleanFormula f, Path outputFile) {
     if (outputFile != null) {
       try {
         Files.writeFile(outputFile, this.dumpFormula(f));
@@ -771,12 +771,7 @@ public class FormulaManagerView {
             assert name != null;
 
             if (ufCanBeLvalue(name)) {
-              final int idx;
-              if (ufIndexDependsOnArgs(name)) {
-                idx = ssa.getIndex(name, new AbstractFormulaList(newargs));
-              } else {
-                idx = ssa.getIndex(name);
-              }
+              final int idx = ssa.getIndex(name);
               if (idx > 0) {
                 // ok, the variable has an instance in the SSA, replace it
                 newt = unsafeManager.replaceArgsAndName(tt, makeName(name, idx), newargs);
@@ -802,10 +797,6 @@ public class FormulaManagerView {
 
   private boolean ufCanBeLvalue(String name) {
     return name.startsWith("*");
-  }
-
-  private boolean ufIndexDependsOnArgs(final String name) {
-    return !name.startsWith("*");
   }
 
   public <T extends Formula> T uninstantiate(T pF) {

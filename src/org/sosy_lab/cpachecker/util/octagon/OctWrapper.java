@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -55,6 +55,8 @@ class OctWrapper {
 
   static native void J_num_clear_n(long n, int size); // call void num_clear_n (num_t* a, size_t n) and oct_mm_free(c) afterwards
 
+  static native void J_get_bounds(long n, int pos, long upperBound, long lowerBound); // void get_bounds(oct * m, var_t k, num_t *up, num_t *down)
+  static native long J_set_bounds(long n, int pos, long upperBound, long lowerBound, boolean dest); // void set_bounds(oct * m, var_t k, num_t *up, num_t *down)
 
   /* Octagon handling functions */
 
@@ -114,6 +116,8 @@ class OctWrapper {
   // TODO implement rest of the functions
 
   static native void J_print(long oct);    //void oct_print (const oct_t* m)
+  static native void J_printNum(long numArr, int k);
+  static native double J_getValueFor(long oct, long valI, long valJ);
 
   /* For debuggin purposes */
   static native long getRandomOct();

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -40,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
@@ -59,13 +57,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 
-class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
+public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
 
-  protected final CtoFormulaConverter conv;
-  protected final CFAEdge       edge;
-  protected final String        function;
-  protected final SSAMapBuilder ssa;
-  protected final Constraints   constraints;
+  final CtoFormulaConverter conv;
+  final CFAEdge       edge;
+  final String        function;
+  final SSAMapBuilder ssa;
+  final Constraints   constraints;
 
   public ExpressionToFormulaVisitor(CtoFormulaConverter pCtoFormulaConverter, CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
     conv = pCtoFormulaConverter;
@@ -81,6 +79,17 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
     return conv.makeVariableUnsafe(exp, function, ssa, false);
   }
 
+  protected Formula toFormula(CExpression e) throws UnrecognizedCCodeException {
+    return e.accept(this);
+  }
+
+  public Formula processOperand(CExpression e, CType calculationType, CType returnType) throws UnrecognizedCCodeException {
+    e = conv.makeCastFromArrayToPointerIfNecessary(e, returnType);
+    final CType t = e.getExpressionType();
+    Formula f = toFormula(e);
+    return conv.makeCast(t, calculationType, f, edge);
+  }
+
   private Formula getPointerTargetSizeLiteral(final CPointerType pointerType, final CType implicitType) {
     final int pointerTargetSize = conv.getSizeof(pointerType.getType());
     return conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(implicitType), pointerTargetSize);
@@ -88,25 +97,6 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
 
   @Override
   public Formula visit(final CBinaryExpression exp) throws UnrecognizedCCodeException {
-    final BinaryOperator op = exp.getOperator();
-    final CType returnType = exp.getExpressionType();
-    final CType calculationType = exp.getCalculationType();
-
-    // these operators expect numeric arguments
-    final FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
-
-    CExpression e1 = exp.getOperand1();
-    CExpression e2 = exp.getOperand2();
-    e1 = conv.makeCastFromArrayToPointerIfNecessary(e1, returnType);
-    e2 = conv.makeCastFromArrayToPointerIfNecessary(e2, returnType);
-    final CType t1 = e1.getExpressionType();
-    final CType t2 = e2.getExpressionType();
-    Formula f1 = e1.accept(this);
-    Formula f2 = e2.accept(this);
-
-    f1 = conv.makeCast(t1, calculationType, f1, edge);
-    f2 = conv.makeCast(t2, calculationType, f2, edge);
-
     /* FOR SHIFTS:
      * We would not need to cast the second operand, but we do casting,
      * because Mathsat assumes 2 bitvectors of same length.
@@ -120,6 +110,25 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
      * to the width of the promoted left operand, the behavior is undefined.
      */
 
+    final CType returnType = exp.getExpressionType();
+    final CType calculationType = exp.getCalculationType();
+
+    final Formula f1 = processOperand(exp.getOperand1(), calculationType, returnType);
+    final Formula f2 = processOperand(exp.getOperand2(), calculationType, returnType);
+
+    return handleBinaryExpression(exp, f1, f2);
+  }
+
+  public final Formula handleBinaryExpression(final CBinaryExpression exp,
+      final Formula f1, final Formula f2) throws UnrecognizedCCodeException {
+    final BinaryOperator op = exp.getOperator();
+    final CType returnType = exp.getExpressionType();
+    final CType calculationType = exp.getCalculationType();
+
+    // these operators expect numeric arguments
+    final FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
+
+
     final boolean signed;
     if (calculationType instanceof CSimpleType) {
       signed = conv.machineModel.isSigned((CSimpleType)calculationType);
@@ -128,6 +137,8 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
     }
 
     // to INT or bigger
+    final CType t1 = exp.getOperand1().getExpressionType();
+    final CType t2 = exp.getOperand2().getExpressionType();
     final CType promT1 = conv.getPromotedCType(t1).getCanonicalType();
     final CType promT2 = conv.getPromotedCType(t2).getCanonicalType();
 
@@ -248,23 +259,16 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
 
 
 
-
   @Override
   public Formula visit(CCastExpression cexp) throws UnrecognizedCCodeException {
     CExpression op = cexp.getOperand();
     op = conv.makeCastFromArrayToPointerIfNecessary(op, cexp.getExpressionType());
 
-    Formula operand = op.accept(this);
+    Formula operand = toFormula(op);
 
     CType after = cexp.getExpressionType();
     CType before = op.getExpressionType();
     return conv.makeCast(before, after, operand, edge);
-  }
-
-  @Override
-  public Formula visit(CComplexCastExpression exp) throws UnrecognizedCCodeException {
-    // TODO complex numbers are not supported for evaluation right now
-    return conv.makeVariableUnsafe(exp, function, ssa, false);
   }
 
   @Override
@@ -277,18 +281,18 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
         return conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(t), enumerator.getValue());
       } else {
         // We don't know the value here, but we know it is constant.
-        return conv.makeConstant(enumerator.getName(), t, ssa);
+        return conv.makeConstant(enumerator.getName(), t);
       }
     }
 
-    return conv.makeVariable(conv.scopedIfNecessary(idExp, ssa, function), ssa);
+    return conv.makeVariable(conv.scopedIfNecessary(idExp), ssa);
   }
 
   @Override
   public Formula visit(CFieldReference fExp) throws UnrecognizedCCodeException {
     if (conv.options.handleFieldAccess()) {
       CExpression fieldOwner = getRealFieldOwner(fExp);
-      Formula f = fieldOwner.accept(this);
+      Formula f = toFormula(fieldOwner);
       return conv.accessField(fExp, f);
     }
 
@@ -337,7 +341,7 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
     } else {
       if (t.isBitvectorType()) {
         // not representible
-        return conv.makeConstant("__float_constant__" + val, fExp.getExpressionType(), ssa);
+        return conv.makeConstant("__float_constant__" + val, fExp.getExpressionType());
       }
 
       // represent x.y by xy / (10^z) where z is the number of digits in y
@@ -379,18 +383,15 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
     CExpression operand = exp.getOperand();
     UnaryOperator op = exp.getOperator();
     switch (op) {
-    case PLUS:
     case MINUS:
     case TILDE: {
       // Handle Integer Promotion
       CType t = operand.getExpressionType();
       CType promoted = conv.getPromotedCType(t);
-      Formula operandFormula = operand.accept(this);
+      Formula operandFormula = toFormula(operand);
       operandFormula = conv.makeCast(t, promoted, operandFormula, edge);
       Formula ret;
-      if (op == UnaryOperator.PLUS) {
-        ret = operandFormula;
-      } else if (op == UnaryOperator.MINUS) {
+      if (op == UnaryOperator.MINUS) {
         ret = conv.fmgr.makeNegate(operandFormula);
       } else {
         assert op == UnaryOperator.TILDE
@@ -405,12 +406,6 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
       return ret;
     }
 
-    case NOT: {
-      Formula f = operand.accept(this);
-      BooleanFormula term = conv.toBooleanFormula(f);
-      return conv.ifTrueThenOneElseZero(conv.getFormulaTypeFromCType(exp.getExpressionType()), conv.bfmgr.not(term));
-    }
-
     case AMPER:
       return visitDefault(exp);
 
@@ -421,11 +416,6 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
     default:
       throw new UnrecognizedCCodeException("Unknown unary operator", edge, exp);
     }
-  }
-
-  @Override
-  public Formula visit(CPointerExpression exp) throws UnrecognizedCCodeException {
-    return visitDefault(exp);
   }
 
   @Override

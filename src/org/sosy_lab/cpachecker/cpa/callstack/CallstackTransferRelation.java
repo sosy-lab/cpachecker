@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,6 +36,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -89,6 +90,29 @@ public class CallstackTransferRelation implements TransferRelation {
           return Collections.emptySet();
         }
         // otherwise use this edge just like a normal edge
+      }
+      break;
+    }
+    case AssumeEdge: {
+      CallstackState element = (CallstackState) pElement;
+      String predecessorFunctionName = pCfaEdge.getPredecessor().getFunctionName();
+      String successorFunctionName = pCfaEdge.getSuccessor().getFunctionName();
+      boolean successorIsInCallstackContext = successorFunctionName.equals(element.getCurrentFunction());
+      boolean isArtificialPCVEdge = pCfaEdge instanceof CFASingleLoopTransformation.ProgramCounterValueAssumeEdge;
+      boolean isSuccessorAritificialPCNode = successorFunctionName.equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+      boolean isPredecessorAritificialPCNode = predecessorFunctionName.equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+      boolean isFunctionTransition = !successorFunctionName.equals(predecessorFunctionName);
+      if (!successorIsInCallstackContext
+          && ((!isSuccessorAritificialPCNode && isArtificialPCVEdge)
+              || isPredecessorAritificialPCNode && isFunctionTransition)) {
+        /*
+         * This edge is syntactically reachable, but makes no sense from this
+         * state, as it would change function without passing a function entry
+         * or exit node.
+         *
+         * Edges like this are introduced by the single loop transformation.
+         */
+        return Collections.emptySet();
       }
       break;
     }

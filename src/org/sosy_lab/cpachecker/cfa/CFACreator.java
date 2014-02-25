@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,31 +25,35 @@ package org.sosy_lab.cpachecker.cfa;
 
 import static org.sosy_lab.cpachecker.util.CFAUtils.findLoops;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.charset.Charset;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.CParser.FileContentToParse;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -59,6 +63,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
@@ -75,10 +80,12 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 
@@ -98,6 +105,11 @@ public class CFACreator {
       description="For C files, run the preprocessor on them before parsing. " +
                   "Note that all file numbers printed by CPAchecker will refer to the pre-processed file, not the original input file.")
   private boolean usePreprocessor = false;
+
+  @Option(name="parser.transformTokensToLines",
+      description="Preprocess the given C files before parsing: Put every single token onto a new line. "
+      + "Then the line number corresponds to the token number.")
+  private boolean transformTokensToLines = false;
 
   @Option(name="analysis.entryFunction", regexp="^" + VALID_C_FUNCTION_NAME_PATTERN + "$",
       description="entry function")
@@ -164,6 +176,17 @@ public class CFACreator {
           + "create a series of if-else edges with explicit indizes instead.")
   private boolean expandFunctionPointerArrayAssignments = false;
 
+  @Option(name="cfa.transformIntoSingleLoop",
+      description="This option causes the control flow automaton to be "
+        + "transformed into the automaton of an equivalent program with one "
+        + "single loop and an artificial program counter.")
+  private boolean transformIntoSingleLoop = false;
+
+  @Option(name="cfa.moveDeclarationsToFunctionStart",
+      description="With this option, all declarations in each function will be moved"
+          + "to the beginning of each function.")
+  private boolean moveDeclarationsToFunctionStart = false;
+
   @Option(description="C or Java?")
   private Language language = Language.C;
 
@@ -207,11 +230,12 @@ public class CFACreator {
   private final CFACreatorStatistics stats = new CFACreatorStatistics();
   private final Configuration config;
 
-  public CFACreator(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier)
+  public CFACreator(Configuration config, LogManager logger,
+      ShutdownNotifier pShutdownNotifier)
           throws InvalidConfigurationException {
     config.inject(this);
-    this.config = config;
 
+    this.config = config;
     this.logger = logger;
 
     stats.parserInstantiationTime.start();
@@ -221,7 +245,18 @@ public class CFACreator {
       parser = EclipseParsers.getJavaParser(logger, config);
       break;
     case C:
-      parser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machineModel);
+      CParser outerParser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machineModel);
+
+      outerParser = new CParserWithLocationMapper(config, logger, outerParser, transformTokensToLines);
+      CSourceOriginMapping.INSTANCE.setHasOneInputLinePerToken(transformTokensToLines);
+
+      if (usePreprocessor) {
+        CPreprocessor preprocessor = new CPreprocessor(config, logger);
+        outerParser = new CParserWithPreprocessor(outerParser, preprocessor);
+      }
+
+      parser = outerParser;
+
       break;
     default:
       throw new AssertionError();
@@ -242,105 +277,41 @@ public class CFACreator {
   /**
    * Parse a file and create a CFA, including all post-processing etc.
    *
-   * @param programDenotation  The file to parse.
+   * @param sourceFiles  The files to parse.
    * @return A representation of the CFA.
    * @throws InvalidConfigurationException If the main function that was specified in the configuration is not found.
    * @throws IOException If an I/O error occurs.
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
    * @throws InterruptedException
    */
-  public CFA parseFileAndCreateCFA(String programDenotation)
+  public CFA parseFileAndCreateCFA(List<String> sourceFiles)
           throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+
+    Preconditions.checkArgument(!sourceFiles.isEmpty(), "At least one source file must be provided!");
 
     stats.totalTime.start();
     try {
 
       // FIRST, parse file(s) and create CFAs for each function
-      logger.log(Level.FINE, "Starting parsing of file");
-      ParseResult c;
+      logger.log(Level.FINE, "Starting parsing of file(s)");
 
-      if (language == Language.C) {
-        checkIfValidFiles(programDenotation);
-      }
-
-      if (language == Language.C && usePreprocessor) {
-        CPreprocessor preprocessor = new CPreprocessor(config, logger);
-        if(denotesOneFile(programDenotation)) {
-          String program = preprocessor.preprocess(programDenotation);
-
-          if (program.isEmpty()) {
-            throw new CParserException("Preprocessor returned empty program");
-          }
-
-          c = parser.parseString(program);
-
-          // when there is more than one file which should be evaluated, the
-          // programdenotations are separated from each other and a prefix for
-          // static variables is generated
-        } else {
-          List<Pair<String, String>> programs = new ArrayList<>();
-          int counter = 0;
-          String[] paths = programDenotation.split(", ");
-          String staticVarPrefix;
-          String prog;
-          for(int i = 0; i < paths.length; i++) {
-            String[] tmp = paths[i].split("/");
-            staticVarPrefix = tmp[tmp.length-1].replaceAll("\\W", "_") + "__" + counter + "__";
-            prog = preprocessor.preprocess(paths[i]);
-            programs.add(Pair.of(prog, staticVarPrefix));
-
-            if (prog.isEmpty()) {
-              throw new CParserException("Preprocessor returned empty program");
-            }
-          }
-          c = ((CParser)parser).parseString(programs);
-        }
-
-
-      } else {
-        if(denotesOneFile(programDenotation)) {
-          c = parser.parseFile((programDenotation));
-
-          // when there is more than one file which should be evaluated, the
-          // programdenotations are separated from each other and a prefix for
-          // static variables is generated
-        } else {
-          List<Pair<String, String>> programs = new ArrayList<>();
-          int counter = 0;
-          String[] paths = programDenotation.split(", ");
-          String staticVarPrefix;
-          for(int i = 0; i < paths.length; i++) {
-            String[] tmp = paths[i].split("/");
-            staticVarPrefix = tmp[tmp.length-1].replaceAll("\\W", "_") + "__" + counter + "__";
-            programs.add(Pair.of(paths[i], staticVarPrefix));
-          }
-          c = ((CParser)parser).parseFile(programs);
-        }
-      }
+      final ParseResult c = parseToCFAs(sourceFiles);
 
       logger.log(Level.FINE, "Parser Finished");
 
-      if (c.isEmpty()) {
-        switch (language) {
-        case JAVA:
-          throw new JParserException("No methods found in program");
-        case C:
-          throw new CParserException("No functions found in program");
-        }
-      }
-
-      final FunctionEntryNode mainFunction;
+      FunctionEntryNode mainFunction;
 
       switch (language) {
       case JAVA:
-        mainFunction = getJavaMainMethod(programDenotation, c.getFunctions());
+        mainFunction = getJavaMainMethod(sourceFiles, c.getFunctions());
         break;
       case C:
-        mainFunction = getCMainFunction(programDenotation, c.getFunctions());
+        mainFunction = getCMainFunction(sourceFiles, c.getFunctions());
         break;
       default:
         throw new AssertionError();
       }
+      assert mainFunction != null;
 
 
       MutableCFA cfa = new MutableCFA(machineModel, c.getFunctions(), c.getCFANodes(), mainFunction, language);
@@ -349,31 +320,14 @@ public class CFACreator {
 
       // check the CFA of each function
       for (String functionName : cfa.getAllFunctionNames()) {
-        assert CFACheck.check(cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName));
+        assert CFACheck.check(cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName), false);
       }
       stats.checkTime.stop();
 
       // SECOND, do those post-processings that change the CFA by adding/removing nodes/edges
       stats.processingTime.start();
 
-      // remove all edges which don't have any effect on the program
-      CFASimplifier.simplifyCFA(cfa);
-
-      if (checkNullPointers) {
-        CFATransformations transformations = new CFATransformations(logger, config);
-        transformations.detectNullPointers(cfa);
-      }
-
-      if (expandFunctionPointerArrayAssignments) {
-        ExpandFunctionPointerArrayAssignments transformer = new ExpandFunctionPointerArrayAssignments(logger, config);
-        transformer.replaceFunctionPointerArrayAssignments(cfa);
-      }
-
-      // add function pointer edges
-      if (language == Language.C && fptrCallEdges) {
-        CFunctionPointerResolver fptrResolver = new CFunctionPointerResolver(cfa, c.getGlobalDeclarations(), config, logger);
-        fptrResolver.resolveFunctionPointers();
-      }
+      postProcessingOnMutableCFAs(cfa, c.getGlobalDeclarations());
 
       // THIRD, do read-only post-processings on each single function CFA
 
@@ -403,16 +357,6 @@ public class CFACreator {
       // Mutating post-processings should be checked carefully for their effect
       // on the information collected above (such as loops and post-order ids).
 
-      if (simplifyExpressions) {
-        // this replaces some edges in the CFA with new edges.
-        // all expressions, that can be evaluated, will be replaced with their result.
-        // example: a=1+2; --> a=3;
-        // TODO support for constant propagation like "define MAGIC_NUMBER 1234".
-        ExpressionSimplifier es = new ExpressionSimplifier(machineModel, logger);
-        CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(mainFunction, es);
-        es.replaceEdges();
-      }
-
       if (useMultiEdges) {
         MultiEdgeCreator.createMultiEdges(cfa);
       }
@@ -432,6 +376,9 @@ public class CFACreator {
         }
       }
 
+      // SIXTH, get information about the CFA,
+      // the cfa should not be modified after this line (TODO except SingleLoopTransformation).
+
       // Get information about variables, needed for some analysis.
       final Optional<VariableClassification> varClassification
           = loopStructure.isPresent()
@@ -440,11 +387,23 @@ public class CFACreator {
 
       stats.processingTime.stop();
 
-      final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(loopStructure, varClassification);
+      final ImmutableCFA immutableCFA;
+
+      if (transformIntoSingleLoop) {
+        // special part of code, returns a transformed copy of the CFA.
+        // TODO SLTransformation contains some code copied from the lines above. Is this necessary?
+        stats.processingTime.start();
+        immutableCFA = CFASingleLoopTransformation.getSingleLoopTransformation(logger, config).apply(cfa);
+        mainFunction = immutableCFA.getMainFunction();
+        assert mainFunction != null;
+        stats.processingTime.stop();
+      } else {
+        immutableCFA = cfa.makeImmutableCFA(loopStructure, varClassification);
+      }
 
       // check the super CFA starting at the main function
       stats.checkTime.start();
-      assert CFACheck.check(mainFunction, null);
+      assert CFACheck.check(mainFunction, null, cfaReduction != null);
       stats.checkTime.stop();
 
       if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))
@@ -461,8 +420,150 @@ public class CFACreator {
     }
   }
 
-  private FunctionEntryNode getJavaMainMethod(String mainClassName, Map<String, FunctionEntryNode> cfas)
+  /** This method parses the sourceFiles and builds a CFA for each function.
+   * The ParseResult is only a Wrapper for the CFAs of the functions and global declarations. */
+  private ParseResult parseToCFAs(final List<String> sourceFiles)
+          throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+    final ParseResult parseResult;
+
+    if (language == Language.C) {
+      checkIfValidFiles(sourceFiles);
+    }
+
+    if (sourceFiles.size() == 1) {
+        /*
+         * The program file has to parsed as String since Google App Engine does not allow
+         * writes to the file system and therefore the input file is stored elsewhere.
+         */
+      final String sourceFileName = sourceFiles.get(0);
+      if (usePreprocessor) {
+        parseResult = parser.parseFile(sourceFileName);
+      } else {
+        char[] code = Paths.get(sourceFileName).asCharSource(Charset.defaultCharset()).read().toCharArray();
+        parseResult = parser.parseString(sourceFileName, code);
+      }
+    } else {
+      // when there is more than one file which should be evaluated, the
+      // programdenotations are separated from each other and a prefix for
+      // static variables is generated
+      if (language != Language.C) {
+        throw new InvalidConfigurationException("Multiple program files not supported for languages other than C.");
+      }
+
+      final List<FileContentToParse> programFragments = new ArrayList<>();
+      int counter = 0;
+      String staticVarPrefix;
+      for (final String fileName : sourceFiles) {
+        final String[] tmp = fileName.split("/");
+        staticVarPrefix = tmp[tmp.length-1].replaceAll("\\W", "_") + "__" + counter + "__";
+
+          /*
+           * The program file has to parsed as String since Google App Engine does not allow
+           * writes to the file system and therefore the input file is stored elsewhere.
+           */
+        char[] code = Paths.get(fileName).asCharSource(Charset.defaultCharset()).read().toCharArray();
+        programFragments.add(new FileContentToParse(fileName, code, staticVarPrefix));
+      }
+
+      parseResult = ((CParser)parser).parseString(programFragments);
+    }
+
+    if (parseResult.isEmpty()) {
+      switch (language) {
+        case JAVA:
+          throw new JParserException("No methods found in program");
+        case C:
+          throw new CParserException("No functions found in program");
+        default:
+          throw new AssertionError();
+      }
+    }
+
+    return parseResult;
+  }
+
+  /** This method changes the CFAs of the functions with adding, removing, replacing or moving CFAEdges.
+   * The CFAs are independent, i.e. there are no super-edges (functioncall- and return-edges) between them. */
+  private void postProcessingOnMutableCFAs(final MutableCFA cfa, final List<Pair<IADeclaration, String>> globalDeclarations)
+          throws InvalidConfigurationException, CParserException {
+
+    // remove all edges which don't have any effect on the program
+    CFASimplifier.simplifyCFA(cfa);
+
+    if (simplifyExpressions) {
+      // this replaces some edges in the CFA with new edges.
+      // all expressions, that can be evaluated, will be replaced with their result.
+      // example: a=1+2; --> a=3;
+      // TODO support for constant propagation like "define MAGIC_NUMBER 1234".
+      for (final CFANode function : cfa.getAllFunctionHeads()) {
+        final ExpressionSimplifier es = new ExpressionSimplifier(machineModel, logger);
+        CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(function, es);
+        es.replaceEdges();
+      }
+    }
+
+    if (moveDeclarationsToFunctionStart) {
+      CFADeclarationMover declarationMover = new CFADeclarationMover(logger);
+      declarationMover.moveDeclarationsToFunctionStart(cfa);
+    }
+
+    if (checkNullPointers) {
+      CFATransformations transformations = new CFATransformations(logger, config);
+      transformations.detectNullPointers(cfa);
+    }
+
+    if (expandFunctionPointerArrayAssignments) {
+      ExpandFunctionPointerArrayAssignments transformer = new ExpandFunctionPointerArrayAssignments(logger, config);
+      transformer.replaceFunctionPointerArrayAssignments(cfa);
+    }
+
+    // add function pointer edges
+    if (language == Language.C && fptrCallEdges) {
+      CFunctionPointerResolver fptrResolver = new CFunctionPointerResolver(cfa, globalDeclarations, config, logger);
+      fptrResolver.resolveFunctionPointers();
+    }
+
+    // Transform dummy loops into edges to termination nodes
+    List<CFANode> toAdd = new ArrayList<>(1);
+    for (CFANode node : cfa.getAllNodes()) {
+      Set<CFANode> visited = new HashSet<>();
+      Queue<CFANode> waitlist = new ArrayDeque<>();
+      waitlist.offer(node);
+      visited.add(node);
+      while (!waitlist.isEmpty()) {
+        CFANode current = waitlist.poll();
+        for (CFAEdge leavingBlankEdge : CFAUtils.leavingEdges(current).filter(BlankEdge.class).toList()) {
+          CFANode succ = leavingBlankEdge.getSuccessor();
+          if (succ == node) {
+            leavingBlankEdge.getPredecessor().removeLeavingEdge(leavingBlankEdge);
+            leavingBlankEdge.getSuccessor().removeEnteringEdge(leavingBlankEdge);
+            CFANode terminationNode = new CFATerminationNode(node.getLineNumber(), node.getFunctionName());
+            BlankEdge terminationEdge =
+                    new BlankEdge(leavingBlankEdge.getRawStatement(),
+                            leavingBlankEdge.getLineNumber(),
+                            leavingBlankEdge.getPredecessor(),
+                            terminationNode,
+                            leavingBlankEdge.getDescription());
+            terminationEdge.getPredecessor().addLeavingEdge(terminationEdge);
+            terminationEdge.getSuccessor().addEnteringEdge(terminationEdge);
+            toAdd.add(terminationNode);
+          }
+          if (visited.add(succ)) {
+            waitlist.offer(succ);
+          }
+        }
+      }
+    }
+    for (CFANode nodeToAdd : toAdd) {
+      cfa.addNode(nodeToAdd);
+    }
+  }
+
+  private FunctionEntryNode getJavaMainMethod(List<String> sourceFiles, Map<String, FunctionEntryNode> cfas)
       throws InvalidConfigurationException {
+
+    Preconditions.checkArgument(sourceFiles.size() == 1, "Multiple input files not supported by 'getJavaMainMethod'");
+    String mainClassName = sourceFiles.get(0);
 
     // try specified function
     FunctionEntryNode mainFunction = cfas.get(mainFunctionName);
@@ -488,39 +589,28 @@ public class CFACreator {
     return mainFunction;
   }
 
-  private void checkIfValidFiles(String fileDenotation) throws InvalidConfigurationException {
-
-    if (denotesOneFile(fileDenotation)) {
-      checkIfValidFile(fileDenotation);
-    } else {
-      for(String path : fileDenotation.split(", ")) {
-        checkIfValidFile(path);
-      }
+  private void checkIfValidFiles(List<String> sourceFiles) throws InvalidConfigurationException {
+    for (String file : sourceFiles) {
+      checkIfValidFile(file);
     }
   }
 
   private void checkIfValidFile(String fileDenotation) throws InvalidConfigurationException {
-    File file = new File(fileDenotation);
+    Path file = Paths.get(fileDenotation);
 
     try {
-      org.sosy_lab.common.Files.checkReadableFile(file);
+      Files.checkReadableFile(file);
     } catch (FileNotFoundException e) {
       throw new InvalidConfigurationException(e.getMessage());
     }
   }
 
-  private boolean denotesOneFile(String filePath) {
-    return !filePath.contains(",");
-  }
-
-  private FunctionEntryNode getCMainFunction(String filename,
+  private FunctionEntryNode getCMainFunction(List<String> sourceFiles,
       final Map<String, FunctionEntryNode> cfas)
       throws InvalidConfigurationException {
 
     // try specified function
     FunctionEntryNode mainFunction = cfas.get(mainFunctionName);
-
-
 
     if (mainFunction != null) {
       return mainFunction;
@@ -535,21 +625,23 @@ public class CFACreator {
       // only one function available, take this one
       return Iterables.getOnlyElement(cfas.values());
 
-    } else {
+    } else if (sourceFiles.size() == 1) {
+      String filename = sourceFiles.get(0);
+
       // get the AAA part out of a filename like test/program/AAA.cil.c
-      filename = (new File(filename)).getName(); // remove directory
+      filename = (Paths.get(filename)).getName(); // remove directory
 
       int indexOfDot = filename.indexOf('.');
       String baseFilename = indexOfDot >= 1 ? filename.substring(0, indexOfDot) : filename;
 
       // try function with same name as file
       mainFunction = cfas.get(baseFilename);
-
-      if (mainFunction == null) {
-        throw new InvalidConfigurationException("No entry function found, please specify one.");
-      }
-      return mainFunction;
     }
+
+    if (mainFunction == null) {
+      throw new InvalidConfigurationException("No entry function found, please specify one.");
+    }
+    return mainFunction;
   }
 
   private Optional<ImmutableMultimap<String, Loop>> getLoopStructure(MutableCFA cfa) {
@@ -693,7 +785,7 @@ public class CFACreator {
 
   private void exportCFAAsync(final CFA cfa) {
     // execute asynchronously, this may take several seconds for large programs on slow disks
-    new Thread(new Runnable() {
+    Threads.newThread(new Runnable() {
       @Override
       public void run() {
         // running the following in parallel is thread-safe

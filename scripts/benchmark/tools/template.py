@@ -31,7 +31,7 @@ class BaseTool(object):
         return 'UNKOWN'
 
 
-    def getCmdline(self, executable, options, sourcefile):
+    def getCmdline(self, executable, options, sourcefile, propertyfile=None):
         """
         Compose the command line to execute from the name of the executable,
         the user-specified options, and the sourcefile to analyze.

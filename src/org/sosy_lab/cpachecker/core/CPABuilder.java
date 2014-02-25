@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core;
 
-import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -41,11 +41,13 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
@@ -74,7 +76,7 @@ public class CPABuilder {
       description="comma-separated list of files with specifications that should be checked"
         + "\n(see config/specification/ for examples)")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private List<File> specificationFiles = null;
+  private List<Path> specificationFiles = null;
 
   private final Configuration config;
   private final LogManager logger;
@@ -98,8 +100,14 @@ public class CPABuilder {
     if (specificationFiles != null) {
       cpas = new ArrayList<>();
 
-      for (File specFile : specificationFiles) {
-        List<Automaton> automata = AutomatonParser.parseAutomatonFile(specFile, config, logger, cfa.getMachineModel());
+      for (Path specFile : specificationFiles) {
+        List<Automaton> automata = Collections.emptyList();
+        if (specFile.getPath().endsWith(".graphml")) {
+          AutomatonGraphmlParser graphmlParser = new AutomatonGraphmlParser(config, logger, cfa.getMachineModel());
+          automata = graphmlParser.parseAutomatonFile(specFile);
+        } else {
+          automata = AutomatonParser.parseAutomatonFile(specFile, config, logger, cfa.getMachineModel());
+        }
 
         for (Automaton automaton : automata) {
           String cpaAlias = automaton.getName();

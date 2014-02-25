@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -54,9 +54,9 @@ class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaManager<Ter
   public Term makeBooleanImpl(boolean pValue) {
     Term t ;
     if (pValue) {
-      t = theory.TRUE;
+      t = theory.mTrue;
     } else {
-      t = theory.FALSE;
+      t = theory.mFalse;
     }
     return t;
   }

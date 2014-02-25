@@ -1,3 +1,6 @@
+Benchmarking CPAchecker
+=======================
+
 For benchmarking, it is recommended to use scripts/benchmark.py.
 This script should run with any Python version >= 2.7.
 This script takes as input one or more XML files which specifiy the tool,
@@ -5,17 +8,91 @@ the resource limits, the tool configuration, the input programs
 and the columns that should appear in the output table.
 The scripts puts all the results into the test/results/ directory.
 Commented examples for these XML files are given in
-doc/examples/benchmark*.xml. Several useful benchmark configurations
-are in test/test-sets/*.xml.
+doc/examples/benchmark*.xml.
+The file doc/examples/benchmark-cpachecker.xml can be used as base for own benchmarks.
+Several useful benchmark configurations are in test/test-sets/*.xml.
 
-In order to combine the results from several benchmark runs into
-a single table the script scripts/table-generator.xml can be used.
-It also takes an XML file as input that gives the table configuration.
-An example for such a file is docs/examples/table-generator.xml.
-The output will be tables in HTML and CSV format,
-the former having some additional features like showing the log files
-and being able to plot the results.
+For further help on the benchmark script use 'scripts/benchmark.py -h'.
 
+
+Specifications
+--------------
+If the benchmark script should evaluate whether the returned results
+are correct or wrong and calculate scores like in the SV-COMP,
+there needs to be a specification defined in the benchmark definition
+that tells the script what should be checked (error label reachability,
+memory safety, termination, etc.).
+The specification is given in a property file (.prp) just like in the SV-COMP.
+There are examples for such files in test/programs/benchmarks/property*.prp.
+To specify them in the benchmark, use the <propertyfiles> tag.
+It can occur either in global scope or inside a <sourcefiles> tag.
+You can use the variables that will be resolved by the benchmark scripts
+like in other tags, for example:
+<propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+This will verify each source file against the specification ALL.prp
+in the same directory.
+You do not need to specify a separate command-line option
+with the specification for the verifier,
+as the script will automatically add it to the command line.
+
+
+Specifying Resource Limits
+--------------------------
+When benchmarking CPAchecker, it is important to correctly specify
+the time and memory limits.
+
+- CPU Time
+  Firstly, in order to get statistics even in case of a timeout,
+  it is important to use CPAchecker's internal time limit.
+  This can be specified with the "-timelimit" command-line argument
+  or the "limits.time.cpu" option. Example:
+  <option name="-timelimit">900s</option>
+
+  Secondly, it is also important to specify the timelimit a second time
+  such that the benchmark script knows how to interpret the results,
+  and to kill CPAchecker in case the internal timelimit fails.
+  This is done with the "timelimit" and the "hardtimelimit" arguments
+  to the <benchmark> tag.
+  The former should have the same value as CPAchecker's internal limit,
+  and the latter should be somewhat higher in order to allow a clean shutdown
+  and printing of statistics before CPAchecker is killed.
+  Both values are specified in seconds.
+  <benchmark ... timelimit="900" hardtimelimit="1000">
+
+- Memory
+  The memory limit is specified in Megabytes
+  with the attribute "memlimit" in the <benchmark> tag
+  of the benchmark definition XML file. Example:
+  <benchmark ... memlimit="8000">
+  This limit will be enforced by the OS
+  and CPAchecker will be killed if it needs more memory.
+
+  Additionally, it is important to specify the amount of memory
+  that Java uses for its own heap with the "-heap" command-line parameter.
+  This value needs to be lower than the external limit.
+  Setting it too low will hurt the performance due to increased garbage collection
+  and provoke OutOfMemoryErrors,
+  setting it too high limits the memory that is available to native libraries
+  such as MathSAT.
+  For analyses without MathSAT,
+  start to experiment with 1000 MB less than the external limit.
+  Example:
+  <option name="-heap">7000M</option>
+
+Summary:
+For correct and useful benchmarks, choose a memory limit (e.g., 8000MB),
+a Java heap size (e.g., 7000MB), and a timelimit (e.g., 900s).
+Then specify them as follows:
+
+<benchmark ... timelimit="900" hardtimelimit="1000" memlimit="8000">
+  <option name="-heap">7000M</option>
+  <option name="-timelimit">900s</option>
+  ...
+</benchmark>
+
+
+Useful CPAchecker Options
+-------------------------
 There are several CPAchecker options that are especially useful for benchmarks:
 
 - output.disable=true
@@ -26,8 +103,19 @@ There are several CPAchecker options that are especially useful for benchmarks:
 - statistics.memory=false
   This option disables the additional thread that is tracking
   the memory usage over time.
+  Use this if the last few ns of CPU time
+  are more important than memory statistics.
 
 It is also recommended to disable assertion checking for benchmarks.
 This can be done by adding the command-line argument -disable-java-assertions.
 
-For further help on the benchmark script use 'scripts/benchmark.py -h'.
+
+Result Table Generation
+-----------------------
+In order to combine the results from several benchmark runs into
+a single table the script scripts/table-generator.xml can be used.
+It also takes an XML file as input that gives the table configuration.
+An example for such a file is docs/examples/table-generator.xml.
+The output will be tables in HTML and CSV format,
+the former having some additional features like showing the log files
+and being able to plot the results.

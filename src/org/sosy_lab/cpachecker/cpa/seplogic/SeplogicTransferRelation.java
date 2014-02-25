@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.cpa.seplogic;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -77,11 +79,13 @@ public class SeplogicTransferRelation implements TransferRelation {
   private long namespaceCounter = 0;
   private PartingstarInterface psInterface;
   static final String RETVAR = "$RET";
+  private final LogManager logger;
 
 
-  public SeplogicTransferRelation(SeplogicCPA cpa) {
+  public SeplogicTransferRelation(SeplogicCPA cpa, LogManager pLogger) {
     super();
     psInterface = cpa.getPartingstarInterface();
+    logger = pLogger;
   }
 
   private Handle makeFreshExistential() {
@@ -147,21 +151,19 @@ public class SeplogicTransferRelation implements TransferRelation {
       }
     } catch (SeplogicQueryUnsuccessful e) {
       if (e.isPureGuard() != null && e.isPureGuard().booleanValue()) {
-        e.printStackTrace();
-        System.err.println("Pure guard failed (-> false) in CFA Edge: N" + cfaEdge.getPredecessor().getNodeNumber()
+        logger.logUserException(Level.WARNING, e, "Pure guard failed (-> false) in CFA Edge: N" + cfaEdge.getPredecessor().getNodeNumber()
             + " -> N" + cfaEdge.getSuccessor().getNodeNumber());
         return Collections.emptySet();
         //return Collections.singleton(currentElement.makeExceptionState(e));
       } else {
-        e.printStackTrace();
-        System.err.println("Must be a null-dereference in CFA Edge: N" + cfaEdge.getPredecessor().getNodeNumber() + " -> N"
+        logger.logUserException(Level.WARNING, e, "Must be a null-dereference in CFA Edge: N" + cfaEdge.getPredecessor().getNodeNumber() + " -> N"
           + cfaEdge.getSuccessor().getNodeNumber());
         return Collections.singleton(currentElement.makeExceptionState(e));
       }
       //throw e;
     }
     if (successor.isFalse()) {
-      System.err.println("Successor implies false in CFA Edge: N" + cfaEdge.getPredecessor().getNodeNumber() + " -> N"
+      logger.log(Level.WARNING, "Successor implies false in CFA Edge: N" + cfaEdge.getPredecessor().getNodeNumber() + " -> N"
           + cfaEdge.getSuccessor().getNodeNumber());
       return Collections.emptySet();
     }
@@ -325,14 +327,8 @@ public class SeplogicTransferRelation implements TransferRelation {
       }
 
     } else if (expression instanceof CUnaryExpression) {
-      CUnaryExpression unaryExpression = (CUnaryExpression) expression;
-
-      if (unaryExpression.getOperator() == UnaryOperator.NOT) {
-        return handleAssume(element, unaryExpression.getOperand(), !isTrueBranch, assumeEdge);
-      } else {
-        throw new UnrecognizedCCodeException("not expected in CIL", assumeEdge,
-            expression);
-      }
+      throw new UnrecognizedCCodeException("not expected in CIL", assumeEdge,
+          expression);
     } else if (expression instanceof CIdExpression) {
       // if (a)
       String varName = ((CIdExpression) expression).getName();

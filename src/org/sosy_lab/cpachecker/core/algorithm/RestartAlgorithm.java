@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,7 +28,6 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -39,13 +38,16 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
@@ -142,7 +144,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       + "A filename can be suffixed with :if-interrupted, :if-failed, and :if-terminated "
       + "which means that this configuration will only be used if the previous configuration ended with a matching condition.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private List<File> configFiles;
+  private List<Path> configFiles;
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -180,7 +182,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     CFANode mainFunction = AbstractStates.extractLocation(pReached.getFirstState());
     assert mainFunction != null : "Location information needed";
 
-    PeekingIterator<File> configFilesIterator = Iterators.peekingIterator(configFiles.iterator());
+    PeekingIterator<Path> configFilesIterator = Iterators.peekingIterator(configFiles.iterator());
 
     while (configFilesIterator.hasNext()) {
       stats.totalTime.start();
@@ -193,9 +195,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       boolean lastAnalysisTerminated = false;
 
       try {
-        File singleConfigFileName = configFilesIterator.next();
+        Path singleConfigFileName = configFilesIterator.next();
         // extract first part out of file name
-        singleConfigFileName = new File(CONFIG_FILE_CONDITION_SPLITTER.split(singleConfigFileName.toString()).iterator().next());
+        singleConfigFileName = Paths.get(CONFIG_FILE_CONDITION_SPLITTER.split(singleConfigFileName.toString()).iterator().next());
 
         try {
           Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> currentAlg = createNextAlgorithm(singleConfigFileName, mainFunction, singleShutdownNotifier);
@@ -316,38 +318,38 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   @Options
   private static class RestartAlgorithmOptions {
 
-    @Option(name="analysis.useAssumptionCollector",
+    @Option(name="analysis.collectAssumptions",
         description="use assumption collecting algorithm")
-        boolean useAssumptionCollector = false;
+        boolean collectAssumptions = false;
 
-    @Option(name = "analysis.useRefinement",
+    @Option(name = "analysis.algorithm.CEGAR",
         description = "use CEGAR algorithm for lazy counter-example guided analysis"
           + "\nYou need to specify a refiner with the cegar.refiner option."
           + "\nCurrently all refiner require the use of the ARGCPA.")
-          boolean useRefinement = false;
+          boolean useCEGAR = false;
 
-    @Option(name="analysis.useCBMC",
-        description="use CBMC to double-check counter-examples")
-        boolean useCBMC = false;
+    @Option(name="analysis.checkCounterexamples",
+        description="use a second model checking run (e.g., with CBMC or a different CPAchecker configuration) to double-check counter-examples")
+        boolean checkCounterexamples = false;
 
-    @Option(name="analysis.useBMC",
+    @Option(name="analysis.algorithm.BMC",
         description="use a BMC like algorithm that checks for satisfiability "
           + "after the analysis has finished, works only with PredicateCPA")
           boolean useBMC = false;
 
-    @Option(name="analysis.externalCBMC",
+    @Option(name="analysis.algorithm.CBMC",
         description="use CBMC as an external tool from CPAchecker")
         boolean runCBMCasExternalTool = false;
 
   }
 
-  private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createNextAlgorithm(File singleConfigFileName, CFANode mainFunction, ShutdownNotifier singleShutdownNotifier) throws InvalidConfigurationException, CPAException, InterruptedException, IOException {
+  private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createNextAlgorithm(Path singleConfigFileName, CFANode mainFunction, ShutdownNotifier singleShutdownNotifier) throws InvalidConfigurationException, CPAException, InterruptedException, IOException {
 
     ReachedSet reached;
     ConfigurableProgramAnalysis cpa;
     Algorithm algorithm;
 
-    Configuration.Builder singleConfigBuilder = Configuration.builder();
+    ConfigurationBuilder singleConfigBuilder = Configuration.builder();
     singleConfigBuilder.copyFrom(globalConfig);
     singleConfigBuilder.clearOption("restartAlgorithm.configFiles");
     singleConfigBuilder.clearOption("analysis.restartAfterUnknown");
@@ -410,9 +412,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating algorithms");
 
-    Algorithm algorithm = new CPAAlgorithm(cpa, logger, pConfig, singleShutdownNotifier);
+    Algorithm algorithm = CPAAlgorithm.create(cpa, logger, pConfig, singleShutdownNotifier);
 
-    if (pOptions.useRefinement) {
+    if (pOptions.useCEGAR) {
       algorithm = new CEGARAlgorithm(algorithm, cpa, pConfig, logger);
     }
 
@@ -420,11 +422,11 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       algorithm = new BMCAlgorithm(algorithm, cpa, pConfig, logger, singleReachedSetFactory, singleShutdownNotifier, cfa);
     }
 
-    if (pOptions.useCBMC) {
+    if (pOptions.checkCounterexamples) {
       algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, pConfig, logger, singleShutdownNotifier, cfa, filename);
     }
 
-    if (pOptions.useAssumptionCollector) {
+    if (pOptions.collectAssumptions) {
       algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, pConfig, logger);
     }
 

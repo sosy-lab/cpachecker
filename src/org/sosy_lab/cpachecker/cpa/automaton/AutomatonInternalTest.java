@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,10 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +40,8 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
@@ -62,7 +62,7 @@ public class AutomatonInternalTest {
   private final LogManager logger;
   private final CParser parser;
 
-  private static final File defaultSpec = new File("test/config/automata/defaultSpecification.spc");
+  private static final Path defaultSpec = Paths.get("test/config/automata/defaultSpecification.spc");
 
   public AutomatonInternalTest() throws InvalidConfigurationException {
     config = Configuration.builder()
@@ -77,7 +77,7 @@ public class AutomatonInternalTest {
   @Test
   public void testScanner() throws InvalidConfigurationException, IOException {
     ComplexSymbolFactory sf1 = new ComplexSymbolFactory();
-    try (InputStream input = Files.newInputStream(defaultSpec.toPath())) {
+    try (InputStream input = defaultSpec.asByteSource().openStream()) {
       AutomatonScanner s = new AutomatonScanner(input, defaultSpec, config, logger, sf1);
       Symbol symb = s.next_token();
       while (symb.sym != AutomatonSym.EOF) {
@@ -89,7 +89,7 @@ public class AutomatonInternalTest {
   @Test
   public void testParser() throws Exception {
     ComplexSymbolFactory sf = new ComplexSymbolFactory();
-    try (InputStream input = Files.newInputStream(defaultSpec.toPath())) {
+    try (InputStream input = defaultSpec.asByteSource().openStream()) {
       AutomatonScanner scanner = new AutomatonScanner(input, defaultSpec, config, logger, sf);
       Symbol symbol = new AutomatonParser(scanner, sf, logger, parser).parse();
       @SuppressWarnings("unchecked")
@@ -106,7 +106,7 @@ public class AutomatonInternalTest {
     AutomatonBoolExpr cannot = new AutomatonBoolExpr.CPAQuery("none", "none");
     Map<String, AutomatonVariable> vars = Collections.emptyMap();
     List<AbstractState> elements = Collections.emptyList();
-    AutomatonExpressionArguments args = new AutomatonExpressionArguments(vars, elements, null, null);
+    AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, vars, elements, null, null);
     AutomatonBoolExpr ex;
     AutomatonBoolExpr myTrue= AutomatonBoolExpr.TRUE;
     AutomatonBoolExpr myFalse= AutomatonBoolExpr.FALSE;
@@ -205,7 +205,7 @@ public class AutomatonInternalTest {
     // tests the replacement of Joker expressions in the AST comparison
     ASTMatcher patternAST = AutomatonASTComparator.generatePatternAST("$20 = $5($1, $?);", parser);
     CAstNode sourceAST  = AutomatonASTComparator.generateSourceAST("var1 = function(var2, egal);", parser);
-    AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null);
+    AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null, null);
 
     boolean result = patternAST.matches(sourceAST, args);
     Assert.assertTrue(result);
@@ -216,7 +216,7 @@ public class AutomatonInternalTest {
 
   @Test
   public void transitionVariableReplacement() throws Exception {
-    AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, logger);
+    AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null, logger);
     args.putTransitionVariable(1, "hi");
     args.putTransitionVariable(2, "hello");
     // actual test
@@ -268,7 +268,7 @@ public class AutomatonInternalTest {
    * @throws InvalidConfigurationException
    */
   public void testAST(String src, String pattern, boolean result) throws InvalidAutomatonException, InvalidConfigurationException {
-    AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null);
+    AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null, null);
     CAstNode sourceAST  = AutomatonASTComparator.generateSourceAST(src, parser);
     ASTMatcher patternAST = AutomatonASTComparator.generatePatternAST(pattern, parser);
 

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
-import java.util.logging.Level;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -32,23 +30,19 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGExpressionEvaluator;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGExpressionEvaluator.LValueAssignmentVisitor;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGState;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddress;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddressValue;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGSymbolicValue;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator;
+import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.LValueAssignmentVisitor;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddress;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGUnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -78,7 +72,7 @@ public class SMGExplicitCommunicator {
     functionName = pFunctionName;
   }
 
-  public Long evaluateExpression(CRightHandSide rValue) throws UnrecognizedCCodeException {
+  public ExplicitValueBase evaluateExpression(CRightHandSide rValue) throws UnrecognizedCCodeException {
 
     ExplicitExpressionValueVisitor evv =
         new ExplicitExpressionValueVisitor();
@@ -151,64 +145,23 @@ public class SMGExplicitCommunicator {
     }
 
     @Override
-    public Long visit(CPointerExpression pPointerExpression) throws UnrecognizedCCodeException {
+    public ExplicitValueBase visit(CPointerExpression pPointerExpression) throws UnrecognizedCCodeException {
 
       MemoryLocation memloc = evaluateMemloc(pPointerExpression);
       return getValueFromLocation(memloc, pPointerExpression);
     }
 
     @Override
-    public Long visit(CFieldReference pFieldReferenceExpression) throws UnrecognizedCCodeException {
+    public ExplicitValueBase visit(CFieldReference pFieldReferenceExpression) throws UnrecognizedCCodeException {
 
       MemoryLocation memloc = evaluateMemloc(pFieldReferenceExpression);
       return getValueFromLocation(memloc, pFieldReferenceExpression);
     }
 
     @Override
-    public Long visit(CUnaryExpression pUnaryExpression) throws UnrecognizedCCodeException {
-
-      CExpression unaryOperand = pUnaryExpression.getOperand();
-
-      CType unaryOperandType = unaryOperand.getExpressionType().getCanonicalType();
-
-      if (unaryOperandType instanceof CArrayType || unaryOperandType instanceof CPointerType) {
-
-        UnaryOperator unaryOperator = pUnaryExpression.getOperator();
-
-        switch (unaryOperator) {
-        case NOT:
-
-          SMGSymbolicValue address;
-
-          try {
-            address = smgEvaluator.evaluateAddress(smgState, cfaEdge, unaryOperand);
-          } catch (CPATransferException e) {
-            logger.logUserException(Level.SEVERE, e, e.getMessage());
-            throw new UnrecognizedCCodeException("Could not evaluate address of "
-                + unaryOperand.toASTString(),
-                unaryOperand);
-          }
-
-          if (address.isUnknown()) {
-            return null;
-          } else if (address.getAsInt() == 0) {
-            return 1L;
-          } else {
-            return 0L;
-          }
-        default:
-          return super.visit(pUnaryExpression);
-        }
-
-      } else {
-        return super.visit(pUnaryExpression);
-      }
-    }
-
-    @Override
-    public Long visit(CBinaryExpression pE) throws UnrecognizedCCodeException {
-      Long result = super.visit(pE);
-      if (result != null) {
+    public ExplicitValueBase visit(CBinaryExpression pE) throws UnrecognizedCCodeException {
+      ExplicitValueBase result = super.visit(pE);
+      if (!result.isUnknown()) {
         return result;
       }
 
@@ -216,21 +169,21 @@ public class SMGExplicitCommunicator {
       CExpression op2 = pE.getOperand2();
 
       if (!(op1.getExpressionType().getCanonicalType() instanceof CPointerType)) {
-        return null;
+        return ExplicitValueBase.ExplicitUnknownValue.getInstance();
       }
       if (!(op2.getExpressionType().getCanonicalType() instanceof CPointerType)) {
-        return null;
+        return ExplicitValueBase.ExplicitUnknownValue.getInstance();
       }
 
       try {
         SMGAddressValue op1Value = evaluateSMGAddressExpression(op1);
         SMGAddressValue op2Value = evaluateSMGAddressExpression(op2);
         if (op1Value.isUnknown() || op2Value.isUnknown()) {
-          return null;
+          return ExplicitValueBase.ExplicitUnknownValue.getInstance();
         }
 
         if (op1Value.getOffset().isUnknown() || op2Value.getOffset().isUnknown()) {
-          return null;
+          return ExplicitValueBase.ExplicitUnknownValue.getInstance();
         }
         long op1Offset = op1Value.getOffset().getAsLong();
         long op2Offset = op2Value.getOffset().getAsLong();
@@ -249,7 +202,7 @@ public class SMGExplicitCommunicator {
         case LESS_EQUAL:
         case LESS_THAN:
           if (!op1Value.getObject().equals(op2Value.getObject())) {
-            return null;
+            return ExplicitValueBase.ExplicitUnknownValue.getInstance();
           }
           switch (pE.getOperator()) {
           case GREATER_EQUAL:
@@ -265,7 +218,7 @@ public class SMGExplicitCommunicator {
           }
 
         default:
-          return null;
+          return ExplicitValueBase.ExplicitUnknownValue.getInstance();
         }
       } catch (CPATransferException e) {
         UnrecognizedCCodeException e2 = new UnrecognizedCCodeException("Could not symbolically evaluate expression", pE);
@@ -274,20 +227,20 @@ public class SMGExplicitCommunicator {
       }
     }
 
-    private long booleanAsLong(boolean b) {
-      return b ? 1L : 0L;
+    private ExplicitValueBase booleanAsLong(boolean b) {
+      return b ? new ExplicitNumericValue(1L) : new ExplicitNumericValue(0L);
     }
 
     @Override
-    public Long visit(CArraySubscriptExpression pE) throws UnrecognizedCCodeException {
+    public ExplicitValueBase visit(CArraySubscriptExpression pE) throws UnrecognizedCCodeException {
       MemoryLocation memloc = evaluateMemloc(pE);
       return getValueFromLocation(memloc, pE);
     }
 
-    private Long getValueFromLocation(MemoryLocation pMemloc, CExpression rValue) throws UnrecognizedCCodeException {
+    private ExplicitValueBase getValueFromLocation(MemoryLocation pMemloc, CExpression rValue) throws UnrecognizedCCodeException {
 
       if(pMemloc == null) {
-        return null;
+        return ExplicitValueBase.ExplicitUnknownValue.getInstance();
       }
 
       ExplicitState explState = getState();
@@ -308,9 +261,9 @@ public class SMGExplicitCommunicator {
         }
 
          if(value.isUnknown() || value.getAsInt() != 0) {
-           return null;
+           return ExplicitValueBase.ExplicitUnknownValue.getInstance();
          } else {
-           return 0L;
+           return new ExplicitNumericValue(0L);
          }
       }
     }
@@ -349,7 +302,7 @@ public class SMGExplicitCommunicator {
     @Override
     public SMGExplicitValue evaluateExplicitValue(SMGState pSmgState, CFAEdge pCfaEdge, CRightHandSide pRValue)
         throws CPATransferException {
-      Long value = pRValue.accept(evv);
+      Long value = pRValue.accept(evv).asLong(pRValue.getExpressionType());
 
       if (value == null) {
         return SMGUnknownValue.getInstance();

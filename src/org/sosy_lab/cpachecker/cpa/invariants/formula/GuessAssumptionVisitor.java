@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -77,7 +77,7 @@ public class GuessAssumptionVisitor extends DefaultFormulaVisitor<CompoundInterv
   }
 
   private Set<InvariantsFormula<CompoundInterval>> guess(InvariantsFormula<CompoundInterval> pOperand1, InvariantsFormula<CompoundInterval> pOperand2) {
-    CompoundStateFormulaManager ifm = CompoundStateFormulaManager.INSTANCE;
+    CompoundIntervalFormulaManager ifm = CompoundIntervalFormulaManager.INSTANCE;
     Set<InvariantsFormula<CompoundInterval>> guesses = new HashSet<>();
     InvariantsFormula<CompoundInterval> equation = ifm.equal(pOperand1, pOperand2);
     guesses.add(equation);

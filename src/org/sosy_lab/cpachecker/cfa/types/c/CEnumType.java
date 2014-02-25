@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,7 +31,9 @@ import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclarations;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclarationVisitor;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -195,8 +197,18 @@ public final class CEnumType implements CComplexType {
       return getName()
           + (hasValue() ? " = " + String.valueOf(value) : "");
     }
-  }
 
+    @Override
+    public <R, X extends Exception> R accept(CSimpleDeclarationVisitor<R, X> pV) throws X {
+      return pV.visit(this);
+    }
+
+    @Override
+    public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+      return pV.visit(this);
+    }
+
+  }
 
   @Override
   public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,12 +26,16 @@ package org.sosy_lab.cpachecker.cpa.sign;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
+import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -42,7 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-
+@Options(prefix="cpa.sign")
 public class SignCPA implements ConfigurableProgramAnalysis {
 
   private SignDomain domain;
@@ -51,17 +55,33 @@ public class SignCPA implements ConfigurableProgramAnalysis {
 
   private LogManager logger;
 
-  private StopOperator stop;
+  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
+      description="which merge operator to use for SignCPA")
+  private String mergeType = "JOIN";
 
+  @Option(name="stop", toUppercase=true, values={"SEP", "JOIN"},
+      description="which stop operator to use for SignCPA")
+  private String stopType = "SEP";
+
+  private StopOperator stop;
   private MergeOperator merge;
 
   public SignCPA(LogManager pLogger, Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
     logger = pLogger;
     domain = new SignDomain();
     transfer = new SignTransferRelation(logger);
-    // TODO SEP, JOIN for merge, stop should be configurable
-    merge = new MergeJoinOperator(domain);
-    stop = new StopJoinOperator(domain);
+
+    if (stopType.equals("SEP")) {
+      stop = new StopSepOperator(domain);
+    } else {
+      stop = new StopJoinOperator(domain);
+    }
+    if (mergeType.equals("SEP")) {
+      merge = new MergeSepOperator();
+    } else {
+      merge = new MergeJoinOperator(domain);
+    }
 
     SignState.init(config);
   }

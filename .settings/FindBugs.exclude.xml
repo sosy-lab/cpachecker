@@ -1,0 +1,7 @@
+<FindBugsFilter>
+    <Match><Or>
+        <!-- Exclude all unmaintained packages. -->
+        <Package name="~org\.sosy_lab\.cpachecker\.cpa\.seplogic.*" />
+        <Package name="~org\.sosy_lab\.cpachecker\.util\.invariants.*" />
+    </Or></Match>
+</FindBugsFilter>

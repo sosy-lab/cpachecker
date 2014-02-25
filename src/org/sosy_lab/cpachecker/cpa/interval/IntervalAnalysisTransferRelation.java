@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -317,16 +317,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
     throws UnrecognizedCCodeException {
     // first, unpack the expression to deal with a raw assumption
     if (expression instanceof CUnaryExpression) {
-      CUnaryExpression unaryExp = ((CUnaryExpression)expression);
-
-      switch (unaryExp.getOperator()) {
-        // remove negation
-        case NOT:
-          return handleAssumption(element, unaryExp.getOperand(), cfaEdge, !truthValue);
-
-        default:
-          throw new UnrecognizedCCodeException("unexpected operator in assumption", cfaEdge, unaryExp);
-      }
+      throw new UnrecognizedCCodeException("unexpected operator in assumption", cfaEdge, expression);
     }
 
     // -> *exp - don't know anything
@@ -960,15 +951,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
 
       case MINUS:
         return (interval != null) ? interval.negate() : Interval.createUnboundInterval();
-
-      case NOT:
-        if (interval.isFalse()) {
-          return Interval.createTrueInterval();
-        } else if (interval.isTrue()) {
-          return Interval.createFalseInterval();
-        } else {
-          return new Interval(0L, 1L);
-        }
 
       case AMPER:
         return Interval.createUnboundInterval(); // valid expression, but it's a pointer value

@@ -15,7 +15,7 @@
 # become quite large and memory usage might become an issue.
 
 # single levels to be excluded from being logged
-log.consoleExclude = ImmutableList.of()
+log.consoleExclude = []
 
 # log level of console output
 log.consoleLevel = Level.INFO
@@ -24,7 +24,7 @@ log.consoleLevel = Level.INFO
 log.file = "CPALog.txt"
 
 # single levels to be excluded from being logged
-log.fileExclude = ImmutableList.of()
+log.fileExclude = []
 
 # log level of file output
 log.level = Level.OFF
@@ -53,14 +53,53 @@ rootDirectory = "."
 # maximum number of condition adjustments (-1 for infinite)
 adjustableconditions.adjustmentLimit = -1
 
+# use a BMC like algorithm that checks for satisfiability after the analysis
+# has finished, works only with PredicateCPA
+analysis.algorithm.BMC = false
+
+# use CBMC as an external tool from CPAchecker
+analysis.algorithm.CBMC = false
+
+# use CEGAR algorithm for lazy counter-example guided analysis
+# You need to specify a refiner with the cegar.refiner option.
+# Currently all refiner require the use of the ARGCPA.
+analysis.algorithm.CEGAR = false
+
+# use adjustable conditions algorithm
+analysis.algorithm.conditionAdjustment = false
+
+# Use McMillan's Impact algorithm for lazy interpolation
+analysis.algorithm.impact = false
+
+# use a predicated analysis which proves if the program satisfies a specified
+# property with the help of a PredicateCPA to separate differnt program paths
+analysis.algorithm.predicatedAnalysis = false
+
+# use a proof check algorithm to validate a previously generated proof
+analysis.algorithm.proofCheck = false
+
+# do analysis and then check if reached set fulfills property specified by
+# ConfigurableProgramAnalysisWithPropertyChecker
+analysis.algorithm.propertyCheck = false
+
+# use a second model checking run (e.g., with CBMC or a different CPAchecker
+# configuration) to double-check counter-examples
+analysis.checkCounterexamples = false
+
+# use counterexample check and the BDDCPA Restriction option
+analysis.checkCounterexamplesWithBDDCPARestriction = false
+
+# do analysis and then check analysis result
+analysis.checkProof = false
+
+# use assumption collecting algorithm
+analysis.collectAssumptions = false
+
 # stop CPAchecker after startup (internal option, not intended for users)
 analysis.disable = false
 
 # entry function
 analysis.entryFunction = "main"
-
-# use CBMC as an external tool from CPAchecker
-analysis.externalCBMC = false
 
 # create all potential function pointer call edges
 analysis.functionPointerCalls = true
@@ -69,7 +108,7 @@ analysis.functionPointerCalls = true
 analysis.functionPointerEdgesForUnknownPointer = true
 
 # potential targets for call edges created for function pointer calls
-analysis.functionPointerTargets = no default value
+analysis.functionPointerTargets = {FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_SIZES}
 
 # run interprocedural analysis
 analysis.interprocedural = true
@@ -77,10 +116,6 @@ analysis.interprocedural = true
 # the machine model, which determines the sizes of types like int
 analysis.machineModel = LINUX32
   enum:     [LINUX32, LINUX64]
-
-# use a predicated analysis which proves if the program satisfies a specified
-# property with the help of a PredicateCPA to separate differnt program paths
-analysis.predicatedAnalysis = false
 
 # A String, denoting the programs to be analyzed
 analysis.programNames = no default value
@@ -93,7 +128,7 @@ analysis.programNames = no default value
 analysis.reachedSet = PARTITIONED
   enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED]
 
-# restart the algorithm using a different CPA after unknown result
+# restart the analysis using a different configuration after unknown result
 analysis.restartAfterUnknown = false
 
 # simplify pure numeral expressions like '1+2' to '3'
@@ -108,6 +143,10 @@ analysis.summaryEdges = false
 # which strategy to adopt for visiting states?
 analysis.traversal.order = DFS
   enum:     [DFS, BFS, RAND]
+
+# handle abstract states with more automaton matches first? (only if
+# AutomatonCPA enabled)
+analysis.traversal.useAutomatonInformation = false
 
 # handle states with a deeper callstack first?
 # This needs the CallstackCPA to have any effect.
@@ -130,42 +169,8 @@ analysis.traversal.useTopsort = false
 # Do not report unknown if analysis terminated, report true (UNSOUND!).
 analysis.unknownAsTrue = false
 
-# use adjustable conditions algorithm
-analysis.useAdjustableConditions = false
-
-# use assumption collecting algorithm
-analysis.useAssumptionCollector = false
-
-# use CBMC and the BDDCPA Restriction option
-analysis.useBDDCPARestriction = false
-
-# use a BMC like algorithm that checks for satisfiability after the analysis
-# has finished, works only with PredicateCPA
-analysis.useBMC = false
-
-# use CBMC to double-check counter-examples
-analysis.useCBMC = false
-
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
-
-# Use McMillan's Impact algorithm for lazy interpolation
-analysis.useImpactAlgorithm = false
-
-# use a proof check algorithm to validate a previously generated proof
-analysis.useProofCheckAlgorithm = false
-
-# do analysis and then check if reached set fulfills property specified by
-# ConfigurableProgramAnalysisWithPropertyChecker
-analysis.usePropertyCheckingAlgorithm = false
-
-# use CEGAR algorithm for lazy counter-example guided analysis
-# You need to specify a refiner with the cegar.refiner option.
-# Currently all refiner require the use of the ARGCPA.
-analysis.useRefinement = false
-
-# do analysis and then check analysis result
-analysis.useResultCheckAlgorithm = false
 
 # Add a threshold to the automaton, after so many branches on a path the
 # automaton will be ignored (0 to disable)
@@ -299,6 +304,10 @@ cfa.file = "cfa.dot"
 # uninitialized.
 cfa.initializeAllVariables = false
 
+# With this option, all declarations in each function will be movedto the
+# beginning of each function.
+cfa.moveDeclarationsToFunctionStart = false
+
 # remove paths from CFA that cannot lead to a specification violation
 cfa.removeIrrelevantForSpecification = false
 
@@ -309,6 +318,38 @@ cfa.simplifyConstExpressions = false
 # is simplified until at maximum one pointer is allowed for left- and
 # rightHandSide
 cfa.simplifyPointerExpressions = false
+
+# This option causes the control flow automaton to be transformed into the
+# automaton of an equivalent program with one single loop and an artificial
+# program counter.
+cfa.transformIntoSingleLoop = false
+
+# Setting this option prefixes the loop with the initialsubgraph instead of
+# treating it like the other subgraphs as a leaf of the program counter value
+# decision tree.
+cfa.transformIntoSingleLoop.initialSubgraphAsPrefix = true
+
+# Single loop transformation builds a decision tree based on the program
+# counter values. This option causes the last program counter value not to be
+# explicitly assumed in the decision tree, so that it is only indirectly
+# represented by the assumption of falsehood for all other assumptions in the
+# decision tree.
+cfa.transformIntoSingleLoop.omitExplicitLastProgramCounterAssumption = true
+
+# This option controls what program counter values are used. Possible values
+# are INCREMENTAL and NODE_NUMBER.
+cfa.transformIntoSingleLoop.programCounterValueProviderFactory = INCREMENTAL
+  enum:     [NODE_NUMBER, INCREMENTAL]
+
+# This option controls the size of the subgraphs referred to by program
+# counter values. The larger the subgraphs, the fewer program counter values
+# are required. Possible values are  MULTIPLE_PATHS, SINGLE_PATH and
+# SINGLE_EDGE, where MULTIPLE_PATHS has the largest subgraphs (and fewest
+# program counter values) and SINGLE_EDGE has the smallest subgraphs (and
+# most program counter values). The larger the subgraphs, the closer the
+# resulting graph will look like the original CFA.
+cfa.transformIntoSingleLoop.subgraphGrowthStrategy = no default value
+  enum:     [MULTIPLE_PATHS, SINGLE_PATH, SINGLE_EDGE]
 
 # combine sequences of simple edges into a single edge
 cfa.useMultiEdges = false
@@ -349,19 +390,6 @@ coverage.file = "coverage.info"
 # CPA to use (see doc/Configuration.txt for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
 
-# if enabled, cache queries also consider blocks with non-matching precision
-# for reuse.
-cpa.abm.aggressiveCaching = true
-
-# Type of partitioning (FunctionAndLoopPartitioning or
-# DelayedFunctionAndLoopPartitioning)
-# or any class that implements a PartitioningHeuristic
-cpa.abm.blockHeuristic = FunctionAndLoopPartitioning.class
-
-# if enabled, the reached set cache is analysed for each cache miss to find
-# the cause of the miss.
-cpa.abm.gatherCacheMissStatistics = false
-
 # export one variable assignment for error path to file, if one is found
 cpa.arg.errorPath.assignment = "ErrorPath.%d.assignment.txt"
 
@@ -375,9 +403,17 @@ cpa.arg.errorPath.export = true
 # translate error path to C program
 cpa.arg.errorPath.exportAsSource = true
 
+# export error paths to files immediately after they were found
+cpa.arg.errorPath.exportImmediately = false
+
 # export error path to file, if one is found
 cpa.arg.errorPath.file = "ErrorPath.%d.txt"
 cpa.arg.errorPath.graph = "ErrorPath.%d.dot"
+
+# export error path to file as an automaton to a graphml file
+cpa.arg.errorPath.graphml = "ErrorPath.%d.graphml"
+
+# export error path to file, if one is found
 cpa.arg.errorPath.json = "ErrorPath.%d.json"
 cpa.arg.errorPath.source = "ErrorPath.%d.c"
 
@@ -400,8 +436,32 @@ cpa.arg.refinements.file = "ARGRefinements.dot"
 # entries/exits
 cpa.arg.simplifiedARG.file = "ARGSimplified.dot"
 
-# signal the analysis to break in case of reached error state
-cpa.automaton.breakOnTargetState = true
+# Verification witness: Include the considered case of an assume?
+cpa.arg.witness.exportAssumeCaseInfo = true
+
+# Verification witness: Include assumptions (C statements)?
+cpa.arg.witness.exportAssumptions = true
+
+# Verification witness: Include function calls and function returns?
+cpa.arg.witness.exportFunctionCallsAndReturns = true
+
+# Verification witness: Include the (starting) line numbers of the operations
+# on the transitions?
+cpa.arg.witness.exportLineNumbers = true
+
+# Verification witness: Include the sourcecode of the operations?
+cpa.arg.witness.exportSourcecode = true
+
+# Verification witness: Include the token numbers of the operations on the
+# transitions?
+cpa.arg.witness.exportTokenNumbers = true
+
+# signal the analysis to break in case the given number of error state is
+# reached 
+cpa.automaton.breakOnTargetState = 1
+
+# Collect information about matched (and traversed) tokens.
+cpa.automaton.collectTokenInformation = false
 
 # export automaton to file
 cpa.automaton.dotExport = false
@@ -410,15 +470,33 @@ cpa.automaton.dotExport = false
 # automaton name)
 cpa.automaton.dotExportFile = "%s.dot"
 
+# the maximum number of iterations performed after the initial error is
+# found, despite the limitgiven as cpa.automaton.breakOnTargetState is not
+# yet reached
+cpa.automaton.extraIterationsLimit = -1
+
 # file with automaton specification for ObserverAutomatonCPA and
 # ControlAutomatonCPA
 cpa.automaton.inputFile = no default value
 
+# if enabled, cache queries also consider blocks with non-matching precision
+# for reuse.
+cpa.bam.aggressiveCaching = true
+
+# Type of partitioning (FunctionAndLoopPartitioning or
+# DelayedFunctionAndLoopPartitioning)
+# or any class that implements a PartitioningHeuristic
+cpa.bam.blockHeuristic = FunctionAndLoopPartitioning.class
+
+# if enabled, the reached set cache is analysed for each cache miss to find
+# the cause of the miss.
+cpa.bam.gatherCacheMissStatistics = false
+
 # adding a new value to the state can be done from 0 to N or from N to 0
 cpa.bdd.addIncreasing = false
 
-# default bitsize for values and vars
-cpa.bdd.bitsize = 32
+# max bitsize for values and vars, initial value
+cpa.bdd.bitsize = 64
 
 # use a smaller bitsize for all vars, that have only intEqual values
 cpa.bdd.compressIntEqual = true
@@ -434,10 +512,14 @@ cpa.bdd.initBitsIncreasing = true
 cpa.bdd.initBitwise = true
 
 # declare vars partitionwise
-cpa.bdd.initPartitions = true
+cpa.bdd.initPartitions = Ordered = true
 
 # declare partitions ordered
 cpa.bdd.initPartitionsOrdered = true
+
+# whether the precision is initially empty (this should be set to true when
+# refinement is used)
+cpa.bdd.initiallyEmptyPrecision = false
 
 # Dump tracked variables to a file.
 cpa.bdd.logfile = "BDDCPA_tracked_variables.log"
@@ -474,6 +556,18 @@ cpa.callstack.skipRecursion = false
 # Skip recursion if it happens only by going via a void function (this is
 # unsound).
 cpa.callstack.skipVoidRecursion = false
+
+# firing relation to be used in the precision adjustment operator
+cpa.chc.firingRelation = "Always"
+  allowed values: [Always, Maxcoeff, Sumcoeff, Homeocoeff]
+
+# generalization operator to be used in the precision adjustment operator
+cpa.chc.generalizationOperator = "Widen"
+  allowed values: [Top, Widen, WidenMax, WidenSum]
+
+# merge operator to be used
+cpa.chc.merge = "SEP"
+  allowed values: [SEP, JOIN]
 
 # inform Composite CPA if it is run in a predicated analysis because then it
 # mustbehave differntly during merge.
@@ -519,14 +613,11 @@ cpa.conditions.global.time.wall = -1
 # When using adjustable conditions, analysis will end after this threshold
 cpa.conditions.global.time.wall.hardlimit = -1
 
-# whether or not to track unique assignments only
-cpa.conditions.path.assignments.demandUniqueness = true
+# (hard) threshold for assignments (-1 for infinite)
+cpa.conditions.path.assignments.hardThreshold = -1
 
-# file name where to put the extended stats file
-cpa.conditions.path.assignments.extendedStatsFile = no default value
-
-# maximum number of assignments (-1 for infinite)
-cpa.conditions.path.assignments.threshold = -1
+# (soft) threshold for assignments (-1 for infinite)
+cpa.conditions.path.assignments.softThreshold = -1
 
 # maximum number of assume edges length (-1 for infinite)
 cpa.conditions.path.assumeedges.limit = -1
@@ -540,40 +631,12 @@ cpa.conditions.path.length.limit = -1
 # maximum repetitions of any edge in a path (-1 for infinite)
 cpa.conditions.path.repetitions.limit = -1
 
-# with this option enabled, a check for unreachable memory occurs whenever a
-# function returns, and not only at the end of the main function
-cpa.cpalien.checkForMemLeaksAtEveryFrameDrop = true
-
-# If this Option is enabled, failure of mallocis simulated
-cpa.cpalien.enableMallocFail = true
-
-# Filename format for SMG graph dumps
-cpa.cpalien.exportSMG.file = "smg-%s.dot"
-
-# Describes when SMG graphs should be dumped. One of: {never, leaf,
-# interesting, every}
-cpa.cpalien.exportSMGwhen = "never"
-
-# with this option enabled, memory that is not freed before the end of main
-# is reported as memleak even if it is reachable from local variables in main
-cpa.cpalien.handleNonFreedMemoryInMainAsMemLeak = false
-
-# Sets how unknown functions are handled. One of: {strict, assume_safe}
-cpa.cpalien.handleUnknownFunctions = "strict"
-
-# Determines if memory errors are target states
-cpa.cpalien.memoryErrors = true
-
-# Sets the level of runtime checking: NONE, HALF, FULL
-cpa.cpalien.runtimeCheck = NONE
-  enum:     [FORCED, NONE, HALF, FULL]
-
-# Emit messages when we encounter non-target undefined behavior
-cpa.cpalien.unknownOnUndefined = true
-
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
   allowed values: [sep, join]
+
+# Value which is allowed for the variable which is checked
+cpa.explicit.allowedValue = 0
 
 # restrict abstractions to assume edges
 cpa.explicit.blk.alwaysAtAssumes = false
@@ -587,12 +650,28 @@ cpa.explicit.blk.alwaysAtJoins = false
 # restrict abstractions to loop heads
 cpa.explicit.blk.alwaysAtLoops = false
 
+# enables target checking for explicit anlaysis, needed for predicated
+# analysis
+cpa.explicit.doTargetCheck = false
+
+# enable if will be used in predicated analysis but all variables should be
+# tracked, no refinement
+cpa.explicit.inPredicatedAnalysis = false
+
 # if there is an assumption like (x!=0), this option sets unknown
 # (uninitialized) variables to 1L, when the true-branch is handled.
 cpa.explicit.initAssumptionVars = false
 
 # get an initial precison from file
 cpa.explicit.initialPrecisionFile = no default value
+
+# whether or not to use use-definition information from the error pathsto
+# optimize the interpolation process
+cpa.explicit.interpolation.applyUseDefInformation = true
+
+# whether or not to ignore the semantics of loop-leaving-assume-edges during
+# interpolation - this avoids to have loop-counters in the interpolant
+cpa.explicit.interpolation.ignoreLoopsExitAssumes = true
 
 # which merge operator to use for ExplicitCPA
 cpa.explicit.merge = "SEP"
@@ -629,6 +708,7 @@ cpa.explicit.precisionFile = no default value
 # whether or not to avoid restarting at assume edges after a refinement
 cpa.explicit.refiner.avoidAssumes = false
 
+# checkForRepeatedRefinements
 # whether or not to check for repeated refinements, to then reset the
 # refinement root
 cpa.explicit.refiner.checkForRepeatedRefinements = true
@@ -636,13 +716,29 @@ cpa.explicit.refiner.checkForRepeatedRefinements = true
 # whether or not to do lazy-abstraction
 cpa.explicit.refiner.doLazyAbstraction = true
 
+# when to export the interpolation tree
+# NEVER:   never export the interpolation tree
+# FINAL:   export the interpolation tree once after each refinement
+# ALWAYD:  export the interpolation tree once after each interpolation, i.e.
+# multiple times per refinmenet
+cpa.explicit.refiner.exportInterpolationTree = "NEVER"
+  allowed values: [NEVER, FINAL, ALWAYS]
+
 # use heuristic to extract a precision from the CFA statically on first
 # refinement
 cpa.explicit.refiner.performInitialStaticRefinement = false
 
+# whether to use the top-down interpolation strategy or the bottom-up
+# interpolation strategy
+cpa.explicit.refiner.useTopDownInterpolationStrategy = true
+
 # which stop operator to use for ExplicitCPA
 cpa.explicit.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
+
+# Variable name of the variable for which should be checked that its value is
+# globally a certain value 
+cpa.explicit.varName = ""
 
 # blacklist regex for variables that won't be tracked by ExplicitCPA
 cpa.explicit.variableBlacklist = ""
@@ -695,6 +791,11 @@ cpa.invariants.analyzeRelevantVariablesOnly = true
 # locations only.
 cpa.invariants.analyzeTargetPathsOnly = true
 
+# controls whether to use abstract evaluation always, never, or only on
+# already previously visited edges.
+cpa.invariants.edgeBasedAbstractionStrategyFactory = VISITED_EDGES
+  enum:     [ALWAYS, VISITED_EDGES, NEVER]
+
 # the maximum number of predicates to consider as interesting. -1 one
 # disables the limit, but this is not recommended. 0 means that guessing
 # interesting predicates is disabled.
@@ -719,10 +820,21 @@ cpa.invariants.useBinaryVariableInterrelations = true
 # invariant approximations from states.
 cpa.invariants.useBitvectors = false
 
+# this option controls how the maxLoopIterations condition is adjusted when a
+# condition adjustment is invoked.
+cpa.loopstack.maxLoopIterationAdjusterFactory = STATIC
+  enum:     [STATIC, INCREMENT, DOUBLE]
+
 # threshold for unrolling loops of the program (0 is infinite)
 # works only if assumption storage CPA is enabled, because otherwise it would
 # be unsound
 cpa.loopstack.maxLoopIterations = 0
+
+# threshold for adjusting the threshold for unrolling loops of the program (0
+# is infinite).
+# only relevant in combination with a non-static maximum loop iteration
+# adjuster.
+cpa.loopstack.maxLoopIterationsUpperBound = 0
 
 # time limit for a single post computation (use milliseconds or specify a
 # unit; 0 for infinite)
@@ -731,6 +843,11 @@ cpa.monitor.limit = 0
 # time limit for all computations on a path in milliseconds (use milliseconds
 # or specify a unit; 0 for infinite)
 cpa.monitor.pathcomputationlimit = 0
+
+# of which type should the merge be? normal, for usual join, widening for a
+# widening instead of a join
+cpa.octagon.domain.joinType = "NORMAL"
+  allowed values: [NORMAL, WIDENING]
 
 # which merge operator to use for OctagonCPA?
 cpa.octagon.merge = "SEP"
@@ -747,9 +864,6 @@ cpa.pointerA.merge = "JOIN"
 # which stop operator to use for PointerACPA
 cpa.pointerA.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
-
-# whether to use auxiliary predidates for reduction
-cpa.predicate.abm.auxiliaryPredicateComputer = true
 
 # use caching of region to formula conversions
 # use caching of abstractions
@@ -771,7 +885,7 @@ cpa.predicate.abstraction.identifyTrivialPredicates = false
 
 # get an initial map of predicates from a list of files (see source
 # doc/examples/predmap.txt for an example)
-cpa.predicate.abstraction.initialPredicates = ImmutableList.of()
+cpa.predicate.abstraction.initialPredicates = []
 
 # Apply location-specific predicates to all locations in their function
 cpa.predicate.abstraction.initialPredicates.applyFunctionWide = false
@@ -789,6 +903,9 @@ cpa.predicate.abstraction.type = "BDD"
 
 # file that consists of one abstraction formula for each abstraction state
 cpa.predicate.abstractions.file = "abstractions.txt"
+
+# whether to use auxiliary predidates for reduction
+cpa.predicate.bam.auxiliaryPredicateComputer = true
 
 # force abstractions immediately after threshold is reached (no effect if
 # threshold = 0)
@@ -843,7 +960,7 @@ cpa.predicate.defaultArrayLength = 20
 
 # Use deferred allocation heuristic that tracks void * variables until the
 # actual type of the allocation is figured out.
-cpa.predicate.deferUntypedAllocations = false
+cpa.predicate.deferUntypedAllocations = true
 
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
@@ -860,8 +977,9 @@ cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.smt2"
 # Handle field access via extract and concat instead of new variables.
 cpa.predicate.handleFieldAccess = false
 
-# Handle field aliasing formulas.
-cpa.predicate.handleFieldAliasing = false
+# If disabled, all implicitly initialized fields and elements are treated as
+# non-dets
+cpa.predicate.handleImplicitInitialization = true
 
 # Handle pointer aliasing for pointers with unknown values (coming from
 # uninitialized variables or external function calls). This is slow and
@@ -871,6 +989,11 @@ cpa.predicate.handleNondetPointerAliasing = false
 # Handle aliasing of pointers. This adds disjunctions to the formulas, so be
 # careful when using cartesian abstraction.
 cpa.predicate.handlePointerAliasing = true
+
+# When a string literal initializer is encountered, initialize the contents
+# of the char array with the contents of the string literal instead of just
+# assigning a fresh non-det address to it
+cpa.predicate.handleStringLiteralInitializers = false
 
 # Allows to ignore Concat and Extract Calls when Bitvector theory was
 # replaced.
@@ -953,13 +1076,6 @@ cpa.predicate.nondetFunctions = {
 # Regexp pattern for functions that should be considered as giving a
 # non-deterministic return value (c.f. cpa.predicate.nondedFunctions)
 cpa.predicate.nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-zA-Z0-9_]*"
-
-# Handle field aliasing formulas.
-cpa.predicate.omitNonPointerInFieldAliasing = true
-
-# Encode pointer aliasing information with uninterpreted functions (more
-# precise) if pointer aliasing is handled.
-cpa.predicate.pointerAnalysisWithUFs = false
 
 # Where to apply the found predicates to?
 cpa.predicate.precision.sharing = LOCATION
@@ -1065,7 +1181,7 @@ cpa.predicate.replaceBitvectorWithRationalAndFunctionTheory = true
 
 # Enable the option to allow detecting the allocation type by type of the LHS
 # of the assignment, e.g. char *arr = malloc(size) is detected as char[size]
-cpa.predicate.revealAllocationTypeFromLhs = false
+cpa.predicate.revealAllocationTypeFromLhs = true
 
 # maximum blocksize before a satisfiability check is done
 # (non-negative number, 0 means never, if positive should be smaller than
@@ -1167,9 +1283,52 @@ cpa.seplogic.partingstar.pspath = no default value
 cpa.sign.allowedAbstractValue = ALL
   enum:     [EMPTY, PLUS, MINUS, ZERO, PLUSMINUS, PLUS0, MINUS0, ALL]
 
+# which merge operator to use for SignCPA
+cpa.sign.merge = "JOIN"
+  allowed values: [SEP, JOIN]
+
+# which stop operator to use for SignCPA
+cpa.sign.stop = "SEP"
+  allowed values: [SEP, JOIN]
+
 # Variable name of the variable for which should be checked that its value is
 # globally in a certain bound 
 cpa.sign.varName = ""
+
+# with this option enabled, a check for unreachable memory occurs whenever a
+# function returns, and not only at the end of the main function
+cpa.smg.checkForMemLeaksAtEveryFrameDrop = true
+
+# If this Option is enabled, failure of mallocis simulated
+cpa.smg.enableMallocFail = true
+
+# Filename format for SMG graph dumps
+cpa.smg.exportSMG.file = "smg-%s.dot"
+
+# Describes when SMG graphs should be dumped. One of: {never, leaf,
+# interesting, every}
+cpa.smg.exportSMGwhen = "never"
+
+# with this option enabled, memory that is not freed before the end of main
+# is reported as memleak even if it is reachable from local variables in main
+cpa.smg.handleNonFreedMemoryInMainAsMemLeak = false
+
+# Sets how unknown functions are handled. One of: {strict, assume_safe}
+cpa.smg.handleUnknownFunctions = "strict"
+
+# Determines if memory errors are target states
+cpa.smg.memoryErrors = true
+
+# Sets the level of runtime checking: NONE, HALF, FULL
+cpa.smg.runtimeCheck = NONE
+  enum:     [FORCED, NONE, HALF, FULL]
+
+# Emit messages when we encounter non-target undefined behavior
+cpa.smg.unknownOnUndefined = true
+
+# if enabled checks if states are target states (there exist warning for
+# uninitilized use of variables
+cpa.uninitvars.checkTarget = false
 
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
@@ -1223,6 +1382,9 @@ limits.time.cpu = -1
 # for infinite)
 limits.time.wall = -1
 
+# Write the tokenized version of the input program to this file.
+locmapper.dumpTokenizedProgramToFile = no default value
+
 # Whether to check for memory safety properties (this can be specified by
 # passing an appropriate .prp file to the -spec parameter).
 memorysafety.check = false
@@ -1241,6 +1403,10 @@ parser.dialect = GNUC
 # stdout.
 parser.preprocessor = "cpp"
 
+# Preprocess the given C files before parsing: Put every single token onto a
+# new line. Then the line number corresponds to the token number.
+parser.transformTokensToLines = false
+
 # For C files, run the preprocessor on them before parsing. Note that all
 # file numbers printed by CPAchecker will refer to the pre-processed file,
 # not the original input file.
@@ -1251,6 +1417,7 @@ pcc.checkPropertyPerElement = false
 # file in which proof representation needed for proof checking is stored
 pcc.proofFile = "arg.obj"
 
+# Generate and dump a proof
 pcc.proofgen.doPCC = false
 
 # Qualified name for class which implements certification strategy, hence
@@ -1271,6 +1438,20 @@ reachedSet.file = "reached.txt"
 # configuration will only be used if the previous configuration ended with a
 # matching condition.
 restartAlgorithm.configFiles = no default value
+
+spec.automatonDumpFile = no default value
+
+# Consider the negative semantics of tokens provided with path automatons.
+spec.considerNegativeSemanticsAttribute = true
+
+# Match the line numbers within the origin (mapping done by preprocessor line
+# markers).
+spec.matchOriginLine = false
+
+# Match the source code provided with the witness.
+spec.matchSourcecodeData = false
+
+spec.transitionToStopForNegatedTokensetMatch = true
 
 # comma-separated list of files with specifications that should be checked
 # (see config/specification/ for examples)

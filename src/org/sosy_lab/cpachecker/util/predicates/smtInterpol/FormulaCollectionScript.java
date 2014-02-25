@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -343,6 +343,11 @@ class FormulaCollectionScript implements Script {
 
   @Override
   public Iterable<Term[]> checkAllsat(Term[] pPredicates) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public Term[] findImpliedEquality(Term[] pX, Term[] pY) {
     throw new UnsupportedOperationException();
   }
 

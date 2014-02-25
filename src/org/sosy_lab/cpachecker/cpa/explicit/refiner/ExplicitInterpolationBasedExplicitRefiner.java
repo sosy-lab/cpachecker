@@ -23,42 +23,52 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import java.io.PrintStream;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.AssignmentsInPathConditionState;
+import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitValueBase;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -90,15 +100,18 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   /**
    * a reference to the assignment-counting state, to make the precision increment aware of thresholds
    */
-  private AssignmentsInPathConditionState assignments = null;
+  private UniqueAssignmentsInPathConditionState assignments = null;
 
   // statistics
-  private int numberOfInterpolations        = 0;
-  private Timer timerInterpolation          = new Timer();
+  private int totalInterpolations       = 0;
+  private int totalInterpolationQueries = 0;
+  private Timer timerInterpolation      = new Timer();
 
   private final CFA cfa;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
+
+  private final ExplicitInterpolator interpolator;
 
   protected ExplicitInterpolationBasedExplicitRefiner(Configuration config,
       final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
@@ -109,75 +122,69 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     logger           = pLogger;
     cfa              = pCfa;
     shutdownNotifier = pShutdownNotifier;
+    interpolator     = new ExplicitInterpolator(config, logger, shutdownNotifier, cfa);
   }
 
-  protected Multimap<CFANode, String> determinePrecisionIncrement(ARGPath errorPath)
-      throws CPAException, InterruptedException {
+  protected Map<ARGState, ExplicitValueInterpolant> performInterpolation(ARGPath errorPath,
+      ExplicitValueInterpolant interpolant) throws CPAException, InterruptedException {
+    totalInterpolations++;
     timerInterpolation.start();
 
-    interpolationOffset                   = -1;
-    assignments                           = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
-        AssignmentsInPathConditionState.class);
+    interpolationOffset = -1;
 
-    ExplicitInterpolator interpolator     = new ExplicitInterpolator(logger, shutdownNotifier, cfa);
-    Map<String, Long> currentInterpolant  = new HashMap<>();
-    Multimap<CFANode, String> increment   = HashMultimap.create();
-
-    List<CFAEdge> cfaTrace = Lists.newArrayList();
-    for(Pair<ARGState, CFAEdge> elem : errorPath) {
-      cfaTrace.add(elem.getSecond());
-    }
+    List<CFAEdge> cfaTrace = from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
+    Map<ARGState, ExplicitValueInterpolant> pathInterpolants = new LinkedHashMap<>(errorPath.size());
 
     for (int i = 0; i < errorPath.size(); i++) {
       shutdownNotifier.shutdownIfNecessary();
-      CFAEdge currentEdge = errorPath.get(i).getSecond();
 
-      if (currentEdge instanceof BlankEdge) {
-        // add the current interpolant to the increment
-        for (String variableName : currentInterpolant.keySet()) {
-          addToPrecisionIncrement(increment, currentEdge, variableName);
+      interpolant               = interpolator.deriveInterpolant(cfaTrace, i, interpolant);
+      totalInterpolationQueries = totalInterpolationQueries + interpolator.getNumberOfInterpolationQueries();
+
+      // stop once interpolant is false
+      if (interpolant.isFalse()) {
+        while (i < errorPath.size()) {
+          pathInterpolants.put(errorPath.get(i).getFirst(), ExplicitValueInterpolant.FALSE);
+          i++;
         }
-        continue;
-      }
-      else if (currentEdge instanceof CFunctionReturnEdge) {
-        currentEdge = ((CFunctionReturnEdge)currentEdge).getSummaryEdge();
-      }
 
-      // do interpolation
-      Map<String, Long> inputInterpolant = new HashMap<>(currentInterpolant);
-      Set<Pair<String, Long>> interpolant = interpolator.deriveInterpolant(cfaTrace, i, inputInterpolant);
-      numberOfInterpolations += interpolator.getNumberOfInterpolations();
-
-      // early stop once we are past the first statement that made a path feasible for the first time
-      if (interpolant == null) {
         timerInterpolation.stop();
-        return increment;
-      }
-      for (Pair<String, Long> element : interpolant) {
-        if (element.getSecond() == null) {
-          currentInterpolant.remove(element.getFirst());
-        } else {
-          currentInterpolant.put(element.getFirst(), element.getSecond());
-        }
+        return pathInterpolants;
       }
 
       // remove variables from the interpolant that belong to the scope of the returning function
       // this is done one iteration after returning from the function, as the special FUNCTION_RETURN_VAR is needed that long
       if (i > 0 && errorPath.get(i - 1).getSecond().getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
-        currentInterpolant = clearInterpolant(currentInterpolant, errorPath.get(i - 1).getSecond().getSuccessor().getFunctionName());
+        interpolant.clearScope(errorPath.get(i - 1).getSecond().getSuccessor().getFunctionName());
       }
 
-      // add the current interpolant to the increment
-      for (String variableName : currentInterpolant.keySet()) {
-        if (interpolationOffset == -1) {
-          interpolationOffset = i + 1;
-        }
-
-        addToPrecisionIncrement(increment, currentEdge, variableName);
+      if(!interpolant.isTrivial() && interpolationOffset == -1) {
+        interpolationOffset = i + 1;
       }
+
+      pathInterpolants.put(errorPath.get(i).getFirst(), interpolant);
     }
 
     timerInterpolation.stop();
+    return pathInterpolants;
+  }
+
+  protected Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(ARGPath errorPath)
+      throws CPAException, InterruptedException {
+
+    assignments = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
+        UniqueAssignmentsInPathConditionState.class);
+
+    Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
+
+    Map<ARGState, ExplicitValueInterpolant> itps = performInterpolation(errorPath, ExplicitValueInterpolant.createInitial());
+
+    int i = 0;
+    for(Map.Entry<ARGState, ExplicitValueInterpolant> itp : itps.entrySet()) {
+      addToPrecisionIncrement(increment, errorPath.get(i).getSecond(), itp.getValue());
+      i++;
+    }
+
     return increment;
   }
 
@@ -186,29 +193,16 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
    *
    * @param increment the current increment
    * @param currentEdge the current edge for which to add a new variable
-   * @param variableName the name of the variable to add to the increment at the given edge
+   * @param memoryLocation the name of the variable to add to the increment at the given edge
    */
-  private void addToPrecisionIncrement(Multimap<CFANode, String> increment, CFAEdge currentEdge, String variableName) {
-    if(assignments == null || !assignments.variableExceedsThreshold(variableName)) {
-      increment.put(currentEdge.getSuccessor(), variableName);
-    }
-  }
-
-  /**
-   * This method removes variables from the interpolant that belong to the scope of the given function.
-   *
-   * @param currentInterpolant the current interpolant
-   * @param functionName the name of the function for which to remove variables
-   * @return the current interpolant with the respective variables removed
-   */
-  private Map<String, Long> clearInterpolant(Map<String, Long> currentInterpolant, String functionName) {
-    for (Iterator<String> variableNames = currentInterpolant.keySet().iterator(); variableNames.hasNext(); ) {
-      if (variableNames.next().startsWith(functionName + "::")) {
-        variableNames.remove();
+  private void addToPrecisionIncrement(Multimap<CFANode, MemoryLocation> increment,
+      CFAEdge currentEdge,
+      ExplicitValueInterpolant itp) {
+    for(MemoryLocation memoryLocation : itp.getMemoryLocations()) {
+      if(assignments == null || !assignments.exceedsHardThreshold(memoryLocation)) {
+        increment.put(currentEdge.getSuccessor(), memoryLocation);
       }
     }
-
-    return currentInterpolant;
   }
 
   /**
@@ -220,7 +214,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
    * @return the new refinement root
    * @throws RefinementFailedException if no refinement root can be determined
    */
-  Pair<ARGState, CFAEdge> determineRefinementRoot(ARGPath errorPath, Multimap<CFANode, String> increment,
+  Pair<ARGState, CFAEdge> determineRefinementRoot(ARGPath errorPath, Multimap<CFANode, MemoryLocation> increment,
       boolean isRepeatedRefinement) throws RefinementFailedException {
 
     if(interpolationOffset == -1) {
@@ -229,7 +223,6 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
     // if doing lazy abstraction, use the node closest to the root node where new information is present
     if (doLazyAbstraction) {
-
       // try to find a more suitable cut-off point when we deal with a repeated refinement or
       // cut-off is an assume edge, and this should be avoided
       if (isRepeatedRefinement || (avoidAssumes && cutOffIsAssumeEdge(errorPath))) {
@@ -241,7 +234,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
         }
 
         // check each edge, if it assigns a "relevant" variable, if so, use that as new refinement root
-        Set<String> releventVariables = new HashSet<>(increment.values());
+        Collection<String> releventVariables = convertToIdentifiers(increment.values());
         for (Pair<ARGState, CFAEdge> currentElement : trace) {
           if(edgeAssignsVariable(currentElement.getSecond(), releventVariables)) {
             return errorPath.get(errorPath.indexOf(currentElement) + 1);
@@ -256,6 +249,22 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     else {
       return errorPath.get(1);
     }
+  }
+
+  /**
+   * This method translates a collection of memory locations to a collection of variable identifiers.
+   *
+   * @param memoryLocations the collection of memory locations
+   * @return the set of variable identifiers
+   */
+  private Collection<String> convertToIdentifiers(Collection<MemoryLocation> memoryLocations) {
+    Set<String> identifiers = new HashSet<>();
+
+    for(MemoryLocation memoryLocation : memoryLocations) {
+      identifiers.add(memoryLocation.getAsSimpleString());
+    }
+
+    return identifiers;
   }
 
   /**
@@ -275,7 +284,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
    * @param variableNames the collection of variables to check for
    * @return true, if any of the given variables is assigned in the given edge
    */
-  private boolean edgeAssignsVariable(CFAEdge currentEdge, Set<String> variableNames) {
+  private boolean edgeAssignsVariable(CFAEdge currentEdge, Collection<String> variableNames) {
     switch (currentEdge.getEdgeType()) {
       case StatementEdge:
       case DeclarationEdge:
@@ -287,6 +296,9 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
             return true;
           }
         }
+        break;
+
+      default:
         break;
     }
 
@@ -300,14 +312,19 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
    * @param variableNames the collection of variables to check for
    * @return true, if any of the given variables is assigned in the given edge
    */
-  private boolean isAssigningEdge(CFAEdge currentEdge, Set<String> variableNames) {
+  private boolean isAssigningEdge(CFAEdge currentEdge, Collection<String> variableNames) {
     if (currentEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
       IAStatement statement = ((AStatementEdge)currentEdge).getStatement();
 
       if (statement instanceof IAssignment) {
         IAExpression assignedVariable = ((IAssignment)statement).getLeftHandSide();
-        if ((assignedVariable instanceof AIdExpression) && variableNames.contains(((AIdExpression)assignedVariable).getName())) {
-          return true;
+
+        if (assignedVariable instanceof AIdExpression) {
+          IASimpleDeclaration declaration = ((AIdExpression)assignedVariable).getDeclaration();
+
+          if(declaration instanceof CVariableDeclaration) {
+            return variableNames.contains(((CVariableDeclaration)declaration).getQualifiedName());
+          }
         }
       }
     }
@@ -315,10 +332,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     else if (currentEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
       ADeclarationEdge declEdge = ((ADeclarationEdge)currentEdge);
       if (declEdge.getDeclaration() instanceof CVariableDeclaration) {
-        String declaredVariable = ((CVariableDeclaration)declEdge.getDeclaration()).getQualifiedName();
-        if (variableNames.contains(declaredVariable)) {
-          return true;
-        }
+        return variableNames.contains(((CVariableDeclaration)declEdge.getDeclaration()).getQualifiedName());
       }
     }
 
@@ -332,8 +346,181 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-    out.println("  number of explicit interpolations:                   " + numberOfInterpolations);
-    out.println("  max. time for singe interpolation:                   " + timerInterpolation.printMaxTime());
-    out.println("  total time for interpolation:                        " + timerInterpolation);
+    out.println("  Number of explicit interpolations: " + String.format(Locale.US, "%9d",totalInterpolations));
+    out.println("  Number of interpolation queries:   " + String.format(Locale.US, "%9d",totalInterpolationQueries));
+    out.println("  Max. time for singe interpolation:     " + timerInterpolation.getMaxTime().formatAs(TimeUnit.SECONDS));
+    out.println("  Total time for interpolation:          " + timerInterpolation);
+  }
+
+  public int getInterpolationOffset() {
+    return interpolationOffset;
+  }
+
+  /**
+   * This class represents a Explict-Value interpolant, itself, just a mere wrapper around a map
+   * from memory locations to values, representing a variable assignment.
+   */
+  public static class ExplicitValueInterpolant {
+    /**
+     * the variable assignment of the interpolant
+     */
+    private final Map<MemoryLocation, ExplicitValueBase> assignment;
+
+    /**
+     * the interpolant representing "true"
+     */
+    public static final ExplicitValueInterpolant TRUE  = new ExplicitValueInterpolant();
+
+    /**
+     * the interpolant representing "false"
+     */
+    public static final ExplicitValueInterpolant FALSE = new ExplicitValueInterpolant((Map<MemoryLocation, ExplicitValueBase>)null);
+
+    /**
+     * Contructor for a new, empty interpolant, i.e. the interpolant representing "true"
+     */
+    private ExplicitValueInterpolant() {
+      assignment = new HashMap<>();
+    }
+
+    /**
+     * Contructor for a new interpolant representing the given variable assignment
+     *
+     * @param pAssignment the variable assignment to be represented by the interpolant
+     */
+    public ExplicitValueInterpolant(Map<MemoryLocation, ExplicitValueBase> pAssignment) {
+      assignment = pAssignment;
+    }
+
+    /**
+     * This method serves as factory method for an initial, i.e. an interpolant representing "true"
+     *
+     * @return
+     */
+    static ExplicitValueInterpolant createInitial() {
+      return new ExplicitValueInterpolant();
+    }
+
+    Set<MemoryLocation> getMemoryLocations() {
+      return isFalse()
+          ? Collections.<MemoryLocation>emptySet()
+          : Collections.unmodifiableSet(assignment.keySet());
+    }
+
+    /**
+     * This method joins to explicit-value interpolants. If the underlying map contains different values for a key
+     * contained in both maps, the behaviour is undefined.
+     *
+     * @param other the explicit-value interpolant to join with this one
+     * @return a new explicit-value interpolant containing the joined mapping of this and the other explicit-value
+     * interpolant
+     */
+    public ExplicitValueInterpolant join(ExplicitValueInterpolant other) {
+
+      Map<MemoryLocation, ExplicitValueBase> newAssignment = new HashMap<>();
+
+      if(assignment != null) {
+        newAssignment.putAll(assignment);
+      }
+
+      if(other.assignment != null) {
+        newAssignment.putAll(other.assignment);
+      }
+
+      return new ExplicitValueInterpolant(newAssignment);
+    }
+
+    @Override
+    public int hashCode() {
+      return (assignment == null) ? 0 : assignment.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+
+      if (obj == null) {
+        return false;
+      }
+
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+
+      ExplicitValueInterpolant other = (ExplicitValueInterpolant) obj;
+      if ((assignment == null && other.assignment != null) || (assignment != null && other.assignment == null)) {
+        return false;
+      }
+
+      else if (!assignment.equals(other.assignment)) {
+        return false;
+      }
+
+      return true;
+    }
+
+    /**
+     * The method checks for trueness of the interpolant.
+     *
+     * @return true, if the interpolant represents "true", else false
+     */
+    private boolean isTrue() {
+      return assignment.isEmpty();
+    }
+
+    /**
+     * The method checks for falseness of the interpolant.
+     *
+     * @return true, if the interpolant represents "false", else true
+     */
+    boolean isFalse() {
+      return assignment == null;
+    }
+
+    /**
+     * The method checks if the interpolant is a trivial one, i.e. if it represents either true or false
+     *
+     * @return true, if the interpolant is trivial, else false
+     */
+    boolean isTrivial() {
+      return isFalse() || isTrue();
+    }
+
+    /**
+     * This method clears memory locations from the assignment that belong to the given function.
+     *
+     * @param functionName the name of the function for which to remove assignments
+     */
+    private void clearScope(String functionName) {
+      for (Iterator<MemoryLocation> variableNames = assignment.keySet().iterator(); variableNames.hasNext(); ) {
+        if (variableNames.next().isOnFunctionStack(functionName)) {
+          variableNames.remove();
+        }
+      }
+    }
+
+    /**
+     * This method serves as factory method to create an explicit-value assignment from the interpolant
+     *
+     * @return an explicit-value assignment that represents the same variable assignment as the interpolant
+     */
+    public ExplicitState createExplicitValueState() {
+      return new ExplicitState(PathCopyingPersistentTreeMap.copyOf(assignment));
+    }
+
+    @Override
+    public String toString() {
+      if(isFalse()) {
+        return "FALSE";
+      }
+
+      if(isTrue()) {
+        return "TRUE";
+      }
+
+      return assignment.toString();
+    }
   }
 }

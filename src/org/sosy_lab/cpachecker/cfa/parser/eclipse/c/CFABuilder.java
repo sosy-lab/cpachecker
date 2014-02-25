@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -117,11 +118,14 @@ class CFABuilder extends ASTVisitor {
   private String staticVariablePrefix;
   private CatchAllGlobalTypesVisitor preBuildTypeChecker = null;
   private IASTTranslationUnit ast = null;
+  private Sideassignments sideAssignmentStack = null;
 
-  public CFABuilder(Configuration config, LogManager pLogger, MachineModel pMachine) throws InvalidConfigurationException {
+  public CFABuilder(Configuration pConfig, LogManager pLogger,
+      MachineModel pMachine) throws InvalidConfigurationException {
+
     logger = pLogger;
     machine = pMachine;
-    this.config = config;
+    config = pConfig;
 
     checkBinding = new CheckBindingVisitor(pLogger);
 
@@ -133,12 +137,13 @@ class CFABuilder extends ASTVisitor {
 
   public void analyzeTranslationUnit(IASTTranslationUnit ast, String staticVariablePrefix) throws InvalidConfigurationException {
     this.staticVariablePrefix = staticVariablePrefix;
+    sideAssignmentStack = new Sideassignments();
     fileScope = new GlobalScope(new HashMap<String, CSimpleDeclaration>(),
                                 new HashMap<String, CFunctionDeclaration>(),
                                 new HashMap<String, CComplexTypeDeclaration>(),
                                 new HashMap<String, CTypeDefDeclaration>(),
                                 globalScope.getTypes().keySet());
-    astCreator = new ASTConverter(config, fileScope, logger, machine, staticVariablePrefix, true);
+    astCreator = new ASTConverter(config, fileScope, logger, machine, staticVariablePrefix, true, sideAssignmentStack);
     functionDeclarations.add(Pair.of((List<IASTFunctionDefinition>)new ArrayList<IASTFunctionDefinition>(), Pair.of(staticVariablePrefix, fileScope)));
 
     preBuildTypeChecker = null;
@@ -151,6 +156,7 @@ class CFABuilder extends ASTVisitor {
    */
   @Override
   public int visit(IASTDeclaration declaration) {
+    sideAssignmentStack.enterBlock();
     IASTFileLocation fileloc = declaration.getFileLocation();
 
     if (declaration instanceof IASTSimpleDeclaration) {
@@ -162,8 +168,8 @@ class CFABuilder extends ASTVisitor {
 
       // add forward declaration to list of global declarations
       CFunctionDeclaration functionDefinition = astCreator.convert(fd);
-      if (!astCreator.getAndResetPreSideAssignments().isEmpty()
-          || !astCreator.getAndResetPostSideAssignments().isEmpty()) {
+      if (sideAssignmentStack.hasPreSideAssignments()
+          || sideAssignmentStack.hasPostSideAssignments()) {
         throw new CFAGenerationRuntimeException("Function definition has side effect", fd);
       }
 
@@ -173,6 +179,7 @@ class CFABuilder extends ASTVisitor {
         eliminateableDuplicates.add(functionDefinition.toASTString());
       }
 
+      sideAssignmentStack.leaveBlock();
       return PROCESS_SKIP;
 
     } else if (declaration instanceof IASTProblemDeclaration) {
@@ -182,12 +189,14 @@ class CFABuilder extends ASTVisitor {
       // #define  __attribute__(x)  /*NOTHING*/
       // or insert "parser.dialect = GNUC" into properties file
       visit(((IASTProblemDeclaration)declaration).getProblem());
+      sideAssignmentStack.leaveBlock();
       return PROCESS_SKIP;
 
     } else if (declaration instanceof IASTASMDeclaration) {
       // TODO Assembler code is ignored here
       encounteredAsm = true;
       logger.log(Level.FINER, "Ignoring inline assembler code at line", fileloc.getStartingLineNumber());
+      sideAssignmentStack.leaveBlock();
       return PROCESS_SKIP;
 
     } else {
@@ -201,20 +210,21 @@ class CFABuilder extends ASTVisitor {
 
     //these are unneccesary semicolons which would cause an abort of CPAchecker
     if (sd.getDeclarators().length == 0  && sd.getDeclSpecifier() instanceof IASTSimpleDeclSpecifier) {
+      sideAssignmentStack.leaveBlock();
       return PROCESS_SKIP;
     }
 
     final List<CDeclaration> newDs = astCreator.convert(sd);
     assert !newDs.isEmpty();
 
-    if (!astCreator.getAndResetConditionalExpressions().isEmpty()
-        || !astCreator.getAndResetPostSideAssignments().isEmpty()) {
+    if (sideAssignmentStack.hasConditionalExpression()
+        || sideAssignmentStack.hasPostSideAssignments()) {
       throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd);
     }
 
     String rawSignature = sd.getRawSignature();
 
-    for (CAstNode astNode : astCreator.getAndResetPreSideAssignments()) {
+    for (CAstNode astNode : sideAssignmentStack.getAndResetPreSideAssignments()) {
       if (astNode instanceof CComplexTypeDeclaration) {
         // already registered
         globalDeclarations.add(Pair.of((IADeclaration)astNode, rawSignature));
@@ -261,6 +271,7 @@ class CFABuilder extends ASTVisitor {
       }
     }
 
+    sideAssignmentStack.leaveBlock();
     return PROCESS_SKIP; // important to skip here, otherwise we would visit nested declarations
   }
 
@@ -282,7 +293,7 @@ class CFABuilder extends ASTVisitor {
       // only instantiate the typechecker if it was not already instantiated
       if(preBuildTypeChecker == null) {
         try {
-          preBuildTypeChecker = new CatchAllGlobalTypesVisitor(config, logger, machine, staticVariablePrefix);
+          preBuildTypeChecker = new CatchAllGlobalTypesVisitor(config, logger, machine, staticVariablePrefix, sideAssignmentStack);
           ast.accept(preBuildTypeChecker);
         } catch (InvalidConfigurationException e) {
           throw new CFAGenerationRuntimeException("Invalid configuration");
@@ -306,6 +317,12 @@ class CFABuilder extends ASTVisitor {
       if (areEqual) {
         if (counter == 0) {
           newD = globalScope.getTypes().get(newType.getQualifiedName());
+          CComplexTypeDeclaration decl;
+          if (( decl = fileScope.getTypes().get(newType.getQualifiedName())) != null) {
+            if (areEqualTypes(decl.getType(), newD.getType())) {
+              break;
+            }
+          }
           used = fileScope.registerTypeDeclaration(newD);
           break;
 
@@ -398,7 +415,9 @@ class CFABuilder extends ASTVisitor {
    */
   private boolean areEqualTypes(CComplexType oldType, CComplexType forwardType) {
     boolean areEqual = false;
-    if (forwardType.getCanonicalType().equals(oldType.getCanonicalType())) {
+    oldType = (CComplexType) oldType.getCanonicalType();
+    forwardType = (CComplexType) forwardType.getCanonicalType();
+    if (forwardType.equals(oldType)) {
 
       if (forwardType instanceof CCompositeType) {
         List<CCompositeTypeMemberDeclaration> members = ((CCompositeType) forwardType).getMembers();
@@ -425,7 +444,17 @@ class CFABuilder extends ASTVisitor {
           }
         }
       }
+    } else {
+
+    // in files where only a forwards declaration can be found but no complete
+    // type we assume that this type is equal to the before found type with the
+    // same name this also works when the elaborated type is the old type, the
+    // first type found which has the same name and a complete type will now be
+    // the realType of the oldType
+    areEqual = ((forwardType instanceof CElaboratedType && forwardType.getName().equals(oldType.getName()))
+               || (oldType instanceof CElaboratedType && oldType.getName().equals(forwardType.getName())));
     }
+
     return areEqual;
   }
 
@@ -457,20 +486,29 @@ class CFABuilder extends ASTVisitor {
     return functionDeclarations.size() == 1;
   }
 
-  public ParseResult createCFA() {
-
+  public ParseResult createCFA() throws CParserException {
+    ParseResult result;
     if (isSingleFileEvaluation()) {
-      return createSingleFileCFA();
+      result = createSingleFileCFA();
     } else {
-      return createMultipleFileCFA();
+      result = createMultipleFileCFA();
     }
+
+    if (encounteredAsm) {
+      logger.log(Level.WARNING, "Inline assembler ignored, analysis is probably unsound!");
+    }
+
+    if (checkBinding.foundUndefinedIdentifiers()) {
+      throw new CParserException("Invalid C code because of undefined identifiers mentioned above.");
+    }
+
+    return result;
   }
 
   private ParseResult createSingleFileCFA() {
     ImmutableMap<String, CFunctionDeclaration> functions = globalScope.getFunctions();
     ImmutableMap<String, CComplexTypeDeclaration> types = globalScope.getTypes();
     ImmutableMap<String, CTypeDefDeclaration> typedefs = globalScope.getTypeDefs();
-    ImmutableMap<String, CSimpleDeclaration> globalVars = globalScope.getGlobalVars();
 
     FillInAllBindingsVisitor fillInAllBindingsVisitor = new FillInAllBindingsVisitor(globalScope);
     for (IADeclaration decl : from(globalDeclarations).transform(Pair.<IADeclaration>getProjectionToFirst())) {
@@ -479,42 +517,46 @@ class CFABuilder extends ASTVisitor {
 
     for (Pair<List<IASTFunctionDefinition>, Pair<String, GlobalScope>> pair : functionDeclarations) {
       for (IASTFunctionDefinition declaration : pair.getFirst()) {
-
-        FunctionScope localScope = new FunctionScope(functions,
-                                                     types,
-                                                     typedefs,
-                                                     globalVars,
-                                                     renamedTypes.get(pair.getSecond().getFirst()));
-        CFAFunctionBuilder functionBuilder;
-
-        try {
-          functionBuilder = new CFAFunctionBuilder(config, logger, localScope, machine, pair.getSecond().getFirst());
-        } catch (InvalidConfigurationException e) {
-          throw new CFAGenerationRuntimeException("Invalid configuration");
-        }
-
-        declaration.accept(functionBuilder);
-
-        FunctionEntryNode startNode = functionBuilder.getStartNode();
-        String functionName = startNode.getFunctionName();
-
-        if (cfas.containsKey(functionName)) {
-          throw new CFAGenerationRuntimeException("Duplicate function " + functionName);
-        }
-        cfas.put(functionName, startNode);
-        cfaNodes.putAll(functionName, functionBuilder.getCfaNodes());
-        globalDeclarations.addAll(functionBuilder.getGlobalDeclarations());
-
-        encounteredAsm |= functionBuilder.didEncounterAsm();
-        functionBuilder.finish();
+        handleFunctionDefinition(functions, types, typedefs, pair, declaration);
       }
     }
 
-    if (encounteredAsm) {
-      logger.log(Level.WARNING, "Inline assembler ignored, analysis is probably unsound!");
+    return new ParseResult(cfas, cfaNodes, globalDeclarations, Language.C);
+  }
+
+  private void handleFunctionDefinition(ImmutableMap<String, CFunctionDeclaration> functions,
+      ImmutableMap<String, CComplexTypeDeclaration> types, ImmutableMap<String, CTypeDefDeclaration> typedefs,
+      Pair<List<IASTFunctionDefinition>, Pair<String, GlobalScope>> pair,
+      IASTFunctionDefinition declaration) {
+
+    FunctionScope localScope = new FunctionScope(functions,
+                                                 types,
+                                                 typedefs,
+                                                 pair.getSecond().getSecond().getGlobalVars(),
+                                                 renamedTypes.get(pair.getSecond().getFirst()));
+    CFAFunctionBuilder functionBuilder;
+
+    try {
+      functionBuilder = new CFAFunctionBuilder(config, logger, localScope, machine,
+          pair.getSecond().getFirst(), sideAssignmentStack, checkBinding);
+    } catch (InvalidConfigurationException e) {
+      throw new CFAGenerationRuntimeException("Invalid configuration");
     }
 
-    return new ParseResult(cfas, cfaNodes, globalDeclarations, Language.C);
+    declaration.accept(functionBuilder);
+
+    FunctionEntryNode startNode = functionBuilder.getStartNode();
+    String functionName = startNode.getFunctionName();
+
+    if (cfas.containsKey(functionName)) {
+      throw new CFAGenerationRuntimeException("Duplicate function " + functionName);
+    }
+    cfas.put(functionName, startNode);
+    cfaNodes.putAll(functionName, functionBuilder.getCfaNodes());
+    globalDeclarations.addAll(functionBuilder.getGlobalDeclarations());
+
+    encounteredAsm |= functionBuilder.didEncounterAsm();
+    functionBuilder.finish();
   }
 
   private ParseResult createMultipleFileCFA() {
@@ -543,7 +585,6 @@ class CFABuilder extends ASTVisitor {
     ImmutableMap<String, CFunctionDeclaration> functions = globalScope.getFunctions();
     ImmutableMap<String, CComplexTypeDeclaration> types = globalScope.getTypes();
     ImmutableMap<String, CTypeDefDeclaration> typedefs = globalScope.getTypeDefs();
-    ImmutableMap<String, CSimpleDeclaration> globalVars = globalScope.getGlobalVars();
 
     FillInAllBindingsVisitor fillInAllBindingsVisitor = new FillInAllBindingsVisitor(globalScope);
     for (IADeclaration decl : from(globalDeclarations).transform(Pair.<IADeclaration>getProjectionToFirst())) {
@@ -568,38 +609,8 @@ class CFABuilder extends ASTVisitor {
         }
         localTypes.putAll(pair.getSecond().getSecond().getTypes());
 
-        FunctionScope localScope = new FunctionScope(functions,
-                                                     ImmutableMap.copyOf(localTypes),
-                                                     typedefs,
-                                                     globalVars,
-                                                     renamedTypes.get(pair.getSecond().getFirst()));
-        CFAFunctionBuilder functionBuilder;
-
-        try {
-          functionBuilder = new CFAFunctionBuilder(config, logger, localScope, machine, pair.getSecond().getFirst());
-        } catch (InvalidConfigurationException e) {
-          throw new CFAGenerationRuntimeException("Invalid configuration");
-        }
-
-        declaration.accept(functionBuilder);
-
-        FunctionEntryNode startNode = functionBuilder.getStartNode();
-        String functionName = startNode.getFunctionName();
-
-        if (cfas.containsKey(functionName)) {
-          throw new CFAGenerationRuntimeException("Duplicate function " + functionName);
-        }
-        cfas.put(functionName, startNode);
-        cfaNodes.putAll(functionName, functionBuilder.getCfaNodes());
-        globalDeclarations.addAll(functionBuilder.getGlobalDeclarations());
-
-        encounteredAsm |= functionBuilder.didEncounterAsm();
-        functionBuilder.finish();
+        handleFunctionDefinition(functions, ImmutableMap.copyOf(localTypes), typedefs, pair, declaration);
       }
-    }
-
-    if (encounteredAsm) {
-      logger.log(Level.WARNING, "Inline assembler ignored, analysis is probably unsound!");
     }
 
     return new ParseResult(cfas, cfaNodes, globalDeclarations, Language.C);
@@ -617,7 +628,7 @@ class CFABuilder extends ASTVisitor {
     types.putAll(globalScope.getTypes());
     typedefs.putAll(globalScope.getTypeDefs());
 
-    globalVars.putAll(fileScope.getGlobalVars());
+   //globalVars.putAll(fileScope.getGlobalVars());
     functions.putAll(fileScope.getFunctions());
     typedefs.putAll(fileScope.getTypeDefs());
 

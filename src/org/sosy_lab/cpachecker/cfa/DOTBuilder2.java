@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,15 +25,13 @@ package org.sosy_lab.cpachecker.cfa;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.JSON;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -85,7 +83,7 @@ public final class DOTBuilder2 {
       dotter.writeFunctionFile(entryNode.getFunctionName(), outdir);
     }
     dotter.writeGlobalFiles(outdir);
-    JSON.writeJSONString(jsoner.getJSON(), outdir.resolve("cfainfo.json"), Charset.defaultCharset());
+    JSON.writeJSONString(jsoner.getJSON(), outdir.resolve("cfainfo.json"));
   }
 
   private static String getEdgeText(CFAEdge edge) {
@@ -155,7 +153,7 @@ public final class DOTBuilder2 {
 
     void writeFunctionFile(String funcname, Path outdir) throws IOException {
 
-        try (Writer out = Files.newBufferedWriter(outdir.resolve("cfa__" + funcname + ".dot"), Charsets.UTF_8)) {
+        try (Writer out = outdir.resolve("cfa__" + funcname + ".dot").asCharSink(Charsets.UTF_8).openStream()) {
           out.write("digraph " + funcname + " {\n");
           StringBuilder outb = new StringBuilder();
           //write comboedges
@@ -198,8 +196,8 @@ public final class DOTBuilder2 {
     }
 
     void writeGlobalFiles(Path outdir) throws IOException {
-      JSON.writeJSONString(node2combo, outdir.resolve("combinednodes.json"), Charset.defaultCharset());
-      JSON.writeJSONString(virtFuncCallEdges, outdir.resolve("fcalledges.json"), Charset.defaultCharset());
+      JSON.writeJSONString(node2combo, outdir.resolve("combinednodes.json"));
+      JSON.writeJSONString(virtFuncCallEdges, outdir.resolve("fcalledges.json"));
     }
 
     private String edgeToDot(CFAEdge edge) {

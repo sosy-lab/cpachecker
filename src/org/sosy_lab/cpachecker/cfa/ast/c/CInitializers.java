@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.StatementToFormulaVisitor;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -97,8 +98,7 @@ public final class CInitializers {
       return ImmutableList.of();
     }
 
-    CLeftHandSide lhs = new CIdExpression(decl.getFileLocation(), decl.getType(),
-        decl.getName(), decl);
+    CLeftHandSide lhs = new CIdExpression(decl.getFileLocation(), decl);
 
     if (init instanceof CInitializerExpression) {
       CExpression initExp = ((CInitializerExpression)init).getExpression();

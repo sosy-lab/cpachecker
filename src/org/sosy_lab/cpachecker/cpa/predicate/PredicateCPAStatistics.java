@@ -1,12 +1,12 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This predmapFile is part of CPAchecker.
+ *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this predmapFile except in compliance with the License.
+ *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
@@ -24,13 +24,12 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.*;
 
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -38,13 +37,16 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.time.TimeSpan;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -224,7 +226,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
 
       int allDistinctPreds = absmgr.getNumberOfPredicates();
 
-      if (result == Result.SAFE && exportInvariants && invariantsFile != null) {
+      if (result == Result.TRUE && exportInvariants && invariantsFile != null) {
         loopInvariantsWriter.exportLoopInvariants(invariantsFile, reached);
       }
 
@@ -334,7 +336,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
           out.println("  Time for generating invariants:    " + invariantGeneratorTime);
           out.println("  Time for extracting invariants:    " + prec.invariantGenerationTime);
         }
-        out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.printMaxTime() + ", Count: " + prec.computingAbstractionTime.getNumberOfIntervals() + ")");
+        out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.getMaxTime().formatAs(SECONDS) + ", Count: " + prec.computingAbstractionTime.getNumberOfIntervals() + ")");
         if (as.trivialPredicatesTime.getNumberOfIntervals() > 0) {
           out.println("    Relevant predicate analysis:     " + as.trivialPredicatesTime);
         }
@@ -348,9 +350,9 @@ class PredicateCPAStatistics extends AbstractStatistics {
           out.println("    Abstraction reuse:              " + as.abstractionReuseTime);
           out.println("    Abstraction reuse implication:  " + as.abstractionReuseImplicationTime);
         }
-        out.println("    Solving time:                    " + as.abstractionSolveTime + " (Max: " + as.abstractionSolveTime.printMaxTime() + ")");
-        out.println("    Model enumeration time:          " + as.abstractionEnumTime.printOuterSumTime());
-        out.println("    Time for BDD construction:       " + as.abstractionEnumTime.printInnerSumTime()   + " (Max: " + as.abstractionEnumTime.printInnerMaxTime() + ")");
+        out.println("    Solving time:                    " + as.abstractionSolveTime + " (Max: " + as.abstractionSolveTime.getMaxTime().formatAs(SECONDS) + ")");
+        out.println("    Model enumeration time:          " + as.abstractionEnumTime.getOuterSumTime().formatAs(SECONDS));
+        out.println("    Time for BDD construction:       " + as.abstractionEnumTime.getInnerSumTime().formatAs(SECONDS)   + " (Max: " + as.abstractionEnumTime.getInnerMaxTime().formatAs(SECONDS) + ")");
       }
 
       MergeOperator merge = cpa.getMergeOperator();
@@ -365,7 +367,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
       if (domain.symbolicCoverageCheckTimer.getNumberOfIntervals() > 0) {
         out.println("  Time for symbolic coverage checks: " + domain.symbolicCoverageCheckTimer);
       }
-      out.println("Total time for SMT solver (w/o itp): " + Timer.formatTime(solver.solverTime.getSumTime() + as.abstractionSolveTime.getSumTime() + as.abstractionEnumTime.getOuterSumTime()));
+      out.println("Total time for SMT solver (w/o itp): " + TimeSpan.sum(solver.solverTime.getSumTime(), as.abstractionSolveTime.getSumTime(), as.abstractionEnumTime.getOuterSumTime()).formatAs(SECONDS));
 
       if (trans.pathFormulaCheckTimer.getNumberOfIntervals() > 0 || trans.abstractionCheckTimer.getNumberOfIntervals() > 0) {
         out.println("Time for abstraction checks:       " + trans.abstractionCheckTimer);

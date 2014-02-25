@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,10 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -50,11 +46,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula, UnrecognizedCCodeException>
                                      implements CRightHandSideVisitor<Formula, UnrecognizedCCodeException> {
 
-  protected final CtoFormulaConverter conv;
-  protected final CFAEdge       edge;
-  protected final String        function;
-  protected final SSAMapBuilder ssa;
-  protected final Constraints   constraints;
+  final CtoFormulaConverter conv;
+  final CFAEdge       edge;
+  final String        function;
+  final SSAMapBuilder ssa;
+  final Constraints   constraints;
 
   public RightHandSideToFormulaVisitor(ExpressionToFormulaVisitor pDelegate) {
     super(pDelegate);
@@ -89,7 +85,10 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
         return conv.makeFreshVariable(func, expType, ssa);
 
       } else if (conv.options.isExternModelFunction(func)) {
-        return handleExternModelFunction(fexp, pexps);
+        ExternModelLoader loader = new ExternModelLoader(conv.typeHandler, conv.bfmgr, conv.fmgr);
+        BooleanFormula result = loader.handleExternModelFunction(fexp, pexps, ssa);
+        FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(fexp.getExpressionType());
+        return conv.ifTrueThenOneElseZero(returnFormulaType, result);
 
       } else if (CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.containsKey(func)) {
         throw new UnsupportedCCodeException(CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.get(func), edge, fexp);
@@ -109,7 +108,7 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
 
     if (pexps.isEmpty()) {
       // This is a function of arity 0 and we assume its constant.
-      return conv.makeConstant(func, expType, ssa);
+      return conv.makeConstant(func, expType);
 
     } else {
       CFunctionDeclaration declaration = fexp.getDeclaration();
@@ -151,107 +150,6 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
       CType returnType = conv.getReturnType(fexp, edge);
       FormulaType<?> t = conv.getFormulaTypeFromCType(returnType);
       return conv.ffmgr.createFuncAndCall(func, t, args);
-    }
-  }
-
-  Formula handleExternModelFunction(CFunctionCallExpression fexp, List<CExpression> parameters) {
-    assert (parameters.size()>0): "No external model given!";
-    // the parameter comes in C syntax (with ")
-    String filename = parameters.get(0).toASTString().replaceAll("\"", "");
-    File modelFile = new File(filename);
-    BooleanFormula externalModel = loadExternalFormula(modelFile);
-    FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(fexp.getExpressionType());
-    return conv.ifTrueThenOneElseZero(returnFormulaType, externalModel);
-  }
-
-  /**
-   * Loads a formula from an external dimacs file and returns it as BooleanFormula object.
-   * Each variable in the dimacs file will be associated with a program variable if a corresponding (name equality) variable is known.
-   * Otherwise we use internal SMT variable to represent the dimacs variable and do not introduce a program variable.
-   * Might lead to problems when the program variable is introduced afterwards.
-   * @param pModelFile File with the dimacs model.
-   * @return BooleanFormula
-   */
-  private BooleanFormula loadExternalFormula(File pModelFile) {
-    if (! pModelFile.getName().endsWith(".dimacs")) {
-      throw new UnsupportedOperationException("Sorry, we can only load dimacs models.");
-    }
-    try (BufferedReader br = new BufferedReader(new FileReader(pModelFile))) {
-       ArrayList<String> predicates = new ArrayList<>(10000);
-       //var ids in dimacs files start with 1, so we want the first var at position 1
-       predicates.add("RheinDummyVar");
-       BooleanFormula externalModel = conv.bfmgr.makeBoolean(true);
-       Formula zero = conv.fmgr.makeNumber(FormulaType.BitvectorType.getBitvectorType(32), 0);
-
-       String line = "";
-       while ((line = br.readLine()) != null) {
-         if (line.startsWith("c ")) {
-           // comment line, here the vars are declared
-           // c 8 LOGO_SGI_CLUT224_m
-           // c 80255$ _X31351_m
-           // starting with id1
-           String[] parts = line.split(" ");
-           int varID = Integer.parseInt(parts[1].replace("$", ""));
-           assert predicates.size() == varID : "messed up the dimacs parsing!";
-           predicates.add(parts[2]);
-         } else if (line.startsWith("p ")) {
-           //p cnf 80258 388816
-           // 80258 vars
-           // 388816 cnf constraints
-           String[] parts = line.split(" ");
-           // +1 because of the dummy var
-           assert predicates.size()==Integer.parseInt(parts[2])+1: "did not get all dimcas variables?";
-         } else if (line.trim().length()>0) {
-           //-17552 -11882 1489 48905 0
-           // constraints
-           BooleanFormula constraint = conv.bfmgr.makeBoolean(false);
-           String[] parts = line.split(" ");
-           for (String elementStr : parts) {
-             if (!elementStr.equals("0") && !elementStr.isEmpty()) {
-               int elem = Integer.parseInt(elementStr);
-               String predName = "";
-               if (elem > 0) {
-                predName = predicates.get(elem);
-              } else {
-                predName = predicates.get(-elem);
-              }
-               int ssaIndex = ssa.getIndex(predName);
-               BooleanFormula constraintPart = null;
-               if (ssaIndex != -1) {
-                 // this variable was already declared in the program
-                 Formula formulaVar = conv.fmgr.makeVariable(conv.getFormulaTypeFromCType(ssa.getType(predName)), predName, ssaIndex);
-                 if (elem > 0) {
-                  constraintPart = conv.fmgr.makeNot(conv.fmgr.makeEqual(formulaVar, zero)); // C semantics (x) <=> (x!=0)
-                } else {
-                  constraintPart = conv.fmgr.makeEqual(formulaVar, zero);
-                }
-               } else {
-                 // var was not declared in the program
-                 // get a new SMT-var for it (i have to pass a ssa index, choosing 1)
-                 BooleanFormula formulaVar = conv.fmgr.makeVariable(FormulaType.BooleanType, predName, 1);
-                 if (elem > 0) {
-                  constraintPart = formulaVar;
-                } else {
-                  constraintPart = conv.bfmgr.not(formulaVar);
-                }
-               }
-               if (constraint == null) {
-                constraint = constraintPart;
-              } else {
-                constraint = conv.bfmgr.or(constraint, constraintPart);
-              }
-             }
-           }
-           if (externalModel == null) {
-            externalModel = constraint;
-          } else {
-            externalModel = conv.bfmgr.and(externalModel, constraint);
-          }
-         }
-       }// end of while
-      return externalModel;
-    } catch (IOException e) {
-      throw new RuntimeException(e); //TODO: find the proper exception
     }
   }
 }

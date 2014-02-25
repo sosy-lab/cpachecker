@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,27 +25,27 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 
@@ -106,7 +106,7 @@ class SmtInterpolEnvironment {
 
   @Option(name="logfile", description="Export solver queries in Smtlib format into a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File smtLogfile = new File("smtinterpol.%03d.smt2");
+  private Path smtLogfile = Paths.get("smtinterpol.%03d.smt2");
 
   /** this is a counter to get distinct logfiles for distinct environments. */
   private static int logfileCounter = 0;
@@ -226,8 +226,8 @@ class SmtInterpolEnvironment {
 
   /**  This function creates a filename with following scheme:
        first filename is unchanged, then a number is appended */
-  private String getFilename(final File oldFilename) {
-    String filename = oldFilename.getAbsolutePath();
+  private String getFilename(final Path oldFilename) {
+    String filename = oldFilename.toAbsolutePath().getPath();
     return String.format(filename, logfileCounter++);
   }
 

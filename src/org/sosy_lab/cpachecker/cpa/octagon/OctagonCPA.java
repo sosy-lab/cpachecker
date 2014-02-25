@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -46,7 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
 @Options(prefix="cpa.octagon")
-public class OctagonCPA implements ConfigurableProgramAnalysis {
+public final class OctagonCPA implements ConfigurableProgramAnalysis {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(OctagonCPA.class);
@@ -61,17 +62,19 @@ public class OctagonCPA implements ConfigurableProgramAnalysis {
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
+  private final LogManager logger;
 
-  private OctagonCPA(Configuration config) throws InvalidConfigurationException {
+  private OctagonCPA(Configuration config, LogManager log) throws InvalidConfigurationException {
     config.inject(this);
-    OctDomain octagonDomain = new OctDomain();
+    logger = log;
+    OctDomain octagonDomain = new OctDomain(logger, config);
 
-    this.transferRelation = new OctTransferRelation();
+    this.transferRelation = new OctTransferRelation(logger);
 
     MergeOperator octagonMergeOp = null;
-    if (mergeType.equals("sep")) {
+    if (mergeType.equals("SEP")) {
       octagonMergeOp = MergeSepOperator.getInstance();
-    } else if (mergeType.equals("join")) {
+    } else if (mergeType.equals("JOIN")) {
       octagonMergeOp = new MergeJoinOperator(octagonDomain);
     } else {
       // default is sep
@@ -85,7 +88,7 @@ public class OctagonCPA implements ConfigurableProgramAnalysis {
     this.stopOperator = octagonStopOp;
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
 
-    assert (OctagonManager.init());
+    assert OctagonManager.init();
   }
 
   @Override
@@ -115,7 +118,7 @@ public class OctagonCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractState getInitialState(CFANode node) {
-    return new OctState();
+    return new OctState(logger);
   }
 
   @Override

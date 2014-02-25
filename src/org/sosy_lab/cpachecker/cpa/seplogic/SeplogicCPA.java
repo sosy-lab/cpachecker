@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -94,7 +94,7 @@ public class SeplogicCPA implements ConfigurableProgramAnalysis, StatisticsProvi
   private SeplogicCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
     PartingstarInterface.prepare(config, logger);
-    transferRelation = new SeplogicTransferRelation(this);
+    transferRelation = new SeplogicTransferRelation(this, logger);
   }
 
   @Override

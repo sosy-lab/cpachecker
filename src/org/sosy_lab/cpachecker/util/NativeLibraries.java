@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,8 +27,9 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 
 /**
  * Helper class for loading native libraries.
@@ -144,6 +145,7 @@ public class NativeLibraries {
       } catch (URISyntaxException e) {
         throw new AssertionError(e);
       }
+
       nativePath = Paths.get(pathToJar).getParent().resolve(Paths.get("lib", "native", arch + "-" + os));
     }
     return nativePath;

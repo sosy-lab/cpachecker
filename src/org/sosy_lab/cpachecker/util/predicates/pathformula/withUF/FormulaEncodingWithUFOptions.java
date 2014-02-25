@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -51,11 +51,11 @@ public class FormulaEncodingWithUFOptions extends FormulaEncodingOptions {
 
   @Option(description = "Enable the option to allow detecting the allocation type by type " +
                         "of the LHS of the assignment, e.g. char *arr = malloc(size) is detected as char[size]")
-  private boolean revealAllocationTypeFromLhs = false;
+  private boolean revealAllocationTypeFromLhs = true;
 
   @Option(description = "Use deferred allocation heuristic that tracks void * variables until the actual type " +
                         "of the allocation is figured out.")
-  private boolean deferUntypedAllocations = false;
+  private boolean deferUntypedAllocations = true;
 
   @Option(description = "Maximum size of allocations for which all structure fields are regarded always essential, " +
                         "regardless of whether they were ever really used in code.")
@@ -73,8 +73,13 @@ public class FormulaEncodingWithUFOptions extends FormulaEncodingOptions {
   @Option(description = "Function that is used to free allocated memory.")
   private String memoryFreeFunctionName = "free";
 
-  @Option(description = "Ignore variables that are not relevant for reachability properties.")
-  private boolean ignoreIrrelevantVariables = true;
+  @Option(description = "When a string literal initializer is encountered, initialize the contents of the char array "
+                      + "with the contents of the string literal instead of just assigning a fresh non-det address "
+                      + "to it")
+  private boolean handleStringLiteralInitializers = false;
+
+  @Option(description = "If disabled, all implicitly initialized fields and elements are treated as non-dets")
+  private boolean handleImplicitInitialization = true;
 
   public FormulaEncodingWithUFOptions(Configuration config) throws InvalidConfigurationException {
     super(config);
@@ -85,12 +90,24 @@ public class FormulaEncodingWithUFOptions extends FormulaEncodingOptions {
     return memoryAllocationFunctionsWithSuperfluousParameters.contains(name);
   }
 
+  public boolean isDynamicMemoryFunction(final String name) {
+    return isSuccessfulAllocFunctionName(name)
+        || isSuccessfulZallocFunctionName(name)
+        || isMemoryAllocationFunction(name)
+        || isMemoryAllocationFunctionWithZeroing(name)
+        || isMemoryFreeFunction(name);
+  }
+
   public boolean isSuccessfulAllocFunctionName(final String name) {
     return successfulAllocFunctionName.equals(name);
   }
 
   public boolean isSuccessfulZallocFunctionName(final String name) {
     return successfulZallocFunctionName.equals(name);
+  }
+
+  public boolean isDynamicAllocVariableName(final String name) {
+    return isSuccessfulAllocFunctionName(name) || isSuccessfulZallocFunctionName(name);
   }
 
   public String getSuccessfulAllocFunctionName() {
@@ -133,7 +150,11 @@ public class FormulaEncodingWithUFOptions extends FormulaEncodingOptions {
     return memoryFreeFunctionName.equals(name);
   }
 
-  public boolean ignoreIrrelevantVariables() {
-    return ignoreIrrelevantVariables;
+  public boolean handleStringLiteralInitializers() {
+    return handleStringLiteralInitializers;
+  }
+
+  public boolean handleImplicitInitialization() {
+    return handleImplicitInitialization;
   }
 }

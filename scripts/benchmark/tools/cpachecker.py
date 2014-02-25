@@ -17,6 +17,16 @@ if __name__ == "__main__":
 import benchmark.util as Util
 import benchmark.tools.template
 
+REQUIRED_PATHS = [
+                  "lib/java/runtime",
+                  "lib/JavaParser",
+                  "lib/*.jar",
+                  "lib/native",
+                  "scripts",
+                  "cpachecker.jar",
+                  "config",
+                  ]
+
 class Tool(benchmark.tools.template.BaseTool):
 
     def getExecutable(self):
@@ -39,7 +49,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
     def getProgrammFiles(self, executable):
         executableDir = os.path.join(os.path.dirname(executable),"../")
-        return [os.path.join(executableDir, path) for path in ["lib", "scripts", "cpachecker.jar", "config"]]
+        return Util.flatten(Util.expandFileNamePattern(path, executableDir) for path in REQUIRED_PATHS)
 
 
     def getWorkingDirectory(self, executable):
@@ -54,7 +64,7 @@ class Tool(benchmark.tools.template.BaseTool):
         if process.returncode:
             sys.exit('CPAchecker returned exit code {0}'.format(process.returncode))
         stdout = Util.decodeToString(stdout)
-        version = ' '.join(stdout.splitlines()[0].split()[1:])  # first word is 'CPAchecker'
+        version = stdout.splitlines()[0].split()[1]  # first word is 'CPAchecker'
 
         # CPAchecker might be within a SVN repository
         # Determine the revision and add it to the version.
@@ -101,10 +111,11 @@ class Tool(benchmark.tools.template.BaseTool):
         return 'CPAchecker'
 
 
-    def getCmdline(self, executable, options, sourcefile):
+    def getCmdline(self, executable, options, sourcefile, propertyfile=None):
         if ("-stats" not in options):
             options = options + ["-stats"]
-        return [executable] + options + [sourcefile]
+        spec = ["-spec", propertyfile] if propertyfile is not None else []
+        return [executable] + options + spec + [sourcefile]
 
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
@@ -144,7 +155,6 @@ class Tool(benchmark.tools.template.BaseTool):
         else:
             status = ''
 
-        property = None
         for line in output.splitlines():
             if 'java.lang.OutOfMemoryError' in line:
                 status = 'OUT OF JAVA MEMORY'
@@ -170,17 +180,15 @@ class Tool(benchmark.tools.template.BaseTool):
                 elif 'Parsing failed' in line:
                     status = 'ERROR (parsing failed)'
 
-            elif line.startswith('Found violation of property '):
-                property = re.match('Found violation of property ([^ ]*) .*', line).group(1)
-
             elif line.startswith('Verification result: '):
                 line = line[21:].strip()
-                if line.startswith('SAFE'):
+                if line.startswith('TRUE'):
                     newStatus = result.STR_TRUE
-                elif line.startswith('UNSAFE'):
-                    newStatus = result.STR_FALSE
-                    if property:
-                        newStatus = newStatus + '(' + property + ')'
+                elif line.startswith('FALSE'):
+                    newStatus = result.STR_FALSE_LABEL
+                    match = re.match('.* Violation of propert[a-z]* (.*) found by chosen configuration.*', line)
+                    if match:
+                        newStatus = result.STR_FALSE + '(' + match.group(1) + ')'
                 else:
                     newStatus = result.STR_UNKNOWN if not status.startswith('ERROR') else None
                 if newStatus:

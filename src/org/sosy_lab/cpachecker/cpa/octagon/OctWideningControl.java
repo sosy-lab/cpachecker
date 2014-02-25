@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,10 +41,6 @@ class OctWideningControl {
       nodeId = id;
     }
 
-    public void incrementIteration() {
-      iterationCount++;
-    }
-
     public boolean exceedThreshold() {
       return iterationCount > OctConstants.wideningThreshold;
     }
@@ -53,9 +49,9 @@ class OctWideningControl {
       if (isWideningUsed) {
         return true;
       } else {
-        incrementIteration();
+        iterationCount++;
         if (exceedThreshold()) {
-          switchToWideningUsed();
+          isWideningUsed = true;
         }
       }
       return isWideningUsed;

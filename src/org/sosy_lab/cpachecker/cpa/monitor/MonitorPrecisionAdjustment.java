@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.monitor;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -74,7 +74,8 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment {
 
     totalTimeOfPrecAdj.start();
     Triple<AbstractState, Precision, Action> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
-    long totalTimeOfExecution = totalTimeOfPrecAdj.stop();
+    totalTimeOfPrecAdj.stop();
+    long totalTimeOfExecution = totalTimeOfPrecAdj.getLengthOfLastInterval().asMillis();
     // add total execution time to the total time of the previous element
     long updatedTotalTime = totalTimeOfExecution + element.getTotalTimeOnPath();
 

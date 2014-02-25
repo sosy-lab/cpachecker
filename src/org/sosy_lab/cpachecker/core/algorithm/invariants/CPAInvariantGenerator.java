@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
 import static com.google.common.base.Preconditions.*;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -37,12 +36,14 @@ import java.util.logging.Level;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LazyFutureTask;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
@@ -71,7 +72,7 @@ public class CPAInvariantGenerator implements InvariantGenerator {
           required=true,
           description="configuration file for invariant generation")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private File configFile;
+  private Path configFile;
 
   @Option(description="generate invariants in parallel to the normal analysis")
   private boolean async = false;
@@ -100,7 +101,7 @@ public class CPAInvariantGenerator implements InvariantGenerator {
     }
 
     invariantCPAs = new CPABuilder(invariantConfig, logger, pShutdownNotifier, reachedSetFactory).buildCPAs(cfa);
-    invariantAlgorithm = new CPAAlgorithm(invariantCPAs, logger, invariantConfig, pShutdownNotifier);
+    invariantAlgorithm = CPAAlgorithm.create(invariantCPAs, logger, invariantConfig, pShutdownNotifier);
     reached = new ReachedSetFactory(invariantConfig, logger).create();
   }
 
@@ -120,7 +121,7 @@ public class CPAInvariantGenerator implements InvariantGenerator {
     };
 
     if (async) {
-      ExecutorService executor = Executors.newSingleThreadExecutor();
+      ExecutorService executor = Executors.newSingleThreadExecutor(Threads.threadFactory());
       invariantGenerationFuture = executor.submit(task);
       executor.shutdown();
     } else {

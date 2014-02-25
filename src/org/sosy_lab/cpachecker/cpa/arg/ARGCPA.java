@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -56,13 +56,14 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.base.Preconditions;
 
 @Options(prefix="cpa.arg")
-public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProgramAnalysisWithABM, ProofChecker {
+public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ARGCPA.class);
@@ -100,8 +101,8 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
       precisionAdjustment = new ARGPrecisionAdjustment(cpa.getPrecisionAdjustment(), inPredicatedAnalysis);
     }
 
-    if (cpa instanceof ConfigurableProgramAnalysisWithABM) {
-      Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithABM)cpa).getReducer();
+    if (cpa instanceof ConfigurableProgramAnalysisWithBAM) {
+      Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM)cpa).getReducer();
       if (wrappedReducer != null) {
         reducer = new ARGReducer(wrappedReducer);
       } else {
@@ -177,7 +178,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     super.collectStatistics(pStatsCollection);
   }
 
-  Map<ARGState, CounterexampleInfo> getCounterexamples() {
+  public Map<ARGState, CounterexampleInfo> getCounterexamples() {
     return Collections.unmodifiableMap(counterexamples);
   }
 
@@ -185,7 +186,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     checkArgument(targetState.isTarget());
     checkArgument(!pCounterexample.isSpurious());
     if (pCounterexample.getTargetPath() != null) {
-      // With ABM, the targetState and the last state of the path
+      // With BAM, the targetState and the last state of the path
       // may actually be not identical.
       checkArgument(pCounterexample.getTargetPath().getLast().getFirst().isTarget());
     }
@@ -221,5 +222,14 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
     Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
     return stopOperator.isCoveredBy(pElement, pOtherElement, wrappedProofChecker);
+  }
+
+  void exportCounterexample(ReachedSet pReached, ARGState pTargetState,
+    CounterexampleInfo pCounterexampleInfo, int cexIndex) {
+    stats.exportCounterexample(pReached, pTargetState, pCounterexampleInfo, cexIndex, null, true);
+  }
+
+  boolean shouldPrintErrorPathImmediately() {
+    return stats.shouldDumpErrorPathImmediately();
   }
 }

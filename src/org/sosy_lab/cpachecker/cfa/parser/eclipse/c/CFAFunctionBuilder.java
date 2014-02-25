@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -107,12 +107,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.simplification.ExpressionSimplificationVisitor;
@@ -173,6 +173,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   private final LogManager logger;
   private final CheckBindingVisitor checkBinding;
+  private final Sideassignments sideAssignmentStack;
 
   private boolean encounteredAsm = false;
 
@@ -180,13 +181,16 @@ class CFAFunctionBuilder extends ASTVisitor {
       + "or leave them uninitialized.")
   private boolean initializeAllVariables = false;
 
-  public CFAFunctionBuilder(Configuration config, LogManager pLogger, FunctionScope pScope, MachineModel pMachine, String staticVariablePrefix) throws InvalidConfigurationException {
+  public CFAFunctionBuilder(Configuration config, LogManager pLogger, FunctionScope pScope,
+      MachineModel pMachine, String staticVariablePrefix,
+      Sideassignments pSideAssignmentStack,
+      CheckBindingVisitor pCheckBinding) throws InvalidConfigurationException {
     config.inject(this);
 
     logger = pLogger;
     scope = pScope;
-    astCreator = new ASTConverter(config, pScope, pLogger, pMachine, staticVariablePrefix, false);
-    checkBinding = new CheckBindingVisitor(pLogger);
+    astCreator = new ASTConverter(config, pScope, pLogger, pMachine, staticVariablePrefix, false, pSideAssignmentStack);
+    checkBinding = pCheckBinding;
     expressionSimplificator = new ExpressionSimplificationVisitor(pMachine, pLogger);
     binExprBuilder = new CBinaryExpressionBuilder(pMachine, pLogger);
 
@@ -195,8 +199,8 @@ class CFAFunctionBuilder extends ASTVisitor {
     shouldVisitParameterDeclarations = true;
     shouldVisitProblems = true;
     shouldVisitStatements = true;
+    sideAssignmentStack = pSideAssignmentStack;
   }
-
   FunctionEntryNode getStartNode() {
     checkState(cfa != null);
     return cfa;
@@ -219,8 +223,8 @@ class CFAFunctionBuilder extends ASTVisitor {
    * This method is called after parsing and checks if we left everything clean.
    */
   void finish() {
-    assert astCreator.getAndResetPreSideAssignments().isEmpty();
-    assert astCreator.getAndResetPostSideAssignments().isEmpty();
+    assert !sideAssignmentStack.hasPreSideAssignments();
+    assert !sideAssignmentStack.hasPostSideAssignments();
     assert locStack.isEmpty();
     assert loopStartStack.isEmpty();
     assert loopNextStack.isEmpty();
@@ -240,6 +244,9 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   @Override
   public int visit(IASTDeclaration declaration) {
+    // entering Sideassignment block
+    sideAssignmentStack.enterBlock();
+
     IASTFileLocation fileloc = declaration.getFileLocation();
 
     if (declaration instanceof IASTSimpleDeclaration) {
@@ -291,7 +298,8 @@ class CFAFunctionBuilder extends ASTVisitor {
   private CFANode createEdgeForDeclaration(final IASTSimpleDeclaration sd,
       final int filelocStart, CFANode prevNode) {
 
-    assert astCreator.getAndResetPostSideAssignments().isEmpty()
+    List<CAstNode> lst = sideAssignmentStack.getAndResetPostSideAssignments();
+    assert lst.isEmpty()
           : "post side assignments should occur only on declarations," +
             "but they occurred somewhere else and where not handled";
     final List<CDeclaration> declList = astCreator.convert(sd);
@@ -323,7 +331,7 @@ class CFAFunctionBuilder extends ASTVisitor {
           addToCFA(blankEdge);
 
           prevNode = nextNode;
-          prevNode = createEdgesForSideEffects(prevNode, astCreator.getAndResetPostSideAssignments(), rawSignature, filelocStart);
+          prevNode = createEdgesForSideEffects(prevNode, sideAssignmentStack.getAndResetPostSideAssignments(), rawSignature, filelocStart);
 
           return prevNode;
 
@@ -366,7 +374,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         prevNode = nextNode;
       }
     }
-    prevNode = createEdgesForSideEffects(prevNode, astCreator.getAndResetPostSideAssignments(), rawSignature, filelocStart);
+    prevNode = createEdgesForSideEffects(prevNode, sideAssignmentStack.getAndResetPostSideAssignments(), rawSignature, filelocStart);
 
     return prevNode;
   }
@@ -442,6 +450,9 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   @Override
   public int leave(IASTDeclaration declaration) {
+    // leaving Sideassignment block
+    sideAssignmentStack.leaveBlock();
+
     if (declaration instanceof IASTFunctionDefinition) {
 
       if (locStack.size() != 1) {
@@ -508,6 +519,8 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   @Override
   public int visit(IASTStatement statement) {
+    // entering Sideassignment block
+    sideAssignmentStack.enterBlock();
 
     // unreachable cases and their statements are ignored
     if (ignoreStatementsUntilNextCase && !(statement instanceof IASTCaseStatement || statement instanceof IASTDefaultStatement)) {
@@ -620,11 +633,11 @@ class CFAFunctionBuilder extends ASTVisitor {
     CFANode lastNode;
     boolean resultIsUsed = true;
 
-    if (astCreator.hasConditionalExpression()
+    if (sideAssignmentStack.hasConditionalExpression()
         && (statement instanceof CExpressionStatement)) {
       // this may be code where the resulting value of a ternary operator is not used, e.g. (x ? f() : g())
 
-      List<Pair<IASTExpression, CIdExpression>> tempVars = astCreator.getConditionalExpressions();
+      List<Pair<IASTExpression, CIdExpression>> tempVars = sideAssignmentStack.getConditionalExpressions();
       if ((tempVars.size() == 1) && (tempVars.get(0).getSecond() == ((CExpressionStatement)statement).getExpression())) {
         resultIsUsed = false;
       }
@@ -770,6 +783,9 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   @Override
   public int leave(IASTStatement statement) {
+    // leaving Sideassignment block
+    sideAssignmentStack.leaveBlock();
+
     if (statement instanceof IASTIfStatement) {
       final CFANode prevNode = locStack.pop();
       final CFANode nextNode = locStack.peek();
@@ -1638,7 +1654,8 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // fall-through (case before has no "break")
     final CFANode oldNode = locStack.pop();
-    if (oldNode.getNumEnteringEdges() > 0) {
+    if (oldNode.getNumEnteringEdges() > 0
+        || oldNode instanceof CLabelNode) {
       final BlankEdge blankEdge =
           new BlankEdge("", filelocStart, oldNode, caseNode, "fall through");
       addToCFA(blankEdge);
@@ -1704,21 +1721,21 @@ class CFAFunctionBuilder extends ASTVisitor {
   private CFANode handleAllSideEffects(CFANode prevNode, final int filelocStart,
       final String rawSignature, final boolean resultIsUsed) {
 
-    if (astCreator.hasConditionalExpression() && !resultIsUsed) {
-      List<Pair<IASTExpression, CIdExpression>> condExps = astCreator.getAndResetConditionalExpressions();
+    if (sideAssignmentStack.hasConditionalExpression() && !resultIsUsed) {
+      List<Pair<IASTExpression, CIdExpression>> condExps = sideAssignmentStack.getAndResetConditionalExpressions();
       assert condExps.size() == 1;
 
       // ignore side assignment
-      astCreator.getAndResetPreSideAssignments();
+      sideAssignmentStack.getAndResetPreSideAssignments();
 
       prevNode = handleConditionalExpression(prevNode, condExps.get(0).getFirst(), null);
 
     } else {
 
-      prevNode = createEdgesForSideEffects(prevNode, astCreator.getAndResetPreSideAssignments(), rawSignature, filelocStart);
+      prevNode = createEdgesForSideEffects(prevNode, sideAssignmentStack.getAndResetPreSideAssignments(), rawSignature, filelocStart);
 
       // handle ternary operator or && or || or { }
-      for (Pair<IASTExpression, CIdExpression> cond : astCreator.getAndResetConditionalExpressions()) {
+      for (Pair<IASTExpression, CIdExpression> cond : sideAssignmentStack.getAndResetConditionalExpressions()) {
         IASTExpression condExp = cond.getFirst();
         CIdExpression tempVar = cond.getSecond();
 
@@ -1806,10 +1823,17 @@ class CFAFunctionBuilder extends ASTVisitor {
       return locStack.pop();
     }
 
+    int filelocStart = compoundExp.getFileLocation().getStartingLineNumber();
+
     if (!(lastStatement instanceof IASTExpressionStatement)) {
+       if (tempVar == null) {
+         CFANode lastNode = handleAllSideEffects(middleNode, filelocStart, lastStatement.getRawSignature(), true);
+         scope.leaveBlock();
+         return lastNode;
+       }
+
       throw new CFAGenerationRuntimeException("Unsupported statement type " + lastStatement.getClass().getSimpleName() + " at end of compound-statement expression", lastStatement);
     }
-    int filelocStart = compoundExp.getFileLocation().getStartingLineNumber();
 
     CAstNode exp = astCreator.convertExpressionWithSideEffects(((IASTExpressionStatement)lastStatement).getExpression());
 
@@ -1914,9 +1938,9 @@ class CFAFunctionBuilder extends ASTVisitor {
       CFANode lastNode, int filelocStart, CFANode prevNode, @Nullable CIdExpression tempVar) {
     CAstNode exp = astCreator.convertExpressionWithSideEffects(condExp);
 
-    if (!astCreator.hasConditionalExpression()) {
+    if (!sideAssignmentStack.hasConditionalExpression()) {
 
-      prevNode = createEdgesForSideEffects(prevNode, astCreator.getAndResetPreSideAssignments(), exp.toASTString(), filelocStart);
+      prevNode = createEdgesForSideEffects(prevNode, sideAssignmentStack.getAndResetPreSideAssignments(), exp.toASTString(), filelocStart);
 
       if (exp instanceof CStatement) {
         assert exp instanceof CAssignment;
@@ -1939,8 +1963,8 @@ class CFAFunctionBuilder extends ASTVisitor {
       // nested ternary operator
       assert exp instanceof CRightHandSide;
       boolean resultIsUsed = (tempVar != null)
-          || (astCreator.getConditionalExpressions().size() > 1)
-          || (exp != astCreator.getConditionalExpressions().get(0).getSecond());
+          || (sideAssignmentStack.getConditionalExpressions().size() > 1)
+          || (exp != sideAssignmentStack.getConditionalExpressions().get(0).getSecond());
 
       prevNode = handleAllSideEffects(prevNode, filelocStart, condExp.getRawSignature(), resultIsUsed);
 

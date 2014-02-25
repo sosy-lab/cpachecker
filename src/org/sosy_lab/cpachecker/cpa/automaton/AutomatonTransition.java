@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,10 +25,12 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction.CPAModification;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
@@ -46,7 +48,9 @@ class AutomatonTransition {
   // The order of triggers, assertions and (more importantly) actions is preserved by the parser.
   private final AutomatonBoolExpr trigger;
   private final AutomatonBoolExpr assertion;
-  private final List<AutomatonAction> actions;
+  private final ImmutableList<CStatement> assumption;
+  private final ImmutableList<AutomatonAction> actions;
+
 
   /**
    * When the parser instances this class it can not assign a followstate because
@@ -57,23 +61,46 @@ class AutomatonTransition {
   private final String followStateName;
   private AutomatonInternalState followState = null;
 
-  public AutomatonTransition(AutomatonBoolExpr pTrigger, List<AutomatonBoolExpr> pAssertions, List<AutomatonAction> pActions,
+  public AutomatonTransition(AutomatonBoolExpr pTrigger,
+      List<AutomatonBoolExpr> pAssertions,
+      List<AutomatonAction> pActions,
       String pFollowStateName) {
-    this(pTrigger, pAssertions, pActions, pFollowStateName, null);
+    this(pTrigger, pAssertions, ImmutableList.copyOf(new ArrayList<CStatement>()), pActions, pFollowStateName, null);
   }
 
   public AutomatonTransition(AutomatonBoolExpr pTrigger,
       List<AutomatonBoolExpr> pAssertions, List<AutomatonAction> pActions,
       AutomatonInternalState pFollowState) {
 
-    this(pTrigger, pAssertions, pActions, pFollowState.getName(), pFollowState);
+    this(pTrigger, pAssertions, ImmutableList.copyOf(new ArrayList<CStatement>()), pActions, pFollowState.getName(), pFollowState);
+  }
+
+  public AutomatonTransition(AutomatonBoolExpr pTrigger,
+      List<AutomatonBoolExpr> pAssertions, List<CStatement> pAssumption,
+      List<AutomatonAction> pActions,
+      String pFollowStateName) {
+    this(pTrigger, pAssertions, pAssumption, pActions, pFollowStateName, null);
+  }
+
+  public AutomatonTransition(AutomatonBoolExpr pTrigger,
+      List<AutomatonBoolExpr> pAssertions, List<CStatement> pAssumption, List<AutomatonAction> pActions,
+      AutomatonInternalState pFollowState) {
+
+    this(pTrigger, pAssertions, pAssumption, pActions, pFollowState.getName(), pFollowState);
   }
 
   private AutomatonTransition(AutomatonBoolExpr pTrigger,
-      List<AutomatonBoolExpr> pAssertions, List<AutomatonAction> pActions,
+      List<AutomatonBoolExpr> pAssertions, List<CStatement> pAssumption, List<AutomatonAction> pActions,
       String pFollowStateName, AutomatonInternalState pFollowState) {
 
     this.trigger = checkNotNull(pTrigger);
+
+    if(pAssumption == null) {
+      this.assumption = ImmutableList.of();
+    } else {
+      this.assumption = ImmutableList.copyOf(pAssumption);
+    }
+
     this.actions = ImmutableList.copyOf(pActions);
     this.followStateName = checkNotNull(pFollowStateName);
     this.followState = pFollowState;
@@ -165,6 +192,10 @@ class AutomatonTransition {
     return followState;
   }
 
+  public AutomatonBoolExpr getTrigger() {
+    return trigger;
+  }
+
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
@@ -200,5 +231,9 @@ class AutomatonTransition {
       }
     }
     return true;
+  }
+
+  public ImmutableList<CStatement> getAssumptions() {
+    return assumption;
   }
 }

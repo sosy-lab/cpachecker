@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,24 +31,27 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import javax.management.JMException;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.time.TimeSpan;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -111,6 +114,7 @@ class MainCPAStatistics implements Statistics {
   private final LogManager logger;
   private final Collection<Statistics> subStats;
   private final MemoryStatistics memStats;
+  private Thread memStatsThread;
 
   private final Timer programTime = new Timer();
   final Timer creationTime = new Timer();
@@ -132,8 +136,8 @@ class MainCPAStatistics implements Statistics {
 
     if (monitorMemoryUsage) {
       memStats = new MemoryStatistics(pLogger);
-      memStats.setDaemon(true);
-      memStats.start();
+      memStatsThread = Threads.newThread(memStats, "CPAchecker memory statistics collector", true);
+      memStatsThread.start();
     } else {
       memStats = null;
     }
@@ -144,6 +148,16 @@ class MainCPAStatistics implements Statistics {
     } catch (JMException e) {
       logger.logDebugException(e, "Querying cpu time failed");
       logger.log(Level.WARNING, "Your Java VM does not support measuring the cpu time, some statistics will be missing.");
+      programCpuTime = -1;
+    }
+    /*
+     * Google App Engine does not allow to use classes from the package java.lang.management.
+     * Therefore it throws a NoClassDefFoundError if this is attempted regardless. To prevent
+     * CPAChecker from crashing in this case we catch the error and log the event.
+     */
+    catch (NoClassDefFoundError e) {
+      logger.logDebugException(e, "Querying cpu time failed");
+      logger.log(Level.WARNING, "Google App Engine does not support measuring the cpu time.");
       programCpuTime = -1;
     }
   }
@@ -166,6 +180,16 @@ class MainCPAStatistics implements Statistics {
       // user was already warned
       analysisCpuTime = -1;
     }
+    /*
+     * Google App Engine does not allow to use classes from the package java.lang.management.
+     * Therefore it throws a NoClassDefFoundError if this is attempted regardless. To prevent
+     * CPAChecker from crashing in this case we catch the error and log the event.
+     */
+    catch (NoClassDefFoundError e) {
+      logger.logDebugException(e, "Querying cpu time failed");
+      logger.log(Level.WARNING, "Google App Engine does not support measuring the cpu time.");
+      analysisCpuTime = -1;
+    }
   }
 
   void stopAnalysisTimer() {
@@ -186,6 +210,15 @@ class MainCPAStatistics implements Statistics {
       logger.logDebugException(e, "Querying cpu time failed");
       // user was already warned
     }
+    /*
+     * Google App Engine does not allow to use classes from the package java.lang.management.
+     * Therefore it throws a NoClassDefFoundError if this is attempted regardless. To prevent
+     * CPAChecker from crashing in this case we catch the error and log the event.
+     */
+    catch (NoClassDefFoundError e) {
+      logger.logDebugException(e, "Querying cpu time failed");
+      logger.log(Level.WARNING, "Google App Engine does not support measuring the cpu time.");
+    }
   }
 
   @Override
@@ -202,7 +235,7 @@ class MainCPAStatistics implements Statistics {
       programTime.stop();
     }
     if (memStats != null) {
-      memStats.interrupt(); // stop memory statistics collection
+      memStatsThread.interrupt(); // stop memory statistics collection
     }
 
     if (result != Result.NOT_YET_STARTED) {
@@ -474,22 +507,26 @@ class MainCPAStatistics implements Statistics {
       cfaCreatorStatistics.printStatistics(out, result, reached);
     }
     out.println("Time for Analysis:            " + analysisTime);
-    out.println("CPU time for analysis:        " + Timer.formatTime(analysisCpuTime/1000/1000));
+    out.println("CPU time for analysis:        " + TimeSpan.ofNanos(analysisCpuTime).formatAs(TimeUnit.SECONDS));
     out.println("Total time for CPAchecker:    " + programTime);
-    out.println("Total CPU time for CPAchecker:" + Timer.formatTime(programCpuTime/1000/1000));
+    out.println("Total CPU time for CPAchecker:" + TimeSpan.ofNanos(programCpuTime).formatAs(TimeUnit.SECONDS));
   }
 
   private void printMemoryStatistics(PrintStream out) {
-    MemoryStatistics.printGcStatistics(out);
+    if (monitorMemoryUsage) {
+      MemoryStatistics.printGcStatistics(out);
 
-    if (memStats != null) {
-      try {
-        memStats.join(); // thread should have terminated already,
-                         // but wait for it to ensure memory visibility
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
+      if (memStats != null) {
+        try {
+          memStatsThread.join(); // thread should have terminated already,
+                                 // but wait for it to ensure memory visibility
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+        }
+        if (!memStatsThread.isAlive()) {
+          memStats.printStatistics(out);
+        }
       }
-      memStats.printStatistics(out);
     }
   }
 

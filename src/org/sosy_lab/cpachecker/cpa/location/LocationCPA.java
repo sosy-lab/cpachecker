@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -49,9 +49,12 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurableProgramAnalysisWithABM, ProofChecker {
+import com.google.common.base.Optional;
+
+public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
   private final LocationStateFactory stateFactory;
   private final AbstractDomain abstractDomain = new FlatLatticeDomain();
@@ -62,7 +65,10 @@ public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurablePro
     stateFactory = new LocationStateFactory(pCfa);
     transferRelation = new LocationTransferRelation(stateFactory);
 
-    GlobalInfo.getInstance().getCFAInfo().storeLocationStateFactory(stateFactory);
+    Optional<CFAInfo> cfaInfo = GlobalInfo.getInstance().getCFAInfo();
+    if (cfaInfo.isPresent()) {
+      cfaInfo.get().storeLocationStateFactory(stateFactory);
+    }
   }
 
   public static CPAFactory factory() {

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,14 +31,15 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Vector;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -101,7 +102,8 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
 
     //prover = predicateCpa.getTheoremProver();
 
-    predicateRefinementStrategy = new PredicateAbstractionRefinementStrategy(config, logger, emgr, amgr,
+    predicateRefinementStrategy = new PredicateAbstractionRefinementStrategy(
+        config, logger, predicateCpa.getShutdownNotifier(), emgr, amgr,
         predicateCpa.getStaticRefiner(),
         predicateCpa.getSolver());
   }
@@ -167,7 +169,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
       balancing.start();
       boolean balanced = balancer.balance(tnet);
       balancing.stop();
-      logger.log(Level.FINEST, "Balancer took",balancing.getSumTime(),"miliseconds.");
+      logger.log(Level.FINEST, "Balancer took",balancing.getSumTime().formatAs(TimeUnit.SECONDS));
 
       if (balanced) {
         // If the network balanced, then, since all NetworkBuilders put 'false' at the error
