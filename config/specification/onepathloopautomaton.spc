@@ -11,12 +11,12 @@ STATE USEFIRST ARG3 :
 STATE USEFIRST ARG4 :
     TRUE -> GOTO ARG7;
 STATE USEFIRST ARG7 :
-	MATCH {abort($?)} || MATCH {exit($?)}  -> STOP;
+	MATCH LABEL [[Ee\][Rr\][Rr\][Oo\][Rr\]] -> ERROR;
+	//MATCH {abort($?)} || MATCH {exit($?)}  -> ERROR;
 	//MATCH EXIT -> GOTO targetstate;
-	//MATCH EXIT -> ERROR;
+	MATCH EXIT -> ERROR;
 	TRUE -> GOTO ARG7;
 
-TARGET STATE USEFIRST targetstate :
-	TRUE -> STOP;
+//TARGET STATE USEFIRST targetstate
 
 END AUTOMATON

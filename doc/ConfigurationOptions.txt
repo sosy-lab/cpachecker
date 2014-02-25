@@ -429,6 +429,9 @@ cpa.arg.inPredicatedAnalysis = false
 # them in the ARG
 cpa.arg.keepCoveredStatesInReached = false
 
+# export the next path to execute.
+cpa.arg.nextPathToExecuteFile.file = "nextPath.spc"
+
 # export simplified ARG that shows all refinements to .dot file
 cpa.arg.refinements.file = "ARGRefinements.dot"
 

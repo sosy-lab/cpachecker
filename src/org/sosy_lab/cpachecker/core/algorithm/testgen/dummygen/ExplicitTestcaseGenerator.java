@@ -28,14 +28,14 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
-import java.nio.file.Path;
 import java.util.Set;
 
-import org.sosy_lab.common.Files;
-import org.sosy_lab.common.Files.DeleteOnCloseFile;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Files.DeleteOnCloseFile;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
@@ -72,6 +72,15 @@ public class ExplicitTestcaseGenerator {
   }
 
 
+  /**
+   * produces a changed control automaton based on the given state set.
+   * @param pRootState
+   * @param pTargetState
+   * @param pPathStates
+   * @return
+   * @throws CPAException
+   * @throws InterruptedException
+   */
   public ReachedSet analysePath(ARGState pRootState,
       ARGState pTargetState, Set<ARGState> pPathStates)
       throws CPAException, InterruptedException {
@@ -80,14 +89,15 @@ public class ExplicitTestcaseGenerator {
     try (DeleteOnCloseFile automatonFile = Files.createTempFile("automaton", ".txt")) {
 
       try (Writer w = Files.openOutputFile(automatonFile.toPath())) {
-//        ARGUtils.producePathAutomaton(w, pRootState, pErrorPathStates, "Testcase");
-        ARGUtils.produceControlAutomatonForSubPath(w, pRootState, pPathStates, "pathOfTestCase", new Function<ConditionContainer, Boolean>() {
+        //        ARGUtils.producePathAutomaton(w, pRootState, pErrorPathStates, "Testcase");
+        ARGUtils.produceControlAutomatonForSubPath(w, pRootState, pPathStates, "pathOfTestCase",
+            new Function<ConditionContainer, Boolean>() {
 
-          @Override
-          public Boolean apply(ConditionContainer currentPosition) {
-            return true;
-          }
-        });
+              @Override
+              public Boolean apply(ConditionContainer currentPosition) {
+                return true;
+              }
+            });
       }
 
       return analysePath(pRootState, automatonFile.toPath());
@@ -101,12 +111,11 @@ public class ExplicitTestcaseGenerator {
       throws CPAException, InterruptedException {
 
     CFANode entryNode = extractLocation(pRootState);
-
     try {
       Configuration lConfig = Configuration.builder()
-              .loadFromFile(configFile)
-              .setOption("specification", automatonFile.toAbsolutePath().toString())
-              .build();
+          .loadFromFile(configFile.getName())
+          .setOption("specification", automatonFile.toAbsolutePath().toString())
+          .build();
       ShutdownNotifier lShutdownNotifier = ShutdownNotifier.createWithParent(shutdownNotifier);
       ResourceLimitChecker.fromConfiguration(lConfig, logger, lShutdownNotifier).start();
 
@@ -125,7 +134,8 @@ public class ExplicitTestcaseGenerator {
       return lReached;
 
     } catch (InvalidConfigurationException e) {
-      throw new CounterexampleAnalysisFailed("Invalid configuration in counterexample-check config: " + e.getMessage(), e);
+      throw new CounterexampleAnalysisFailed("Invalid configuration in counterexample-check config: " + e.getMessage(),
+          e);
     } catch (IOException e) {
       throw new CounterexampleAnalysisFailed(e.getMessage(), e);
     } catch (InterruptedException e) {

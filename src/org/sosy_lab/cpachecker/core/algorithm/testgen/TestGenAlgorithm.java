@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.testgen;
 
-import java.util.Set;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -36,7 +34,9 @@ import org.sosy_lab.cpachecker.core.algorithm.testgen.dummygen.ARGStateDummyCrea
 import org.sosy_lab.cpachecker.core.algorithm.testgen.dummygen.ExplicitTestcaseGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
 
@@ -73,11 +73,19 @@ public class TestGenAlgorithm implements Algorithm {
     boolean pathToExplore = true;
     boolean success = true;
     /* run the given alg ones using the "config/specification/onepathloopautomaton.spc" and DFS */
-    success &= algorithm.run(pReachedSet);
+    ReachedSet currentReachedSet = pReachedSet;
+    success &= algorithm.run(currentReachedSet);
     do {
+//      pReachedSet.get
+//      AbstractStates.isTargetState(as)
       /**/
-      ARGState currentRootState;
-      Set<ARGState> errorPathStates;
+      ARGState currentRootState =(ARGState) currentReachedSet.getFirstState();
+      ARGState lastState = (ARGState) currentReachedSet.getLastState();
+      ARGPath path = ARGUtils.getOnePathTo(lastState);
+
+//      for (AbstractState s : from(reached).filter(IS_TARGET_STATE)) {
+      currentReachedSet = explicitAlg.analysePath(currentRootState, lastState, path.getStateSet());
+//      dummyCreator.computeOtherSuccessor(pState, pNotToChildState)
 //      dummyCreator.computeOtherSuccessor(pState, pNotToChildState);
       /**/
 //      pReachedSet.getFirstState()

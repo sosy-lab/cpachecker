@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.testgen.dummygen;
 
 import java.io.IOException;
+import java.util.Collections;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -71,7 +72,7 @@ public class TestgenTestHelper {
     CFA cfa;
     CPAcheckerResult results;
     try {
-      cfa = cfaCreator.parseFileAndCreateCFA(pSourceCodeFilePath);
+      cfa = cfaCreator.parseFileAndCreateCFA(Collections.singletonList(pSourceCodeFilePath));
       results = cpaChecker.run(pSourceCodeFilePath);
     } catch (IOException | ParserException | InterruptedException e) {
       e.printStackTrace();
