@@ -56,11 +56,6 @@ public class EclipseCDT7Parser extends AbstractEclipseCParser<FileContent> {
   }
 
   @Override
-  protected FileContent wrapFile(String pFilename) {
-    return FileContent.createForExternalFileLocation(pFilename);
-  }
-
-  @Override
   protected IASTTranslationUnit getASTTranslationUnit(FileContent pCode) throws CParserException, CFAGenerationRuntimeException, CoreException {
     return language.getASTTranslationUnit(pCode,
                                           StubScannerInfo.instance,

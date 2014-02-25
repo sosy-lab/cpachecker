@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +48,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
@@ -98,7 +100,10 @@ abstract class AbstractEclipseCParser<T> implements CParser {
 
   protected abstract T wrapCode(String pFilename, String pCode);
 
-  protected abstract T wrapFile(String pFilename) throws IOException;
+  private final T wrapFile(String pFileName) throws IOException {
+    String code = Paths.get(pFileName).asCharSource(Charset.defaultCharset()).read();
+    return wrapCode(pFileName, code);
+  }
 
   @Override
   public ParseResult parseFile(List<FileToParse> pFilenames) throws CParserException, IOException, InvalidConfigurationException {
