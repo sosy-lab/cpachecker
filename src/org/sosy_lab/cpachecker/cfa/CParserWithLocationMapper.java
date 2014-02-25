@@ -226,11 +226,11 @@ public class CParserWithLocationMapper implements CParser {
 
     List<FileContentToParse> programFragments = new ArrayList<>(pFilenames.size());
     for (FileToParse f : pFilenames) {
-      String programCode = tokenizeSourcefile(f.fileName);
+      String programCode = tokenizeSourcefile(f.getFileName());
       if (programCode.isEmpty()) {
         throw new CParserException("Tokenizer returned empty program");
       }
-      programFragments.add(new FileContentToParse(f.fileName, programCode, f.staticVariablePrefix));
+      programFragments.add(new FileContentToParse(f.getFileName(), programCode, f.getStaticVariablePrefix()));
     }
     return realParser.parseString(programFragments);
   }
@@ -241,11 +241,11 @@ public class CParserWithLocationMapper implements CParser {
 
     List<FileContentToParse> tokenizedFragments = new ArrayList<>(pCode.size());
     for (FileContentToParse f : pCode) {
-      String programCode = processCode(f.fileName, f.fileContent);
+      String programCode = processCode(f.getFileName(), f.getFileContent());
       if (programCode.isEmpty()) {
         throw new CParserException("Tokenizer returned empty program");
       }
-      tokenizedFragments.add(new FileContentToParse(f.fileName, programCode, f.staticVariablePrefix));
+      tokenizedFragments.add(new FileContentToParse(f.getFileName(), programCode, f.getStaticVariablePrefix()));
     }
 
     return realParser.parseString(tokenizedFragments);

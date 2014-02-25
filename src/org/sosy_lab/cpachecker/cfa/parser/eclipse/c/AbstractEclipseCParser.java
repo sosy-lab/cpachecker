@@ -110,7 +110,7 @@ abstract class AbstractEclipseCParser<T> implements CParser {
 
     List<Pair<IASTTranslationUnit, String>> astUnits = new ArrayList<>();
     for(FileToParse f: pFilenames) {
-      astUnits.add(Pair.of(parse(wrapFile(f.fileName)), f.staticVariablePrefix));
+      astUnits.add(Pair.of(parse(wrapFile(f.getFileName())), f.getStaticVariablePrefix()));
     }
     return buildCFA(astUnits);
   }
@@ -120,7 +120,7 @@ abstract class AbstractEclipseCParser<T> implements CParser {
 
     List<Pair<IASTTranslationUnit, String>> astUnits = new ArrayList<>();
     for(FileContentToParse f : codeFragments) {
-      astUnits.add(Pair.of(parse(wrapCode(f)), f.staticVariablePrefix));
+      astUnits.add(Pair.of(parse(wrapCode(f)), f.getStaticVariablePrefix()));
     }
     return buildCFA(astUnits);
   }

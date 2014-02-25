@@ -78,11 +78,11 @@ class CParserWithPreprocessor implements CParser {
 
     List<FileContentToParse> programs = new ArrayList<>(pFilenames.size());
     for (FileToParse p : pFilenames) {
-      String programCode = preprocessor.preprocess(p.fileName);
+      String programCode = preprocessor.preprocess(p.getFileName());
       if (programCode.isEmpty()) {
         throw new CParserException("Preprocessor returned empty program");
       }
-      programs.add(new FileContentToParse(p.fileName, programCode, p.staticVariablePrefix));
+      programs.add(new FileContentToParse(p.getFileName(), programCode, p.getStaticVariablePrefix()));
     }
     return realParser.parseString(programs);
   }

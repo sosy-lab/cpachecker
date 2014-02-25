@@ -48,21 +48,33 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 public interface CParser extends Parser {
 
   public static class FileToParse {
-    public final String fileName;
-    public final String staticVariablePrefix;
+    private final String fileName;
+    private final String staticVariablePrefix;
 
     public FileToParse(String pFileName, String pStaticVariablePrefix) {
       this.fileName = pFileName;
       this.staticVariablePrefix = pStaticVariablePrefix;
     }
+
+    public String getFileName() {
+      return fileName;
+    }
+
+    public String getStaticVariablePrefix() {
+      return staticVariablePrefix;
+    }
   }
 
   public static class FileContentToParse extends FileToParse {
-    public final String fileContent;
+    private final String fileContent;
 
     public FileContentToParse(String pFileName, String pFileContent, String pStaticVariablePrefix) {
       super(pFileName, pStaticVariablePrefix);
       this.fileContent = pFileContent;
+    }
+
+    public String getFileContent() {
+      return fileContent;
     }
   }
 
