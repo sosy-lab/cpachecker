@@ -54,12 +54,13 @@ import com.google.common.base.Function;
 
 public class ARGStateDummyCreator {
 
-  private TransferRelation transferRelation;
+  private final TransferRelation transferRelation;
+  private final Precision prec;
   private CFA cfa;
-  private Precision prec;
 //  private final static ImmutableList<PrecisionAdjustment> precs = ImmutableList.of();
 //  private ARGPrecisionAdjustment precision;
 
+  @Deprecated
   public ARGStateDummyCreator(CFA pCfa, Configuration config, LogManager pLogger) throws InvalidConfigurationException, CPAException {
     cfa = pCfa;
     ShutdownNotifier notifier = ShutdownNotifier.create();
@@ -69,6 +70,11 @@ public class ARGStateDummyCreator {
     //transferRelation = new ARGTransferRelation(new ExplicitTransferRelation(config, pLogger, pCfa));
 //    precision = new ARGPrecisionAdjustment(
 //        new ComponentAwareExplicitPrecisionAdjustment(precs, config, pCfa),false);
+  }
+  public ARGStateDummyCreator(/*CFA pCfa,*/ ConfigurableProgramAnalysis pCpa, LogManager pLogger) throws InvalidConfigurationException, CPAException {
+//    cfa = pCfa;
+    transferRelation = pCpa.getTransferRelation();
+    prec = pCpa.getInitialPrecision(cfa.getMainFunction());
   }
 
   /**

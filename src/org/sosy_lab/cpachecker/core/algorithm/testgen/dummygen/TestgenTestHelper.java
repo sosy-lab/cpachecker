@@ -23,24 +23,31 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.testgen.dummygen;
 
+import java.io.IOException;
+
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.StringBuildingLogHandler;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 import com.google.common.collect.ImmutableMap;
 
 
 public class TestgenTestHelper {
 
-  public static UnmodifiableReachedSet createReachedSetFromFile(String pSourceCodeFilePath)
+  public static  Pair<UnmodifiableReachedSet, Triple<CFA,Configuration,LogManager>> createReachedSetFromFile(String pSourceCodeFilePath)
       throws InvalidConfigurationException {
 
     ImmutableMap<String, String> prop =
@@ -60,9 +67,17 @@ public class TestgenTestHelper {
     LogManager logger = new BasicLogManager(config, stringLogHandler);
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
     CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownNotifier);
-    CPAcheckerResult results = cpaChecker.run(pSourceCodeFilePath);
-
-    return results.getReached();
+    CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
+    CFA cfa;
+    CPAcheckerResult results;
+    try {
+      cfa = cfaCreator.parseFileAndCreateCFA(pSourceCodeFilePath);
+      results = cpaChecker.run(pSourceCodeFilePath);
+    } catch (IOException | ParserException | InterruptedException e) {
+      e.printStackTrace();
+      return Pair.of(null, null) ;
+    }
+    return Pair.of(results.getReached(), Triple.of(cfa, config, logger)) ;
 
   }
 
