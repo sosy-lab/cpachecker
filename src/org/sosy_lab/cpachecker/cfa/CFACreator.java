@@ -29,7 +29,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
-import java.nio.charset.Charset;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -53,7 +52,7 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.CParser.FileContentToParse;
+import org.sosy_lab.cpachecker.cfa.CParser.FileToParse;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -431,17 +430,7 @@ public class CFACreator {
     }
 
     if (sourceFiles.size() == 1) {
-        /*
-         * The program file has to parsed as String since Google App Engine does not allow
-         * writes to the file system and therefore the input file is stored elsewhere.
-         */
-      final String sourceFileName = sourceFiles.get(0);
-      if (usePreprocessor) {
-        parseResult = parser.parseFile(sourceFileName);
-      } else {
-        String code = Paths.get(sourceFileName).asCharSource(Charset.defaultCharset()).read();
-        parseResult = parser.parseString(sourceFileName, code);
-      }
+      parseResult = parser.parseFile(sourceFiles.get(0));
     } else {
       // when there is more than one file which should be evaluated, the
       // programdenotations are separated from each other and a prefix for
@@ -450,22 +439,16 @@ public class CFACreator {
         throw new InvalidConfigurationException("Multiple program files not supported for languages other than C.");
       }
 
-      final List<FileContentToParse> programFragments = new ArrayList<>();
+      final List<FileToParse> programFragments = new ArrayList<>();
       int counter = 0;
       String staticVarPrefix;
       for (final String fileName : sourceFiles) {
         final String[] tmp = fileName.split("/");
         staticVarPrefix = tmp[tmp.length-1].replaceAll("\\W", "_") + "__" + counter + "__";
-
-          /*
-           * The program file has to parsed as String since Google App Engine does not allow
-           * writes to the file system and therefore the input file is stored elsewhere.
-           */
-        String code = Paths.get(fileName).asCharSource(Charset.defaultCharset()).read();
-        programFragments.add(new FileContentToParse(fileName, code, staticVarPrefix));
+        programFragments.add(new FileToParse(fileName, staticVarPrefix));
       }
 
-      parseResult = ((CParser)parser).parseString(programFragments);
+      parseResult = ((CParser)parser).parseFile(programFragments);
     }
 
     if (parseResult.isEmpty()) {
