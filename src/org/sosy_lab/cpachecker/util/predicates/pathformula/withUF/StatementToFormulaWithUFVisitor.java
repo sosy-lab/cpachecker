@@ -108,15 +108,6 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
     return conv.bfmgr.makeBoolean(true);
   }
 
-  private static void addEssentialFields(final List<Pair<CCompositeType, String>> fields,
-                                         final PointerTargetSetBuilder pts) {
-    for (final Pair<CCompositeType, String> field : fields) {
-      if (!pts.addField(field.getFirst(), field.getSecond())) {
-        pts.shallowRemoveField(field.getFirst(), field.getSecond());
-      }
-    }
-  }
-
   BooleanFormula handleAssignment(final CLeftHandSide lhs,
                                   final @Nullable CRightHandSide rhs,
                                   final boolean batchMode,
@@ -142,7 +133,7 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
          !(((CFunctionCallExpression) rhs).getFunctionNameExpression() instanceof CIdExpression) ||
          !conv.options.isNondetFunction(((CIdExpression)((CFunctionCallExpression) rhs).getFunctionNameExpression()).getName()))) {
       rhsExpression = rhs.accept(this);
-      addEssentialFields(getInitializedFields(), pts);
+      pts.addEssentialFields(getInitializedFields());
       rhsUsedFields = getUsedFields();
       rhsUsedDeferredAllocationPointers = getUsedDeferredAllocationPointers();
     } else { // RHS is nondet
@@ -155,7 +146,7 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
     reset();
     final Location lhsLocation = lhs.accept(this).asLocation();
     ImmutableMap<String, CType> lhsUsedDeferredAllocationPointers = getUsedDeferredAllocationPointers();
-    addEssentialFields(getInitializedFields(), pts);
+    pts.addEssentialFields(getInitializedFields());
     final ImmutableList<Pair<CCompositeType, String>> lhsUsedFields = getUsedFields();
     // the pattern matching possibly aliased locations
     final PointerTargetPattern pattern = lhsLocation.isUnaliasedLocation() ? null : lhs.accept(lvalueVisitor);
@@ -181,8 +172,8 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
                           errorConditions,
                           pts);
 
-    addEssentialFields(lhsUsedFields, pts);
-    addEssentialFields(rhsUsedFields, pts);
+    pts.addEssentialFields(lhsUsedFields);
+    pts.addEssentialFields(rhsUsedFields);
     return result;
   }
 
@@ -230,8 +221,8 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
       result = conv.bfmgr.not(result);
     }
 
-    addEssentialFields(getInitializedFields(), pts);
-    addEssentialFields(getUsedFields(), pts);
+    pts.addEssentialFields(getInitializedFields());
+    pts.addEssentialFields(getUsedFields());
     return result;
   }
 

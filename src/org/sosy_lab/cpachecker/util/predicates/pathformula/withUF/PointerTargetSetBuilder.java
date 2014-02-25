@@ -27,10 +27,12 @@ import static com.google.common.base.Objects.firstNonNull;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 
+import java.util.List;
 import java.util.SortedSet;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -66,13 +68,7 @@ public interface PointerTargetSetBuilder {
 
   boolean addField(CCompositeType composite, String fieldName);
 
-  /**
-   * Should be used to remove the newly added field if it didn't turn out to correspond to any actual pointer target.
-   * This can happen if we try to track a field of a composite that has no corresponding allocated bases.
-   * @param composite
-   * @param fieldName
-   */
-  void shallowRemoveField(CCompositeType composite, String fieldName);
+  void addEssentialFields(final List<Pair<CCompositeType, String>> fields);
 
   void addTemporaryDeferredAllocation(boolean isZeroing,
       CIntegerLiteralExpression size,
@@ -303,11 +299,19 @@ public interface PointerTargetSetBuilder {
      * @param composite
      * @param fieldName
      */
-    @Override
-    public void shallowRemoveField(final CCompositeType composite, final String fieldName) {
+    private void shallowRemoveField(final CCompositeType composite, final String fieldName) {
       final String type = CTypeUtils.typeToString(composite);
       final CompositeField field = CompositeField.of(type, fieldName);
       fields = fields.removeAndCopy(field);
+    }
+
+    @Override
+    public void addEssentialFields(final List<Pair<CCompositeType, String>> fields) {
+      for (final Pair<CCompositeType, String> field : fields) {
+        if (!addField(field.getFirst(), field.getSecond())) {
+          shallowRemoveField(field.getFirst(), field.getSecond());
+        }
+      }
     }
 
     private void addDeferredAllocation(final String pointerVariable,
@@ -482,7 +486,7 @@ public interface PointerTargetSetBuilder {
     }
 
     @Override
-    public void shallowRemoveField(CCompositeType pComposite, String pFieldName) {
+    public void addEssentialFields(List<Pair<CCompositeType, String>> pFields) {
       throw new UnsupportedOperationException();
     }
 
