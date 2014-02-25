@@ -153,8 +153,6 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
       case AMPER:
         return operand.accept(LvalueToPointerTargetPatternVisitor.this);
       case MINUS:
-      case PLUS:
-      case NOT:
       case TILDE:
         return null;
       case SIZEOF:
@@ -244,16 +242,12 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
 
   @Override
   public PointerTargetPattern visit(final CUnaryExpression e) throws UnrecognizedCCodeException {
-    final CExpression operand = e.getOperand();
     switch (e.getOperator()) {
     case AMPER:
     case MINUS:
-    case NOT:
     case SIZEOF:
     case TILDE:
       throw new UnrecognizedCCodeException("Illegal unary operator", cfaEdge, e);
-    case PLUS:
-      return operand.accept(this);
     default:
       throw new UnrecognizedCCodeException("Unhandled unary operator", cfaEdge, e);
     }

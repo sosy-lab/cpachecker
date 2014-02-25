@@ -327,14 +327,8 @@ public class SeplogicTransferRelation implements TransferRelation {
       }
 
     } else if (expression instanceof CUnaryExpression) {
-      CUnaryExpression unaryExpression = (CUnaryExpression) expression;
-
-      if (unaryExpression.getOperator() == UnaryOperator.NOT) {
-        return handleAssume(element, unaryExpression.getOperand(), !isTrueBranch, assumeEdge);
-      } else {
-        throw new UnrecognizedCCodeException("not expected in CIL", assumeEdge,
-            expression);
-      }
+      throw new UnrecognizedCCodeException("not expected in CIL", assumeEdge,
+          expression);
     } else if (expression instanceof CIdExpression) {
       // if (a)
       String varName = ((CIdExpression) expression).getName();

@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
@@ -585,19 +584,6 @@ public class ConstraintManager {
         default:
           return null;
       }
-    } else if ( ce instanceof CUnaryExpression ) {
-        CUnaryExpression uexp = (CUnaryExpression)ce;
-        Collection<Pair<Term,ArrayList<Term>>> operand = expressionToCLP(uexp.getOperand());
-        Collection<Pair<Term,ArrayList<Term>>> newOperand = new ArrayList<>();
-        switch (uexp.getOperator()) {
-          case NOT:
-            for(Pair<Term,ArrayList<Term>> p : operand) {
-              newOperand.addAll(getNegatedConstraintList(p));
-            }
-            return newOperand;
-          default:
-            return null;
-        }
     } else {
       return null;
     }
@@ -659,27 +645,6 @@ public class ConstraintManager {
         default:
           return null;
       }
-    } else if ( ce instanceof CUnaryExpression ) {
-        CUnaryExpression uexp = (CUnaryExpression)ce;
-        switch (uexp.getOperator()) {
-          case NOT:
-            Collection<Pair<Term,ArrayList<Term>>> operand = expressionToCLP(uexp.getOperand());
-            Collection<Pair<Term,ArrayList<Term>>> paramAexpTerms = new ArrayList<>(operand.size());
-            Term paramAexpTerm = null;
-            for (Pair<Term,ArrayList<Term>> aexpTerm : operand) {
-              ArrayList<Term> aexpTermVars = new ArrayList<>(aexpTerm.getSecond());
-              aexpTermVars.add(paramVariable);
-              paramAexpTerm = new Compound("=:=", new Term[] {paramVariable, Util.textToTerm("rdiv(0,1)")});
-              paramAexpTerms.add(Pair.of(Util.termArrayToList(new Term[] {paramAexpTerm, aexpTerm.getFirst()}), aexpTermVars));
-              paramAexpTerm = new Compound("=:=", new Term[] {paramVariable, Util.textToTerm("rdiv(1,1)")});
-              for (Pair<Term,ArrayList<Term>> negAexpTerm :  getNegatedConstraintList(aexpTerm)) {
-                paramAexpTerms.add(Pair.of(Util.termArrayToList(new Term[] {paramAexpTerm, negAexpTerm.getFirst()}), aexpTermVars));
-              }
-            }
-          return paramAexpTerms;
-        default:
-          return null;
-        }
     } else {
       return null;
     }

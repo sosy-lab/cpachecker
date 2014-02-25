@@ -1053,8 +1053,6 @@ public class VariableClassification {
       BigInteger value = getNumber(unExp.getOperand());
       if (value == null) { return null; }
       switch (unExp.getOperator()) {
-      case PLUS:
-        return value;
       case MINUS:
         return value.negate();
       default:
@@ -1069,15 +1067,10 @@ public class VariableClassification {
     }
   }
 
-  /** returns true, if the expression contains a casted or negated binaryExpression. */
+  /** returns true, if the expression contains a casted binaryExpression. */
   private boolean isNestedBinaryExp(CExpression exp) {
     if (exp instanceof CBinaryExpression) {
       return true;
-
-    } else if (exp instanceof CUnaryExpression) {
-      CUnaryExpression unExp = (CUnaryExpression) exp;
-      return (UnaryOperator.NOT == unExp.getOperator()) &&
-          isNestedBinaryExp(unExp.getOperand());
 
     } else if (exp instanceof CCastExpression) {
       return isNestedBinaryExp(((CCastExpression) exp).getOperand());
@@ -1330,9 +1323,6 @@ public class VariableClassification {
 
       if (inner == null) {
         return null;
-      } else if (UnaryOperator.NOT == exp.getOperator()) {
-        // boolean operation, return inner vars
-        return inner;
       } else { // PLUS, MINUS, etc --> not boolean
         nonIntBoolVars.putAll(inner);
         return null;

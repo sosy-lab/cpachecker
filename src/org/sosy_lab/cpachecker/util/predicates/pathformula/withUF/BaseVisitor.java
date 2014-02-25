@@ -137,10 +137,8 @@ class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeExcep
     switch (e.getOperator()) {
     case AMPER:
       throw new UnrecognizedCCodeException("Address in place of lvalue", cfaEdge, e);
-    case NOT:
     case TILDE:
     case MINUS:
-    case PLUS:
       throw new UnrecognizedCCodeException("Arithmetic in place of lvalue", cfaEdge, e);
     case SIZEOF:
       throw new UnrecognizedCCodeException("Constant in place of lvalue", cfaEdge, e);

@@ -219,13 +219,8 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
       CUnaryExpression unaryExp = ((CUnaryExpression) expression);
 
       switch (unaryExp.getOperator()) {
-      // invert truth assumption
-      case NOT:
-        return handleAssumption(cfaEdge, unaryExp.getOperand(), !truthAssumption);
-
-        // do not change anything besides the expression, plus and minus have no effect
+        // do not change anything besides the expression, minus has no effect
         // on the == 0 equality check
-      case PLUS:
       case MINUS:
         return handleAssumption(cfaEdge, unaryExp.getOperand(), truthAssumption);
 
@@ -1280,7 +1275,6 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
       case SIZEOF:
       case TILDE:
         return Collections.singleton((IOctCoefficients)OctEmptyCoefficients.INSTANCE);
-      case NOT:
       case MINUS:
         Set<IOctCoefficients> returnCoefficients = new HashSet<>();
         for (IOctCoefficients coeffs : operand) {
@@ -1308,8 +1302,6 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
           }
         }
         return returnCoefficients;
-      case PLUS:
-        return operand;
       default:
         throw new AssertionError("Unhandled case in switch clause.");
       }

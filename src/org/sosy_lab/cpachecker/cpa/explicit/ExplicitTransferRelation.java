@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.APointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
@@ -68,7 +67,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JEnumConstantExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
@@ -698,16 +696,6 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
     private IAExpression unwrap(IAExpression expression) {
       // is this correct for e.g. [!a != !(void*)(int)(!b)] !?!?!
-
-      if (expression instanceof AUnaryExpression) {
-        AUnaryExpression exp = (AUnaryExpression)expression;
-        if (exp.getOperator() == UnaryOperator.NOT) { // TODO why only C-UnaryOperator?
-          expression = exp.getOperand();
-          truthValue = !truthValue;
-
-          expression = unwrap(expression);
-        }
-      }
 
       if (expression instanceof CCastExpression) {
         CCastExpression exp = (CCastExpression)expression;

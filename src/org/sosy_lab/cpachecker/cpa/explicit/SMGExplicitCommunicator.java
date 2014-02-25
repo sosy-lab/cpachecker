@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
-import java.util.logging.Level;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -32,13 +30,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.LValueAssignmentVisitor;
@@ -162,47 +156,6 @@ public class SMGExplicitCommunicator {
 
       MemoryLocation memloc = evaluateMemloc(pFieldReferenceExpression);
       return getValueFromLocation(memloc, pFieldReferenceExpression);
-    }
-
-    @Override
-    public ExplicitValueBase visit(CUnaryExpression pUnaryExpression) throws UnrecognizedCCodeException {
-
-      CExpression unaryOperand = pUnaryExpression.getOperand();
-
-      CType unaryOperandType = unaryOperand.getExpressionType().getCanonicalType();
-
-      if (unaryOperandType instanceof CArrayType || unaryOperandType instanceof CPointerType) {
-
-        UnaryOperator unaryOperator = pUnaryExpression.getOperator();
-
-        switch (unaryOperator) {
-        case NOT:
-
-          SMGSymbolicValue address;
-
-          try {
-            address = smgEvaluator.evaluateAddress(smgState, cfaEdge, unaryOperand);
-          } catch (CPATransferException e) {
-            logger.logUserException(Level.SEVERE, e, e.getMessage());
-            throw new UnrecognizedCCodeException("Could not evaluate address of "
-                + unaryOperand.toASTString(),
-                unaryOperand);
-          }
-
-          if (address.isUnknown()) {
-            return ExplicitValueBase.ExplicitUnknownValue.getInstance();
-          } else if (address.getAsInt() == 0) {
-            return new ExplicitNumericValue(1L);
-          } else {
-            return new ExplicitNumericValue(0L);
-          }
-        default:
-          return super.visit(pUnaryExpression);
-        }
-
-      } else {
-        return super.visit(pUnaryExpression);
-      }
     }
 
     @Override

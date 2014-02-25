@@ -570,14 +570,8 @@ public abstract class AbstractExplicitExpressionValueVisitor
     ExplicitNumericValue numericValue = (ExplicitNumericValue) value;
 
     switch (unaryOperator) {
-    case PLUS:
-      return value;
-
     case MINUS:
       return numericValue.negate();
-
-    case NOT:
-      return new ExplicitNumericValue(numericValue.isNull() ? 1L : 0L);
 
     case SIZEOF:
       throw new AssertionError("SIZEOF should be handled before!");

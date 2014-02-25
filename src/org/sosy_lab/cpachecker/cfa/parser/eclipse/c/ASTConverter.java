@@ -1571,9 +1571,8 @@ class ASTConverter {
         CUnaryExpression u = (CUnaryExpression)v;
         complement = true;
         v = u.getOperand();
-      } else if (v instanceof CUnaryExpression && ((CUnaryExpression) v).getOperator() != UnaryOperator.PLUS) {
-        assert false : v;
       }
+      assert !(v instanceof CUnaryExpression) : v;
 
       if (v instanceof CIntegerLiteralExpression) {
         value = ((CIntegerLiteralExpression)v).asLong();

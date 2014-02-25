@@ -383,7 +383,6 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     CExpression operand = exp.getOperand();
     UnaryOperator op = exp.getOperator();
     switch (op) {
-    case PLUS:
     case MINUS:
     case TILDE: {
       // Handle Integer Promotion
@@ -392,9 +391,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       Formula operandFormula = toFormula(operand);
       operandFormula = conv.makeCast(t, promoted, operandFormula, edge);
       Formula ret;
-      if (op == UnaryOperator.PLUS) {
-        ret = operandFormula;
-      } else if (op == UnaryOperator.MINUS) {
+      if (op == UnaryOperator.MINUS) {
         ret = conv.fmgr.makeNegate(operandFormula);
       } else {
         assert op == UnaryOperator.TILDE
@@ -407,12 +404,6 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       assert returnFormulaType == conv.fmgr.getFormulaType(ret)
             : "Returntype and Formulatype do not match in visit(CUnaryExpression)";
       return ret;
-    }
-
-    case NOT: {
-      Formula f = toFormula(operand);
-      BooleanFormula term = conv.toBooleanFormula(f);
-      return conv.ifTrueThenOneElseZero(conv.getFormulaTypeFromCType(exp.getExpressionType()), conv.bfmgr.not(term));
     }
 
     case AMPER:

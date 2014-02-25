@@ -180,7 +180,6 @@ public class SignCExpressionVisitor
   @Override
   public SIGN visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCodeException {
     switch(pIastUnaryExpression.getOperator()) {
-    case PLUS:
     case MINUS:
       SIGN result = SIGN.EMPTY;
       SIGN operandSign = pIastUnaryExpression.getOperand().accept(this);
@@ -199,8 +198,7 @@ public class SignCExpressionVisitor
     if(operand == SIGN.ZERO) {
       return SIGN.ZERO;
     }
-    if(operator == UnaryOperator.PLUS && operand == SIGN.MINUS
-        || operator == UnaryOperator.MINUS && operand == SIGN.PLUS) {
+    if(operator == UnaryOperator.MINUS && operand == SIGN.PLUS) {
       return SIGN.MINUS;
     }
     return SIGN.PLUS;
