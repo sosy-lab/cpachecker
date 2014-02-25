@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cmdline;
+package org.sosy_lab.cpachecker.util;
 
 import java.io.BufferedReader;
 import java.io.IOException;

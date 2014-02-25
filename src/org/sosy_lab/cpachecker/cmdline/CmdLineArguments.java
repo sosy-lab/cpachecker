@@ -38,10 +38,11 @@ import org.sosy_lab.common.configuration.OptionCollector;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.cpachecker.cmdline.PropertyFileParser.InvalidPropertyFileException;
-import org.sosy_lab.cpachecker.cmdline.PropertyFileParser.PropertyType;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.util.PropertyFileParser;
+import org.sosy_lab.cpachecker.util.PropertyFileParser.InvalidPropertyFileException;
+import org.sosy_lab.cpachecker.util.PropertyFileParser.PropertyType;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
@@ -52,7 +53,7 @@ import com.google.common.collect.Lists;
  * To add a new argument, handle it in {@link #processArguments(String[])}
  * and list it in {@link #printHelp()}.
  */
-public class CmdLineArguments {
+class CmdLineArguments {
 
   private static final Splitter SETPROP_OPTION_SPLITTER = Splitter.on('=').trimResults().limit(2);
 
