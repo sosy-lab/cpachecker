@@ -154,7 +154,7 @@ public class RedlogInterface {
       // The statement must be wrapped inside a function
       // declaration. This however gets stripped away.
       f = "void foo() { "+f+" }";
-      root = parser.parseSingleStatement(f.toCharArray());
+      root = parser.parseSingleStatement(f);
     } catch (Exception e) {
       logger.log(Level.FINEST, "Parser failed to parse Redlog output formula.", e.getMessage());
     }

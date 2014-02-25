@@ -58,9 +58,9 @@ public interface CParser extends Parser {
   }
 
   public static class FileContentToParse extends FileToParse {
-    public final char[] fileContent;
+    public final String fileContent;
 
-    public FileContentToParse(String pFileName, char[] pFileContent, String pStaticVariablePrefix) {
+    public FileContentToParse(String pFileName, String pFileContent, String pStaticVariablePrefix) {
       super(pFileName, pStaticVariablePrefix);
       this.fileContent = pFileContent;
     }
@@ -107,7 +107,7 @@ public interface CParser extends Parser {
    * @return The AST for the statement.
    * @throws ParserException If parsing fails.
    */
-  CAstNode parseSingleStatement(char[] code) throws CParserException, InvalidConfigurationException;
+  CAstNode parseSingleStatement(String code) throws CParserException, InvalidConfigurationException;
 
   /**
    * Method for parsing a block of statements that contains exactly one function with exactly
@@ -126,7 +126,7 @@ public interface CParser extends Parser {
    * @return The list of ASTs for the statement.
    * @throws ParserException If parsing fails.
    */
-  List<CAstNode> parseStatements(char[] code) throws CParserException, InvalidConfigurationException;
+  List<CAstNode> parseStatements(String code) throws CParserException, InvalidConfigurationException;
 
   /**
    * Enum for clients of this class to choose the C dialect the parser uses.

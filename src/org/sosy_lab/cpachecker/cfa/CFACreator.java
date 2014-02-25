@@ -439,7 +439,7 @@ public class CFACreator {
       if (usePreprocessor) {
         parseResult = parser.parseFile(sourceFileName);
       } else {
-        char[] code = Paths.get(sourceFileName).asCharSource(Charset.defaultCharset()).read().toCharArray();
+        String code = Paths.get(sourceFileName).asCharSource(Charset.defaultCharset()).read();
         parseResult = parser.parseString(sourceFileName, code);
       }
     } else {
@@ -461,7 +461,7 @@ public class CFACreator {
            * The program file has to parsed as String since Google App Engine does not allow
            * writes to the file system and therefore the input file is stored elsewhere.
            */
-        char[] code = Paths.get(fileName).asCharSource(Charset.defaultCharset()).read().toCharArray();
+        String code = Paths.get(fileName).asCharSource(Charset.defaultCharset()).read();
         programFragments.add(new FileContentToParse(fileName, code, staticVarPrefix));
       }
 

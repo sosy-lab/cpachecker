@@ -89,11 +89,11 @@ public class CParserWithLocationMapper implements CParser {
 
   @Override
   public ParseResult parseFile(String pFilename) throws ParserException, IOException, InvalidConfigurationException, InterruptedException {
-    char[] tokenizedCode = tokenizeSourcefile(pFilename);
+    String tokenizedCode = tokenizeSourcefile(pFilename);
     return realParser.parseString(pFilename, tokenizedCode);
   }
 
-  private char[] tokenizeSourcefile(String pFilename) throws CParserException {
+  private String tokenizeSourcefile(String pFilename) throws CParserException {
     StringBuffer code = new StringBuffer();
     try (BufferedReader br = new BufferedReader(new FileReader(pFilename))) {
       String line;
@@ -105,10 +105,10 @@ public class CParserWithLocationMapper implements CParser {
       throw new CParserException("Error reading input program file", e);
     }
 
-    return processCode(pFilename, code.toString().toCharArray());
+    return processCode(pFilename, code.toString());
   }
 
-  private char[] processCode(String fileName, char[] pCode) throws CParserException {
+  private String processCode(String fileName, String pCode) throws CParserException {
     StringBuilder tokenizedCode = new StringBuilder();
 
     List<Appendable> tokenizingTargets = Lists.newArrayList();
@@ -128,7 +128,7 @@ public class CParserWithLocationMapper implements CParser {
       LexerOptions options = new LexerOptions();
       ILexerLog log = ILexerLog.NULL;
       Object source = null;
-      Lexer lx = new Lexer(pCode, options, log, source);
+      Lexer lx = new Lexer(pCode.toCharArray(), options, log, source);
 
       try {
         int absoluteTokenNumber = 0;
@@ -197,7 +197,7 @@ public class CParserWithLocationMapper implements CParser {
         throw new CParserException("Tokenizing failed", e);
       }
 
-      return tokenizeCode ? tokenizedCode.toString().toCharArray() : pCode;
+      return tokenizeCode ? tokenizedCode.toString() : pCode;
     } finally {
       if (dumpTokenizedTo != null) {
         dumpTokenizedTo.close();
@@ -214,8 +214,8 @@ public class CParserWithLocationMapper implements CParser {
   }
 
   @Override
-  public ParseResult parseString(String pFilename, char[] pCode) throws ParserException, InvalidConfigurationException {
-    char[] tokenizedCode = processCode(pFilename, pCode);
+  public ParseResult parseString(String pFilename, String pCode) throws ParserException, InvalidConfigurationException {
+    String tokenizedCode = processCode(pFilename, pCode);
 
     return realParser.parseString(pFilename, tokenizedCode);
   }
@@ -236,8 +236,8 @@ public class CParserWithLocationMapper implements CParser {
 
     List<FileContentToParse> programFragments = new ArrayList<>(pFilenames.size());
     for (FileToParse f : pFilenames) {
-      char[] programCode = tokenizeSourcefile(f.fileName);
-      if (programCode.length == 0) {
+      String programCode = tokenizeSourcefile(f.fileName);
+      if (programCode.isEmpty()) {
         throw new CParserException("Tokenizer returned empty program");
       }
       programFragments.add(new FileContentToParse(f.fileName, programCode, f.staticVariablePrefix));
@@ -251,8 +251,8 @@ public class CParserWithLocationMapper implements CParser {
 
     List<FileContentToParse> tokenizedFragments = new ArrayList<>(pCode.size());
     for (FileContentToParse f : pCode) {
-      char[] programCode = processCode(f.fileName, f.fileContent);
-      if (programCode.length == 0) {
+      String programCode = processCode(f.fileName, f.fileContent);
+      if (programCode.isEmpty()) {
         throw new CParserException("Tokenizer returned empty program");
       }
       tokenizedFragments.add(new FileContentToParse(f.fileName, programCode, f.staticVariablePrefix));
@@ -262,12 +262,12 @@ public class CParserWithLocationMapper implements CParser {
   }
 
   @Override
-  public CAstNode parseSingleStatement(char[] pCode) throws CParserException, InvalidConfigurationException {
+  public CAstNode parseSingleStatement(String pCode) throws CParserException, InvalidConfigurationException {
     return realParser.parseSingleStatement(pCode);
   }
 
   @Override
-  public List<CAstNode> parseStatements(char[] pCode) throws CParserException, InvalidConfigurationException {
+  public List<CAstNode> parseStatements(String pCode) throws CParserException, InvalidConfigurationException {
     return realParser.parseStatements(pCode);
   }
 }

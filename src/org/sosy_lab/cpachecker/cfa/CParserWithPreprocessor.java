@@ -49,15 +49,15 @@ class CParserWithPreprocessor implements CParser {
 
   @Override
   public ParseResult parseFile(String pFilename) throws ParserException, IOException, InvalidConfigurationException, InterruptedException {
-    char[] programCode = preprocessor.preprocess(pFilename);
-    if (programCode.length == 0) {
+    String programCode = preprocessor.preprocess(pFilename);
+    if (programCode.isEmpty()) {
       throw new CParserException("Preprocessor returned empty program");
     }
     return realParser.parseString(pFilename, programCode);
   }
 
   @Override
-  public ParseResult parseString(String pFilename, char[] pCode) throws ParserException, InvalidConfigurationException {
+  public ParseResult parseString(String pFilename, String pCode) throws ParserException, InvalidConfigurationException {
     // TODO
     throw new UnsupportedOperationException();
   }
@@ -78,8 +78,8 @@ class CParserWithPreprocessor implements CParser {
 
     List<FileContentToParse> programs = new ArrayList<>(pFilenames.size());
     for (FileToParse p : pFilenames) {
-      char[] programCode = preprocessor.preprocess(p.fileName);
-      if (programCode.length == 0) {
+      String programCode = preprocessor.preprocess(p.fileName);
+      if (programCode.isEmpty()) {
         throw new CParserException("Preprocessor returned empty program");
       }
       programs.add(new FileContentToParse(p.fileName, programCode, p.staticVariablePrefix));
@@ -95,12 +95,12 @@ class CParserWithPreprocessor implements CParser {
   }
 
   @Override
-  public CAstNode parseSingleStatement(char[] pCode) throws CParserException, InvalidConfigurationException {
+  public CAstNode parseSingleStatement(String pCode) throws CParserException, InvalidConfigurationException {
     return realParser.parseSingleStatement(pCode);
   }
 
   @Override
-  public List<CAstNode> parseStatements(char[] pCode) throws CParserException, InvalidConfigurationException {
+  public List<CAstNode> parseStatements(String pCode) throws CParserException, InvalidConfigurationException {
     return realParser.parseStatements(pCode);
   }
 }
