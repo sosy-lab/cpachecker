@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 @Options(prefix="cpa.explicit.interpolation")
@@ -110,6 +111,11 @@ public class ExplicitInterpolator {
   private final Set<MemoryLocation> loopExitMemoryLocations = new HashSet<>();
 
   /**
+   * the boolean flag that indicates, if assignments through assumptions are needed for excluding the target state
+   */
+  private Boolean assumptionsAreRelevant = null;
+
+  /**
    * the number of interpolations
    */
   private int numberOfInterpolationQueries = 0;
@@ -155,6 +161,10 @@ public class ExplicitInterpolator {
       final ExplicitValueInterpolant pInputInterpolant) throws CPAException, InterruptedException {
     numberOfInterpolationQueries = 0;
 
+    if(pOffset == 0) {
+      assumptionsAreRelevant = isRemainingPathFeasible(pErrorPath, new ExplicitState(), false);
+    }
+
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
     ExplicitState initialState      = pInputInterpolant.createExplicitValueState();
     ExplicitState initialSuccessor  = getInitialSuccessor(initialState, pErrorPath.get(pOffset));
@@ -180,7 +190,7 @@ public class ExplicitInterpolator {
 
     // if the remaining path is infeasible by itself, i.e., contradicting by itself, skip interpolation
     Iterable<CFAEdge> remainingErrorPath = skip(pErrorPath, pOffset + 1);
-    if (initialSuccessor.getSize() > 1 && !isRemainingPathFeasible(remainingErrorPath, new ExplicitState())) {
+    if (initialSuccessor.getSize() > 1 && !isRemainingPathFeasible(remainingErrorPath, new ExplicitState(), assumptionsAreRelevant)) {
       return ExplicitValueInterpolant.TRUE;
     }
 
@@ -196,7 +206,7 @@ public class ExplicitInterpolator {
       ExplicitValueBase value = initialSuccessor.forget(currentMemoryLocation);
 
       // check if the remaining path now becomes feasible,
-      if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
+      if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor, assumptionsAreRelevant)) {
         initialSuccessor.assignConstant(currentMemoryLocation, value);
       }
     }
@@ -247,12 +257,13 @@ public class ExplicitInterpolator {
    */
   private ExplicitState getInitialSuccessor(ExplicitState initialState, CFAEdge initialEdge)
       throws CPATransferException {
+
     Collection<ExplicitState> successors = transfer.getAbstractSuccessors(
         initialState,
         precision,
         initialEdge);
 
-    return successors.isEmpty() ? null : successors.iterator().next();
+    return extractSingletonSuccessor(initialState, initialEdge, assumptionsAreRelevant, successors);
   }
 
   /**
@@ -260,10 +271,11 @@ public class ExplicitInterpolator {
    *
    * @param remainingErrorPath the error path to check feasibility on
    * @param state the (pseudo) initial state
+   * @param ignoreAssumptions whether or not to ignore the assigning semantics of assume edges
    * @return true, it the path is feasible, else false
    * @throws CPATransferException
    */
-  private boolean isRemainingPathFeasible(Iterable<CFAEdge> remainingErrorPath, ExplicitState state)
+  private boolean isRemainingPathFeasible(Iterable<CFAEdge> remainingErrorPath, ExplicitState state, boolean ignoreAssumptions)
       throws CPATransferException {
     numberOfInterpolationQueries++;
 
@@ -281,9 +293,32 @@ public class ExplicitInterpolator {
         return false;
       }
 
-      state = successors.iterator().next();
+      state = extractSingletonSuccessor(state, currentEdge, ignoreAssumptions, successors);
     }
     return true;
+  }
+
+  /**
+   * This method extracts the single successor from the (empty or singleton) set of successors.
+   *
+   * @param predecessor the predecessor state
+   * @param currentEdge the current edge
+   * @param successors the (empty or singleton) set of successors
+   * @return the only successor or null, if no set of successors is empty
+   */
+  private ExplicitState extractSingletonSuccessor(ExplicitState predecessor,
+      CFAEdge currentEdge, boolean ignoreAssumptions, Collection<ExplicitState> successors) {
+    if(successors.isEmpty()) {
+      return null;
+    }
+
+    else if(!ignoreAssumptions && currentEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+      return predecessor.clone();
+    }
+
+    else {
+      return Iterables.getOnlyElement(successors);
+    }
   }
 
   /**
