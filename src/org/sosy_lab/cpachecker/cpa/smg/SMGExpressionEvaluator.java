@@ -200,10 +200,15 @@ public class SMGExpressionEvaluator {
 
   private SMGField getField(CFAEdge edge, CType ownerType, String fieldName) throws UnrecognizedCCodeException {
 
-    //TODO What if .getRealType = null ? Also, recursion unnecessary
-
     if (ownerType instanceof CElaboratedType) {
-      return getField(edge, ((CElaboratedType) ownerType).getRealType(), fieldName);
+
+      CType realType = ((CElaboratedType) ownerType).getRealType();
+
+      if(realType == null) {
+        return SMGField.getUnknownInstance();
+      }
+
+      return getField(edge, realType, fieldName);
     } else if (ownerType instanceof CCompositeType) {
       return getField(edge, (CCompositeType)ownerType, fieldName);
     } else if (ownerType instanceof CPointerType) {

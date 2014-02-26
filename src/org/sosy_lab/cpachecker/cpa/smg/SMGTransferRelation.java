@@ -2521,6 +2521,8 @@ public class SMGTransferRelation implements TransferRelation {
    */
   public static final class SMGField {
 
+    private static final SMGField UNKNOWN = new SMGField(SMGUnknownValue.getInstance(), new CProblemType("unknown"));
+
     /**
      * the offset of this field relative to the memory
      * this field belongs to.
@@ -2555,6 +2557,10 @@ public class SMGTransferRelation implements TransferRelation {
     @Override
     public String toString() {
       return "offset: " + offset + "Type:" + type.toASTString("");
+    }
+
+    public static SMGField getUnknownInstance() {
+      return UNKNOWN;
     }
   }
 
