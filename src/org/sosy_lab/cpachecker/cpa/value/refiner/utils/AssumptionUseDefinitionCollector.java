@@ -235,11 +235,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
           collectedVariables.add(parameter.getQualifiedName());
           relevantEdges.add(functionCallEdge);
 
-          CExpression argument = functionCallEdge.getArguments().get(j);
-
-          if(argument instanceof CRightHandSide) {
-            collectVariables(functionCallEdge, argument);
-          }
+          collectVariables(functionCallEdge, functionCallEdge.getArguments().get(j));
         }
         j++;
       }
