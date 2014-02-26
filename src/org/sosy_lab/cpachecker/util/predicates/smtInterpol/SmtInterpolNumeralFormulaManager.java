@@ -56,9 +56,9 @@ abstract class SmtInterpolNumeralFormulaManager
     functionManager = pFunctionManager;
 
     FormulaType<? extends NumeralFormula> formulaType = getFormulaType();
-    multUfDecl = functionManager.createFunction(MultUfName, formulaType, formulaType, formulaType);
-    divUfDecl = functionManager.createFunction(DivUfName, formulaType, formulaType, formulaType);
-    modUfDecl = functionManager.createFunction(ModUfName, formulaType, formulaType, formulaType);
+    multUfDecl = functionManager.createFunction(formulaType + "_" + MultUfName, formulaType, formulaType, formulaType);
+    divUfDecl = functionManager.createFunction(formulaType + "_" + DivUfName, formulaType, formulaType, formulaType);
+    modUfDecl = functionManager.createFunction(formulaType + "_" + ModUfName, formulaType, formulaType, formulaType);
   }
 
   private Term makeUf(FunctionFormulaType decl, Term t1, Term t2) {

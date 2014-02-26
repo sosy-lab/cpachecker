@@ -34,7 +34,6 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 
 import com.google.common.base.Function;

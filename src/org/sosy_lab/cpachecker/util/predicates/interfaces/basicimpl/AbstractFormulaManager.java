@@ -117,12 +117,14 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
     Class<?> c ;
     if (instance instanceof BooleanFormula) {
       c = BooleanFormula.class;
-    } else if (instance instanceof NumeralFormula) {
-      c = NumeralFormula.class;
+    } else if (instance instanceof IntegerFormula) {
+      c = IntegerFormula.class;
+    } else if (instance instanceof RationalFormula) {
+      c = RationalFormula.class;
     } else if (instance instanceof BitvectorFormula) {
       c = BitvectorFormula.class;
     } else {
-      throw new IllegalArgumentException("Invalid instance");
+      throw new IllegalArgumentException("Invalid instance: " + instance.getClass());
     }
 
     return (Class<T>) c;

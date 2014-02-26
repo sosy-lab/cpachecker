@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -454,14 +455,14 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
     BooleanFormulaManager bfmgr = manager.getBooleanFormulaManager();
-    NumeralFormulaManager nfmgr = manager.getRationalFormulaManager();
+    NumeralFormulaManager<NumeralFormula, RationalFormula> nfmgr = manager.getRationalFormulaManager();
     BooleanFormula formula = bfmgr.makeBoolean(true);
 
     for (Map.Entry<MemoryLocation, ExplicitValueBase> entry : constantsMap.entrySet()) {
-      NumeralFormula var = nfmgr.makeVariable(entry.getKey().getAsSimpleString());
+      RationalFormula var = nfmgr.makeVariable(entry.getKey().getAsSimpleString());
       // TODO explicitfloat: handle the case that it's not a long
       // The following is a hack
-      NumeralFormula val = nfmgr.makeNumber(entry.getValue().asLong(CNumericTypes.INT));
+      RationalFormula val = nfmgr.makeNumber(entry.getValue().asLong(CNumericTypes.INT));
       formula = bfmgr.and(formula, nfmgr.equal(var, val));
     }
 

@@ -24,7 +24,8 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import org.sosy_lab.common.Appender;
-
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
 /**
  * Represents a Solver.
@@ -37,7 +38,7 @@ public interface FormulaManager {
    * the Integer- and the RationalFormulaManager both return the same Formulas for numeric operations
    * like ADD, SUBSTRACT, TIMES, LESSTHAN, EQUAL, etc.
    */
-  NumeralFormulaManager getIntegerFormulaManager();
+  NumeralFormulaManager<IntegerFormula, IntegerFormula> getIntegerFormulaManager();
 
   /**
    * Returns the Rational-Theory.
@@ -45,7 +46,7 @@ public interface FormulaManager {
    * the Integer- and the RationalFormulaManager both return the same Formulas for numeric operations
    * like ADD, SUBSTRACT, TIMES, LESSTHAN, EQUAL, etc.
    */
-  NumeralFormulaManager getRationalFormulaManager();
+  NumeralFormulaManager<NumeralFormula, RationalFormula> getRationalFormulaManager();
 
   /**
    * Returns the Boolean-Theory.

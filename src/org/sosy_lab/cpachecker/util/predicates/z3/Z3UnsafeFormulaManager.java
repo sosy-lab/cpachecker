@@ -42,12 +42,10 @@ public class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, L
 
   private Set<Long> uifs = new HashSet<>();
   private long z3context;
-  private Z3FormulaCreator creator;
 
   public Z3UnsafeFormulaManager(
       Z3FormulaCreator pCreator) {
     super(pCreator);
-    this.creator = pCreator;
     this.z3context = pCreator.getEnv();
   }
 
