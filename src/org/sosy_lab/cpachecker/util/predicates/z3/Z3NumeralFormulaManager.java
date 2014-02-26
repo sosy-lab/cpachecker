@@ -51,7 +51,7 @@ abstract class Z3NumeralFormulaManager extends AbstractNumeralFormulaManager<Lon
           Z3FunctionFormulaManager functionManager) {
     super(pCreator);
     this.z3context = pCreator.getEnv();
-    FormulaType<NumeralFormula> formulaType = FormulaType.RationalType;
+    FormulaType<NumeralFormula> formulaType = getFormulaType();
     this.functionManager = functionManager;
     multUfDecl = functionManager.createFunction(MultUfName, formulaType, formulaType, formulaType);
     divUfDecl = functionManager.createFunction(DivUfName, formulaType, formulaType, formulaType);
