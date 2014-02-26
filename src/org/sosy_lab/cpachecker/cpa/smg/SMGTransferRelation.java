@@ -1588,14 +1588,11 @@ public class SMGTransferRelation implements TransferRelation {
     Collection<? extends AbstractState> retVal = null;
 
     for (AbstractState ae : elements) {
-      if(ae instanceof ExplicitState) {
-        retVal = strengthen((ExplicitState) ae, (SMGState)element, cfaEdge);
-      } else if(ae instanceof AutomatonState) {
-        strengthen((AutomatonState) ae, (SMGState)element, cfaEdge);
+      if (ae instanceof AutomatonState) {
+        strengthen((AutomatonState) ae, (SMGState) element, cfaEdge);
       }
     }
 
-    //TODO More common handling of missing information (erase missing Information if other cpas solved it).
     missingInformationList.clear();
     possibleMallocFail = false;
     hasChanged = false;
@@ -1626,6 +1623,7 @@ public class SMGTransferRelation implements TransferRelation {
 
   private boolean hasChanged;
 
+  @SuppressWarnings("unused")
   private Collection<? extends AbstractState> strengthen(ExplicitState explicitState, SMGState pSMGState, CFAEdge cfaEdge) throws CPATransferException {
 
     SMGState newElement = new SMGState(pSMGState);
