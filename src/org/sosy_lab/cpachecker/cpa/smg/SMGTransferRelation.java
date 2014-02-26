@@ -1607,6 +1607,12 @@ public class SMGTransferRelation implements TransferRelation {
       return isRequiered;
     }
 
+    @Override
+    protected SMGSymbolicValue handleUnknownDereference(SMGState pSmgState, CFAEdge pEdge) {
+      pSmgState.setUnknownDereference();
+      return super.handleUnknownDereference(pSmgState, pEdge);
+    }
+
     public void reset() {
       isRequiered = false;
       missingExplicitInformation = false;

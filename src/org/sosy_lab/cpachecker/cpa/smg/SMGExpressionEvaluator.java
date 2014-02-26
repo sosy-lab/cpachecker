@@ -1391,8 +1391,8 @@ public class SMGExpressionEvaluator {
       if (address.isUnknown()) {
         // We can't resolve the field to dereference, therefore
         // we must assume, that it is invalid
-        smgState.setUnknownDereference(); //TODO technically not allowed here, changes smgState semantically
-        return SMGUnknownValue.getInstance();
+
+        return handleUnknownDereference(smgState, cfaEdge);
       }
 
       // a == &a[0]
@@ -1411,8 +1411,7 @@ public class SMGExpressionEvaluator {
       if (address.isUnknown()) {
         // We can't resolve the field to dereference , therefore
         // we must assume, that it is invalid
-        smgState.setUnknownDereference(); //TODO technically not allowed here, changes smgState semantically
-        return SMGUnknownValue.getInstance();
+        return handleUnknownDereference(smgState, cfaEdge);
       }
 
       // a == &a[0]
@@ -1754,11 +1753,22 @@ public class SMGExpressionEvaluator {
 
    */
 
-  private StructAndUnionVisitor getStructAndUnionVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
+  /*
+   * These Methods are designed to be overwritten to enable
+   * sub classes to, for example, change the smgState while
+   * evaluating expressions.
+   *
+   */
+
+  protected SMGSymbolicValue handleUnknownDereference(SMGState smgState, CFAEdge edge) {
+    return SMGUnknownValue.getInstance();
+  }
+
+  protected StructAndUnionVisitor getStructAndUnionVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
     return new StructAndUnionVisitor(pCfaEdge, pNewState);
   }
 
-  private ArrayVisitor getArrayVisitor(CFAEdge pCfaEdge, SMGState pSmgState) {
+  protected ArrayVisitor getArrayVisitor(CFAEdge pCfaEdge, SMGState pSmgState) {
     return new ArrayVisitor(pCfaEdge, pSmgState);
   }
 
