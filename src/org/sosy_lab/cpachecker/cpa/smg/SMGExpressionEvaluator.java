@@ -900,8 +900,15 @@ public class SMGExpressionEvaluator {
 
     @Override
     public SMGAddress visit(CCastExpression cast) throws CPATransferException {
-      //TODO Bug, can introduce non array type in visitor
-      return cast.getOperand().accept(this);
+
+      CExpression op = cast.getOperand();
+
+      if(op.getExpressionType() instanceof CArrayType) {
+        return cast.getOperand().accept(this);
+      } else {
+        //TODO cast reinterpretation
+        return SMGAddress.UNKNOWN;
+      }
     }
 
     @Override
@@ -1106,6 +1113,20 @@ public class SMGExpressionEvaluator {
     @Override
     public SMGAddress visit(CFunctionCallExpression pIastFunctionCallExpression) throws CPATransferException {
       return SMGAddress.UNKNOWN;
+    }
+
+    @Override
+    public SMGAddress visit(CCastExpression cast) throws CPATransferException {
+
+      CExpression op = cast.getOperand();
+
+      if(isStructOrUnionType(op.getExpressionType())) {
+        return cast.getOperand().accept(this);
+      } else {
+        //TODO cast reinterpretation
+        return SMGAddress.UNKNOWN;
+      }
+
     }
   }
 
