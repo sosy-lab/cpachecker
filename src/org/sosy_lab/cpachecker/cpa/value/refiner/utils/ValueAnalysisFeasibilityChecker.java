@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.explicit.refiner.utils;
+package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
 import java.util.Collection;
 
@@ -33,9 +33,9 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
@@ -44,23 +44,23 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
 
-public class ExplictFeasibilityChecker {
+public class ValueAnalysisFeasibilityChecker {
 
   private final CFA cfa;
   private final LogManager logger;
-  private final ExplicitTransferRelation transfer;
+  private final ValueAnalysisTransferRelation transfer;
   private final Configuration config;
 
   /**
    * This method acts as the constructor of the class.
    * @throws CounterexampleAnalysisFailed
    */
-  public ExplictFeasibilityChecker(LogManager pLogger, CFA pCfa) throws InvalidConfigurationException {
+  public ValueAnalysisFeasibilityChecker(LogManager pLogger, CFA pCfa) throws InvalidConfigurationException {
     this.cfa    = pCfa;
     this.logger = pLogger;
 
     config    = Configuration.builder().build();
-    transfer  = new ExplicitTransferRelation(config, logger, cfa);
+    transfer  = new ValueAnalysisTransferRelation(config, logger, cfa);
   }
 
   /**
@@ -73,7 +73,7 @@ public class ExplictFeasibilityChecker {
    */
   public boolean isFeasible(final ARGPath path) throws CPAException, InterruptedException {
     try {
-      return isFeasible(path, new ExplicitPrecision("", config, Optional.<VariableClassification>absent()));
+      return isFeasible(path, new ValueAnalysisPrecision("", config, Optional.<VariableClassification>absent()));
     }
     catch (InvalidConfigurationException e) {
       throw new CPAException("Configuring ExplictFeasibilityChecker failed: " + e.getMessage(), e);
@@ -88,13 +88,13 @@ public class ExplictFeasibilityChecker {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public boolean isFeasible(final ARGPath path, final ExplicitPrecision pPrecision)
+  public boolean isFeasible(final ARGPath path, final ValueAnalysisPrecision pPrecision)
       throws CPAException, InterruptedException {
     try {
-      ExplicitState next = new ExplicitState();
+      ValueAnalysisState next = new ValueAnalysisState();
 
       for (Pair<ARGState, CFAEdge> pathElement : path) {
-        Collection<ExplicitState> successors = transfer.getAbstractSuccessors(
+        Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessors(
             next,
             pPrecision,
             pathElement.getSecond());

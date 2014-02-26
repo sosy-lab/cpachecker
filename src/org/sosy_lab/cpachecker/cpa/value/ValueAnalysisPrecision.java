@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.explicit;
+package org.sosy_lab.cpachecker.cpa.value;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -41,7 +41,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Joiner;
@@ -51,7 +51,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.TreeMultimap;
 
 @Options(prefix="cpa.explicit.precision")
-public class ExplicitPrecision implements Precision {
+public class ValueAnalysisPrecision implements Precision {
 
   /**
    * the pattern describing variable names that are not being tracked - if it is null, no variables are black-listed
@@ -89,7 +89,7 @@ public class ExplicitPrecision implements Precision {
 
   private final Optional<VariableClassification> varClass;
 
-  public ExplicitPrecision(String variableBlacklist, Configuration config,
+  public ValueAnalysisPrecision(String variableBlacklist, Configuration config,
       Optional<VariableClassification> vc) throws InvalidConfigurationException {
     config.inject(this);
 
@@ -110,7 +110,7 @@ public class ExplicitPrecision implements Precision {
    * @param original the ExplicitPrecision to refine
    * @param increment the increment to refine with
    */
-  public ExplicitPrecision(ExplicitPrecision original, Multimap<CFANode, MemoryLocation> increment) {
+  public ValueAnalysisPrecision(ValueAnalysisPrecision original, Multimap<CFANode, MemoryLocation> increment) {
     // refine the refinable component precision with the given increment
     refinablePrecision    = original.refinablePrecision.refine(increment);
 
@@ -150,7 +150,7 @@ public class ExplicitPrecision implements Precision {
     return refinablePrecision.toString();
   }
 
-  public ExplicitState computeAbstraction(ExplicitState state, CFANode location) {
+  public ValueAnalysisState computeAbstraction(ValueAnalysisState state, CFANode location) {
     refinablePrecision.setLocation(location);
 
     Collection<MemoryLocation> candidates = refinablePrecision.getAbstractionCandidates(state);
@@ -277,7 +277,7 @@ public class ExplicitPrecision implements Precision {
      * @param state the state for which to compute the abstraction candidates
      * @return the set of the abstraction candidates
      */
-    abstract protected Collection<MemoryLocation> getAbstractionCandidates(ExplicitState state);
+    abstract protected Collection<MemoryLocation> getAbstractionCandidates(ValueAnalysisState state);
   }
 
   public static class LocalizedRefinablePrecision extends RefinablePrecision {
@@ -329,7 +329,7 @@ public class ExplicitPrecision implements Precision {
     }
 
     @Override
-    protected Collection<MemoryLocation> getAbstractionCandidates(ExplicitState state) {
+    protected Collection<MemoryLocation> getAbstractionCandidates(ValueAnalysisState state) {
       return new HashSet<>(state.getTrackedMemoryLocations());
     }
 
@@ -405,7 +405,7 @@ public class ExplicitPrecision implements Precision {
     }
 
     @Override
-    protected Collection<MemoryLocation> getAbstractionCandidates(ExplicitState state) {
+    protected Collection<MemoryLocation> getAbstractionCandidates(ValueAnalysisState state) {
       return new HashSet<>(state.getDelta());
     }
 
@@ -442,7 +442,7 @@ public class ExplicitPrecision implements Precision {
     }
 
     @Override
-    protected Collection<MemoryLocation> getAbstractionCandidates(ExplicitState state) {
+    protected Collection<MemoryLocation> getAbstractionCandidates(ValueAnalysisState state) {
       return new HashSet<>(state.getDelta());
     }
   }

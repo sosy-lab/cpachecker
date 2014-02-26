@@ -810,8 +810,9 @@ public class CtoFormulaConverter {
     }
 
     case AssumeEdge: {
-      return makeAssume((CAssumeEdge)edge, function,
-          ssa, pts, constraints, errorConditions);
+      CAssumeEdge assumeEdge = (CAssumeEdge)edge;
+      return makePredicate(assumeEdge.getExpression(), assumeEdge.getTruthAssumption(),
+          assumeEdge, function, ssa, pts, constraints, errorConditions);
     }
 
     case BlankEdge: {
@@ -1074,16 +1075,6 @@ public class CtoFormulaConverter {
     return statementVisitor.handleAssignment(lhs, rhs);
   }
 
-  protected BooleanFormula makeAssume(
-      final CAssumeEdge assume, final String function,
-      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
-      final Constraints constraints, final ErrorConditions errorConditions)
-          throws CPATransferException {
-
-    return makePredicate(assume.getExpression(), assume.getTruthAssumption(),
-        assume, function, ssa, constraints);
-  }
-
   Formula buildTerm(CExpression exp, CFAEdge edge, String function,
       SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
     return exp.accept(getCExpressionVisitor(edge, function, ssa, constraints));
@@ -1150,8 +1141,8 @@ public class CtoFormulaConverter {
     return bfmgr.not(fmgr.makeEqual(pF, zero));
   }
 
-  private BooleanFormula makePredicate(CExpression exp, boolean isTrue, CFAEdge edge,
-      String function, SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
+  protected BooleanFormula makePredicate(CExpression exp, boolean isTrue, CFAEdge edge,
+      String function, SSAMapBuilder ssa, PointerTargetSetBuilder pts, Constraints constraints, ErrorConditions errorConditions) throws UnrecognizedCCodeException {
 
     Formula f = exp.accept(getCExpressionVisitor(edge, function, ssa, constraints));
     BooleanFormula result = toBooleanFormula(f);
@@ -1163,8 +1154,10 @@ public class CtoFormulaConverter {
   }
 
   public BooleanFormula makePredicate(CExpression exp, CFAEdge edge, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
+    PointerTargetSetBuilder pts = DummyPointerTargetSetBuilder.INSTANCE;
     Constraints constraints = new Constraints(bfmgr);
-    BooleanFormula f = makePredicate(exp, true, edge, function, ssa, constraints);
+    ErrorConditions errorConditions = ErrorConditions.dummyInstance(bfmgr);
+    BooleanFormula f = makePredicate(exp, true, edge, function, ssa, pts, constraints, errorConditions);
     return bfmgr.and(f, constraints.get());
   }
 

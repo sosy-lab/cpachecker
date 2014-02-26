@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.explicit;
+package org.sosy_lab.cpachecker.cpa.value;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -64,8 +64,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
-import org.sosy_lab.cpachecker.cpa.explicit.refiner.ExplicitStaticRefiner;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStaticRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -74,7 +74,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.explicit")
-public class ExplicitCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider, ProofChecker {
+public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider, ProofChecker {
 
   @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for ExplicitCPA")
@@ -104,25 +104,25 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithBAM, Statisti
   private Path initialPrecisionFile = null;
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(ExplicitCPA.class);
+    return AutomaticCPAFactory.forType(ValueAnalysisCPA.class);
   }
 
   private AbstractDomain abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
-  private ExplicitPrecision precision;
+  private ValueAnalysisPrecision precision;
   private PrecisionAdjustment precisionAdjustment;
-  private final ExplicitStaticRefiner staticRefiner;
-  private final ExplicitReducer reducer;
-  private final ExplicitCPAStatistics statistics;
+  private final ValueAnalysisStaticRefiner staticRefiner;
+  private final ValueAnalysisReducer reducer;
+  private final ValueAnalysisCPAStatistics statistics;
 
   private final Configuration config;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
 
-  private ExplicitCPA(Configuration config, LogManager logger,
+  private ValueAnalysisCPA(Configuration config, LogManager logger,
       ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
     this.config           = config;
     this.logger           = logger;
@@ -131,18 +131,18 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithBAM, Statisti
 
     config.inject(this);
 
-    abstractDomain      = new ExplicitDomain();
-    transferRelation    = new ExplicitTransferRelation(config, logger, cfa);
+    abstractDomain      = new ValueAnalysisDomain();
+    transferRelation    = new ValueAnalysisTransferRelation(config, logger, cfa);
     precision           = initializePrecision(config, cfa);
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();
     staticRefiner       = initializeStaticRefiner(cfa);
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
-    reducer             = new ExplicitReducer();
-    statistics          = new ExplicitCPAStatistics(this);
+    reducer             = new ValueAnalysisReducer();
+    statistics          = new ValueAnalysisCPAStatistics(this);
 
     if (doTargetCheck) {
-      ExplicitState.initChecker(config);
+      ValueAnalysisState.initChecker(config);
     }
   }
 
@@ -174,25 +174,25 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithBAM, Statisti
     return null;
   }
 
-  private ExplicitStaticRefiner initializeStaticRefiner(CFA cfa) throws InvalidConfigurationException {
+  private ValueAnalysisStaticRefiner initializeStaticRefiner(CFA cfa) throws InvalidConfigurationException {
     if (performInitialStaticRefinement) {
-      return new ExplicitStaticRefiner(config, logger, precision);
+      return new ValueAnalysisStaticRefiner(config, logger, precision);
     }
 
     return null;
   }
 
-  private ExplicitPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
+  private ValueAnalysisPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
     if(refinementWithoutAbstraction(config) && !useInPredicatedAnalysisWithoutRefinement) {
       logger.log(Level.WARNING, "Explicit-Value analysis with refinement needs " +
             "ComponentAwareExplicitPrecisionAdjustment. Please set option cpa.composite.precAdjust to 'COMPONENT'");
     }
 
     // create default (empty) precision
-    ExplicitPrecision precision = new ExplicitPrecision(variableBlacklist, config, cfa.getVarClassification());
+    ValueAnalysisPrecision precision = new ValueAnalysisPrecision(variableBlacklist, config, cfa.getVarClassification());
 
     // refine it with precision from file
-    return new ExplicitPrecision(precision, restoreMappingFromFile(cfa));
+    return new ValueAnalysisPrecision(precision, restoreMappingFromFile(cfa));
   }
 
   /**
@@ -279,7 +279,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithBAM, Statisti
 
   @Override
   public AbstractState getInitialState(CFANode node) {
-    return new ExplicitState();
+    return new ValueAnalysisState();
   }
 
   @Override
@@ -287,11 +287,11 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithBAM, Statisti
     return precision;
   }
 
-  ExplicitPrecision getPrecision() {
+  ValueAnalysisPrecision getPrecision() {
     return precision;
   }
 
-  public ExplicitStaticRefiner getStaticRefiner() {
+  public ValueAnalysisStaticRefiner getStaticRefiner() {
     return staticRefiner;
   }
 
@@ -326,7 +326,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithBAM, Statisti
     pStatsCollection.add(statistics);
   }
 
-  public ExplicitCPAStatistics getStats() {
+  public ValueAnalysisCPAStatistics getStats() {
     return statistics;
   }
 

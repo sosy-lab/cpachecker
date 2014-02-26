@@ -51,8 +51,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
-import org.sosy_lab.cpachecker.cpa.explicit.ComponentAwareExplicitPrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.value.ComponentAwarePrecisionAdjustment;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -160,7 +160,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
       PrecisionAdjustment compositePrecisionAdjustment;
       if (options.precAdjust.equals("COMPONENT")) {
-        compositePrecisionAdjustment = new ComponentAwareExplicitPrecisionAdjustment(
+        compositePrecisionAdjustment = new ComponentAwarePrecisionAdjustment(
             precisionAdjustments.build(),
             getConfiguration(),
             cfa

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.explicit.refiner.utils;
+package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
 import java.util.HashSet;
 import java.util.List;
@@ -57,12 +57,12 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 
 /**
  * Helper class that collects the set of variables on which all assume edges in the given path depend on (i.e. the transitive closure).
  */
- public class AssumptionClosureCollector {
+ public class AssumptionUseDefinitionCollector {
   /**
    * the set of global variables declared in the given path
    */
@@ -97,7 +97,7 @@ import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
   /**
    * This method acts as the constructor of the class.
    */
-  public AssumptionClosureCollector() { }
+  public AssumptionUseDefinitionCollector() { }
 
   /**
    * This method collects the respective referenced variables in the given path.
@@ -214,7 +214,7 @@ import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
 
             collectedVariables.add(assignedVariable);
             // also add special FUNCTION_RETURN_VAR as relevant variable
-            collectedVariables.add(scoped(ExplicitTransferRelation.FUNCTION_RETURN_VAR, returnStatementEdge.getPredecessor().getFunctionName()));
+            collectedVariables.add(scoped(ValueAnalysisTransferRelation.FUNCTION_RETURN_VAR, returnStatementEdge.getPredecessor().getFunctionName()));
             collectVariables(returnStatementEdge, returnStatementEdge.getExpression());
           }
         }

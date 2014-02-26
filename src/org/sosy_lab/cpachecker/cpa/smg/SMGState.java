@@ -40,8 +40,6 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
@@ -53,6 +51,8 @@ import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoin;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 import com.google.common.collect.Iterables;
@@ -305,7 +305,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
    * @param pExplicitState
    * @return String containing a DOT graph corresponding to the SMGState.
    */
-  public String toDot(String pName, String pLocation, ExplicitState pExplicitState) {
+  public String toDot(String pName, String pLocation, ValueAnalysisState pExplicitState) {
     SMGExplicitPlotter plotter = new SMGExplicitPlotter(pExplicitState, this);
     return plotter.smgAsDot(heap, "Explicit_"+ pName, pLocation);
   }

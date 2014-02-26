@@ -40,9 +40,9 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitValueBase;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.Value;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -119,10 +119,10 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     private int maximum;
 
     private UniqueAssignmentsInPathConditionState() {
-      this(0, HashMultimap.<MemoryLocation, ExplicitValueBase>create());
+      this(0, HashMultimap.<MemoryLocation, Value>create());
     }
 
-    public UniqueAssignmentsInPathConditionState(int pMaximum, Multimap<MemoryLocation, ExplicitValueBase> pMapping) {
+    public UniqueAssignmentsInPathConditionState(int pMaximum, Multimap<MemoryLocation, Value> pMapping) {
       maximum = pMaximum;
       mapping = pMapping;
     }
@@ -154,12 +154,12 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     * @param memoryLocation the variable to check
     * @return true, if the number of assignments for the given variable would exceed the soft threshold, else false
     */
-    public boolean wouldExceedSoftThreshold(ExplicitState state, MemoryLocation memoryLocation) {
+    public boolean wouldExceedSoftThreshold(ValueAnalysisState state, MemoryLocation memoryLocation) {
       if(softThreshold == -1) {
         return false;
       }
 
-      Set<ExplicitValueBase> values = new HashSet<>(mapping.get(memoryLocation));
+      Set<Value> values = new HashSet<>(mapping.get(memoryLocation));
       values.add(state.getValueFor(memoryLocation));
 
       return values.size() > softThreshold;
@@ -180,7 +180,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     /**
      * the mapping from variable name to the set of assigned values to this variable
      */
-    private Multimap<MemoryLocation, ExplicitValueBase> mapping = HashMultimap.create();
+    private Multimap<MemoryLocation, Value> mapping = HashMultimap.create();
 
     /*
     * This method decides if the number of assignments for the given variable would exceed the hard threshold, taking
@@ -190,12 +190,12 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     * @param memoryLocation the variable to check
     * @return true, if the number of assignments for the given variable would exceed the hard threshold, else false
     */
-    public boolean wouldExceedHardThreshold(ExplicitState state, MemoryLocation memoryLocation) {
+    public boolean wouldExceedHardThreshold(ValueAnalysisState state, MemoryLocation memoryLocation) {
       if(hardThreshold == -1) {
         return false;
       }
 
-      Set<ExplicitValueBase> values = new HashSet<>(mapping.get(memoryLocation));
+      Set<Value> values = new HashSet<>(mapping.get(memoryLocation));
       values.add(state.getValueFor(memoryLocation));
 
       return values.size() > hardThreshold;
@@ -218,7 +218,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
      *
      * @param memoryLocation the memory location for which to set assignment information
      */
-    public void updateAssignmentInformation(MemoryLocation memoryLocation, ExplicitValueBase value) {
+    public void updateAssignmentInformation(MemoryLocation memoryLocation, Value value) {
       mapping.put(memoryLocation, value);
       maximum = Math.max(maximum, mapping.get(memoryLocation).size());
     }

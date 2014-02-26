@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.explicit.refiner;
+package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
@@ -40,8 +40,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.StaticRefiner;
 
@@ -50,20 +50,20 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
-public class ExplicitStaticRefiner extends StaticRefiner {
+public class ValueAnalysisStaticRefiner extends StaticRefiner {
 
-  private final ExplicitPrecision explicitPrecision;
+  private final ValueAnalysisPrecision explicitPrecision;
 
-  public ExplicitStaticRefiner(
+  public ValueAnalysisStaticRefiner(
       Configuration pConfig,
       LogManager pLogger,
-      ExplicitPrecision initialPrecision) throws InvalidConfigurationException {
+      ValueAnalysisPrecision initialPrecision) throws InvalidConfigurationException {
     super(pConfig, pLogger);
 
     explicitPrecision = initialPrecision;
   }
 
-  public ExplicitPrecision extractPrecisionFromCfa(UnmodifiableReachedSet pReached,
+  public ValueAnalysisPrecision extractPrecisionFromCfa(UnmodifiableReachedSet pReached,
       ARGPath pPath) throws CPATransferException {
     logger.log(Level.INFO, "Extracting precision from CFA...");
 
@@ -81,6 +81,6 @@ public class ExplicitStaticRefiner extends StaticRefiner {
       }
     }
 
-    return new ExplicitPrecision(explicitPrecision, increment);
+    return new ValueAnalysisPrecision(explicitPrecision, increment);
   }
 }

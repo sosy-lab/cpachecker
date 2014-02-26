@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.explicit;
+package org.sosy_lab.cpachecker.cpa.value;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
 
-public class ExplicitReducer implements Reducer {
+public class ValueAnalysisReducer implements Reducer {
 
   private boolean occursInBlock(Block pBlock, String pVar) {
     // TODO could be more efficient (avoid linear runtime)
@@ -46,9 +46,9 @@ public class ExplicitReducer implements Reducer {
 
   @Override
   public AbstractState getVariableReducedState(AbstractState pExpandedState, Block pContext, CFANode pCallNode) {
-    ExplicitState expandedState = (ExplicitState)pExpandedState;
+    ValueAnalysisState expandedState = (ValueAnalysisState)pExpandedState;
 
-    ExplicitState clonedElement = expandedState.clone();
+    ValueAnalysisState clonedElement = expandedState.clone();
     for (String trackedVar : expandedState.getTrackedVariableNames()) {
       if (!occursInBlock(pContext, trackedVar)) {
         clonedElement.forget(trackedVar);
@@ -61,10 +61,10 @@ public class ExplicitReducer implements Reducer {
   @Override
   public AbstractState getVariableExpandedState(AbstractState pRootState, Block pReducedContext,
       AbstractState pReducedState) {
-    ExplicitState rootState = (ExplicitState)pRootState;
-    ExplicitState reducedState = (ExplicitState)pReducedState;
+    ValueAnalysisState rootState = (ValueAnalysisState)pRootState;
+    ValueAnalysisState reducedState = (ValueAnalysisState)pReducedState;
 
-    ExplicitState diffElement = rootState.clone();
+    ValueAnalysisState diffElement = rootState.clone();
     for (String trackedVar : reducedState.getTrackedVariableNames()) {
       diffElement.forget(trackedVar);
     }
@@ -75,7 +75,7 @@ public class ExplicitReducer implements Reducer {
       }
     }*/
     for (String trackedVar : reducedState.getTrackedVariableNames()) {
-      ExplicitValueBase value = reducedState.getValueFor(trackedVar);
+      Value value = reducedState.getValueFor(trackedVar);
       if (!value.isUnknown()) {
         diffElement.assignConstant(trackedVar, reducedState.getValueFor(trackedVar));
       } else {
@@ -91,7 +91,7 @@ public class ExplicitReducer implements Reducer {
 
   @Override
   public Precision getVariableReducedPrecision(Precision pPrecision, Block pContext) {
-    ExplicitPrecision precision = (ExplicitPrecision)pPrecision;
+    ValueAnalysisPrecision precision = (ValueAnalysisPrecision)pPrecision;
 
     // TODO: anything meaningful we can do here?
 
@@ -102,7 +102,7 @@ public class ExplicitReducer implements Reducer {
   public Precision getVariableExpandedPrecision(Precision pRootPrecision, Block pRootContext,
       Precision pReducedPrecision) {
     //ExplicitPrecision rootPrecision = (ExplicitPrecision)pRootPrecision;
-    ExplicitPrecision reducedPrecision = (ExplicitPrecision)pReducedPrecision;
+    ValueAnalysisPrecision reducedPrecision = (ValueAnalysisPrecision)pReducedPrecision;
 
     // TODO: anything meaningful we can do here?
 
@@ -111,8 +111,8 @@ public class ExplicitReducer implements Reducer {
 
   @Override
   public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
-    ExplicitState elementKey = (ExplicitState)pElementKey;
-    ExplicitPrecision precisionKey = (ExplicitPrecision)pPrecisionKey;
+    ValueAnalysisState elementKey = (ValueAnalysisState)pElementKey;
+    ValueAnalysisPrecision precisionKey = (ValueAnalysisPrecision)pPrecisionKey;
 
     return Pair.of(elementKey.getConstantsMap(), precisionKey);
   }

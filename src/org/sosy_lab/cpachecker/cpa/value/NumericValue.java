@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.explicit;
+package org.sosy_lab.cpachecker.cpa.value;
 
 import java.math.BigDecimal;
 
@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  * Stores a numeric value that can be tracked by the
  * ExplicitCPA.
  */
-public class ExplicitNumericValue implements ExplicitValueBase {
+public class NumericValue implements Value {
   private Number number;
 
   /**
@@ -42,7 +42,7 @@ public class ExplicitNumericValue implements ExplicitValueBase {
    * @param pType the inital type of the number.
    * @param pNumber the value of the number (must be a <code>BigDecimal</code>)
    */
-  public ExplicitNumericValue(Number pNumber) {
+  public NumericValue(Number pNumber) {
     number = pNumber;
   }
 
@@ -97,8 +97,8 @@ public class ExplicitNumericValue implements ExplicitValueBase {
 
   @Override
   public boolean equals(Object other) {
-    if(other instanceof ExplicitNumericValue) {
-      return this.getNumber().equals(((ExplicitNumericValue) other).getNumber());
+    if(other instanceof NumericValue) {
+      return this.getNumber().equals(((NumericValue) other).getNumber());
     } else {
       return false;
     }
@@ -109,9 +109,9 @@ public class ExplicitNumericValue implements ExplicitValueBase {
     return true;
   }
 
-  public ExplicitNumericValue negate() {
+  public NumericValue negate() {
     // TODO explicitfloat: handle the different implementations of Number properly
-    return new ExplicitNumericValue(this.bigDecimalValue().negate());
+    return new NumericValue(this.bigDecimalValue().negate());
   }
 
   public boolean isNull() {
@@ -119,7 +119,7 @@ public class ExplicitNumericValue implements ExplicitValueBase {
   }
 
   @Override
-  public ExplicitNumericValue asNumericValue() {
+  public NumericValue asNumericValue() {
     return this;
   }
 

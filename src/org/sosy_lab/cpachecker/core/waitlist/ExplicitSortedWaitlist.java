@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.core.waitlist;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
@@ -42,8 +42,8 @@ public class ExplicitSortedWaitlist extends AbstractSortedWaitlist<Integer> {
 
   @Override
   protected Integer getSortKey(AbstractState pState) {
-    ExplicitState explicitState =
-      AbstractStates.extractStateByType(pState, ExplicitState.class);
+    ValueAnalysisState explicitState =
+      AbstractStates.extractStateByType(pState, ValueAnalysisState.class);
 
     // negate size so that the highest key corresponds to the smallest map
     return (explicitState != null) ? -explicitState.getSize() : 0;

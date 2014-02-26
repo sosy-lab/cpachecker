@@ -65,10 +65,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
-import org.sosy_lab.cpachecker.cpa.explicit.AbstractExplicitExpressionValueVisitor;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitNumericValue;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitValueBase;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitValueBase.ExplicitUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
@@ -79,6 +75,10 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
+import org.sosy_lab.cpachecker.cpa.value.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.Value;
+import org.sosy_lab.cpachecker.cpa.value.Value.ExplicitUnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -268,7 +268,7 @@ public class SMGExpressionEvaluator {
 
     ExplicitValueVisitor visitor = new ExplicitValueVisitor(smgState, null, machineModel, logger, cfaEdge);
 
-    ExplicitValueBase value = rValue.accept(visitor);
+    Value value = rValue.accept(visitor);
 
     if (value.isUnknown() || !value.isNumericValue()) {
       return SMGUnknownValue.getInstance();
@@ -515,7 +515,6 @@ public class SMGExpressionEvaluator {
       case TILDE:
       default:
         // Can't evaluate these Addresses
-        // TODO we can, when the pointer points to the Null Object
         return SMGUnknownValue.getInstance();
       }
     }
@@ -626,8 +625,10 @@ public class SMGExpressionEvaluator {
         pointerOffset = lVarInBinaryExp;
         addressType = (CPointerType) rVarInBinaryExpType;
       } else {
-        // TODO throw Exception, no Pointer
-        return SMGUnknownValue.getInstance();
+        throw new UnrecognizedCCodeException("Expected either "
+      + lVarInBinaryExp.toASTString() + " or "
+      + rVarInBinaryExp.toASTString() +
+      "to be a pointer.", binaryExp);
       }
 
       CType typeOfPointer = addressType.getType().getCanonicalType();
@@ -689,8 +690,8 @@ public class SMGExpressionEvaluator {
         if (lVarIsAddress) {
           return createAddress(smgState, target, addressOffset.subtract(pointerOffsetValue));
         } else {
-          // TODO throw Exception, is invalid expression
-          return SMGUnknownValue.getInstance();
+          throw new UnrecognizedCCodeException("Expected pointer arithmetic "
+              + " with + or - but found " + binaryExp.toASTString(), binaryExp);
         }
       default:
         throw new AssertionError();
@@ -884,8 +885,10 @@ public class SMGExpressionEvaluator {
         arrayOffset = lVarInBinaryExp;
         addressType = rVarInBinaryExpType;
       } else {
-        // TODO throw Exception, no Pointer
-        return SMGAddress.UNKNOWN;
+        throw new UnrecognizedCCodeException("Expected either "
+      + lVarInBinaryExp.toASTString() + " or "
+      + rVarInBinaryExp.toASTString() +
+      "to be a pointer to an array.", binaryExp);
       }
 
       // a = &a[0]
@@ -897,8 +900,15 @@ public class SMGExpressionEvaluator {
 
     @Override
     public SMGAddress visit(CCastExpression cast) throws CPATransferException {
-      //TODO Bug, can introduce non array type in visitor
-      return cast.getOperand().accept(this);
+
+      CExpression op = cast.getOperand();
+
+      if(op.getExpressionType() instanceof CArrayType) {
+        return cast.getOperand().accept(this);
+      } else {
+        //TODO cast reinterpretation
+        return SMGAddress.UNKNOWN;
+      }
     }
 
     @Override
@@ -1103,6 +1113,20 @@ public class SMGExpressionEvaluator {
     @Override
     public SMGAddress visit(CFunctionCallExpression pIastFunctionCallExpression) throws CPATransferException {
       return SMGAddress.UNKNOWN;
+    }
+
+    @Override
+    public SMGAddress visit(CCastExpression cast) throws CPATransferException {
+
+      CExpression op = cast.getOperand();
+
+      if(isStructOrUnionType(op.getExpressionType())) {
+        return cast.getOperand().accept(this);
+      } else {
+        //TODO cast reinterpretation
+        return SMGAddress.UNKNOWN;
+      }
+
     }
   }
 
@@ -1391,8 +1415,8 @@ public class SMGExpressionEvaluator {
       if (address.isUnknown()) {
         // We can't resolve the field to dereference, therefore
         // we must assume, that it is invalid
-        smgState.setUnknownDereference(); //TODO technically not allowed here, changes smgState semantically
-        return SMGUnknownValue.getInstance();
+
+        return handleUnknownDereference(smgState, cfaEdge);
       }
 
       // a == &a[0]
@@ -1411,8 +1435,7 @@ public class SMGExpressionEvaluator {
       if (address.isUnknown()) {
         // We can't resolve the field to dereference , therefore
         // we must assume, that it is invalid
-        smgState.setUnknownDereference(); //TODO technically not allowed here, changes smgState semantically
-        return SMGUnknownValue.getInstance();
+        return handleUnknownDereference(smgState, cfaEdge);
       }
 
       // a == &a[0]
@@ -1437,7 +1460,7 @@ public class SMGExpressionEvaluator {
     }
   }
 
-  class ExplicitValueVisitor extends AbstractExplicitExpressionValueVisitor {
+  class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
 
     private final SMGState smgState;
 
@@ -1460,12 +1483,12 @@ public class SMGExpressionEvaluator {
     }
 
     @Override
-    protected ExplicitValueBase evaluateCPointerExpression(CPointerExpression pCPointerExpression)
+    protected Value evaluateCPointerExpression(CPointerExpression pCPointerExpression)
         throws UnrecognizedCCodeException {
       return evaluateLeftHandSideExpression(pCPointerExpression);
     }
 
-    private ExplicitValueBase evaluateLeftHandSideExpression(CLeftHandSide leftHandSide)
+    private Value evaluateLeftHandSideExpression(CLeftHandSide leftHandSide)
         throws UnrecognizedCCodeException {
 
       SMGSymbolicValue value = SMGUnknownValue.getInstance();
@@ -1484,12 +1507,12 @@ public class SMGExpressionEvaluator {
       if (expValue.isUnknown()) {
         return ExplicitUnknownValue.getInstance();
       } else {
-        return new ExplicitNumericValue(expValue.getAsLong());
+        return new NumericValue(expValue.getAsLong());
       }
     }
 
     @Override
-    protected ExplicitValueBase evaluateCIdExpression(CIdExpression pCIdExpression) throws UnrecognizedCCodeException {
+    protected Value evaluateCIdExpression(CIdExpression pCIdExpression) throws UnrecognizedCCodeException {
       return evaluateLeftHandSideExpression(pCIdExpression);
     }
 
@@ -1499,12 +1522,12 @@ public class SMGExpressionEvaluator {
     }
 
     @Override
-    protected ExplicitValueBase evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
+    protected Value evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
       return evaluateLeftHandSideExpression(pLValue);
     }
 
     @Override
-    protected ExplicitValueBase evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue)
+    protected Value evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue)
         throws UnrecognizedCCodeException {
       return evaluateLeftHandSideExpression(pLValue);
     }
@@ -1513,252 +1536,21 @@ public class SMGExpressionEvaluator {
 
 
   /*
-   class ExplicitValueVisitor extends DefaultCExpressionVisitor<SMGExplicitValue, CPATransferException>
-      implements CRightHandSideVisitor<SMGExplicitValue, CPATransferException> {
-
-    @SuppressWarnings("unused")
-    private final SMGState smgState;
-    private final CFAEdge cfaEdge;
-
-    public ExplicitValueVisitor(SMGState pSmgState, CFAEdge pCfaEdge) {
-      smgState = pSmgState;
-      cfaEdge = pCfaEdge;
-    }
-
-    @Override
-    protected SMGExplicitValue visitDefault(CExpression pExp) {
-      return SMGUnknownValue.getInstance();
-    }
-
-    @Override
-    public SMGExplicitValue visit(CIntegerLiteralExpression exp) throws UnrecognizedCCodeException {
-      return SMGKnownExpValue.valueOf(exp.asLong());
-    }
-
-    @Override
-    public SMGExplicitValue visit(CBinaryExpression pE) throws CPATransferException {
-      BinaryOperator binaryOperator = pE.getOperator();
-      CExpression lVarInBinaryExp = pE.getOperand1();
-      CExpression rVarInBinaryExp = pE.getOperand2();
-
-      switch (binaryOperator) {
-      case PLUS:
-      case MINUS:
-      case DIVIDE:
-      case MULTIPLY:
-      case SHIFT_LEFT:
-      case BINARY_AND:
-      case BINARY_OR:
-      case BINARY_XOR: {
-        SMGExplicitValue lValue = lVarInBinaryExp.accept(this);
-
-        if (lValue.isUnknown()) {
-          return SMGUnknownValue.getInstance();
-        }
-
-        SMGExplicitValue rValue = rVarInBinaryExp.accept(this);
-        if (rValue.isUnknown()) {
-          return SMGUnknownValue.getInstance();
-        }
-
-        switch (binaryOperator) {
-        case PLUS:
-          return lValue.add(rValue);
-
-        case MINUS:
-          return lValue.subtract(rValue);
-
-        case DIVIDE:
-          // TODO maybe we should signal a division by zero error?
-          if (rValue.equals(SMGKnownExpValue.ZERO)) {
-            return SMGUnknownValue.getInstance();
-          }
-
-          return lValue.divide(rValue);
-
-        case MULTIPLY:
-          return lValue.multiply(rValue);
-
-        case SHIFT_LEFT:
-          return lValue.shiftLeft(rValue);
-
-        case BINARY_AND:
-          return lValue.and(rValue);
-
-        case BINARY_OR:
-          return lValue.or(rValue);
-
-        case BINARY_XOR:
-          return lValue.xor(rValue);
-
-        default:
-          throw new AssertionError();
-        }
-      }
-
-      case EQUALS:
-      case NOT_EQUALS:
-      case GREATER_THAN:
-      case GREATER_EQUAL:
-      case LESS_THAN:
-      case LESS_EQUAL: {
-
-        SMGExplicitValue lValue = lVarInBinaryExp.accept(this);
-        if (lValue.isUnknown()) { return SMGUnknownValue.getInstance(); }
-
-        SMGExplicitValue rValue = rVarInBinaryExp.accept(this);
-        if (rValue.isUnknown()) { return SMGUnknownValue.getInstance(); }
-
-        long rVal = rValue.getAsLong();
-        long lVal = lValue.getAsLong();
-
-        boolean result;
-        switch (binaryOperator) {
-        case EQUALS:
-          result = lVal == rVal;
-          break;
-        case NOT_EQUALS:
-          result = lVal != rVal;
-          break;
-        case GREATER_THAN:
-          result = lVal > rVal;
-          break;
-        case GREATER_EQUAL:
-          result = lVal >= rVal;
-          break;
-        case LESS_THAN:
-          result = lVal < rVal;
-          break;
-        case LESS_EQUAL:
-          result = lVal <= rVal;
-          break;
-
-        default:
-          throw new AssertionError();
-        }
-
-        // return 1 if expression holds, 0 otherwise
-        return (result ? SMGKnownExpValue.ONE : SMGKnownExpValue.ZERO);
-      }
-
-      case MODULO:
-      case SHIFT_RIGHT:
-      default:
-        // TODO check which cases can be handled
-        return SMGUnknownValue.getInstance();
-      }
-    }
-
-    @Override
-    public SMGExplicitValue visit(CIdExpression idExpression) throws UnrecognizedCCodeException {
-
-      CSimpleDeclaration decl = idExpression.getDeclaration();
-
-      if (decl instanceof CEnumerator) {
-        return SMGKnownExpValue.valueOf(((CEnumerator) decl).getValue());
-      }
-
-      return SMGUnknownValue.getInstance();
-    }
-
-    @Override
-    public SMGExplicitValue visit(CUnaryExpression unaryExpression) throws CPATransferException {
-      UnaryOperator unaryOperator = unaryExpression.getOperator();
-      CExpression unaryOperand = unaryExpression.getOperand();
-
-
-      SMGExplicitValue value = null;
-
-      switch (unaryOperator) {
-      case MINUS:
-        value = unaryOperand.accept(this);
-        return (value.isUnknown()) ? SMGUnknownValue.getInstance() : value.negate();
-
-      case NOT:
-        value = unaryOperand.accept(this);
-
-        if (value.isUnknown()) {
-          return SMGUnknownValue.getInstance();
-        } else {
-          return (value.equals(SMGKnownExpValue.ZERO)) ? SMGKnownExpValue.ONE : SMGKnownExpValue.ZERO;
-        }
-
-      case AMPER:
-        SMGAddressValue address = evaluateAddress(smgState, cfaEdge, unaryExpression);
-
-        if (address.isUnknown() || address.getObject().notNull()) {
-          // valid expression, but we don't have explicit values for addresses.
-          return SMGUnknownValue.getInstance();
-        } else {
-          // If the returned Address points to the null object, the value is its offset
-          return address.getOffset();
-        }
-
-      case SIZEOF:
-
-        int size = getSizeof(cfaEdge, getRealExpressionType(unaryOperand));
-        return SMGKnownExpValue.valueOf(size);
-      case TILDE:
-      default:
-        // TODO handle unimplemented operators
-        return SMGUnknownValue.getInstance();
-      }
-    }
-
-    @Override
-    public SMGExplicitValue visit(CPointerExpression pointerExpression) throws CPATransferException {
-      return SMGUnknownValue.getInstance();
-    }
-
-    @Override
-    public SMGExplicitValue visit(CArraySubscriptExpression exp) throws UnrecognizedCCodeException {
-      return SMGUnknownValue.getInstance();
-    }
-
-    @Override
-    public SMGExplicitValue visit(CCharLiteralExpression exp) throws UnrecognizedCCodeException {
-      // TODO Check if correct
-      return SMGKnownExpValue.valueOf(exp.getValue());
-    }
-
-    @Override
-    public SMGExplicitValue visit(CFieldReference exp) throws UnrecognizedCCodeException {
-      return SMGUnknownValue.getInstance();
-    }
-
-    @Override
-    public SMGExplicitValue visit(CTypeIdExpression typeIdExp) throws UnrecognizedCCodeException {
-
-      TypeIdOperator typeOperator = typeIdExp.getOperator();
-      CType type = typeIdExp.getType();
-
-      switch (typeOperator) {
-      case SIZEOF:
-        return SMGKnownExpValue.valueOf(getSizeof(cfaEdge, type));
-      default:
-        return SMGUnknownValue.getInstance();
-        //TODO Investigate the other Operators.
-      }
-    }
-
-    @Override
-    public SMGExplicitValue visit(CCastExpression pE) throws CPATransferException {
-      return pE.getOperand().accept(this);
-    }
-
-    @Override
-    public SMGExplicitValue visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
-      return SMGUnknownValue.getInstance();
-    }
-  }
-
+   * These Methods are designed to be overwritten to enable
+   * sub classes to, for example, change the smgState while
+   * evaluating expressions.
+   *
    */
 
-  private StructAndUnionVisitor getStructAndUnionVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
+  protected SMGSymbolicValue handleUnknownDereference(SMGState smgState, CFAEdge edge) {
+    return SMGUnknownValue.getInstance();
+  }
+
+  protected StructAndUnionVisitor getStructAndUnionVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
     return new StructAndUnionVisitor(pCfaEdge, pNewState);
   }
 
-  private ArrayVisitor getArrayVisitor(CFAEdge pCfaEdge, SMGState pSmgState) {
+  protected ArrayVisitor getArrayVisitor(CFAEdge pCfaEdge, SMGState pSmgState) {
     return new ArrayVisitor(pCfaEdge, pSmgState);
   }
 

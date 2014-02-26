@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.explicit;
+package org.sosy_lab.cpachecker.cpa.value;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -42,27 +42,27 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision.RefinablePrecision;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision.RefinablePrecision;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.HashMultimap;
 
 @Options(prefix="cpa.explicit")
-public class ExplicitCPAStatistics implements Statistics {
+public class ValueAnalysisCPAStatistics implements Statistics {
 
   @Option(description="target file to hold the exported precision")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path precisionFile = null;
 
-  private final ExplicitCPA cpa;
+  private final ValueAnalysisCPA cpa;
 
   private Refiner refiner = null;
 
-  public ExplicitCPAStatistics(ExplicitCPA cpa) throws InvalidConfigurationException {
+  public ValueAnalysisCPAStatistics(ValueAnalysisCPA cpa) throws InvalidConfigurationException {
     this.cpa = cpa;
 
-    this.cpa.getConfiguration().inject(this, ExplicitCPAStatistics.class);
+    this.cpa.getConfiguration().inject(this, ValueAnalysisCPAStatistics.class);
   }
 
   @Override
@@ -83,7 +83,7 @@ public class ExplicitCPAStatistics implements Statistics {
     long totalNumberOfGlobalVariables   = 0;
 
     for (AbstractState currentAbstractState : reached) {
-      ExplicitState currentState = AbstractStates.extractStateByType(currentAbstractState, ExplicitState.class);
+      ValueAnalysisState currentState = AbstractStates.extractStateByType(currentAbstractState, ValueAnalysisState.class);
 
       int numberOfVariables         = currentState.getSize();
       int numberOfGlobalVariables   = currentState.getNumberOfGlobalVariables();
@@ -130,7 +130,7 @@ public class ExplicitCPAStatistics implements Statistics {
     RefinablePrecision joinedPrecision = null;
     for (Precision precision : reached.getPrecisions()) {
       if (precision instanceof WrapperPrecision) {
-        ExplicitPrecision prec = ((WrapperPrecision)precision).retrieveWrappedPrecision(ExplicitPrecision.class);
+        ValueAnalysisPrecision prec = ((WrapperPrecision)precision).retrieveWrappedPrecision(ValueAnalysisPrecision.class);
         if (joinedPrecision == null) {
           joinedPrecision = prec.getRefinablePrecision().refine(HashMultimap.<CFANode, MemoryLocation>create());
         }

@@ -22,7 +22,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.explicit.refiner.utils;
+package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
 import static com.google.common.collect.Iterables.skip;
 
@@ -45,12 +45,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitValueBase;
-import org.sosy_lab.cpachecker.cpa.explicit.refiner.ExplicitInterpolationBasedExplicitRefiner.ExplicitValueInterpolant;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
+import org.sosy_lab.cpachecker.cpa.value.Value;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationBasedRefiner.ExplicitValueInterpolant;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
@@ -61,7 +61,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 @Options(prefix="cpa.explicit.interpolation")
-public class ExplicitInterpolator {
+public class ValueAnalysisInterpolator {
   @Option(description="whether or not to ignore the semantics of loop-leaving-assume-edges during interpolation - "
       + "this avoids to have loop-counters in the interpolant")
   private boolean ignoreLoopsExitAssumes = true;
@@ -83,17 +83,17 @@ public class ExplicitInterpolator {
   /**
    * the transfer relation in use
    */
-  private final ExplicitTransferRelation transfer;
+  private final ValueAnalysisTransferRelation transfer;
 
   /**
    * the precision in use
    */
-  private final ExplicitPrecision precision;
+  private final ValueAnalysisPrecision precision;
 
   /**
    * the collector to get the use-definition information from an error trace
    */
-  private final AssumptionClosureCollector assumeCollector;
+  private final AssumptionUseDefinitionCollector assumeCollector;
 
   /**
    * the set of relevant variables found by the collector
@@ -123,7 +123,7 @@ public class ExplicitInterpolator {
   /**
    * This method acts as the constructor of the class.
    */
-  public ExplicitInterpolator(final Configuration pConfig,final LogManager pLogger,
+  public ValueAnalysisInterpolator(final Configuration pConfig,final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
           throws InvalidConfigurationException {
 
@@ -132,11 +132,11 @@ public class ExplicitInterpolator {
 
     try {
       shutdownNotifier  = pShutdownNotifier;
-      assumeCollector   = new AssumptionClosureCollector();
+      assumeCollector   = new AssumptionUseDefinitionCollector();
 
       cfa               = pCfa;
-      transfer          = new ExplicitTransferRelation(Configuration.builder().build(), pLogger, pCfa);
-      precision         = new ExplicitPrecision("", Configuration.builder().build(),
+      transfer          = new ValueAnalysisTransferRelation(Configuration.builder().build(), pLogger, pCfa);
+      precision         = new ValueAnalysisPrecision("", Configuration.builder().build(),
           Optional.<VariableClassification>absent());
 
       initializeLoopInformation();
@@ -162,12 +162,12 @@ public class ExplicitInterpolator {
     numberOfInterpolationQueries = 0;
 
     if(pOffset == 0) {
-      assumptionsAreRelevant = isRemainingPathFeasible(pErrorPath, new ExplicitState(), false);
+      assumptionsAreRelevant = isRemainingPathFeasible(pErrorPath, new ValueAnalysisState(), false);
     }
 
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
-    ExplicitState initialState      = pInputInterpolant.createExplicitValueState();
-    ExplicitState initialSuccessor  = getInitialSuccessor(initialState, pErrorPath.get(pOffset));
+    ValueAnalysisState initialState      = pInputInterpolant.createExplicitValueState();
+    ValueAnalysisState initialSuccessor  = getInitialSuccessor(initialState, pErrorPath.get(pOffset));
     if (initialSuccessor == null) {
       return ExplicitValueInterpolant.FALSE;
     }
@@ -190,7 +190,7 @@ public class ExplicitInterpolator {
 
     // if the remaining path is infeasible by itself, i.e., contradicting by itself, skip interpolation
     Iterable<CFAEdge> remainingErrorPath = skip(pErrorPath, pOffset + 1);
-    if (initialSuccessor.getSize() > 1 && !isRemainingPathFeasible(remainingErrorPath, new ExplicitState(), assumptionsAreRelevant)) {
+    if (initialSuccessor.getSize() > 1 && !isRemainingPathFeasible(remainingErrorPath, new ValueAnalysisState(), assumptionsAreRelevant)) {
       return ExplicitValueInterpolant.TRUE;
     }
 
@@ -203,7 +203,7 @@ public class ExplicitInterpolator {
       shutdownNotifier.shutdownIfNecessary();
 
       // temporarily remove the value of the current memory location from the rawInterpolant
-      ExplicitValueBase value = initialSuccessor.forget(currentMemoryLocation);
+      Value value = initialSuccessor.forget(currentMemoryLocation);
 
       // check if the remaining path now becomes feasible,
       if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor, assumptionsAreRelevant)) {
@@ -221,7 +221,7 @@ public class ExplicitInterpolator {
    * @param explicitState the collection of interpolation candidates, encoded in an explicit-value state
    * @return a (possibly) reordered collection of interpolation candidates
    */
-  private Collection<MemoryLocation> determineInterpolationCandidates(ExplicitState explicitState) {
+  private Collection<MemoryLocation> determineInterpolationCandidates(ValueAnalysisState explicitState) {
     Set<MemoryLocation> trackedMemoryLocations = explicitState.getTrackedMemoryLocations();
 
     List<MemoryLocation> reOrderedMemoryLocations = Lists.newArrayListWithCapacity(trackedMemoryLocations.size());
@@ -255,10 +255,10 @@ public class ExplicitInterpolator {
    * @return the initial successor
    * @throws CPATransferException
    */
-  private ExplicitState getInitialSuccessor(ExplicitState initialState, CFAEdge initialEdge)
+  private ValueAnalysisState getInitialSuccessor(ValueAnalysisState initialState, CFAEdge initialEdge)
       throws CPATransferException {
 
-    Collection<ExplicitState> successors = transfer.getAbstractSuccessors(
+    Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessors(
         initialState,
         precision,
         initialEdge);
@@ -275,7 +275,7 @@ public class ExplicitInterpolator {
    * @return true, it the path is feasible, else false
    * @throws CPATransferException
    */
-  private boolean isRemainingPathFeasible(Iterable<CFAEdge> remainingErrorPath, ExplicitState state, boolean ignoreAssumptions)
+  private boolean isRemainingPathFeasible(Iterable<CFAEdge> remainingErrorPath, ValueAnalysisState state, boolean ignoreAssumptions)
       throws CPATransferException {
     numberOfInterpolationQueries++;
 
@@ -284,7 +284,7 @@ public class ExplicitInterpolator {
         continue;
       }
 
-      Collection<ExplicitState> successors = transfer.getAbstractSuccessors(
+      Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessors(
         state,
         precision,
         currentEdge);
@@ -306,8 +306,8 @@ public class ExplicitInterpolator {
    * @param successors the (empty or singleton) set of successors
    * @return the only successor or null, if no set of successors is empty
    */
-  private ExplicitState extractSingletonSuccessor(ExplicitState predecessor,
-      CFAEdge currentEdge, boolean ignoreAssumptions, Collection<ExplicitState> successors) {
+  private ValueAnalysisState extractSingletonSuccessor(ValueAnalysisState predecessor,
+      CFAEdge currentEdge, boolean ignoreAssumptions, Collection<ValueAnalysisState> successors) {
     if(successors.isEmpty()) {
       return null;
     }
@@ -330,7 +330,7 @@ public class ExplicitInterpolator {
    * @return true, if memory locations in the use-def chain got changed, else false
    */
   private boolean isUseDefInformationAffected(final List<CFAEdge> pErrorPath,
-      ExplicitState initialState, ExplicitState initialSuccessor) {
+      ValueAnalysisState initialState, ValueAnalysisState initialSuccessor) {
     relevantVariables = assumeCollector.obtainUseDefInformation(pErrorPath);
 
     boolean isUseDefInformationAffected = false;

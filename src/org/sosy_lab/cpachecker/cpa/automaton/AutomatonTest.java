@@ -103,7 +103,7 @@ public class AutomatonTest {
   @Test
   public void modificationTestWithSpecification() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.explicit.ExplicitCPA",
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.value.ValueAnalysisCPA",
         "specification",     "test/config/automata/modifyingAutomaton.txt",
         "log.consoleLevel",               "INFO",
         "cpa.explicit.threshold",       "10");
@@ -132,7 +132,7 @@ public class AutomatonTest {
   @Test
   public void failIfNoAutomatonGiven() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.explicit.ExplicitCPA, cpa.automaton.ControlAutomatonCPA",
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.value.ValueAnalysisCPA, cpa.automaton.ControlAutomatonCPA",
         "log.consoleLevel",               "INFO",
         "cpa.explicit.threshold",       "10");
 
@@ -144,7 +144,7 @@ public class AutomatonTest {
   @Test
   public void modificationTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.explicit.ExplicitCPA, cpa.automaton.ControlAutomatonCPA",
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.value.ValueAnalysisCPA, cpa.automaton.ControlAutomatonCPA",
         "cpa.automaton.inputFile",     "test/config/automata/modifyingAutomaton.txt",
         "log.consoleLevel",               "INFO",
         "cpa.explicit.threshold",       "10");
@@ -158,7 +158,7 @@ public class AutomatonTest {
   @Test
   public void modification_in_Observer_throws_Test() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.explicit.ExplicitCPA, cpa.automaton.ObserverAutomatonCPA",
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.value.ValueAnalysisCPA, cpa.automaton.ObserverAutomatonCPA",
         "cpa.automaton.inputFile",     "test/config/automata/modifyingAutomaton.txt",
         "log.consoleLevel",               "SEVERE",
         "cpa.explicit.threshold",       "10"
@@ -227,7 +227,7 @@ public class AutomatonTest {
   @Test
   public void explicitAnalysis_observing() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA, cpa.explicit.ExplicitCPA",
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA, cpa.value.ValueAnalysisCPA",
         "cpa.automaton.inputFile",     "test/config/automata/ExplicitAnalysisObservingAutomaton.txt",
         "log.consoleLevel",               "INFO",
         "cpa.explicit.threshold" , "2000"
@@ -260,7 +260,7 @@ public class AutomatonTest {
   @Test
   public void interacting_Automata() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA automatonA, cpa.automaton.ObserverAutomatonCPA automatonB, cpa.explicit.ExplicitCPA",
+        "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA automatonA, cpa.automaton.ObserverAutomatonCPA automatonB, cpa.value.ValueAnalysisCPA",
         "automatonA.cpa.automaton.inputFile",     "test/config/automata/InteractionAutomatonA.txt",
         "automatonB.cpa.automaton.inputFile",     "test/config/automata/InteractionAutomatonB.txt",
         "log.consoleLevel", "INFO",
