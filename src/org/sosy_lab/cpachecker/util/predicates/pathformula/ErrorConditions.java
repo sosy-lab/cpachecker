@@ -62,7 +62,11 @@ public class ErrorConditions {
     return invalidFree;
   }
 
-  static class DummyErrorConditions extends ErrorConditions {
+  public static ErrorConditions dummyInstance(BooleanFormulaManagerView pBfmgr) {
+    return new DummyErrorConditions(pBfmgr);
+  }
+
+  private static class DummyErrorConditions extends ErrorConditions {
 
     public DummyErrorConditions(BooleanFormulaManagerView pBfmgr) {
       super(pBfmgr);
