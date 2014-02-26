@@ -311,7 +311,7 @@ class AutomatonTransferRelation implements TransferRelation {
       if (collectTokenInformation) {
         stateNewCounters.addNoMatchTokens(state.getTokensSinceLastMatch());
         if (edge.getEdgeType() != CFAEdgeType.DeclarationEdge) {
-          stateNewCounters.addNoMatchTokens(SourceLocationMapper.getTokensFromCFAEdge(edge, true));
+          stateNewCounters.addNoMatchTokens(SourceLocationMapper.getAbsoluteTokensFromCFAEdge(edge, true));
         }
       }
       return Collections.singleton(stateNewCounters);

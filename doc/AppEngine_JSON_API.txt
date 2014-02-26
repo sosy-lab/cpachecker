@@ -363,14 +363,10 @@ Error
 # GET /tasksets/{tasksetKey}/tasks
 ==================================
 Returns the tasks that are in the taskset with the key {tasksetKey}.
-The URI accepts two query parameters that can be used together or individually.
-They allow to filter the returned tasks to ones marked as processed/unprocessed
-and finished/unfinished. If omitted all tasks are returned. 
+The URI accepts a query parameter that allows to filter the returned tasks to
+ones that are finished/unfinished. If omitted all tasks are returned. 
 
 Query Parameter:
-  - processed:
-  	true, if only processed tasks should be returned
-  	false, if only unprocessed tasks should be returned
   - finished:
   	true, if only tasks with status DONE, ERROR, TIMEOUT should be returned
   	false, if only tasks with status PENDING or RUNNING should be returned

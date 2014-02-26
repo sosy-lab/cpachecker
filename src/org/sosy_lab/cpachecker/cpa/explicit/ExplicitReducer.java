@@ -75,15 +75,15 @@ public class ExplicitReducer implements Reducer {
       }
     }*/
     for (String trackedVar : reducedState.getTrackedVariableNames()) {
-      Long value = reducedState.getValueFor(trackedVar);
-      if (value != null) {
+      ExplicitValueBase value = reducedState.getValueFor(trackedVar);
+      if (!value.isUnknown()) {
         diffElement.assignConstant(trackedVar, reducedState.getValueFor(trackedVar));
       } else {
         diffElement.forget(trackedVar);
       }
     }
     // set difference to avoid null pointer exception due to precision adaption of omniscient composite precision adjustment
-    // to avoid that due to precision adaption in ABM ART which is not yet propagated tracked variable information is deleted
+    // to avoid that due to precision adaption in BAM ART which is not yet propagated tracked variable information is deleted
     diffElement.addToDelta(diffElement);
 
     return diffElement;

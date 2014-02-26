@@ -95,4 +95,9 @@ public class CInitializerList extends AInitializer implements CInitializer, CAst
   public <R, X extends Exception> R accept(CInitializerVisitor<R, X> v) throws X {
     return v.visit(this);
   }
+
+  @Override
+  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
 }

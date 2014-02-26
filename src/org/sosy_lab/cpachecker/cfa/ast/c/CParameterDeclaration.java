@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.*;
 
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 
@@ -43,7 +44,6 @@ public final class CParameterDeclaration extends AParameterDeclaration implement
     super(pFileLocation, pType, checkNotNull(pName));
   }
 
-
   public void setQualifiedName(String pQualifiedName) {
     checkState(qualifiedName == null);
     qualifiedName = checkNotNull(pQualifiedName);
@@ -57,6 +57,11 @@ public final class CParameterDeclaration extends AParameterDeclaration implement
   @Override
   public CType getType() {
     return (CType)super.getType();
+  }
+
+  public CVariableDeclaration asVariableDeclaration() {
+    return new CVariableDeclaration(getFileLocation(), false, CStorageClass.AUTO,
+        getType(), getName(), getOrigName(), getQualifiedName(), null);
   }
 
   @Override
@@ -84,4 +89,10 @@ public final class CParameterDeclaration extends AParameterDeclaration implement
   public <R, X extends Exception> R accept(CSimpleDeclarationVisitor<R, X> pV) throws X {
     return pV.visit(this);
   }
+
+  @Override
+  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
+
 }

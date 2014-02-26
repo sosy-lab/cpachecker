@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.appengine.dao.TaskFileDAO;
-import org.sosy_lab.cpachecker.appengine.util.DefaultOptions;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
 import com.googlecode.objectify.Key;
@@ -70,7 +69,6 @@ public class Task {
 
   @Id
   private Long id;
-  // ID to identify the associated request with the App Engine log file
   private String requestID;
   private Date creationDate;
   private Date executionDate;
@@ -89,6 +87,14 @@ public class Task {
   private Map<String, String> options = new HashMap<>();
   private Ref<TaskFile> program;
   private TaskStatistic statistic;
+
+  // these properties are used for speed improvements of the data store
+  @Index
+  private Ref<Taskset> taskset = null;
+  @Index
+  private boolean processed = false;
+  @Index
+  private boolean done = false;
 
   @Ignore
   private boolean optionsEscaped = false;
@@ -153,15 +159,13 @@ public class Task {
 
   public Map<String, String> getOptions() {
     if (optionsEscaped) {
-      unescapeOptions();
+      unescapeOptionKeys();
     }
     return options;
   }
 
   public void setOptions(Map<String, String> pOptions) {
-    DefaultOptions defaultOptions = new DefaultOptions();
-    defaultOptions.setOptions(pOptions);
-    options = defaultOptions.getOptions();
+    options = pOptions;
   }
 
   /**
@@ -183,10 +187,6 @@ public class Task {
    */
   @OnLoad
   void unescapeOptionKeys() {
-    unescapeOptions();
-  }
-
-  private void unescapeOptions() {
     Map<String, String> unescapedMap = new HashMap<>();
     for (String key : options.keySet()) {
       unescapedMap.put(key.replace("\\", "."), options.get(key));
@@ -302,5 +302,28 @@ public class Task {
 
   public void setStatistic(TaskStatistic pStatistic) {
     statistic = pStatistic;
+  }
+
+  public Taskset getTaskset() {
+    return taskset.get();
+  }
+
+  public void setTaskset(Taskset pTaskset) {
+    taskset = Ref.create(pTaskset);
+  }
+
+  public boolean isProcessed() {
+    return processed;
+  }
+
+  public void setProcessed(boolean pProcessed) {
+    processed = pProcessed;
+  }
+
+  @OnSave
+  void setDone() {
+    done = (status.equals(Status.DONE)
+        || status.equals(Status.ERROR)
+        || status.equals(Status.TIMEOUT));
   }
 }

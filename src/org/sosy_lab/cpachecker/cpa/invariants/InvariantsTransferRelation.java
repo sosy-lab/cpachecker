@@ -305,7 +305,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
   private InvariantsFormula<CompoundInterval> topIfProblematicType(InvariantsState pElement, InvariantsFormula<CompoundInterval> pFormula, CType pType) {
     if (pType instanceof CSimpleType && ((CSimpleType) pType).isUnsigned()) {
       CompoundInterval value = evaluate(pFormula, pElement);
-      if (!value.isTop() && value.containsNegative()) {
+      if (value.containsNegative()) {
         return CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
       }
     }

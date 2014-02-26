@@ -3,7 +3,6 @@
 <benchmark tool="cpachecker" timelimit="540" memlimit="2000" cpuCores="2">
   <option name="-noout"/>
   <option name="-nolog"/>
-  <option name="-spec">sv-comp</option>
   <option name="-heap">1200M</option>
   
   <option name="-setprop">limits.time.wall=540</option>
@@ -30,10 +29,7 @@
   
   <sourcefiles name="ControlFlowInteger">
   	<includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
-  	<propertyfile>../programs/benchmarks/ntdrivers-simplified/ALL.prp</propertyfile>
-  	<propertyfile>../programs/benchmarks/ssh-simplified/ALL.prp</propertyfile>
-  	<propertyfile>../programs/benchmarks/locks/ALL.prp</propertyfile>
-  	<propertyfile>../programs/benchmarks/eca/ALL.prp</propertyfile>
+  	<propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
   	<!-- program too large for App Engine -->
   	<exclude>../programs/benchmarks/eca/Problem07_20_false-unreach-label.c</exclude>
   	<exclude>../programs/benchmarks/eca/Problem07_30_false-unreach-label.c</exclude>
@@ -60,23 +56,18 @@
   
   <sourcefiles name="Loops">
   	<includesfile>../programs/benchmarks/Loops.set</includesfile>
-  	<propertyfile>../programs/benchmarks/loops/ALL.prp</propertyfile>
+  	<propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
   </sourcefiles>
   
   <sourcefiles name="ProductLines">
   	<includesfile>../programs/benchmarks/ProductLines.set</includesfile>
-  	<propertyfile>../programs/benchmarks/product-lines/ALL.prp</propertyfile>
+  	<propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
   </sourcefiles>
   
   <sourcefiles name="DeviceDrivers64">
   	<option name="-setprop">analysis.machineModel=Linux64</option>
     <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
-	<propertyfile>../programs/benchmarks/ldv-linux-3.0/ALL.prp</propertyfile>
-	<propertyfile>../programs/benchmarks/ldv-linux-3.4-simple/ALL.prp</propertyfile>
-	<propertyfile>../programs/benchmarks/ldv-linux-3.7.3/ALL.prp</propertyfile>
-	<propertyfile>../programs/benchmarks/ldv-commit-tester/ALL.prp</propertyfile>
-	<propertyfile>../programs/benchmarks/ldv-consumption/ALL.prp</propertyfile>
-  	<!-- program too large for App Engine -->
+	<propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
   	<exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-drbd-drbd.ko_false-unreach-label.cil.out.i.pp.i</exclude>
 	<exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-drbd-drbd.ko_true-unreach-label.cil.out.i.pp.i</exclude>
 	<exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-gpu-drm-i915-i915.ko_true-unreach-label.cil.out.i.pp.i</exclude>
@@ -185,15 +176,12 @@
   
   <sourcefiles name="Sequentialized">
   	<includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
-  	<propertyfile>../programs/benchmarks/systemc/ALL.prp</propertyfile>
-  	<propertyfile>../programs/benchmarks/seq-mthreaded/ALL.prp</propertyfile>
-  	<propertyfile>../programs/benchmarks/seq-pthread/ALL.prp</propertyfile>
+  	<propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
   </sourcefiles>
   
   <sourcefiles name="Simple">
   	<includesfile>../programs/benchmarks/Simple.set</includesfile>
-  	<propertyfile>../programs/benchmarks/ntdrivers/ALL.prp</propertyfile>
-  	<propertyfile>../programs/benchmarks/ssh/ALL.prp</propertyfile>
+  	<propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
     <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
   </sourcefiles>
   

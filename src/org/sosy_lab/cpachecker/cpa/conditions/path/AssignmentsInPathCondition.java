@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingStat
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitValueBase;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -117,16 +118,11 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
      */
     private int maximum;
 
-    /**
-     * the mapping from variable name to the set of assigned values to this variable
-     */
-    private Multimap<MemoryLocation, Long> mapping;
-
     private UniqueAssignmentsInPathConditionState() {
-      this(0, HashMultimap.<MemoryLocation, Long>create());
+      this(0, HashMultimap.<MemoryLocation, ExplicitValueBase>create());
     }
 
-    public UniqueAssignmentsInPathConditionState(int pMaximum, Multimap<MemoryLocation, Long> pMapping) {
+    public UniqueAssignmentsInPathConditionState(int pMaximum, Multimap<MemoryLocation, ExplicitValueBase> pMapping) {
       maximum = pMaximum;
       mapping = pMapping;
     }
@@ -163,7 +159,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
         return false;
       }
 
-      Set<Long> values = new HashSet<>(mapping.get(memoryLocation));
+      Set<ExplicitValueBase> values = new HashSet<>(mapping.get(memoryLocation));
       values.add(state.getValueFor(memoryLocation));
 
       return values.size() > softThreshold;
@@ -182,6 +178,11 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     }
 
     /**
+     * the mapping from variable name to the set of assigned values to this variable
+     */
+    private Multimap<MemoryLocation, ExplicitValueBase> mapping = HashMultimap.create();
+
+    /*
     * This method decides if the number of assignments for the given variable would exceed the hard threshold, taking
     * into account the current assignment from the given explicit-value state.
     *
@@ -194,7 +195,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
         return false;
       }
 
-      Set<Long> values = new HashSet<>(mapping.get(memoryLocation));
+      Set<ExplicitValueBase> values = new HashSet<>(mapping.get(memoryLocation));
       values.add(state.getValueFor(memoryLocation));
 
       return values.size() > hardThreshold;
@@ -217,7 +218,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
      *
      * @param memoryLocation the memory location for which to set assignment information
      */
-    public void updateAssignmentInformation(MemoryLocation memoryLocation, Long value) {
+    public void updateAssignmentInformation(MemoryLocation memoryLocation, ExplicitValueBase value) {
       mapping.put(memoryLocation, value);
       maximum = Math.max(maximum, mapping.get(memoryLocation).size());
     }

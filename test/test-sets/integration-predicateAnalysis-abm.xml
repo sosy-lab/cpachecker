@@ -31,7 +31,7 @@
       <option name="-64"/>
       <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-drbd-drbd.ko_false-unreach-label.cil.out.i.pp.cil.c</exclude>
     </sourcefiles>
-    <option name="-predicateAnalysis-abm"/>
+    <option name="-predicateAnalysis-bam"/>
   </rundefinition>
 
   <columns>

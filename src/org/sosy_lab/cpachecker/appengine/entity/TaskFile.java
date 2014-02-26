@@ -42,7 +42,6 @@ import com.googlecode.objectify.annotation.Ignore;
 import com.googlecode.objectify.annotation.Index;
 import com.googlecode.objectify.annotation.OnSave;
 import com.googlecode.objectify.annotation.Parent;
-import com.googlecode.objectify.annotation.Serialize;
 
 @Entity
 public class TaskFile {
@@ -55,7 +54,8 @@ public class TaskFile {
   private String path;
   @Index
   private String name;
-  @Serialize(zip = true)
+  // Disabled for now: The ZIP operations consume too much heap space
+  //@Serialize(zip = true)
   private String content = "";
   @Ignore
   private Writer contentWriter;

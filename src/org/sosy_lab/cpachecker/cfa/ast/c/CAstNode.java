@@ -30,4 +30,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
 
 public interface CAstNode extends IAstNode {
 
+  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> v) throws X;
+
 }

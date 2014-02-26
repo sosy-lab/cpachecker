@@ -84,7 +84,7 @@ import com.google.common.collect.Sets;
 public class CBinaryExpressionBuilder {
 
 
-  private final static Set<BinaryOperator> relationalOperators = Sets.immutableEnumSet(
+  public final static Set<BinaryOperator> relationalOperators = Sets.immutableEnumSet(
       BinaryOperator.EQUALS,
       BinaryOperator.NOT_EQUALS,
       BinaryOperator.LESS_THAN,

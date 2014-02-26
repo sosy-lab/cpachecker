@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.simplification;
 
 import java.math.BigInteger;
-import java.util.Set;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -41,11 +40,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitExpressionValueVisitor;
-
-import com.google.common.collect.ImmutableSet;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitNumericValue;
 
 /**
  * This visitor visits an expression and evaluates it.
@@ -57,8 +56,7 @@ import com.google.common.collect.ImmutableSet;
 public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpressionVisitor
     <CExpression, RuntimeException> {
 
-  private final Set<UnaryOperator> EVALUATABLE_UNARY_OPERATORS =
-      ImmutableSet.of(UnaryOperator.PLUS, UnaryOperator.MINUS, UnaryOperator.NOT);
+  // TODO explicitfloat: improve this entire class to use ExplicitValueBase instead of Long
 
   private final MachineModel machineModel;
   private final LogManager logger;
@@ -124,8 +122,9 @@ public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpress
       return expr;
     }
 
+    // Just assume result to be an integer regardless of expression type.
     long result = ExplicitExpressionValueVisitor.calculateBinaryOperation(
-        v1, v2, expr, machineModel, logger, null);
+        new ExplicitNumericValue(v1), new ExplicitNumericValue(v2), expr, machineModel, logger, null).asLong(CNumericTypes.INT);
 
     return new CIntegerLiteralExpression(expr.getFileLocation(),
             expr.getExpressionType(), BigInteger.valueOf(result));
@@ -139,8 +138,9 @@ public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpress
       return expr;
     }
 
+    // Just assume the cast value to be an integer type regardless of expression type
     final long castedValue = ExplicitExpressionValueVisitor.castCValue(
-        v, expr.getExpressionType(), machineModel, logger, null);
+        new ExplicitNumericValue(v), expr.getOperand().getExpressionType(), expr.getExpressionType(), machineModel, logger, null).asLong(CNumericTypes.INT);
 
     return new CIntegerLiteralExpression(expr.getFileLocation(),
             expr.getExpressionType(), BigInteger.valueOf(castedValue));
@@ -175,35 +175,13 @@ public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpress
               expr.getExpressionType(), BigInteger.valueOf(result));
     }
 
-    if (!EVALUATABLE_UNARY_OPERATORS.contains(unaryOperator)) {
-      return expr;
-    }
-
     final Long value = getValue(op);
-    if (value == null) {
-      return expr;
-    }
-    long result;
-
-    // TODO machinemodel
-    switch (unaryOperator) {
-    case PLUS:
-      result = value;
-      break;
-
-    case MINUS:
-      result = -value;
-      break;
-
-    case NOT:
-      result = (value == 0L) ? 1L : 0L;
-      break;
-
-    default:
-      throw new AssertionError("unknown unary operation: " + unaryOperator);
+    if (unaryOperator == UnaryOperator.MINUS && value != null) {
+      final long negatedValue = -value;
+      return new CIntegerLiteralExpression(expr.getFileLocation(),
+            expr.getExpressionType(), BigInteger.valueOf(negatedValue));
     }
 
-    return new CIntegerLiteralExpression(expr.getFileLocation(),
-            expr.getExpressionType(), BigInteger.valueOf(result));
+    return expr;
   }
 }

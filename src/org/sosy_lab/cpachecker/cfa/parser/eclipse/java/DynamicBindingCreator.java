@@ -357,7 +357,7 @@ public class DynamicBindingCreator {
 
 
     if (onlyFunction == null) {
-      //TODO Throw Exception;
+      throw new IllegalArgumentException("No binding for function of type " + runTimeBinding.getName() + "found.");
     }
 
     CFANode postNode = edge.getSuccessor();

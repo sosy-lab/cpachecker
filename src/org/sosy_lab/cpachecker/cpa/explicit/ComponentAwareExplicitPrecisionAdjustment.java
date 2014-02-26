@@ -341,7 +341,7 @@ public class ComponentAwareExplicitPrecisionAdjustment extends CompositePrecisio
   private ExplicitState enforceReachedSetThreshold(ExplicitState state, ExplicitPrecision precision, Collection<AbstractState> reachedSetAtLocation) {
     if (precision.isReachedSetThresholdActive()) {
       // create the mapping from variable name to its different values in this slice of the reached set
-      Multimap<String, Long> valueMapping = createMappingFromReachedSet(reachedSetAtLocation);
+      Multimap<String, ExplicitValueBase> valueMapping = createMappingFromReachedSet(reachedSetAtLocation);
 
       for (String variable : valueMapping.keySet()) {
         if (precision.variableExceedsReachedSetThreshold(valueMapping.get(variable).size())) {
@@ -358,8 +358,8 @@ public class ComponentAwareExplicitPrecisionAdjustment extends CompositePrecisio
    *
    * @param reachedSetAtLocation the collection of AbstractStates in the reached set that refer to the current location
    */
-  private Multimap<String, Long> createMappingFromReachedSet(Collection<AbstractState> reachedSetAtLocation) {
-    Multimap<String, Long> valueMapping = HashMultimap.create();
+  private Multimap<String, ExplicitValueBase> createMappingFromReachedSet(Collection<AbstractState> reachedSetAtLocation) {
+    Multimap<String, ExplicitValueBase> valueMapping = HashMultimap.create();
 
     for (AbstractState element : reachedSetAtLocation) {
       valueMapping = ((ExplicitState)element).addToValueMapping(valueMapping);

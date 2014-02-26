@@ -23,26 +23,19 @@
  */
 package org.sosy_lab.cpachecker.appengine.entity;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 
-import com.google.common.collect.Lists;
 import com.googlecode.objectify.Key;
-import com.googlecode.objectify.annotation.EmbedMap;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
-import com.googlecode.objectify.annotation.OnLoad;
 
 @Entity
 public class Taskset {
 
   @Id
   private Long id;
-  @EmbedMap // key: task's key, value: is fully processed?
-  private Map<String, Boolean> tasks = new HashMap<>();
+  private List<String> tasks = new LinkedList<>();
 
   public String getKey() {
     return Key.create(Taskset.class, getId()).getString();
@@ -56,52 +49,15 @@ public class Taskset {
     id = pId;
   }
 
-  public Map<String, Boolean> getTasks() {
+  public List<String> getTasks() {
     return tasks;
   }
 
-  public List<String> getTaskKeys() {
-    return Lists.newArrayList(tasks.keySet());
-  }
-
-  public List<String> getProcessedKeys() {
-    return getKeysWithMarker(true);
-  }
-
-  public List<String> getUnprocessedKeys() {
-    return getKeysWithMarker(false);
-  }
-
-  private List<String> getKeysWithMarker(boolean marker) {
-    List<String> keys = new ArrayList<>();
-    for (Entry<String, Boolean> entry : tasks.entrySet()) {
-      if (entry.getValue() == marker) {
-        keys.add(entry.getKey());
-      }
-    }
-    return keys;
-  }
-
-  public void setTasks(Map<String, Boolean> pTasks) {
+  public void setTasks(List<String> pTasks) {
     tasks = pTasks;
   }
 
   public void addTask(Task task) {
-    addTask(task.getKey(), false);
-  }
-
-  public void setProcessed(String key) {
-    addTask(key, true);
-  }
-
-  private void addTask(String key, boolean processed) {
-    tasks.put(key, processed);
-  }
-
-  @OnLoad
-  void instantiateMap() {
-    if (tasks == null) {
-      tasks = new HashMap<>();
-    }
+    tasks.add(task.getKey());
   }
 }

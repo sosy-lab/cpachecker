@@ -23,10 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
-import java.io.BufferedReader;
 import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -35,20 +32,20 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.configuration.OptionCollector;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.util.PropertyFileParser;
+import org.sosy_lab.cpachecker.util.PropertyFileParser.InvalidPropertyFileException;
+import org.sosy_lab.cpachecker.util.PropertyFileParser.PropertyType;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
 /**
@@ -63,12 +60,16 @@ class CmdLineArguments {
   /**
    * Exception thrown when something invalid is specified on the command line.
    */
-  static class InvalidCmdlineArgumentException extends Exception {
+  public static class InvalidCmdlineArgumentException extends Exception {
 
     private static final long serialVersionUID = -6526968677815416436L;
 
     private InvalidCmdlineArgumentException(final String msg) {
       super(msg);
+    }
+
+    public InvalidCmdlineArgumentException(String msg, Throwable cause) {
+      super(msg, cause);
     }
   }
 
@@ -89,7 +90,8 @@ class CmdLineArguments {
 
   private static final Pattern SPECIFICATION_FILES_PATTERN = DEFAULT_CONFIG_FILES_PATTERN;
   private static final String SPECIFICATION_FILES_TEMPLATE = "config/specification/%s.spc";
-  private static final String REACHABILITY_SPECIFICATION_FILE = "config/specification/sv-comp.spc";
+  private static final String REACHABILITY_LABEL_SPECIFICATION_FILE = "config/specification/sv-comp.spc";
+  private static final String REACHABILITY_SPECIFICATION_FILE = "config/specification/sv-comp-reachability.spc";
 
   private static final Pattern PROPERTY_FILE_PATTERN = Pattern.compile("(.)+\\.prp");
 
@@ -347,11 +349,15 @@ class CmdLineArguments {
             Path propertyFile = Paths.get(newValue);
             if (propertyFile.toFile().exists()) {
               PropertyFileParser parser = new PropertyFileParser(propertyFile);
-              parser.parse();
-              putIfNotExistent(options, "analysis.entryFunction", parser.entryFunction);
+              try {
+                parser.parse();
+              } catch (InvalidPropertyFileException e) {
+                throw new InvalidCmdlineArgumentException("Invalid property file: " + e.getMessage(), e);
+              }
+              putIfNotExistent(options, "analysis.entryFunction", parser.getEntryFunction());
 
               // set the file from where to read the specification automaton
-              Set<PropertyType> properties = parser.properties;
+              Set<PropertyType> properties = parser.getProperties();
               assert !properties.isEmpty();
 
               if (properties.equals(EnumSet.of(PropertyType.VALID_DEREF,
@@ -359,6 +365,9 @@ class CmdLineArguments {
                                                PropertyType.VALID_MEMTRACK))) {
                 putIfNotExistent(options, "memorysafety.check", "true");
                 newValue = null;
+
+              } else if (properties.equals(EnumSet.of(PropertyType.REACHABILITY_LABEL))) {
+                newValue = REACHABILITY_LABEL_SPECIFICATION_FILE;
 
               } else if (properties.equals(EnumSet.of(PropertyType.REACHABILITY))) {
                 newValue = REACHABILITY_SPECIFICATION_FILE;
@@ -429,79 +438,5 @@ class CmdLineArguments {
     }
 
     return null;
-  }
-
-  /**
-   * A simple class that reads a property, i.e. basically an entry function and a proposition, from a given property,
-   * and maps the proposition to a file from where to read the specification automaton.
-   */
-  private static class PropertyFileParser {
-    private final Path propertyFile;
-
-    private String entryFunction;
-    private final EnumSet<PropertyType> properties = EnumSet.noneOf(PropertyType.class);
-
-    private static final Pattern PROPERTY_PATTERN =
-        Pattern.compile("CHECK\\( init\\((" + CFACreator.VALID_C_FUNCTION_NAME_PATTERN + ")\\(\\)\\), LTL\\((.+)\\) \\)");
-
-    private PropertyFileParser(final Path pPropertyFile) {
-      propertyFile = pPropertyFile;
-    }
-
-    private void parse() throws InvalidCmdlineArgumentException {
-      String rawProperty = null;
-      try (BufferedReader br = propertyFile.asCharSource(Charset.defaultCharset()).openBufferedStream()) {
-        while ((rawProperty = br.readLine()) != null) {
-          if (!rawProperty.isEmpty()) {
-            properties.add(parsePropertyLine(rawProperty));
-          }
-        }
-      } catch (IOException e) {
-        throw new InvalidCmdlineArgumentException("The given property file could not be read: " + e.getMessage());
-      }
-
-      if (properties.isEmpty()) {
-        throw new InvalidCmdlineArgumentException("Property file does not specify any property to verify.");
-      }
-    }
-
-    private PropertyType parsePropertyLine(String rawProperty) throws InvalidCmdlineArgumentException {
-      Matcher matcher = PROPERTY_PATTERN.matcher(rawProperty);
-
-      if (rawProperty == null || !matcher.matches() || matcher.groupCount() != 2) {
-        throw new InvalidCmdlineArgumentException(String.format(
-            "The given property '%s' is not well-formed!", rawProperty));
-      }
-
-      if (entryFunction == null) {
-        entryFunction = matcher.group(1);
-      } else if (!entryFunction.equals(matcher.group(1))) {
-        throw new InvalidCmdlineArgumentException(String.format(
-            "Property file specifies two different entry functions %s and %s.", entryFunction, matcher.group(1)));
-      }
-
-      PropertyType property = PropertyType.AVAILABLE_PROPERTIES.get(matcher.group(2));
-      if (property == null) {
-        throw new InvalidCmdlineArgumentException(String.format(
-            "The property '%s' given in the property file is not supported.", matcher.group(2)));
-      }
-      return property;
-    }
-  }
-
-  private enum PropertyType {
-    REACHABILITY,
-    VALID_FREE,
-    VALID_DEREF,
-    VALID_MEMTRACK,
-    ;
-
-    private static ImmutableMap<String, PropertyType> AVAILABLE_PROPERTIES = ImmutableMap.of(
-        "G ! label(ERROR)", PropertyType.REACHABILITY,
-        "G valid-free",     PropertyType.VALID_FREE,
-        "G valid-deref",    PropertyType.VALID_DEREF,
-        "G valid-memtrack", PropertyType.VALID_MEMTRACK
-        );
-
   }
 }

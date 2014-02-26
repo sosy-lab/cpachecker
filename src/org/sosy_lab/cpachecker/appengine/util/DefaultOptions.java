@@ -27,8 +27,8 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -38,8 +38,9 @@ import java.util.logging.Level;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 
+import com.google.appengine.labs.repackaged.com.google.common.collect.ImmutableList;
 import com.google.common.base.Charsets;
-import com.google.common.collect.Maps;
+import com.google.common.collect.ImmutableMap;
 
 /**
  * This class manages options of CPAchecker that are set by default on App Engine.
@@ -50,20 +51,25 @@ import com.google.common.collect.Maps;
  */
 public class DefaultOptions {
 
+  public static final String CONFIGURATIONS_DIR = "WEB-INF/configurations";
+  public static final String SPECIFICATIONS_DIR = "WEB-INF/specifications";
+
   public static final String DEFAUL_WALLTIME_LIMIT = "540"; // 9 minutes
 
-  private static Map<String, String> defaultOptions = new HashMap<>();
+  private static Map<String, String> defaultOptions;
   private static List<String> unsupportedConfigurations;
   private Map<String, String> usedOptions = new HashMap<>();
   private String originalWalltimeLimit;
 
   static {
-    defaultOptions.put("analysis.machineModel", "Linux32");
-    defaultOptions.put("output.disable", "false");
-    defaultOptions.put("statistics.export", "true");
-    defaultOptions.put("log.level", "FINER");
-    defaultOptions.put("limits.time.wall", DEFAUL_WALLTIME_LIMIT);
-    defaultOptions.put("gae.instanceType", "FRONTEND");
+    defaultOptions = ImmutableMap.<String, String>builder()
+        .put("analysis.machineModel", "Linux32")
+        .put("output.disable", "false")
+        .put("statistics.export", "true")
+        .put("log.level", "FINER")
+        .put("limits.time.wall", DEFAUL_WALLTIME_LIMIT)
+        .put("gae.instanceType", "FRONTEND")
+        .build();
 
     /*
      * CPAs that do not work:
@@ -91,6 +97,8 @@ public class DefaultOptions {
    * @return True, if the option will be used as is, false if it was altered.
    */
   public boolean setOption(String key, String value) {
+    boolean optionIsUnchanged = true;
+
     // log level needs to be UPPERCASE and valid
     if (key.equals("log.level")) {
       value = value.toUpperCase();
@@ -98,6 +106,7 @@ public class DefaultOptions {
         Level.parse(value);
       } catch (IllegalArgumentException e) {
         value = getDefault("log.level");
+        optionIsUnchanged = false;
       }
     }
 
@@ -113,9 +122,11 @@ public class DefaultOptions {
           newValue = Integer.parseInt(value.replaceAll("[^0-9]*$", ""));
           if (newValue < 0 || newValue > defaultValue) {
             value = getDefault("limits.time.wall");
+            optionIsUnchanged = false;
           }
         } catch (NumberFormatException e) {
           value = getDefault("limits.time.wall");
+          optionIsUnchanged = false;
         }
       }
     }
@@ -126,7 +137,7 @@ public class DefaultOptions {
     }
 
     usedOptions.put(key, value);
-    return false;
+    return optionIsUnchanged;
   }
 
   /**
@@ -136,8 +147,10 @@ public class DefaultOptions {
    * @param options The options to set
    */
   public void setOptions(Map<String, String> options) {
-    for (Entry<String, String> entry : options.entrySet()) {
-      setOption(entry.getKey(), entry.getValue());
+    if (options != null) {
+      for (Entry<String, String> entry : options.entrySet()) {
+        setOption(entry.getKey(), entry.getValue());
+      }
     }
   }
 
@@ -147,12 +160,7 @@ public class DefaultOptions {
    * @return The used options
    */
   public Map<String, String> getOptions() {
-    try {
-      // remove options that will be set by default to prevent clutter
-      return Maps.difference(usedOptions, getImmutableOptions()).entriesOnlyOnLeft();
-    } catch (IOException e) {
-      return usedOptions;
-    }
+    return ImmutableMap.copyOf(usedOptions);
   }
 
   /**
@@ -198,7 +206,7 @@ public class DefaultOptions {
       options.put(key, properties.getProperty(key));
     }
 
-    return options;
+    return ImmutableMap.copyOf(options);
   }
 
   /**
@@ -212,10 +220,10 @@ public class DefaultOptions {
    * @throws IOException If immutable options cannot be read.
    */
   public static Map<String, String> getAllOptions() throws IOException {
-    Map<String, String> opts = new HashMap<>();
-    opts.putAll(getDefaultOptions());
-    opts.putAll(getImmutableOptions());
-    return opts;
+    return ImmutableMap.<String, String>builder()
+        .putAll(getDefaultOptions())
+        .putAll(getImmutableOptions())
+        .build();
   }
 
   /**
@@ -224,7 +232,7 @@ public class DefaultOptions {
    * @return The available specification files.
    */
   public static List<String> getSpecifications() {
-    Path specificationDir = Paths.get("WEB-INF/specifications");
+    Path specificationDir = Paths.get(SPECIFICATIONS_DIR);
     File[] files = specificationDir.toFile().listFiles(new FilenameFilter() {
 
       @Override
@@ -234,11 +242,11 @@ public class DefaultOptions {
       }
     });
 
-    List<String> specifications = new ArrayList<>();
+    List<String> specifications = new LinkedList<>();
     for (File file : files) {
       specifications.add(file.getName());
     }
-    return specifications;
+    return ImmutableList.copyOf(specifications);
   }
 
   /**
@@ -247,7 +255,7 @@ public class DefaultOptions {
    * @return The available configuration files.
    */
   public static List<String> getConfigurations() throws IOException {
-    Path configurationDir = Paths.get("WEB-INF/configurations");
+    Path configurationDir = Paths.get(CONFIGURATIONS_DIR);
     File[] files = configurationDir.toFile().listFiles(new FilenameFilter() {
 
       @Override
@@ -257,12 +265,12 @@ public class DefaultOptions {
       }
     });
 
-    List<String> configurations = new ArrayList<>();
+    List<String> configurations = new LinkedList<>();
     for (File file : files) {
       configurations.add(file.getName());
     }
 
     configurations.removeAll(getUnsupportedConfigurations());
-    return configurations;
+    return ImmutableList.copyOf(configurations);
   }
 }

@@ -304,6 +304,10 @@ cfa.file = "cfa.dot"
 # uninitialized.
 cfa.initializeAllVariables = false
 
+# With this option, all declarations in each function will be movedto the
+# beginning of each function.
+cfa.moveDeclarationsToFunctionStart = false
+
 # remove paths from CFA that cannot lead to a specification violation
 cfa.removeIrrelevantForSpecification = false
 
@@ -385,19 +389,6 @@ coverage.file = "coverage.info"
 
 # CPA to use (see doc/Configuration.txt for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
-
-# if enabled, cache queries also consider blocks with non-matching precision
-# for reuse.
-cpa.abm.aggressiveCaching = true
-
-# Type of partitioning (FunctionAndLoopPartitioning or
-# DelayedFunctionAndLoopPartitioning)
-# or any class that implements a PartitioningHeuristic
-cpa.abm.blockHeuristic = FunctionAndLoopPartitioning.class
-
-# if enabled, the reached set cache is analysed for each cache miss to find
-# the cause of the miss.
-cpa.abm.gatherCacheMissStatistics = false
 
 # export one variable assignment for error path to file, if one is found
 cpa.arg.errorPath.assignment = "ErrorPath.%d.assignment.txt"
@@ -487,6 +478,19 @@ cpa.automaton.extraIterationsLimit = -1
 # file with automaton specification for ObserverAutomatonCPA and
 # ControlAutomatonCPA
 cpa.automaton.inputFile = no default value
+
+# if enabled, cache queries also consider blocks with non-matching precision
+# for reuse.
+cpa.bam.aggressiveCaching = true
+
+# Type of partitioning (FunctionAndLoopPartitioning or
+# DelayedFunctionAndLoopPartitioning)
+# or any class that implements a PartitioningHeuristic
+cpa.bam.blockHeuristic = FunctionAndLoopPartitioning.class
+
+# if enabled, the reached set cache is analysed for each cache miss to find
+# the cause of the miss.
+cpa.bam.gatherCacheMissStatistics = false
 
 # adding a new value to the state can be done from 0 to N or from N to 0
 cpa.bdd.addIncreasing = false
@@ -724,6 +728,10 @@ cpa.explicit.refiner.exportInterpolationTree = "NEVER"
 # refinement
 cpa.explicit.refiner.performInitialStaticRefinement = false
 
+# whether to use the top-down interpolation strategy or the bottom-up
+# interpolation strategy
+cpa.explicit.refiner.useTopDownInterpolationStrategy = true
+
 # which stop operator to use for ExplicitCPA
 cpa.explicit.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
@@ -812,10 +820,21 @@ cpa.invariants.useBinaryVariableInterrelations = true
 # invariant approximations from states.
 cpa.invariants.useBitvectors = false
 
+# this option controls how the maxLoopIterations condition is adjusted when a
+# condition adjustment is invoked.
+cpa.loopstack.maxLoopIterationAdjusterFactory = STATIC
+  enum:     [STATIC, INCREMENT, DOUBLE]
+
 # threshold for unrolling loops of the program (0 is infinite)
 # works only if assumption storage CPA is enabled, because otherwise it would
 # be unsound
 cpa.loopstack.maxLoopIterations = 0
+
+# threshold for adjusting the threshold for unrolling loops of the program (0
+# is infinite).
+# only relevant in combination with a non-static maximum loop iteration
+# adjuster.
+cpa.loopstack.maxLoopIterationsUpperBound = 0
 
 # time limit for a single post computation (use milliseconds or specify a
 # unit; 0 for infinite)
@@ -824,6 +843,11 @@ cpa.monitor.limit = 0
 # time limit for all computations on a path in milliseconds (use milliseconds
 # or specify a unit; 0 for infinite)
 cpa.monitor.pathcomputationlimit = 0
+
+# of which type should the merge be? normal, for usual join, widening for a
+# widening instead of a join
+cpa.octagon.domain.joinType = "NORMAL"
+  allowed values: [NORMAL, WIDENING]
 
 # which merge operator to use for OctagonCPA?
 cpa.octagon.merge = "SEP"
@@ -840,9 +864,6 @@ cpa.pointerA.merge = "JOIN"
 # which stop operator to use for PointerACPA
 cpa.pointerA.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
-
-# whether to use auxiliary predidates for reduction
-cpa.predicate.abm.auxiliaryPredicateComputer = true
 
 # use caching of region to formula conversions
 # use caching of abstractions
@@ -882,6 +903,9 @@ cpa.predicate.abstraction.type = "BDD"
 
 # file that consists of one abstraction formula for each abstraction state
 cpa.predicate.abstractions.file = "abstractions.txt"
+
+# whether to use auxiliary predidates for reduction
+cpa.predicate.bam.auxiliaryPredicateComputer = true
 
 # force abstractions immediately after threshold is reached (no effect if
 # threshold = 0)
@@ -1357,6 +1381,9 @@ limits.time.cpu = -1
 # Limit for wall time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)
 limits.time.wall = -1
+
+# Write the tokenized version of the input program to this file.
+locmapper.dumpTokenizedProgramToFile = no default value
 
 # Whether to check for memory safety properties (this can be specified by
 # passing an appropriate .prp file to the -spec parameter).

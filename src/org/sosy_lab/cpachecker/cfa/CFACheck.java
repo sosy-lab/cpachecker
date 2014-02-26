@@ -163,7 +163,7 @@ public class CFACheck {
 
       boolean hasEdge = enteringEdges(successor).contains(edge);
       assert hasEdge : "Node " + DEBUG_FORMAT.apply(pNode) + " has leaving edge " + edge
-          + ", but pNode " + DEBUG_FORMAT.apply(pNode) + " does not have this edge as entering edge!";
+          + ", but pNode " + DEBUG_FORMAT.apply(successor) + " does not have this edge as entering edge!";
     }
 
     seenEdges.clear();

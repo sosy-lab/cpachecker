@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -59,7 +59,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
-public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithABM, ProofChecker {
+public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
   @Options(prefix="cpa.composite")
   private static class CompositeOptions {
@@ -233,8 +233,8 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     List<Reducer> wrappedReducers = new ArrayList<>();
     for (ConfigurableProgramAnalysis cpa : cpas) {
-      if (cpa instanceof ConfigurableProgramAnalysisWithABM) {
-        wrappedReducers.add(((ConfigurableProgramAnalysisWithABM) cpa).getReducer());
+      if (cpa instanceof ConfigurableProgramAnalysisWithBAM) {
+        wrappedReducers.add(((ConfigurableProgramAnalysisWithBAM) cpa).getReducer());
       } else {
         wrappedReducers.clear();
         break;

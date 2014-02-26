@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="900" hardtimelimit="1000" memlimit="2000">
+  <option name="-noout"/>
+  <option name="-heap">1200M</option>
+
+  <sourcefiles name="ControlFlowInteger">
+    <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="Simple">
+    <includesfile>../programs/benchmarks/Simple.set</includesfile>
+    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+  </sourcefiles>
+  <sourcefiles name="Sequentialized">
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="Nested">
+    <includesfile>nested.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="Linux-Kernel">
+    <include>../programs/linux-kernel/*.cil.c</include>
+  </sourcefiles>
+
+  <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
+
+  <rundefinition name="bam">
+    <option name="-predicateAnalysis-bam"/>
+  </rundefinition>
+
+  <rundefinition name="bam-auxiliaryPredicates">
+    <option name="-predicateAnalysis-bam-auxiliaryPredicates"/>
+  </rundefinition>
+
+  <columns>
+    <column title="total">time for CPAchecker</column>
+    <column title="reached">Total size of all ARGs</column>
+    <column title="abstractions">Number of abstractions</column>
+    <column title="refinements">Number of refinements</column>
+    <column title="ref time">Time for refinements</column>
+    <column title="cpa time">time for CPA algorithm</column>
+    <column title="cache hits">full cache hits</column>
+    <column title="partial cache hits">partial cache hits</column>
+    <column title="cache misses">cache misses</column>
+  </columns>
+</benchmark>

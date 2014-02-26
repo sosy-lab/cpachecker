@@ -58,6 +58,11 @@ public class CArrayDesignator extends CDesignator {
     return pV.visit(this);
   }
 
+  @Override
+  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
+
   /* (non-Javadoc)
    * @see java.lang.Object#hashCode()
    */

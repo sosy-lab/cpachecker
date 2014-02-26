@@ -36,6 +36,11 @@ public class CReturnStatement extends AReturnStatement implements CAstNode {
   }
 
   @Override
+  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
+
+  @Override
   public CExpression getReturnValue() {
     return (CExpression) super.getReturnValue();
   }

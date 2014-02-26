@@ -73,4 +73,5 @@ public abstract class CTypeDeclaration extends ADeclaration implements CDeclarat
 
     return super.equals(obj);
   }
+
 }

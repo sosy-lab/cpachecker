@@ -54,6 +54,11 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
   }
 
   @Override
+  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
+
+  @Override
   public CType getExpressionType() {
     return (CType) super.getExpressionType();
   }
@@ -108,10 +113,6 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
     BINARY_AND    ("&"),
     BINARY_XOR    ("^"),
     BINARY_OR     ("|"),
-    @Deprecated // unused, does not occur in the AST
-    LOGICAL_AND   ("&&"),
-    @Deprecated // unused, does not occur in the AST
-    LOGICAL_OR    ("||"),
     EQUALS        ("=="),
     NOT_EQUALS    ("!="),
     ;

@@ -28,6 +28,7 @@ import static com.google.common.collect.FluentIterable.from;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -36,6 +37,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -60,7 +62,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -77,6 +78,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -90,6 +92,9 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
 
   @Option(description="checkForRepeatedRefinements")
   private boolean checkForRepeatedRefinements = true;
+
+  @Option(description="whether to use the top-down interpolation strategy or the bottom-up interpolation strategy")
+  private boolean useTopDownInterpolationStrategy = true;
 
   @Option(description="when to export the interpolation tree"
       + "\nNEVER:   never export the interpolation tree"
@@ -106,6 +111,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
   // statistics
   private int totalRefinements        = 0;
   private int totalTargetsFound       = 0;
+
   private final Timer totalTime       = new Timer();
 
   public static ExplicitGlobalRefiner create(final ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
@@ -116,7 +122,6 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
 
     ExplicitGlobalRefiner refiner = new ExplicitGlobalRefiner(explicitCpa.getConfiguration(),
                                     explicitCpa.getLogger(),
-                                    (ARGCPA)pCpa,
                                     explicitCpa.getShutdownNotifier(),
                                     explicitCpa.getCFA());
 
@@ -127,7 +132,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
   }
 
   private ExplicitGlobalRefiner(final Configuration pConfig, final LogManager pLogger,
-      final ARGCPA pArgCpa, final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
+      final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
           throws InvalidConfigurationException {
 
     pConfig.inject(this);
@@ -140,7 +145,6 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
   @Override
   public boolean performRefinement(final ReachedSet pReached) throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "performing global refinement ...");
-    //System.out.println("performing global refinement ...");
     totalTime.start();
     totalRefinements++;
 
@@ -153,90 +157,71 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
       return false;
     }
 
-    InterpolationTree itpTree = new InterpolationTree(logger, targets);
-
-    Deque<ARGState> interpolationRoots = new ArrayDeque<>(Collections.singleton(((ARGState)pReached.getFirstState())));
+    InterpolationTree interpolationTree = new InterpolationTree(logger, targets, useTopDownInterpolationStrategy);
 
     int i = 0;
-    Set<ARGState> r = new HashSet<>();
-    while(!interpolationRoots.isEmpty()) {
+    while(interpolationTree.hasNextPathForInterpolation()) {
       i++;
-      ARGState currentRoot = interpolationRoots.pop();
 
-      logger.log(Level.FINEST, "taking new root ", currentRoot.getStateId(), " from stack");
+      ARGPath errorPath = interpolationTree.getNextPathForInterpolation();
 
-      if(!itpTree.isValidInterpolationRoot(currentRoot)) {
-        logger.log(Level.FINEST, "itp of predecessor ", currentRoot.getStateId(), " is already false ... go ahead");
+      if(errorPath.isEmpty()) {
+        logger.log(Level.FINEST, "skipping interpolation, error path is empty, because initial interpolant is already false");
         continue;
       }
 
-      ARGPath errorPath = itpTree.getNextErrorPath(currentRoot, interpolationRoots);
+      ExplicitValueInterpolant initialItp = interpolationTree.getInitialInterpolantForPath(errorPath);
 
-      ExplicitValueInterpolant initialItp = itpTree.getInitialItp(errorPath.getFirst().getFirst());
-      if(initialItp == null) {
-        initialItp = ExplicitValueInterpolant.createInitial();
-        assert i == 1 : "initial interpolant was null after initial iteration!";
-      }
+      logger.log(Level.FINEST, "performing interpolation, starting at ", errorPath.getFirst().getFirst().getStateId(), ", using interpolant ", initialItp);
 
-      logger.log(Level.FINEST, "perform itp, starting at ", errorPath.getFirst().getFirst().getStateId(), ", using itp ", initialItp);
-
-      if(initialItp.isFalse()) {
-        logger.log(Level.FINEST, "itp is false, skipping");
-        continue;
-      }
-
-      if(!itpTree.addInterpolants(interpolatingRefiner.performInterpolation(errorPath, initialItp))) {
-        //System.out.println(new TreeSet<>(itpTree.extractPrecisionIncrement(errorPath.getFirst().getFirst()).values()));
-        //System.out.println("BREAK BREAK BREAK BREAK BREAK BREAK BREAK BREAK BREAK BREAK BREAK BREAK ");
-        //break;
-      }
-
-      //System.out.println(new TreeSet<>(itpTree.extractPrecisionIncrement(errorPath.getFirst().getFirst()).values()));
-
-      //System.out.print("\tcurrent roots: ");
-      for(ARGState root : itpTree.obtainRefinementRoots(doLazyAbstraction)) {
-        //System.out.print(root.getStateId() + " / " + AbstractStates.extractLocation(root) + ", ");
-        if(!r.add(root)) {
-          // stop further interpolation if same root was found twice -> runs into exception
-          //interpolationRoots.clear();
-        }
-      }
-      //System.out.println();
+      interpolationTree.addInterpolants(interpolatingRefiner.performInterpolation(errorPath, initialItp));
 
       if(exportInterpolationTree.equals("ALWAYS")) {
-        itpTree.exportToDot(totalRefinements, i);
+        interpolationTree.exportToDot(totalRefinements, i);
       }
 
-      logger.log(Level.FINEST, "itp done");
+      logger.log(Level.FINEST, "finished interpolation #", i);
     }
 
     if(exportInterpolationTree.equals("FINAL") && !exportInterpolationTree.equals("ALWAYS")) {
-      itpTree.exportToDot(totalRefinements, i);
+      interpolationTree.exportToDot(totalRefinements, i);
+    }
+
+    Map<ARGState, ExplicitPrecision> refinementInformation = new HashMap<>();
+    for(ARGState root : interpolationTree.obtainRefinementRoots(doLazyAbstraction)) {
+      Collection<ARGState> targetsReachableFromRoot = interpolationTree.getTargetsInSubtree(root);
+
+      // join the precisions of the subtree of this roots into a single precision
+      final ExplicitPrecision subTreePrecision = joinSubtreePrecisions(pReached, targetsReachableFromRoot);
+
+      refinementInformation.put(root, new ExplicitPrecision(subTreePrecision, interpolationTree.extractPrecisionIncrement(root)));
     }
 
     ARGReachedSet reached = new ARGReachedSet(pReached);
-
-    for(ARGState root : itpTree.obtainRefinementRoots(doLazyAbstraction)) {
-      Collection<ARGState> targetsReachableFromRoot = itpTree.getTargetsInSubtree(root);
-
-      // get precision of first target, and make it initial one
-      final ExplicitPrecision inital = Precisions.extractPrecisionByType(pReached.getPrecision(targetsReachableFromRoot.iterator().next()), ExplicitPrecision.class);
-      for(ARGState target : targetsReachableFromRoot) {
-        ExplicitPrecision precisionOfTarget = Precisions.extractPrecisionByType(pReached.getPrecision(target), ExplicitPrecision.class);
-
-        // join precision of target state it with the original one
-        inital.getRefinablePrecision().join(precisionOfTarget.getRefinablePrecision());
-      }
-
-      final ExplicitPrecision refinedPrecision = new ExplicitPrecision(inital, itpTree.extractPrecisionIncrement(root));
-
-      root = root.getChildren().iterator().next();
-//System.out.println("root: " + root.getStateId() + " [" + AbstractStates.extractLocation(root).getNodeNumber() +"]");
-      reached.removeSubtree(root, refinedPrecision, ExplicitPrecision.class);
+    for(Map.Entry<ARGState, ExplicitPrecision> info : refinementInformation.entrySet()) {
+      reached.removeSubtree(info.getKey(), info.getValue(), ExplicitPrecision.class);
     }
 
     totalTime.stop();
     return true;
+  }
+
+  private ExplicitPrecision joinSubtreePrecisions(final ReachedSet pReached,
+      Collection<ARGState> targetsReachableFromRoot) {
+
+    final ExplicitPrecision precision = extractPrecision(pReached, Iterables.getLast(targetsReachableFromRoot));
+    // join precisions of all target states
+    for(ARGState target : targetsReachableFromRoot) {
+      ExplicitPrecision precisionOfTarget = extractPrecision(pReached, target);
+      precision.getRefinablePrecision().join(precisionOfTarget.getRefinablePrecision());
+    }
+
+    return precision;
+  }
+
+  private ExplicitPrecision extractPrecision(final ReachedSet pReached,
+      ARGState state) {
+    return Precisions.extractPrecisionByType(pReached.getPrecision(state), ExplicitPrecision.class);
   }
 
   private boolean isAnyPathFeasible(final ARGReachedSet pReached, final Collection<ARGPath> errorPaths)
@@ -307,16 +292,6 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     return targets;
   }
 
-  private int previousRefinementId = -1;
-
-  private boolean isRepeatedRefinementRoot(final ARGState root) {
-    final int currentRefinementId = AbstractStates.extractLocation(root).getLineNumber();
-    final boolean result          = (previousRefinementId == currentRefinementId);
-    previousRefinementId          = currentRefinementId;
-
-    return result && checkForRepeatedRefinements;
-  }
-
   @Override
   public void collectStatistics(final Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(new Statistics() {
@@ -335,8 +310,9 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
 
   private void printStatistics(final PrintStream out, final Result pResult, final ReachedSet pReached) {
     if (totalRefinements > 0) {
-      out.println("Total time for global refinement: " + totalTime);
-      out.println("Total number of targets found:    " + totalTargetsFound);
+      out.println("Total number of refinements:      " + String.format(Locale.US, "%9d", totalRefinements));
+      out.println("Total number of targets found:    " + String.format(Locale.US, "%9d", totalTargetsFound));
+      out.println("Total time for global refinement:     " + totalTime);
 
       interpolatingRefiner.printStatistics(out, pResult, pReached);
     }
@@ -376,24 +352,53 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     private final ARGState root;
 
     /**
+     * the target states to build the tree from
+     */
+    private final Collection<ARGState> targets;
+
+    /**
+     * the strategy on how to select paths for interpolation
+     */
+    private final InterpolationStrategy strategy;
+
+    /**
      * This method acts as constructor of the interpolation tree.
      *
-     * @param targetStates the set of target states from which to build the interpolation tree
+     * @param pLogger the logger to use
+     * @param pTargets the set of target states from which to build the interpolation tree
+     * @param useTopDownInterpolationStrategy the flag to choose the strategy to apply
      */
-    private InterpolationTree(final LogManager pLogger, final Collection<ARGState> targetStates) {
-      logger  = pLogger;
-      root    = buildTree(targetStates);
+    private InterpolationTree(final LogManager pLogger, final Collection<ARGState> pTargets,
+        final boolean useTopDownInterpolationStrategy) {
+      logger    = pLogger;
+
+      targets   = pTargets;
+      root      = buildTree();
+
+      if(useTopDownInterpolationStrategy) {
+        strategy = new TopDownInterpolationStrategy();
+      } else {
+        strategy = new BottomUpInterpolationStrategy();
+      }
+    }
+
+    /**
+     * This method decides whether or not there are more paths left for interpolation.
+     *
+     * @return true if there are more paths left for interpolation, else false
+     */
+    public boolean hasNextPathForInterpolation() {
+      return strategy.hasNextPathForInterpolation();
     }
 
     /**
      * This method creates the successor and predecessor relations, which make up the interpolation tree,
      * from the target states given as input.
      *
-     * @param targetStates the target states to build the tree from
      * @return the root of the tree
      */
-    private ARGState buildTree(Collection<ARGState> targetStates) {
-      Deque<ARGState> todo = new ArrayDeque<>(targetStates);
+    private ARGState buildTree() {
+      Deque<ARGState> todo = new ArrayDeque<>(targets);
       ARGState itpTreeRoot = null;
 
       // build the tree, bottom-up, starting from the target states
@@ -455,56 +460,14 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     }
 
     /**
-     * This method checks if the given state is a valid interpolation root, i.e., if the interpolant
-     * associated with the given state, if any, is not false.
-     *
-     * @param state the state for which to perofrm the check
-     * @return true, if the interpolant associated with the state, if any, is valid, i.e, is not false
-     */
-    private boolean isValidInterpolationRoot(ARGState state) {
-      ARGState predecessor = predecessorRelation.get(state);
-
-      if(!interpolants.containsKey(predecessor)) {
-        return true;
-      }
-
-      if(!interpolants.get(predecessor).isFalse()) {
-        return true;
-      }
-
-      return false;
-    }
-
-    /**
      * This method returns the next error path for interpolation.
      *
      * @param current the current root of the error path to retrieve for a subsequent interpolation
      * @param interpolationRoots the mutable stack of interpolation roots, which might be added to within this method
      * @return the next error path for a subsequent interpolation
      */
-    private ARGPath getNextErrorPath(ARGState current, Deque<ARGState> interpolationRoots) {
-      ARGPath errorPath = new ARGPath();
-
-      while(successorRelation.get(current).iterator().hasNext()) {
-        Iterator<ARGState> children = successorRelation.get(current).iterator();
-        ARGState child = children.next();
-        errorPath.add(Pair.of(current, current.getEdgeToChild(child)));
-
-        if(children.hasNext()) {
-          ARGState sibling = children.next();
-          logger.log(Level.FINEST, "\tpush new root ", sibling.getStateId(), " onto stack for parent ", predecessorRelation.get(sibling).getStateId());
-          interpolationRoots.push(sibling);
-        }
-
-        current = child;
-
-        // add out-going edges of final state, too (just for compatiblity reasons to compare to DelegatingRefiner)
-        if(!successorRelation.get(current).iterator().hasNext()) {
-          errorPath.add(Pair.of(current, CFAUtils.leavingEdges(AbstractStates.extractLocation(current)).first().orNull()));
-        }
-      }
-
-      return errorPath;
+    private ARGPath getNextPathForInterpolation() {
+      return strategy.getNextPathForInterpolation();
     }
 
     /**
@@ -519,13 +482,13 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     }
 
     /**
-     * This method returns the interpolant to be used for interpolation starting at the given state.
+     * This method returns the interpolant to be used for interpolation of the given path.
      *
-     * @param root the state for which to obtain the initial interpolant
-     * @return the initial interpolant for the given state
+     * @param errorPath the path for which to obtain the initial interpolant
+     * @return the initial interpolant for the given path
      */
-    private ExplicitValueInterpolant getInitialItp(ARGState root) {
-      return interpolants.get(predecessorRelation.get(root));
+    private ExplicitValueInterpolant getInitialInterpolantForPath(ARGPath errorPath) {
+      return strategy.getInitialInterpolantForRoot(errorPath.getFirst().getFirst());
     }
 
     /**
@@ -533,12 +496,19 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
      *
      * @param newItps the new mapping to add
      */
-    private boolean addInterpolants(Map<ARGState, ExplicitValueInterpolant> newItps) {
-      boolean result = interpolants.values().containsAll(newItps.values());
+    private void addInterpolants(Map<ARGState, ExplicitValueInterpolant> newItps) {
+      assert strategy.areInterpolantsConsistent(newItps) : "interpolants are inconsistent";
 
-      interpolants.putAll(newItps);
+      for (Map.Entry<ARGState, ExplicitValueInterpolant> entry : newItps.entrySet()) {
+        ARGState state                = entry.getKey();
+        ExplicitValueInterpolant itp  = entry.getValue();
 
-      return result;
+        if(interpolants.containsKey(state)) {
+          interpolants.put(state, interpolants.get(state).join(itp));
+        } else {
+          interpolants.put(state, itp);
+        }
+      }
     }
 
     /**
@@ -550,7 +520,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     private Multimap<CFANode, MemoryLocation> extractPrecisionIncrement(ARGState refinmentRoot) {
       Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
 
-      Deque<ARGState> todo = new ArrayDeque<>(Collections.singleton(refinmentRoot));
+      Deque<ARGState> todo = new ArrayDeque<>(Collections.singleton(predecessorRelation.get(refinmentRoot)));
       while (!todo.isEmpty()) {
         final ARGState currentState = todo.removeFirst();
 
@@ -588,7 +558,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
         final ARGState currentState = todo.removeFirst();
 
         if (isNonTrivialInterpolantAvailable(currentState)) {
-          refinementRoots.add(currentState);
+          refinementRoots.addAll(successorRelation.get(currentState));
           continue;
         }
 
@@ -632,6 +602,155 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
      */
     private boolean isNonTrivialInterpolantAvailable(final ARGState currentState) {
       return interpolants.containsKey(currentState) && !interpolants.get(currentState).isTrivial();
+    }
+
+
+
+    private interface InterpolationStrategy {
+
+      public ARGPath getNextPathForInterpolation();
+
+      public boolean hasNextPathForInterpolation();
+
+      public boolean areInterpolantsConsistent(Map<ARGState, ExplicitValueInterpolant> newItps);
+
+      public ExplicitValueInterpolant getInitialInterpolantForRoot(ARGState root);
+    }
+
+    private class TopDownInterpolationStrategy implements InterpolationStrategy {
+
+      /**
+       * the states that are the sources for obtaining (partial) error paths
+       */
+      private Deque<ARGState> sources = new ArrayDeque<>(Collections.singleton(root));
+
+      /**
+       * a flag to distinguish the initial interpolation from subsequent ones
+       */
+      private boolean isInitialInterpolation = true;
+
+      @Override
+      public ARGPath getNextPathForInterpolation() {
+        ARGPath errorPath = new ARGPath();
+
+        ARGState current = sources.pop();
+
+        if(!isValidInterpolationRoot(current)) {
+          logger.log(Level.FINEST, "interpolant of predecessor of ", current.getStateId(), " is already false ... return empty path");
+          return errorPath;
+        }
+
+        while(successorRelation.get(current).iterator().hasNext()) {
+          Iterator<ARGState> children = successorRelation.get(current).iterator();
+          ARGState child = children.next();
+          errorPath.add(Pair.of(current, current.getEdgeToChild(child)));
+
+          if(children.hasNext()) {
+            ARGState sibling = children.next();
+            logger.log(Level.FINEST, "\tpush new root ", sibling.getStateId(), " onto stack for parent ", predecessorRelation.get(sibling).getStateId());
+            sources.push(sibling);
+          }
+
+          current = child;
+
+          // add out-going edges of final state, too (just for compatiblity reasons to compare to DelegatingRefiner)
+          if(!successorRelation.get(current).iterator().hasNext()) {
+            errorPath.add(Pair.of(current, CFAUtils.leavingEdges(AbstractStates.extractLocation(current)).first().orNull()));
+          }
+        }
+
+        return errorPath;
+      }
+
+      /**
+       * The given state is not a valid interpolation root if it is associated with a interpolant representing "false"
+       */
+      public boolean isValidInterpolationRoot(ARGState root) {
+        ARGState predecessor = predecessorRelation.get(root);
+
+        if(!interpolants.containsKey(predecessor)) {
+          return true;
+        }
+
+        if(!interpolants.get(predecessor).isFalse()) {
+          return true;
+        }
+
+        return false;
+      }
+
+      @Override
+      public ExplicitValueInterpolant getInitialInterpolantForRoot(ARGState root) {
+
+        ExplicitValueInterpolant initialInterpolant = interpolants.get(predecessorRelation.get(root));
+
+        if(initialInterpolant == null) {
+          initialInterpolant = ExplicitValueInterpolant.createInitial();
+          assert isInitialInterpolation : "initial interpolant was null after initial interpolation!";
+        }
+
+        isInitialInterpolation = false;
+
+        return initialInterpolant;
+      }
+
+      @Override
+      public boolean areInterpolantsConsistent(Map<ARGState, ExplicitValueInterpolant> newInterpolants) {
+        // if the set of keys of the interpolants changes, this means the two key sets had a non-empty intersection
+        // this then means, for at least one ARGState, more than one interpolation was performed, which is illegal
+        // according to this strategy
+        return !interpolants.keySet().removeAll(newInterpolants.keySet());
+      }
+
+      @Override
+      public boolean hasNextPathForInterpolation() {
+        return !sources.isEmpty();
+      }
+    }
+
+    private class BottomUpInterpolationStrategy implements InterpolationStrategy {
+
+      /**
+       * the states that are the sources for obtaining error paths
+       */
+      private List<ARGState> sources = new ArrayList<>(targets);
+
+      @Override
+      public ARGPath getNextPathForInterpolation() {
+        ARGState current = sources.remove(0);
+
+        assert current.isTarget() : "current element is not a target";
+
+        ARGPath errorPath = new ARGPath();
+
+        errorPath.addFirst(Pair.of(current, CFAUtils.leavingEdges(AbstractStates.extractLocation(current)).first().orNull()));
+
+        while(predecessorRelation.get(current) != null) {
+
+          ARGState parent = predecessorRelation.get(current);
+
+          errorPath.addFirst(Pair.of(parent, parent.getEdgeToChild(current)));
+
+          current = parent;
+        }
+
+        return errorPath;
+      }
+
+      @Override
+      public ExplicitValueInterpolant getInitialInterpolantForRoot(ARGState root) {
+        return ExplicitValueInterpolant.createInitial();
+      }
+
+      @Override
+      public boolean areInterpolantsConsistent(Map<ARGState, ExplicitValueInterpolant> newInterpolants) {
+        return true;
+      }
+
+      @Override
+      public boolean hasNextPathForInterpolation() {
+        return !sources.isEmpty();
+      }
     }
   }
 }

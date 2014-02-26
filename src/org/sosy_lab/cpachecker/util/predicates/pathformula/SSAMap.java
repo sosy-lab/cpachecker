@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.io.Serializable;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayList;
@@ -39,13 +37,14 @@ import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
+import org.sosy_lab.common.collect.PersistentSortedMaps;
+import org.sosy_lab.common.collect.PersistentSortedMaps.MergeConflictHandler;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.MapMerger.ConflictHandler;
 
 import com.google.common.base.Equivalence;
 import com.google.common.base.Joiner;
@@ -61,6 +60,28 @@ public class SSAMap implements Serializable {
   private static final long serialVersionUID = 7618801653203679876L;
 
   public static final int INDEX_NOT_CONTAINED = -1;
+
+  private static MergeConflictHandler<String, CType> TYPE_CONFLICT_CHECKER = new MergeConflictHandler<String, CType>() {
+    @Override
+    public CType resolveConflict(String name, CType type1, CType type2) {
+      Preconditions.checkArgument(
+          type1 instanceof CFunctionType || type2 instanceof CFunctionType
+          || (isEnumPointerType(type1) && isEnumPointerType(type2))
+          || type1.equals(type2)
+          , "Cannot change type of variable %s in SSAMap from %s to %s", name, type1, type2);
+
+      return type1;
+    }
+
+    private boolean isEnumPointerType(CType type) {
+      if (type instanceof CPointerType) {
+        type = ((CPointerType) type).getType();
+        return (type instanceof CComplexType) && ((CComplexType)type).getKind() == ComplexTypeKind.ENUM
+            || (type instanceof CElaboratedType) && ((CElaboratedType)type).getKind() == ComplexTypeKind.ENUM;
+      }
+      return false;
+    }
+  };
 
   /**
    * Builder for SSAMaps. Its state starts with an existing SSAMap, but may be
@@ -101,17 +122,10 @@ public class SSAMap implements Serializable {
       int oldIdx = getIndex(name);
       Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone!");
 
-      checkNotNull(type);
+      type = type.getCanonicalType();
       CType oldType = varTypes.get(name);
       if (oldType != null) {
-        oldType = oldType.getCanonicalType();
-        type = type.getCanonicalType();
-        Preconditions.checkArgument(
-            name.startsWith("__content__")
-            || type instanceof CFunctionType || oldType instanceof CFunctionType
-            || (isEnumPointerType(type) && isEnumPointerType(oldType))
-            || oldType.equals(type)
-            , "Cannot change type of variable %s in SSAMap from %s to %s", name, oldType, type);
+        TYPE_CONFLICT_CHECKER.resolveConflict(name, type, oldType);
       } else {
         varTypes = varTypes.putAndCopy(name, type);
       }
@@ -124,15 +138,6 @@ public class SSAMap implements Serializable {
         }
         varsHashCode += mapEntryHashCode(name, idx);
       }
-    }
-
-    private static boolean isEnumPointerType(CType type) {
-      if (type instanceof CPointerType) {
-        type = ((CPointerType) type).getType();
-        return (type instanceof CComplexType) && ((CComplexType)type).getKind() == ComplexTypeKind.ENUM
-            || (type instanceof CElaboratedType) && ((CElaboratedType)type).getKind() == ComplexTypeKind.ENUM;
-      }
-      return false;
     }
 
     public void deleteVariable(String variable) {
@@ -227,39 +232,28 @@ public class SSAMap implements Serializable {
 
     } else {
       differences = new ArrayList<>();
-      vars = MapMerger.merge(s1.vars, s2.vars, Equivalence.equals(),
-          MAXIMUM_ON_CONFLICT, differences);
+      vars = PersistentSortedMaps.merge(s1.vars, s2.vars, Equivalence.equals(),
+          PersistentSortedMaps.<String, Integer>getMaximumMergeConflictHandler(), differences);
     }
 
-    PersistentSortedMap<String, CType> varTypes;
-    if (s1.varTypes == s2.varTypes) {
-      varTypes = s1.varTypes;
+    PersistentSortedMap<String, CType> varTypes = PersistentSortedMaps.merge(
+        s1.varTypes, s2.varTypes,
+        new Equivalence<CType>() {
+          @Override
+          protected boolean doEquivalent(CType pA, CType pB) {
+            return pA.getCanonicalType().equals(pB.getCanonicalType());
+          }
 
-    } else {
-      varTypes = MapMerger.merge(s1.varTypes, s2.varTypes,
-          new Equivalence<CType>() {
-            @Override
-            protected boolean doEquivalent(CType pA, CType pB) {
-              return pA.getCanonicalType().equals(pB.getCanonicalType());
-            }
-
-            @Override
-            protected int doHash(CType pT) {
-              return pT.hashCode();
-            }
-          },
-          MapMerger.<Object, CType>getExceptionOnConflictHandler(), null);
-    }
+          @Override
+          protected int doHash(CType pT) {
+            return pT.hashCode();
+          }
+        },
+        TYPE_CONFLICT_CHECKER,
+        null);
 
     return Pair.of(new SSAMap(vars, 0, varTypes), differences);
   }
-
-  private static final ConflictHandler<Object, Integer> MAXIMUM_ON_CONFLICT = new ConflictHandler<Object, Integer>() {
-    @Override
-    public Integer resolveConflict(Object key, Integer value1, Integer value2) {
-      return Math.max(value1, value2);
-    }
-  };
 
   private final PersistentSortedMap<String, Integer> vars;
   private final PersistentSortedMap<String, CType> varTypes;

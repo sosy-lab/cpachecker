@@ -54,6 +54,11 @@ public final class CFloatLiteralExpression extends AFloatLiteralExpression imple
   }
 
   @Override
+  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
+
+  @Override
   public String toASTString() {
     return getValue().toString();
   }

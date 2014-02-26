@@ -297,14 +297,9 @@ public class BDDVectorCExpressionVisitor
     }
 
     switch (unaryOperator) {
-      case PLUS:
-        return value;
 
       case MINUS: // -X == (0-X)
         return bvmgr.makeSub(bvmgr.makeNumber(BigInteger.ZERO, value.length), value);
-
-      case NOT:
-        return bvmgr.wrapLast(bvmgr.makeNot(value), value.length);
 
       case SIZEOF:
         throw new AssertionError("SIZEOF should be handled before!");

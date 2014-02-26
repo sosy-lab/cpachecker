@@ -55,6 +55,8 @@ import benchmark.runexecutor as runexecutor
 import benchmark.util as Util
 import benchmark.filewriter as filewriter
 from benchmark.outputHandler import OutputHandler
+import cloudRunexecutor as CloudRunExecutor
+
 
 MEMLIMIT = runexecutor.MEMLIMIT
 TIMELIMIT = runexecutor.TIMELIMIT
@@ -132,7 +134,7 @@ class Worker(threading.Thread):
         self.outputHandler.outputBeforeRun(run)
 
         benchmark = run.runSet.benchmark
-        (run.wallTime, run.cpuTime, run.memUsage, returnvalue, output) = \
+        (run.wallTime, run.cpuTime, run.memUsage, returnvalue, output, run.energy) = \
             self.runExecutor.executeRun(
                 run.getCmdline(), benchmark.rlimits, run.logFile,
                 myCpuIndex=self.numberOfThread,
@@ -183,7 +185,7 @@ class AppEngineSubmitter(threading.Thread):
                 if STOPPED_BY_INTERRUPT: break
                 run = self.queue.get()
                 combinedFileSize += len(run['payload']['programText'])
-                if combinedFileSize < 3145728 and len(runs) < 60: # 3MB
+                if combinedFileSize < 3145728 and len(runs) < 50: # 3MB
                     runs.append(run)
                     self.queue.task_done()
                 else:
@@ -199,9 +201,9 @@ class AppEngineSubmitter(threading.Thread):
             payload = []
             for index, run in enumerate(runs):
                 args = run['payload']
+                args['taskset'] = self.tasksetKey
                 args['identifier'] = index
                 payload.append(args)
-                self.submittedTasks += 1
 
             uri = config.appengineURI+'/tasksets/'+self.tasksetKey+'/tasks'
             headers = {'Content-type':'application/json', 'Accept':'application/json'}
@@ -213,6 +215,7 @@ class AppEngineSubmitter(threading.Thread):
                 for key in taskIDs:
                     logging.debug('Task created: '+key)
                     APPENGINE_TASKS[key] = runs[int(taskIDs[key])]
+                    self.submittedTasks += 1
                     try:
                         with open(OUTPUT_PATH+'Submitted_Tasks.txt', 'a') as f:
                             f.write(key+'\n')
@@ -224,7 +227,6 @@ class AppEngineSubmitter(threading.Thread):
                 logging.debug('Submitting will be retried later.')
                 for run in runs:
                     self.queue.put(run)
-                self.submittedTasks -= len(runs)
             except:
                 sys.exit('Error while submitting tasks. {}'.format(sys.exc_info()[0]))
 
@@ -246,15 +248,20 @@ class AppEnginePoller(threading.Thread):
         while not self.done and not STOPPED_BY_INTERRUPT:
             try:
                 logging.debug('Polling tasks')
-                uri = config.appengineURI+'/tasksets/'+self.tasksetKey+'/tasks?finished=true&processed=false'
+                uri = config.appengineURI+'/tasksets/'+self.tasksetKey+'/tasks?finished=true'#&limit=20
                 headers = {'Accept':'application/json'}
                 request = urllib2.Request(uri, headers=headers)
                 tasks = json.loads(urllib2.urlopen(request).read())
-                logging.debug('Received results for {} tasks.'.format(len(tasks)))
                 for task in tasks:
-                    taskKey = task['key']
-                    if not taskKey in APPENGINE_TASKS: continue
-                    self.saveResult(APPENGINE_TASKS[taskKey], task)
+                    if not task['key'] in APPENGINE_TASKS:
+                        try:
+                            uri = config.appengineURI+'/tasksets/'+self.tasksetKey+'/tasks'
+                            request = urllib2.Request(uri, json.dumps(task['key']), headers=headers)
+                            request.get_method = lambda: 'PUT'
+                            urllib2.urlopen(request)
+                        except: pass
+                        continue
+                    self.saveResult(APPENGINE_TASKS[task['key']], task)
                 logging.debug('Received results are fully processed.')
                     
             except urllib2.HTTPError as e:
@@ -273,7 +280,7 @@ class AppEnginePoller(threading.Thread):
         taskKey = task['key']
         logFile = run['logFile']
         headers = {'Accept':'text/plain'}
-        
+
         fileNames = []
         for file in task['files']:
             fileNames.append(file['name'])
@@ -281,7 +288,7 @@ class AppEnginePoller(threading.Thread):
         try:
             filewriter.writeFile(json.dumps(task), logFile+'.stdOut')
         except:
-            logging.debug('Could not save result '+taskKey)
+            logging.debug('Could not save task '+taskKey)
             
         statisticsProcessed = False
         if APPENGINE_SETTINGS['statisticsFileName'] in fileNames:
@@ -292,6 +299,7 @@ class AppEnginePoller(threading.Thread):
                 filewriter.writeFile(response, logFile)
                 statisticsProcessed = True
             except:
+                statisticsProcessed = False
                 logging.debug('Could not save statistics '+taskKey)
         else:
             statisticsProcessed = True
@@ -302,10 +310,9 @@ class AppEnginePoller(threading.Thread):
                 uri = config.appengineURI+'/tasks/'+taskKey+'/files/' + APPENGINE_SETTINGS['errorFileName']
                 request = urllib2.Request(uri, headers=headers)
                 response = urllib2.urlopen(request).read()
-                response = 'Task Key: {}\n{}'.format(taskKey, response)
+                response = 'Task Key: {}\n{}'.format(task, response)
                 filewriter.writeFile(response, logFile+'.stdErr')
-            except:
-                pass
+            except: pass
 
         headers = {'Content-type':'application/json', 'Accept':'application/json'}
         if config.appengineDeleteWhenDone:
@@ -324,9 +331,13 @@ class AppEnginePoller(threading.Thread):
                 request.get_method = lambda: 'PUT'
                 urllib2.urlopen(request)
                 self.finishedTasks += 1
+                try:
+                    with open(OUTPUT_PATH+'Processed_Tasks.txt', 'a') as f:
+                        f.write(taskKey+'\n')
+                except: pass
                 logging.debug('Task {} finished. Status: {}'.format(taskKey, task['status']))
             except:
-                logging.warn('The task {} could not be marked as processed.'.format(taskKey))
+                logging.debug('The task {} could not be marked as processed.'.format(taskKey))
 
 def executeBenchmarkLocaly(benchmark, outputHandler):
     
@@ -353,6 +364,7 @@ def executeBenchmarkLocaly(benchmark, outputHandler):
             # get times before runSet
             ruBefore = resource.getrusage(resource.RUSAGE_CHILDREN)
             wallTimeBefore = time.time()
+            energyBefore = Util.getEnergy()
 
             outputHandler.outputBeforeRunSet(runSet)
 
@@ -381,12 +393,14 @@ def executeBenchmarkLocaly(benchmark, outputHandler):
 
             # get times after runSet
             wallTimeAfter = time.time()
+            energyAfter = Util.getEnergy()
+            energy = (energyAfter - energyBefore) if (energyAfter and energyBefore) else None
             usedWallTime = wallTimeAfter - wallTimeBefore
             ruAfter = resource.getrusage(resource.RUSAGE_CHILDREN)
             usedCpuTime = (ruAfter.ru_utime + ruAfter.ru_stime) \
                         - (ruBefore.ru_utime + ruBefore.ru_stime)
 
-            outputHandler.outputAfterRunSet(runSet, usedCpuTime, usedWallTime)
+            outputHandler.outputAfterRunSet(runSet, cpuTime=usedCpuTime, wallTime=usedWallTime, energy=energy)
 
     outputHandler.outputAfterBenchmark(STOPPED_BY_INTERRUPT)
 
@@ -401,27 +415,28 @@ def parseCloudResultFile(filePath):
     cpuTime = None
     memUsage = None
     returnValue = None
+    energy = None
 
     with open(filePath, 'rt') as file:
+        content = file.read()
 
+        parsingFailed = False
         try:
-            wallTime = float(file.readline().split(":")[-1])
-        except ValueError:
-            pass
-        try:
-            cpuTime = float(file.readline().split(":")[-1])
-        except ValueError:
-            pass
-        try:
-            memUsage = int(file.readline().split(":")[-1]);
-        except ValueError:
-            pass
-        try:
-            returnValue = int(file.readline().split(":")[-1])
-        except ValueError:
-            pass
+            info = eval(content)
+        except SyntaxError:
+            parsingFailed = True
 
-    return (wallTime, cpuTime, memUsage, returnValue)
+        if parsingFailed or not isinstance(info, dict):
+            logging.warning('parsing result-values failed, unexpected input from {0}: {1}'.format(filePath, content))
+
+        else:
+            wallTime    = info[CloudRunExecutor.WALLTIME_STR]
+            cpuTime     = info[CloudRunExecutor.CPUTIME_STR]
+            memUsage    = info[CloudRunExecutor.MEMORYUSAGE_STR]
+            returnValue = info[CloudRunExecutor.RETURNVALUE_STR]
+            energy      = info[CloudRunExecutor.ENERGY_STR]
+        
+    return (wallTime, cpuTime, memUsage, returnValue, energy)
 
 
 def parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
@@ -458,62 +473,6 @@ def parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
         logging.warning("Host information file not found: " + filePath)
     return runToHostMap
 
-def parseArgsForAppEngine(args, absWorkingDir):
-    
-    appengineArgs = {}
-    options = {}
-    
-    if config.debug:
-        logLevel = 'FINER'
-    else:
-        logLevel = 'INFO'
-    options['log.level'] = logLevel
-    
-    for idx, arg in enumerate(args):
-        if STOPPED_BY_INTERRUPT: break
-        if '-noout' == arg:
-            options['output.disable'] = "true"
-        elif '-stats' == arg:
-            options['statistics.export'] = "true"
-        elif '-32' == arg:
-            options['analysis.machineModel'] = 'Linux32'
-        elif '-64' == arg:
-            options['analysis.machineModel'] = 'Linux64'
-        elif '-printUsedOptions' == arg:
-            options['log.usedOptions.export'] = "true"
-        elif '-nolog' == arg:
-            options['log.level'] = 'OFF'
-        elif '-setprop' == arg:
-            keyVal = args[idx+1].split('=')
-            options[keyVal[0]] = keyVal[1]
-        elif '-config' == arg:
-            conf = args[args.index(arg)+1]
-            conf = conf if conf.endswith('.properties') else conf+'.properties'
-            if os.path.isfile(os.path.join(absWorkingDir, 'config', conf)):
-                appengineArgs['configuration'] = conf
-            else:
-                sys.exit('Given configuration file {} is not a valid file.'.format(conf))
-        elif '-spec' == arg:
-            spec = args[args.index('-spec')+1]
-            spec = spec if spec.endswith('.spc') else spec+'.spc'
-            if os.path.isfile(os.path.join(absWorkingDir, 'config/specification', spec)):
-                appengineArgs['specification'] = spec
-            else:
-                sys.exit('Given specification file {} is not a valid file.'.format(spec))
-        elif arg.startswith('-'):
-            if not 'configuration' in appengineArgs:
-                argName = arg[1:]
-                if os.path.isfile(os.path.join(absWorkingDir, 'config', argName + '.properties')):
-                    appengineArgs['configuration'] = argName+'.properties'
-
-    if 'limits.time.wall' in options:
-        timeLimit = int(options['limits.time.wall'])
-        if timeLimit > int(APPENGINE_SETTINGS['timeLimit']):
-            logging.warn('Given timelimit is too large for App Engine. Using %s instead.'%APPENGINE_SETTINGS['timeLimit'])
-            options['limits.time.wall'] = APPENGINE_SETTINGS['timeLimit']
-    
-    appengineArgs['options'] = options
-    return appengineArgs
 
 def toTabList(l):
     return "\t".join(map(str, l))
@@ -655,10 +614,11 @@ def handleCloudResults(benchmark, outputHandler):
                 continue
 
             try:
-                (run.wallTime, run.cpuTime, run.memUsage, returnValue) = parseCloudResultFile(stdoutFile)
+                (run.wallTime, run.cpuTime, run.memUsage, returnValue, run.energy) = parseCloudResultFile(stdoutFile)
 
-                if run.sourcefile in runToHostMap:
-                    run.host = runToHostMap[run.sourcefile]
+                key = os.path.basename(run.logFile)[:-4] # VCloud uses logfilename without '.log' as key
+                if key in runToHostMap:
+                    run.host = runToHostMap[key]
 
                 if returnValue is not None:
                     # Do not delete stdOut file if there was some problem
@@ -686,7 +646,7 @@ def handleCloudResults(benchmark, outputHandler):
             run.afterExecution(returnValue, output)
             outputHandler.outputAfterRun(run)
 
-        outputHandler.outputAfterRunSet(runSet, None, None)
+        outputHandler.outputAfterRunSet(runSet)
 
     outputHandler.outputAfterBenchmark(STOPPED_BY_INTERRUPT)
 
@@ -697,12 +657,11 @@ def handleCloudResults(benchmark, outputHandler):
                         .format(os.path.join(outputDir, '*.stdError')))
         
 def parseAppEngineResult(run):
-    withError = []
-    withTimeout = []
-    notSubmitted = []
+    error = False
+    timeout = False
+    notSubmitted = False
     output = ''
     returnValue = 0
-    hasTimedOut = False
     overQuota = False
     
     hasLogFile = (os.path.exists(run.logFile) and os.path.isfile(run.logFile))
@@ -712,8 +671,7 @@ def parseAppEngineResult(run):
     if hasLogFile:
         try:
             with open(run.logFile, 'rt') as outputFile:
-                # first 6 lines are for logging, rest is output of subprocess, see RunExecutor.py for details
-                output = '\n'.join(map(Util.decodeToString, outputFile.readlines()[6:]))
+                output = '\n'.join(map(Util.decodeToString, outputFile.readlines()))
         except IOError as e:
             logging.warning("Cannot read log file: " + e.strerror)
             
@@ -725,11 +683,10 @@ def parseAppEngineResult(run):
                 result = json.loads(lines)
                 if result['status'] == 'ERROR':
                     returnValue = 256 # error; returncode != 0
-                    withError.append({'run':run, 'message':result['statusMessage']})
+                    error = True
                 if result['status'] == 'TIMEOUT':
                     returnValue = 9 # timeout
-                    hasTimedOut = True
-                    withTimeout.append(run)
+                    timeout = True
                 if result['status'] == 'OVER_QUOTA':
                     returnValue = 6 # aborted
                     overQuota = True
@@ -747,25 +704,24 @@ def parseAppEngineResult(run):
                 output += '\n'+lines
                 if 'NOT SUBMITTED' in lines:
                     returnValue = 6 # aborted
-                    notSubmitted.append({'run':run, 'messages':lines})
+                    notSubmitted = True
                 else:
                     result = json.loads(lines)
                     if result['status'] == 'ERROR':
                         returnValue = 256 # error; returncode != 0
-                        withError.append({'run':run, 'message':result['statusMessage']})
+                        error = True
                     elif result['status'] == 'TIMEOUT':
                         returnValue = 9 # timeout
-                        hasTimedOut = True
-                        withTimeout.append(run)
+                        timeout = True
         except:
             pass # can't read err file
     
-    return (returnValue, output, hasTimedOut, withError, withTimeout, notSubmitted, overQuota)
+    return (returnValue, output, error, timeout, notSubmitted, overQuota)
         
 def handleAppEngineResults(benchmark, outputHandler):
-    withError = []
-    withTimeout = []
-    notSubmitted = []
+    withError = 0
+    withTimeout = 0
+    notSubmitted = 0
     isOverQuota = False
     
     for runSet in benchmark.runSets:
@@ -779,30 +735,30 @@ def handleAppEngineResults(benchmark, outputHandler):
         for run in runSet.runs:
             outputHandler.outputBeforeRun(run)
             
-            (returnValue, output, hasTimedOut, withErr, withTO, notSubmt, overQuota) = \
+            (returnValue, output, hasErr, hasTO, isNotSubmt, overQuota) = \
                 parseAppEngineResult(run)
                 
             totalWallTime += run.wallTime
 
-            withError = withError + withErr
-            withTimeout = withTimeout + withTO
-            notSubmitted = notSubmitted + notSubmt
+            if hasErr: withError += 1
+            if hasTO: withTimeout += 1
+            if isNotSubmt: notSubmitted += 1
             isOverQuota = True if overQuota or isOverQuota else False
             
-            run.afterExecution(returnValue, output, hasTimedOut)
+            run.afterExecution(returnValue, output, hasTO)
             outputHandler.outputAfterRun(run)
 
-        outputHandler.outputAfterRunSet(runSet, None, totalWallTime)
+        outputHandler.outputAfterRunSet(runSet, wallTime=totalWallTime)
 
     outputHandler.outputAfterBenchmark(STOPPED_BY_INTERRUPT)
     
-    if len(notSubmitted) > 0:
-        logging.warning("{} runs were not submitted to App Engine!".format(len(notSubmitted)))
-    if len(withError) > 0:
+    if notSubmitted > 0:
+        logging.warning("{} runs were not submitted to App Engine!".format(notSubmitted))
+    if withError > 0:
         logging.warning("{} runs produced unexpected errors, please check the {} files!"
-                        .format(len(withError), os.path.join(benchmark.logFolder, '*.stdErr')))
-    if len(withTimeout) > 0:
-        logging.warning("{} runs timed out!".format(len(withTimeout)))
+                        .format(withError, os.path.join(benchmark.logFolder, '*.stdErr')))
+    if withTimeout > 0:
+        logging.warning("{} runs timed out!".format(withTimeout))
     if isOverQuota:
         logging.warning("Quota exceeded! Not all runs could be processed!")
     
@@ -827,13 +783,17 @@ def getBenchmarkDataForAppEngine(benchmark):
         for run in runSet.runs:
             if STOPPED_BY_INTERRUPT: break
             logFile = os.path.relpath(run.logFile, benchmark.logFolder)
-            args = parseArgsForAppEngine(run.getCmdline(), absWorkingDir)
-            args['sourceFileName'] = run.sourcefile
+            args = {'commandline':' '.join(run.getCmdline()), 'programName':run.sourcefile}
+            try:
+                with open(run.propertyfile, 'r') as f:
+                    args['properties'] = f.read()
+            except:
+                sys.exit("Cannot read properties file {}.".format(run.propertyfile))
             try:
                 with open(run.sourcefile, 'r') as f:
                     args['programText'] = f.read()
             except:
-                args['programText'] = ''
+                sys.exit("Cannot read program file {}.".format(run.sourcefile))
             runQueue.put({'payload':args,
                           'logFile':os.path.join(benchmark.logFolder, logFile),
                           'debug':config.debug,

@@ -29,7 +29,7 @@ public class SMGObject {
   final private int size;
   final private String label;
 
-  static final SMGObject nullObject = new SMGObject(0, "NULL");
+  static private final SMGObject nullObject = new SMGObject(0, "NULL");
 
   static public final SMGObject getNullObject() {
     return nullObject;
@@ -74,5 +74,9 @@ public class SMGObject {
       throw new IllegalArgumentException("isMoreGeneral called on incompatible pair of objects");
     }
     return false;
+  }
+
+  public SMGObject join(SMGObject pOther) {
+    throw new UnsupportedOperationException("join() called on SMGObject instance, not on a subclass");
   }
 }

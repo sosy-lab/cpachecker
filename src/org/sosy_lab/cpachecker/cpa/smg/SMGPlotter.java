@@ -97,6 +97,11 @@ class SMGNodeDotVisitor implements SMGObjectVisitor {
   public void visit(SMGSingleLinkedList pSll) {
     String shape = "rectangle";
     String color = "blue";
+
+    if (! smg.isObjectValid(pSll)) {
+      color="red";
+    }
+
     String style = "dashed";
     node = new SMGObjectNode("sll", defaultDefinition(color, shape, style, pSll));
   }

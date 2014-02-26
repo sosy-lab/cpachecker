@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
 
 import javax.annotation.Nonnull;
 
+import org.eclipse.cdt.internal.core.dom.parser.c.CFunctionType;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -101,6 +102,32 @@ public class CTypeUtils {
     } else {
       return new CPointerType(false, false, ((CArrayType) type).getType());
     }
+  }
+
+  static boolean isCompositeType(CType type) {
+    type = simplifyType(type);
+    assert !(type instanceof CElaboratedType) : "Unresolved elaborated type";
+    assert !(type instanceof CCompositeType) || ((CCompositeType) type).getKind() == ComplexTypeKind.STRUCT ||
+                                                ((CCompositeType) type).getKind() == ComplexTypeKind.UNION :
+           "Enums are not composite";
+    return type instanceof CArrayType || type instanceof CCompositeType;
+  }
+
+  static CType implicitCastToPointer(CType type) {
+    type = CTypeUtils.simplifyType(type);
+    if (type instanceof CArrayType) {
+      return new CPointerType(false,
+                              false,
+                              CTypeUtils.simplifyType(((CArrayType) type).getType()));
+    } else if (type instanceof CFunctionType) {
+      return new CPointerType(false, false, type);
+    } else {
+      return type;
+    }
+  }
+
+  static boolean isSimpleType(final CType type) {
+    return !(type instanceof CArrayType) && !(type instanceof CCompositeType);
   }
 
   /**

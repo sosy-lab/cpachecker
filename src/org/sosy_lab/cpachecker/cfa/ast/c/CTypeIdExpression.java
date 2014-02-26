@@ -65,6 +65,11 @@ public final class CTypeIdExpression extends AExpression implements CExpression 
     return v.visit(this);
   }
 
+  @Override
+  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
+
   public enum TypeIdOperator {
     SIZEOF,
     TYPEID,

@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.appengine.dao;
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.junit.Test;
@@ -34,7 +33,9 @@ import org.sosy_lab.cpachecker.appengine.common.DatastoreTest;
 import org.sosy_lab.cpachecker.appengine.entity.Task;
 import org.sosy_lab.cpachecker.appengine.entity.Task.Status;
 import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
+import org.sosy_lab.cpachecker.appengine.entity.Taskset;
 
+import com.google.appengine.labs.repackaged.com.google.common.collect.Lists;
 import com.googlecode.objectify.Key;
 
 
@@ -89,6 +90,17 @@ public class TaskDAOTest extends DatastoreTest {
   }
 
   @Test
+  public void shouldSaveTasks() throws Exception {
+    Task taskA = new Task();
+    Task taskB = new Task();
+    List<Task> tasks = Lists.newArrayList(taskA, taskB);
+    TaskDAO.save(tasks);
+
+    assertNotNull(taskA.getId());
+    assertNotNull(taskB.getId());
+  }
+
+  @Test
   public void shouldDeleteTask() throws Exception {
     TaskFile file = new TaskFile("", task);
     TaskFileDAO.save(file);
@@ -104,31 +116,41 @@ public class TaskDAOTest extends DatastoreTest {
 
   @Test
   public void shouldDeleteAllTasks() throws Exception {
-    TaskDAO.save(new Task());
+    createTasks(502);
+    TaskDAO.deleteAll();
+    assertTrue(TaskDAO.tasks().size() < 500);
     TaskDAO.deleteAll();
     assertTrue(TaskDAO.tasks().isEmpty());
   }
 
   @Test
   public void shouldLoadAllFinishedTasks() throws Exception {
-    Task[] tasks = createTasks(1);
-    tasks[0].setStatus(Status.ERROR);
+    Taskset taskset = TasksetDAO.save(new Taskset());
+    Task[] tasks = createTasks(2);
+    tasks[0].setStatus(Status.DONE);
+    tasks[0].setTaskset(taskset);
     TaskDAO.save(tasks[0]);
 
-    List<String> keys = Collections.singletonList(tasks[0].getKey());
-    assertEquals(1, TaskDAO.finishedTasks(keys).size());
-    assertTrue(TaskDAO.finishedTasks(keys).contains(tasks[0]));
+    taskset.addTask(tasks[0]);
+    taskset.addTask(tasks[1]);
+    TasksetDAO.save(taskset);
+
+    assertEquals(1, TaskDAO.finishedTasks(taskset, -1).size());
+    assertTrue(TaskDAO.finishedTasks(taskset, -1).contains(tasks[0]));
   }
 
   @Test
   public void shouldLoadAllUnfinishedTasks() throws Exception {
+    Taskset taskset = TasksetDAO.save(new Taskset());
     Task[] tasks = createTasks(1);
-    tasks[0].setStatus(Status.RUNNING);
+    tasks[0].setTaskset(taskset);
     TaskDAO.save(tasks[0]);
 
-    List<String> keys = Collections.singletonList(tasks[0].getKey());
-    assertEquals(1, TaskDAO.unfinishedTasks(keys).size());
-    assertTrue(TaskDAO.unfinishedTasks(keys).contains(tasks[0]));
+    taskset.addTask(tasks[0]);
+    TasksetDAO.save(taskset);
+
+    assertEquals(1, TaskDAO.unfinishedTasks(taskset, -1).size());
+    assertTrue(TaskDAO.unfinishedTasks(taskset, -1).contains(tasks[0]));
   }
 
   private Task[] createTasks(int amount) {

@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
 
 
 class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeException>{
@@ -91,7 +90,7 @@ class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeExcep
   public Variable visit(final CIdExpression e) throws UnrecognizedCCodeException {
     if (!pts.isActualBase(e.getDeclaration().getQualifiedName()) &&
         !CTypeUtils.containsArray(CTypeUtils.simplifyType(e.getExpressionType()))) {
-      return lastBase = conv.scopedIfNecessary(e, null, null);
+      return lastBase = conv.scopedIfNecessary(e);
     } else {
       return null;
     }
@@ -138,10 +137,8 @@ class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeExcep
     switch (e.getOperator()) {
     case AMPER:
       throw new UnrecognizedCCodeException("Address in place of lvalue", cfaEdge, e);
-    case NOT:
     case TILDE:
     case MINUS:
-    case PLUS:
       throw new UnrecognizedCCodeException("Arithmetic in place of lvalue", cfaEdge, e);
     case SIZEOF:
       throw new UnrecognizedCCodeException("Constant in place of lvalue", cfaEdge, e);

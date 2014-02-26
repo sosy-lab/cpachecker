@@ -38,7 +38,9 @@ public final class CIdExpression extends AIdExpression implements CLeftHandSide 
     super(pFileLocation, pType, pName, pDeclaration);
   }
 
-
+  public CIdExpression(final FileLocation pFileLocation, final CSimpleDeclaration pDeclaration) {
+    super(pFileLocation, pDeclaration);
+  }
 
   @Override
   public CType getExpressionType() {
@@ -67,6 +69,11 @@ public final class CIdExpression extends AIdExpression implements CLeftHandSide 
   @Override
   public <R, X extends Exception> R accept(CLeftHandSideVisitor<R, X> v) throws X {
     return v.visit(this);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+    return pV.visit(this);
   }
 
   @Override

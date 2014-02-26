@@ -54,7 +54,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -82,11 +82,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -100,6 +101,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CFieldTrackType;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetBuilder.DummyPointerTargetSetBuilder;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
@@ -114,9 +118,10 @@ public class CtoFormulaConverter {
 
   public static final String ASSUME_FUNCTION_NAME = "__VERIFIER_assume";
 
-  // list of functions that are pure (no side-effects)
+  // list of functions that are pure (no side-effects from the perspective of this analysis)
   public static final Set<String> PURE_EXTERNAL_FUNCTIONS
-      = ImmutableSet.of("__assert_fail", "free", "kfree",
+      = ImmutableSet.of("abort", "exit", "__assert_fail", "__VERIFIER_error",
+          "free", "kfree",
           "fprintf", "printf", "puts", "printk", "sprintf", "swprintf",
           "strcasecmp", "strchr", "strcmp", "strlen", "strncmp", "strrchr", "strstr"
           );
@@ -127,7 +132,7 @@ public class CtoFormulaConverter {
       = ImmutableMap.of("pthread_create", "threads");
 
   //names for special variables needed to deal with functions
-  protected static final String VAR_RETURN_NAME = "__retval__";
+  protected static final String RETURN_VARIABLE_NAME = "__retval__";
 
   private static final String EXPAND_VARIABLE = "__expandVariable__";
   private int expands = 0;
@@ -138,12 +143,15 @@ public class CtoFormulaConverter {
       "printf", "printk"
       );
 
+  private static final String SCOPE_SEPARATOR = "::";
+
   private final Map<String, BitvectorFormula> stringLitToFormula = new HashMap<>();
   private int nextStringLitIndex = 0;
 
   final FormulaEncodingOptions options;
   protected final MachineModel machineModel;
-  private final CtoFormulaTypeHandler typeHandler;
+  private final Optional<VariableClassification> variableClassification;
+  final CtoFormulaTypeHandler typeHandler;
 
   protected final FormulaManagerView fmgr;
   protected final BooleanFormulaManagerView bfmgr;
@@ -158,12 +166,14 @@ public class CtoFormulaConverter {
   private final FunctionFormulaType<BitvectorFormula> stringUfDecl;
 
   public CtoFormulaConverter(FormulaEncodingOptions pOptions, FormulaManagerView fmgr,
-      MachineModel pMachineModel, LogManager logger,
+      MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification,
+      LogManager logger,
       CtoFormulaTypeHandler pTypeHandler) {
 
     this.fmgr = fmgr;
     this.options = pOptions;
     this.machineModel = pMachineModel;
+    this.variableClassification = pVariableClassification;
     this.typeHandler = pTypeHandler;
 
     this.bfmgr = fmgr.getBooleanFormulaManager();
@@ -207,7 +217,36 @@ public class CtoFormulaConverter {
     return typeHandler.getSizeof(pType);
   }
 
-  protected Variable scopedIfNecessary(CIdExpression var, SSAMapBuilder ssa, String function) {
+  protected boolean isRelevantField(final CCompositeType compositeType,
+                          final String fieldName) {
+    return !variableClassification.isPresent() ||
+           !options.ignoreIrrelevantVariables() ||
+           variableClassification.get().getRelevantFields().containsEntry(compositeType, fieldName);
+  }
+
+  protected static Pair<String, String> parseQualifiedName(final String qualifiedName) {
+    final int position = qualifiedName.indexOf(SCOPE_SEPARATOR);
+    return Pair.of(position >= 0 ? qualifiedName.substring(0, position) : null,
+                   position >= 0 ? qualifiedName.substring(position + SCOPE_SEPARATOR.length()) : qualifiedName);
+  }
+
+  protected boolean isRelevantLeftHandSide(final CLeftHandSide lhs) {
+    return lhs.accept(new IsRelevantLhsVisitor(this));
+  }
+
+  protected final boolean isRelevantVariable(final CSimpleDeclaration var) {
+    final String qualifiedName = var.getQualifiedName();
+    final Pair<String, String> parsedName = parseQualifiedName(qualifiedName);
+    final String function = parsedName.getFirst();
+    final String name = parsedName.getSecond();
+    if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
+      return name.equals(RETURN_VARIABLE_NAME) ||
+           variableClassification.get().getRelevantVariables().containsEntry(function, name);
+    }
+    return true;
+  }
+
+  protected Variable scopedIfNecessary(CIdExpression var) {
     return Variable.create(var.getDeclaration().getQualifiedName(), var.getExpressionType());
   }
 
@@ -245,15 +284,7 @@ public class CtoFormulaConverter {
   * Call only if you are sure you have a local variable!
   */
   public static String scoped(String var, String function) {
-    return (function + "::" + var).intern();
-  }
-
-  /**
-   * Create a variable name that is used to store the return value of a function
-   * temporarily (between the return statement and the re-entrance in the caller function).
-   */
-  static String getReturnVarName(String function) {
-    return scoped(VAR_RETURN_NAME, function);
+    return (function + SCOPE_SEPARATOR + var).intern();
   }
 
   /**
@@ -265,26 +296,6 @@ public class CtoFormulaConverter {
    */
   public static String exprToVarName(IAstNode e) {
     return e.toASTString().replaceAll("[ \n\t]", "");
-  }
-
-  static String getTypeName(final CType tp) {
-
-    if (tp instanceof CPointerType) {
-      return getTypeName(((CPointerType)tp).getType());
-
-    } else if (tp instanceof CTypedefType) {
-      return getTypeName(((CTypedefType)tp).getRealType());
-
-    } else if (tp instanceof CCompositeType) {
-      CCompositeType compositeType = ((CCompositeType)tp);
-      return compositeType.getKind().toASTString() + " " + compositeType.getName();
-
-    } else if (tp instanceof CSimpleType) {
-      return tp.toASTString("");
-
-    } else {
-      throw new AssertionError("Unknown type " + tp.getClass().getName());
-    }
   }
 
   /**
@@ -329,7 +340,7 @@ public class CtoFormulaConverter {
     return idx;
   }
 
-  private void checkSsaSavedType(String name, CType type, SSAMapBuilder ssa) {
+  protected void checkSsaSavedType(String name, CType type, SSAMapBuilder ssa) {
 
     // Check if types match
 
@@ -379,19 +390,11 @@ public class CtoFormulaConverter {
    * Create a formula for a given variable, which is assumed to be constant.
    * This method does not handle scoping!
    */
-  protected Formula makeConstant(String name, CType type, SSAMapBuilder ssa) {
-    // TODO better use variables without index (this piece of code prevents
-    // SSAMapBuilder from checking for strict monotony)
-    int idx = ssa.getIndex(name);
-    assert idx <= 1 : name + " is assumed to be constant there was an assignment to it";
-    if (idx != 1) {
-      setSsaIndex(ssa, name, type, 1); // set index so that predicates will be instantiated correctly
-    }
-
-    return fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, 1);
+  protected Formula makeConstant(String name, CType type) {
+    return fmgr.makeVariable(getFormulaTypeFromCType(type), name);
   }
-  protected Formula makeConstant(Variable var, SSAMapBuilder ssa) {
-    return makeConstant(var.getName(), var.getType(), ssa);
+  protected Formula makeConstant(Variable var) {
+    return makeConstant(var.getName(), var.getType());
   }
 
   /**
@@ -442,7 +445,7 @@ public class CtoFormulaConverter {
   protected Formula makeVariable(String name, CType type, SSAMapBuilder ssa) {
     return resolveFields(name, type, ssa, false);
   }
-  protected Formula makeVariable(Variable var, SSAMapBuilder ssa) {
+  protected final Formula makeVariable(Variable var, SSAMapBuilder ssa) {
     return makeVariable(var.getName(), var.getType(), ssa);
   }
 
@@ -514,28 +517,6 @@ public class CtoFormulaConverter {
     }
 
     return result;
-  }
-
-  /**
-   * Makes a fresh variable out of the varName and assigns the rightHandSide to it.
-   * To be used when the left-hand side is no expression
-   * (e.g. because we assign to a special hard-coded variable like __retval__).
-   *
-   * @param leftName has to be scoped already
-   * @param rightHandSide The expression to evaluate and assign to left.
-   * @param function The function where rightHandSide should be evaluated in.
-   * @return the new Formula (lhs = rhs)
-   */
-  private BooleanFormula makeAssignment(String leftName, CType leftType,
-      CExpression rightHandSide,
-      String function, SSAMapBuilder ssa, CFAEdge edge, Constraints constraints) throws UnrecognizedCCodeException {
-
-    Formula rhs = buildTerm(rightHandSide, edge, function, ssa, constraints);
-    rhs = makeCast(rightHandSide.getExpressionType(), leftType, rhs, edge);
-
-    Formula lhs = makeFreshVariable(leftName, leftType, ssa);
-
-    return fmgr.assignment(lhs, rhs);
   }
 
   /**
@@ -759,16 +740,15 @@ public class CtoFormulaConverter {
   }
 
 //  @Override
-  public Pair<PathFormula, ErrorConditions> makeAnd(PathFormula oldFormula, CFAEdge edge)
+  public PathFormula makeAnd(PathFormula oldFormula,
+      CFAEdge edge, ErrorConditions errorConditions)
       throws CPATransferException {
     // this is where the "meat" is... We have to parse the statement
     // attached to the edge, and convert it to the appropriate formula
-    ErrorConditions errorConditions = new ErrorConditions(bfmgr);
-
     if (edge.getEdgeType() == CFAEdgeType.BlankEdge) {
 
       // in this case there's absolutely nothing to do, so take a shortcut
-      return Pair.of(oldFormula, errorConditions);
+      return oldFormula;
     }
 
     String function = (edge.getPredecessor() != null)
@@ -776,21 +756,26 @@ public class CtoFormulaConverter {
 
     SSAMapBuilder ssa = oldFormula.getSsa().builder();
     Constraints constraints = new Constraints(bfmgr);
+    PointerTargetSetBuilder pts = createPointerTargetSetBuilder(oldFormula.getPointerTargetSet());
 
-    BooleanFormula edgeFormula = createFormulaForEdge(edge, function, ssa, constraints);
+    BooleanFormula edgeFormula = createFormulaForEdge(edge, function, ssa, pts, constraints, errorConditions);
 
     edgeFormula = bfmgr.and(edgeFormula, constraints.get());
 
     SSAMap newSsa = ssa.build();
-    if (bfmgr.isTrue(edgeFormula) && (newSsa == oldFormula.getSsa())) {
-      // formula is just "true" and SSAMap is identical
+    PointerTargetSet newPts = pts.build();
+
+    if (bfmgr.isTrue(edgeFormula)
+        && (newSsa == oldFormula.getSsa())
+        && newPts.equals(oldFormula.getPointerTargetSet())) {
+      // formula is just "true" and rest is equal
       // i.e. no writes to SSAMap, no branching and length should stay the same
-      return Pair.of(oldFormula, errorConditions);
+      return oldFormula;
     }
 
     BooleanFormula newFormula = bfmgr.and(oldFormula.getFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;
-    return Pair.of(new PathFormula(newFormula, newSsa, newLength), errorConditions);
+    return new PathFormula(newFormula, newSsa, newPts, newLength);
   }
 
   /**
@@ -803,26 +788,30 @@ public class CtoFormulaConverter {
    * @return the formula for the edge
    * @throws CPATransferException
    */
-  private BooleanFormula createFormulaForEdge(CFAEdge edge, String function, SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
+  private BooleanFormula createFormulaForEdge(
+      final CFAEdge edge, final String function,
+      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+      final Constraints constraints, final ErrorConditions errorConditions)
+          throws CPATransferException {
     switch (edge.getEdgeType()) {
     case StatementEdge: {
-      CStatementEdge statementEdge = (CStatementEdge) edge;
-      StatementToFormulaVisitor v = getStatementVisitor(edge, function, ssa, constraints);
-      return statementEdge.getStatement().accept(v);
+      return makeStatement((CStatementEdge) edge, function,
+          ssa, pts, constraints, errorConditions);
     }
 
     case ReturnStatementEdge: {
       CReturnStatementEdge returnEdge = (CReturnStatementEdge)edge;
-      return makeReturn(returnEdge.getExpression(), returnEdge, function, ssa, constraints);
+      return makeReturn(returnEdge.getExpression(), returnEdge, function,
+          ssa, pts, constraints, errorConditions);
     }
 
     case DeclarationEdge: {
-      CDeclarationEdge d = (CDeclarationEdge)edge;
-      return makeDeclaration(d, function, ssa, constraints);
+      return makeDeclaration((CDeclarationEdge)edge, function, ssa, pts, constraints, errorConditions);
     }
 
     case AssumeEdge: {
-      return makeAssume((CAssumeEdge)edge, function, ssa, constraints);
+      return makeAssume((CAssumeEdge)edge, function,
+          ssa, pts, constraints, errorConditions);
     }
 
     case BlankEdge: {
@@ -831,13 +820,15 @@ public class CtoFormulaConverter {
     }
 
     case FunctionCallEdge: {
-      return makeFunctionCall((CFunctionCallEdge)edge, function, ssa, constraints);
+      return makeFunctionCall((CFunctionCallEdge)edge, function,
+          ssa, pts, constraints, errorConditions);
     }
 
     case FunctionReturnEdge: {
       // get the expression from the summary edge
       CFunctionSummaryEdge ce = ((CFunctionReturnEdge)edge).getSummaryEdge();
-      return makeExitFunction(ce, function, ssa, constraints);
+      return makeExitFunction(ce, function,
+          ssa, pts, constraints, errorConditions);
     }
 
     case MultiEdge: {
@@ -848,9 +839,11 @@ public class CtoFormulaConverter {
         if (singleEdge instanceof BlankEdge) {
           continue;
         }
-        multiEdgeFormulas.add(createFormulaForEdge(singleEdge, function, ssa, constraints));
+        multiEdgeFormulas.add(createFormulaForEdge(singleEdge, function, ssa, pts, constraints, errorConditions));
       }
 
+      // Big conjunction at the end is better than creating a new conjunction
+      // after each edge for some SMT solvers.
       return bfmgr.and(multiEdgeFormulas);
     }
 
@@ -859,9 +852,20 @@ public class CtoFormulaConverter {
     }
   }
 
-  private BooleanFormula makeDeclaration(
-      CDeclarationEdge edge, String function, SSAMapBuilder ssa,
-      Constraints constraints) throws CPATransferException {
+  protected BooleanFormula makeStatement(
+      final CStatementEdge statement, final String function,
+      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+      final Constraints constraints, final ErrorConditions errorConditions)
+          throws CPATransferException {
+    StatementToFormulaVisitor v = getStatementVisitor(statement, function, ssa, constraints);
+    return statement.getStatement().accept(v);
+  }
+
+  protected BooleanFormula makeDeclaration(
+      final CDeclarationEdge edge, final String function,
+      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+      final Constraints constraints, final ErrorConditions errorConditions)
+          throws CPATransferException {
 
     if (!(edge.getDeclaration() instanceof CVariableDeclaration)) {
       // struct prototype, function declaration, typedef etc.
@@ -871,6 +875,11 @@ public class CtoFormulaConverter {
 
     CVariableDeclaration decl = (CVariableDeclaration)edge.getDeclaration();
     final String varName = decl.getQualifiedName();
+
+    if (!isRelevantVariable(decl)) {
+      logfOnce(Level.FINEST, decl, "Ignoring declaration of unused variable %s.", decl);
+      return bfmgr.makeBoolean(true);
+    }
 
     // if the var is unsigned, add the constraint that it should
     // be > 0
@@ -915,8 +924,11 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  private BooleanFormula makeExitFunction(CFunctionSummaryEdge ce, String function,
-      SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
+  protected BooleanFormula makeExitFunction(
+      final CFunctionSummaryEdge ce, final String calledFunction,
+      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+      final Constraints constraints, final ErrorConditions errorConditions)
+          throws CPATransferException {
 
     CFunctionCall retExp = ce.getExpression();
     if (retExp instanceof CFunctionCallStatement) {
@@ -925,20 +937,15 @@ public class CtoFormulaConverter {
 
     } else if (retExp instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement)retExp;
-      String retVarName = getReturnVarName(function);
-
       CFunctionCallExpression funcCallExp = exp.getRightHandSide();
-      CType retType = getReturnType(funcCallExp, ce);
 
-      Formula retVar = makeVariable(retVarName, retType, ssa);
-      CLeftHandSide e = exp.getLeftHandSide();
+      String callerFunction = ce.getSuccessor().getFunctionName();
 
-      function = ce.getSuccessor().getFunctionName();
-      Formula outvarFormula = buildLvalueTerm(e, ce, function, ssa, constraints);
-      retVar = makeCast(retType, e.getExpressionType(), retVar, ce);
-      BooleanFormula assignments = fmgr.assignment(outvarFormula, retVar);
+      final CVariableDeclaration returnVariableDeclaration = createReturnVariable(funcCallExp.getDeclaration());
+      final CIdExpression rhs = new CIdExpression(funcCallExp.getFileLocation(),
+                         returnVariableDeclaration);
 
-      return assignments;
+      return makeAssignment(exp.getLeftHandSide(), rhs, ce, callerFunction, ssa, pts, constraints, errorConditions);
     } else {
       throw new UnrecognizedCCodeException("Unknown function exit expression", ce, retExp);
     }
@@ -979,8 +986,11 @@ public class CtoFormulaConverter {
   }
 
 
-  private BooleanFormula makeFunctionCall(CFunctionCallEdge edge,
-      String callerFunction, SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
+  protected BooleanFormula makeFunctionCall(
+      final CFunctionCallEdge edge, final String callerFunction,
+      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+      final Constraints constraints, final ErrorConditions errorConditions)
+          throws CPATransferException {
 
     List<CExpression> actualParams = edge.getArguments();
 
@@ -1009,25 +1019,21 @@ public class CtoFormulaConverter {
     int i = 0;
     BooleanFormula result = bfmgr.makeBoolean(true);
     for (CParameterDeclaration formalParam : formalParams) {
-      final String varName = formalParam.getQualifiedName();
-      final CType paramType = formalParam.getType();
       CExpression paramExpression = actualParams.get(i++);
-      paramExpression = makeCastFromArrayToPointerIfNecessary(paramExpression, paramType);
+      CIdExpression lhs = new CIdExpression(paramExpression.getFileLocation(), formalParam);
 
-      BooleanFormula eq =
-          makeAssignment(
-              varName, paramType,
-              paramExpression,
-              callerFunction, ssa, edge, constraints);
-
+      BooleanFormula eq = makeAssignment(lhs, paramExpression, edge, callerFunction, ssa, pts, constraints, errorConditions);
       result = bfmgr.and(result, eq);
     }
 
     return result;
   }
 
-  private BooleanFormula makeReturn(CExpression rightExp, CReturnStatementEdge edge, String function,
-      SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
+  protected BooleanFormula makeReturn(final CExpression rightExp,
+      final CReturnStatementEdge edge, final String function,
+      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+      final Constraints constraints, final ErrorConditions errorConditions)
+          throws CPATransferException {
     if (rightExp == null) {
       // this is a return from a void function, do nothing
       return bfmgr.makeBoolean(true);
@@ -1037,22 +1043,42 @@ public class CtoFormulaConverter {
       // so that we can use it later on, if it is assigned to
       // a variable. We create a function::__retval__ variable
       // that will hold the return value
-      String retVarName = getReturnVarName(function);
+      final CFunctionDeclaration functionDeclaration =
+          ((CFunctionEntryNode) edge.getSuccessor().getEntryNode()).getFunctionDefinition();
+      final CVariableDeclaration returnVariableDeclaration = createReturnVariable(functionDeclaration);
+      final CIdExpression lhs = new CIdExpression(rightExp.getFileLocation(),
+                         returnVariableDeclaration);
 
-      CType returnType =
-          ((CFunctionEntryNode)edge.getSuccessor().getEntryNode())
-            .getFunctionDefinition()
-            .getType()
-            .getReturnType();
-      BooleanFormula assignments = makeAssignment(retVarName, returnType,
-          rightExp, function, ssa, edge, constraints);
-
-      return assignments;
+      return makeAssignment(lhs, rightExp, edge, function, ssa, pts, constraints, errorConditions);
     }
   }
 
-  private BooleanFormula makeAssume(CAssumeEdge assume, String function,
-      SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
+  protected final CVariableDeclaration createReturnVariable(
+      final CFunctionDeclaration functionDeclaration) {
+    final String retVarName = RETURN_VARIABLE_NAME;
+    final CType returnType = functionDeclaration.getType().getReturnType();
+
+    return new CVariableDeclaration(functionDeclaration.getFileLocation(), false,
+        CStorageClass.AUTO, returnType,
+        retVarName, retVarName, scoped(retVarName, functionDeclaration.getName()), null);
+  }
+
+  protected BooleanFormula makeAssignment(
+      final CLeftHandSide lhs, final CExpression rhs,
+      final CFAEdge edge, final String function,
+      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+      final Constraints constraints, final ErrorConditions errorConditions)
+          throws UnrecognizedCCodeException {
+
+    StatementToFormulaVisitor statementVisitor = getStatementVisitor(edge, function, ssa, constraints);
+    return statementVisitor.handleAssignment(lhs, rhs);
+  }
+
+  protected BooleanFormula makeAssume(
+      final CAssumeEdge assume, final String function,
+      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+      final Constraints constraints, final ErrorConditions errorConditions)
+          throws CPATransferException {
 
     return makePredicate(assume.getExpression(), assume.getTruthAssumption(),
         assume, function, ssa, constraints);
@@ -1140,6 +1166,10 @@ public class CtoFormulaConverter {
     Constraints constraints = new Constraints(bfmgr);
     BooleanFormula f = makePredicate(exp, true, edge, function, ssa, constraints);
     return bfmgr.and(f, constraints.get());
+  }
+
+  protected PointerTargetSetBuilder createPointerTargetSetBuilder(PointerTargetSet pts) {
+    return DummyPointerTargetSetBuilder.INSTANCE;
   }
 
   private StatementToFormulaVisitor getStatementVisitor(CFAEdge pEdge, String pFunction,
@@ -1273,20 +1303,6 @@ public class CtoFormulaConverter {
     }
 
     throw new AssertionError("field " + fieldName + " was not found in " + structType);
-  }
-
-  static CExpression removeCast(CExpression exp) {
-    if (exp instanceof CCastExpression) {
-      return removeCast(((CCastExpression) exp).getOperand());
-    }
-    return exp;
-  }
-
-  static CRightHandSide removeCast(CRightHandSide exp) {
-    if (exp instanceof CCastExpression) {
-      return removeCast(((CCastExpression) exp).getOperand());
-    }
-    return exp;
   }
 
   /**

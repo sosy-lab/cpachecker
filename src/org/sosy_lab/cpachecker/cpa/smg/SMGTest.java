@@ -27,6 +27,7 @@ import static org.mockito.Mockito.mock;
 
 import java.util.BitSet;
 import java.util.HashSet;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 import org.junit.Assert;
@@ -37,6 +38,9 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 
 public class SMGTest {
@@ -82,6 +86,31 @@ public class SMGTest {
     smg.addHasValueEdge(hv2has1at4);
   }
 
+  @Test(expected=NoSuchElementException.class)
+  public void getUniqueHV0Test() {
+    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(obj1);
+    smg.getUniqueHV(filter, false);
+  }
+
+  @Test
+  public void getUniqueHV1Test() {
+    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(obj2).filterAtOffset(0);
+    Assert.assertEquals(smg.getUniqueHV(filter, true), hv2has2at0);
+    Assert.assertEquals(smg.getUniqueHV(filter, false), hv2has2at0);
+  }
+
+  @Test(expected=IllegalArgumentException.class)
+  public void getUniqueHV2CheckTest() {
+    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(obj2);
+    smg.getUniqueHV(filter, true);
+  }
+
+  @Test(expected=IllegalArgumentException.class)
+  public void getUniqueHV2NoCheckTest() {
+    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(obj2);
+    Assert.assertNotNull(smg.getUniqueHV(filter, true));
+  }
+
   @Test
   public void getNullBytesForObjectTest() {
     SMG smg = getNewSMG64();
@@ -103,9 +132,7 @@ public class SMGTest {
     hvSet.add(hv);
 
     smg.replaceHVSet(hvSet);
-
-    Set<SMGEdgeHasValue> newHVSet = smg.getHVEdges();
-
+    Set<SMGEdgeHasValue> newHVSet = Sets.newHashSet(smg.getHVEdges());
     Assert.assertTrue(hvSet.equals(newHVSet));
   }
 
@@ -129,7 +156,7 @@ public class SMGTest {
     SMGObject target_object = smg.getObjectPointedBy(nullAddress);
     Assert.assertEquals(nullObject, target_object);
 
-    Assert.assertEquals(0, smg.getHVEdges().size());
+    Assert.assertFalse(smg.getHVEdges().iterator().hasNext());
 
     //copy constructor
     SMG smg_copy = new SMG(smg);
@@ -158,8 +185,8 @@ public class SMGTest {
     SMGObject target_object_for_third = smg_copy.getObjectPointedBy(third_value);
     Assert.assertEquals(third_object, target_object_for_third);
 
-    Assert.assertEquals(0, smg.getHVEdges().size());
-    Assert.assertEquals(1, smg_copy.getHVEdges().size());
+    Assert.assertFalse(smg.getHVEdges().iterator().hasNext());
+    Assert.assertEquals(1, Iterables.size(smg_copy.getHVEdges()));
   }
 
   @Test
@@ -170,10 +197,10 @@ public class SMGTest {
     SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 0, object, smg.getNullValue());
 
     smg.addHasValueEdge(hv);
-    Assert.assertTrue(smg.getHVEdges().contains(hv));
+    Assert.assertTrue(Iterables.contains(smg.getHVEdges(), hv));
 
     smg.removeHasValueEdge(hv);
-    Assert.assertFalse(smg.getHVEdges().contains(hv));
+    Assert.assertFalse(Iterables.contains(smg.getHVEdges(), hv));
   }
 
   @Test
@@ -195,8 +222,10 @@ public class SMGTest {
     Assert.assertTrue(smg.getObjects().contains(object));
     smg.removeObject(object);
     Assert.assertFalse(smg.getObjects().contains(object));
-    Assert.assertTrue(smg.getHVEdges().contains(hv0));
-    Assert.assertTrue(smg.getHVEdges().contains(hv4));
+
+    Assert.assertTrue(Iterables.contains(smg.getHVEdges(), hv0));
+    Assert.assertTrue(Iterables.contains(smg.getHVEdges(), hv4));
+
     Assert.assertTrue(smg.getPTEdges().values().contains(pt));
   }
 
@@ -219,8 +248,8 @@ public class SMGTest {
     Assert.assertTrue(smg.getObjects().contains(object));
     smg.removeObjectAndEdges(object);
     Assert.assertFalse(smg.getObjects().contains(object));
-    Assert.assertFalse(smg.getHVEdges().contains(hv0));
-    Assert.assertFalse(smg.getHVEdges().contains(hv4));
+    Assert.assertFalse(Iterables.contains(smg.getHVEdges(), hv0));
+    Assert.assertFalse(Iterables.contains(smg.getHVEdges(), hv4));
     Assert.assertFalse(smg.getPTEdges().values().contains(pt));
   }
 
@@ -418,11 +447,20 @@ public class SMGTest {
 
   @Test
   public void getHVEdgesTest() {
-    HashSet<SMGEdgeHasValue> set = new HashSet<>();
-    set.add(hv2has2at0);
-    set.add(hv2has1at4);
+    Assert.assertTrue(Iterables.contains(smg.getHVEdges(), hv2has2at0));
+    Assert.assertTrue(Iterables.contains(smg.getHVEdges(), hv2has1at4));
+    Assert.assertEquals(2, Iterables.size(smg.getHVEdges()));
+  }
 
-    Assert.assertTrue(smg.getHVEdges().containsAll(set));
+  @Test
+  public void getHVEdgesFilteredTest() {
+    Assert.assertEquals(0, Iterables.size(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj1))));
+    Assert.assertEquals(2, Iterables.size(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2))));
+    Assert.assertTrue(Iterables.contains(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2)), hv2has2at0));
+    Assert.assertTrue(Iterables.contains(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2)), hv2has1at4));
+
+    Assert.assertEquals(1, Iterables.size(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2).filterAtOffset(0))));
+    Assert.assertTrue(Iterables.contains(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2).filterAtOffset(0)), hv2has2at0));
   }
 
   @Test

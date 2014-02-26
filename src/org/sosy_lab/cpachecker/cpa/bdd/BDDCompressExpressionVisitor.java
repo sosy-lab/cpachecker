@@ -27,7 +27,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import org.sosy_lab.cpachecker.cfa.ast.c.*;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
@@ -161,32 +160,5 @@ public class BDDCompressExpressionVisitor
       }
     }
     return transferRelation.createPredicate(idExp, size);
-  }
-
-  @Override
-  public Region[] visit(final CUnaryExpression unaryExpression) {
-
-    // for numeral values
-    final BigInteger val = VariableClassification.getNumber(unaryExpression);
-    if (val != null) {
-      return intToRegions.get(val);
-    }
-
-    final UnaryOperator unaryOperator = unaryExpression.getOperator();
-    final CExpression unaryOperand = unaryExpression.getOperand();
-    final Region[] value = unaryOperand.accept(this);
-
-    if (value == null) {
-      return null;
-    }
-
-    switch (unaryOperator) {
-      case PLUS:
-        return value;
-      case NOT:
-        return bvmgr.wrapLast(bvmgr.makeNot(value), value.length);
-      default:
-        throw new AssertionError("no support for further operators: " + unaryOperator);
-    }
   }
 }

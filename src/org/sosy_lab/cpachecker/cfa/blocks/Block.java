@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import com.google.common.collect.ImmutableSet;
 
 /**
- * Represents a block as described in the ABM paper.
+ * Represents a block as described in the BAM paper.
  */
 public class Block {
 

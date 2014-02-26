@@ -99,7 +99,7 @@ public class CLangSMGTest {
     Assert.assertEquals(obj1, smg_copy.getObjectPointedBy(val1));
 
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(obj2);
-    Assert.assertEquals(hv, smg_copy.getHVEdges(filter).iterator().next());
+    Assert.assertEquals(hv, smg_copy.getUniqueHV(filter, true));
   }
 
   @Test

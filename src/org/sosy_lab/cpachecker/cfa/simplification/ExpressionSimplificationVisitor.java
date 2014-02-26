@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.simplification;
 
 import java.math.BigInteger;
-import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
@@ -49,10 +49,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitExpressionValueVisitor;
-
-import com.google.common.collect.Sets;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitNumericValue;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitValueBase;
 
 /** This visitor visits an expression and evaluates it.
  * The returnvalue of the visit consists of the simplified expression and
@@ -66,6 +67,41 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
   public ExpressionSimplificationVisitor(MachineModel mm, LogManager pLogger) {
     this.machineModel = mm;
     this.logger = pLogger;
+  }
+
+  /**
+   * Takes an explicit value as returned by various ExplicitCPA functions and
+   * converts it to a <code>Pair<CExpression, Number></code> as required by
+   * this class.
+   */
+  private Pair<CExpression, Number> convertExplicitValueToPair(final CExpression expr, ExplicitValueBase value) {
+    // TODO: handle cases other than numeric values
+    ExplicitNumericValue numericResult = value.asNumericValue();
+    if(numericResult != null && expr.getExpressionType() instanceof CSimpleType) {
+      CSimpleType type = (CSimpleType) expr.getExpressionType();
+      switch(type.getType()) {
+        case INT:
+        case CHAR: {
+          return Pair.<CExpression, Number> of(
+              new CIntegerLiteralExpression(expr.getFileLocation(),
+                  expr.getExpressionType(), BigInteger.valueOf(numericResult.longValue())),
+                  numericResult.longValue());
+        }
+        case FLOAT:
+        case DOUBLE: {
+          return Pair.<CExpression, Number> of(
+              new CFloatLiteralExpression(expr.getFileLocation(),
+                  expr.getExpressionType(), numericResult.bigDecimalValue()),
+                  numericResult.doubleValue());
+        }
+      }
+    }
+    if (numericResult != null) {
+      logger.logf(Level.FINE, "Can not handle result of expression %s", numericResult.toString());
+    } else {
+      logger.logf(Level.FINE, "Can not handle result of expression, numericResult is null.");
+    }
+    return Pair.<CExpression, Number> of(expr, null);
   }
 
   @Override
@@ -97,14 +133,14 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
       return Pair.of((CExpression) newExpr, null);
     }
 
-    long result = ExplicitExpressionValueVisitor.calculateBinaryOperation(
-        pair1.getSecond().longValue(), pair2.getSecond().longValue(),
+    // TODO: handle the case that it's not a CSimpleType or that it's not a number
+    ExplicitValueBase lVal = new ExplicitNumericValue(pair1.getSecond());
+    ExplicitValueBase rVal = new ExplicitNumericValue(pair2.getSecond());
+    ExplicitValueBase result = ExplicitExpressionValueVisitor.calculateBinaryOperation(
+        lVal, rVal,
         expr, machineModel, logger, null);
 
-    return Pair.<CExpression, Number> of(
-        new CIntegerLiteralExpression(expr.getFileLocation(),
-            expr.getExpressionType(), BigInteger.valueOf(result)),
-        result);
+    return convertExplicitValueToPair(expr, result);
   }
 
   @Override
@@ -125,13 +161,13 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
       return Pair.of((CExpression) newExpr, null);
     }
 
-    final long castedValue = ExplicitExpressionValueVisitor.castCValue(
-        pair.getSecond().longValue(), expr.getExpressionType(), machineModel, logger, null);
+    // TODO: handle the case that the result is not a numeric value
+    CSimpleType type = (CSimpleType) pair.getFirst().getExpressionType().getCanonicalType();
+    final ExplicitValueBase castedValue = ExplicitExpressionValueVisitor.castCValue(
+        new ExplicitNumericValue(pair.getSecond()), expr.getOperand().getExpressionType(), expr.getExpressionType(), machineModel, logger, null);
 
-    return Pair.<CExpression, Number> of(
-        new CIntegerLiteralExpression(expr.getFileLocation(),
-            expr.getExpressionType(), BigInteger.valueOf(castedValue)),
-        castedValue);
+
+    return convertExplicitValueToPair(expr, castedValue);
   }
 
   @Override
@@ -211,49 +247,25 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
 
     final Pair<CExpression, Number> pair = op.accept(this);
 
-    final Set<UnaryOperator> evaluableUnaryOperators = Sets.newHashSet(
-        UnaryOperator.PLUS, UnaryOperator.MINUS, UnaryOperator.NOT);
+    if (unaryOperator == UnaryOperator.MINUS && pair.getSecond() != null) {
+      final long negatedValue = -pair.getSecond().longValue();
+      return Pair.<CExpression, Number> of(
+              new CIntegerLiteralExpression(expr.getFileLocation(),
+                      expr.getExpressionType(), BigInteger.valueOf(negatedValue)),
+              negatedValue);
 
-    // if expr can not be evaluated, build new expression
-    if (pair.getSecond() == null ||
-        !evaluableUnaryOperators.contains(unaryOperator)) {
-      final CUnaryExpression newExpr;
-      if (pair.getFirst() == op) {
-        // shortcut: if nothing has changed, use the original expression
-        newExpr = expr;
-      } else {
-        newExpr = new CUnaryExpression(
-            expr.getFileLocation(), expr.getExpressionType(),
-            pair.getFirst(), unaryOperator);
-      }
-      return Pair.of((CExpression) newExpr, null);
     }
 
-    long value = pair.getSecond().longValue();
-    long result;
-
-    // TODO machinemodel
-    switch (unaryOperator) {
-    case PLUS:
-      result = value;
-      break;
-
-    case MINUS:
-      result = -value;
-      break;
-
-    case NOT:
-      result = (value == 0L) ? 1L : 0L;
-      break;
-
-    default:
-      throw new AssertionError("unknown unary operation: " + unaryOperator);
+    final CUnaryExpression newExpr;
+    if (pair.getFirst() == op) {
+      // shortcut: if nothing has changed, use the original expression
+      newExpr = expr;
+    } else {
+      newExpr = new CUnaryExpression(
+          expr.getFileLocation(), expr.getExpressionType(),
+          pair.getFirst(), unaryOperator);
     }
-
-    return Pair.<CExpression, Number> of(
-        new CIntegerLiteralExpression(expr.getFileLocation(),
-            expr.getExpressionType(), BigInteger.valueOf(result)),
-        result);
+    return Pair.of((CExpression) newExpr, null);
   }
 
   @Override

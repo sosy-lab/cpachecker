@@ -86,17 +86,18 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
   }
 
   @Override
-  protected Long evaluateCIdExpression(CIdExpression varName) {
+  protected ExplicitValueBase evaluateCIdExpression(CIdExpression varName) {
     return evaluateAIdExpression(varName);
   }
 
   @Override
   protected Long evaluateJIdExpression(JIdExpression varName) {
-    return evaluateAIdExpression(varName);
+    // return evaluateAIdExpression(varName); TODO implement
+    return null;
   }
 
   /** This method returns the value of a variable from the current state. */
-  private Long evaluateAIdExpression(AIdExpression varName) {
+  private ExplicitValueBase evaluateAIdExpression(AIdExpression varName) {
 
     MemoryLocation memLoc;
 
@@ -109,39 +110,39 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
     if (state.contains(memLoc)) {
       return state.getValueFor(memLoc);
     } else {
-      return null;
+      return ExplicitValueBase.ExplicitUnknownValue.getInstance();
     }
   }
 
-  private Long evaluateLValue(CLeftHandSide pLValue) throws UnrecognizedCCodeException {
+  private ExplicitValueBase evaluateLValue(CLeftHandSide pLValue) throws UnrecognizedCCodeException {
 
     MemoryLocation varLoc = evaluateMemoryLocation(pLValue);
 
     if (varLoc == null) {
-      return null;
+      return ExplicitValueBase.ExplicitUnknownValue.getInstance();
     }
 
     if (getState().contains(varLoc)) {
       return state.getValueFor(varLoc);
     } else {
-      return null;
+      return ExplicitValueBase.ExplicitUnknownValue.getInstance();
     }
   }
 
   @Override
-  protected Long evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
+  protected ExplicitValueBase evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
     return evaluateLValue(pLValue);
   }
 
   @Override
-  protected Long evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue) throws UnrecognizedCCodeException {
+  protected ExplicitValueBase evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue) throws UnrecognizedCCodeException {
     return evaluateLValue(pLValue);
   }
 
   @Override
-  protected Long evaluateCPointerExpression(CPointerExpression pVarName) {
+  protected ExplicitValueBase evaluateCPointerExpression(CPointerExpression pVarName) {
     missingPointer = true;
-    return null;
+    return ExplicitValueBase.ExplicitUnknownValue.getInstance();
   }
 
   public boolean canBeEvaluated(CExpression lValue) throws UnrecognizedCCodeException {
@@ -190,7 +191,7 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
         return null;
       }
 
-      Long subscriptValue = subscript.accept(evv);
+      Long subscriptValue = subscript.accept(evv).asLong(subscript.getExpressionType());
 
       if(subscriptValue == null) {
         return null;

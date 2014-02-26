@@ -61,6 +61,10 @@ public class CPointerExpression extends APointerExpression implements CLeftHandS
     return v.visit(this);
   }
 
+  @Override
+  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
 
   @Override
   public int hashCode() {

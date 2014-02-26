@@ -145,10 +145,6 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
     switch (pCUnaryExpression.getOperator()) {
     case MINUS:
       return CompoundIntervalFormulaManager.INSTANCE.negate(pCUnaryExpression.getOperand().accept(this));
-    case NOT:
-      return CompoundIntervalFormulaManager.INSTANCE.logicalNot(pCUnaryExpression.getOperand().accept(this));
-    case PLUS:
-      return pCUnaryExpression.getOperand().accept(this);
     case TILDE:
       return CompoundIntervalFormulaManager.INSTANCE.binaryNot(pCUnaryExpression.getOperand().accept(this));
     default:
@@ -247,7 +243,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
   private InvariantsFormula<CompoundInterval> topIfProblematicType(CType pType, InvariantsFormula<CompoundInterval> pFormula) {
     if ((pType instanceof CSimpleType) && ((CSimpleType) pType).isUnsigned()) {
       CompoundInterval value =  pFormula.accept(evaluationVisitor, environment);
-      if (!value.isTop() && value.containsNegative()) {
+      if (value.containsNegative()) {
         return TOP;
       }
     }

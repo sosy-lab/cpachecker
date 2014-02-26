@@ -31,6 +31,7 @@ import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclarations;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclarationVisitor;
 
@@ -202,8 +203,12 @@ public final class CEnumType implements CComplexType {
       return pV.visit(this);
     }
 
-  }
+    @Override
+    public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+      return pV.visit(this);
+    }
 
+  }
 
   @Override
   public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {

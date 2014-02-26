@@ -45,8 +45,8 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 
 /**
@@ -71,7 +71,7 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis {
   private AssumptionStorageCPA(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
     formulaManager = new FormulaManagerView(new FormulaManagerFactory(config, logger, pShutdownNotifier).getFormulaManager(), config, logger);
     CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(logger, cfa.getMachineModel(), formulaManager);
-    CtoFormulaConverter converter = new CtoFormulaConverter(new FormulaEncodingOptions(config), formulaManager, cfa.getMachineModel(), logger, typeHandler);
+    CtoFormulaConverter converter = new CtoFormulaConverter(new FormulaEncodingOptions(config), formulaManager, cfa.getMachineModel(), cfa.getVarClassification(), logger, typeHandler);
     abstractDomain = new AssumptionStorageDomain(formulaManager);
     stopOperator = new AssumptionStorageStop();
     BooleanFormulaManagerView bfmgr = formulaManager.getBooleanFormulaManager();

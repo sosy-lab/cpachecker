@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
 
 
@@ -138,7 +137,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
 
     @Override
     public PointerTargetPattern visit(final CIdExpression e) throws UnrecognizedCCodeException {
-      final Variable variable = conv.scopedIfNecessary(e, null, null);
+      final Variable variable = conv.scopedIfNecessary(e);
       final CType expressionType = CTypeUtils.simplifyType(e.getExpressionType());
       if (!pts.isBase(variable.getName(), expressionType) && !CTypeUtils.containsArray(expressionType)) {
         return null;
@@ -154,8 +153,6 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
       case AMPER:
         return operand.accept(LvalueToPointerTargetPatternVisitor.this);
       case MINUS:
-      case PLUS:
-      case NOT:
       case TILDE:
         return null;
       case SIZEOF:
@@ -198,7 +195,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
       result.shift(containerType);
       final Integer index = tryEvaluateExpression(e.getSubscriptExpression());
       if (index != null) {
-        result.setProperOffset(index * conv.ptsMgr.getSize(elementType));
+        result.setProperOffset(index * conv.getSizeof(elementType));
       }
       return result;
     } else {
@@ -234,7 +231,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
 
   @Override
   public PointerTargetPattern visit(final CIdExpression e) throws UnrecognizedCCodeException {
-    final Variable variable = conv.scopedIfNecessary(e, null, null);
+    final Variable variable = conv.scopedIfNecessary(e);
     if (!pts.isActualBase(variable.getName()) &&
         !CTypeUtils.containsArray(CTypeUtils.simplifyType(e.getExpressionType()))) {
       return null;
@@ -245,16 +242,12 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
 
   @Override
   public PointerTargetPattern visit(final CUnaryExpression e) throws UnrecognizedCCodeException {
-    final CExpression operand = e.getOperand();
     switch (e.getOperator()) {
     case AMPER:
     case MINUS:
-    case NOT:
     case SIZEOF:
     case TILDE:
       throw new UnrecognizedCCodeException("Illegal unary operator", cfaEdge, e);
-    case PLUS:
-      return operand.accept(this);
     default:
       throw new UnrecognizedCCodeException("Unhandled unary operator", cfaEdge, e);
     }

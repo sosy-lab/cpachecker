@@ -69,6 +69,11 @@ public final class CArraySubscriptExpression extends AArraySubscriptExpression i
   }
 
   @Override
+  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
+
+  @Override
   public int hashCode() {
     final int prime = 31;
     int result = 7;

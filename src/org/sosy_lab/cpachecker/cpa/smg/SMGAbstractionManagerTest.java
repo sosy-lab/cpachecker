@@ -76,8 +76,8 @@ public class SMGAbstractionManagerTest {
     CLangSMG afterAbstraction = manager.execute();
 
     SMGRegion globalVar = afterAbstraction.getObjectForVisibleVariable("pointer");
-    Set<SMGEdgeHasValue> hvs = afterAbstraction.getHVEdges(SMGEdgeHasValueFilter.objectFilter(globalVar));
-    Assert.assertEquals(1, hvs.size());
+    Iterable<SMGEdgeHasValue> hvs = afterAbstraction.getHVEdges(SMGEdgeHasValueFilter.objectFilter(globalVar));
+    Assert.assertEquals(1, Iterables.size(hvs));
     SMGEdgeHasValue hv = Iterables.getOnlyElement(hvs);
     SMGEdgePointsTo pt = afterAbstraction.getPointer(hv.getValue());
     SMGObject segment = pt.getObject();

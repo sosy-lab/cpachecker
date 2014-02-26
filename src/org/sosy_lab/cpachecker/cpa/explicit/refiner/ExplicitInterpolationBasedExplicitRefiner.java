@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -67,6 +68,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitValueBase;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -101,8 +103,9 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   private UniqueAssignmentsInPathConditionState assignments = null;
 
   // statistics
-  private int totalItps        = 0;
-  private Timer timerInterpolation          = new Timer();
+  private int totalInterpolations       = 0;
+  private int totalInterpolationQueries = 0;
+  private Timer timerInterpolation      = new Timer();
 
   private final CFA cfa;
   private final LogManager logger;
@@ -124,16 +127,19 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
   protected Map<ARGState, ExplicitValueInterpolant> performInterpolation(ARGPath errorPath,
       ExplicitValueInterpolant interpolant) throws CPAException, InterruptedException {
+    totalInterpolations++;
+    timerInterpolation.start();
 
     interpolationOffset = -1;
 
     List<CFAEdge> cfaTrace = from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
     Map<ARGState, ExplicitValueInterpolant> pathInterpolants = new LinkedHashMap<>(errorPath.size());
+
     for (int i = 0; i < errorPath.size(); i++) {
       shutdownNotifier.shutdownIfNecessary();
 
-      interpolant = interpolator.deriveInterpolant(cfaTrace, i, interpolant);
-      totalItps   = totalItps + interpolator.getNumberOfInterpolations();
+      interpolant               = interpolator.deriveInterpolant(cfaTrace, i, interpolant);
+      totalInterpolationQueries = totalInterpolationQueries + interpolator.getNumberOfInterpolationQueries();
 
       // stop once interpolant is false
       if (interpolant.isFalse()) {
@@ -141,6 +147,8 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
           pathInterpolants.put(errorPath.get(i).getFirst(), ExplicitValueInterpolant.FALSE);
           i++;
         }
+
+        timerInterpolation.stop();
         return pathInterpolants;
       }
 
@@ -157,6 +165,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       pathInterpolants.put(errorPath.get(i).getFirst(), interpolant);
     }
 
+    timerInterpolation.stop();
     return pathInterpolants;
   }
 
@@ -168,9 +177,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
     Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
 
-    timerInterpolation.start();
     Map<ARGState, ExplicitValueInterpolant> itps = performInterpolation(errorPath, ExplicitValueInterpolant.createInitial());
-    timerInterpolation.stop();
 
     int i = 0;
     for(Map.Entry<ARGState, ExplicitValueInterpolant> itp : itps.entrySet()) {
@@ -339,9 +346,10 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-    out.println("  number of explicit interpolations:                   " + totalItps);
-    out.println("  max. time for singe interpolation:                   " + timerInterpolation.getMaxTime().formatAs(TimeUnit.SECONDS));
-    out.println("  total time for interpolation:                        " + timerInterpolation);
+    out.println("  Number of explicit interpolations: " + String.format(Locale.US, "%9d",totalInterpolations));
+    out.println("  Number of interpolation queries:   " + String.format(Locale.US, "%9d",totalInterpolationQueries));
+    out.println("  Max. time for singe interpolation:     " + timerInterpolation.getMaxTime().formatAs(TimeUnit.SECONDS));
+    out.println("  Total time for interpolation:          " + timerInterpolation);
   }
 
   public int getInterpolationOffset() {
@@ -356,7 +364,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     /**
      * the variable assignment of the interpolant
      */
-    private final Map<MemoryLocation, Long> assignment;
+    private final Map<MemoryLocation, ExplicitValueBase> assignment;
 
     /**
      * the interpolant representing "true"
@@ -366,7 +374,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     /**
      * the interpolant representing "false"
      */
-    public static final ExplicitValueInterpolant FALSE = new ExplicitValueInterpolant((Map<MemoryLocation, Long>)null);
+    public static final ExplicitValueInterpolant FALSE = new ExplicitValueInterpolant((Map<MemoryLocation, ExplicitValueBase>)null);
 
     /**
      * Contructor for a new, empty interpolant, i.e. the interpolant representing "true"
@@ -380,7 +388,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
      *
      * @param pAssignment the variable assignment to be represented by the interpolant
      */
-    public ExplicitValueInterpolant(Map<MemoryLocation, Long> pAssignment) {
+    public ExplicitValueInterpolant(Map<MemoryLocation, ExplicitValueBase> pAssignment) {
       assignment = pAssignment;
     }
 
@@ -397,6 +405,29 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       return isFalse()
           ? Collections.<MemoryLocation>emptySet()
           : Collections.unmodifiableSet(assignment.keySet());
+    }
+
+    /**
+     * This method joins to explicit-value interpolants. If the underlying map contains different values for a key
+     * contained in both maps, the behaviour is undefined.
+     *
+     * @param other the explicit-value interpolant to join with this one
+     * @return a new explicit-value interpolant containing the joined mapping of this and the other explicit-value
+     * interpolant
+     */
+    public ExplicitValueInterpolant join(ExplicitValueInterpolant other) {
+
+      Map<MemoryLocation, ExplicitValueBase> newAssignment = new HashMap<>();
+
+      if(assignment != null) {
+        newAssignment.putAll(assignment);
+      }
+
+      if(other.assignment != null) {
+        newAssignment.putAll(other.assignment);
+      }
+
+      return new ExplicitValueInterpolant(newAssignment);
     }
 
     @Override

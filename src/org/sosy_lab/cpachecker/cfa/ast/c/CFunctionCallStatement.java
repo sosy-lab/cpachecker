@@ -47,6 +47,11 @@ public final class CFunctionCallStatement extends AFunctionCallStatement impleme
   }
 
   @Override
+  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
+
+  @Override
   public int hashCode() {
     int prime = 31;
     int result = 7;

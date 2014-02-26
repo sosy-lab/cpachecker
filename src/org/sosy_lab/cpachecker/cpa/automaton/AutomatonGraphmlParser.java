@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -52,10 +53,10 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.And;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.IntersectionMatchEdgeTokens;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchEdgeTokens;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.Negation;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.Or;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.SubsetMatchEdgeTokens;
+import org.sosy_lab.cpachecker.util.SourceLocationMapper.OriginDescriptor;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlTag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
@@ -94,7 +95,7 @@ public class AutomatonGraphmlParser {
     pConfig.inject(this);
   }
 
-  private void removeTransitions(Set<AutomatonTransition> whitelist, List<AutomatonTransition> from, Set<Integer> tokens) {
+  private void removeTransitions(Set<AutomatonTransition> whitelist, List<AutomatonTransition> from, Set<Comparable<Integer>> tokens) {
     Iterator<AutomatonTransition> it = from.iterator();
     while (it.hasNext()) {
       AutomatonTransition t = it.next();
@@ -110,48 +111,101 @@ public class AutomatonGraphmlParser {
     }
   }
 
-  private Set<Integer> getTokensOfExpr(AutomatonBoolExpr expr, boolean excludeNegations) {
-    if (expr instanceof MatchEdgeTokens) {
-      return ((AutomatonBoolExpr.MatchEdgeTokens) expr).getMatchTokens();
-    } else if (expr instanceof And) {
-      Set<Integer> result = Sets.newTreeSet();
-      And andExpr = (And) expr;
-      result.addAll(getTokensOfExpr(andExpr.getA(), excludeNegations));
-      result.addAll(getTokensOfExpr(andExpr.getB(), excludeNegations));
-      return result;
-    } else if (expr instanceof Or) {
-      Set<Integer> result = Sets.newTreeSet();
-      Or orExpr = (Or) expr;
-      result.addAll(getTokensOfExpr(orExpr.getA(), excludeNegations));
-      result.addAll(getTokensOfExpr(orExpr.getB(), excludeNegations));
-      return result;
-    } else if (expr instanceof Negation) {
-      if (!excludeNegations) {
-        Negation negExpr = (Negation) expr;
-        return getTokensOfExpr(negExpr.getA(), excludeNegations);
-      }
-   }
+  private static abstract class CollectorOnExprLeaf<R extends Comparable<?>> {
 
-   return Collections.emptySet();
+    protected abstract Set<R> collectFromLeafExpr(AutomatonBoolExpr expr, boolean excludeNegations);
+
+    public Set<R> collectFromExpr(AutomatonBoolExpr expr, boolean excludeNegations) {
+      if (expr instanceof And) {
+        Set<R> result = Sets.newTreeSet();
+        And andExpr = (And) expr;
+        result.addAll(collectFromExpr(andExpr.getA(), excludeNegations));
+        result.addAll(collectFromExpr(andExpr.getB(), excludeNegations));
+        return result;
+      } else if (expr instanceof Or) {
+        Set<R> result = Sets.newTreeSet();
+        Or orExpr = (Or) expr;
+        result.addAll(collectFromExpr(orExpr.getA(), excludeNegations));
+        result.addAll(collectFromExpr(orExpr.getB(), excludeNegations));
+        return result;
+      } else if (expr instanceof Negation) {
+        if (!excludeNegations) {
+          Negation negExpr = (Negation) expr;
+          return collectFromExpr(negExpr.getA(), excludeNegations);
+        }
+     } else {
+       return collectFromLeafExpr(expr, excludeNegations);
+     }
+
+     return Collections.emptySet();
+    }
+
   }
 
-  private boolean tokenSetsDisjoint(List<AutomatonTransition> transitions) {
-    Set<Integer> allTokens = Sets.newTreeSet();
+  private static class TokenCollector<R extends Comparable<?>> extends CollectorOnExprLeaf<Comparable<Integer>> {
+
+    @Override
+    protected Set<Comparable<Integer>> collectFromLeafExpr(AutomatonBoolExpr pExpr, boolean pExcludeNegations) {
+      if (pExpr instanceof AutomatonBoolExpr.MatchEdgeTokens) {
+        return ((AutomatonBoolExpr.MatchEdgeTokens) pExpr).getMatchTokens();
+      }
+
+      return Collections.emptySet();
+    }
+
+  }
+
+  private static class OriginLineCollector<R extends Comparable<?>> extends CollectorOnExprLeaf<Comparable<OriginDescriptor>> {
+
+    @Override
+    protected Set<Comparable<OriginDescriptor>> collectFromLeafExpr(AutomatonBoolExpr pExpr, boolean pExcludeNegations) {
+      if (pExpr instanceof AutomatonBoolExpr.MatchStartingLineInOrigin) {
+        Comparable<OriginDescriptor> od = ((AutomatonBoolExpr.MatchStartingLineInOrigin) pExpr).getMatchOriginDescriptor();
+        return Collections.singleton(od);
+      }
+
+      return Collections.emptySet();
+    }
+
+  }
+
+  private Set<Integer> getTokensOfExpr(AutomatonBoolExpr expr, boolean excludeNegations) {
+    TokenCollector collector = new TokenCollector();
+    return collector.collectFromExpr(expr, excludeNegations);
+  }
+
+  private Set<OriginDescriptor> getOriginDescsOfExpr(AutomatonBoolExpr expr, boolean excludeNegations) {
+    OriginLineCollector collector = new OriginLineCollector();
+    return collector.collectFromExpr(expr, excludeNegations);
+  }
+
+  private boolean leafSetsDisjoint(CollectorOnExprLeaf<? extends Comparable<?>> collector, List<AutomatonTransition> transitions) {
+    Set<Comparable<?>> allItems = Sets.newTreeSet();
     for (AutomatonTransition t : transitions) {
-      Set<Integer> exprTokens = getTokensOfExpr(t.getTrigger(), true);
-      if (exprTokens.isEmpty()) {
+      Set<? extends Comparable<?>> exprItems = collector.collectFromExpr(t.getTrigger(), true);
+      if (exprItems.isEmpty()) {
         continue;
       }
 
-      int differentTokensWithout = allTokens.size();
-      allTokens.addAll(exprTokens);
-      int differentTokensWith = allTokens.size();
+      int differentTokensWithout = allItems.size();
+      allItems.addAll(exprItems);
+      int differentTokensWith = allItems.size();
 
-      if (differentTokensWith - differentTokensWithout != exprTokens.size()) {
+      if (differentTokensWith - differentTokensWithout != exprItems.size()) {
         return false;
       }
     }
     return true;
+  }
+
+  private boolean tokenSetsDisjoint(List<AutomatonTransition> transitions) {
+    CollectorOnExprLeaf<Comparable<Integer>> collector = new TokenCollector<>();
+    return leafSetsDisjoint(collector, transitions);
+  }
+
+  private boolean originDescriptorsDisjoint(List<AutomatonTransition> transitions) {
+    CollectorOnExprLeaf<Comparable<OriginDescriptor>> collector = new OriginLineCollector<>();
+    return leafSetsDisjoint(collector, transitions);
   }
 
   /**
@@ -179,9 +233,9 @@ public class AutomatonGraphmlParser {
       String initialStateName = null;
 
       // Create transitions ----
-      AutomatonBoolExpr epsilonTrigger = new SubsetMatchEdgeTokens(Collections.<Integer>emptySet());
+      AutomatonBoolExpr epsilonTrigger = new SubsetMatchEdgeTokens(Collections.<Comparable<Integer>>emptySet());
       NodeList edges = doc.getElementsByTagName(GraphMlTag.EDGE.toString());
-      Map<String, List<AutomatonTransition>> stateTransitions = Maps.newHashMap();
+      Map<String, LinkedList<AutomatonTransition>> stateTransitions = Maps.newHashMap();
       for (int i=0; i<edges.getLength(); i++) {
         Node stateTransitionEdge = edges.item(i);
 
@@ -193,15 +247,15 @@ public class AutomatonGraphmlParser {
         List<AutomatonBoolExpr> emptyAssertions = Collections.emptyList();
         List<AutomatonAction> actions = Collections.emptyList();
 
-        List<AutomatonTransition> transitions = stateTransitions.get(sourceStateId);
+        LinkedList<AutomatonTransition> transitions = stateTransitions.get(sourceStateId);
         if (transitions == null) {
-          transitions = Lists.newArrayList();
+          transitions = Lists.newLinkedList();
           stateTransitions.put(sourceStateId, transitions);
         }
 
-        List<AutomatonTransition> targetStateTransitions = stateTransitions.get(targetStateId);
+        LinkedList<AutomatonTransition> targetStateTransitions = stateTransitions.get(targetStateId);
         if (targetStateTransitions == null) {
-          targetStateTransitions = Lists.newArrayList();
+          targetStateTransitions = Lists.newLinkedList();
           stateTransitions.put(targetStateId, targetStateTransitions);
         }
 
@@ -212,27 +266,47 @@ public class AutomatonGraphmlParser {
           Preconditions.checkArgument(originFileTags.size() < 2, "At most one origin-file data tag must be provided for an edge!");
 
           Set<String> originLineTags = docDat.getDataOnNode(stateTransitionEdge, KeyDef.ORIGINLINE);
-          Preconditions.checkArgument(originLineTags.size() < 2, "At most one origin-line data tag must be provided for each edge!");
+          Preconditions.checkArgument(originLineTags.size() <  2, "At most one origin-line data tag must be provided for each edge!");
 
           if (originLineTags.size() > 0) {
             Optional<String> matchOriginFileName = originFileTags.isEmpty() ? Optional.<String>absent() : Optional.of(originFileTags.iterator().next());
             int matchOriginLineNumber = Integer.parseInt(originLineTags.iterator().next());
+            OriginDescriptor originDescriptor = new OriginDescriptor(matchOriginFileName, matchOriginLineNumber);
 
             conjunctedTriggers = new AutomatonBoolExpr.And(conjunctedTriggers,
-                new AutomatonBoolExpr.MatchStartingLineInOrigin(matchOriginFileName, matchOriginLineNumber, true));
+                new AutomatonBoolExpr.MatchStartingLineInOrigin(originDescriptor, true));
 
             if (targetStateId.equalsIgnoreCase(SINK_NODE_ID) || targetNodeFlags.contains(NodeFlag.ISSINKNODE)) {
               // Transition to the BOTTOM state
-              transitions.add(new AutomatonTransition(conjunctedTriggers, emptyAssertions, actions, AutomatonInternalState.BOTTOM));
-            }
-            transitions.add(new AutomatonTransition(new AutomatonBoolExpr.And(
-                  new AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr(),
-                  new AutomatonBoolExpr.Negation(conjunctedTriggers)),
-                emptyAssertions, actions, AutomatonInternalState.BOTTOM));
-          }
+              transitions.add(new AutomatonTransition(
+                  new AutomatonBoolExpr.And(
+                      new AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr(),
+                      conjunctedTriggers),
+                  emptyAssertions, actions, AutomatonInternalState.BOTTOM));
+            } else {
+              transitions.add(new AutomatonTransition(
+                  new AutomatonBoolExpr.And(
+                      new AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr(),
+                      new AutomatonBoolExpr.Negation(conjunctedTriggers)),
+                  emptyAssertions, actions, AutomatonInternalState.BOTTOM));
 
-          // Transition to the next state
-          transitions.add(new AutomatonTransition(conjunctedTriggers, emptyAssertions, actions, targetStateId));
+              AutomatonBoolExpr lineMatchTrigger = new AutomatonBoolExpr.And(
+                  new AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr(), conjunctedTriggers);
+
+              AutomatonTransition tr = new AutomatonTransition(lineMatchTrigger, emptyAssertions, actions, targetStateId);
+              transitions.add(0, tr);
+
+              AutomatonTransition trRepetition = new AutomatonTransition(lineMatchTrigger, emptyAssertions, actions, targetStateId);
+              auxilaryTransitions.add(trRepetition);
+              targetStateTransitions.add(0, trRepetition);
+            }
+          } else {
+            AutomatonTransition tr = new AutomatonTransition(
+                new AutomatonBoolExpr.Negation(
+                    new AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr()),
+                      emptyAssertions, actions, targetStateId);
+            transitions.add(0, tr);
+          }
 
         } else if (matchSourcecodeData) {
           Set<String> sourceCodeDataTags = docDat.getDataOnNode(stateTransitionEdge, KeyDef.SOURCECODE);
@@ -266,7 +340,7 @@ public class AutomatonGraphmlParser {
             conjunctedTriggers = new AutomatonBoolExpr.And(conjunctedTriggers, new AutomatonBoolExpr.MatchAssumeCase(matchPositiveCase));
           }
 
-          Set<Integer> matchTokens = getTokensOfEdge(docDat, stateTransitionEdge);
+          Set<Comparable<Integer>> matchTokens = getTokensOfEdge(docDat, stateTransitionEdge);
 
           AutomatonBoolExpr tokensSubsetTrigger = new SubsetMatchEdgeTokens(matchTokens);
           conjunctedTriggers = new AutomatonBoolExpr.And(conjunctedTriggers, tokensSubsetTrigger);
@@ -328,7 +402,7 @@ public class AutomatonGraphmlParser {
         }
 
         // Determine if "matchAll" should be enabled
-        boolean matchAll = !tokenSetsDisjoint(transitions);
+        boolean matchAll = !tokenSetsDisjoint(transitions) || !originDescriptorsDisjoint(transitions);
 
         // ...
         AutomatonInternalState state = new AutomatonInternalState(stateId, transitions, false, matchAll);
@@ -361,8 +435,8 @@ public class AutomatonGraphmlParser {
     }
   }
 
-  Set<Integer> parseTokens(final String tokenString) {
-    Set<Integer> result = Sets.newTreeSet();
+  Set<Comparable<Integer>> parseTokens(final String tokenString) {
+    Set<Comparable<Integer>> result = Sets.newTreeSet();
     String[] ranges = tokenString.trim().split(",");
     for (String range : ranges) {
       if (range.trim().isEmpty()) {
@@ -382,7 +456,7 @@ public class AutomatonGraphmlParser {
   }
 
 
-  private Set<Integer> getTokensOfEdge(GraphMlDocumentData docDat, Node edgeDef) {
+  private Set<Comparable<Integer>> getTokensOfEdge(GraphMlDocumentData docDat, Node edgeDef) {
     Set<String> data = docDat.getDataOnNode(edgeDef, KeyDef.TOKENS);
     Preconditions.checkArgument(data.size() <= 1, "Each edge must include at most one data-node with the key 'tokens'!");
     if (data.size() == 0) {

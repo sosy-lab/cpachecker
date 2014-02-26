@@ -100,6 +100,11 @@ public final class CFieldReference extends AExpression implements CLeftHandSide 
   }
 
   @Override
+  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
+
+  @Override
   public String toASTString() {
     String left = (owner instanceof CFieldReference) ? owner.toASTString() : owner.toParenthesizedASTString();
     String op = isPointerDereference ? "->" : ".";

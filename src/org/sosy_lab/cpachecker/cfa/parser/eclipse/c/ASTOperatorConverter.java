@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 
 import com.google.common.collect.ImmutableSet;
@@ -50,10 +49,6 @@ class ASTOperatorConverter {
       return UnaryOperator.AMPER;
     case IASTUnaryExpression.op_minus:
       return UnaryOperator.MINUS;
-    case IASTUnaryExpression.op_not:
-      return UnaryOperator.NOT;
-    case IASTUnaryExpression.op_plus:
-      return UnaryOperator.PLUS;
     case IASTUnaryExpression.op_sizeof:
       return UnaryOperator.SIZEOF;
     case IASTUnaryExpression.op_star:
@@ -199,9 +194,6 @@ class ASTOperatorConverter {
   static boolean isBooleanExpression(CExpression e) {
     if (e instanceof CBinaryExpression) {
       return BOOLEAN_BINARY_OPERATORS.contains(((CBinaryExpression)e).getOperator());
-
-    } else if (e instanceof CUnaryExpression) {
-      return ((CUnaryExpression) e).getOperator() == UnaryOperator.NOT;
 
     } else {
       return false;

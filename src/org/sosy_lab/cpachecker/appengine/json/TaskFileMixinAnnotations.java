@@ -23,16 +23,12 @@
  */
 package org.sosy_lab.cpachecker.appengine.json;
 
-import org.sosy_lab.cpachecker.appengine.entity.Task;
 import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.googlecode.objectify.Ref;
 
 /**
  * This class contains a set of classes that are used to mixin annotations
@@ -56,19 +52,6 @@ public abstract class TaskFileMixinAnnotations {
   public abstract class Full extends Minimal {
 
     @JsonProperty
-    String content;
-  }
-
-  @JsonIgnoreProperties(ignoreUnknown = true)
-  @JsonAutoDetect(setterVisibility = Visibility.NONE)
-  public abstract class FromJSONAPI {
-    @JsonIgnore
-    Ref<Task> task;
-
-    @JsonProperty("sourceFileName")
-    String path;
-
-    @JsonProperty("programText")
     String content;
   }
 }

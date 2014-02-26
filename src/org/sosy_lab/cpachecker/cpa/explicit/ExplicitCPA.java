@@ -54,7 +54,7 @@ import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -74,7 +74,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.explicit")
-public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, StatisticsProvider, ProofChecker {
+public class ExplicitCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider, ProofChecker {
 
   @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for ExplicitCPA")

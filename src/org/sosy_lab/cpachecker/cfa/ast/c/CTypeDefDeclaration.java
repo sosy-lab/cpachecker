@@ -70,4 +70,9 @@ public final class CTypeDefDeclaration extends CTypeDeclaration {
   public <R, X extends Exception> R accept(CSimpleDeclarationVisitor<R, X> pV) throws X {
     return pV.visit(this);
   }
+
+  @Override
+  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
 }

@@ -172,9 +172,7 @@ implements GenericAssumptionBuilder {
         CFunctionEntryNode fdefnode = fcallEdge.getSuccessor();
         List<CParameterDeclaration> formalParams = fdefnode.getFunctionParameters();
         for (CParameterDeclaration paramdecl : formalParams) {
-          String name = paramdecl.getName();
-          CType type = paramdecl.getType();
-          CExpression exp = new CIdExpression(paramdecl.getFileLocation(), type, name, paramdecl);
+          CExpression exp = new CIdExpression(paramdecl.getFileLocation(), paramdecl);
           visit(exp, result);
         }
       }

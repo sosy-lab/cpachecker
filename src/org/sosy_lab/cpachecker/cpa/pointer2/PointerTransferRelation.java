@@ -85,6 +85,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 
 
@@ -214,7 +215,7 @@ public enum PointerTransferRelation implements TransferRelation {
   private PointerState handleAssignment(PointerState pState, Precision pPrecision, Iterable<Location> pLeftHandSide, CRightHandSide pRightHandSide) throws UnrecognizedCCodeException {
     PointerState result = pState;
     for (Location lhsLocation : pLeftHandSide) {
-      result = handleAssignment(pState, pPrecision, lhsLocation, pRightHandSide);
+      result = handleAssignment(result, pPrecision, lhsLocation, pRightHandSide);
     }
     return result;
   }
@@ -360,7 +361,7 @@ public enum PointerTransferRelation implements TransferRelation {
           if (literal instanceof CIntegerLiteralExpression && ((CIntegerLiteralExpression) literal).getValue().equals(BigInteger.ZERO)) {
             Iterable<Location> starredLocations = asLocations(pIastArraySubscriptExpression.getArrayExpression(), pState);
             if (starredLocations == null) {
-              return null;
+              return Collections.emptySet();
             }
             Set<Location> result = new HashSet<>();
             for (Location location : starredLocations) {
@@ -378,14 +379,14 @@ public enum PointerTransferRelation implements TransferRelation {
             return result;
           }
         }
-        return null;
+        return Collections.emptySet();
       }
 
       @Override
       public Iterable<Location> visit(final CFieldReference pIastFieldReference) throws UnrecognizedCCodeException {
         Iterable<Location> ownerLocations = asLocations(pIastFieldReference.getFieldOwner(), pState);
         if (ownerLocations == null) {
-          return null;
+          return Collections.emptySet();
         }
         return FluentIterable.from(ownerLocations).transform(new Function<Location, Location>() {
 
@@ -397,7 +398,7 @@ public enum PointerTransferRelation implements TransferRelation {
             return new Variable(pInput.getId()  + "." + pIastFieldReference.getFieldName());
           }
 
-        });
+        }).filter(Predicates.notNull());
       }
 
       @Override
@@ -420,7 +421,7 @@ public enum PointerTransferRelation implements TransferRelation {
       public Iterable<Location> visit(CPointerExpression pPointerExpression) throws UnrecognizedCCodeException {
         Iterable<Location> starredLocations = asLocations(pPointerExpression.getOperand(), pState);
         if (starredLocations == null) {
-          return null;
+          return Collections.emptySet();
         }
         Set<Location> result = new HashSet<>();
         for (Location location : starredLocations) {
@@ -445,7 +446,7 @@ public enum PointerTransferRelation implements TransferRelation {
 
       @Override
       public Iterable<Location> visit(CBinaryExpression pIastBinaryExpression) throws UnrecognizedCCodeException {
-        return null;
+        return Collections.emptySet();
       }
 
       @Override
@@ -456,47 +457,47 @@ public enum PointerTransferRelation implements TransferRelation {
       @Override
       public Iterable<Location> visit(CCharLiteralExpression pIastCharLiteralExpression)
           throws UnrecognizedCCodeException {
-        return null;
+        return Collections.emptySet();
       }
 
       @Override
       public Iterable<Location> visit(CFloatLiteralExpression pIastFloatLiteralExpression)
           throws UnrecognizedCCodeException {
-        return null;
+        return Collections.emptySet();
       }
 
       @Override
       public Iterable<Location> visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
           throws UnrecognizedCCodeException {
-        return null;
+        return Collections.emptySet();
       }
 
       @Override
       public Iterable<Location> visit(CStringLiteralExpression pIastStringLiteralExpression)
           throws UnrecognizedCCodeException {
-        return null;
+        return Collections.emptySet();
       }
 
       @Override
       public Iterable<Location> visit(CTypeIdExpression pIastTypeIdExpression) throws UnrecognizedCCodeException {
-        return null;
+        return Collections.emptySet();
       }
 
       @Override
       public Iterable<Location> visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression)
           throws UnrecognizedCCodeException {
-        return null;
+        return Collections.emptySet();
       }
 
       @Override
       public Iterable<Location> visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCCodeException {
-        return null;
+        return Collections.emptySet();
       }
 
       @Override
       public Iterable<Location> visit(CImaginaryLiteralExpression PIastLiteralExpression)
           throws UnrecognizedCCodeException {
-        return null;
+        return Collections.emptySet();
       }});
   }
 

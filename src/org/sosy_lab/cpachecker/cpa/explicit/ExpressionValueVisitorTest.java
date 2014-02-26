@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -288,6 +289,7 @@ public class ExpressionValueVisitorTest {
     checkCast(evv, 4L, 4L, U_LONG_INT);
     checkCast(evv, 2147483649L, 2147483649L, U_LONG_INT);
     checkCast(evv, 4294967300L, 4294967300L, U_LONG_INT);
+    checkCast(evv, -2147483626L, -2147483626L, U_LONG_INT);
 
     // for U_LONG we cannot make tests with negative values or values > Long.Max_Value,
     // because Java-long is too small.
@@ -299,12 +301,14 @@ public class ExpressionValueVisitorTest {
       throws UnrecognizedCCodeException {
 
     // we use NULL as inputType, because it is not needed
-    final long value = evv.evaluate(
+    final ExplicitValueBase value = evv.evaluate(
         new CIntegerLiteralExpression(loc, null, BigInteger.valueOf(in)),
         outType);
 
-    // System.out.println(String.format("(%s) %d == %d == %d", outType, in, expectedOut, value));
+    System.out.println(String.format("(%s) %d == %d == %s", outType, in, expectedOut, value.toString()));
 
-    Assert.assertTrue(expectedOut == value);
+    // TODO explicitfloat: add floats to the test
+    // We know it's of type int since we manually created a CIntegerLiteralExpression
+    Assert.assertTrue(expectedOut == value.asLong(CNumericTypes.INT));
   }
 }

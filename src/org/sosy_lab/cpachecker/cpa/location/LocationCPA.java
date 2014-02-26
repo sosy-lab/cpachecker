@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -54,7 +54,7 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Optional;
 
-public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurableProgramAnalysisWithABM, ProofChecker {
+public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
   private final LocationStateFactory stateFactory;
   private final AbstractDomain abstractDomain = new FlatLatticeDomain();
