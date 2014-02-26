@@ -51,6 +51,11 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
   private boolean inPredicatedAnalysis = false;
 
   private final StopOperator wrappedStop;
+
+  public StopOperator getWrappedStop() {
+    return wrappedStop;
+  }
+
   private final LogManager logger;
 
   public ARGStopSep(StopOperator pWrappedStop, LogManager pLogger, Configuration config) throws InvalidConfigurationException {
@@ -120,7 +125,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
 
   }
 
-  private boolean stop(ARGState pElement, ARGState pReachedState, Precision pPrecision)
+  public boolean stop(ARGState pElement, ARGState pReachedState, Precision pPrecision)
                                                       throws CPAException, InterruptedException {
 
     if (!pReachedState.mayCover()) {

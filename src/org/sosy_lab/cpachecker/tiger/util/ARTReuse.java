@@ -65,6 +65,38 @@ public class ARTReuse {
     }
   }
 
+  /**
+   * Like {@link modifyReachedSet}, but also returns the set elements that are directly removed.
+   * @param pReachedSet
+   * @param pEntryNode
+   * @param pARTCPA
+   * @param pProductAutomatonIndex
+   * @param pPreviousAutomaton
+   * @param pCurrentAutomaton
+   * @return
+   */
+  public static Set<AbstractState> modifyReachedSet2(ReachedSet pReachedSet, FunctionEntryNode pEntryNode, ARGCPA pARTCPA, int pProductAutomatonIndex, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton) {
+    Set<AbstractState> set = new HashSet<AbstractState>();
+
+    if (pReachedSet.isEmpty()) {
+      AbstractState lInitialElement = pARTCPA.getInitialState(pEntryNode);
+      Precision lInitialPrecision = pARTCPA.getInitialPrecision(pEntryNode);
+
+      pReachedSet.add(lInitialElement, lInitialPrecision);
+    }
+    else {
+      if (pPreviousAutomaton == null) {
+        throw new RuntimeException();
+      }
+
+      Set<AbstractState> s = modifyART2(pReachedSet, pARTCPA, pProductAutomatonIndex, pPreviousAutomaton, pCurrentAutomaton);
+      set.addAll(s);
+    }
+
+
+    return set;
+  }
+
   private static void modifyART(ReachedSet pReachedSet, ARGReachedSet pARTReachedSet, int pProductAutomatonIndex, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> pFrontierEdges) {
     //Set<Pair<ARTElement, ARTElement>> lPathEdges = Collections.emptySet();
     //ARTStatistics.dumpARTToDotFile(new File("/home/andreas/art01.dot"), lARTCPA, pReachedSet, lPathEdges);
@@ -116,6 +148,75 @@ public class ARTReuse {
         }
       }
     }
+  }
+
+
+  /**
+   * Like {@link modifyART}, but returns the roots of the removed subgraphs.
+   * @param pReachedSet
+   * @param pARTReachedSet
+   * @param pProductAutomatonIndex
+   * @param pFrontierEdges
+   * @return
+   */
+  private static Set<AbstractState> modifyART2(ReachedSet pReachedSet, ARGReachedSet pARTReachedSet, int pProductAutomatonIndex,
+      Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> pFrontierEdges) {
+    //Set<Pair<ARTElement, ARTElement>> lPathEdges = Collections.emptySet();
+    //ARTStatistics.dumpARTToDotFile(new File("/home/andreas/art01.dot"), lARTCPA, pReachedSet, lPathEdges);
+
+    Set<AbstractState> set = new HashSet<>();
+
+    for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lEdge : pFrontierEdges) {
+      GuardedEdgeLabel lLabel = lEdge.getLabel();
+
+      ECPEdgeSet lEdgeSet = lLabel.getEdgeSet();
+
+      for (CFAEdge lCFAEdge : lEdgeSet) {
+        CFANode lCFANode = lCFAEdge.getPredecessor();
+
+        Collection<AbstractState> lAbstractElements = pReachedSet.getReached(lCFANode);
+
+        LinkedList<AbstractState> lAbstractElements2 = new LinkedList<>();
+        lAbstractElements2.addAll(lAbstractElements);
+
+        for (AbstractState lAbstractElement : lAbstractElements2) {
+          if (!pReachedSet.contains(lAbstractElement)) {
+            // lAbstractElement was removed in an earlier step
+            continue;
+          }
+
+          ARGState lARTElement = (ARGState)lAbstractElement;
+
+          if (AbstractStates.extractLocation(lARTElement) != lCFANode) {
+            continue;
+          }
+
+          // what's the semantics of getWrappedElement*s*()?
+          CompositeState lCompositeElement = (CompositeState)lARTElement.getWrappedState();
+
+          ProductAutomatonElement lProductAutomatonElement = (ProductAutomatonElement)lCompositeElement.get(pProductAutomatonIndex);
+
+          GuardedEdgeAutomatonStateElement lStateElement = (GuardedEdgeAutomatonStateElement)lProductAutomatonElement.get(0);
+
+          if (lStateElement.getAutomatonState() == lEdge.getSource()) {
+            if (lARTElement.getChildren().isEmpty()) {
+              // re-add element to worklist
+              pReachedSet.reAddToWaitlist(lARTElement);
+            }
+            else {
+              // by removing the children, lARTElement gets added to the
+              // worklist automatically
+              /* TODO add removal of only non-isomorphic parts again */
+              set.addAll(lARTElement.getChildren());
+
+              removeElement(lARTElement, pARTReachedSet);
+            }
+          }
+        }
+      }
+    }
+
+    return set;
   }
 
 
@@ -198,6 +299,32 @@ public class ARTReuse {
     modifyART(pReachedSet, lARTReachedSet, pProductAutomatonIndex, lFrontier.getFirst());
     modifyART(pReachedSet, lARTReachedSet, pProductAutomatonIndex, lFrontier.getSecond());
   }
+
+
+  /**
+   * Like {@link modifyART}, but returns the roots of the removed subgraphs.
+   * @param pReachedSet
+   * @param pARTCPA
+   * @param pProductAutomatonIndex
+   * @param pPreviousAutomaton
+   * @param pCurrentAutomaton
+   * @return
+   */
+  private static Set<AbstractState> modifyART2(ReachedSet pReachedSet, ARGCPA pARTCPA, int pProductAutomatonIndex, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton) {
+    Set<AbstractState> set = new HashSet<>();
+
+    ARGReachedSet lARTReachedSet = new ARGReachedSet(pReachedSet, pARTCPA);
+
+    Pair<Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>> lFrontier = determineFrontier(pPreviousAutomaton, pCurrentAutomaton);
+
+    Set<AbstractState> s1 = modifyART2(pReachedSet, lARTReachedSet, pProductAutomatonIndex, lFrontier.getFirst());
+    Set<AbstractState> s2 = modifyART2(pReachedSet, lARTReachedSet, pProductAutomatonIndex, lFrontier.getSecond());
+    set.addAll(s1);
+    set.addAll(s2);
+
+    return set;
+  }
+
 
   private static Pair<Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>> determineLocalDifference(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton, NondeterministicFiniteAutomaton.State pPreviousState, NondeterministicFiniteAutomaton.State pCurrentState) {
     Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> lE1 = new HashSet<>();

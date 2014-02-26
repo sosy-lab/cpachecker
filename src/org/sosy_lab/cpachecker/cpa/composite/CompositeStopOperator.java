@@ -39,6 +39,11 @@ import com.google.common.collect.ImmutableList;
 
 public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOperator {
 
+
+  public ImmutableList<StopOperator> getStopOperators() {
+    return stopOperators;
+  }
+
   protected final ImmutableList<StopOperator> stopOperators;
 
   public CompositeStopOperator(ImmutableList<StopOperator> stopOperators) {

@@ -145,7 +145,7 @@ public class Main {
     }
 
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
-    CPAtiger lFShell = new CPAtiger(lSourceFileName, lEntryFunction, shutdownNotifier, lOutput, AnalysisType.PREDICATE, 0, true, false, false);
+    CPAtiger lFShell = new CPAtiger(lSourceFileName, lEntryFunction, shutdownNotifier, lOutput, AnalysisType.PREDICATE, 0, true, false, false, false);
 
     lFShell.setGoalIndices(lMinIndex, lMaxIndex);
 

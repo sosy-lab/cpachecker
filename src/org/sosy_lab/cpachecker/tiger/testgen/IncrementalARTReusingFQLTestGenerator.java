@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
@@ -86,7 +87,6 @@ import org.sosy_lab.cpachecker.tiger.fql.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.SingletonECPEdgeSet;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.GuardedLabel;
-import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.GuardedLambdaLabel;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.InverseGuardedEdgeLabel;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.ToGuardedAutomatonTranslator;
 import org.sosy_lab.cpachecker.tiger.fql.translators.ecp.ClusteringCoverageSpecificationTranslator;
@@ -118,7 +118,7 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
  * -> Handle enormous amounts of test goals.
  */
 
-public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
+public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator, StatisticsProvider {
 
   private final Configuration mConfiguration;
   private final LogManager mLogManager;
@@ -202,7 +202,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
   public IncrementalARTReusingFQLTestGenerator(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier,
       PrintStream pOutput, AnalysisType pAType, long pTimelimit, boolean pStopOnImpreciseExecution,
-      boolean pPrintCFAs, boolean pNoReuse) {
+      boolean pPrintCFAs, boolean pNoReuse, boolean pUseSummaries) {
     assert (INSTANCE == null);
 
     analysisType = pAType;
@@ -268,7 +268,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     case PREDICATE :
       mOutput.println("Running predicate analysis");
       analysis = new PredicateAnalysisWithReuse(pSourceFileName, pEntryFunction, shutdownNotifier, lCFA,
-          mLocationCPA, mCallStackCPA, mAssumeCPA, timelimit, mReuseART);
+          mLocationCPA, mCallStackCPA, mAssumeCPA, timelimit, mReuseART, pUseSummaries);
       break;
 
     case EXPLICIT_SIMPLE :
@@ -1356,6 +1356,11 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     ProductAutomatonElement lProductAutomatonElement = (ProductAutomatonElement)lLastElement.get(lProductAutomatonIndex);
 
     return lProductAutomatonElement.isFinalState();
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    analysis.collectStatistics(pStatsCollection);
   }
 
 }

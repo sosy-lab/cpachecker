@@ -164,7 +164,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   }
 
   public boolean isCovered() {
-    assert !destroyed : "Don't use destroyed ARGState " + this;
+    //assert !destroyed : "Don't use destroyed ARGState " + this;
     return mCoveredBy != null;
   }
 

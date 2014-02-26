@@ -28,7 +28,9 @@ import static org.sosy_lab.common.DuplicateOutputStream.mergeStreams;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -47,6 +49,7 @@ import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.tiger.core.CPAtiger;
 import org.sosy_lab.cpachecker.tiger.core.CPAtiger.AnalysisType;
 import org.sosy_lab.cpachecker.tiger.core.CPAtigerResult;
@@ -148,8 +151,13 @@ public class CPATigerMain {
         noReuse = true;
       }
 
+      boolean useSummaries = false;
+      if (!Strings.isNullOrEmpty(cpaConfig.getProperty("cpatiger.summaries"))) {
+        useSummaries = true;
+      }
+
       cpatiger = new CPAtiger(options.programs, entryFunction, shutdownNotifier, lPrintStream, aType, timelimit,
-          lStopOnImpreciseExecution, lPrintCFAs, noReuse);
+          lStopOnImpreciseExecution, lPrintCFAs, noReuse, useSummaries);
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(1);
@@ -208,7 +216,9 @@ public class CPATigerMain {
     limits.cancel();
     Thread.interrupted(); // clear interrupted flag
 
-    printResultAndStatistics(result, outputDirectory, options, logManager);
+    List<Statistics> stats = new Vector<>();
+    cpatiger.collectStatistics(stats);
+    printResultAndStatistics(stats, result, outputDirectory, options, logManager);
 
     System.out.flush();
     System.err.flush();
@@ -334,7 +344,7 @@ public class CPATigerMain {
   }
 
   @SuppressWarnings("deprecation")
-  private static void printResultAndStatistics(CPAtigerResult mResult,
+  private static void printResultAndStatistics(List<Statistics> pStats, CPAtigerResult mResult,
       String outputDirectory, MainOptions options, LogManager logManager) {
 
     // setup output streams
@@ -356,6 +366,14 @@ public class CPATigerMain {
       // print statistics
       // TODO implement
       //mResult.printStatistics(stream);
+      if (options.printStatistics){
+        for (Statistics stats : pStats){
+          stats.printStatistics(stream, null, null);
+        }
+
+
+      }
+
       stream.println();
 
       // print result

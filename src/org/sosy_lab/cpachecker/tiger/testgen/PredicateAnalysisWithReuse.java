@@ -23,12 +23,14 @@
  */
 package org.sosy_lab.cpachecker.tiger.testgen;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.Vector;
 import java.util.concurrent.TimeUnit;
 
 import org.sosy_lab.common.LogManager;
@@ -38,10 +40,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithmWithCounterexampleInfo;
-import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -60,6 +62,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
@@ -67,8 +70,11 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.tiger.core.CPAtiger;
 import org.sosy_lab.cpachecker.tiger.core.algorithm.AlgorithmExecutorService;
+import org.sosy_lab.cpachecker.tiger.core.algorithm.CPAAlgorithmSummaries;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.GuardedEdgeLabel;
+import org.sosy_lab.cpachecker.tiger.testgen.summaries.SummaryCoveragePred;
 import org.sosy_lab.cpachecker.tiger.util.ARTReuse;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
@@ -88,6 +94,8 @@ public class PredicateAnalysisWithReuse implements AnalysisWithReuse, PrecisionC
   private final LogManager mLogManager;
   // TODO probably make global
   private boolean mReuseART = true;
+  // compute summaries for subgraphs removed from the ART
+  private boolean mUseSummarise = true;
 
   public PredicatePrecision mPrecision;
   private boolean lUseCache;
@@ -96,9 +104,18 @@ public class PredicateAnalysisWithReuse implements AnalysisWithReuse, PrecisionC
   private long timelimit;
   private AlgorithmExecutorService executor;
 
+  // summaries subgraphs removed from the ARG
+  private final List<AbstractState> summaries;
+  private SummaryCoveragePred sumCov;
+
+  private CPAAlgorithmSummaries cpaAlg;
+  private CEGARAlgorithmWithCounterexampleInfo cegarAlg;
+
+
+
   public PredicateAnalysisWithReuse(String pSourceFileName, String pEntryFunction, ShutdownNotifier pshutdownNotifier,
       CFA lCFA, LocationCPA pmLocationCPA, CallstackCPA pmCallStackCPA,
-      AssumeCPA pmAssumeCPA, long pTimelimit, boolean pMReuseART){
+      AssumeCPA pmAssumeCPA, long pTimelimit, boolean pMReuseART, boolean pUseSummaries){
     mLocationCPA = pmLocationCPA;
     mCallStackCPA = pmCallStackCPA;
     mAssumeCPA = pmAssumeCPA;
@@ -106,6 +123,14 @@ public class PredicateAnalysisWithReuse implements AnalysisWithReuse, PrecisionC
     shutdownNotifier = pshutdownNotifier;
     timelimit = pTimelimit;
     mReuseART = pMReuseART;
+    this.mUseSummarise = pUseSummaries;
+
+    if (this.mUseSummarise){
+      summaries = new Vector<>();
+    } else {
+      summaries = null;
+    }
+
 
     try {
       // TODO update config
@@ -196,9 +221,7 @@ public class PredicateAnalysisWithReuse implements AnalysisWithReuse, PrecisionC
 
     int lProductAutomatonIndex = lComponentAnalyses.size();
     lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false));
-
     lComponentAnalyses.add(mPredicateCPA);
-
     lComponentAnalyses.add(mAssumeCPA);
 
     ARGCPA lARTCPA;
@@ -223,11 +246,14 @@ public class PredicateAnalysisWithReuse implements AnalysisWithReuse, PrecisionC
       throw new RuntimeException(e);
     }
 
-    CPAAlgorithm lBasicAlgorithm;
+    if (this.mUseSummarise && sumCov == null){
+      sumCov = SummaryCoveragePred.getInstance(lARTCPA);
+    }
+
     ShutdownNotifier algNotifier = ShutdownNotifier.createWithParent(shutdownNotifier);
 
     try {
-      lBasicAlgorithm = new CPAAlgorithm(lARTCPA, mLogManager, mConfiguration, algNotifier);
+      cpaAlg = new CPAAlgorithmSummaries(lARTCPA, mLogManager, mConfiguration, algNotifier, summaries, sumCov, mUseSummarise);
     } catch (InvalidConfigurationException e1) {
       throw new RuntimeException(e1);
     }
@@ -239,9 +265,8 @@ public class PredicateAnalysisWithReuse implements AnalysisWithReuse, PrecisionC
       throw new RuntimeException(e);
     }
 
-    CEGARAlgorithmWithCounterexampleInfo lAlgorithm;
     try {
-      lAlgorithm = new CEGARAlgorithmWithCounterexampleInfo(lBasicAlgorithm, lRefiner, mConfiguration, mLogManager);
+      cegarAlg = new CEGARAlgorithmWithCounterexampleInfo(cpaAlg, lRefiner, mConfiguration, mLogManager);
     } catch (InvalidConfigurationException | CPAException e) {
       throw new RuntimeException(e);
     }
@@ -254,11 +279,28 @@ public class PredicateAnalysisWithReuse implements AnalysisWithReuse, PrecisionC
     }
     Set<Statistics> lStatistics = new HashSet<>();
     lStatistics.add(lARTStatistics);
-    lAlgorithm.collectStatistics(lStatistics);
+    cegarAlg.collectStatistics(lStatistics);
 
     if (mReuseART) {
-      ARTReuse.modifyReachedSet(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
 
+      if (mUseSummarise){
+        Set<AbstractState> set = ARTReuse.modifyReachedSet2(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
+
+        // keep only abstractions state for predicate abstraction
+
+        for (AbstractState s : set){
+          PredicateAbstractState ps = AbstractStates.extractStateByType(s, PredicateAbstractState.class);
+          assert ps != null;
+
+          if (ps.isAbstractionState()){
+            summaries.add(s);
+          }
+          //removedRoots.add(s);
+        }
+
+      } else {
+        ARTReuse.modifyReachedSet(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
+      }
 
       if (mPrecision != null) {
         for (AbstractState lWaitlistElement : pReachedSet.getWaitlist()) {
@@ -279,8 +321,8 @@ public class PredicateAnalysisWithReuse implements AnalysisWithReuse, PrecisionC
     }
 
     // run algorithm with an optionall timeout
-    boolean isSound = executor.execute(lAlgorithm, pReachedSet, algNotifier, timelimit, TimeUnit.SECONDS);
-    CounterexampleInfo cex = lAlgorithm.getCex();
+    boolean isSound = executor.execute(cegarAlg, pReachedSet, algNotifier, timelimit, TimeUnit.SECONDS);
+    CounterexampleInfo cex = cegarAlg.getCex();
 
 
     /*if (pReachedSet.getLastState() != null && ((ARGState)pReachedSet.getLastState()).isTarget()) {
@@ -308,8 +350,30 @@ public class PredicateAnalysisWithReuse implements AnalysisWithReuse, PrecisionC
   }
 
   @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {}
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    cpaAlg.collectStatistics(pStatsCollection);
 
+    if (this.mUseSummarise){
+      sumCov.collectStatistics(pStatsCollection);
+      pStatsCollection.add(new AnalysisStatistics());
+    }
+
+    //cegarAlg.collectStatistics(pStatsCollection);
+  }
+
+  class AnalysisStatistics implements Statistics {
+
+    @Override
+    public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
+      out.println("Summary size:               "+summaries.size());
+    }
+
+    @Override
+    public String getName() {
+      return "PredicateAnalysisWithReuse Statistics";
+    }
+
+  }
 
 
 }

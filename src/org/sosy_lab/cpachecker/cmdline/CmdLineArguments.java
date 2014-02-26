@@ -123,6 +123,8 @@ class CmdLineArguments {
           || handleArgument0("-bb3", "cpatiger.fqlquery.bb3", "true", arg, properties) // use (basic block)^3 coverage as FQL query
           || handleArgument0("-printcfa", "cpatiger.printcfas", "true", arg, properties) // export CFAs as dot files
 
+           || handleArgument0("-summaries", "cpatiger.summaries", "true", arg, properties)   // use summaries for removed stats
+
           || handleArgument0("-pred", "cpatiger.predicate", "true", arg, properties)   // predicate analysis
           || handleArgument0("-expsim", "cpatiger.explicit_simple", "true", arg, properties) // simple explicit analysis (no refinement)
           || handleArgument0("-expref", "cpatiger.explicit_ref", "true", arg, properties)    // explicit analysis with refinement

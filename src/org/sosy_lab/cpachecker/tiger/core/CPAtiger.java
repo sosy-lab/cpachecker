@@ -44,6 +44,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.tiger.core.interfaces.FQLCoverageAnalyser;
 import org.sosy_lab.cpachecker.tiger.core.interfaces.FQLTestGenerator;
@@ -70,7 +72,7 @@ import com.google.common.base.Joiner;
  * -> Handle enormous amounts of test goals.
  */
 
-public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
+public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser, StatisticsProvider {
 
   /*private final NonincrementalFQLTestGenerator mNonincrementalTestGenerator;
   private final IncrementalFQLTestGenerator mIncrementalTestGenerator;
@@ -94,12 +96,12 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
   private ShutdownNotifier shutdownNotifier;
 
   public CPAtiger(String pSourceFileName, String pEntryFunction, ShutdownNotifier pShutdownNotifier, PrintStream pOutput,
-      AnalysisType pAType, long pTimelimit, boolean pStopOnImpreciseExecution, boolean pPrintCFAs, boolean pNoReuse) {
+      AnalysisType pAType, long pTimelimit, boolean pStopOnImpreciseExecution, boolean pPrintCFAs, boolean pNoReuse, boolean useSummaries) {
     mOutput = pOutput;
     aType = pAType;
     shutdownNotifier = pShutdownNotifier;
     mIncrementalARTReusingTestGenerator = new IncrementalARTReusingFQLTestGenerator(pSourceFileName, pEntryFunction, shutdownNotifier,
-        pOutput, aType, pTimelimit, pStopOnImpreciseExecution, pPrintCFAs, pNoReuse);
+        pOutput, aType, pTimelimit, pStopOnImpreciseExecution, pPrintCFAs, pNoReuse, useSummaries);
   }
 
   public void doRestart() {
@@ -417,6 +419,13 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
 
   public enum AnalysisType {
     PREDICATE, EXPLICIT_SIMPLE, EXPLICIT_REF, EXPLICIT_PRED;
+  }
+
+
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    mIncrementalARTReusingTestGenerator.collectStatistics(pStatsCollection);
   }
 
 
