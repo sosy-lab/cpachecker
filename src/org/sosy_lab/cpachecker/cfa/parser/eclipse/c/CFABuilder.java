@@ -27,7 +27,6 @@ import static com.google.common.collect.FluentIterable.from;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,7 +42,6 @@ import org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
-import org.eclipse.cdt.core.dom.ast.IType;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -62,18 +60,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.collect.SortedSetMultimap;
@@ -91,11 +79,9 @@ class CFABuilder extends ASTVisitor {
 
   // Data structures for handling function declarations
   private final List<Pair<List<IASTFunctionDefinition>, Pair<String, GlobalScope>>> functionDeclarations = new ArrayList<>();
-  private final Map<String, Set<String>> renamedTypes = new HashMap<>();
   private final Map<String, FunctionEntryNode> cfas = new HashMap<>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
   private final List<String> eliminateableDuplicates = new ArrayList<>();
-  private final List<CElaboratedType> typesWithoutCompleteDeclaration = new ArrayList<>();
 
   // Data structure for storing global declarations
   private final List<Pair<org.sosy_lab.cpachecker.cfa.ast.IADeclaration, String>> globalDeclarations = Lists.newArrayList();
@@ -115,9 +101,6 @@ class CFABuilder extends ASTVisitor {
   private final Configuration config;
 
   private boolean encounteredAsm = false;
-  private String staticVariablePrefix;
-  private CatchAllGlobalTypesVisitor preBuildTypeChecker = null;
-  private IASTTranslationUnit ast = null;
   private Sideassignments sideAssignmentStack = null;
 
   public CFABuilder(Configuration pConfig, LogManager pLogger,
@@ -136,18 +119,16 @@ class CFABuilder extends ASTVisitor {
   }
 
   public void analyzeTranslationUnit(IASTTranslationUnit ast, String staticVariablePrefix) throws InvalidConfigurationException {
-    this.staticVariablePrefix = staticVariablePrefix;
     sideAssignmentStack = new Sideassignments();
     fileScope = new GlobalScope(new HashMap<String, CSimpleDeclaration>(),
                                 new HashMap<String, CFunctionDeclaration>(),
                                 new HashMap<String, CComplexTypeDeclaration>(),
                                 new HashMap<String, CTypeDefDeclaration>(),
-                                globalScope.getTypes().keySet());
+                                globalScope.getTypes(),
+                                staticVariablePrefix);
     astCreator = new ASTConverter(config, fileScope, logger, machine, staticVariablePrefix, true, sideAssignmentStack);
     functionDeclarations.add(Pair.of((List<IASTFunctionDefinition>)new ArrayList<IASTFunctionDefinition>(), Pair.of(staticVariablePrefix, fileScope)));
 
-    preBuildTypeChecker = null;
-    this.ast = ast;
     ast.accept(this);
   }
 
@@ -253,224 +234,19 @@ class CFABuilder extends ASTVisitor {
       } else if (newD instanceof CFunctionDeclaration) {
         fileScope.registerFunctionDeclaration((CFunctionDeclaration) newD);
       } else if (newD instanceof CComplexTypeDeclaration) {
-        if (globalScope.getTypes().containsKey(((CComplexType)newD.getType()).getQualifiedName())) {
-          used = false;
-          handleEqualNamedTypes((CComplexTypeDeclaration) newD, rawSignature);
-        } else {
           used = fileScope.registerTypeDeclaration((CComplexTypeDeclaration)newD);
-        }
       } else if (newD instanceof CTypeDefDeclaration) {
         used = fileScope.registerTypeDeclaration((CTypeDefDeclaration)newD);
       }
 
-      if (used) {
-        if (!eliminateableDuplicates.contains(newD.toASTString())) {
-          globalDeclarations.add(Pair.of((IADeclaration)newD, rawSignature));
-          eliminateableDuplicates.add(newD.toASTString());
-        }
+      if (used && !eliminateableDuplicates.contains(newD.toASTString())) {
+        globalDeclarations.add(Pair.of((IADeclaration)newD, rawSignature));
+        eliminateableDuplicates.add(newD.toASTString());
       }
     }
 
     sideAssignmentStack.leaveBlock();
     return PROCESS_SKIP; // important to skip here, otherwise we would visit nested declarations
-  }
-
-  /**
-   * This method gets called when there are two types equally named througout
-   * different files. If the types are equal, no new type declaration is added
-   * if the types are different, the type which should be added is renamed.
-   */
-  private void handleEqualNamedTypes(CComplexTypeDeclaration newD, String rawSignature) {
-    boolean used = true;
-    CComplexType newType = newD.getType();
-    CComplexType oldType = globalScope.lookupType(newType.getQualifiedName());
-    CComplexType forwardType;
-
-    // if there is only an elaborated type we need to evaluate the complete type before
-    // we can say something about type equality
-    if (newType instanceof CElaboratedType && ((CElaboratedType) newType).getRealType() == null && staticVariablePrefix.equals("")) {
-
-      // only instantiate the typechecker if it was not already instantiated
-      if(preBuildTypeChecker == null) {
-        try {
-          preBuildTypeChecker = new CatchAllGlobalTypesVisitor(config, logger, machine, staticVariablePrefix, sideAssignmentStack);
-          ast.accept(preBuildTypeChecker);
-        } catch (InvalidConfigurationException e) {
-          throw new CFAGenerationRuntimeException("Invalid configuration");
-        }
-      }
-      forwardType = preBuildTypeChecker.lookupType(newType.getQualifiedName());
-    } else {
-      forwardType = newType;
-    }
-
-
-    boolean areEqual = true;
-    // start counter by -1 so the first index will be 0
-    int counter = -1;
-
-    // test equality of types for all possible old types (those could also be renamed)
-    while (oldType != null) {
-      counter++;
-      areEqual = areEqualTypes(oldType, forwardType);
-
-      if (areEqual) {
-        if (counter == 0) {
-          newD = globalScope.getTypes().get(newType.getQualifiedName());
-          CComplexTypeDeclaration decl;
-          if (( decl = fileScope.getTypes().get(newType.getQualifiedName())) != null) {
-            if (areEqualTypes(decl.getType(), newD.getType())) {
-              break;
-            }
-          }
-          used = fileScope.registerTypeDeclaration(newD);
-          break;
-
-        } else {
-          newD = globalScope.getTypes().get(newType.getQualifiedName() + "__" + (counter - 1));
-          used = fileScope.registerTypeDeclaration(newD);
-
-          ASTTypeConverter conv = new ASTTypeConverter(fileScope, astCreator, staticVariablePrefix);
-          IType key = conv.getTypeFromTypeConversion(newType);
-
-          if (newType instanceof CElaboratedType && ((CElaboratedType) newType).getRealType() == null) {
-            conv.overwriteType(key, new CElaboratedType(newType.isConst(), newType.isVolatile(), newType.getKind(),
-                                                           newType.getName() + "__" + (counter -1 ), null));
-          } else {
-            conv.overwriteType(key, newD.getType());
-          }
-          break;
-        }
-      } else {
-        oldType = globalScope.lookupType(newType.getQualifiedName() + "__" + counter);
-      }
-    }
-
-    if (!areEqual) {
-      newD = handleUnequalTypes(newD, "__" + counter);
-      used = fileScope.registerTypeDeclaration(newD);
-    }
-
-    if (used) {
-      if (!eliminateableDuplicates.contains(newD.toASTString())) {
-        globalDeclarations.add(Pair.of((IADeclaration)newD, rawSignature));
-        eliminateableDuplicates.add(newD.toASTString());
-      }
-    }
-  }
-
-  /**
-   * This method creates a new CComplexTypeDeclaration with an unoccupied name for
-   * unequal types with the same name.
-   */
-  private CComplexTypeDeclaration handleUnequalTypes(CComplexTypeDeclaration newD, String suffix) {
-    CComplexType oldType = newD.getType();
-    String newName = oldType.getName() + suffix;
-
-    if (oldType instanceof CCompositeType) {
-      CCompositeType ct = new CCompositeType(oldType.isConst(), oldType.isVolatile(), oldType.getKind(),
-                                          ImmutableList.<CCompositeTypeMemberDeclaration>of(), newName);
-
-      ASTTypeConverter conv = new ASTTypeConverter(fileScope, astCreator, staticVariablePrefix);
-      IType key = conv.getTypeFromTypeConversion(oldType);
-      conv.overwriteType(key, new CElaboratedType(ct.isConst(), ct.isVolatile(), ct.getKind(), ct.getName(), ct));
-
-      List<CCompositeTypeMemberDeclaration> newMembers = new ArrayList<>(((CCompositeType)oldType).getMembers().size());
-      for(CCompositeTypeMemberDeclaration decl : ((CCompositeType) oldType).getMembers()) {
-        if (!(decl.getType() instanceof CPointerType)) {
-          newMembers.add(new CCompositeTypeMemberDeclaration(decl.getType(), decl.getName()));
-        } else {
-          newMembers.add(new CCompositeTypeMemberDeclaration(createPointerField((CPointerType) decl.getType(), oldType, ct), decl.getName()));
-        }
-      }
-      ct.setMembers(newMembers);
-      newD = new CComplexTypeDeclaration(newD.getFileLocation(), newD.isGlobal(), ct);
-
-    } else if (oldType instanceof CEnumType) {
-      List<CEnumerator> list = new ArrayList<>(((CEnumType) oldType).getEnumerators().size());
-
-      for (CEnumerator c : ((CEnumType) oldType).getEnumerators()) {
-        CEnumerator newC = new CEnumerator(c.getFileLocation(), c.getName(), c.getQualifiedName(), c.hasValue() ? c.getValue() : null);
-        list.add(newC);
-      }
-
-      CEnumType et = new CEnumType(oldType.isConst(), oldType.isVolatile(), list, newName);
-      for (CEnumerator enumValue : et.getEnumerators()) {
-        enumValue.setEnum(et);
-      }
-      newD = new CComplexTypeDeclaration(newD.getFileLocation(), newD.isGlobal(), et);
-
-    } else if (oldType instanceof CElaboratedType) {
-      CElaboratedType et = new CElaboratedType(oldType.isConst(), oldType.isVolatile(),
-                       oldType.getKind(), newName, null);
-      newD = new CComplexTypeDeclaration(newD.getFileLocation(), true, et);
-    }
-    return newD;
-  }
-
-  /**
-   * This method checks CComplexTypes on equality. As members are usually not
-   * checked by our equality methods these are here checked additionally, but
-   * only by name.
-   */
-  private boolean areEqualTypes(CComplexType oldType, CComplexType forwardType) {
-    boolean areEqual = false;
-    oldType = (CComplexType) oldType.getCanonicalType();
-    forwardType = (CComplexType) forwardType.getCanonicalType();
-    if (forwardType.equals(oldType)) {
-
-      if (forwardType instanceof CCompositeType) {
-        List<CCompositeTypeMemberDeclaration> members = ((CCompositeType) forwardType).getMembers();
-        List<CCompositeTypeMemberDeclaration> oldMembers = ((CCompositeType) oldType).getMembers();
-
-        if (members.size() == oldMembers.size()) {
-          areEqual = true;
-          for (int i = 0; i < members.size() && areEqual; i++) {
-            if (members.get(i).getName() == null) {
-              areEqual = false;
-            } else {
-              areEqual = members.get(i).getName().equals(oldMembers.get(i).getName());
-            }
-          }
-        }
-      } else if (forwardType instanceof CEnumType) {
-        List<CEnumerator> members = ((CEnumType) forwardType).getEnumerators();
-        List<CEnumerator> oldMembers = ((CEnumType) oldType).getEnumerators();
-
-        if (members.size() == oldMembers.size()) {
-          areEqual = true;
-          for (int i = 0; i < members.size() && areEqual; i++) {
-            areEqual = members.get(i).getName().equals(oldMembers.get(i).getName());
-          }
-        }
-      }
-    } else {
-
-    // in files where only a forwards declaration can be found but no complete
-    // type we assume that this type is equal to the before found type with the
-    // same name this also works when the elaborated type is the old type, the
-    // first type found which has the same name and a complete type will now be
-    // the realType of the oldType
-    areEqual = ((forwardType instanceof CElaboratedType && forwardType.getName().equals(oldType.getName()))
-               || (oldType instanceof CElaboratedType && oldType.getName().equals(forwardType.getName())));
-    }
-
-    return areEqual;
-  }
-
-  /**
-   * This method creates the CType for a referenced field of a CCompositeType.
-   */
-  private CType createPointerField(CPointerType oldType, CType eqType, CType newType) {
-    if (oldType.getType() instanceof CPointerType) {
-      return new CPointerType(oldType.isConst(), oldType.isVolatile(), createPointerField((CPointerType) oldType.getType(), eqType, newType));
-    } else {
-      if (oldType.getType().equals(eqType)) {
-        return new CPointerType(oldType.isConst(), oldType.isVolatile(), newType);
-      } else {
-        return new CPointerType(oldType.isConst(), oldType.isVolatile(), oldType.getType());
-      }
-    }
   }
 
   //Method to handle visiting a parsing problem.  Hopefully none exist
@@ -482,17 +258,19 @@ class CFABuilder extends ASTVisitor {
     throw new CFAGenerationRuntimeException(problem);
   }
 
-  private boolean isSingleFileEvaluation() {
-    return functionDeclarations.size() == 1;
-  }
-
   public ParseResult createCFA() throws CParserException {
-    ParseResult result;
-    if (isSingleFileEvaluation()) {
-      result = createSingleFileCFA();
-    } else {
-      result = createMultipleFileCFA();
+    FillInAllBindingsVisitor fillInAllBindingsVisitor = new FillInAllBindingsVisitor(globalScope);
+    for (IADeclaration decl : from(globalDeclarations).transform(Pair.<IADeclaration>getProjectionToFirst())) {
+      ((CDeclaration)decl).getType().accept(fillInAllBindingsVisitor);
     }
+
+    for (Pair<List<IASTFunctionDefinition>, Pair<String, GlobalScope>> pair : functionDeclarations) {
+      for (IASTFunctionDefinition declaration : pair.getFirst()) {
+        handleFunctionDefinition(pair.getSecond().getSecond(), pair.getSecond().getFirst(), declaration);
+      }
+    }
+
+    ParseResult result = new ParseResult(cfas, cfaNodes, globalDeclarations, Language.C);
 
     if (encounteredAsm) {
       logger.log(Level.WARNING, "Inline assembler ignored, analysis is probably unsound!");
@@ -505,40 +283,19 @@ class CFABuilder extends ASTVisitor {
     return result;
   }
 
-  private ParseResult createSingleFileCFA() {
-    ImmutableMap<String, CFunctionDeclaration> functions = globalScope.getFunctions();
-    ImmutableMap<String, CComplexTypeDeclaration> types = globalScope.getTypes();
-    ImmutableMap<String, CTypeDefDeclaration> typedefs = globalScope.getTypeDefs();
-
-    FillInAllBindingsVisitor fillInAllBindingsVisitor = new FillInAllBindingsVisitor(globalScope);
-    for (IADeclaration decl : from(globalDeclarations).transform(Pair.<IADeclaration>getProjectionToFirst())) {
-      ((CDeclaration)decl).getType().accept(fillInAllBindingsVisitor);
-    }
-
-    for (Pair<List<IASTFunctionDefinition>, Pair<String, GlobalScope>> pair : functionDeclarations) {
-      for (IASTFunctionDefinition declaration : pair.getFirst()) {
-        handleFunctionDefinition(functions, types, typedefs, pair, declaration);
-      }
-    }
-
-    return new ParseResult(cfas, cfaNodes, globalDeclarations, Language.C);
-  }
-
-  private void handleFunctionDefinition(ImmutableMap<String, CFunctionDeclaration> functions,
-      ImmutableMap<String, CComplexTypeDeclaration> types, ImmutableMap<String, CTypeDefDeclaration> typedefs,
-      Pair<List<IASTFunctionDefinition>, Pair<String, GlobalScope>> pair,
+  private void handleFunctionDefinition(GlobalScope actScope, String fileName,
       IASTFunctionDefinition declaration) {
 
-    FunctionScope localScope = new FunctionScope(functions,
-                                                 types,
-                                                 typedefs,
-                                                 pair.getSecond().getSecond().getGlobalVars(),
-                                                 renamedTypes.get(pair.getSecond().getFirst()));
+    FunctionScope localScope = new FunctionScope(actScope.getFunctions(),
+                                                 actScope.getTypes(),
+                                                 actScope.getTypeDefs(),
+                                                 actScope.getGlobalVars(),
+                                                 globalScope.getTypes());
     CFAFunctionBuilder functionBuilder;
 
     try {
       functionBuilder = new CFAFunctionBuilder(config, logger, localScope, machine,
-          pair.getSecond().getFirst(), sideAssignmentStack, checkBinding);
+          fileName, sideAssignmentStack, checkBinding);
     } catch (InvalidConfigurationException e) {
       throw new CFAGenerationRuntimeException("Invalid configuration");
     }
@@ -559,63 +316,6 @@ class CFABuilder extends ASTVisitor {
     functionBuilder.finish();
   }
 
-  private ParseResult createMultipleFileCFA() {
-    for(CElaboratedType decl : typesWithoutCompleteDeclaration) {
-      String typeName = decl.getQualifiedName().split("__\\d")[0];
-
-      CComplexType type = globalScope.lookupType(typeName);
-      if (type instanceof CElaboratedType && ((CElaboratedType) type).getRealType() == null) {
-
-        int counter = 0;
-        while (type instanceof CElaboratedType && ((CElaboratedType) type).getRealType() == null) {
-          type = globalScope.lookupType(typeName + "__" + counter);
-          counter++;
-        }
-      }
-
-      if (type != null) {
-        if (type instanceof CCompositeType) {
-          decl.setRealType(new CCompositeType(type.isConst(), type.isVolatile(), type.getKind(), ((CCompositeType) type).getMembers(), decl.getName()));
-        } else if (type instanceof CEnumType) {
-          decl.setRealType(new CEnumType(type.isConst(), type.isVolatile(), ((CEnumType) type).getEnumerators(), decl.getName()));
-        }
-      }
-    }
-
-    ImmutableMap<String, CFunctionDeclaration> functions = globalScope.getFunctions();
-    ImmutableMap<String, CComplexTypeDeclaration> types = globalScope.getTypes();
-    ImmutableMap<String, CTypeDefDeclaration> typedefs = globalScope.getTypeDefs();
-
-    FillInAllBindingsVisitor fillInAllBindingsVisitor = new FillInAllBindingsVisitor(globalScope);
-    for (IADeclaration decl : from(globalDeclarations).transform(Pair.<IADeclaration>getProjectionToFirst())) {
-      ((CDeclaration)decl).getType().accept(fillInAllBindingsVisitor);
-    }
-
-    for (Pair<List<IASTFunctionDefinition>, Pair<String, GlobalScope>> pair : functionDeclarations) {
-      for (IASTFunctionDefinition declaration : pair.getFirst()) {
-        Map<String, CComplexTypeDeclaration> localTypes = new HashMap<>();
-        localTypes.putAll(types);
-
-        Set<String> localTypeKeys = pair.getSecond().getSecond().getTypes().keySet();
-        for (String str : localTypeKeys) {
-          if (str.matches(".*__\\d")) {
-            String base = str.split("__\\d")[0];
-            localTypes.remove(base);
-            int counter = 0;
-            while (localTypes.remove(base + "__" + counter) != null) {
-              counter++;
-            }
-          }
-        }
-        localTypes.putAll(pair.getSecond().getSecond().getTypes());
-
-        handleFunctionDefinition(functions, ImmutableMap.copyOf(localTypes), typedefs, pair, declaration);
-      }
-    }
-
-    return new ParseResult(cfas, cfaNodes, globalDeclarations, Language.C);
-  }
-
   @Override
   public int leave(IASTTranslationUnit ast) {
     Map<String, CSimpleDeclaration> globalVars = new HashMap<>();
@@ -628,35 +328,11 @@ class CFABuilder extends ASTVisitor {
     types.putAll(globalScope.getTypes());
     typedefs.putAll(globalScope.getTypeDefs());
 
-   //globalVars.putAll(fileScope.getGlobalVars());
     functions.putAll(fileScope.getFunctions());
     typedefs.putAll(fileScope.getTypeDefs());
+    types.putAll(fileScope.getTypes());
 
-    renamedTypes.put(staticVariablePrefix, fileScope.getRenamedTypes());
-
-    // only add those composite types from the filescope to the globalscope,
-    // where no type, or only an elaborated type without realtype was registered before
-    for (String key : fileScope.getTypes().keySet().asList()) {
-      CComplexTypeDeclaration type = types.get(key);
-      CComplexTypeDeclaration newType = fileScope.getTypes().get(key);
-
-      boolean isAdded = false;
-      if (type != null) {
-        if (type.getType() instanceof CElaboratedType && ((CElaboratedType) type.getType()).getRealType() == null) {
-          types.put(key, newType);
-          isAdded = true;
-        }
-      } else {
-        types.put(key, newType);
-        isAdded = true;
-      }
-
-      if (isAdded && newType.getType() instanceof CElaboratedType && ((CElaboratedType) newType.getType()).getRealType() == null) {
-        typesWithoutCompleteDeclaration.add((CElaboratedType) newType.getType());
-      }
-    }
-
-    globalScope= new GlobalScope(globalVars, functions, types, typedefs, new HashSet<String>());
+    globalScope= new GlobalScope(globalVars, functions, types, typedefs, new HashMap<String, CComplexTypeDeclaration>(), "");
     return PROCESS_CONTINUE;
   }
 }

@@ -28,10 +28,8 @@ import static com.google.common.base.Preconditions.*;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -63,7 +61,7 @@ class FunctionScope implements Scope {
   private final Deque<Map<String, CLabelNode>> labelsNodeStack = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsStack = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsList = new ArrayDeque<>();
-  private final Set<String> alreayTakenTypeNames;
+  private final Map<String, CComplexTypeDeclaration> alreadyDeclaratedTypesInOtherFiles;
 
 
   private String currentFunctionName = null;
@@ -72,14 +70,14 @@ class FunctionScope implements Scope {
       ImmutableMap<String, CComplexTypeDeclaration> pTypes,
       ImmutableMap<String, CTypeDefDeclaration> pTypedefs,
       ImmutableMap<String, CSimpleDeclaration> pGlobalVars,
-      Set<String> pAlreadyTykeTypes) {
+      Map<String, CComplexTypeDeclaration> pAlreadyDeclaratedTypesInOtherFiles) {
 
     functions.putAll(pFunctions);
     typesStack.addLast(pTypes);
     typedefs.putAll(pTypedefs);
     varsStack.push(pGlobalVars);
     varsList.push(pGlobalVars);
-    alreayTakenTypeNames = pAlreadyTykeTypes;
+    alreadyDeclaratedTypesInOtherFiles = pAlreadyDeclaratedTypesInOtherFiles;
 
     enterBlock();
   }
@@ -89,7 +87,7 @@ class FunctionScope implements Scope {
          ImmutableMap.<String, CComplexTypeDeclaration>of(),
          ImmutableMap.<String, CTypeDefDeclaration>of(),
          ImmutableMap.<String, CSimpleDeclaration>of(),
-         new HashSet<String>());
+         new HashMap<String, CComplexTypeDeclaration>());
   }
 
   @Override
@@ -239,7 +237,8 @@ class FunctionScope implements Scope {
 
   @Override
   public boolean isTypeNameAvailable(String name) {
-    return !alreayTakenTypeNames.contains(name);
+    // TODO fix this method or delete it
+    return !alreadyDeclaratedTypesInOtherFiles.containsKey(name);
   }
 
   public CVariableDeclaration lookupLocalLabel(String name) {
