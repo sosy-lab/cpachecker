@@ -65,10 +65,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
-import org.sosy_lab.cpachecker.cpa.explicit.AbstractExplicitExpressionValueVisitor;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitNumericValue;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitValueBase;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitValueBase.ExplicitUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
@@ -79,6 +75,10 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
+import org.sosy_lab.cpachecker.cpa.value.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.Value;
+import org.sosy_lab.cpachecker.cpa.value.Value.ExplicitUnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -268,7 +268,7 @@ public class SMGExpressionEvaluator {
 
     ExplicitValueVisitor visitor = new ExplicitValueVisitor(smgState, null, machineModel, logger, cfaEdge);
 
-    ExplicitValueBase value = rValue.accept(visitor);
+    Value value = rValue.accept(visitor);
 
     if (value.isUnknown() || !value.isNumericValue()) {
       return SMGUnknownValue.getInstance();
@@ -1460,7 +1460,7 @@ public class SMGExpressionEvaluator {
     }
   }
 
-  class ExplicitValueVisitor extends AbstractExplicitExpressionValueVisitor {
+  class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
 
     private final SMGState smgState;
 
@@ -1483,12 +1483,12 @@ public class SMGExpressionEvaluator {
     }
 
     @Override
-    protected ExplicitValueBase evaluateCPointerExpression(CPointerExpression pCPointerExpression)
+    protected Value evaluateCPointerExpression(CPointerExpression pCPointerExpression)
         throws UnrecognizedCCodeException {
       return evaluateLeftHandSideExpression(pCPointerExpression);
     }
 
-    private ExplicitValueBase evaluateLeftHandSideExpression(CLeftHandSide leftHandSide)
+    private Value evaluateLeftHandSideExpression(CLeftHandSide leftHandSide)
         throws UnrecognizedCCodeException {
 
       SMGSymbolicValue value = SMGUnknownValue.getInstance();
@@ -1507,12 +1507,12 @@ public class SMGExpressionEvaluator {
       if (expValue.isUnknown()) {
         return ExplicitUnknownValue.getInstance();
       } else {
-        return new ExplicitNumericValue(expValue.getAsLong());
+        return new NumericValue(expValue.getAsLong());
       }
     }
 
     @Override
-    protected ExplicitValueBase evaluateCIdExpression(CIdExpression pCIdExpression) throws UnrecognizedCCodeException {
+    protected Value evaluateCIdExpression(CIdExpression pCIdExpression) throws UnrecognizedCCodeException {
       return evaluateLeftHandSideExpression(pCIdExpression);
     }
 
@@ -1522,12 +1522,12 @@ public class SMGExpressionEvaluator {
     }
 
     @Override
-    protected ExplicitValueBase evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
+    protected Value evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
       return evaluateLeftHandSideExpression(pLValue);
     }
 
     @Override
-    protected ExplicitValueBase evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue)
+    protected Value evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue)
         throws UnrecognizedCCodeException {
       return evaluateLeftHandSideExpression(pLValue);
     }

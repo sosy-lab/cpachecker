@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.explicit;
+package org.sosy_lab.cpachecker.cpa.value;
 
 import java.math.BigInteger;
 
@@ -49,7 +49,7 @@ public class ExpressionValueVisitorTest {
 
 
   // we need some dummy-values.
-  private final ExplicitState state = new ExplicitState();
+  private final ValueAnalysisState state = new ValueAnalysisState();
   private final String functionName = "dummy_function";
   private final FileLocation loc = new FileLocation(0, "dummy_file", 0, 0, 0);
 
@@ -87,8 +87,8 @@ public class ExpressionValueVisitorTest {
   private StringBuildingLogHandler stringLogHandler;
   private LogManager logger;
 
-  private ExplicitExpressionValueVisitor evv32;
-  private ExplicitExpressionValueVisitor evv64;
+  private ExpressionValueVisitor evv32;
+  private ExpressionValueVisitor evv64;
 
 
   @Before
@@ -97,9 +97,9 @@ public class ExpressionValueVisitorTest {
     stringLogHandler = new StringBuildingLogHandler();
     logger = new BasicLogManager(config, stringLogHandler);
 
-    evv32 = new ExplicitExpressionValueVisitor(
+    evv32 = new ExpressionValueVisitor(
         state, functionName, MachineModel.LINUX32, logger, null);
-    evv64 = new ExplicitExpressionValueVisitor(
+    evv64 = new ExpressionValueVisitor(
         state, functionName, MachineModel.LINUX64, logger, null);
 
   }
@@ -131,7 +131,7 @@ public class ExpressionValueVisitorTest {
    * this test checks the casts of CHAR, SHORT_INT and (normal) INT,
    * it does not use LONG_INT or LONG_LONG_INT
    */
-  private void checkSimpleCasts(ExplicitExpressionValueVisitor evv) throws Exception {
+  private void checkSimpleCasts(ExpressionValueVisitor evv) throws Exception {
 
     for (int i = -MAX_CHAR / 2; i < MAX_CHAR; i += 50) {
       checkCast(evv, i, i < MAX_CHAR / 2 ? i : (-MAX_CHAR + i), S_CHAR);
@@ -154,7 +154,7 @@ public class ExpressionValueVisitorTest {
    * this test checks the casts of CHAR, SHORT_INT and (normal) INT,
    * it does not use LONG_INT or LONG_LONG_INT
    */
-  private void checkCastsDirect(ExplicitExpressionValueVisitor evv) throws Exception {
+  private void checkCastsDirect(ExpressionValueVisitor evv) throws Exception {
 
     checkCast(evv, 4, 4, S_CHAR);
     checkCast(evv, -4, -4, S_CHAR);
@@ -201,7 +201,7 @@ public class ExpressionValueVisitorTest {
 
 
   /** this test checks casting, we assume long_int == int == int32 */
-  private void checkCasts32(ExplicitExpressionValueVisitor evv) throws Exception {
+  private void checkCasts32(ExpressionValueVisitor evv) throws Exception {
 
     for (long i = -(MAX_INT / 2L); i < MAX_INT; i += 10L * 1000L * 1000L) {
 
@@ -242,7 +242,7 @@ public class ExpressionValueVisitorTest {
 
 
   /** this test checks casting, we assume long_int == long_long_int == int64 */
-  private void checkCasts64(ExplicitExpressionValueVisitor evv) throws Exception {
+  private void checkCasts64(ExpressionValueVisitor evv) throws Exception {
 
     for (long i = -(MAX_INT / 2L); i < MAX_INT; i += 10L * 1000L * 1000L) {
 
@@ -297,11 +297,11 @@ public class ExpressionValueVisitorTest {
   }
 
 
-  private void checkCast(ExplicitExpressionValueVisitor evv, long in, long expectedOut, CType outType)
+  private void checkCast(ExpressionValueVisitor evv, long in, long expectedOut, CType outType)
       throws UnrecognizedCCodeException {
 
     // we use NULL as inputType, because it is not needed
-    final ExplicitValueBase value = evv.evaluate(
+    final Value value = evv.evaluate(
         new CIntegerLiteralExpression(loc, null, BigInteger.valueOf(in)),
         outType);
 

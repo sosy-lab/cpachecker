@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.explicit;
+package org.sosy_lab.cpachecker.cpa.value;
 
 import java.util.List;
 
@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 
@@ -55,11 +55,11 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
  * This Visitor returns the value from an expression.
  * The result may be null, i.e., the value is unknown.
  */
-public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionValueVisitor {
+public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
   private boolean missingPointer = false;
 
-  private final ExplicitState state;
+  private final ValueAnalysisState state;
 
   /** This Visitor returns the numeral value for an expression.
    * @param pState where to get the values for variables (identifiers)
@@ -67,7 +67,7 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
    * @param pMachineModel where to get info about types, for casting and overflows
    * @param pLogger logging
    * @param pEdge only for logging, not needed */
-  public ExplicitExpressionValueVisitor(ExplicitState pState, String pFunctionName,
+  public ExpressionValueVisitor(ValueAnalysisState pState, String pFunctionName,
       MachineModel pMachineModel, LogManager pLogger, @Nullable CFAEdge pEdge) {
     super(pFunctionName, pMachineModel, pLogger, pEdge);
     this.state = pState;
@@ -86,7 +86,7 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
   }
 
   @Override
-  protected ExplicitValueBase evaluateCIdExpression(CIdExpression varName) {
+  protected Value evaluateCIdExpression(CIdExpression varName) {
     return evaluateAIdExpression(varName);
   }
 
@@ -97,7 +97,7 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
   }
 
   /** This method returns the value of a variable from the current state. */
-  private ExplicitValueBase evaluateAIdExpression(AIdExpression varName) {
+  private Value evaluateAIdExpression(AIdExpression varName) {
 
     MemoryLocation memLoc;
 
@@ -110,39 +110,39 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
     if (state.contains(memLoc)) {
       return state.getValueFor(memLoc);
     } else {
-      return ExplicitValueBase.ExplicitUnknownValue.getInstance();
+      return Value.ExplicitUnknownValue.getInstance();
     }
   }
 
-  private ExplicitValueBase evaluateLValue(CLeftHandSide pLValue) throws UnrecognizedCCodeException {
+  private Value evaluateLValue(CLeftHandSide pLValue) throws UnrecognizedCCodeException {
 
     MemoryLocation varLoc = evaluateMemoryLocation(pLValue);
 
     if (varLoc == null) {
-      return ExplicitValueBase.ExplicitUnknownValue.getInstance();
+      return Value.ExplicitUnknownValue.getInstance();
     }
 
     if (getState().contains(varLoc)) {
       return state.getValueFor(varLoc);
     } else {
-      return ExplicitValueBase.ExplicitUnknownValue.getInstance();
+      return Value.ExplicitUnknownValue.getInstance();
     }
   }
 
   @Override
-  protected ExplicitValueBase evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
+  protected Value evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
     return evaluateLValue(pLValue);
   }
 
   @Override
-  protected ExplicitValueBase evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue) throws UnrecognizedCCodeException {
+  protected Value evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue) throws UnrecognizedCCodeException {
     return evaluateLValue(pLValue);
   }
 
   @Override
-  protected ExplicitValueBase evaluateCPointerExpression(CPointerExpression pVarName) {
+  protected Value evaluateCPointerExpression(CPointerExpression pVarName) {
     missingPointer = true;
-    return ExplicitValueBase.ExplicitUnknownValue.getInstance();
+    return Value.ExplicitUnknownValue.getInstance();
   }
 
   public boolean canBeEvaluated(CExpression lValue) throws UnrecognizedCCodeException {
@@ -155,9 +155,9 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
 
   private static class MemoryLocationEvaluator extends DefaultCExpressionVisitor<MemoryLocation, UnrecognizedCCodeException> {
 
-    private final ExplicitExpressionValueVisitor evv;
+    private final ExpressionValueVisitor evv;
 
-    public MemoryLocationEvaluator(ExplicitExpressionValueVisitor pEvv) {
+    public MemoryLocationEvaluator(ExpressionValueVisitor pEvv) {
       evv = pEvv;
     }
 
@@ -313,7 +313,7 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
     }
   }
 
-  public ExplicitState getState() {
+  public ValueAnalysisState getState() {
     return state;
   }
 }

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.explicit.refiner;
+package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import static com.google.common.collect.FluentIterable.from;
 
@@ -66,10 +66,10 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitValueBase;
-import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.Value;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -80,7 +80,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.explicit.refiner")
-public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
+public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
   /**
    * whether or not to do lazy-abstraction, i.e., when true, the re-starting node
    * for the re-exploration of the ARG will be the node closest to the root
@@ -111,9 +111,9 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
-  private final ExplicitInterpolator interpolator;
+  private final ValueAnalysisInterpolator interpolator;
 
-  protected ExplicitInterpolationBasedExplicitRefiner(Configuration config,
+  protected ValueAnalysisInterpolationBasedRefiner(Configuration config,
       final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa)
       throws InvalidConfigurationException {
@@ -122,7 +122,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     logger           = pLogger;
     cfa              = pCfa;
     shutdownNotifier = pShutdownNotifier;
-    interpolator     = new ExplicitInterpolator(config, logger, shutdownNotifier, cfa);
+    interpolator     = new ValueAnalysisInterpolator(config, logger, shutdownNotifier, cfa);
   }
 
   protected Map<ARGState, ExplicitValueInterpolant> performInterpolation(ARGPath errorPath,
@@ -364,7 +364,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     /**
      * the variable assignment of the interpolant
      */
-    private final Map<MemoryLocation, ExplicitValueBase> assignment;
+    private final Map<MemoryLocation, Value> assignment;
 
     /**
      * the interpolant representing "true"
@@ -374,7 +374,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     /**
      * the interpolant representing "false"
      */
-    public static final ExplicitValueInterpolant FALSE = new ExplicitValueInterpolant((Map<MemoryLocation, ExplicitValueBase>)null);
+    public static final ExplicitValueInterpolant FALSE = new ExplicitValueInterpolant((Map<MemoryLocation, Value>)null);
 
     /**
      * Contructor for a new, empty interpolant, i.e. the interpolant representing "true"
@@ -388,7 +388,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
      *
      * @param pAssignment the variable assignment to be represented by the interpolant
      */
-    public ExplicitValueInterpolant(Map<MemoryLocation, ExplicitValueBase> pAssignment) {
+    public ExplicitValueInterpolant(Map<MemoryLocation, Value> pAssignment) {
       assignment = pAssignment;
     }
 
@@ -417,7 +417,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
      */
     public ExplicitValueInterpolant join(ExplicitValueInterpolant other) {
 
-      Map<MemoryLocation, ExplicitValueBase> newAssignment = new HashMap<>();
+      Map<MemoryLocation, Value> newAssignment = new HashMap<>();
 
       if(assignment != null) {
         newAssignment.putAll(assignment);
@@ -506,8 +506,8 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
      *
      * @return an explicit-value assignment that represents the same variable assignment as the interpolant
      */
-    public ExplicitState createExplicitValueState() {
-      return new ExplicitState(PathCopyingPersistentTreeMap.copyOf(assignment));
+    public ValueAnalysisState createExplicitValueState() {
+      return new ValueAnalysisState(PathCopyingPersistentTreeMap.copyOf(assignment));
     }
 
     @Override

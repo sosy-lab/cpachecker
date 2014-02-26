@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
@@ -54,7 +54,7 @@ public class SingleValueChecker implements PropertyChecker {
     CFANode node = AbstractStates.extractLocation(pElemToCheck);
     if (node instanceof CLabelNode && ((CLabelNode) node).getLabel().equals(labelLocVarVal)) {
       // The following is a hack
-      if (AbstractStates.extractStateByType(pElemToCheck, ExplicitState.class).getValueFor(varValName).asLong(CNumericTypes.INT) != varVal) { return false; }
+      if (AbstractStates.extractStateByType(pElemToCheck, ValueAnalysisState.class).getValueFor(varValName).asLong(CNumericTypes.INT) != varVal) { return false; }
     }
     return true;
   }

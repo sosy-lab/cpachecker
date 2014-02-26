@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.explicit.refiner;
+package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import static com.google.common.collect.FluentIterable.from;
 
@@ -66,11 +66,11 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitCPA;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
-import org.sosy_lab.cpachecker.cpa.explicit.refiner.ExplicitInterpolationBasedExplicitRefiner.ExplicitValueInterpolant;
-import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictFeasibilityChecker;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationBasedRefiner.ExplicitValueInterpolant;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -85,7 +85,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 
 @Options(prefix="cpa.explicit.refiner")
-public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
+public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
   @Option(description="whether or not to do lazy-abstraction")
   private boolean doLazyAbstraction = true;
@@ -103,8 +103,8 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
       values={"NEVER", "FINAL", "ALWAYS"})
   private String exportInterpolationTree = "NEVER";
 
-  ExplicitInterpolationBasedExplicitRefiner interpolatingRefiner;
-  ExplictFeasibilityChecker checker;
+  ValueAnalysisInterpolationBasedRefiner interpolatingRefiner;
+  ValueAnalysisFeasibilityChecker checker;
 
   private final LogManager logger;
 
@@ -114,13 +114,13 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
 
   private final Timer totalTime       = new Timer();
 
-  public static ExplicitGlobalRefiner create(final ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
-    final ExplicitCPA explicitCpa = CPAs.retrieveCPA(pCpa, ExplicitCPA.class);
+  public static ValueAnalysisGlobalRefiner create(final ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+    final ValueAnalysisCPA explicitCpa = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
     if (explicitCpa == null) {
-      throw new InvalidConfigurationException(ExplicitGlobalRefiner.class.getSimpleName() + " needs a ExplicitCPA");
+      throw new InvalidConfigurationException(ValueAnalysisGlobalRefiner.class.getSimpleName() + " needs a ExplicitCPA");
     }
 
-    ExplicitGlobalRefiner refiner = new ExplicitGlobalRefiner(explicitCpa.getConfiguration(),
+    ValueAnalysisGlobalRefiner refiner = new ValueAnalysisGlobalRefiner(explicitCpa.getConfiguration(),
                                     explicitCpa.getLogger(),
                                     explicitCpa.getShutdownNotifier(),
                                     explicitCpa.getCFA());
@@ -131,15 +131,15 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     return refiner;
   }
 
-  private ExplicitGlobalRefiner(final Configuration pConfig, final LogManager pLogger,
+  private ValueAnalysisGlobalRefiner(final Configuration pConfig, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
           throws InvalidConfigurationException {
 
     pConfig.inject(this);
 
     logger                = pLogger;
-    interpolatingRefiner  = new ExplicitInterpolationBasedExplicitRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
-    checker               = new ExplictFeasibilityChecker(pLogger, pCfa);
+    interpolatingRefiner  = new ValueAnalysisInterpolationBasedRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
+    checker               = new ValueAnalysisFeasibilityChecker(pLogger, pCfa);
   }
 
   @Override
@@ -187,41 +187,41 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
       interpolationTree.exportToDot(totalRefinements, i);
     }
 
-    Map<ARGState, ExplicitPrecision> refinementInformation = new HashMap<>();
+    Map<ARGState, ValueAnalysisPrecision> refinementInformation = new HashMap<>();
     for(ARGState root : interpolationTree.obtainRefinementRoots(doLazyAbstraction)) {
       Collection<ARGState> targetsReachableFromRoot = interpolationTree.getTargetsInSubtree(root);
 
       // join the precisions of the subtree of this roots into a single precision
-      final ExplicitPrecision subTreePrecision = joinSubtreePrecisions(pReached, targetsReachableFromRoot);
+      final ValueAnalysisPrecision subTreePrecision = joinSubtreePrecisions(pReached, targetsReachableFromRoot);
 
-      refinementInformation.put(root, new ExplicitPrecision(subTreePrecision, interpolationTree.extractPrecisionIncrement(root)));
+      refinementInformation.put(root, new ValueAnalysisPrecision(subTreePrecision, interpolationTree.extractPrecisionIncrement(root)));
     }
 
     ARGReachedSet reached = new ARGReachedSet(pReached);
-    for(Map.Entry<ARGState, ExplicitPrecision> info : refinementInformation.entrySet()) {
-      reached.removeSubtree(info.getKey(), info.getValue(), ExplicitPrecision.class);
+    for(Map.Entry<ARGState, ValueAnalysisPrecision> info : refinementInformation.entrySet()) {
+      reached.removeSubtree(info.getKey(), info.getValue(), ValueAnalysisPrecision.class);
     }
 
     totalTime.stop();
     return true;
   }
 
-  private ExplicitPrecision joinSubtreePrecisions(final ReachedSet pReached,
+  private ValueAnalysisPrecision joinSubtreePrecisions(final ReachedSet pReached,
       Collection<ARGState> targetsReachableFromRoot) {
 
-    final ExplicitPrecision precision = extractPrecision(pReached, Iterables.getLast(targetsReachableFromRoot));
+    final ValueAnalysisPrecision precision = extractPrecision(pReached, Iterables.getLast(targetsReachableFromRoot));
     // join precisions of all target states
     for(ARGState target : targetsReachableFromRoot) {
-      ExplicitPrecision precisionOfTarget = extractPrecision(pReached, target);
+      ValueAnalysisPrecision precisionOfTarget = extractPrecision(pReached, target);
       precision.getRefinablePrecision().join(precisionOfTarget.getRefinablePrecision());
     }
 
     return precision;
   }
 
-  private ExplicitPrecision extractPrecision(final ReachedSet pReached,
+  private ValueAnalysisPrecision extractPrecision(final ReachedSet pReached,
       ARGState state) {
-    return Precisions.extractPrecisionByType(pReached.getPrecision(state), ExplicitPrecision.class);
+    return Precisions.extractPrecisionByType(pReached.getPrecision(state), ValueAnalysisPrecision.class);
   }
 
   private boolean isAnyPathFeasible(final ARGReachedSet pReached, final Collection<ARGPath> errorPaths)
@@ -303,7 +303,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
 
       @Override
       public void printStatistics(final PrintStream pOut, final Result pResult, final ReachedSet pReached) {
-        ExplicitGlobalRefiner.this.printStatistics(pOut, pResult, pReached);
+        ValueAnalysisGlobalRefiner.this.printStatistics(pOut, pResult, pReached);
       }
     });
   }

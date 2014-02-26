@@ -43,8 +43,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitExpressionValueVisitor;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitNumericValue;
+import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
+import org.sosy_lab.cpachecker.cpa.value.NumericValue;
 
 /**
  * This visitor visits an expression and evaluates it.
@@ -123,8 +123,8 @@ public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpress
     }
 
     // Just assume result to be an integer regardless of expression type.
-    long result = ExplicitExpressionValueVisitor.calculateBinaryOperation(
-        new ExplicitNumericValue(v1), new ExplicitNumericValue(v2), expr, machineModel, logger, null).asLong(CNumericTypes.INT);
+    long result = ExpressionValueVisitor.calculateBinaryOperation(
+        new NumericValue(v1), new NumericValue(v2), expr, machineModel, logger, null).asLong(CNumericTypes.INT);
 
     return new CIntegerLiteralExpression(expr.getFileLocation(),
             expr.getExpressionType(), BigInteger.valueOf(result));
@@ -139,8 +139,8 @@ public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpress
     }
 
     // Just assume the cast value to be an integer type regardless of expression type
-    final long castedValue = ExplicitExpressionValueVisitor.castCValue(
-        new ExplicitNumericValue(v), expr.getOperand().getExpressionType(), expr.getExpressionType(), machineModel, logger, null).asLong(CNumericTypes.INT);
+    final long castedValue = ExpressionValueVisitor.castCValue(
+        new NumericValue(v), expr.getOperand().getExpressionType(), expr.getExpressionType(), machineModel, logger, null).asLong(CNumericTypes.INT);
 
     return new CIntegerLiteralExpression(expr.getFileLocation(),
             expr.getExpressionType(), BigInteger.valueOf(castedValue));

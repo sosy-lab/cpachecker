@@ -51,9 +51,9 @@ import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitExpressionValueVisitor;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitNumericValue;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitValueBase;
+import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
+import org.sosy_lab.cpachecker.cpa.value.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.Value;
 
 /** This visitor visits an expression and evaluates it.
  * The returnvalue of the visit consists of the simplified expression and
@@ -74,9 +74,9 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
    * converts it to a <code>Pair<CExpression, Number></code> as required by
    * this class.
    */
-  private Pair<CExpression, Number> convertExplicitValueToPair(final CExpression expr, ExplicitValueBase value) {
+  private Pair<CExpression, Number> convertExplicitValueToPair(final CExpression expr, Value value) {
     // TODO: handle cases other than numeric values
-    ExplicitNumericValue numericResult = value.asNumericValue();
+    NumericValue numericResult = value.asNumericValue();
     if(numericResult != null && expr.getExpressionType() instanceof CSimpleType) {
       CSimpleType type = (CSimpleType) expr.getExpressionType();
       switch(type.getType()) {
@@ -134,9 +134,9 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
     }
 
     // TODO: handle the case that it's not a CSimpleType or that it's not a number
-    ExplicitValueBase lVal = new ExplicitNumericValue(pair1.getSecond());
-    ExplicitValueBase rVal = new ExplicitNumericValue(pair2.getSecond());
-    ExplicitValueBase result = ExplicitExpressionValueVisitor.calculateBinaryOperation(
+    Value lVal = new NumericValue(pair1.getSecond());
+    Value rVal = new NumericValue(pair2.getSecond());
+    Value result = ExpressionValueVisitor.calculateBinaryOperation(
         lVal, rVal,
         expr, machineModel, logger, null);
 
@@ -163,8 +163,8 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
 
     // TODO: handle the case that the result is not a numeric value
     CSimpleType type = (CSimpleType) pair.getFirst().getExpressionType().getCanonicalType();
-    final ExplicitValueBase castedValue = ExplicitExpressionValueVisitor.castCValue(
-        new ExplicitNumericValue(pair.getSecond()), expr.getOperand().getExpressionType(), expr.getExpressionType(), machineModel, logger, null);
+    final Value castedValue = ExpressionValueVisitor.castCValue(
+        new NumericValue(pair.getSecond()), expr.getOperand().getExpressionType(), expr.getExpressionType(), machineModel, logger, null);
 
 
     return convertExplicitValueToPair(expr, castedValue);

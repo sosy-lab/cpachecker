@@ -21,21 +21,21 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.explicit;
+package org.sosy_lab.cpachecker.cpa.value;
 
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 @Options(prefix="cpa.explicit")
-public class ExplicitTargetChecker {
+public class ValueAnalysisTargetChecker {
 
   @Option(
       name = "varName",
@@ -47,14 +47,14 @@ public class ExplicitTargetChecker {
   private BooleanFormula errorF;
   private MemoryLocation errorVarRep;
 
-  public ExplicitTargetChecker(Configuration pConfig) throws InvalidConfigurationException {
+  public ValueAnalysisTargetChecker(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
     errorVarRep = MemoryLocation.valueOf(errorVar);
   }
 
-  public boolean isTarget(PersistentMap<MemoryLocation, ExplicitValueBase> pConstantsMap) {
-    ExplicitValueBase value = pConstantsMap.get(errorVarRep);
-    if (value.isUnknown() || !value.equals(new ExplicitNumericValue(allowedValue))) { return true; }
+  public boolean isTarget(PersistentMap<MemoryLocation, Value> pConstantsMap) {
+    Value value = pConstantsMap.get(errorVarRep);
+    if (value.isUnknown() || !value.equals(new NumericValue(allowedValue))) { return true; }
     return false;
   }
 

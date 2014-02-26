@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.explicit;
+package org.sosy_lab.cpachecker.cpa.value;
 
 import java.util.Map;
 
@@ -39,14 +39,14 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 
 import com.google.common.collect.ImmutableMap;
 
-public class ExplicitTest {
+public class ValueAnalysisTest {
   // Specification Tests
   @Test
   public void ignoreVariablesTest1() throws Exception {
     // check whether a variable can be ignored (this will lead to a spurious counterexample be found)
 
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.explicit.ExplicitCPA",
+        "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.value.ValueAnalysisCPA",
         "specification",     "config/specification/default.spc",
         "cpa.explicit.variableBlacklist", "__SELECTED_FEATURE_(\\w)*",
         "cpa.composite.precAdjust", "COMPONENT",
@@ -61,7 +61,7 @@ public class ExplicitTest {
     // check whether the counterexample is indeed not found if the variable is not ignored
 
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.explicit.ExplicitCPA",
+        "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.value.ValueAnalysisCPA",
         "specification",     "config/specification/default.spc",
         "cpa.explicit.variableBlacklist", "somethingElse"
       );

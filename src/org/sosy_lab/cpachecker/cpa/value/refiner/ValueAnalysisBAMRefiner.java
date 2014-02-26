@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.explicit.refiner;
+package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
@@ -34,17 +34,17 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 
 
-public class BAMExplicitRefiner extends AbstractBAMBasedRefiner {
+public class ValueAnalysisBAMRefiner extends AbstractBAMBasedRefiner {
 
-  private DelegatingExplicitRefiner refiner;
+  private ValueAnalysisDelegatingRefiner refiner;
 
-  protected BAMExplicitRefiner(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException, CPAException {
+  protected ValueAnalysisBAMRefiner(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException, CPAException {
     super(pCpa);
-    refiner = DelegatingExplicitRefiner.create(pCpa);
+    refiner = ValueAnalysisDelegatingRefiner.create(pCpa);
   }
 
   public static Refiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
-    return new BAMExplicitRefiner(pCpa);
+    return new ValueAnalysisBAMRefiner(pCpa);
   }
 
   @Override

@@ -21,19 +21,19 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.explicit;
+package org.sosy_lab.cpachecker.cpa.value;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-public class ExplicitDomain implements AbstractDomain {
+public class ValueAnalysisDomain implements AbstractDomain {
   @Override
   public boolean isLessOrEqual(AbstractState currentElement, AbstractState reachedState) {
-    return ((ExplicitState)currentElement).isLessOrEqual((ExplicitState)reachedState);
+    return ((ValueAnalysisState)currentElement).isLessOrEqual((ValueAnalysisState)reachedState);
   }
 
   @Override
   public AbstractState join(AbstractState currentElement, AbstractState reachedState) {
-    return ((ExplicitState)currentElement).join((ExplicitState)reachedState);
+    return ((ValueAnalysisState)currentElement).join((ValueAnalysisState)reachedState);
   }
 }
