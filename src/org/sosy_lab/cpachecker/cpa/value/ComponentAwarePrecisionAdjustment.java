@@ -34,7 +34,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -56,6 +55,9 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -80,12 +82,12 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
   private final ImmutableSet<CFANode> loopHeads;
 
   // statistics
-  final Timer totalEnforceAbstraction         = new Timer();
-  final Timer totalEnforcePathThreshold       = new Timer();
-  final Timer totalEnforceReachedSetThreshold = new Timer();
-  final Timer totalComposite                  = new Timer();
-  final Timer total                           = new Timer();
-  int abstractionComputations                           = 0;
+  final StatTimer total             = new StatTimer("Total time for precision adjustment");
+  final StatTimer totalComposite    = new StatTimer("Total time for composite");
+  final StatTimer totalEnforcePath  = new StatTimer("Total time for path threshold");
+  final StatTimer totalReachedSet   = new StatTimer("Total time for reached set threshold");
+  final StatTimer totalAbstraction  = new StatTimer("Total time for abstraction computation");
+  final StatCounter abstractions    = new StatCounter("Number of abstraction computations");
 
   private Statistics stats  = null;
   private boolean modified = false;
@@ -110,12 +112,15 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
     stats = new Statistics() {
       @Override
       public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-        pOut.println("Total time:                 " + ComponentAwarePrecisionAdjustment.this.total);
-        pOut.println("Total time for composite:   " + ComponentAwarePrecisionAdjustment.this.totalComposite);
-        pOut.println("Total time for abstraction: " + ComponentAwarePrecisionAdjustment.this.totalEnforceAbstraction);
-        pOut.println("Total time for reached set: " + ComponentAwarePrecisionAdjustment.this.totalEnforceReachedSetThreshold);
-        pOut.println("Total time for path:        " + ComponentAwarePrecisionAdjustment.this.totalEnforcePathThreshold);
-        pOut.println("Number of abstractions:     " + ComponentAwarePrecisionAdjustment.this.abstractionComputations);
+
+        StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
+        writer.put(total);
+        writer = writer.beginLevel();
+        writer.put(totalComposite);
+        writer.put(totalAbstraction);
+        writer.put(totalReachedSet);
+        writer.put(totalEnforcePath);
+        writer.put(abstractions);
       }
 
       @Override
@@ -162,20 +167,20 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
         // compute the abstraction based on the value-analysis precision, unless assignment information is available
         // then, this is dealt with during enforcement of the path thresholds, see below
         if(assigns == null) {
-          totalEnforceAbstraction.start();
+          totalAbstraction.start();
           valueAnalysisState = enforceAbstraction(valueAnalysisState, location, valueAnalysisPrecision);
-          totalEnforceAbstraction.stop();
+          totalAbstraction.stop();
         }
 
         // compute the abstraction for reached set thresholds
-        totalEnforceReachedSetThreshold.start();
+        totalReachedSet.start();
         valueAnalysisState = enforceReachedSetThreshold(valueAnalysisState, valueAnalysisPrecision, slice.getReached(location.getLocationNode()));
-        totalEnforceReachedSetThreshold.stop();
+        totalReachedSet.stop();
 
         // compute the abstraction for assignment thresholds
-        totalEnforcePathThreshold.start();
+        totalEnforcePath.start();
         Pair<ValueAnalysisState, ValueAnalysisPrecision> result = enforcePathThreshold(valueAnalysisState, valueAnalysisPrecision, assigns);
-        totalEnforcePathThreshold.stop();
+        totalEnforcePath.stop();
 
         outElements.add(result.getFirst());
         outPrecisions.add(result.getSecond());
@@ -228,7 +233,7 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
         || abstractAtLoopHead(location)) {
       state = precision.computeAbstraction(state, location.getLocationNode());
       state.clearDelta();
-      abstractionComputations++;
+      abstractions.inc();
     }
 
     return state;
