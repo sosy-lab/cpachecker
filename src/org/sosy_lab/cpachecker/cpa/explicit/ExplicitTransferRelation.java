@@ -767,9 +767,11 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       if ((binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && truthValue) || (binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS && !truthValue)) {
         if (leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp)) {
 
+          @SuppressWarnings("unused")
           String leftVariableName = getScopedVariableName(lVarInBinaryExp, functionName);
           //assignableState.assignConstant(leftVariableName, rightValue); TODO
         } else if (rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp)) {
+          @SuppressWarnings("unused")
           String rightVariableName = getScopedVariableName(rVarInBinaryExp, functionName);
           //assignableState.assignConstant(rightVariableName, leftValue); TODO
 
@@ -1314,21 +1316,21 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       }
     } else if (missingInformationRightJExpression != null) {
 
-      ExplicitValueBase value = null; // TODO handleMissingInformationRightJExpression(rttState);
-
-      if (value != null) {
-        newElement.assignConstant(missingInformationLeftJVariable, value);
-        missingInformationRightJExpression = null;
-        missingInformationLeftJVariable = null;
-        return Collections.singleton(newElement);
-      } else {
+      //ExplicitValueBase value = null; // TODO handleMissingInformationRightJExpression(rttState);
+      //
+      //if (value != null) {
+        //newElement.assignConstant(missingInformationLeftJVariable, value);
+        //missingInformationRightJExpression = null;
+        //missingInformationLeftJVariable = null;
+        //return Collections.singleton(newElement);
+      //} else {
         missingInformationRightJExpression = null;
         missingInformationLeftJVariable = null;
         if (missingInformationLeftJVariable != null) { // TODO why check this???
           newElement.forget(missingInformationLeftJVariable);
         }
         return Collections.singleton(newElement);
-      }
+      //}
     }
     return null;
   }
