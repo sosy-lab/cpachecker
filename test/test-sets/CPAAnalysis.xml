@@ -32,7 +32,7 @@
 
 <rundefinition name="ReachDef_ExplicitSEPJOIN">
 	<option name="-reachingdef-explicit"/>
-	<option name="-setprop">CompositeCPA.cpas = cpa.location.LocationCPA, cpa.reachdef.ReachingDefCPA, cpa.explicit.ExplicitCPA, cpa.conditions.global.GlobalConditionsCPA</option>
+	<option name="-setprop">CompositeCPA.cpas = cpa.location.LocationCPA, cpa.reachdef.ReachingDefCPA, cpa.value.ValueAnalysisCPA, cpa.conditions.global.GlobalConditionsCPA</option>
 	<option name="-setprop">cpa.explicit.merge=JOIN</option>
 	<option name="-setprop">cpa.reachdef.merge=SEP</option>
 		<sourcefiles name="BFS">

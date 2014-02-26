@@ -23,7 +23,7 @@
 
   <rundefinition name="abelf_explicit">
     <option name="-predicateAnalysis-PredAbsRefiner-ABElf"/>
-    <option name="-setprop">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.explicit.ExplicitCPA,cpa.predicate.PredicateCPA,cpa.conditions.global.GlobalConditionsCPA</option>
+    <option name="-setprop">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.value.ValueAnalysisCPA,cpa.predicate.PredicateCPA,cpa.conditions.global.GlobalConditionsCPA</option>
   </rundefinition>
 
 
@@ -35,7 +35,7 @@
   <rundefinition name="abelf_cbmc_explicit">
     <option name="-predicateAnalysis-PredAbsRefiner-ABElf"/>
     <option name="-cbmc"/>
-    <option name="-setprop">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.explicit.ExplicitCPA,cpa.predicate.PredicateCPA,cpa.conditions.global.GlobalConditionsCPA</option>
+    <option name="-setprop">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.value.ValueAnalysisCPA,cpa.predicate.PredicateCPA,cpa.conditions.global.GlobalConditionsCPA</option>
   </rundefinition>
 
 
@@ -45,7 +45,7 @@
 
   <rundefinition name="explicit_thres13">
     <option name="-explicitAnalysis"/>
-    <option name="-setprop">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.explicit.ExplicitCPA,cpa.conditions.global.GlobalConditionsCPA,cpa.conditions.path.PathConditionsCPA</option>
+    <option name="-setprop">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.value.ValueAnalysisCPA,cpa.conditions.global.GlobalConditionsCPA,cpa.conditions.path.PathConditionsCPA</option>
     <option name="-setprop">cpa.conditions.path.condition=AssignmentsInPathCondition</option>
     <option name="-setprop">cpa.explicit.precision.path.defaultThreshold=13</option>
   </rundefinition>
