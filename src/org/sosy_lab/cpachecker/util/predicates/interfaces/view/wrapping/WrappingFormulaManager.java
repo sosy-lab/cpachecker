@@ -50,8 +50,9 @@ public class WrappingFormulaManager extends FormulaManagerView {
       }
 
       @Override
-      public NumeralFormulaManagerView wrapManager(NumeralFormulaManager pManager) {
-        return new WrappingNumeralFormulaManagerView(pManager);
+      public <P extends NumeralFormula, R extends NumeralFormula>
+              NumeralFormulaManagerView<P,R> wrapManager(NumeralFormulaManager<P,R> pManager) {
+        return new WrappingNumeralFormulaManagerView<>(pManager);
       }
 
       @Override

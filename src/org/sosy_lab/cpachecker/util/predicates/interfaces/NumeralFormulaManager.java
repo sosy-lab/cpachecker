@@ -45,7 +45,7 @@ public interface NumeralFormulaManager
   // ----------------- Arithmetic relations, return type NumeralFormula -----------------
 
   public ResultFormulaType negate(ParamFormulaType number);
-  public boolean isNegate(NumeralFormula number);
+  public boolean isNegate(ParamFormulaType number);
 
   public ResultFormulaType add(ParamFormulaType number1, ParamFormulaType number2);
   public boolean isAdd(ParamFormulaType number);
@@ -56,8 +56,8 @@ public interface NumeralFormulaManager
   public ResultFormulaType divide(ParamFormulaType number1, ParamFormulaType number2);
   public boolean isDivide(ParamFormulaType number);
 
-  public ResultFormulaType modulo(NumeralFormula number1, ParamFormulaType number2);
-  public boolean isModulo(NumeralFormula number);
+  public ResultFormulaType modulo(ParamFormulaType number1, ParamFormulaType number2);
+  public boolean isModulo(ParamFormulaType number);
 
   public ResultFormulaType multiply(ParamFormulaType number1, ParamFormulaType number2);
   public boolean isMultiply(ParamFormulaType number);

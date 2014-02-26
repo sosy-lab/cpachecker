@@ -38,7 +38,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 
-public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> implements BooleanFormulaManager {
+public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula, BooleanFormula> implements BooleanFormulaManager {
 
   private BooleanFormulaManager manager;
 

@@ -32,12 +32,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 
 
 public class NumeralFormulaManagerView
-        extends BaseManagerView<NumeralFormula>
-        implements NumeralFormulaManager {
+        <ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
+        extends BaseManagerView<ParamFormulaType, ResultFormulaType>
+        implements NumeralFormulaManager<ParamFormulaType, ResultFormulaType> {
 
-  private NumeralFormulaManager manager;
+  private NumeralFormulaManager<ParamFormulaType, ResultFormulaType> manager;
 
-  public NumeralFormulaManagerView(NumeralFormulaManager pManager) {
+  public NumeralFormulaManagerView(NumeralFormulaManager<ParamFormulaType, ResultFormulaType> pManager) {
     this.manager = pManager;
   }
 
@@ -50,79 +51,79 @@ public class NumeralFormulaManagerView
   }
 
   @Override
-  public NumeralFormula negate(NumeralFormula pNumber) {
+  public ResultFormulaType negate(ParamFormulaType pNumber) {
     return wrapInView(manager.negate(extractFromView(pNumber)));
   }
 
   @Override
-  public NumeralFormula add(NumeralFormula pNumber1, NumeralFormula pNumbe2) {
+  public ResultFormulaType add(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
     return wrapInView(manager.add(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
-  public NumeralFormula subtract(NumeralFormula pNumber1, NumeralFormula pNumbe2) {
+  public ResultFormulaType subtract(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
     return wrapInView(manager.subtract(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
-  public NumeralFormula divide(NumeralFormula pNumber1, NumeralFormula pNumbe2) {
+  public ResultFormulaType divide(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
     return wrapInView(manager.divide(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
-  public NumeralFormula modulo(NumeralFormula pNumber1, NumeralFormula pNumbe2) {
+  public ResultFormulaType modulo(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
     return wrapInView(manager.modulo(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
-  public NumeralFormula multiply(NumeralFormula pNumber1, NumeralFormula pNumbe2) {
+  public ResultFormulaType multiply(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
     return wrapInView(manager.multiply(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
-  public BooleanFormula equal(NumeralFormula pNumber1, NumeralFormula pNumbe2) {
+  public BooleanFormula equal(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
     return wrapInView(manager.equal(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
-  public BooleanFormula greaterThan(NumeralFormula pNumber1, NumeralFormula pNumbe2) {
+  public BooleanFormula greaterThan(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
     return wrapInView(manager.greaterThan(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
-  public BooleanFormula greaterOrEquals(NumeralFormula pNumber1, NumeralFormula pNumbe2) {
+  public BooleanFormula greaterOrEquals(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
     return wrapInView(manager.greaterOrEquals(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
-  public BooleanFormula lessThan(NumeralFormula pNumber1, NumeralFormula pNumbe2) {
+  public BooleanFormula lessThan(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
     return wrapInView(manager.lessThan(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
-  public BooleanFormula lessOrEquals(NumeralFormula pNumber1, NumeralFormula pNumbe2) {
+  public BooleanFormula lessOrEquals(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
     return wrapInView(manager.lessOrEquals(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
 
 
   @Override
-  public boolean isNegate(NumeralFormula pNumber) {
+  public boolean isNegate(ParamFormulaType pNumber) {
     return manager.isNegate(extractFromView(pNumber));
   }
 
   @Override
-  public boolean isAdd(NumeralFormula pNumber) {
+  public boolean isAdd(ParamFormulaType pNumber) {
     return manager.isAdd(extractFromView(pNumber));
   }
 
   @Override
-  public boolean isSubtract(NumeralFormula pNumber) {
+  public boolean isSubtract(ParamFormulaType pNumber) {
     return manager.isSubtract(extractFromView(pNumber));
   }
 
   @Override
-  public boolean isDivide(NumeralFormula pNumber) {
+  public boolean isDivide(ParamFormulaType pNumber) {
     return manager.isDivide(extractFromView(pNumber));
   }
 
   @Override
-  public boolean isModulo(NumeralFormula pNumber) {
+  public boolean isModulo(ParamFormulaType pNumber) {
     return manager.isModulo(extractFromView(pNumber));
   }
 
   @Override
-  public boolean isMultiply(NumeralFormula pNumber) {
+  public boolean isMultiply(ParamFormulaType pNumber) {
     return manager.isMultiply(extractFromView(pNumber));
   }
 
@@ -154,27 +155,27 @@ public class NumeralFormulaManagerView
   }
 
   @Override
-  public NumeralFormula makeNumber(long pI) {
+  public ResultFormulaType makeNumber(long pI) {
     return wrapInView(manager.makeNumber(pI));
   }
 
   @Override
-  public NumeralFormula makeNumber(BigInteger pI) {
+  public ResultFormulaType makeNumber(BigInteger pI) {
     return wrapInView(manager.makeNumber(pI));
   }
 
   @Override
-  public NumeralFormula makeNumber(String pI) {
+  public ResultFormulaType makeNumber(String pI) {
     return wrapInView(manager.makeNumber(pI));
   }
 
   @Override
-  public NumeralFormula makeVariable(String pVar) {
+  public ResultFormulaType makeVariable(String pVar) {
     return wrapInView(manager.makeVariable(pVar));
   }
 
   @Override
-  public FormulaType<NumeralFormula> getFormulaType() {
+  public FormulaType<? extends NumeralFormula> getFormulaType() {
     return manager.getFormulaType();
   }
 

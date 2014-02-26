@@ -53,6 +53,7 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing.ReplacingFormulaManager;
@@ -63,7 +64,8 @@ public class FormulaManagerView {
 
   public interface LoadManagers {
     public BooleanFormulaManagerView wrapManager(BooleanFormulaManager manager);
-    public NumeralFormulaManagerView wrapManager(NumeralFormulaManager manager);
+    public <P extends NumeralFormula, R  extends NumeralFormula>
+            NumeralFormulaManagerView<P, R> wrapManager(NumeralFormulaManager<P, R> manager);
     public BitvectorFormulaManagerView wrapManager(BitvectorFormulaManager manager);
     public FunctionFormulaManagerView wrapManager(FunctionFormulaManager pManager);
   }
@@ -76,8 +78,9 @@ public class FormulaManagerView {
         }
 
         @Override
-        public NumeralFormulaManagerView wrapManager(NumeralFormulaManager pManager) {
-          return new NumeralFormulaManagerView(pManager);
+        public <PF extends NumeralFormula, RF  extends NumeralFormula>
+                NumeralFormulaManagerView<PF, RF> wrapManager(NumeralFormulaManager<PF, RF> pManager) {
+          return new NumeralFormulaManagerView<>(pManager);
         }
 
         @Override
@@ -92,7 +95,7 @@ public class FormulaManagerView {
       };
 
   private BitvectorFormulaManagerView bitvectorFormulaManager;
-  private NumeralFormulaManagerView rationalFormulaManager;
+  private NumeralFormulaManagerView<NumeralFormula, RationalFormula> rationalFormulaManager;
   private BooleanFormulaManagerView booleanFormulaManager;
 
   private FormulaManager manager;
@@ -624,7 +627,7 @@ public class FormulaManagerView {
     return makeVariable(formulaType, makeName(name, idx));
   }
 
-  public NumeralFormulaManagerView getRationalFormulaManager() {
+  public NumeralFormulaManagerView<NumeralFormula, RationalFormula> getRationalFormulaManager() {
     return rationalFormulaManager;
   }
 
@@ -656,7 +659,7 @@ public class FormulaManagerView {
       return (T) booleanFormulaManager.wrapInView((BooleanFormula) formula);
     }
     if (NumeralFormula.class == (formulaType)) {
-      return (T) rationalFormulaManager.wrapInView((NumeralFormula) formula);
+      return (T) rationalFormulaManager.wrapInView((RationalFormula) formula);
     }
     if (BitvectorFormula.class == (formulaType)) {
       return (T) bitvectorFormulaManager.wrapInView((BitvectorFormula) formula);

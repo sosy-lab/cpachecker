@@ -27,13 +27,22 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 
 
-public class NumeralFormulaView extends FormulaView<NumeralFormula> implements NumeralFormula {
+public abstract class NumeralFormulaView<T extends NumeralFormula> extends FormulaView<T> implements NumeralFormula {
 
-  //private NumericFormulaManagerView manager;
-
-  public NumeralFormulaView(NumeralFormula pWrapped, NumeralFormulaManagerView pView) {
+  private NumeralFormulaView(T pWrapped, NumeralFormulaManagerView pView) {
     super(pWrapped, pView.getViewManager());
-    //this.manager = pView;
+  }
+
+  public static class IntegerFormulaView extends NumeralFormulaView<IntegerFormula> implements IntegerFormula {
+    public IntegerFormulaView(IntegerFormula pWrapped, NumeralFormulaManagerView pView) {
+      super(pWrapped, pView);
+    }
+  }
+
+  public static class RationalFormulaView extends NumeralFormulaView<RationalFormula> implements RationalFormula {
+    public RationalFormulaView(RationalFormula pWrapped, NumeralFormulaManagerView pView) {
+      super(pWrapped, pView);
+    }
   }
 
 }
