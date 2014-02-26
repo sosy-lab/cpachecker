@@ -1031,28 +1031,62 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     throws CPATransferException {
     assert element instanceof ExplicitState;
 
-    super.setInfo(element, precision, cfaEdge);
+    ArrayList<ExplicitState> toStrengthen = new ArrayList<>();
+    ArrayList<ExplicitState> result = new ArrayList<>();
+    toStrengthen.add((ExplicitState) element);
+    result.add((ExplicitState) element);
 
-    Collection<? extends AbstractState> retVal = null;
-
+    //
     for (AbstractState ae : elements) {
       if (ae instanceof RTTState) {
-        retVal =  strengthen((RTTState)ae);
-        break;
+        result.clear();
+        for(ExplicitState state : toStrengthen) {
+          super.setInfo(element, precision, cfaEdge);
+          Collection<ExplicitState> ret = strengthen((RTTState)ae);
+          if(ret == null) {
+            result.add(state);
+          } else {
+            result.addAll(ret);
+          }
+        }
+        toStrengthen.clear();
+        toStrengthen.addAll(result);
       } else if(ae instanceof SMGState) {
-        retVal = strengthen((SMGState) ae);
+        result.clear();
+        for(ExplicitState state : toStrengthen) {
+          super.setInfo(element, precision, cfaEdge);
+          Collection<ExplicitState> ret = strengthen((SMGState)ae);
+          if(ret == null) {
+            result.add(state);
+          } else {
+            result.addAll(ret);
+          }
+        }
+        toStrengthen.clear();
+        toStrengthen.addAll(result);
       } else if(ae instanceof AutomatonState) {
-        retVal = strengthen((AutomatonState) ae, cfaEdge);
+        result.clear();
+        for(ExplicitState state : toStrengthen) {
+          super.setInfo(element, precision, cfaEdge);
+          Collection<ExplicitState> ret = strengthen((AutomatonState)ae, cfaEdge);
+          if(ret == null) {
+            result.add(state);
+          } else {
+            result.addAll(ret);
+          }
+        }
+        toStrengthen.clear();
+        toStrengthen.addAll(result);
       }
     }
 
     super.resetInfo();
     oldState = null;
 
-    return retVal;
+    return result;
   }
 
-  private Collection<? extends AbstractState> strengthen(AutomatonState pAutomatonState, CFAEdge pCfaEdge) throws CPATransferException {
+  private Collection<ExplicitState> strengthen(AutomatonState pAutomatonState, CFAEdge pCfaEdge) throws CPATransferException {
 
     CIdExpression retVarName = new CIdExpression(null, new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false), "___cpa_temp_result_var_", null);
 
@@ -1078,7 +1112,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
   }
 
-  private Collection<? extends AbstractState> strengthen(SMGState smgState) throws UnrecognizedCCodeException {
+  private Collection<ExplicitState> strengthen(SMGState smgState) throws UnrecognizedCCodeException {
 
     ExplicitState newElement = state.clone();
 
@@ -1272,7 +1306,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
   }
 
-  private Collection<? extends AbstractState> strengthen(RTTState rttState)
+  private Collection<ExplicitState> strengthen(RTTState rttState)
       throws UnrecognizedCCodeException {
 
     ExplicitState newElement = state.clone();
