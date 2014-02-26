@@ -97,26 +97,6 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
     return assignmentHandler.handleAssignment(e.getLeftHandSide(), e.getRightHandSide(), false, null);
   }
 
-  public BooleanFormula visitAssume(final CExpression e, final boolean truthAssumtion)
-  throws UnrecognizedCCodeException {
-    final CType expressionType = CTypeUtils.simplifyType(e.getExpressionType());
-    BooleanFormula result = conv.toBooleanFormula(asValueFormula(e.accept(this),
-                                                                 expressionType));
-
-    if (conv.options.deferUntypedAllocations()) {
-      DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions);
-      memoryHandler.handleDeferredAllocationsInAssume(e, getUsedDeferredAllocationPointers());
-    }
-
-    if (!truthAssumtion) {
-      result = conv.bfmgr.not(result);
-    }
-
-    pts.addEssentialFields(getInitializedFields());
-    pts.addEssentialFields(getUsedFields());
-    return result;
-  }
-
   @Override
   public Value visit(final CFunctionCallExpression e) throws UnrecognizedCCodeException {
     final CExpression functionNameExpression = e.getFunctionNameExpression();
@@ -128,7 +108,7 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
     if (functionNameExpression instanceof CIdExpression) {
       functionName = ((CIdExpression) functionNameExpression).getName();
       if (functionName.equals(CToFormulaWithUFConverter.ASSUME_FUNCTION_NAME) && parameters.size() == 1) {
-        final BooleanFormula condition = visitAssume(parameters.get(0), true);
+        final BooleanFormula condition = conv.makePredicate(parameters.get(0), true, edge, function, ssa, pts, constraints, errorConditions);
         constraints.addConstraint(condition);
         return Value.ofValue(conv.makeFreshVariable(functionName, returnType, ssa));
 

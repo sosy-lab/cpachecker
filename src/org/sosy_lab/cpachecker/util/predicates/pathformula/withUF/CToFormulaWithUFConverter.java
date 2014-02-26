@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
@@ -652,14 +651,28 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   @Override
-  protected BooleanFormula makeAssume(
-      final CAssumeEdge assume, final String function,
+  protected BooleanFormula makePredicate(final CExpression e, final boolean truthAssumtion,
+      final CFAEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
-          throws CPATransferException {
+          throws UnrecognizedCCodeException {
+    final CType expressionType = CTypeUtils.simplifyType(e.getExpressionType());
+    ExpressionToFormulaWithUFVisitor ev = new ExpressionToFormulaWithUFVisitor(this, edge, function, ssa, constraints, errorConditions, pts);
+    BooleanFormula result = toBooleanFormula(ev.asValueFormula(e.accept(ev),
+                                                                 expressionType));
 
-    final StatementToFormulaWithUFVisitor statementVisitor = getStatementToFormulaWithUFVisitor(assume, function, ssa, constraints, errorConditions, pts);
-    return statementVisitor.visitAssume(assume.getExpression(), assume.getTruthAssumption());
+    if (options.deferUntypedAllocations()) {
+      DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(this, edge, ssa, pts, constraints, errorConditions);
+      memoryHandler.handleDeferredAllocationsInAssume(e, ev.getUsedDeferredAllocationPointers());
+    }
+
+    if (!truthAssumtion) {
+      result = bfmgr.not(result);
+    }
+
+    pts.addEssentialFields(ev.getInitializedFields());
+    pts.addEssentialFields(ev.getUsedFields());
+    return result;
   }
 
   @Override
