@@ -1,6 +1,6 @@
-OBSERVER AUTOMATON ExcplicitAnalysisObservingAutomaton
+OBSERVER AUTOMATON ValueAnalysisObservingAutomaton
 // This Automaton is meant to work on the file "ex2.cil.c"
-// it requires the LocationAnalysis and the ExplicitAnalysis
+// it requires the LocationAnalysis and the ValueAnalysis
 
 /* This Automaton basically prints what the explicit analysis has on variable st after st-assigning edges thinks it is in. */
 
@@ -8,7 +8,7 @@ LOCAL int x;
 INITIAL STATE Init;
 
 STATE USEFIRST Init :
-  MATCH {st = $2; } && CHECK(ExplicitAnalysis, "main::st==$2") ->
+  MATCH {st = $2; } && CHECK(ValueAnalysis, "main::st==$2") ->
   DO x=$2
   PRINT "st==" PRINT x PRINT " after Edge $RawStatement in line $line" GOTO Init;
 
