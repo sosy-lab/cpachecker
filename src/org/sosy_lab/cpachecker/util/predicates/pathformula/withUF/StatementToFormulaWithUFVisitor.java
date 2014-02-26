@@ -109,9 +109,18 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
   }
 
   BooleanFormula handleAssignment(final CLeftHandSide lhs,
+      final @Nullable CRightHandSide rhs,
+      final boolean batchMode,
+      final @Nullable Set<CType> destroyedTypes) throws UnrecognizedCCodeException {
+    AssignmentHandler assignmentHandler = new AssignmentHandler(conv, edge, function, ssa, pts, constraints, errorConditions);
+    return handleAssignment(lhs, rhs, batchMode, destroyedTypes, assignmentHandler);
+  }
+
+  private BooleanFormula handleAssignment(final CLeftHandSide lhs,
                                   final @Nullable CRightHandSide rhs,
                                   final boolean batchMode,
-                                  final @Nullable Set<CType> destroyedTypes)
+                                  final @Nullable Set<CType> destroyedTypes,
+                                  final AssignmentHandler assignmentHandler)
   throws UnrecognizedCCodeException {
     if (!conv.isRelevantLeftHandSide(lhs)) {
       // Optimization for unused variables and fields
@@ -159,18 +168,13 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
     }
 
     final BooleanFormula result =
-      conv.makeAssignment(lhsType,
+        assignmentHandler.makeAssignment(lhsType,
                           rhsType,
                           lhsLocation,
                           rhsExpression,
                           pattern,
                           batchMode,
-                          destroyedTypes,
-                          edge,
-                          ssa,
-                          constraints,
-                          errorConditions,
-                          pts);
+                          destroyedTypes);
 
     pts.addEssentialFields(lhsUsedFields);
     pts.addEssentialFields(rhsUsedFields);
@@ -187,19 +191,20 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
     final Location lhsLocation = variable.accept(this).asLocation();
     final Set<CType> updatedTypes = new HashSet<>();
     BooleanFormula result = conv.bfmgr.makeBoolean(true);
+    AssignmentHandler assignmentHandler = new AssignmentHandler(conv, edge, function, ssa, pts, constraints, errorConditions);
     for (CExpressionAssignmentStatement assignment : assignments) {
       final CLeftHandSide lhs = assignment.getLeftHandSide();
       result = conv.bfmgr.and(result, handleAssignment(lhs,
                                                        assignment.getRightHandSide(),
                                                        lhsLocation.isAliased(), // Defer index update for UFs, but not for variables
-                                                       updatedTypes));
+                                                       updatedTypes,
+                                                       assignmentHandler));
     }
     if (lhsLocation.isAliased()) {
-      conv.finishAssignments(CTypeUtils.simplifyType(variable.getExpressionType()),
+      assignmentHandler.finishAssignments(CTypeUtils.simplifyType(variable.getExpressionType()),
                              lhsLocation.asAliased(),
                              variable.accept(lvalueVisitor),
-                             updatedTypes,
-                             edge, ssa, constraints, pts);
+                             updatedTypes);
     }
     return result;
   }

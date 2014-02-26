@@ -286,19 +286,15 @@ class DynamicMemoryHandler {
     final CType baseType = CTypeUtils.getBaseType(type);
     final Formula result = conv.makeConstant(PointerTargetSet.getBaseName(base), baseType);
     if (isZeroing) {
-      final BooleanFormula initialization = conv.makeAssignment(
+      AssignmentHandler assignmentHandler = new AssignmentHandler(conv, edge, base, ssa, pts, constraints, errorConditions);
+      final BooleanFormula initialization = assignmentHandler.makeAssignment(
         type,
         CNumericTypes.SIGNED_CHAR,
         AliasedLocation.ofAddress(result),
         Value.ofValue(conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(CNumericTypes.SIGNED_CHAR), 0)),
         new PointerTargetPattern(base, 0, 0),
         true,
-        null,
-        edge,
-        ssa,
-        constraints,
-        errorConditions,
-        pts);
+        null);
       constraints.addConstraint(initialization);
     }
     conv.addPreFilledBase(base, type, false, isZeroing, constraints, pts);
