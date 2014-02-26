@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.StatementToFormulaVisitor;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -248,8 +247,8 @@ public final class CInitializers {
    * Prior to that, both stacks are reset.
    * @param designators A list of designators (e.g. ".f[2][1-4].t")
    * @param currentObject the "current object" with which this whole chain of initializers is associated
-   * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge, StatementToFormulaVisitor)}
-   * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge, StatementToFormulaVisitor)}
+   * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
+   * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
    */
   private static void findDesignatedSubobject(final List<CDesignator> designators,
       final CExpression currentObject,
@@ -325,8 +324,8 @@ public final class CInitializers {
    * This method only pushes objects on the two stacks until their position is correct.
    *
    * @param targetType The type to search.
-   * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge, StatementToFormulaVisitor)}
-   * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge, StatementToFormulaVisitor)}
+   * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
+   * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
    * @param loc
    * @param edge
    * @throws UnrecognizedCCodeException
@@ -375,8 +374,8 @@ public final class CInitializers {
    * @param currentSubobject The struct/union to be initialized
    * @param startingFieldName The optional field name to look for
    * @param structType The type of currentSubobject
-   * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge, StatementToFormulaVisitor)}
-   * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge, StatementToFormulaVisitor)}
+   * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
+   * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
    */
   private static boolean handleInitializerForCompositeType(final CExpression currentSubobject,
       final Optional<String> startingFieldName, final CCompositeType structType,
@@ -445,8 +444,8 @@ public final class CInitializers {
    * @param currentSubobject The struct/union to be initialized
    * @param startIndex The index of the first element to be initialized
    * @param arrayType The type of currentSubobject
-   * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge, StatementToFormulaVisitor)}
-   * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge, StatementToFormulaVisitor)}
+   * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
+   * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
    */
   private static boolean handleInitializerForArray(final CExpression currentSubobject,
       final long startIndex, final CArrayType arrayType,
