@@ -515,7 +515,6 @@ public class SMGExpressionEvaluator {
       case TILDE:
       default:
         // Can't evaluate these Addresses
-        // TODO we can, when the pointer points to the Null Object
         return SMGUnknownValue.getInstance();
       }
     }
@@ -626,8 +625,10 @@ public class SMGExpressionEvaluator {
         pointerOffset = lVarInBinaryExp;
         addressType = (CPointerType) rVarInBinaryExpType;
       } else {
-        // TODO throw Exception, no Pointer
-        return SMGUnknownValue.getInstance();
+        throw new UnrecognizedCCodeException("Expected either "
+      + lVarInBinaryExp.toASTString() + " or "
+      + rVarInBinaryExp.toASTString() +
+      "to be a pointer.", binaryExp);
       }
 
       CType typeOfPointer = addressType.getType().getCanonicalType();
@@ -689,8 +690,8 @@ public class SMGExpressionEvaluator {
         if (lVarIsAddress) {
           return createAddress(smgState, target, addressOffset.subtract(pointerOffsetValue));
         } else {
-          // TODO throw Exception, is invalid expression
-          return SMGUnknownValue.getInstance();
+          throw new UnrecognizedCCodeException("Expected pointer arithmetic "
+              + " with + or - but found " + binaryExp.toASTString(), binaryExp);
         }
       default:
         throw new AssertionError();
@@ -884,8 +885,10 @@ public class SMGExpressionEvaluator {
         arrayOffset = lVarInBinaryExp;
         addressType = rVarInBinaryExpType;
       } else {
-        // TODO throw Exception, no Pointer
-        return SMGAddress.UNKNOWN;
+        throw new UnrecognizedCCodeException("Expected either "
+      + lVarInBinaryExp.toASTString() + " or "
+      + rVarInBinaryExp.toASTString() +
+      "to be a pointer to an array.", binaryExp);
       }
 
       // a = &a[0]
