@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -59,12 +61,7 @@ public abstract class FormulaType<T extends Formula> {
   @Override
   public abstract String toString();
 
-  public abstract static class NumeralType extends FormulaType<NumeralFormula> {
-
-    @Override
-    public Class<NumeralFormula> getInterfaceType() {
-      return NumeralFormula.class;
-    }
+  public abstract static class NumeralType<T extends NumeralFormula> extends FormulaType<T> {
 
     @Override
     public final boolean isNumeralType() {
@@ -72,7 +69,12 @@ public abstract class FormulaType<T extends Formula> {
     }
   }
 
-  public static final FormulaType<NumeralFormula> RationalType = new NumeralType() {
+  public static final FormulaType<? extends NumeralFormula> RationalType = new NumeralType<RationalFormula>() {
+
+    @Override
+    public Class<RationalFormula> getInterfaceType() {
+      return RationalFormula.class;
+    }
 
     @Override
     public boolean isRationalType() {
@@ -85,7 +87,12 @@ public abstract class FormulaType<T extends Formula> {
     }
   };
 
-  public static final FormulaType<NumeralFormula> IntegerType = new NumeralType() {
+  public static final FormulaType<? extends NumeralFormula> IntegerType = new NumeralType<IntegerFormula>() {
+
+    @Override
+    public Class<IntegerFormula> getInterfaceType() {
+      return IntegerFormula.class;
+    }
 
     @Override
     public boolean isIntegerType() {

@@ -32,13 +32,18 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
  * providing a NumericBaseFormulaManager<TFormulaInfo,TFormulaInfo> and implementing 3 methods.
  * @param <TFormulaInfo> the Solver specific type.
  */
-public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
+public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
+        ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
   extends AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv>
-  implements NumeralFormulaManager {
+  implements NumeralFormulaManager<ParamFormulaType, ResultFormulaType> {
+
+  // it is not possible to get a Class from Generics,so we need this field.
+  private final Class<ResultFormulaType> formulaType;
 
   protected AbstractNumeralFormulaManager(
-      AbstractFormulaCreator<TFormulaInfo, TType, TEnv> pCreator) {
+      AbstractFormulaCreator<TFormulaInfo, TType, TEnv> pCreator, Class<ResultFormulaType> pType) {
     super(pCreator);
+    formulaType = pType;
   }
 
 
@@ -46,8 +51,8 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
     return getFormulaCreator().extractInfo(pNumber);
   }
 
-  protected NumeralFormula wrap(TFormulaInfo pTerm) {
-    return getFormulaCreator().encapsulate(NumeralFormula.class, pTerm);
+  protected ResultFormulaType wrap(TFormulaInfo pTerm) {
+    return getFormulaCreator().encapsulate(formulaType, pTerm);
   }
 
   protected BooleanFormula wrapBool(TFormulaInfo pTerm) {
@@ -55,31 +60,31 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
   }
 
   @Override
-  public NumeralFormula makeNumber(long i) {
+  public ResultFormulaType makeNumber(long i) {
     return wrap(makeNumberImpl(i));
   }
   protected abstract TFormulaInfo makeNumberImpl(long i);
 
   @Override
-  public NumeralFormula makeNumber(BigInteger i) {
+  public ResultFormulaType makeNumber(BigInteger i) {
     return wrap(makeNumberImpl(i));
   }
   protected abstract TFormulaInfo makeNumberImpl(BigInteger i);
 
   @Override
-  public NumeralFormula makeNumber(String i) {
+  public ResultFormulaType makeNumber(String i) {
     return wrap(makeNumberImpl(i));
   }
   protected abstract TFormulaInfo makeNumberImpl(String i);
 
   @Override
-  public NumeralFormula makeVariable(String pVar) {
+  public ResultFormulaType makeVariable(String pVar) {
     return wrap(makeVariableImpl(pVar));
   }
   protected abstract TFormulaInfo makeVariableImpl(String i);
 
   @Override
-  public NumeralFormula negate(NumeralFormula pNumber) {
+  public ResultFormulaType negate(NumeralFormula pNumber) {
     TFormulaInfo param1 = extractInfo(pNumber);
     return wrap(negate(param1));
   }
@@ -90,7 +95,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
 
 
   @Override
-  public NumeralFormula add(NumeralFormula pNumber1, NumeralFormula pNumber2) {
+  public ResultFormulaType add(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
@@ -100,7 +105,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
   protected abstract TFormulaInfo add(TFormulaInfo pParam1, TFormulaInfo pParam2);
 
   @Override
-  public NumeralFormula subtract(NumeralFormula pNumber1, NumeralFormula pNumber2) {
+  public ResultFormulaType subtract(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
@@ -111,7 +116,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
 
 
   @Override
-  public NumeralFormula divide(NumeralFormula pNumber1, NumeralFormula pNumber2) {
+  public ResultFormulaType divide(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
@@ -122,7 +127,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
 
 
   @Override
-  public NumeralFormula modulo(NumeralFormula pNumber1, NumeralFormula pNumber2) {
+  public ResultFormulaType modulo(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
@@ -133,7 +138,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
 
 
   @Override
-  public NumeralFormula multiply(NumeralFormula pNumber1, NumeralFormula pNumber2) {
+  public ResultFormulaType multiply(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 

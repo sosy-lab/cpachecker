@@ -89,7 +89,7 @@ public class ToRationalFormulaVisitor implements ToFormulaVisitor<CompoundInterv
       ToFormulaVisitor<CompoundInterval, BooleanFormula> pToBooleanFormulaVisitor,
       FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
     this.bfmgr = pFmgr.getBooleanFormulaManager();
-    this.rfmgr = pFmgr.getNumeralFormulaManager();
+    this.rfmgr = pFmgr.getRationalFormulaManager();
     this.zero = this.rfmgr.makeNumber(0);
     this.one = this.rfmgr.makeNumber(1);
     this.toBooleanFormulaVisitor = pToBooleanFormulaVisitor;

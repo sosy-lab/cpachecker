@@ -38,20 +38,24 @@ import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
-abstract class Z3NumeralFormulaManager extends AbstractNumeralFormulaManager<Long, Long, Long> {
+abstract class Z3NumeralFormulaManager
+        <ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
+        extends AbstractNumeralFormulaManager<Long, Long, Long, ParamFormulaType, ResultFormulaType> {
 
   private final long z3context;
-  private final Z3FunctionType<NumeralFormula> multUfDecl;
-  private final Z3FunctionType<NumeralFormula> divUfDecl;
-  private final Z3FunctionType<NumeralFormula> modUfDecl;
+  private final Z3FunctionType<? extends NumeralFormula> multUfDecl;
+  private final Z3FunctionType<? extends NumeralFormula> divUfDecl;
+  private final Z3FunctionType<? extends NumeralFormula> modUfDecl;
   private final Z3FunctionFormulaManager functionManager;
 
   public Z3NumeralFormulaManager(
           Z3FormulaCreator pCreator,
-          Z3FunctionFormulaManager functionManager) {
-    super(pCreator);
+          Z3FunctionFormulaManager functionManager,
+          final Class<ResultFormulaType> pFormulaType) {
+    super(pCreator, pFormulaType);
+
     this.z3context = pCreator.getEnv();
-    FormulaType<NumeralFormula> formulaType = getFormulaType();
+    FormulaType<? extends NumeralFormula> formulaType = getFormulaType();
     this.functionManager = functionManager;
     multUfDecl = functionManager.createFunction(MultUfName, formulaType, formulaType, formulaType);
     divUfDecl = functionManager.createFunction(DivUfName, formulaType, formulaType, formulaType);
@@ -83,11 +87,11 @@ abstract class Z3NumeralFormulaManager extends AbstractNumeralFormulaManager<Lon
     return getFormulaCreator().makeVariable(type, varName);
   }
 
-  private Long makeUf(FunctionFormulaType<NumeralFormula> decl, Long t1, Long t2) {
+  private Long makeUf(FunctionFormulaType<? extends NumeralFormula> decl, Long t1, Long t2) {
     return functionManager.createUninterpretedFunctionCallImpl(decl, ImmutableList.of(t1, t2));
   }
 
-  private boolean isUf(Z3FunctionType<NumeralFormula> funcDecl, Long pBits) {
+  private boolean isUf(Z3FunctionType<? extends NumeralFormula> funcDecl, Long pBits) {
     return functionManager.isUninterpretedFunctionCall(funcDecl, pBits);
   }
 

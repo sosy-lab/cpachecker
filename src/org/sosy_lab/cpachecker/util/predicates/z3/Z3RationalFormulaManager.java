@@ -25,17 +25,18 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
-public class Z3RationalFormulaManager extends Z3NumeralFormulaManager {
+public class Z3RationalFormulaManager extends Z3NumeralFormulaManager<NumeralFormula, RationalFormula> {
 
   public Z3RationalFormulaManager(
           Z3FormulaCreator pCreator,
           Z3FunctionFormulaManager pFunctionManager) {
-    super(pCreator, pFunctionManager);
+    super(pCreator, pFunctionManager, RationalFormula.class);
   }
 
   @Override
-  public FormulaType<NumeralFormula> getFormulaType() {
+  public FormulaType<? extends NumeralFormula> getFormulaType() {
     return FormulaType.RationalType;
   }
 

@@ -37,22 +37,25 @@ import com.google.common.collect.ImmutableList;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 
-abstract class SmtInterpolNumeralFormulaManager extends AbstractNumeralFormulaManager<Term, Sort, SmtInterpolEnvironment> {
+abstract class SmtInterpolNumeralFormulaManager
+        <ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
+        extends AbstractNumeralFormulaManager<Term, Sort, SmtInterpolEnvironment, ParamFormulaType, ResultFormulaType> {
 
   private final SmtInterpolEnvironment env;
-  private final SmtInterpolFunctionType multUfDecl;
-  private final SmtInterpolFunctionType divUfDecl;
-  private final SmtInterpolFunctionType modUfDecl;
+  private final SmtInterpolFunctionType<? extends NumeralFormula> multUfDecl;
+  private final SmtInterpolFunctionType<? extends NumeralFormula> divUfDecl;
+  private final SmtInterpolFunctionType<? extends NumeralFormula> modUfDecl;
   private final SmtInterpolFunctionFormulaManager functionManager;
 
   SmtInterpolNumeralFormulaManager(
           SmtInterpolFormulaCreator pCreator,
-          SmtInterpolFunctionFormulaManager pFunctionManager) {
-    super(pCreator);
+          SmtInterpolFunctionFormulaManager pFunctionManager,
+          final Class<ResultFormulaType> pFormulaType) {
+    super(pCreator, pFormulaType);
     env = pCreator.getEnv();
     functionManager = pFunctionManager;
 
-    FormulaType<NumeralFormula> formulaType = getFormulaType();
+    FormulaType<? extends NumeralFormula> formulaType = getFormulaType();
     multUfDecl = functionManager.createFunction(MultUfName, formulaType, formulaType, formulaType);
     divUfDecl = functionManager.createFunction(DivUfName, formulaType, formulaType, formulaType);
     modUfDecl = functionManager.createFunction(ModUfName, formulaType, formulaType, formulaType);

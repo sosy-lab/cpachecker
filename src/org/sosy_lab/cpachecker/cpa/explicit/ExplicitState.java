@@ -454,7 +454,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
     BooleanFormulaManager bfmgr = manager.getBooleanFormulaManager();
-    NumeralFormulaManager nfmgr = manager.getNumeralFormulaManager();
+    NumeralFormulaManager nfmgr = manager.getRationalFormulaManager();
     BooleanFormula formula = bfmgr.makeBoolean(true);
 
     for (Map.Entry<MemoryLocation, ExplicitValueBase> entry : constantsMap.entrySet()) {

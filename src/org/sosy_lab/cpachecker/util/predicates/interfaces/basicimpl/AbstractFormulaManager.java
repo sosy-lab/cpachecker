@@ -28,6 +28,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
 /**
  * Simplifies building a solver from the specific theories.
@@ -37,9 +39,9 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
 
   private final AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv> booleanManager;
 
-  private final AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv> integerManager;
+  private final AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, IntegerFormula, IntegerFormula> integerManager;
 
-  private final AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv> rationalManager;
+  private final AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, NumeralFormula, RationalFormula> rationalManager;
 
   private final AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv> bitvectorManager;
 
@@ -66,8 +68,8 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
       AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> unsafeManager,
       AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> functionManager,
       AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv> booleanManager,
-      AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv> pIntegerManager,
-      AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv> pRationalManager,
+      AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, IntegerFormula, IntegerFormula> pIntegerManager,
+      AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, NumeralFormula, RationalFormula> pRationalManager,
       AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv> bitvectorManager) {
     if (functionManager == null || booleanManager == null || unsafeManager == null) {
       throw new IllegalArgumentException("boolean, function and unsafe manager instances have to be valid!");
@@ -132,7 +134,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
   }
 
   @Override
-  public AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv> getIntegerFormulaManager() {
+  public AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, IntegerFormula, IntegerFormula> getIntegerFormulaManager() {
     if (integerManager == null) {
       throw new UnsupportedOperationException();
     }
@@ -140,7 +142,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
   }
 
   @Override
-  public AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv> getRationalFormulaManager() {
+  public AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, NumeralFormula, RationalFormula> getRationalFormulaManager() {
     if (rationalManager == null) {
       throw new UnsupportedOperationException();
     }

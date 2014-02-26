@@ -81,7 +81,7 @@ public class FormulaMeasuring {
     this.managerView = pManagerView;
 
     this.rawBooleanManager = managerView.getBooleanFormulaManager();
-    this.rawNumericManager = managerView.getNumeralFormulaManager();
+    this.rawNumericManager = managerView.getRationalFormulaManager();
     this.unsafeManager = managerView.getUnsafeFormulaManager();
   }
 

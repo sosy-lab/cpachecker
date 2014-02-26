@@ -33,13 +33,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 
 
-abstract class TemplateNumericFormulaManager implements NumeralFormulaManager {
+abstract class TemplateNumericFormulaManager<T extends NumeralFormula> implements NumeralFormulaManager {
 
-  private FormulaType<NumeralFormula> type;
+  private FormulaType<T> type;
   private TemplateNumericBaseFormulaManager baseManager;
   private TemplateFormulaManager manager;
 
-  public TemplateNumericFormulaManager(TemplateFormulaManager manager, FormulaType<NumeralFormula> pType) {
+  public TemplateNumericFormulaManager(TemplateFormulaManager manager, FormulaType<T> pType) {
     this.manager = manager;
     this.type = pType;
     baseManager = new TemplateNumericBaseFormulaManager();
@@ -69,7 +69,7 @@ abstract class TemplateNumericFormulaManager implements NumeralFormulaManager {
   }
 
   @Override
-  public FormulaType<NumeralFormula> getFormulaType() {
+  public FormulaType<T> getFormulaType() {
     return type;
   }
 

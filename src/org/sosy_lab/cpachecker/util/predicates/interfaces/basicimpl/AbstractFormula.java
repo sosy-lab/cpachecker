@@ -29,7 +29,8 @@ import java.io.Serializable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
 /**
  *
@@ -90,11 +91,21 @@ class BooleanFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> imp
 }
 
 /**
- * Simple NumeralFormula implementation.
+ * Simple IntegerFormula implementation.
  */
 @SuppressWarnings("serial")
-class NumeralFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements NumeralFormula {
-  public NumeralFormulaImpl(TFormulaInfo pTerm) {
+class IntegerFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements IntegerFormula {
+  public IntegerFormulaImpl(TFormulaInfo pTerm) {
+    super(pTerm);
+  }
+}
+
+/**
+ * Simple RationalFormula implementation.
+ */
+@SuppressWarnings("serial")
+class RationalFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements RationalFormula {
+  public RationalFormulaImpl(TFormulaInfo pTerm) {
     super(pTerm);
   }
 }

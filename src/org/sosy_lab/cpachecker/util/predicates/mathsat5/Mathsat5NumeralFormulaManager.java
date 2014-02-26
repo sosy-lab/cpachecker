@@ -36,23 +36,26 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractNume
 import com.google.common.collect.ImmutableList;
 
 
-abstract class Mathsat5NumeralFormulaManager extends AbstractNumeralFormulaManager<Long, Long, Long> {
+abstract class Mathsat5NumeralFormulaManager
+        <ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
+        extends AbstractNumeralFormulaManager<Long, Long, Long, ParamFormulaType, ResultFormulaType> {
 
-  private final Mathsat5FunctionType multUfDecl;
-  protected final Mathsat5FunctionType divUfDecl;
-  private final Mathsat5FunctionType modUfDecl;
+  private final Mathsat5FunctionType<? extends NumeralFormula> multUfDecl;
+  protected final Mathsat5FunctionType<? extends NumeralFormula> divUfDecl;
+  private final Mathsat5FunctionType<? extends NumeralFormula> modUfDecl;
   private final Mathsat5FunctionFormulaManager functionManager;
 
   private final long mathsatEnv;
 
   public Mathsat5NumeralFormulaManager(
           Mathsat5FormulaCreator pCreator,
-          Mathsat5FunctionFormulaManager functionManager) {
-    super(pCreator);
+          Mathsat5FunctionFormulaManager functionManager,
+          final Class<ResultFormulaType> pFormulaType) {
+    super(pCreator, pFormulaType);
 
     this.mathsatEnv = pCreator.getEnv();
     this.functionManager = functionManager;
-    FormulaType<NumeralFormula> formulaType = getFormulaType();
+    FormulaType<? extends NumeralFormula> formulaType = getFormulaType();
     multUfDecl = functionManager.createFunction(MultUfName, formulaType, formulaType, formulaType);
     divUfDecl = functionManager.createFunction(DivUfName, formulaType, formulaType, formulaType);
     modUfDecl = functionManager.createFunction(ModUfName, formulaType, formulaType, formulaType);

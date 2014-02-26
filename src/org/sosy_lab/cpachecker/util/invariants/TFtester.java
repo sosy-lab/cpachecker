@@ -39,9 +39,9 @@ public class TFtester {
     TemplateFormulaManager tfm = new TemplateFormulaManager();
 
     FormulaManagerView view = new FormulaManagerView(tfm);
-    NumeralFormulaManagerView nfmgr = view.getNumeralFormulaManager();
+    NumeralFormulaManagerView nfmgr = view.getRationalFormulaManager();
     BooleanFormulaManagerView bfmgr = view.getBooleanFormulaManager();
-    FormulaType<NumeralFormula> type = FormulaType.RationalType;
+    FormulaType<? extends NumeralFormula> type = FormulaType.RationalType;
     NumeralFormula a1 = view.makeVariable(type, "a", 1);
     NumeralFormula a2 = view.makeVariable(type, "a", 2);
     NumeralFormula b1 = view.makeVariable(type, "b", 1);

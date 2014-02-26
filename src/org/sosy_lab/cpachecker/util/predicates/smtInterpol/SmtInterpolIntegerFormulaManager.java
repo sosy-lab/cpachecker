@@ -29,18 +29,19 @@ import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 
 
-class SmtInterpolIntegerFormulaManager extends SmtInterpolNumeralFormulaManager {
+class SmtInterpolIntegerFormulaManager extends SmtInterpolNumeralFormulaManager<IntegerFormula, IntegerFormula> {
 
   SmtInterpolIntegerFormulaManager(
           SmtInterpolFormulaCreator pCreator,
           SmtInterpolFunctionFormulaManager pFunctionManager) {
-    super(pCreator, pFunctionManager);
+    super(pCreator, pFunctionManager, IntegerFormula.class);
   }
 
   @Override
-  public FormulaType<NumeralFormula> getFormulaType() {
+  public FormulaType<? extends NumeralFormula> getFormulaType() {
     return FormulaType.IntegerType;
   }
 

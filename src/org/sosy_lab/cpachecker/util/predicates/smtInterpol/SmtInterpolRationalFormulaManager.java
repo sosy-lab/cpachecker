@@ -27,20 +27,21 @@ import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
-class SmtInterpolRationalFormulaManager extends SmtInterpolNumeralFormulaManager {
+class SmtInterpolRationalFormulaManager extends SmtInterpolNumeralFormulaManager<NumeralFormula, RationalFormula> {
 
   SmtInterpolRationalFormulaManager(
           SmtInterpolFormulaCreator pCreator,
           SmtInterpolFunctionFormulaManager pFunctionManager) {
-    super(pCreator, pFunctionManager);
+    super(pCreator, pFunctionManager, RationalFormula.class);
   }
 
   @Override
-  public FormulaType<NumeralFormula> getFormulaType() {
+  public FormulaType<? extends NumeralFormula> getFormulaType() {
     return FormulaType.RationalType;
   }
 

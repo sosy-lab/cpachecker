@@ -61,7 +61,7 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
   private final TemplateFormula exitFormulaHead;
   private final TemplateFormula exitFormulaTail;
   private final TemplateChooserStrategy strategy;
-  private FormulaType<NumeralFormula> type;
+  private FormulaType<? extends NumeralFormula> type;
 
 
   public SingleLoopTemplateChooser(LogManager logger,

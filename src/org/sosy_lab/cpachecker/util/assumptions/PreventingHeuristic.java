@@ -55,7 +55,7 @@ public enum PreventingHeuristic {
    * threshold value which was exceeded.
    */
   public BooleanFormula getFormula(FormulaManagerView fmgr, long thresholdValue) {
-    NumeralFormulaManager nfmgr = fmgr.getNumeralFormulaManager();
+    NumeralFormulaManager nfmgr = fmgr.getRationalFormulaManager();
     final NumeralFormula number = nfmgr.makeNumber(thresholdValue);
     final NumeralFormula var = nfmgr.makeVariable(predicateString);
     // TODO better idea?

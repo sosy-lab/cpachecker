@@ -177,7 +177,7 @@ public class CtoFormulaConverter {
     this.typeHandler = pTypeHandler;
 
     this.bfmgr = fmgr.getBooleanFormulaManager();
-    this.nfmgr = fmgr.getNumeralFormulaManager();
+    this.nfmgr = fmgr.getRationalFormulaManager();
     this.efmgr = fmgr.getBitvectorFormulaManager();
     this.ffmgr = fmgr.getFunctionFormulaManager();
     this.logger = new LogManagerWithoutDuplicates(logger);
