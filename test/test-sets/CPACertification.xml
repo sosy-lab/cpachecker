@@ -413,7 +413,7 @@
 <rundefinition name="A_ExplicitDF">
 	<option name="-explicit-trac-all"/>
 	<option name="-setprop">analysis.traversal.order=BFS</option>
-	<option name="-setprop">cpa.explicit.merge=JOIN</option>
+	<option name="-setprop">cpa.value.merge=JOIN</option>
 	<option name="-setprop">cpa.propertychecker.className=SingleValueChecker</option>
 		<sourcefiles>
 			<option name="-setprop">cpa.propertychecker.parameters=main::cond,0,out,</option>
@@ -438,7 +438,7 @@
 <rundefinition name="V_ExplicitDF">
 	<option name="-explicit-trac-all"/>
 	<option name="-setprop">analysis.traversal.order=BFS</option>
-	<option name="-setprop">cpa.explicit.merge=JOIN</option>
+	<option name="-setprop">cpa.value.merge=JOIN</option>
 	<option name="-setprop">cpa.propertychecker.className=SingleValueChecker</option>
 	<sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
@@ -595,7 +595,7 @@
 <rundefinition name="A_ReachDef_ExplicitDF">
 	<option name="-reachingdef-explicit"/>
 	<option name="-setprop">analysis.traversal.order=BFS</option>
-	<option name="-setprop">cpa.explicit.merge=JOIN</option>
+	<option name="-setprop">cpa.value.merge=JOIN</option>
 	<option name="-setprop">cpa.propertychecker.className=SingleDefinitionSingleValueChecker</option>
 		<sourcefiles>
 			<option name="-setprop">cpa.propertychecker.parameters=cond,main::cond,0,out,</option>
@@ -641,7 +641,7 @@
 <rundefinition name="V_ReachDef_ExplicitDF">
 	<option name="-reachingdef-explicit"/>
 	<option name="-setprop">analysis.traversal.order=BFS</option>
-	<option name="-setprop">cpa.explicit.merge=JOIN</option>
+	<option name="-setprop">cpa.value.merge=JOIN</option>
 	<option name="-setprop">cpa.propertychecker.className=SingleDefinitionSingleValueChecker</option>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>

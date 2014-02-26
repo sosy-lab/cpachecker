@@ -50,7 +50,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.TreeMultimap;
 
-@Options(prefix="cpa.explicit.precision")
+@Options(prefix="cpa.value.precision")
 public class ValueAnalysisPrecision implements Precision {
 
   /**
@@ -107,7 +107,7 @@ public class ValueAnalysisPrecision implements Precision {
   /**
    * This constructor is used for refining the refinable component precision with the given increment.
    *
-   * @param original the ExplicitPrecision to refine
+   * @param original the value-analysis precision to refine
    * @param increment the increment to refine with
    */
   public ValueAnalysisPrecision(ValueAnalysisPrecision original, Multimap<CFANode, MemoryLocation> increment) {

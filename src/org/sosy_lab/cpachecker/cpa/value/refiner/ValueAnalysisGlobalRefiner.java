@@ -69,7 +69,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
-import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationBasedRefiner.ExplicitValueInterpolant;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationBasedRefiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -84,7 +84,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 
-@Options(prefix="cpa.explicit.refiner")
+@Options(prefix="cpa.value.refiner")
 public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
   @Option(description="whether or not to do lazy-abstraction")
@@ -115,17 +115,17 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
   private final Timer totalTime       = new Timer();
 
   public static ValueAnalysisGlobalRefiner create(final ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
-    final ValueAnalysisCPA explicitCpa = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
-    if (explicitCpa == null) {
-      throw new InvalidConfigurationException(ValueAnalysisGlobalRefiner.class.getSimpleName() + " needs a ExplicitCPA");
+    final ValueAnalysisCPA valueAnalysisCpa = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
+    if (valueAnalysisCpa == null) {
+      throw new InvalidConfigurationException(ValueAnalysisGlobalRefiner.class.getSimpleName() + " needs a ValueAnalysisCPA");
     }
 
-    ValueAnalysisGlobalRefiner refiner = new ValueAnalysisGlobalRefiner(explicitCpa.getConfiguration(),
-                                    explicitCpa.getLogger(),
-                                    explicitCpa.getShutdownNotifier(),
-                                    explicitCpa.getCFA());
+    ValueAnalysisGlobalRefiner refiner = new ValueAnalysisGlobalRefiner(valueAnalysisCpa.getConfiguration(),
+                                    valueAnalysisCpa.getLogger(),
+                                    valueAnalysisCpa.getShutdownNotifier(),
+                                    valueAnalysisCpa.getCFA());
 
-    explicitCpa.getStats().addRefiner(refiner);
+    valueAnalysisCpa.getStats().addRefiner(refiner);
 
 
     return refiner;
@@ -170,7 +170,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
         continue;
       }
 
-      ExplicitValueInterpolant initialItp = interpolationTree.getInitialInterpolantForPath(errorPath);
+      ValueAnalysisInterpolant initialItp = interpolationTree.getInitialInterpolantForPath(errorPath);
 
       logger.log(Level.FINEST, "performing interpolation, starting at ", errorPath.getFirst().getFirst().getStateId(), ", using interpolant ", initialItp);
 
@@ -298,7 +298,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
       @Override
       public String getName() {
-        return "ExplicitGlobalRefiner";
+        return "ValueAnalysisGlobalRefiner";
       }
 
       @Override
@@ -344,7 +344,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     /**
      * the mapping from state to the identified interpolants
      */
-    private final Map<ARGState, ExplicitValueInterpolant> interpolants = new HashMap<>();
+    private final Map<ARGState, ValueAnalysisInterpolant> interpolants = new HashMap<>();
 
     /**
      * the root of the tree
@@ -487,7 +487,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
      * @param errorPath the path for which to obtain the initial interpolant
      * @return the initial interpolant for the given path
      */
-    private ExplicitValueInterpolant getInitialInterpolantForPath(ARGPath errorPath) {
+    private ValueAnalysisInterpolant getInitialInterpolantForPath(ARGPath errorPath) {
       return strategy.getInitialInterpolantForRoot(errorPath.getFirst().getFirst());
     }
 
@@ -496,12 +496,12 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
      *
      * @param newItps the new mapping to add
      */
-    private void addInterpolants(Map<ARGState, ExplicitValueInterpolant> newItps) {
+    private void addInterpolants(Map<ARGState, ValueAnalysisInterpolant> newItps) {
       assert strategy.areInterpolantsConsistent(newItps) : "interpolants are inconsistent";
 
-      for (Map.Entry<ARGState, ExplicitValueInterpolant> entry : newItps.entrySet()) {
+      for (Map.Entry<ARGState, ValueAnalysisInterpolant> entry : newItps.entrySet()) {
         ARGState state                = entry.getKey();
-        ExplicitValueInterpolant itp  = entry.getValue();
+        ValueAnalysisInterpolant itp  = entry.getValue();
 
         if(interpolants.containsKey(state)) {
           interpolants.put(state, interpolants.get(state).join(itp));
@@ -525,7 +525,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
         final ARGState currentState = todo.removeFirst();
 
         if (isNonTrivialInterpolantAvailable(currentState) && !currentState.isTarget()) {
-          ExplicitValueInterpolant itp = interpolants.get(currentState);
+          ValueAnalysisInterpolant itp = interpolants.get(currentState);
           for (MemoryLocation memoryLocation : itp.getMemoryLocations()) {
             increment.put(getEdgeToSuccessor(currentState).getSuccessor(), memoryLocation);
           }
@@ -612,9 +612,9 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
       public boolean hasNextPathForInterpolation();
 
-      public boolean areInterpolantsConsistent(Map<ARGState, ExplicitValueInterpolant> newItps);
+      public boolean areInterpolantsConsistent(Map<ARGState, ValueAnalysisInterpolant> newItps);
 
-      public ExplicitValueInterpolant getInitialInterpolantForRoot(ARGState root);
+      public ValueAnalysisInterpolant getInitialInterpolantForRoot(ARGState root);
     }
 
     private class TopDownInterpolationStrategy implements InterpolationStrategy {
@@ -680,12 +680,12 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
       }
 
       @Override
-      public ExplicitValueInterpolant getInitialInterpolantForRoot(ARGState root) {
+      public ValueAnalysisInterpolant getInitialInterpolantForRoot(ARGState root) {
 
-        ExplicitValueInterpolant initialInterpolant = interpolants.get(predecessorRelation.get(root));
+        ValueAnalysisInterpolant initialInterpolant = interpolants.get(predecessorRelation.get(root));
 
         if(initialInterpolant == null) {
-          initialInterpolant = ExplicitValueInterpolant.createInitial();
+          initialInterpolant = ValueAnalysisInterpolant.createInitial();
           assert isInitialInterpolation : "initial interpolant was null after initial interpolation!";
         }
 
@@ -695,7 +695,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
       }
 
       @Override
-      public boolean areInterpolantsConsistent(Map<ARGState, ExplicitValueInterpolant> newInterpolants) {
+      public boolean areInterpolantsConsistent(Map<ARGState, ValueAnalysisInterpolant> newInterpolants) {
         // if the set of keys of the interpolants changes, this means the two key sets had a non-empty intersection
         // this then means, for at least one ARGState, more than one interpolation was performed, which is illegal
         // according to this strategy
@@ -738,12 +738,12 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
       }
 
       @Override
-      public ExplicitValueInterpolant getInitialInterpolantForRoot(ARGState root) {
-        return ExplicitValueInterpolant.createInitial();
+      public ValueAnalysisInterpolant getInitialInterpolantForRoot(ARGState root) {
+        return ValueAnalysisInterpolant.createInitial();
       }
 
       @Override
-      public boolean areInterpolantsConsistent(Map<ARGState, ExplicitValueInterpolant> newInterpolants) {
+      public boolean areInterpolantsConsistent(Map<ARGState, ValueAnalysisInterpolant> newInterpolants) {
         return true;
       }
 

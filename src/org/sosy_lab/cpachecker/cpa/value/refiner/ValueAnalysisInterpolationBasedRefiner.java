@@ -66,8 +66,8 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.Value;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -79,7 +79,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
-@Options(prefix="cpa.explicit.refiner")
+@Options(prefix="cpa.value.refiner")
 public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
   /**
    * whether or not to do lazy-abstraction, i.e., when true, the re-starting node
@@ -125,15 +125,15 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
     interpolator     = new ValueAnalysisInterpolator(config, logger, shutdownNotifier, cfa);
   }
 
-  protected Map<ARGState, ExplicitValueInterpolant> performInterpolation(ARGPath errorPath,
-      ExplicitValueInterpolant interpolant) throws CPAException, InterruptedException {
+  protected Map<ARGState, ValueAnalysisInterpolant> performInterpolation(ARGPath errorPath,
+      ValueAnalysisInterpolant interpolant) throws CPAException, InterruptedException {
     totalInterpolations++;
     timerInterpolation.start();
 
     interpolationOffset = -1;
 
     List<CFAEdge> cfaTrace = from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
-    Map<ARGState, ExplicitValueInterpolant> pathInterpolants = new LinkedHashMap<>(errorPath.size());
+    Map<ARGState, ValueAnalysisInterpolant> pathInterpolants = new LinkedHashMap<>(errorPath.size());
 
     for (int i = 0; i < errorPath.size(); i++) {
       shutdownNotifier.shutdownIfNecessary();
@@ -144,7 +144,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
       // stop once interpolant is false
       if (interpolant.isFalse()) {
         while (i < errorPath.size()) {
-          pathInterpolants.put(errorPath.get(i).getFirst(), ExplicitValueInterpolant.FALSE);
+          pathInterpolants.put(errorPath.get(i).getFirst(), ValueAnalysisInterpolant.FALSE);
           i++;
         }
 
@@ -177,10 +177,10 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
     Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
 
-    Map<ARGState, ExplicitValueInterpolant> itps = performInterpolation(errorPath, ExplicitValueInterpolant.createInitial());
+    Map<ARGState, ValueAnalysisInterpolant> itps = performInterpolation(errorPath, ValueAnalysisInterpolant.createInitial());
 
     int i = 0;
-    for(Map.Entry<ARGState, ExplicitValueInterpolant> itp : itps.entrySet()) {
+    for(Map.Entry<ARGState, ValueAnalysisInterpolant> itp : itps.entrySet()) {
       addToPrecisionIncrement(increment, errorPath.get(i).getSecond(), itp.getValue());
       i++;
     }
@@ -197,7 +197,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
    */
   private void addToPrecisionIncrement(Multimap<CFANode, MemoryLocation> increment,
       CFAEdge currentEdge,
-      ExplicitValueInterpolant itp) {
+      ValueAnalysisInterpolant itp) {
     for(MemoryLocation memoryLocation : itp.getMemoryLocations()) {
       if(assignments == null || !assignments.exceedsHardThreshold(memoryLocation)) {
         increment.put(currentEdge.getSuccessor(), memoryLocation);
@@ -341,12 +341,12 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
   @Override
   public String getName() {
-    return "Explicit-Interpolation-Based Refiner";
+    return "ValueAnalysisInterpolationBasedRefiner";
   }
 
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-    out.println("  Number of explicit interpolations: " + String.format(Locale.US, "%9d",totalInterpolations));
+    out.println("  Number of interpolations:          " + String.format(Locale.US, "%9d",totalInterpolations));
     out.println("  Number of interpolation queries:   " + String.format(Locale.US, "%9d",totalInterpolationQueries));
     out.println("  Max. time for singe interpolation:     " + timerInterpolation.getMaxTime().formatAs(TimeUnit.SECONDS));
     out.println("  Total time for interpolation:          " + timerInterpolation);
@@ -357,10 +357,10 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
   }
 
   /**
-   * This class represents a Explict-Value interpolant, itself, just a mere wrapper around a map
+   * This class represents a Value-Analysis interpolant, itself, just a mere wrapper around a map
    * from memory locations to values, representing a variable assignment.
    */
-  public static class ExplicitValueInterpolant {
+  public static class ValueAnalysisInterpolant {
     /**
      * the variable assignment of the interpolant
      */
@@ -369,26 +369,26 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
     /**
      * the interpolant representing "true"
      */
-    public static final ExplicitValueInterpolant TRUE  = new ExplicitValueInterpolant();
+    public static final ValueAnalysisInterpolant TRUE  = new ValueAnalysisInterpolant();
 
     /**
      * the interpolant representing "false"
      */
-    public static final ExplicitValueInterpolant FALSE = new ExplicitValueInterpolant((Map<MemoryLocation, Value>)null);
+    public static final ValueAnalysisInterpolant FALSE = new ValueAnalysisInterpolant((Map<MemoryLocation, Value>)null);
 
     /**
-     * Contructor for a new, empty interpolant, i.e. the interpolant representing "true"
+     * Constructor for a new, empty interpolant, i.e. the interpolant representing "true"
      */
-    private ExplicitValueInterpolant() {
+    private ValueAnalysisInterpolant() {
       assignment = new HashMap<>();
     }
 
     /**
-     * Contructor for a new interpolant representing the given variable assignment
+     * Constructor for a new interpolant representing the given variable assignment
      *
      * @param pAssignment the variable assignment to be represented by the interpolant
      */
-    public ExplicitValueInterpolant(Map<MemoryLocation, Value> pAssignment) {
+    public ValueAnalysisInterpolant(Map<MemoryLocation, Value> pAssignment) {
       assignment = pAssignment;
     }
 
@@ -397,8 +397,8 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      *
      * @return
      */
-    static ExplicitValueInterpolant createInitial() {
-      return new ExplicitValueInterpolant();
+    static ValueAnalysisInterpolant createInitial() {
+      return new ValueAnalysisInterpolant();
     }
 
     Set<MemoryLocation> getMemoryLocations() {
@@ -408,14 +408,14 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
     }
 
     /**
-     * This method joins to explicit-value interpolants. If the underlying map contains different values for a key
+     * This method joins to value-analysis interpolants. If the underlying map contains different values for a key
      * contained in both maps, the behaviour is undefined.
      *
-     * @param other the explicit-value interpolant to join with this one
-     * @return a new explicit-value interpolant containing the joined mapping of this and the other explicit-value
+     * @param other the value-analysis interpolant to join with this one
+     * @return a new value-analysis interpolant containing the joined mapping of this and the other value-analysis
      * interpolant
      */
-    public ExplicitValueInterpolant join(ExplicitValueInterpolant other) {
+    public ValueAnalysisInterpolant join(ValueAnalysisInterpolant other) {
 
       Map<MemoryLocation, Value> newAssignment = new HashMap<>();
 
@@ -427,7 +427,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
         newAssignment.putAll(other.assignment);
       }
 
-      return new ExplicitValueInterpolant(newAssignment);
+      return new ValueAnalysisInterpolant(newAssignment);
     }
 
     @Override
@@ -449,7 +449,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
         return false;
       }
 
-      ExplicitValueInterpolant other = (ExplicitValueInterpolant) obj;
+      ValueAnalysisInterpolant other = (ValueAnalysisInterpolant) obj;
       if ((assignment == null && other.assignment != null) || (assignment != null && other.assignment == null)) {
         return false;
       }
@@ -502,11 +502,11 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
     }
 
     /**
-     * This method serves as factory method to create an explicit-value assignment from the interpolant
+     * This method serves as factory method to create a value-analysis state from the interpolant
      *
-     * @return an explicit-value assignment that represents the same variable assignment as the interpolant
+     * @return a value-analysis state that represents the same variable assignment as the interpolant
      */
-    public ValueAnalysisState createExplicitValueState() {
+    public ValueAnalysisState createValueAnalysisState() {
       return new ValueAnalysisState(PathCopyingPersistentTreeMap.copyOf(assignment));
     }
 

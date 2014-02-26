@@ -110,7 +110,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     if (state.contains(memLoc)) {
       return state.getValueFor(memLoc);
     } else {
-      return Value.ExplicitUnknownValue.getInstance();
+      return Value.UnknownValue.getInstance();
     }
   }
 
@@ -119,13 +119,13 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     MemoryLocation varLoc = evaluateMemoryLocation(pLValue);
 
     if (varLoc == null) {
-      return Value.ExplicitUnknownValue.getInstance();
+      return Value.UnknownValue.getInstance();
     }
 
     if (getState().contains(varLoc)) {
       return state.getValueFor(varLoc);
     } else {
-      return Value.ExplicitUnknownValue.getInstance();
+      return Value.UnknownValue.getInstance();
     }
   }
 
@@ -142,7 +142,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   @Override
   protected Value evaluateCPointerExpression(CPointerExpression pVarName) {
     missingPointer = true;
-    return Value.ExplicitUnknownValue.getInstance();
+    return Value.UnknownValue.getInstance();
   }
 
   public boolean canBeEvaluated(CExpression lValue) throws UnrecognizedCCodeException {
@@ -308,7 +308,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
     @Override
     public MemoryLocation visit(CCastExpression pE) throws UnrecognizedCCodeException {
-      // TODO explicit reinterpretations
+      // TODO reinterpretations for ValueAnalysis
       return pE.getOperand().accept(this);
     }
   }

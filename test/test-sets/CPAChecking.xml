@@ -70,7 +70,7 @@
 
 <!--<rundefinition name="ReachDef_ExplicitDF">
 	<option name="-reachingdef-explicit"/>
-	<option name="-setprop">cpa.explicit.merge=JOIN</option>
+	<option name="-setprop">cpa.value.merge=JOIN</option>
 	<option name="-setprop">analysis.traversal.order=BFS</option>
 	<option name="-setprop">pcc.proofcheck.propertychecker=org.sosy_lab.cpachecker.pcc.propertychecker.SingleDefinitionSingleValueChecker</option>
 		<sourcefiles>
@@ -245,8 +245,8 @@
 
 <rundefinition name="ReachDef_ExplicitSEPJOIN">
 	<option name="-reachingdef-explicit"/>
-	<option name="-setprop">CompositeCPA.cpas = cpa.location.LocationCPA, cpa.reachdef.ReachingDefCPA, cpa.explicit.ExplicitCPA, cpa.conditions.global.GlobalConditionsCPA</option>
-	<option name="-setprop">cpa.explicit.merge=JOIN</option>
+	<option name="-setprop">CompositeCPA.cpas = cpa.location.LocationCPA, cpa.reachdef.ReachingDefCPA, cpa.value.ValueAnalysisCPA, cpa.conditions.global.GlobalConditionsCPA</option>
+	<option name="-setprop">cpa.value.merge=JOIN</option>
 	<option name="-setprop">cpa.reachdef.merge=SEP</option>
 	<option name="-setprop">analysis.traversal.order=BFS</option>
 	<option name="-setprop">pcc.proofcheck.propertychecker=org.sosy_lab.cpachecker.pcc.propertychecker.SingleDefinitionSingleValueChecker</option>
@@ -501,7 +501,7 @@
 <rundefinition name="ExplicitDF">
 	<option name="-explicit-trac-all"/>
 	<option name="-setprop">analysis.traversal.order=BFS</option>
-	<option name="-setprop">cpa.explicit.merge=JOIN</option>
+	<option name="-setprop">cpa.value.merge=JOIN</option>
 		<sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
@@ -578,7 +578,7 @@
 
 <rundefinition name="StructureTest">
 	<option name="-reachingdef-explicit"/>
-	<option name="-setprop">cpa.explicit.merge=JOIN</option>
+	<option name="-setprop">cpa.value.merge=JOIN</option>
 	<option name="-setprop">analysis.traversal.order=BFS</option>
 		<sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>

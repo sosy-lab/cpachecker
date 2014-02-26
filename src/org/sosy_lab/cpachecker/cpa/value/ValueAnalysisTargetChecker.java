@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-@Options(prefix="cpa.explicit")
+@Options(prefix="cpa.value")
 public class ValueAnalysisTargetChecker {
 
   @Option(

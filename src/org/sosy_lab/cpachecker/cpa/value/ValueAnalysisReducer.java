@@ -101,7 +101,7 @@ public class ValueAnalysisReducer implements Reducer {
   @Override
   public Precision getVariableExpandedPrecision(Precision pRootPrecision, Block pRootContext,
       Precision pReducedPrecision) {
-    //ExplicitPrecision rootPrecision = (ExplicitPrecision)pRootPrecision;
+    //ValueAnalysisPrecision rootPrecision = (ValueAnalysisPrecision)pRootPrecision;
     ValueAnalysisPrecision reducedPrecision = (ValueAnalysisPrecision)pReducedPrecision;
 
     // TODO: anything meaningful we can do here?

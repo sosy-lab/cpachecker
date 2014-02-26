@@ -48,7 +48,7 @@ public class ValueAnalysisTest {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.value.ValueAnalysisCPA",
         "specification",     "config/specification/default.spc",
-        "cpa.explicit.variableBlacklist", "__SELECTED_FEATURE_(\\w)*",
+        "cpa.value.variableBlacklist", "__SELECTED_FEATURE_(\\w)*",
         "cpa.composite.precAdjust", "COMPONENT",
         "log.consoleLevel", "FINER"
       );
@@ -63,7 +63,7 @@ public class ValueAnalysisTest {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.value.ValueAnalysisCPA",
         "specification",     "config/specification/default.spc",
-        "cpa.explicit.variableBlacklist", "somethingElse"
+        "cpa.value.variableBlacklist", "somethingElse"
       );
 
       TestResults results = run(prop, "test/programs/simple/explicit/explicitIgnoreFeatureVars.c");

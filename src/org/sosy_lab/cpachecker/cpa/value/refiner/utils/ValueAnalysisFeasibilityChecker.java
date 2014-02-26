@@ -76,7 +76,7 @@ public class ValueAnalysisFeasibilityChecker {
       return isFeasible(path, new ValueAnalysisPrecision("", config, Optional.<VariableClassification>absent()));
     }
     catch (InvalidConfigurationException e) {
-      throw new CPAException("Configuring ExplictFeasibilityChecker failed: " + e.getMessage(), e);
+      throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
     }
   }
 

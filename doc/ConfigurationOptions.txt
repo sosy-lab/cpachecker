@@ -635,114 +635,6 @@ cpa.conditions.path.repetitions.limit = -1
 cpa.defuse.merge = "sep"
   allowed values: [sep, join]
 
-# Value which is allowed for the variable which is checked
-cpa.explicit.allowedValue = 0
-
-# restrict abstractions to assume edges
-cpa.explicit.blk.alwaysAtAssumes = false
-
-# restrict abstractions to function calls/returns
-cpa.explicit.blk.alwaysAtFunctions = false
-
-# restrict abstractions to join points
-cpa.explicit.blk.alwaysAtJoins = false
-
-# restrict abstractions to loop heads
-cpa.explicit.blk.alwaysAtLoops = false
-
-# enables target checking for explicit anlaysis, needed for predicated
-# analysis
-cpa.explicit.doTargetCheck = false
-
-# enable if will be used in predicated analysis but all variables should be
-# tracked, no refinement
-cpa.explicit.inPredicatedAnalysis = false
-
-# if there is an assumption like (x!=0), this option sets unknown
-# (uninitialized) variables to 1L, when the true-branch is handled.
-cpa.explicit.initAssumptionVars = false
-
-# get an initial precison from file
-cpa.explicit.initialPrecisionFile = no default value
-
-# whether or not to use use-definition information from the error pathsto
-# optimize the interpolation process
-cpa.explicit.interpolation.applyUseDefInformation = true
-
-# whether or not to ignore the semantics of loop-leaving-assume-edges during
-# interpolation - this avoids to have loop-counters in the interpolant
-cpa.explicit.interpolation.ignoreLoopsExitAssumes = true
-
-# which merge operator to use for ExplicitCPA
-cpa.explicit.merge = "SEP"
-  allowed values: [SEP, JOIN]
-
-# ignore boolean variables. if this option is used, booleans from the cfa
-# should tracked with another CPA, i.e. with BDDCPA.
-cpa.explicit.precision.ignoreBoolean = false
-
-# ignore variables, that are only used in simple calculations (add, sub, lt,
-# gt, eq). if this option is used, these variables from the cfa should
-# tracked with another CPA, i.e. with BDDCPA.
-cpa.explicit.precision.ignoreIntAdd = false
-
-# ignore variables, that are only compared for equality. if this option is
-# used, these variables from the cfa should tracked with another CPA, i.e.
-# with BDDCPA.
-cpa.explicit.precision.ignoreIntEqual = false
-
-# the threshold which controls whether or not variable valuations ought to be
-# abstracted once the specified number of valuations per variable is reached
-# in the set of reached states
-cpa.explicit.precision.reachedSetThreshold = -1
-
-# whether to track relevant variables only at the exact program location
-# (sharing=location), or within their respective (function-/global-) scope
-# (sharing=scoped).
-cpa.explicit.precision.sharing = "scope"
-  allowed values: [location, scope]
-
-# target file to hold the exported precision
-cpa.explicit.precisionFile = no default value
-
-# whether or not to avoid restarting at assume edges after a refinement
-cpa.explicit.refiner.avoidAssumes = false
-
-# checkForRepeatedRefinements
-# whether or not to check for repeated refinements, to then reset the
-# refinement root
-cpa.explicit.refiner.checkForRepeatedRefinements = true
-
-# whether or not to do lazy-abstraction
-cpa.explicit.refiner.doLazyAbstraction = true
-
-# when to export the interpolation tree
-# NEVER:   never export the interpolation tree
-# FINAL:   export the interpolation tree once after each refinement
-# ALWAYD:  export the interpolation tree once after each interpolation, i.e.
-# multiple times per refinmenet
-cpa.explicit.refiner.exportInterpolationTree = "NEVER"
-  allowed values: [NEVER, FINAL, ALWAYS]
-
-# use heuristic to extract a precision from the CFA statically on first
-# refinement
-cpa.explicit.refiner.performInitialStaticRefinement = false
-
-# whether to use the top-down interpolation strategy or the bottom-up
-# interpolation strategy
-cpa.explicit.refiner.useTopDownInterpolationStrategy = true
-
-# which stop operator to use for ExplicitCPA
-cpa.explicit.stop = "SEP"
-  allowed values: [SEP, JOIN, NEVER]
-
-# Variable name of the variable for which should be checked that its value is
-# globally a certain value 
-cpa.explicit.varName = ""
-
-# blacklist regex for variables that won't be tracked by ExplicitCPA
-cpa.explicit.variableBlacklist = ""
-
 # Which strategy to use for forced coverings (empty for none)
 cpa.forcedCovering = no default value
 
@@ -1340,6 +1232,113 @@ cpa.uninitvars.printWarnings = "true"
 # which stop operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.stop = "sep"
   allowed values: [sep, join]
+
+# Value which is allowed for the variable which is checked
+cpa.value.allowedValue = 0
+
+# restrict abstractions to assume edges
+cpa.value.blk.alwaysAtAssumes = false
+
+# restrict abstractions to function calls/returns
+cpa.value.blk.alwaysAtFunctions = false
+
+# restrict abstractions to join points
+cpa.value.blk.alwaysAtJoins = false
+
+# restrict abstractions to loop heads
+cpa.value.blk.alwaysAtLoops = false
+
+# enables target checking for value-analysis, needed for predicate-analysis
+cpa.value.doTargetCheck = false
+
+# enable if will be used in predicated analysis but all variables should be
+# tracked, no refinement
+cpa.value.inPredicatedAnalysis = false
+
+# if there is an assumption like (x!=0), this option sets unknown
+# (uninitialized) variables to 1L, when the true-branch is handled.
+cpa.value.initAssumptionVars = false
+
+# get an initial precison from file
+cpa.value.initialPrecisionFile = no default value
+
+# whether or not to use use-definition information from the error pathsto
+# optimize the interpolation process
+cpa.value.interpolation.applyUseDefInformation = true
+
+# whether or not to ignore the semantics of loop-leaving-assume-edges during
+# interpolation - this avoids to have loop-counters in the interpolant
+cpa.value.interpolation.ignoreLoopsExitAssumes = true
+
+# which merge operator to use for ValueAnalysisCPA
+cpa.value.merge = "SEP"
+  allowed values: [SEP, JOIN]
+
+# ignore boolean variables. if this option is used, booleans from the cfa
+# should tracked with another CPA, i.e. with BDDCPA.
+cpa.value.precision.ignoreBoolean = false
+
+# ignore variables, that are only used in simple calculations (add, sub, lt,
+# gt, eq). if this option is used, these variables from the cfa should
+# tracked with another CPA, i.e. with BDDCPA.
+cpa.value.precision.ignoreIntAdd = false
+
+# ignore variables, that are only compared for equality. if this option is
+# used, these variables from the cfa should tracked with another CPA, i.e.
+# with BDDCPA.
+cpa.value.precision.ignoreIntEqual = false
+
+# the threshold which controls whether or not variable valuations ought to be
+# abstracted once the specified number of valuations per variable is reached
+# in the set of reached states
+cpa.value.precision.reachedSetThreshold = -1
+
+# whether to track relevant variables only at the exact program location
+# (sharing=location), or within their respective (function-/global-) scope
+# (sharing=scoped).
+cpa.value.precision.sharing = "scope"
+  allowed values: [location, scope]
+
+# target file to hold the exported precision
+cpa.value.precisionFile = no default value
+
+# whether or not to avoid restarting at assume edges after a refinement
+cpa.value.refiner.avoidAssumes = false
+
+# checkForRepeatedRefinements
+# whether or not to check for repeated refinements, to then reset the
+# refinement root
+cpa.value.refiner.checkForRepeatedRefinements = true
+
+# whether or not to do lazy-abstraction
+cpa.value.refiner.doLazyAbstraction = true
+
+# when to export the interpolation tree
+# NEVER:   never export the interpolation tree
+# FINAL:   export the interpolation tree once after each refinement
+# ALWAYD:  export the interpolation tree once after each interpolation, i.e.
+# multiple times per refinmenet
+cpa.value.refiner.exportInterpolationTree = "NEVER"
+  allowed values: [NEVER, FINAL, ALWAYS]
+
+# use heuristic to extract a precision from the CFA statically on first
+# refinement
+cpa.value.refiner.performInitialStaticRefinement = false
+
+# whether to use the top-down interpolation strategy or the bottom-up
+# interpolation strategy
+cpa.value.refiner.useTopDownInterpolationStrategy = true
+
+# which stop operator to use for ValueAnalysisCPA
+cpa.value.stop = "SEP"
+  allowed values: [SEP, JOIN, NEVER]
+
+# Variable name of the variable for which should be checked that its value is
+# globally a certain value 
+cpa.value.varName = ""
+
+# blacklist regex for variables that won't be tracked by ValueAnalysisCPA
+cpa.value.variableBlacklist = ""
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true

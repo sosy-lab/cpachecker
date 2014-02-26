@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.HashMultimap;
 
-@Options(prefix="cpa.explicit")
+@Options(prefix="cpa.value")
 public class ValueAnalysisCPAStatistics implements Statistics {
 
   @Option(description="target file to hold the exported precision")
@@ -67,7 +67,7 @@ public class ValueAnalysisCPAStatistics implements Statistics {
 
   @Override
   public String getName() {
-    return "ExplicitCPA";
+    return "ValueAnalysisCPA";
   }
 
   public void addRefiner(Refiner refiner) {
@@ -116,7 +116,7 @@ public class ValueAnalysisCPAStatistics implements Statistics {
     try (Writer writer = Files.openOutputFile(precisionFile)) {
       consolidatedPrecision.serialize(writer);
     } catch (IOException e) {
-      cpa.getLogger().logUserException(Level.WARNING, e, "Could not write explicit precision to file");
+      cpa.getLogger().logUserException(Level.WARNING, e, "Could not write value-analysis precision to file");
     }
   }
 
