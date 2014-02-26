@@ -186,12 +186,10 @@ public class SMGExpressionEvaluator {
       logger.log(Level.WARNING, "Field " + "(" + fieldOffset + ", " + pType.toASTString("") + ")" +
           " does not fit object " + pObject.toString() + ".\n Line: " + pEdge.getLineNumber());
 
-      // TODO Modifying read state, ugly ...
-      pSmgState.setInvalidRead();
       return SMGUnknownValue.getInstance();
     }
 
-    Integer value = pSmgState.readValue(pObject, fieldOffset, pType);
+    Integer value = pSmgState.readValueNonModifiying(pObject, fieldOffset, pType);
 
     if (value == null) {
       return SMGUnknownValue.getInstance();
@@ -1783,4 +1781,3 @@ public class SMGExpressionEvaluator {
     return machineModel;
   }
 }
-

@@ -360,15 +360,17 @@ public class SMGState implements AbstractQueryableState, Targetable {
   /**
    * Read Value in field (object, type) of an Object.
    *
+   * This method does not modify the state being read,
+   * and is therefore safe to call outside of a
+   * transfer relation context.
+   *
    * @param pObject SMGObject representing the memory the field belongs to.
    * @param pOffset offset of field being read.
    * @param pType type of field
-   * @return
-   * @throws SMGInconsistentException
+   * @return A Symbolic value, if found, otherwise null.
    */
-  public Integer readValue(SMGObject pObject, int pOffset, CType pType) throws SMGInconsistentException {
-    if (! heap.isObjectValid(pObject)) {
-      setInvalidRead();
+  public Integer readValueNonModifiying(SMGObject pObject, int pOffset, CType pType) throws SMGInconsistentException {
+    if (!heap.isObjectValid(pObject)) {
       return null;
     }
 
@@ -383,12 +385,28 @@ public class SMGState implements AbstractQueryableState, Targetable {
       }
     }
 
-    if(heap.isCoveredByNullifiedBlocks(edge)) {
-      return 0;
-    }
+    if (heap.isCoveredByNullifiedBlocks(edge)) { return 0; }
 
     performConsistencyCheck(SMGRuntimeCheck.HALF);
     return null;
+  }
+
+  /**
+   * Read Value in field (object, type) of an Object.
+   *
+   * @param pObject SMGObject representing the memory the field belongs to.
+   * @param pOffset offset of field being read.
+   * @param pType type of field
+   * @return
+   * @throws SMGInconsistentException
+   */
+  public Integer readValue(SMGObject pObject, int pOffset, CType pType) throws SMGInconsistentException {
+    if (!heap.isObjectValid(pObject)) {
+      setInvalidRead();
+      return null;
+    }
+
+    return readValueNonModifiying(pObject, pOffset, pType);
   }
 
   public void setInvalidRead() {
