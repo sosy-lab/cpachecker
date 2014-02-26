@@ -461,20 +461,13 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return new RealPointerTargetSetBuilder(pts, fmgr, ptsMgr, options);
   }
 
-  private LvalueToPointerTargetPatternVisitor getLvalueToPointerTargetPatternVisitor(
-    final CFAEdge cfaEdge,
-    final PointerTargetSetBuilder pts) {
-    return new LvalueToPointerTargetPatternVisitor(this, cfaEdge, pts);
-  }
-
   private StatementToFormulaWithUFVisitor getStatementToFormulaWithUFVisitor(final CFAEdge cfaEdge,
                                                                              final String function,
                                                                              final SSAMapBuilder ssa,
                                                                              final Constraints constraints,
                                                                              final ErrorConditions errorConditions,
                                                                              final PointerTargetSetBuilder pts) {
-    final LvalueToPointerTargetPatternVisitor lvalueVisitor = getLvalueToPointerTargetPatternVisitor(cfaEdge, pts);
-    return new StatementToFormulaWithUFVisitor(lvalueVisitor, this, cfaEdge, function, ssa, constraints, errorConditions, pts);
+    return new StatementToFormulaWithUFVisitor(this, cfaEdge, function, ssa, constraints, errorConditions, pts);
   }
 
   @Override
@@ -508,8 +501,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final Constraints constraints, final ErrorConditions errorConditions)
           throws UnrecognizedCCodeException {
 
-    final StatementToFormulaWithUFVisitor statementVisitor = getStatementToFormulaWithUFVisitor(edge, function, ssa, constraints, errorConditions, pts);
-    return statementVisitor.handleAssignment(lhs, rhs, false, null);
+    AssignmentHandler assignmentHandler = new AssignmentHandler(this, edge, function, ssa, pts, constraints, errorConditions);
+    return assignmentHandler.handleAssignment(lhs, rhs, false, null);
   }
 
   private static String getLogMessage(final String msg, final CFAEdge edge) {
@@ -616,15 +609,15 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     // Special handling for string literal initializers -- convert them into character arrays
     final CIdExpression lhs =
         new CIdExpression(declaration.getFileLocation(), declaration);
-    final StatementToFormulaWithUFVisitor statementVisitor = getStatementToFormulaWithUFVisitor(declarationEdge, function, ssa, constraints, errorConditions, pts);
+    final AssignmentHandler assignmentHandler = new AssignmentHandler(this, declarationEdge, function, ssa, pts, constraints, errorConditions);
     if (initializer instanceof CInitializerExpression || initializer == null) {
       declareSharedBase(declaration, false, constraints, pts);
 
       final BooleanFormula result;
       if (initializer != null) {
-        result = statementVisitor.handleAssignment(lhs, ((CInitializerExpression) initializer).getExpression(), false, null);
+        result = assignmentHandler.handleAssignment(lhs, ((CInitializerExpression) initializer).getExpression(), false, null);
       } else if (isRelevantVariable(declaration)) {
-        result = statementVisitor.handleAssignment(lhs, null, false, null);
+        result = assignmentHandler.handleAssignment(lhs, null, false, null);
       } else {
         result = bfmgr.makeBoolean(true);
       }
@@ -646,7 +639,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         assignments = expandAssignmentList(declaration, assignments);
       }
 
-      final BooleanFormula result = statementVisitor.handleInitializationAssignments(lhs, assignments);
+      final BooleanFormula result = assignmentHandler.handleInitializationAssignments(lhs, assignments);
 
       if (CTypeUtils.containsArray(declarationType)) {
         addPreFilledBase(declaration.getQualifiedName(), declarationType, true, false, constraints, pts);

@@ -64,7 +64,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Val
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-abstract class ExpressionToFormulaWithUFVisitor
+class ExpressionToFormulaWithUFVisitor
        extends DefaultCExpressionVisitor<Expression, UnrecognizedCCodeException> {
 
   public ExpressionToFormulaWithUFVisitor(final CToFormulaWithUFConverter cToFormulaConverter,
@@ -422,14 +422,6 @@ abstract class ExpressionToFormulaWithUFVisitor
 
   public ImmutableMap<String, CType> getUsedDeferredAllocationPointers() {
     return ImmutableMap.copyOf(usedDeferredAllocationPointers);
-  }
-
-  public void reset() {
-    sharedBases.clear();
-    usedFields.clear();
-    addressedFields.clear();
-    initializedFields.clear();
-    usedDeferredAllocationPointers.clear();
   }
 
   // The protected fields are inherited by StatementToFormulaWithUFVisitor,

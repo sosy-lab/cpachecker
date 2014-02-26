@@ -24,15 +24,10 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.Level;
 
-import javax.annotation.Nullable;
-
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -42,13 +37,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
@@ -60,20 +52,14 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExternModelLoader;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Location;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Value;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 
 
 class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
                                              implements CStatementVisitor<BooleanFormula, UnrecognizedCCodeException>,
                                                         CRightHandSideVisitor<Expression, UnrecognizedCCodeException> {
 
-  public StatementToFormulaWithUFVisitor(final LvalueToPointerTargetPatternVisitor lvalueVisitor,
-                                         final CToFormulaWithUFConverter cToFormulaConverter,
+  public StatementToFormulaWithUFVisitor(final CToFormulaWithUFConverter cToFormulaConverter,
                                          final CFAEdge cfaEdge,
                                          final String function,
                                          final SSAMapBuilder ssa,
@@ -81,8 +67,6 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
                                          final ErrorConditions errorConditions,
                                          final PointerTargetSetBuilder pts) {
     super(cToFormulaConverter, cfaEdge, function, ssa, constraints, errorConditions, pts);
-
-    this.lvalueVisitor = lvalueVisitor;
   }
 
   @Override
@@ -108,111 +92,13 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
     return conv.bfmgr.makeBoolean(true);
   }
 
-  BooleanFormula handleAssignment(final CLeftHandSide lhs,
-      final @Nullable CRightHandSide rhs,
-      final boolean batchMode,
-      final @Nullable Set<CType> destroyedTypes) throws UnrecognizedCCodeException {
-    AssignmentHandler assignmentHandler = new AssignmentHandler(conv, edge, function, ssa, pts, constraints, errorConditions);
-    return handleAssignment(lhs, rhs, batchMode, destroyedTypes, assignmentHandler);
-  }
-
-  private BooleanFormula handleAssignment(final CLeftHandSide lhs,
-                                  final @Nullable CRightHandSide rhs,
-                                  final boolean batchMode,
-                                  final @Nullable Set<CType> destroyedTypes,
-                                  final AssignmentHandler assignmentHandler)
-  throws UnrecognizedCCodeException {
-    if (!conv.isRelevantLeftHandSide(lhs)) {
-      // Optimization for unused variables and fields
-      return conv.bfmgr.makeBoolean(true);
-    }
-
-    final CType lhsType = CTypeUtils.simplifyType(lhs.getExpressionType());
-    final CType rhsType = rhs != null ? CTypeUtils.simplifyType(rhs.getExpressionType()) :
-                                        CNumericTypes.SIGNED_CHAR;
-
-    // RHS handling
-    final ImmutableList<Pair<CCompositeType, String>> rhsUsedFields;
-    final ImmutableMap<String, CType> rhsUsedDeferredAllocationPointers;
-    final Expression rhsExpression;
-    reset();
-    // RHS is neither null nor a nondet() function call
-    if (rhs != null &&
-        (!(rhs instanceof CFunctionCallExpression) ||
-         !(((CFunctionCallExpression) rhs).getFunctionNameExpression() instanceof CIdExpression) ||
-         !conv.options.isNondetFunction(((CIdExpression)((CFunctionCallExpression) rhs).getFunctionNameExpression()).getName()))) {
-      rhsExpression = rhs.accept(this);
-      pts.addEssentialFields(getInitializedFields());
-      rhsUsedFields = getUsedFields();
-      rhsUsedDeferredAllocationPointers = getUsedDeferredAllocationPointers();
-    } else { // RHS is nondet
-      rhsExpression = Value.nondetValue();
-      rhsUsedFields = ImmutableList.<Pair<CCompositeType,String>>of();
-      rhsUsedDeferredAllocationPointers = ImmutableMap.<String, CType>of();
-    }
-
-    // LHS handling
-    reset();
-    final Location lhsLocation = lhs.accept(this).asLocation();
-    ImmutableMap<String, CType> lhsUsedDeferredAllocationPointers = getUsedDeferredAllocationPointers();
-    pts.addEssentialFields(getInitializedFields());
-    final ImmutableList<Pair<CCompositeType, String>> lhsUsedFields = getUsedFields();
-    // the pattern matching possibly aliased locations
-    final PointerTargetPattern pattern = lhsLocation.isUnaliasedLocation() ? null : lhs.accept(lvalueVisitor);
-
-    if (conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) {
-      DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions);
-      memoryHandler.handleDeferredAllocationsInAssignment(lhs, rhs,
-          lhsLocation, rhsExpression, lhsType,
-          lhsUsedDeferredAllocationPointers, rhsUsedDeferredAllocationPointers);
-    }
-
-    final BooleanFormula result =
-        assignmentHandler.makeAssignment(lhsType,
-                          rhsType,
-                          lhsLocation,
-                          rhsExpression,
-                          pattern,
-                          batchMode,
-                          destroyedTypes);
-
-    pts.addEssentialFields(lhsUsedFields);
-    pts.addEssentialFields(rhsUsedFields);
-    return result;
-  }
-
   private BooleanFormula visit(final CAssignment e) throws UnrecognizedCCodeException {
-    return handleAssignment(e.getLeftHandSide(), e.getRightHandSide(), false, null);
-  }
-
-  public BooleanFormula handleInitializationAssignments(final CLeftHandSide variable,
-                                                        final List<CExpressionAssignmentStatement> assignments)
-  throws UnrecognizedCCodeException {
-    final Location lhsLocation = variable.accept(this).asLocation();
-    final Set<CType> updatedTypes = new HashSet<>();
-    BooleanFormula result = conv.bfmgr.makeBoolean(true);
     AssignmentHandler assignmentHandler = new AssignmentHandler(conv, edge, function, ssa, pts, constraints, errorConditions);
-    for (CExpressionAssignmentStatement assignment : assignments) {
-      final CLeftHandSide lhs = assignment.getLeftHandSide();
-      result = conv.bfmgr.and(result, handleAssignment(lhs,
-                                                       assignment.getRightHandSide(),
-                                                       lhsLocation.isAliased(), // Defer index update for UFs, but not for variables
-                                                       updatedTypes,
-                                                       assignmentHandler));
-    }
-    if (lhsLocation.isAliased()) {
-      assignmentHandler.finishAssignments(CTypeUtils.simplifyType(variable.getExpressionType()),
-                             lhsLocation.asAliased(),
-                             variable.accept(lvalueVisitor),
-                             updatedTypes);
-    }
-    return result;
+    return assignmentHandler.handleAssignment(e.getLeftHandSide(), e.getRightHandSide(), false, null);
   }
 
   public BooleanFormula visitAssume(final CExpression e, final boolean truthAssumtion)
   throws UnrecognizedCCodeException {
-    reset();
-
     final CType expressionType = CTypeUtils.simplifyType(e.getExpressionType());
     BooleanFormula result = conv.toBooleanFormula(asValueFormula(e.accept(this),
                                                                  expressionType));
@@ -346,6 +232,4 @@ class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
                                                         arguments));
     }
   }
-
-  private final LvalueToPointerTargetPatternVisitor lvalueVisitor;
 }
