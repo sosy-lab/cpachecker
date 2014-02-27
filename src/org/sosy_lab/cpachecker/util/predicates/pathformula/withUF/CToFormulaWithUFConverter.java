@@ -770,4 +770,9 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   protected boolean isRelevantLeftHandSide(CLeftHandSide pLhs) {
     return super.isRelevantLeftHandSide(pLhs);
   }
+
+  @Override
+  protected void logfOnce(Level pLevel, CFAEdge pEdge, String pMsg, Object... pArgs) {
+    super.logfOnce(pLevel, pEdge, pMsg, pArgs);
+  }
 }

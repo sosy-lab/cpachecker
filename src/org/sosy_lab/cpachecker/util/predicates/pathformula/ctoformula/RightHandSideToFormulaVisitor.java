@@ -40,106 +40,117 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetBuilder;
 
 class RightHandSideToFormulaVisitor extends ExpressionToFormulaVisitor
                                      implements CRightHandSideVisitor<Formula, UnrecognizedCCodeException> {
 
+  private final PointerTargetSetBuilder pts;
+  private final ErrorConditions errorConditions;
+
   public RightHandSideToFormulaVisitor(CtoFormulaConverter pCtoFormulaConverter,
       CFAEdge pEdge, String pFunction,
-      SSAMapBuilder pSsa, Constraints pCo) {
+      SSAMapBuilder pSsa, PointerTargetSetBuilder pPts,
+      Constraints pCo, ErrorConditions pErrorConditions) {
     super(pCtoFormulaConverter, pEdge, pFunction, pSsa, pCo);
+    pts = pPts;
+    errorConditions = pErrorConditions;
   }
 
   @Override
-  public Formula visit(CFunctionCallExpression fexp) throws UnrecognizedCCodeException {
+  public Formula visit(CFunctionCallExpression e) throws UnrecognizedCCodeException {
+    final CExpression functionNameExpression = e.getFunctionNameExpression();
+    final CType returnType = e.getExpressionType();
+    final List<CExpression> parameters = e.getParameterExpressions();
 
-    CExpression fn = fexp.getFunctionNameExpression();
-    List<CExpression> pexps = fexp.getParameterExpressions();
-    String func;
-    CType expType = fexp.getExpressionType();
-    if (fn instanceof CIdExpression) {
-      func = ((CIdExpression)fn).getName();
-      if (func.equals(CtoFormulaConverter.ASSUME_FUNCTION_NAME) && pexps.size() == 1) {
-        BooleanFormula condition = conv.toBooleanFormula(pexps.get(0).accept(this));
+    // First let's handle special cases such as assumes, allocations, nondets, external models, etc.
+    final String functionName;
+    if (functionNameExpression instanceof CIdExpression) {
+      functionName = ((CIdExpression)functionNameExpression).getName();
+      if (functionName.equals(CtoFormulaConverter.ASSUME_FUNCTION_NAME) && parameters.size() == 1) {
+        final BooleanFormula condition = conv.makePredicate(parameters.get(0), true, edge, function, ssa, pts, constraints, errorConditions);
         constraints.addConstraint(condition);
+        return conv.makeFreshVariable(functionName, returnType, ssa);
 
-        return conv.makeFreshVariable(func, expType, ssa);
-
-      } else if (conv.options.isNondetFunction(func)
-          || conv.options.isMemoryAllocationFunction(func)
-          || conv.options.isMemoryAllocationFunctionWithZeroing(func)) {
+      } else if (conv.options.isNondetFunction(functionName)
+          || conv.options.isMemoryAllocationFunction(functionName)
+          || conv.options.isMemoryAllocationFunctionWithZeroing(functionName)) {
         // Function call like "random()".
         // Also "malloc()" etc. just return a random value, so handle them similarly.
         // Ignore parameters and just create a fresh variable for it.
-        return conv.makeFreshVariable(func, expType, ssa);
+        return conv.makeFreshVariable(functionName, returnType, ssa);
 
-      } else if (conv.options.isExternModelFunction(func)) {
+      } else if (conv.options.isExternModelFunction(functionName)) {
         ExternModelLoader loader = new ExternModelLoader(conv.typeHandler, conv.bfmgr, conv.fmgr);
-        BooleanFormula result = loader.handleExternModelFunction(fexp, pexps, ssa);
-        FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(fexp.getExpressionType());
+        BooleanFormula result = loader.handleExternModelFunction(e, parameters, ssa);
+        FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(e.getExpressionType());
         return conv.ifTrueThenOneElseZero(returnFormulaType, result);
 
-      } else if (CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.containsKey(func)) {
-        throw new UnsupportedCCodeException(CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.get(func), edge, fexp);
+      } else if (CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
+        throw new UnsupportedCCodeException(CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.get(functionName), edge, e);
 
-      } else if (!CtoFormulaConverter.PURE_EXTERNAL_FUNCTIONS.contains(func)) {
-        if (pexps.isEmpty()) {
+      } else if (!CtoFormulaConverter.PURE_EXTERNAL_FUNCTIONS.contains(functionName)) {
+        if (parameters.isEmpty()) {
           // function of arity 0
-          conv.logger.logOnce(Level.INFO, "Assuming external function", func, "to be a constant function.");
+          conv.logger.logOnce(Level.INFO, "Assuming external function", functionName, "to be a constant function.");
         } else {
-          conv.logger.logOnce(Level.INFO, "Assuming external function", func, "to be a pure function.");
+          conv.logger.logOnce(Level.INFO, "Assuming external function", functionName, "to be a pure function.");
         }
       }
     } else {
-      conv.logfOnce(Level.WARNING, edge, "Ignoring function call through function pointer %s", fn);
-      func = ("<func>{" + CtoFormulaConverter.scoped(CtoFormulaConverter.exprToVarName(fn), function) + "}").intern();
+      conv.logfOnce(Level.WARNING, edge, "Ignoring function call through function pointer %s", functionNameExpression);
+      String escapedName = CtoFormulaConverter.scoped(CtoFormulaConverter.exprToVarName(functionNameExpression), function);
+      functionName = ("<func>{" + escapedName + "}").intern();
     }
 
-    if (pexps.isEmpty()) {
+    // Now let's handle "normal" functions assumed to be pure
+    if (parameters.isEmpty()) {
       // This is a function of arity 0 and we assume its constant.
-      return conv.makeConstant(func, expType);
+      return conv.makeConstant(functionName, returnType);
 
     } else {
-      CFunctionDeclaration declaration = fexp.getDeclaration();
-      if (declaration == null) {
-        if (fn instanceof CIdExpression) {
+      final CFunctionDeclaration functionDeclaration = e.getDeclaration();
+      if (functionDeclaration == null) {
+        if (functionNameExpression instanceof CIdExpression) {
           // This happens only if there are undeclared functions.
-          conv.logger.logfOnce(Level.WARNING, "Cannot get declaration of function %s, ignoring calls to it.", fn);
+          conv.logger.logfOnce(Level.WARNING, "Cannot get declaration of function %s, ignoring calls to it.",
+                               functionNameExpression);
         }
-        return conv.makeFreshVariable(func, expType, ssa); // BUG when expType = void
+        return conv.makeFreshVariable(functionName, returnType, ssa); // BUG when expType = void
       }
 
-      if (declaration.getType().takesVarArgs()) {
+      if (functionDeclaration.getType().takesVarArgs()) {
         // Create a fresh variable instead of an UF for varargs functions.
         // This is sound but slightly more imprecise (we loose the UF axioms).
-        return conv.makeFreshVariable(func, expType, ssa);
+        return conv.makeFreshVariable(functionName, returnType, ssa);
       }
 
-      List<CType> paramTypes = declaration.getType().getParameters();
-      func += "{" + paramTypes.size() + "}"; // add #arguments to function name to cope with varargs functions
-
-      if (paramTypes.size() != pexps.size()) {
-        throw new UnrecognizedCCodeException("Function " + declaration + " received " + pexps.size() + " parameters instead of the expected " + paramTypes.size(), edge, fexp);
+      final List<CType> formalParameterTypes = functionDeclaration.getType().getParameters();
+      if (formalParameterTypes.size() != parameters.size()) {
+        throw new UnrecognizedCCodeException("Function " + functionDeclaration
+            + " received " + parameters.size() + " parameters"
+            + " instead of the expected " + formalParameterTypes.size(),
+            edge, e);
       }
 
-      List<Formula> args = new ArrayList<>(pexps.size());
-      Iterator<CType> it1 = paramTypes.iterator();
-      Iterator<CExpression> it2 = pexps.iterator();
-      while (it1.hasNext() && it2.hasNext()) {
+      final List<Formula> arguments = new ArrayList<>(parameters.size());
+      final Iterator<CType> formalParameterTypesIt = formalParameterTypes.iterator();
+      final Iterator<CExpression> parametersIt = parameters.iterator();
+      while (formalParameterTypesIt.hasNext() && parametersIt.hasNext()) {
+        final CType formalParameterType = formalParameterTypesIt.next();
+        CExpression parameter = parametersIt.next();
+        parameter = conv.makeCastFromArrayToPointerIfNecessary(parameter, formalParameterType);
 
-        CType paramType= it1.next();
-        CExpression pexp = it2.next();
-        pexp = conv.makeCastFromArrayToPointerIfNecessary(pexp, paramType);
-
-        Formula arg = pexp.accept(this);
-        args.add(conv.makeCast(pexp.getExpressionType(), paramType, arg, edge));
+        Formula argument = parameter.accept(this);
+        arguments.add(conv.makeCast(parameter.getExpressionType(), formalParameterType, argument, edge));
       }
-      assert !it1.hasNext() && !it2.hasNext();
+      assert !formalParameterTypesIt.hasNext() && !parametersIt.hasNext();
 
-      CType returnType = conv.getReturnType(fexp, edge);
-      FormulaType<?> t = conv.getFormulaTypeFromCType(returnType);
-      return conv.ffmgr.createFuncAndCall(func, t, args);
+      final CType realReturnType = conv.getReturnType(e, edge);
+      final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(realReturnType);
+      return conv.ffmgr.createFuncAndCall(functionName, resultFormulaType, arguments);
     }
   }
 }

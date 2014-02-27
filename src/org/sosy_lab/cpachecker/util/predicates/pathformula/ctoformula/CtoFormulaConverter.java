@@ -193,7 +193,7 @@ public class CtoFormulaConverter {
             "__string__", pointerType, FormulaType.RationalType);
   }
 
-  void logfOnce(Level level, CFAEdge edge, String msg, Object... args) {
+  protected void logfOnce(Level level, CFAEdge edge, String msg, Object... args) {
     if (logger.wouldBeLogged(level)) {
       logger.logfOnce(level, "Line %d: %s: %s",
           edge.getLineNumber(),
@@ -1091,8 +1091,7 @@ public class CtoFormulaConverter {
       rhs = makeCastFromArrayToPointerIfNecessary((CExpression)rhs, lhs.getExpressionType());
     }
 
-    RightHandSideToFormulaVisitor rhsVisitor = new RightHandSideToFormulaVisitor(this, edge, function, ssa, constraints);
-    Formula r = rhs.accept(rhsVisitor);
+    Formula r = buildTerm(rhs, edge, function, ssa, pts, constraints, errorConditions);
     Formula l = buildLvalueTerm(lhs, edge, function, ssa, pts, constraints, errorConditions);
     r = makeCast(
           rhs.getExpressionType(),
@@ -1103,7 +1102,7 @@ public class CtoFormulaConverter {
     return fmgr.assignment(l, r);
   }
 
-  Formula buildTerm(CExpression exp, CFAEdge edge, String function,
+  Formula buildTerm(CRightHandSide exp, CFAEdge edge, String function,
       SSAMapBuilder ssa, PointerTargetSetBuilder pts,
       Constraints constraints, ErrorConditions errorConditions)
           throws UnrecognizedCCodeException {
@@ -1201,7 +1200,7 @@ public class CtoFormulaConverter {
       CFAEdge pEdge, String pFunction,
       SSAMapBuilder ssa, PointerTargetSetBuilder pts,
       Constraints constraints, ErrorConditions errorConditions) {
-    return new RightHandSideToFormulaVisitor(this, pEdge, pFunction, ssa, constraints);
+    return new RightHandSideToFormulaVisitor(this, pEdge, pFunction, ssa, pts, constraints, errorConditions);
   }
 
   /**

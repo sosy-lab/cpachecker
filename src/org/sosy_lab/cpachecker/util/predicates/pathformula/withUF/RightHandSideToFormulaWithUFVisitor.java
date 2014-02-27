@@ -95,8 +95,8 @@ public class RightHandSideToFormulaWithUFVisitor extends ExpressionToFormulaWith
     // First let's handle special cases such as assumes, allocations, nondets, external models, etc.
     final String functionName;
     if (functionNameExpression instanceof CIdExpression) {
-      functionName = ((CIdExpression) functionNameExpression).getName();
-      if (functionName.equals(CToFormulaWithUFConverter.ASSUME_FUNCTION_NAME) && parameters.size() == 1) {
+      functionName = ((CIdExpression)functionNameExpression).getName();
+      if (functionName.equals(CtoFormulaConverter.ASSUME_FUNCTION_NAME) && parameters.size() == 1) {
         final BooleanFormula condition = conv.makePredicate(parameters.get(0), true, edge, function, ssa, pts, constraints, errorConditions);
         constraints.addConstraint(condition);
         return Value.ofValue(conv.makeFreshVariable(functionName, returnType, ssa));
@@ -106,6 +106,7 @@ public class RightHandSideToFormulaWithUFVisitor extends ExpressionToFormulaWith
         return memoryHandler.handleDynamicMemoryFunction(e, functionName, this);
 
       } else if (conv.options.isNondetFunction(functionName)) {
+        // Function call like "random()".
         return Value.nondetValue();
 
       } else if (conv.options.isExternModelFunction(functionName)) {
@@ -120,23 +121,15 @@ public class RightHandSideToFormulaWithUFVisitor extends ExpressionToFormulaWith
       } else if (!CtoFormulaConverter.PURE_EXTERNAL_FUNCTIONS.contains(functionName)) {
         if (parameters.isEmpty()) {
           // function of arity 0
-          conv.logger.logfOnce(Level.INFO,
-                               "Assuming external function %s to be a constant function.",
-                               functionName);
+          conv.logger.logOnce(Level.INFO, "Assuming external function", functionName, "to be a constant function.");
         } else {
-          conv.logger.logfOnce(Level.INFO,
-                               "Assuming external function %s to be a pure function.",
-                               functionName);
+          conv.logger.logOnce(Level.INFO, "Assuming external function", functionName, "to be a pure function.");
         }
       }
     } else {
-      conv.logger.logfOnce(Level.WARNING,
-                           "Ignoring function call through function pointer %s",
-                           e);
-      functionName = "<func>{" +
-                     CtoFormulaConverter.scoped(CtoFormulaConverter.exprToVarName(functionNameExpression),
-                                                function) +
-                     "}";
+      conv.logfOnce(Level.WARNING, edge, "Ignoring function call through function pointer %s", functionNameExpression);
+      String escapedName = CtoFormulaConverter.scoped(CtoFormulaConverter.exprToVarName(functionNameExpression), function);
+      functionName = ("<func>{" + escapedName + "}").intern();
     }
 
     // Pure functions returning composites are unsupported, return a nondet value
@@ -152,6 +145,7 @@ public class RightHandSideToFormulaWithUFVisitor extends ExpressionToFormulaWith
     if (parameters.isEmpty()) {
       // This is a function of arity 0 and we assume its constant.
       return Value.ofValue(conv.makeConstant(CToFormulaWithUFConverter.UF_NAME_PREFIX + functionName, returnType));
+
     } else {
       final CFunctionDeclaration functionDeclaration = e.getDeclaration();
       if (functionDeclaration == null) {
@@ -170,30 +164,26 @@ public class RightHandSideToFormulaWithUFVisitor extends ExpressionToFormulaWith
       }
 
       final List<CType> formalParameterTypes = functionDeclaration.getType().getParameters();
-      // functionName += "{" + parameterTypes.size() + "}";
-      // add #arguments to function name to cope with vararg functions
-      // TODO: Handled above?
       if (formalParameterTypes.size() != parameters.size()) {
-        throw new UnrecognizedCCodeException("Function " + functionDeclaration + " received " +
-                                             parameters.size() + " parameters instead of the expected " +
-                                             formalParameterTypes.size(),
-                                             edge,
-                                             e);
+        throw new UnrecognizedCCodeException("Function " + functionDeclaration
+            + " received " + parameters.size() + " parameters"
+            + " instead of the expected " + formalParameterTypes.size(),
+            edge, e);
       }
 
       final List<Formula> arguments = new ArrayList<>(parameters.size());
-      final Iterator<CType> formalParameterTypesIterator = formalParameterTypes.iterator();
-      final Iterator<CExpression> parametersIterator = parameters.iterator();
-      while (formalParameterTypesIterator.hasNext() && parametersIterator.hasNext()) {
-        final CType formalParameterType = CTypeUtils.simplifyType(formalParameterTypesIterator.next());
-        CExpression parameter = parametersIterator.next();
+      final Iterator<CType> formalParameterTypesIt = formalParameterTypes.iterator();
+      final Iterator<CExpression> parametersIt = parameters.iterator();
+      while (formalParameterTypesIt.hasNext() && parametersIt.hasNext()) {
+        final CType formalParameterType = CTypeUtils.simplifyType(formalParameterTypesIt.next());
+        CExpression parameter = parametersIt.next();
         parameter = conv.makeCastFromArrayToPointerIfNecessary(parameter, formalParameterType);
 
         final CType actualParameterType = CTypeUtils.simplifyType(parameter.getExpressionType());
         final Formula argument = asValueFormula(parameter.accept(this), actualParameterType);
         arguments.add(conv.makeCast(actualParameterType, formalParameterType, argument, edge));
       }
-      assert !formalParameterTypesIterator.hasNext() && !parametersIterator.hasNext();
+      assert !formalParameterTypesIt.hasNext() && !parametersIt.hasNext();
 
       final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(resultType);
       return Value.ofValue(conv.ffmgr.createFuncAndCall(CToFormulaWithUFConverter.UF_NAME_PREFIX + functionName,
