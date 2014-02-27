@@ -240,7 +240,7 @@ class GlobalScope implements Scope {
         CComplexType otherType = (CComplexType) otherFile.getType().getCanonicalType();
         type = (CComplexType) type.getCanonicalType();
 
-        if (areEqualTypes(otherType, type)) {
+        if (areEqualTypes(otherType, type, false)) {
           type = otherType;
 
         } else {
@@ -279,7 +279,7 @@ class GlobalScope implements Scope {
       CComplexType knownType = (CComplexType) otherFile.getType().getCanonicalType();
       type = (CComplexType) type.getCanonicalType();
 
-      if (areEqualTypes(knownType, type)) {
+      if (areEqualTypes(knownType, type, false)) {
         declaration = alreadyDeclaratedTypesInOtherFiles.get(name);
       } else {
         declaration = createRenamedType(declaration, currentFile);
@@ -296,11 +296,14 @@ class GlobalScope implements Scope {
    * checked by our equality methods these are here checked additionally, but
    * only by name.
    */
-  private boolean areEqualTypes(CComplexType oldType, CComplexType forwardType) {
+  private boolean areEqualTypes(CComplexType oldType, CComplexType forwardType, boolean compareWithoutName) {
     boolean areEqual = false;
     oldType = (CComplexType) oldType.getCanonicalType();
     forwardType = (CComplexType) forwardType.getCanonicalType();
-    if (forwardType.equals(oldType)) {
+    if (forwardType.equals(oldType) ||
+        (compareWithoutName && forwardType.isConst() == oldType.isConst()
+            && forwardType.isVolatile() == oldType.isVolatile()
+            && forwardType.getKind() == oldType.getKind())) {
 
       if (forwardType instanceof CCompositeType) {
         List<CCompositeTypeMemberDeclaration> members = ((CCompositeType) forwardType).getMembers();
@@ -320,63 +323,7 @@ class GlobalScope implements Scope {
               if (!areEqual
                   && typeM1 instanceof CComplexType && typeM2 instanceof CComplexType
                   && (member1.contains("_anon_type_member") && member2.contains("_anon_type_member_"))) {
-                areEqual = areEqualAnonTypes((CComplexType)oldMembers.get(i).getType(), (CComplexType)members.get(i).getType());
-              }
-            }
-          }
-        }
-      } else if (forwardType instanceof CEnumType) {
-        List<CEnumerator> members = ((CEnumType) forwardType).getEnumerators();
-        List<CEnumerator> oldMembers = ((CEnumType) oldType).getEnumerators();
-
-        if (members.size() == oldMembers.size()) {
-          areEqual = true;
-          for (int i = 0; i < members.size() && areEqual; i++) {
-            areEqual = members.get(i).getName().equals(oldMembers.get(i).getName());
-          }
-        }
-      }
-    } else {
-
-    // in files where only a forwards declaration can be found but no complete
-    // type we assume that this type is equal to the before found type with the
-    // same name this also works when the elaborated type is the old type, the
-    // first type found which has the same name and a complete type will now be
-    // the realType of the oldType
-    areEqual = ((forwardType instanceof CElaboratedType && forwardType.getName().equals(oldType.getName()))
-               || (oldType instanceof CElaboratedType && oldType.getName().equals(forwardType.getName())));
-    }
-
-    return areEqual;
-  }
-
-  private boolean areEqualAnonTypes(CComplexType oldType, CComplexType forwardType) {
-    boolean areEqual = false;
-    oldType = (CComplexType) oldType.getCanonicalType();
-    forwardType = (CComplexType) forwardType.getCanonicalType();
-    if (forwardType.isConst() == oldType.isConst()
-        && forwardType.isVolatile() == oldType.isVolatile()
-        && forwardType.getKind() == oldType.getKind()) {
-
-      if (forwardType instanceof CCompositeType) {
-        List<CCompositeTypeMemberDeclaration> members = ((CCompositeType) forwardType).getMembers();
-        List<CCompositeTypeMemberDeclaration> oldMembers = ((CCompositeType) oldType).getMembers();
-
-        if (members.size() == oldMembers.size()) {
-          areEqual = true;
-          for (int i = 0; i < members.size() && areEqual; i++) {
-            String member1 = members.get(i).getName();
-            String member2 = oldMembers.get(i).getName();
-            if (member1 == null) {
-              areEqual = false;
-            } else {
-              areEqual = member1.equals(member2);
-              CType typeM1 = members.get(i).getType();
-              CType typeM2 = oldMembers.get(i).getType();
-              if (!areEqual
-                  && typeM1 instanceof CComplexType && typeM2 instanceof CComplexType
-                  && (member1.contains("_anon_type_member") || member2.contains("_anon_type_member_"))) {
-                areEqual = areEqualAnonTypes((CComplexType)oldMembers.get(i).getType(), (CComplexType)members.get(i).getType());
+                areEqual = areEqualTypes((CComplexType)oldMembers.get(i).getType(), (CComplexType)members.get(i).getType(), true);
               }
             }
           }
