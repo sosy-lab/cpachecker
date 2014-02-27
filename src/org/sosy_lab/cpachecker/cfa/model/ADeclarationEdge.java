@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.model;
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 
 import com.google.common.base.Optional;
@@ -32,10 +33,10 @@ public class ADeclarationEdge extends AbstractCFAEdge {
 
   protected final IADeclaration declaration;
 
-  protected ADeclarationEdge(final String pRawSignature, final int pLineNumber,
+  protected ADeclarationEdge(final String pRawSignature, final FileLocation pFileLocation,
       final CFANode pPredecessor, final CFANode pSuccessor, final IADeclaration pDeclaration) {
 
-    super(pRawSignature, pLineNumber, pPredecessor, pSuccessor);
+    super(pRawSignature, pFileLocation, pPredecessor, pSuccessor);
     declaration = pDeclaration;
   }
 

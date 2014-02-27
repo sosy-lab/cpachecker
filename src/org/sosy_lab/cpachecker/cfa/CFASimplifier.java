@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -182,8 +185,10 @@ public class CFASimplifier {
       // and a new blankedge is introduced
       if (left == right && left != null) {
         CFANode endNode = left;
-        removeNodesBetween(root, root, left, cfa);
-        CFAEdge blankEdge = new BlankEdge("skipped uneccesary edges", root.getLineNumber(), root, endNode, "skipped uneccesary edges");
+        List<FileLocation> removedFileLocations = new ArrayList<>();
+        removeNodesBetween(root, root, left, cfa, removedFileLocations);
+        CFAEdge blankEdge = new BlankEdge("skipped uneccesary edges",
+            FileLocation.merge(removedFileLocations), root, endNode, "skipped uneccesary edges");
         root.addLeavingEdge(blankEdge);
         endNode.addEnteringEdge(blankEdge);
 
@@ -213,7 +218,8 @@ public class CFASimplifier {
    * @param to the CFANode where the deletion should stop
    * @param cfa The cfa where the nodes have to be deleted, too
    */
-  private static void removeNodesBetween(CFANode from, CFANode actualFrom, CFANode to, MutableCFA cfa) {
+  private static void removeNodesBetween(CFANode from, CFANode actualFrom, CFANode to,
+      MutableCFA cfa, List<FileLocation> removedFileLocations) {
 
     // if actualFrom and From are the same, this is the first call of removeNodesBetween
     // so we know that the from node has two leaving (Assume)Edges
@@ -223,19 +229,21 @@ public class CFASimplifier {
 
       actualFrom.removeLeavingEdge(left);
       actualFrom.removeLeavingEdge(right);
+      removedFileLocations.add(left.getFileLocation());
+      removedFileLocations.add(right.getFileLocation());
 
       actualFrom = left.getSuccessor();
       actualFrom.removeEnteringEdge(left);
       if (actualFrom != to) {
         cfa.removeNode(actualFrom);
-        removeNodesBetween(from, actualFrom, to, cfa);
+        removeNodesBetween(from, actualFrom, to, cfa, removedFileLocations);
       }
 
       actualFrom = right.getSuccessor();
       actualFrom.removeEnteringEdge(right);
       if (actualFrom != to) {
         cfa.removeNode(actualFrom);
-        removeNodesBetween(from, actualFrom, to, cfa);
+        removeNodesBetween(from, actualFrom, to, cfa, removedFileLocations);
       }
 
     // if actualFrom and from are not equal, there should actually be exactly
@@ -245,10 +253,11 @@ public class CFASimplifier {
       actualFrom.removeLeavingEdge(edge);
       actualFrom = edge.getSuccessor();
       actualFrom.removeEnteringEdge(edge);
+      removedFileLocations.add(edge.getFileLocation());
 
       if (actualFrom != to) {
         cfa.removeNode(actualFrom);
-        removeNodesBetween(from, actualFrom, to, cfa);
+        removeNodesBetween(from, actualFrom, to, cfa, removedFileLocations);
       }
 
     // more or less than one leaving edge, this should never happen (if the method

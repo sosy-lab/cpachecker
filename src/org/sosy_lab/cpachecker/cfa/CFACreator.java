@@ -54,6 +54,7 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CParser.FileToParse;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -523,7 +524,7 @@ public class CFACreator {
             CFANode terminationNode = new CFATerminationNode(node.getLineNumber(), node.getFunctionName());
             BlankEdge terminationEdge =
                     new BlankEdge(leavingBlankEdge.getRawStatement(),
-                            leavingBlankEdge.getLineNumber(),
+                            leavingBlankEdge.getFileLocation(),
                             leavingBlankEdge.getPredecessor(),
                             terminationNode,
                             leavingBlankEdge.getDescription());
@@ -673,7 +674,7 @@ public class CFACreator {
     // insert one node to start the series of declarations
     CFANode cur = new CFANode(0, firstNode.getFunctionName());
     cfa.addNode(cur);
-    BlankEdge be = new BlankEdge("", 0, firstNode, cur, "INIT GLOBAL VARS");
+    BlankEdge be = new BlankEdge("", FileLocation.DUMMY, firstNode, cur, "INIT GLOBAL VARS");
     addToCFA(be);
 
     // create a series of GlobalDeclarationEdges, one for each declaration
@@ -687,19 +688,19 @@ public class CFACreator {
 
       if (cfa.getLanguage() == Language.C) {
         CDeclarationEdge e = new CDeclarationEdge(rawSignature,
-            d.getFileLocation().getStartingLineNumber(), cur, n, (CDeclaration) d);
+            d.getFileLocation(), cur, n, (CDeclaration) d);
         addToCFA(e);
         cur = n;
       } else if (cfa.getLanguage() == Language.JAVA) {
         JDeclarationEdge e = new JDeclarationEdge(rawSignature,
-            d.getFileLocation().getStartingLineNumber(), cur, n, (JDeclaration) d);
+            d.getFileLocation(), cur, n, (JDeclaration) d);
         addToCFA(e);
         cur = n;
       }
     }
 
     // and a blank edge connecting the declarations with the second node of CFA
-    be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode, firstEdge.getDescription());
+    be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getFileLocation(), cur, secondNode, firstEdge.getDescription());
     addToCFA(be);
   }
 

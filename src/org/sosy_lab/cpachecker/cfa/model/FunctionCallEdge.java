@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.model;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 
 import com.google.common.base.Optional;
@@ -37,9 +38,9 @@ public class FunctionCallEdge extends AbstractCFAEdge {
   protected final FunctionSummaryEdge summaryEdge;
 
 
-  protected FunctionCallEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor, CFANode pSuccessor,
+  protected FunctionCallEdge(String pRawStatement, FileLocation pFileLocation, CFANode pPredecessor, CFANode pSuccessor,
       AFunctionCall pFunctionCall, FunctionSummaryEdge pSummaryEdge) {
-    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
+    super(pRawStatement, pFileLocation, pPredecessor, pSuccessor);
     functionCall = pFunctionCall;
     summaryEdge = pSummaryEdge;
   }

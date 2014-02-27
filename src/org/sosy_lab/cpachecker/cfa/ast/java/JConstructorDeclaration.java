@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 public class JConstructorDeclaration extends JMethodDeclaration {
 
   private static final JConstructorDeclaration UNRESOLVED_CONSTRUCTOR =
-      new JConstructorDeclaration(new FileLocation(0, "", 0, 0, 0),
+      new JConstructorDeclaration(FileLocation.DUMMY,
           JConstructorType.createUnresolvableConstructorType(), "__UNRESOLVABLE__",
           "__UNRESOLVABLE__", new ArrayList<JParameterDeclaration>(), VisibilityModifier.NONE,
           false, JClassType.createUnresolvableType());
@@ -101,7 +101,7 @@ public class JConstructorDeclaration extends JMethodDeclaration {
     List<JType> parameterTypes = pConstructorType.getParameters();
     List<JParameterDeclaration> parameters = new ArrayList<>(parameterTypes.size());
 
-    FileLocation externFileLoc = new FileLocation(0, "", 0, 0, 0);
+    FileLocation externFileLoc = FileLocation.DUMMY;
 
 
     int i = 0;

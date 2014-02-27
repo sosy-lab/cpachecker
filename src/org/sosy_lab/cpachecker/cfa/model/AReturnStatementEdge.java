@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.model;
 
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 
 import com.google.common.base.Optional;
@@ -34,9 +35,9 @@ public class AReturnStatementEdge extends AbstractCFAEdge {
   protected final AReturnStatement rawAST;
 
   protected AReturnStatementEdge(String pRawStatement, AReturnStatement pRawAST,
-      int pLineNumber, CFANode pPredecessor, FunctionExitNode pSuccessor) {
+      FileLocation pFileLocation, CFANode pPredecessor, FunctionExitNode pSuccessor) {
 
-    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
+    super(pRawStatement, pFileLocation, pPredecessor, pSuccessor);
     rawAST = pRawAST;
   }
 

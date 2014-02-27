@@ -100,11 +100,10 @@ public class ExpressionSimplifier implements CFAVisitor {
     // this info is needed for all types of edges
     final CFANode start = oldEdge.getPredecessor();
     final CFANode end = oldEdge.getSuccessor();
-    final int line = oldEdge.getLineNumber();
     final String rawStatement = oldEdge.getRawStatement();
 
     final CFAEdge newEdge = getEdgeWithSimplifiedExpression(
-        oldEdge, start, end, line, rawStatement);
+        oldEdge, start, end, oldEdge.getFileLocation(), rawStatement);
 
     if (oldEdge != newEdge) {
       // something has changed, so we replace the edge with the new one.
@@ -140,7 +139,7 @@ public class ExpressionSimplifier implements CFAVisitor {
    * If nothing is changed (when nothing can be simplified),
    * the original edge-object is returned. */
   private CFAEdge getEdgeWithSimplifiedExpression(final CFAEdge edge,
-      final CFANode start, final CFANode end, final int line, final String raw) {
+      final CFANode start, final CFANode end, final FileLocation fileLocation, final String raw) {
 
     // clone correct type of edge
     switch (edge.getEdgeType()) {
@@ -153,7 +152,7 @@ public class ExpressionSimplifier implements CFAVisitor {
 
         if (newExp == exp) { return edge; }
 
-        return new CAssumeEdge(raw, line, start, end, newExp, e.getTruthAssumption());
+        return new CAssumeEdge(raw, fileLocation, start, end, newExp, e.getTruthAssumption());
 
       } else {
         throw new AssertionError(ONLY_C_SUPPORTED);
@@ -227,7 +226,7 @@ public class ExpressionSimplifier implements CFAVisitor {
           throw new AssertionError("unknown statement");
         }
 
-        return new CStatementEdge(raw, newStatement, line, start, end);
+        return new CStatementEdge(raw, newStatement, fileLocation, start, end);
 
       } else {
         throw new AssertionError(ONLY_C_SUPPORTED);
@@ -256,7 +255,7 @@ public class ExpressionSimplifier implements CFAVisitor {
           vdecl.isGlobal(), vdecl.getCStorageClass(), vdecl.getType(),
           vdecl.getName(), vdecl.getOrigName(), vdecl.getQualifiedName(), newInit);
 
-      return new CDeclarationEdge(raw, line, start, end, newDecl);
+      return new CDeclarationEdge(raw, fileLocation, start, end, newDecl);
     }
 
     case ReturnStatementEdge: {
@@ -278,7 +277,7 @@ public class ExpressionSimplifier implements CFAVisitor {
             retStatement.getFileLocation(), newExp);
 
         return new CReturnStatementEdge(raw, newRetStatement,
-            line, start, (FunctionExitNode) end);
+            fileLocation, start, (FunctionExitNode) end);
 
       } else {
         throw new AssertionError(ONLY_C_SUPPORTED);
@@ -301,7 +300,7 @@ public class ExpressionSimplifier implements CFAVisitor {
             list, fcExp.getDeclaration());
         final CFunctionCall newFc = new CFunctionCallStatement(loc, newFcExp);
 
-        return new CFunctionCallEdge(raw, line, start, (CFunctionEntryNode) end,
+        return new CFunctionCallEdge(raw, fileLocation, start, (CFunctionEntryNode) end,
             newFc, e.getSummaryEdge());
 
       } else {

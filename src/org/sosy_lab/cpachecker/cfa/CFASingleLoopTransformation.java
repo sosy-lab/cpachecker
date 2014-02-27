@@ -269,7 +269,7 @@ public class CFASingleLoopTransformation {
     CDeclaration pcDeclaration = new CVariableDeclaration(mainLocation, true, CStorageClass.AUTO, CNumericTypes.INT, pcVarName, pcVarName, pcVarName,
         new CInitializerExpression(mainLocation, new CIntegerLiteralExpression(mainLocation, CNumericTypes.INT, BigInteger.valueOf(pcValueOfStart))));
     CIdExpression pcIdExpression = new CIdExpression(mainLocation, pcDeclaration);
-    CFAEdge pcDeclarationEdge = new CDeclarationEdge(String.format("int %s = %d;", pcVarName, pcValueOfStart), 0, start, loopHead, pcDeclaration);
+    CFAEdge pcDeclarationEdge = new CDeclarationEdge(String.format("int %s = %d;", pcVarName, pcValueOfStart), FileLocation.DUMMY, start, loopHead, pcDeclaration);
     start.addLeavingEdge(pcDeclarationEdge);
     loopHead.addEnteringEdge(pcDeclarationEdge);
 
@@ -722,7 +722,7 @@ public class CFASingleLoopTransformation {
           CFAEdge replacementEdge = copyCFAEdgeWithNewNodes(edge, node, dummy, tmpMap);
           addToNodes(replacementEdge);
 
-          BlankEdge dummyEdge = new BlankEdge("", edge.getLineNumber(), dummy, successor, DUMMY_EDGE);
+          BlankEdge dummyEdge = new BlankEdge("", edge.getFileLocation(), dummy, successor, DUMMY_EDGE);
           addToNodes(dummyEdge);
 
           toAdd.add(dummy);
@@ -991,15 +991,15 @@ public class CFASingleLoopTransformation {
          */
         if (!toAdd.isEmpty()) {
           CAssumeEdge secondToLastFalseEdge = removeLast(toAdd);
-          CAssumeEdge newLastEdge = new CAssumeEdge(secondToLastFalseEdge.getRawStatement(), 0, secondToLastFalseEdge.getPredecessor(), lastTrueEdge.getSuccessor(),
+          CAssumeEdge newLastEdge = new CAssumeEdge(secondToLastFalseEdge.getRawStatement(), FileLocation.DUMMY, secondToLastFalseEdge.getPredecessor(), lastTrueEdge.getSuccessor(),
               secondToLastFalseEdge.getExpression(), false);
           toAdd.add(newLastEdge);
         } else {
-          BlankEdge edge = new BlankEdge("", 0, pLoopHead, lastTrueEdge.getSuccessor(), "");
+          BlankEdge edge = new BlankEdge("", FileLocation.DUMMY, pLoopHead, lastTrueEdge.getSuccessor(), "");
           addToNodes(edge);
         }
       } else {
-        BlankEdge defaultBackEdge = new BlankEdge("", 0, decisionTreeNode, pLoopHead, "Illegal program counter value");
+        BlankEdge defaultBackEdge = new BlankEdge("", FileLocation.DUMMY, decisionTreeNode, pLoopHead, "Illegal program counter value");
         addToNodes(defaultBackEdge);
       }
     }
@@ -1252,16 +1252,16 @@ public class CFASingleLoopTransformation {
    */
   private CFAEdge copyCFAEdgeWithNewNodes(CFAEdge pEdge, CFANode pNewPredecessor, CFANode pNewSuccessor, final SimpleMap<CFANode, CFANode> pNewToOldMapping) {
     String rawStatement = pEdge.getRawStatement();
-    int lineNumber = pEdge.getLineNumber();
+    FileLocation fileLocation = pEdge.getFileLocation();
     switch (pEdge.getEdgeType()) {
     case AssumeEdge:
       CAssumeEdge assumeEdge = (CAssumeEdge) pEdge;
-      return new CAssumeEdge(rawStatement, lineNumber, pNewPredecessor, pNewSuccessor, assumeEdge.getExpression(), assumeEdge.getTruthAssumption());
+      return new CAssumeEdge(rawStatement, fileLocation, pNewPredecessor, pNewSuccessor, assumeEdge.getExpression(), assumeEdge.getTruthAssumption());
     case BlankEdge:
-      return new BlankEdge(rawStatement, lineNumber, pNewPredecessor, pNewSuccessor, pEdge.getDescription());
+      return new BlankEdge(rawStatement, fileLocation, pNewPredecessor, pNewSuccessor, pEdge.getDescription());
     case DeclarationEdge:
       CDeclarationEdge declarationEdge = (CDeclarationEdge) pEdge;
-      return new CDeclarationEdge(rawStatement, lineNumber, pNewPredecessor, pNewSuccessor, declarationEdge.getDeclaration());
+      return new CDeclarationEdge(rawStatement, fileLocation, pNewPredecessor, pNewSuccessor, declarationEdge.getDeclaration());
     case FunctionCallEdge: {
       if (!(pNewSuccessor instanceof FunctionEntryNode)) {
         throw new IllegalArgumentException("The successor of a function call edge must be a function entry node.");
@@ -1276,7 +1276,7 @@ public class CFASingleLoopTransformation {
               pNewToOldMapping);
       addToNodes(functionSummaryEdge);
       Optional<CFunctionCall> cFunctionCall = functionCallEdge.getRawAST();
-      return new CFunctionCallEdge(rawStatement, lineNumber, pNewPredecessor, (CFunctionEntryNode) pNewSuccessor, cFunctionCall.orNull(), functionSummaryEdge);
+      return new CFunctionCallEdge(rawStatement, fileLocation, pNewPredecessor, (CFunctionEntryNode) pNewSuccessor, cFunctionCall.orNull(), functionSummaryEdge);
     }
     case FunctionReturnEdge:
       if (!(pNewPredecessor instanceof FunctionExitNode)) {
@@ -1294,7 +1294,7 @@ public class CFASingleLoopTransformation {
       }
       CFunctionSummaryEdge functionSummaryEdge = (CFunctionSummaryEdge) copyCFAEdgeWithNewNodes(oldSummaryEdge, pNewToOldMapping);
       addToNodes(functionSummaryEdge);
-      return new CFunctionReturnEdge(lineNumber, (FunctionExitNode) pNewPredecessor, pNewSuccessor, functionSummaryEdge);
+      return new CFunctionReturnEdge(fileLocation, (FunctionExitNode) pNewPredecessor, pNewSuccessor, functionSummaryEdge);
     case MultiEdge:
       MultiEdge multiEdge = (MultiEdge) pEdge;
       return new MultiEdge(pNewPredecessor, pNewSuccessor, FluentIterable.from(multiEdge.getEdges()).transform(new Function<CFAEdge, CFAEdge>() {
@@ -1316,17 +1316,17 @@ public class CFASingleLoopTransformation {
       }
       CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge) pEdge;
       Optional<CReturnStatement> cReturnStatement = returnStatementEdge.getRawAST();
-      return new CReturnStatementEdge(rawStatement, cReturnStatement.orNull(), lineNumber, pNewPredecessor, (FunctionExitNode) pNewSuccessor);
+      return new CReturnStatementEdge(rawStatement, cReturnStatement.orNull(), fileLocation, pNewPredecessor, (FunctionExitNode) pNewSuccessor);
     case StatementEdge:
       CStatementEdge statementEdge = (CStatementEdge) pEdge;
       if (statementEdge instanceof CFunctionSummaryStatementEdge) {
         CFunctionSummaryStatementEdge functionStatementEdge = (CFunctionSummaryStatementEdge) pEdge;
-        return new CFunctionSummaryStatementEdge(rawStatement, statementEdge.getStatement(), lineNumber, pNewPredecessor, pNewSuccessor, functionStatementEdge.getFunctionCall(), functionStatementEdge.getFunctionName());
+        return new CFunctionSummaryStatementEdge(rawStatement, statementEdge.getStatement(), fileLocation, pNewPredecessor, pNewSuccessor, functionStatementEdge.getFunctionCall(), functionStatementEdge.getFunctionName());
       }
-      return new CStatementEdge(rawStatement, statementEdge.getStatement(), lineNumber, pNewPredecessor, pNewSuccessor);
+      return new CStatementEdge(rawStatement, statementEdge.getStatement(), fileLocation, pNewPredecessor, pNewSuccessor);
     case CallToReturnEdge:
       CFunctionSummaryEdge cFunctionSummaryEdge = (CFunctionSummaryEdge) pEdge;
-      return new CFunctionSummaryEdge(rawStatement, lineNumber, pNewPredecessor, pNewSuccessor, cFunctionSummaryEdge.getExpression());
+      return new CFunctionSummaryEdge(rawStatement, fileLocation, pNewPredecessor, pNewSuccessor, cFunctionSummaryEdge.getExpression());
     default:
       throw new IllegalArgumentException("Unsupported edge type: " + pEdge.getEdgeType());
     }
@@ -1631,9 +1631,9 @@ public class CFASingleLoopTransformation {
 
     private int pcValue;
 
-    public CProgramCounterValueAssignmentEdge(String pRawStatement, CStatement pStatement, int pLineNumber,
+    public CProgramCounterValueAssignmentEdge(String pRawStatement, CStatement pStatement,
         CFANode pPredecessor, CFANode pSuccessor, int pPCValue) {
-      super(pRawStatement, pStatement, pLineNumber, pPredecessor, pSuccessor);
+      super(pRawStatement, pStatement, FileLocation.DUMMY, pPredecessor, pSuccessor);
       this.pcValue = pPCValue;
     }
 
@@ -1652,7 +1652,7 @@ public class CFASingleLoopTransformation {
     String rawStatement = String.format("%s = %d",  pPCIdExpression.getName(), pPCValue);
     CExpression assignmentExpression = new CIntegerLiteralExpression(pLocation, CNumericTypes.INT, BigInteger.valueOf(pPCValue));
     CStatement statement = new CExpressionAssignmentStatement(pLocation, pPCIdExpression, assignmentExpression);
-    return new CProgramCounterValueAssignmentEdge(rawStatement, statement , 0, pPredecessor, pSuccessor, pPCValue);
+    return new CProgramCounterValueAssignmentEdge(rawStatement, statement, pPredecessor, pSuccessor, pPCValue);
   }
 
   /**
@@ -1678,7 +1678,7 @@ public class CFASingleLoopTransformation {
 
     public CProgramCounterValueAssumeEdge(String pRawStatement, CFANode pPredecessor, CFANode pSuccessor,
         CExpression pExpression, boolean pTruthAssumption, int pPCValue) {
-      super(pRawStatement, 0, pPredecessor, pSuccessor, pExpression, pTruthAssumption);
+      super(pRawStatement, FileLocation.DUMMY, pPredecessor, pSuccessor, pExpression, pTruthAssumption);
       this.pcValue = pPCValue;
     }
 

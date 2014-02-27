@@ -149,8 +149,6 @@ public class ASTConverter {
 
   private static final boolean NOT_FINAL = false;
 
-  private static final int NO_LINE = 0;
-
   private static final int FIRST = 0;
 
   private static final int SECOND = 1;
@@ -377,11 +375,11 @@ public class ASTConverter {
    */
   public FileLocation getFileLocation(ASTNode l) {
     if (l == null) {
-      return new FileLocation(0, "", 0, 0, 0);
+      return FileLocation.DUMMY;
     } else if (l.getRoot().getNodeType() != ASTNode.COMPILATION_UNIT) {
       logger.log(Level.WARNING, "Can't find Placement Information for :"
           + l.toString());
-      return new FileLocation(0, "", 0, 0, 0);
+      return FileLocation.DUMMY;
     }
 
     CompilationUnit co = (CompilationUnit) l.getRoot();
@@ -2136,19 +2134,13 @@ public class ASTConverter {
     }
   }
 
-  JObjectReferenceReturn getConstructorObjectReturn(ITypeBinding declaringClass, FileLocation constructorFileLoc) {
+  JObjectReferenceReturn getConstructorObjectReturn(ITypeBinding declaringClass) {
 
     assert declaringClass.isClass() || declaringClass.isEnum() : declaringClass.getName() + " is not a Class";
 
-    FileLocation fileloc =
-        new FileLocation(constructorFileLoc.getEndingLineNumber(),
-            constructorFileLoc.getFileName(), NO_LINE,
-            constructorFileLoc.getEndingLineNumber(),
-            constructorFileLoc.getEndingLineNumber());
-
     JClassType objectReturnType = (JClassType) convert(declaringClass);
 
-    return new JObjectReferenceReturn(fileloc, objectReturnType);
+    return new JObjectReferenceReturn(FileLocation.DUMMY, objectReturnType);
   }
 
 
@@ -2191,14 +2183,12 @@ public class ASTConverter {
     List<JType> paramTypes = new LinkedList<>();
     List<JParameterDeclaration> param = new LinkedList<>();
 
-    FileLocation fileLoc = new FileLocation(0, "", 0, 0, 0);
-
     JConstructorType type = new JConstructorType((JClassType)
         convert(classBinding), paramTypes, false);
 
     String simpleName = classBinding.getName();
 
-    return new JConstructorDeclaration(fileLoc, type,
+    return new JConstructorDeclaration(FileLocation.DUMMY, type,
         NameConverter.convertDefaultConstructorName(classBinding),
         simpleName, param, VisibilityModifier.PUBLIC, false, type.getReturnType());
   }

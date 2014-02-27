@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.model.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
@@ -30,10 +31,10 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 public class CFunctionSummaryEdge extends FunctionSummaryEdge {
 
 
-  public CFunctionSummaryEdge(String pRawStatement, int pLineNumber,
+  public CFunctionSummaryEdge(String pRawStatement, FileLocation pFileLocation,
       CFANode pPredecessor, CFANode pSuccessor, CFunctionCall pExpression) {
 
-    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor, pExpression);
+    super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pExpression);
   }
 
   @Override

@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.model.c;
 
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
@@ -36,9 +37,9 @@ public class CReturnStatementEdge extends AReturnStatementEdge {
 
 
   public CReturnStatementEdge(String pRawStatement, CReturnStatement pRawAST,
-      int pLineNumber, CFANode pPredecessor, FunctionExitNode pSuccessor) {
+      FileLocation pFileLocation, CFANode pPredecessor, FunctionExitNode pSuccessor) {
 
-    super(pRawStatement, pRawAST, pLineNumber, pPredecessor, pSuccessor);
+    super(pRawStatement, pRawAST, pFileLocation, pPredecessor, pSuccessor);
 
   }
 
