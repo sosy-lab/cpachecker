@@ -743,14 +743,36 @@ class ASTConverter {
 
   private CRightHandSide convert(IASTFunctionCallExpression e) {
 
+    CExpression functionName = convertExpressionWithoutSideEffects(e.getFunctionNameExpression());
+    CFunctionDeclaration declaration = null;
+
+    if (functionName instanceof CIdExpression) {
+      if (((CIdExpression) functionName).getName().equals("__builtin_types_compatible_p")) {
+        sideAssignmentStack.enterBlock();
+        List<CExpression> params = new ArrayList<>();
+        for (IASTInitializerClause i : e.getArguments()) {
+          params.add(convertExpressionWithoutSideEffects(toExpression(i)));
+        }
+        sideAssignmentStack.getAndResetConditionalExpressions();
+        sideAssignmentStack.getAndResetPostSideAssignments();
+        sideAssignmentStack.getAndResetPreSideAssignments();
+        sideAssignmentStack.leaveBlock();
+        if (params.size() == 2) {
+          // TODO this is not completly right considering arrays and perhaps structs
+          // http://www.ocf.berkeley.edu/~pad/tigcc/doc/tigcclib/gnuexts_SEC104___builtin_types_compatible_p.html
+          if (areCompatibleTypes(params.get(0).getExpressionType(), params.get(1).getExpressionType())) {
+            return CNumericTypes.ONE;
+          } else {
+            return CNumericTypes.ZERO;
+          }
+        }
+      }
+    }
+
     List<CExpression> params = new ArrayList<>();
     for (IASTInitializerClause i : e.getArguments()) {
       params.add(convertExpressionWithoutSideEffects(toExpression(i)));
     }
-
-    CExpression functionName = convertExpressionWithoutSideEffects(e.getFunctionNameExpression());
-    CFunctionDeclaration declaration = null;
-
 
     if (functionName instanceof CIdExpression) {
       // this function is a gcc extension which checks if the given parameter is
@@ -804,6 +826,18 @@ class ASTConverter {
     }
 
     return new CFunctionCallExpression(getLocation(e), returnType, functionName, params, declaration);
+  }
+
+  // TODO this is not completly right considering arrays and perhaps structs
+  // http://www.ocf.berkeley.edu/~pad/tigcc/doc/tigcclib/gnuexts_SEC104___builtin_types_compatible_p.html
+  private boolean areCompatibleTypes(CType a, CType b) {
+    a = a.getCanonicalType(false, false);
+    b = b.getCanonicalType(false, false);
+    if (a.equals(b) ||
+        a instanceof CEnumType && b instanceof CEnumType) {
+      return true;
+    }
+    return false;
   }
 
   private CIdExpression convert(IASTIdExpression e) {
