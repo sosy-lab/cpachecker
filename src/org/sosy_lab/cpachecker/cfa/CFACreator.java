@@ -350,11 +350,6 @@ public class CFACreator {
         spbuilder.insertCallEdgesRecursively();
       }
 
-      if (useGlobalVars) {
-        // add global variables at the beginning of main
-        insertGlobalDeclarations(cfa, c.getGlobalDeclarations());
-      }
-
       // FIFTH, do post-processings on the supergraph
       // Mutating post-processings should be checked carefully for their effect
       // on the information collected above (such as loops and post-order ids).
@@ -540,6 +535,11 @@ public class CFACreator {
       cfa.addNode(nodeToAdd);
     }
 
+    if (useGlobalVars) {
+      // add global variables at the beginning of main
+      insertGlobalDeclarations(cfa, globalDeclarations);
+    }
+
     if (useMultiEdges) {
       MultiEdgeCreator.createMultiEdges(cfa);
     }
@@ -651,9 +651,9 @@ public class CFACreator {
   }
 
   /**
-   * Insert nodes for global declarations after first node of CFA.
+   * Insert nodes for global declarations after first node of the CFA of the main-function.
    */
-  private void insertGlobalDeclarations(final MutableCFA cfa, List<Pair<IADeclaration, String>> globalVars) {
+  private void insertGlobalDeclarations(final MutableCFA cfa, final List<Pair<IADeclaration, String>> globalVars) {
     if (globalVars.isEmpty()) {
       return;
     }
@@ -668,9 +668,7 @@ public class CFACreator {
     final FunctionEntryNode firstNode = cfa.getMainFunction();
     assert firstNode.getNumLeavingEdges() == 1;
     final CFAEdge firstEdge = firstNode.getLeavingEdge(0);
-    assert (firstEdge.getEdgeType() == CFAEdgeType.BlankEdge)
-            || (firstEdge.getEdgeType() == CFAEdgeType.MultiEdge
-                    && ((MultiEdge)firstEdge).getEdges().get(0).getEdgeType() == CFAEdgeType.BlankEdge);
+    assert firstEdge.getEdgeType() == CFAEdgeType.BlankEdge;
     final CFANode secondNode = firstEdge.getSuccessor();
 
     CFACreationUtils.removeEdgeFromNodes(firstEdge);
@@ -678,14 +676,11 @@ public class CFACreator {
     // now the first node is not connected to the second node,
     // we can add new edges between them and then reconnect the nodes
 
-    final List<CFANode> newNodes = new ArrayList<>();
-    final List<CFAEdge> newEdges = new ArrayList<>();
-
     // insert one node to start the series of declarations
     CFANode cur = new CFANode(0, firstNode.getFunctionName());
-    newNodes.add(cur);
+    cfa.addNode(cur);
     final CFAEdge newFirstEdge = new BlankEdge("", FileLocation.DUMMY, firstNode, cur, "INIT GLOBAL VARS");
-    newEdges.add(newFirstEdge);
+    CFACreationUtils.addEdgeUnconditionallyToCFA(newFirstEdge);
 
     // create a series of GlobalDeclarationEdges, one for each declaration
     for (Pair<? extends IADeclaration, String> p : globalVars) {
@@ -694,7 +689,7 @@ public class CFACreator {
       assert d.isGlobal();
 
       CFANode n = new CFANode(d.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
-      newNodes.add(n);
+      cfa.addNode(n);
 
       final CFAEdge newEdge;
       switch (cfa.getLanguage()) {
@@ -709,44 +704,13 @@ public class CFACreator {
       }
 
       CFACreationUtils.addEdgeUnconditionallyToCFA(newEdge);
-      newEdges.add(newEdge);
       cur = n;
     }
 
-    if (useMultiEdges) {
-      // build new MultiEdge, that contains all global declarations and the content of the old firstEdge
-
-      // the old first edge has the wrong predecessor, so we replace it with an updated 'copy'
-      final BlankEdge edgeToModify;
-      final int lengthOfNewEdges = newEdges.size();
-      if (firstEdge.getEdgeType() == CFAEdgeType.BlankEdge) {
-        edgeToModify = (BlankEdge)firstEdge;
-        newEdges.add(edgeToModify);
-      } else {
-        List<CFAEdge> multiEdgeContent = ((MultiEdge)firstEdge).getEdges();
-        edgeToModify = (BlankEdge)multiEdgeContent.get(0);
-        edgeToModify.getSuccessor().removeEnteringEdge(edgeToModify);
-        newEdges.addAll(multiEdgeContent);
-      }
-      final CFAEdge middleEdge = new BlankEdge(edgeToModify.getRawStatement(), edgeToModify.getFileLocation(),
-              cur, edgeToModify.getSuccessor(), edgeToModify.getDescription());
-      CFACreationUtils.addEdgeUnconditionallyToCFA(middleEdge);
-      newEdges.set(lengthOfNewEdges, middleEdge); // replace the old edge with the new middleEdge
-
-      final MultiEdge multiEdge = new MultiEdge(firstNode, secondNode, newEdges);
-      CFACreationUtils.addEdgeUnconditionallyToCFA(multiEdge);
-
-    } else {
-      // add a blank edge connecting the declarations with the (old) second node of CFA
-      final CFAEdge newLastEdge = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getFileLocation(),
-              cur, secondNode, firstEdge.getDescription());
-      CFACreationUtils.addEdgeUnconditionallyToCFA(newLastEdge);
-      CFACreationUtils.addEdgeUnconditionallyToCFA(newFirstEdge);
-      // directly add all nodes of the path to the CFA
-      for (final CFANode newNode : newNodes) {
-        cfa.addNode(newNode);
-      }
-    }
+    // add a blank edge connecting the declarations with the (old) second node of CFA
+    final CFAEdge newLastEdge = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getFileLocation(),
+            cur, secondNode, firstEdge.getDescription());
+    CFACreationUtils.addEdgeUnconditionallyToCFA(newLastEdge);
   }
 
   /**
