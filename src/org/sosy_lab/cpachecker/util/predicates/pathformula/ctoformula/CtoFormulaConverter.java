@@ -192,7 +192,7 @@ public class CtoFormulaConverter {
             "__string__", pointerType, FormulaType.RationalType);
   }
 
-  protected void logfOnce(Level level, CFAEdge edge, String msg, Object... args) {
+  void logfOnce(Level level, CFAEdge edge, String msg, Object... args) {
     if (logger.wouldBeLogged(level)) {
       logger.logfOnce(level, "%s: %s: %s",
           edge.getFileLocation(),
@@ -387,9 +387,6 @@ public class CtoFormulaConverter {
    */
   protected Formula makeConstant(String name, CType type) {
     return fmgr.makeVariable(getFormulaTypeFromCType(type), name);
-  }
-  protected Formula makeConstant(Variable var) {
-    return makeConstant(var.getName(), var.getType());
   }
 
   /**
@@ -720,7 +717,7 @@ public class CtoFormulaConverter {
     return ret;
   }
 
-  protected CType getPromotedCType(CType t) {
+  CType getPromotedCType(CType t) {
     t = t.getCanonicalType();
     if (t instanceof CSimpleType) {
       // Integer types smaller than int are promoted when an operation is performed on them.
@@ -1097,7 +1094,7 @@ public class CtoFormulaConverter {
       SSAMapBuilder ssa, PointerTargetSetBuilder pts,
       Constraints constraints, ErrorConditions errorConditions)
           throws UnrecognizedCCodeException {
-    return exp.accept(getCRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions));
+    return exp.accept(createCRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions));
   }
 
   Formula buildLvalueTerm(CLeftHandSide exp,
@@ -1136,13 +1133,13 @@ public class CtoFormulaConverter {
     throw new IllegalArgumentException("Assignment between different types");
   }
 
-  protected <T extends Formula> T ifTrueThenOneElseZero(FormulaType<T> type, BooleanFormula pCond) {
+  <T extends Formula> T ifTrueThenOneElseZero(FormulaType<T> type, BooleanFormula pCond) {
     T one = fmgr.makeNumber(type, 1);
     T zero = fmgr.makeNumber(type, 0);
     return bfmgr.ifThenElse(pCond, one, zero);
   }
 
-  protected <T extends Formula> BooleanFormula toBooleanFormula(T pF) {
+  protected final <T extends Formula> BooleanFormula toBooleanFormula(T pF) {
     // If this is not a predicate, make it a predicate by adding a "!= 0"
     assert !fmgr.getFormulaType(pF).isBooleanType();
 
@@ -1166,7 +1163,7 @@ public class CtoFormulaConverter {
   protected BooleanFormula makePredicate(CExpression exp, boolean isTrue, CFAEdge edge,
       String function, SSAMapBuilder ssa, PointerTargetSetBuilder pts, Constraints constraints, ErrorConditions errorConditions) throws UnrecognizedCCodeException {
 
-    Formula f = exp.accept(getCRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions));
+    Formula f = exp.accept(createCRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions));
     BooleanFormula result = toBooleanFormula(f);
 
     if (!isTrue) {
@@ -1187,7 +1184,7 @@ public class CtoFormulaConverter {
     return DummyPointerTargetSetBuilder.INSTANCE;
   }
 
-  protected CRightHandSideVisitor<Formula, UnrecognizedCCodeException> getCRightHandSideVisitor(
+  protected CRightHandSideVisitor<Formula, UnrecognizedCCodeException> createCRightHandSideVisitor(
       CFAEdge pEdge, String pFunction,
       SSAMapBuilder ssa, PointerTargetSetBuilder pts,
       Constraints constraints, ErrorConditions errorConditions) {

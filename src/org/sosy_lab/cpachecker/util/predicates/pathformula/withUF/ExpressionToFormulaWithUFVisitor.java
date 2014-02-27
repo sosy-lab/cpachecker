@@ -120,7 +120,6 @@ class ExpressionToFormulaWithUFVisitor extends DefaultCExpressionVisitor<Express
 
     this.conv = cToFormulaConverter;
     this.edge = cfaEdge;
-    this.function = function;
     this.ssa = ssa;
     this.constraints = constraints;
     this.errorConditions = errorConditions;
@@ -309,7 +308,7 @@ class ExpressionToFormulaWithUFVisitor extends DefaultCExpressionVisitor<Express
         }
         return UnaliasedLocation.ofVariableName(variableName);
       } else {
-        return Value.ofValue(conv.makeConstant(variable));
+        return Value.ofValue(conv.makeConstant(variable.getName(), variable.getType()));
       }
     } else {
       variable = conv.scopedIfNecessary(e);
@@ -333,7 +332,6 @@ class ExpressionToFormulaWithUFVisitor extends DefaultCExpressionVisitor<Express
       if (!(resultType instanceof CFunctionType)) {
         final Variable baseVariable = operand.accept(baseVisitor);
         if (baseVariable == null) {
-          final int oldUsedFieldsSize = usedFields.size();
           AliasedLocation addressExpression = null;
 
           if (errorConditions != null && operand instanceof CFieldReference) {
@@ -364,33 +362,27 @@ class ExpressionToFormulaWithUFVisitor extends DefaultCExpressionVisitor<Express
             addressExpression = operand.accept(this).asAliasedLocation();
           }
 
-          for (int i = oldUsedFieldsSize; i < usedFields.size(); i++) {
-            addressedFields.add(usedFields.get(i));
-          }
           return Value.ofValue(addressExpression.getAddress());
         } else {
-          final Variable oldBaseVariable = baseVisitor.getLastBase();
-          final Variable newBaseVariable = oldBaseVariable.withType(
-            CTypeUtils.getBaseType(oldBaseVariable.getType()));
-          final Formula baseAddress = conv.makeConstant(
-            newBaseVariable.withName(PointerTargetSet.getBaseName(oldBaseVariable.getName())));
+          final Variable base = baseVisitor.getLastBase();
+          final Formula baseAddress = conv.makeConstant(PointerTargetSet.getBaseName(base.getName()),
+                                                        CTypeUtils.getBaseType(base.getType()));
           conv.addValueImportConstraints(edge,
                                          baseAddress,
-                                         oldBaseVariable,
+                                         base,
                                          initializedFields,
                                          ssa,
                                          constraints,
                                          pts);
-          if (ssa.getIndex(oldBaseVariable.getName()) != CToFormulaWithUFConverter.VARIABLE_UNSET) {
-            ssa.deleteVariable(oldBaseVariable.getName());
+          if (ssa.getIndex(base.getName()) != CToFormulaWithUFConverter.VARIABLE_UNSET) {
+            ssa.deleteVariable(base.getName());
           }
-          conv.addPreFilledBase(newBaseVariable.getName(),
-                                oldBaseVariable.getType(),
-                                pts.isPreparedBase(newBaseVariable.getName()),
+          conv.addPreFilledBase(base.getName(),
+                                base.getType(),
+                                pts.isPreparedBase(base.getName()),
                                 false,
                                 constraints,
                                 pts);
-          sharedBases.add(Pair.of(newBaseVariable.getName(), oldBaseVariable.getType()));
           return visit(e);
         }
       } else {
@@ -474,45 +466,29 @@ class ExpressionToFormulaWithUFVisitor extends DefaultCExpressionVisitor<Express
     }
   }
 
-  public ImmutableList<Pair<CCompositeType, String>> getUsedFields() {
+  ImmutableList<Pair<CCompositeType, String>> getUsedFields() {
     return ImmutableList.copyOf(usedFields);
   }
 
-  public ImmutableList<Pair<CCompositeType, String>> getAddressedFields() {
-    return ImmutableList.copyOf(addressedFields);
-  }
-
-  public ImmutableList<Pair<CCompositeType, String>> getInitializedFields() {
+  ImmutableList<Pair<CCompositeType, String>> getInitializedFields() {
     return ImmutableList.copyOf(initializedFields);
   }
 
-  public ImmutableList<Pair<String, CType>> getSharedBases() {
-    return ImmutableList.copyOf(sharedBases);
-  }
-
-  public ImmutableMap<String, CType> getUsedDeferredAllocationPointers() {
+  ImmutableMap<String, CType> getUsedDeferredAllocationPointers() {
     return ImmutableMap.copyOf(usedDeferredAllocationPointers);
   }
 
-  // The protected fields are inherited by StatementToFormulaWithUFVisitor,
-  // expanding the functionality of this class to statements
-  protected final CToFormulaWithUFConverter conv;
-  protected final CFAEdge edge;
-  protected final String function;
-  protected final SSAMapBuilder ssa;
-  protected final Constraints constraints;
-  protected final ErrorConditions errorConditions;
-  protected final PointerTargetSetBuilder pts;
+  private final CToFormulaWithUFConverter conv;
+  private final CFAEdge edge;
+  private final SSAMapBuilder ssa;
+  private final Constraints constraints;
+  private final ErrorConditions errorConditions;
+  private final PointerTargetSetBuilder pts;
 
   private final BaseVisitor baseVisitor;
   private final ExpressionToFormulaVisitor delegate;
 
-  // This fields are made private to prevent reading them in StatementToFormulaWIthUFVisitor
-  // The accessors for these fields return the copies of the original collections, these copies can be
-  // safely saved and used later when the collections themselves will be modified
-  private final List<Pair<String, CType>> sharedBases = new ArrayList<>();
   private final List<Pair<CCompositeType, String>> usedFields = new ArrayList<>();
-  private final List<Pair<CCompositeType, String>> addressedFields = new ArrayList<>();
   private final List<Pair<CCompositeType, String>> initializedFields = new ArrayList<>();
   private final Map<String, CType> usedDeferredAllocationPointers = new HashMap<>();
 }

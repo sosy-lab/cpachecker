@@ -107,7 +107,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   @SuppressWarnings("hiding")
   final MachineModel machineModel = super.machineModel;
 
-  final CToFormulaWithUFTypeHandler typeHandler;
+  private final CToFormulaWithUFTypeHandler typeHandler;
   final PointerTargetSetManager ptsMgr;
 
   final FormulaType<?> voidPointerFormulaType;
@@ -462,7 +462,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   @Override
-  protected CRightHandSideVisitor<Formula, UnrecognizedCCodeException> getCRightHandSideVisitor(
+  protected CRightHandSideVisitor<Formula, UnrecognizedCCodeException> createCRightHandSideVisitor(
       CFAEdge pEdge, String pFunction,
       SSAMapBuilder pSsa, PointerTargetSetBuilder pPts,
       Constraints pConstraints, ErrorConditions pErrorConditions) {
@@ -716,28 +716,13 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   // Overrides just for visibility in other classes of this package
 
   @Override
-  protected CType getPromotedCType(CType pT) {
-    return super.getPromotedCType(pT);
-  }
-
-  @Override
   protected CType getReturnType(CFunctionCallExpression pFuncCallExp, CFAEdge pEdge) throws UnrecognizedCCodeException {
     return super.getReturnType(pFuncCallExp, pEdge);
   }
 
   @Override
-  protected <T extends Formula> T ifTrueThenOneElseZero(FormulaType<T> pType, BooleanFormula pCond) {
-    return super.ifTrueThenOneElseZero(pType, pCond);
-  }
-
-  @Override
   protected CExpression makeCastFromArrayToPointerIfNecessary(CExpression pExp, CType pTargetType) {
     return super.makeCastFromArrayToPointerIfNecessary(pExp, pTargetType);
-  }
-
-  @Override
-  protected <T extends Formula> BooleanFormula toBooleanFormula(T pF) {
-    return super.toBooleanFormula(pF);
   }
 
   @Override
@@ -749,11 +734,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   @Override
   protected Formula makeConstant(String pName, CType pType) {
     return super.makeConstant(pName, pType);
-  }
-
-  @Override
-  protected Formula makeConstant(Variable pVar) {
-    return super.makeConstant(pVar);
   }
 
   @Override
@@ -769,10 +749,5 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   @Override
   protected boolean isRelevantLeftHandSide(CLeftHandSide pLhs) {
     return super.isRelevantLeftHandSide(pLhs);
-  }
-
-  @Override
-  protected void logfOnce(Level pLevel, CFAEdge pEdge, String pMsg, Object... pArgs) {
-    super.logfOnce(pLevel, pEdge, pMsg, pArgs);
   }
 }

@@ -80,7 +80,7 @@ class StatementToFormulaVisitor implements CStatementVisitor<BooleanFormula, Unr
   public BooleanFormula visit(CFunctionCallStatement fexp) throws UnrecognizedCCodeException {
     // this is an external call
     // visit expression in order to print warnings if necessary
-    CRightHandSideVisitor<Formula, UnrecognizedCCodeException> ev = conv.getCRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions);
+    CRightHandSideVisitor<Formula, UnrecognizedCCodeException> ev = conv.createCRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions);
     fexp.getFunctionCallExpression().accept(ev);
     return conv.bfmgr.makeBoolean(true);
   }
