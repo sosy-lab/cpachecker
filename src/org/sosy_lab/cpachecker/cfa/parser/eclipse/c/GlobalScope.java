@@ -55,14 +55,13 @@ import com.google.common.collect.ImmutableMap;
  * (i.e., outside of functions).
  * Allows to register functions, types and global variables.
  */
-class GlobalScope implements Scope {
+class GlobalScope extends Scope {
 
   private final Map<String, CSimpleDeclaration> globalVars;
   private final Map<String, CFunctionDeclaration> functions;
   private final Map<String, CComplexTypeDeclaration> types;
   private final Map<String, CTypeDefDeclaration> typedefs;
   private final Map<String, CComplexTypeDeclaration> alreadyDeclaratedTypesInOtherFiles;
-  private final String currentFile;
 
   public GlobalScope(Map<String, CSimpleDeclaration> globalVars,
                      Map<String, CFunctionDeclaration> functions,
@@ -70,12 +69,12 @@ class GlobalScope implements Scope {
                      Map<String, CTypeDefDeclaration> typedefs,
                      Map<String, CComplexTypeDeclaration> alreadyDeclaratedTypesInOtherFiles,
                      String currentFile) {
+    super(currentFile);
     this.globalVars = globalVars;
     this.functions = functions;
     this.types = types;
     this.typedefs = typedefs;
     this.alreadyDeclaratedTypesInOtherFiles = alreadyDeclaratedTypesInOtherFiles;
-    this.currentFile = currentFile;
   }
 
   public GlobalScope() {
@@ -352,13 +351,6 @@ class GlobalScope implements Scope {
     }
 
     return areEqual;
-  }
-
-  /**
-   * Returns the name for the type as it would be if it is renamed.
-   */
-  private String getRenamedTypeName(String type) {
-    return type + "__" + currentFile;
   }
 
   /**

@@ -52,7 +52,7 @@ import com.google.common.collect.ImmutableMap;
  * Only variables can be declared.
  * Provides the mechanism to have nested scopes (i.e., inside {} blocks).
  */
-class FunctionScope implements Scope {
+class FunctionScope extends Scope {
 
   private final Map<String, CFunctionDeclaration> functions = new HashMap<>();
   private final Deque<Map<String, CComplexTypeDeclaration>> typesStack = new ArrayDeque<>();
@@ -64,20 +64,19 @@ class FunctionScope implements Scope {
 
 
   private String currentFunctionName = null;
-  private String currentFile = null;
 
   public FunctionScope(ImmutableMap<String, CFunctionDeclaration> pFunctions,
       ImmutableMap<String, CComplexTypeDeclaration> pTypes,
       ImmutableMap<String, CTypeDefDeclaration> pTypedefs,
       ImmutableMap<String, CSimpleDeclaration> pGlobalVars,
       String currentFile) {
+    super(currentFile);
 
     functions.putAll(pFunctions);
     typesStack.addLast(pTypes);
     typedefs.putAll(pTypedefs);
     varsStack.push(pGlobalVars);
     varsList.push(pGlobalVars);
-    this.currentFile = currentFile;
 
     enterBlock();
   }
@@ -178,13 +177,6 @@ class FunctionScope implements Scope {
       }
     }
     return null;
-  }
-
-  /**
-   * Returns the name for the type as it would be if it is renamed.
-   */
-  private String getRenamedTypeName(String type) {
-    return type + "__" + currentFile;
   }
 
   @Override

@@ -33,22 +33,27 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  * Provides a symbol table that maps variable and functions to their declaration
  * (if a name is visible in the current scope).
  */
-interface Scope {
+abstract class Scope {
+  protected String currentFile;
 
-  boolean isGlobalScope();
+  Scope(String currentFile) {
+    this.currentFile = currentFile;
+  }
 
-  boolean variableNameInUse(String name, String origName);
+  abstract boolean isGlobalScope();
 
-  CSimpleDeclaration lookupVariable(String name);
+  abstract boolean variableNameInUse(String name, String origName);
 
-  CFunctionDeclaration lookupFunction(String name);
+  abstract CSimpleDeclaration lookupVariable(String name);
+
+  abstract CFunctionDeclaration lookupFunction(String name);
 
   /**
    * Look up {@link CComplexType}s by their name.
    * @param name The fully qualified name (e.g., "struct s").
    * @return The CComplexType instance or null.
    */
-  CComplexType lookupType(String name);
+  abstract CComplexType lookupType(String name);
 
   /**
    * Look up {@link CType}s by the names of their typedefs.
@@ -61,20 +66,27 @@ interface Scope {
    * @param name typedef type name e.g. s_type
    * @return the type declared in typedef e.g. struct __anon_type_0
    */
-  CType lookupTypedef(String name);
+  abstract CType lookupTypedef(String name);
 
-  void registerDeclaration(CSimpleDeclaration declaration);
+  abstract void registerDeclaration(CSimpleDeclaration declaration);
 
   /**
    * Register a type, e.g., a new struct type.
    *
    * @return True if the type actually needs to be declared, False if the declaration can be omitted because the type is already known.
    */
-  boolean registerTypeDeclaration(CComplexTypeDeclaration declaration);
+  abstract boolean registerTypeDeclaration(CComplexTypeDeclaration declaration);
 
   /**
    * Take a name and return a name qualified with the current function
    * (if we are in a function).
    */
-  String createScopedNameOf(String name);
+  abstract String createScopedNameOf(String name);
+
+  /**
+   * Returns the name for the type as it would be if it is renamed.
+   */
+  protected String getRenamedTypeName(String type) {
+    return type + "__" + currentFile;
+  }
 }
