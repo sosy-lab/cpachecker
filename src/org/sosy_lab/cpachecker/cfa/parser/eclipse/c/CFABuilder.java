@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 import com.google.common.base.Function;
@@ -239,6 +240,13 @@ class CFABuilder extends ASTVisitor {
         fileScope.registerFunctionDeclaration((CFunctionDeclaration) newD);
       } else if (newD instanceof CComplexTypeDeclaration) {
           used = fileScope.registerTypeDeclaration((CComplexTypeDeclaration)newD);
+          if (used) {
+            String qualifiedName = ((CComplexType)newD.getType()).getQualifiedName();
+            CComplexType t = fileScope.lookupType(qualifiedName);
+            if (t!= null && !t.getQualifiedName().equals(qualifiedName)) {
+              newD = fileScope.getTypes().get(t.getQualifiedName());
+            }
+          }
       } else if (newD instanceof CTypeDefDeclaration) {
         used = fileScope.registerTypeDeclaration((CTypeDefDeclaration)newD);
       }
