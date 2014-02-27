@@ -469,7 +469,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       if (functionName.equals(CtoFormulaConverter.ASSUME_FUNCTION_NAME) && parameters.size() == 1) {
         final BooleanFormula condition = conv.makePredicate(parameters.get(0), true, edge, function, ssa, pts, constraints, errorConditions);
         constraints.addConstraint(condition);
-        return conv.makeFreshVariable(functionName, returnType, ssa);
+        return makeNondet(functionName, returnType);
 
       } else if (conv.options.isNondetFunction(functionName)
           || conv.options.isMemoryAllocationFunction(functionName)
@@ -477,7 +477,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
         // Function call like "random()".
         // Also "malloc()" etc. just return a random value, so handle them similarly.
         // Ignore parameters and just create a fresh variable for it.
-        return conv.makeFreshVariable(functionName, returnType, ssa);
+        return makeNondet(functionName, returnType);
 
       } else if (conv.options.isExternModelFunction(functionName)) {
         ExternModelLoader loader = new ExternModelLoader(conv.typeHandler, conv.bfmgr, conv.fmgr);
@@ -515,13 +515,13 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
           conv.logger.logfOnce(Level.WARNING, "Cannot get declaration of function %s, ignoring calls to it.",
                                functionNameExpression);
         }
-        return conv.makeFreshVariable(functionName, returnType, ssa); // BUG when expType = void
+        return makeNondet(functionName, returnType); // BUG when expType = void
       }
 
       if (functionDeclaration.getType().takesVarArgs()) {
         // Create a fresh variable instead of an UF for varargs functions.
         // This is sound but slightly more imprecise (we loose the UF axioms).
-        return conv.makeFreshVariable(functionName, returnType, ssa);
+        return makeNondet(functionName, returnType);
       }
 
       final List<CType> formalParameterTypes = functionDeclaration.getType().getParameters();
@@ -549,5 +549,9 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(realReturnType);
       return conv.ffmgr.createFuncAndCall(functionName, resultFormulaType, arguments);
     }
+  }
+
+  protected Formula makeNondet(final String varName, final CType type) {
+    return conv.makeFreshVariable(varName, type, ssa);
   }
 }
