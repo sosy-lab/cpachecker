@@ -127,11 +127,12 @@ class GlobalScope implements Scope {
 
   @Override
   public CComplexType lookupType(String name) {
-    CComplexTypeDeclaration declaration = types.get(checkNotNull(name));
+    checkNotNull(name);
+    CComplexTypeDeclaration declaration = types.get(getRenamedTypeName(name));
     if (declaration != null) {
       return declaration.getType();
     } else {
-      declaration = types.get(name + currentFile);
+      declaration = types.get(name);
       if (declaration != null) {
         return declaration.getType();
       }
@@ -246,7 +247,7 @@ class GlobalScope implements Scope {
         } else {
           // remove wrong named declaration from types map
           types.remove(name);
-          declaration = createRenamedType(declaration, currentFile);
+          declaration = createRenamedType(declaration);
           name = declaration.getType().getQualifiedName();
         }
 
@@ -282,7 +283,7 @@ class GlobalScope implements Scope {
       if (areEqualTypes(knownType, type, false)) {
         declaration = alreadyDeclaratedTypesInOtherFiles.get(name);
       } else {
-        declaration = createRenamedType(declaration, currentFile);
+        declaration = createRenamedType(declaration);
         name = declaration.getType().getQualifiedName();
       }
     }
@@ -354,12 +355,19 @@ class GlobalScope implements Scope {
   }
 
   /**
+   * Returns the name for the type as it would be if it is renamed.
+   */
+  private String getRenamedTypeName(String type) {
+    return type + "__" + currentFile;
+  }
+
+  /**
    * This method creates a new CComplexTypeDeclaration with an unoccupied name for
    * unequal types with the same name.
    */
-  private CComplexTypeDeclaration createRenamedType(CComplexTypeDeclaration newD, String suffix) {
+  private CComplexTypeDeclaration createRenamedType(CComplexTypeDeclaration newD) {
     CComplexType oldType = newD.getType();
-    String newName = oldType.getName() + suffix;
+    String newName = getRenamedTypeName(oldType.getName());
 
     if (oldType instanceof CCompositeType) {
       CCompositeType ct = new CCompositeType(oldType.isConst(), oldType.isVolatile(), oldType.getKind(),

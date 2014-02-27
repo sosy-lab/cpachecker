@@ -293,7 +293,8 @@ class CFABuilder extends ASTVisitor {
     FunctionScope localScope = new FunctionScope(actScope.getFunctions(),
                                                  actScope.getTypes(),
                                                  actScope.getTypeDefs(),
-                                                 actScope.getGlobalVars());
+                                                 actScope.getGlobalVars(),
+                                                 fileName);
     CFAFunctionBuilder functionBuilder;
 
     try {

@@ -202,7 +202,7 @@ class ASTTypeConverter {
       // We have seen this type already.
       // Replace it with a CElaboratedType.
       if (oldType != null) {
-        return new CElaboratedType(false, false, kind, name, oldType);
+        return new CElaboratedType(false, false, kind, oldType.getName(), oldType);
       }
 
       // empty linkedList for the Fields of the struct, they are created afterwards
@@ -414,7 +414,11 @@ class ASTTypeConverter {
   private CType conv(final IEnumeration e) {
     // TODO we ignore the enumerators here
     CComplexType realType = scope.lookupType("enum " + e.getName());
-    return new CElaboratedType(false, false, ComplexTypeKind.ENUM, e.getName(), realType);
+    String name = e.getName();
+    if (realType != null) {
+      name = realType.getName();
+    }
+    return new CElaboratedType(false, false, ComplexTypeKind.ENUM, name, realType);
   }
 
   /** converts types BOOL, INT,..., PointerTypes, ComplexTypes */
@@ -519,11 +523,9 @@ class ASTTypeConverter {
     }
 
     String name = ASTConverter.convert(d.getName());
-    CComplexType realType = scope.lookupType(type.toASTString() + " " + name + filePrefix);
+    CComplexType realType = scope.lookupType(type.toASTString() + " " + name);
     if (realType != null) {
       name = realType.getName();
-    } else {
-      realType = scope.lookupType(type.toASTString() + " " + name);
     }
 
     return new CElaboratedType(d.isConst(), d.isVolatile(), type, name, realType);

@@ -64,17 +64,20 @@ class FunctionScope implements Scope {
 
 
   private String currentFunctionName = null;
+  private String currentFile = null;
 
   public FunctionScope(ImmutableMap<String, CFunctionDeclaration> pFunctions,
       ImmutableMap<String, CComplexTypeDeclaration> pTypes,
       ImmutableMap<String, CTypeDefDeclaration> pTypedefs,
-      ImmutableMap<String, CSimpleDeclaration> pGlobalVars) {
+      ImmutableMap<String, CSimpleDeclaration> pGlobalVars,
+      String currentFile) {
 
     functions.putAll(pFunctions);
     typesStack.addLast(pTypes);
     typedefs.putAll(pTypedefs);
     varsStack.push(pGlobalVars);
     varsList.push(pGlobalVars);
+    this.currentFile = currentFile;
 
     enterBlock();
   }
@@ -83,7 +86,8 @@ class FunctionScope implements Scope {
     this(ImmutableMap.<String, CFunctionDeclaration>of(),
          ImmutableMap.<String, CComplexTypeDeclaration>of(),
          ImmutableMap.<String, CTypeDefDeclaration>of(),
-         ImmutableMap.<String, CSimpleDeclaration>of());
+         ImmutableMap.<String, CSimpleDeclaration>of(),
+         "");
   }
 
   @Override
@@ -163,12 +167,24 @@ class FunctionScope implements Scope {
     while (it.hasNext()) {
       Map<String, CComplexTypeDeclaration> types = it.next();
 
-      CComplexTypeDeclaration declaration = types.get(name);
+      CComplexTypeDeclaration declaration = types.get(getRenamedTypeName(name));
       if (declaration != null) {
         return declaration.getType();
+      } else {
+        declaration = types.get(name);
+        if (declaration != null) {
+          return declaration.getType();
+        }
       }
     }
     return null;
+  }
+
+  /**
+   * Returns the name for the type as it would be if it is renamed.
+   */
+  private String getRenamedTypeName(String type) {
+    return type + "__" + currentFile;
   }
 
   @Override
