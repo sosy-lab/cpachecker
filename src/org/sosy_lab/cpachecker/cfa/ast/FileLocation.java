@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.*;
 
 import java.util.List;
 import java.util.Objects;
@@ -48,8 +48,8 @@ public class FileLocation {
   public FileLocation(int pEndineLine, String pFileName, String pNiceFileName,
       int pLength, int pOffset, int pStartingLine, int pStartingLineInOrigin) {
     endineLine = pEndineLine;
-    fileName = pFileName;
-    niceFileName = pNiceFileName;
+    fileName = checkNotNull(pFileName);
+    niceFileName = checkNotNull(pNiceFileName);
     length = pLength;
     offset = pOffset;
     startingLine = pStartingLine;
