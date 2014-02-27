@@ -37,7 +37,6 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -195,19 +194,10 @@ public class CtoFormulaConverter {
 
   protected void logfOnce(Level level, CFAEdge edge, String msg, Object... args) {
     if (logger.wouldBeLogged(level)) {
-      logger.logfOnce(level, "Line %d: %s: %s",
-          edge.getLineNumber(),
+      logger.logfOnce(level, "%s: %s: %s",
+          edge.getFileLocation(),
           String.format(msg, args),
           edge.getDescription());
-    }
-  }
-
-  void logfOnce(Level level, CAstNode astNode, String msg, Object... args) {
-    if (logger.wouldBeLogged(level)) {
-      logger.logfOnce(level, "Line %d: %s: %s",
-          astNode.getFileLocation().getStartingLineNumber(),
-          String.format(msg, args),
-          astNode.toASTString());
     }
   }
 
@@ -883,7 +873,8 @@ public class CtoFormulaConverter {
     final String varName = decl.getQualifiedName();
 
     if (!isRelevantVariable(decl)) {
-      logfOnce(Level.FINEST, decl, "Ignoring declaration of unused variable %s.", decl);
+      logger.logfOnce(Level.FINEST, "%s: Ignoring declaration of unused variable: %s",
+          decl.getFileLocation(), decl.toASTString());
       return bfmgr.makeBoolean(true);
     }
 
@@ -1328,7 +1319,8 @@ public class CtoFormulaConverter {
     if (makeFresh) {
       logger.logOnce(Level.WARNING, "Program contains array, or pointer (multiple level of indirection), or field (enable handleFieldAccess and handleFieldAliasing) access; analysis is imprecise in case of aliasing.");
     }
-    logfOnce(Level.FINEST, exp, "Unhandled expression treated as free variable");
+    logger.logfOnce(Level.FINEST, "%s: Unhandled expression treated as free variable: %s",
+        exp.getFileLocation(), exp.toASTString());
 
     String var = scoped(exprToVarName(exp), function);
     return makeVariable(var, exp.getExpressionType(), ssa, makeFresh);

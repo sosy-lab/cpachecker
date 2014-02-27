@@ -283,10 +283,9 @@ public class CFunctionPointerResolver {
 
     if (funcs.isEmpty()) {
       // no possible targets, we leave the CFA unchanged and print a warning
-      logger.log(Level.WARNING, "Function pointer", nameExp.toASTString(),
-          "with type", nameExp.getExpressionType().toASTString("*"),
-          "is called in line", statement.getLineNumber() + ",",
-          "but no possible target functions were found.");
+      logger.logf(Level.WARNING, "%s: Function pointer %s with type %s is called,"
+          + " but no possible target functions were found.",
+          statement.getFileLocation(), nameExp.toASTString(), nameExp.getExpressionType().toASTString("*"));
       return;
     }
 

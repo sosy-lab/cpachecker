@@ -507,7 +507,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   private static String getLogMessage(final String msg, final CFAEdge edge) {
-    return "Line " + edge.getLineNumber()
+    return edge.getFileLocation()
             + ": " + msg
             + ": " + edge.getDescription();
   }
