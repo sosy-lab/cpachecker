@@ -467,7 +467,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       SSAMapBuilder pSsa, PointerTargetSetBuilder pPts,
       Constraints pConstraints, ErrorConditions pErrorConditions) {
 
-    RightHandSideToFormulaWithUFVisitor rhsVisitor = new RightHandSideToFormulaWithUFVisitor(this, pEdge, pFunction, pSsa, pConstraints, pErrorConditions, pPts);
+    ExpressionToFormulaWithUFVisitor rhsVisitor = new ExpressionToFormulaWithUFVisitor(this, pEdge, pFunction, pSsa, pConstraints, pErrorConditions, pPts);
     return rhsVisitor.asFormulaVisitor();
   }
 

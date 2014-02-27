@@ -27,6 +27,10 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.typ
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -36,9 +40,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
@@ -52,25 +59,36 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetBuilder;
 
-public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
+public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException>
+                                        implements CRightHandSideVisitor<Formula, UnrecognizedCCodeException> {
 
-  final CtoFormulaConverter conv;
-  final CFAEdge       edge;
-  final String        function;
-  final SSAMapBuilder ssa;
-  final Constraints   constraints;
+  private final CtoFormulaConverter conv;
+  private final CFAEdge       edge;
+  private final String        function;
+  private final SSAMapBuilder ssa;
+  private final PointerTargetSetBuilder pts;
+  private final Constraints   constraints;
+  private final ErrorConditions errorConditions;
 
-  public ExpressionToFormulaVisitor(CtoFormulaConverter pCtoFormulaConverter, CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
+  public ExpressionToFormulaVisitor(CtoFormulaConverter pCtoFormulaConverter,
+      CFAEdge pEdge, String pFunction,
+      SSAMapBuilder pSsa, PointerTargetSetBuilder pPts,
+      Constraints pCo, ErrorConditions pErrorConditions) {
     conv = pCtoFormulaConverter;
     edge = pEdge;
     function = pFunction;
     ssa = pSsa;
+    pts = pPts;
     constraints = pCo;
+    errorConditions = pErrorConditions;
   }
 
   @Override
@@ -436,5 +454,100 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
         conv
           .getFormulaTypeFromCType(pExp.getExpressionType()),
         conv.getSizeof(pCType));
+  }
+
+  @Override
+  public Formula visit(CFunctionCallExpression e) throws UnrecognizedCCodeException {
+    final CExpression functionNameExpression = e.getFunctionNameExpression();
+    final CType returnType = e.getExpressionType();
+    final List<CExpression> parameters = e.getParameterExpressions();
+
+    // First let's handle special cases such as assumes, allocations, nondets, external models, etc.
+    final String functionName;
+    if (functionNameExpression instanceof CIdExpression) {
+      functionName = ((CIdExpression)functionNameExpression).getName();
+      if (functionName.equals(CtoFormulaConverter.ASSUME_FUNCTION_NAME) && parameters.size() == 1) {
+        final BooleanFormula condition = conv.makePredicate(parameters.get(0), true, edge, function, ssa, pts, constraints, errorConditions);
+        constraints.addConstraint(condition);
+        return conv.makeFreshVariable(functionName, returnType, ssa);
+
+      } else if (conv.options.isNondetFunction(functionName)
+          || conv.options.isMemoryAllocationFunction(functionName)
+          || conv.options.isMemoryAllocationFunctionWithZeroing(functionName)) {
+        // Function call like "random()".
+        // Also "malloc()" etc. just return a random value, so handle them similarly.
+        // Ignore parameters and just create a fresh variable for it.
+        return conv.makeFreshVariable(functionName, returnType, ssa);
+
+      } else if (conv.options.isExternModelFunction(functionName)) {
+        ExternModelLoader loader = new ExternModelLoader(conv.typeHandler, conv.bfmgr, conv.fmgr);
+        BooleanFormula result = loader.handleExternModelFunction(e, parameters, ssa);
+        FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(e.getExpressionType());
+        return conv.ifTrueThenOneElseZero(returnFormulaType, result);
+
+      } else if (CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
+        throw new UnsupportedCCodeException(CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.get(functionName), edge, e);
+
+      } else if (!CtoFormulaConverter.PURE_EXTERNAL_FUNCTIONS.contains(functionName)) {
+        if (parameters.isEmpty()) {
+          // function of arity 0
+          conv.logger.logOnce(Level.INFO, "Assuming external function", functionName, "to be a constant function.");
+        } else {
+          conv.logger.logOnce(Level.INFO, "Assuming external function", functionName, "to be a pure function.");
+        }
+      }
+    } else {
+      conv.logfOnce(Level.WARNING, edge, "Ignoring function call through function pointer %s", functionNameExpression);
+      String escapedName = CtoFormulaConverter.scoped(CtoFormulaConverter.exprToVarName(functionNameExpression), function);
+      functionName = ("<func>{" + escapedName + "}").intern();
+    }
+
+    // Now let's handle "normal" functions assumed to be pure
+    if (parameters.isEmpty()) {
+      // This is a function of arity 0 and we assume its constant.
+      return conv.makeConstant(functionName, returnType);
+
+    } else {
+      final CFunctionDeclaration functionDeclaration = e.getDeclaration();
+      if (functionDeclaration == null) {
+        if (functionNameExpression instanceof CIdExpression) {
+          // This happens only if there are undeclared functions.
+          conv.logger.logfOnce(Level.WARNING, "Cannot get declaration of function %s, ignoring calls to it.",
+                               functionNameExpression);
+        }
+        return conv.makeFreshVariable(functionName, returnType, ssa); // BUG when expType = void
+      }
+
+      if (functionDeclaration.getType().takesVarArgs()) {
+        // Create a fresh variable instead of an UF for varargs functions.
+        // This is sound but slightly more imprecise (we loose the UF axioms).
+        return conv.makeFreshVariable(functionName, returnType, ssa);
+      }
+
+      final List<CType> formalParameterTypes = functionDeclaration.getType().getParameters();
+      if (formalParameterTypes.size() != parameters.size()) {
+        throw new UnrecognizedCCodeException("Function " + functionDeclaration
+            + " received " + parameters.size() + " parameters"
+            + " instead of the expected " + formalParameterTypes.size(),
+            edge, e);
+      }
+
+      final List<Formula> arguments = new ArrayList<>(parameters.size());
+      final Iterator<CType> formalParameterTypesIt = formalParameterTypes.iterator();
+      final Iterator<CExpression> parametersIt = parameters.iterator();
+      while (formalParameterTypesIt.hasNext() && parametersIt.hasNext()) {
+        final CType formalParameterType = formalParameterTypesIt.next();
+        CExpression parameter = parametersIt.next();
+        parameter = conv.makeCastFromArrayToPointerIfNecessary(parameter, formalParameterType);
+
+        Formula argument = parameter.accept(this);
+        arguments.add(conv.makeCast(parameter.getExpressionType(), formalParameterType, argument, edge));
+      }
+      assert !formalParameterTypesIt.hasNext() && !parametersIt.hasNext();
+
+      final CType realReturnType = conv.getReturnType(e, edge);
+      final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(realReturnType);
+      return conv.ffmgr.createFuncAndCall(functionName, resultFormulaType, arguments);
+    }
   }
 }

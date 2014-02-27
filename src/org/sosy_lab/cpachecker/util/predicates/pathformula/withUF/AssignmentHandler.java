@@ -126,7 +126,7 @@ class AssignmentHandler {
         (!(rhs instanceof CFunctionCallExpression) ||
          !(((CFunctionCallExpression) rhs).getFunctionNameExpression() instanceof CIdExpression) ||
          !conv.options.isNondetFunction(((CIdExpression)((CFunctionCallExpression) rhs).getFunctionNameExpression()).getName()))) {
-      RightHandSideToFormulaWithUFVisitor rhsVisitor = new RightHandSideToFormulaWithUFVisitor(conv, edge, function, ssa, constraints, errorConditions, pts);
+      ExpressionToFormulaWithUFVisitor rhsVisitor = new ExpressionToFormulaWithUFVisitor(conv, edge, function, ssa, constraints, errorConditions, pts);
       rhsExpression = rhs.accept(rhsVisitor);
       pts.addEssentialFields(rhsVisitor.getInitializedFields());
       rhsUsedFields = rhsVisitor.getUsedFields();

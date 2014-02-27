@@ -1200,7 +1200,7 @@ public class CtoFormulaConverter {
       CFAEdge pEdge, String pFunction,
       SSAMapBuilder ssa, PointerTargetSetBuilder pts,
       Constraints constraints, ErrorConditions errorConditions) {
-    return new RightHandSideToFormulaVisitor(this, pEdge, pFunction, ssa, pts, constraints, errorConditions);
+    return new ExpressionToFormulaVisitor(this, pEdge, pFunction, ssa, pts, constraints, errorConditions);
   }
 
   /**
