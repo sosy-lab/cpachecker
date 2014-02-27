@@ -28,8 +28,6 @@ import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.*;
 import java.util.Set;
 import java.util.logging.Level;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -49,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
+import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 
 /** This Class build binary expression.
@@ -122,9 +121,8 @@ public class CBinaryExpressionBuilder {
   *
   * @param pMachineModel where to get info about types, for casting and overflows
   * @param pLogger logging
-  * @param pEdge only for logging, not needed
   */
-  public CBinaryExpressionBuilder(MachineModel pMachineModel, LogManager pLogger) {
+  public CBinaryExpressionBuilder(MachineModel pMachineModel, LogManager pLogger){
     this.logger = pLogger;
     this.machineModel = pMachineModel;
   }
@@ -160,8 +158,8 @@ public class CBinaryExpressionBuilder {
       calculationType = resultType = t2;
 
     } else {
-      calculationType = getCalculationTypeForBinaryOperation(t1, t2, op);
-      resultType = getResultTypeForBinaryOperation(t1, t2, op);
+      calculationType = getCalculationTypeForBinaryOperation(t1, t2, op, op1, op2);
+      resultType = getResultTypeForBinaryOperation(t1, t2, op, op1, op2);
     }
 
     return new CBinaryExpression(op1.getFileLocation(), resultType, calculationType, op1, op2, op);
@@ -197,10 +195,11 @@ public class CBinaryExpressionBuilder {
    * @param pType1 type of the first operand
    * @param pType2 type of the second operand
    * @param pBinOperator used to get the result-type
+   * @param op1, op2 for logging only
    */
   @VisibleForTesting
   CType getResultTypeForBinaryOperation(final CType pType1, final CType pType2,
-      final BinaryOperator pBinOperator) {
+      final BinaryOperator pBinOperator, final CExpression op1, final CExpression op2) {
     /*
      * ISO-C99 (6.5.8 #6): Relational operators
      * Each of the operators <, >, <=, and >= shall yield 1
@@ -219,17 +218,17 @@ public class CBinaryExpressionBuilder {
      * The type of the result is that of the promoted left operand.
      */
     if (shiftOperators.contains(pBinOperator)) {
-      assert integerTypes.contains(((CSimpleType) pType1).getType());
-      assert integerTypes.contains(((CSimpleType) pType2).getType());
+      checkIntegerType(pType1, pBinOperator, op1);
+      checkIntegerType(pType2, pBinOperator, op2);
       return getPromotedCType((CSimpleType) pType1);
     }
 
     if (bitwiseOperators.contains(pBinOperator)) {
-      assert integerTypes.contains(((CSimpleType) pType1).getType());
-      assert integerTypes.contains(((CSimpleType) pType2).getType());
+      checkIntegerType(pType1, pBinOperator, op1);
+      checkIntegerType(pType2, pBinOperator, op2);
     }
 
-    return getCalculationTypeForBinaryOperation(pType1, pType2, pBinOperator);
+    return getCalculationTypeForBinaryOperation(pType1, pType2, pBinOperator, op1, op2);
   }
 
 
@@ -263,11 +262,11 @@ public class CBinaryExpressionBuilder {
    *
    * @param pType1 type of the first operand
    * @param pType2 type of the second operand
-   * @param pBinOperator for logging and some checks. Not needed, if both types are 'simple'.
+   * @param pBinOperator, op1, op2 for logging only
    */
   @VisibleForTesting
   CType getCalculationTypeForBinaryOperation(CType pType1, CType pType2,
-      final BinaryOperator pBinOperator) {
+      final BinaryOperator pBinOperator, final CExpression op1, final CExpression op2) {
 
     /* CalculationType of SHIFT is the type of the first operand.
      *
@@ -276,8 +275,8 @@ public class CBinaryExpressionBuilder {
      * The type of the result is that of the promoted left operand.
      */
     if (shiftOperators.contains(pBinOperator)) {
-      assert integerTypes.contains(((CSimpleType) pType1).getType());
-      assert integerTypes.contains(((CSimpleType) pType2).getType());
+      checkIntegerType(pType1, pBinOperator, op1);
+      checkIntegerType(pType2, pBinOperator, op2);
       return getPromotedCType((CSimpleType) pType1);
     }
 
@@ -294,8 +293,8 @@ public class CBinaryExpressionBuilder {
     }
 
 
-    if (pType1 instanceof CSimpleType) { return getSecondTypeToSimpleType(pType2, pBinOperator); }
-    if (pType2 instanceof CSimpleType) { return getSecondTypeToSimpleType(pType1, pBinOperator); }
+    if (pType1 instanceof CSimpleType) { return getSecondTypeToSimpleType(pType2, pBinOperator, op1, op2); }
+    if (pType2 instanceof CSimpleType) { return getSecondTypeToSimpleType(pType1, pBinOperator, op1, op2); }
 
 
     // both are pointer or function-pointer
@@ -304,8 +303,10 @@ public class CBinaryExpressionBuilder {
 
       if (pBinOperator == BinaryOperator.MINUS) { return machineModel.getPointerDiffType(); }
 
-      assert relationalOperators.contains(pBinOperator) : ""
-          + "unusual calculation " + pBinOperator + " with two pointer-operands.";
+      if (!relationalOperators.contains(pBinOperator)){
+        throw new CFAGenerationRuntimeException("unusual calculation " + pBinOperator + " with two pointer-operands.",
+                getDummyBinExprForLogging(pBinOperator, op1, op2));
+      }
 
       // we compare function-pointer and function, so return function-pointer
       if (pType1 instanceof CPointerType && pType2 instanceof CFunctionType) {
@@ -339,25 +340,26 @@ public class CBinaryExpressionBuilder {
    * This method does not depend on the first type.
    *
    * @param pType type to analyse
-   * @param pBinOperator for checks only
-   * @param pBinExp for logging only
+   * @param pBinOperator, op1, op2 for checks and logging only
    */
   private CType getSecondTypeToSimpleType(final CType pType,
-      @Nullable final BinaryOperator pBinOperator) {
+      final BinaryOperator pBinOperator, final CExpression op1, final CExpression op2) {
 
     // if one type is an pointer, return the pointer.
     if (pType instanceof CPointerType) {
-      assert additiveOperators.contains(pBinOperator)
-          || relationalOperators.contains(pBinOperator) : ""
-          + "unusual calculation " + pBinOperator + " with pointer-operand: ";
+      if (!additiveOperators.contains(pBinOperator) && !relationalOperators.contains(pBinOperator)) {
+        throw new CFAGenerationRuntimeException("unusual calculation " + pBinOperator + " with pointer-operand",
+                getDummyBinExprForLogging(pBinOperator, op1,  op2));
+      }
       return pType;
     }
 
     // if one type is an array, return the pointer-equivalent to the array-type.
     if (pType instanceof CArrayType) {
-      assert additiveOperators.contains(pBinOperator)
-          || relationalOperators.contains(pBinOperator) : ""
-          + "unusual calculation " + pBinOperator + "with array-operand: ";
+      if (!additiveOperators.contains(pBinOperator) && !relationalOperators.contains(pBinOperator)) {
+        throw new CFAGenerationRuntimeException("unusual calculation " + pBinOperator + " with array-operand",
+                getDummyBinExprForLogging(pBinOperator, op1,  op2));
+      }
       final CArrayType at = ((CArrayType) pType);
       return new CPointerType(at.isConst(), at.isVolatile(), at.getType());
     }
@@ -523,5 +525,17 @@ public class CBinaryExpressionBuilder {
     default:
       throw new AssertionError("unhandled CSimpleType: " + t);
     }
+  }
+
+  /** only for logging or exceptions */
+  private static CBinaryExpression getDummyBinExprForLogging(
+          final BinaryOperator pBinOperator, final CExpression op1, final CExpression op2) {
+    return new CBinaryExpression(op1.getFileLocation(), null, null, op1, op2, pBinOperator);
+  }
+
+  private static void checkIntegerType(final CType pType, final BinaryOperator op, CExpression e) {
+    if (!integerTypes.contains(((CSimpleType) pType).getType())) {
+      throw new CFAGenerationRuntimeException("unexpected type " + pType + " for operation " + op, e);
+    };
   }
 }
