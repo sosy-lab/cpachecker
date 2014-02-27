@@ -170,7 +170,6 @@ public class PredicateManager {
   /** This function returns a region for a variable.
    * This function does not track any statistics. */
   private Region createPredicateDirectly(@Nullable final String functionName, final String varName, final int index) {
-    System.out.println(((functionName == null) ? varName : functionName + "::" + varName) + "@" + index);
     return rmgr.createPredicate(((functionName == null) ? varName : functionName + "::" + varName) + "@" + index);
   }
 
