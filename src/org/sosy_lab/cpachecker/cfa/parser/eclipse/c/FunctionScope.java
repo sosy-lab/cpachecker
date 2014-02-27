@@ -61,7 +61,6 @@ class FunctionScope implements Scope {
   private final Deque<Map<String, CLabelNode>> labelsNodeStack = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsStack = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsList = new ArrayDeque<>();
-  private final Map<String, CComplexTypeDeclaration> alreadyDeclaratedTypesInOtherFiles;
 
 
   private String currentFunctionName = null;
@@ -69,15 +68,13 @@ class FunctionScope implements Scope {
   public FunctionScope(ImmutableMap<String, CFunctionDeclaration> pFunctions,
       ImmutableMap<String, CComplexTypeDeclaration> pTypes,
       ImmutableMap<String, CTypeDefDeclaration> pTypedefs,
-      ImmutableMap<String, CSimpleDeclaration> pGlobalVars,
-      Map<String, CComplexTypeDeclaration> pAlreadyDeclaratedTypesInOtherFiles) {
+      ImmutableMap<String, CSimpleDeclaration> pGlobalVars) {
 
     functions.putAll(pFunctions);
     typesStack.addLast(pTypes);
     typedefs.putAll(pTypedefs);
     varsStack.push(pGlobalVars);
     varsList.push(pGlobalVars);
-    alreadyDeclaratedTypesInOtherFiles = pAlreadyDeclaratedTypesInOtherFiles;
 
     enterBlock();
   }
@@ -86,8 +83,7 @@ class FunctionScope implements Scope {
     this(ImmutableMap.<String, CFunctionDeclaration>of(),
          ImmutableMap.<String, CComplexTypeDeclaration>of(),
          ImmutableMap.<String, CTypeDefDeclaration>of(),
-         ImmutableMap.<String, CSimpleDeclaration>of(),
-         new HashMap<String, CComplexTypeDeclaration>());
+         ImmutableMap.<String, CSimpleDeclaration>of());
   }
 
   @Override
