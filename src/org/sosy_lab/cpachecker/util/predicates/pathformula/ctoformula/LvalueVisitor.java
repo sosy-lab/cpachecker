@@ -39,26 +39,32 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetBuilder;
 
 import com.google.common.base.Optional;
 
-class LvalueVisitor extends
-    DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
+class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
 
-  protected final CtoFormulaConverter conv;
-  protected final CFAEdge       edge;
-  protected final String        function;
-  protected final SSAMapBuilder ssa;
-  protected final Constraints   constraints;
+  private final CtoFormulaConverter conv;
+  private final CFAEdge       edge;
+  private final String        function;
+  private final SSAMapBuilder ssa;
+  private final PointerTargetSetBuilder pts;
+  private final Constraints   constraints;
+  private final ErrorConditions errorConditions;
 
-  public LvalueVisitor(CtoFormulaConverter pCtoFormulaConverter, CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
-    conv = pCtoFormulaConverter;
+  LvalueVisitor(CtoFormulaConverter pConv, CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa,
+      PointerTargetSetBuilder pPts, Constraints pConstraints, ErrorConditions pErrorConditions) {
+    conv = pConv;
     edge = pEdge;
     function = pFunction;
     ssa = pSsa;
-    constraints = pCo;
+    pts = pPts;
+    constraints = pConstraints;
+    errorConditions = pErrorConditions;
   }
 
   @Override
@@ -120,7 +126,7 @@ class LvalueVisitor extends
     // as constraint add that all other fields (the rest of the bitvector) remains the same.
     CExpression owner = getRealFieldOwner(fexp);
     // This will just create the formula with the current ssa-index.
-    Formula oldStructure = conv.buildTerm(owner, edge, function, ssa, constraints);
+    Formula oldStructure = conv.buildTerm(owner, edge, function, ssa, pts, constraints, errorConditions);
     // This will eventually increment the ssa-index and return the new formula.
     Formula newStructure = owner.accept(this);
 

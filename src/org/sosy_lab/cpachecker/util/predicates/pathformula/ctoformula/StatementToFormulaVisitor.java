@@ -23,22 +23,41 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetBuilder;
 
-public class StatementToFormulaVisitor extends RightHandSideToFormulaVisitor implements CStatementVisitor<BooleanFormula, UnrecognizedCCodeException> {
+class StatementToFormulaVisitor implements CStatementVisitor<BooleanFormula, UnrecognizedCCodeException> {
 
-  public StatementToFormulaVisitor(ExpressionToFormulaVisitor pDelegate) {
-    super(pDelegate);
+  private final CtoFormulaConverter conv;
+  private final CFAEdge       edge;
+  private final String        function;
+  private final SSAMapBuilder ssa;
+  private final PointerTargetSetBuilder pts;
+  private final Constraints   constraints;
+  private final ErrorConditions errorConditions;
+
+  StatementToFormulaVisitor( CtoFormulaConverter pConv,
+      CFAEdge pEdge, String pFunction,
+      SSAMapBuilder pSsa, PointerTargetSetBuilder pPts,
+      Constraints pConstraints, ErrorConditions pErrorConditions) {
+    conv = pConv;
+    edge = pEdge;
+    function = pFunction;
+    ssa = pSsa;
+    pts = pPts;
+    constraints = pConstraints;
+    errorConditions = pErrorConditions;
   }
 
   @Override
@@ -47,49 +66,22 @@ public class StatementToFormulaVisitor extends RightHandSideToFormulaVisitor imp
     return conv.bfmgr.makeBoolean(true);
   }
 
-  /**
-   * Creates formula for the given assignment.
-   * @param assignment the assignment to process
-   * @return the assignment formula
-   * @throws UnrecognizedCCodeException
-   */
-  public BooleanFormula handleAssignment(final CLeftHandSide lhs,
-      CRightHandSide rhs) throws UnrecognizedCCodeException {
-    if (!conv.isRelevantLeftHandSide(lhs)) {
-      // Optimization for unused variables and fields
-      return conv.bfmgr.makeBoolean(true);
-    }
-
-    if (rhs instanceof CExpression) {
-      rhs = conv.makeCastFromArrayToPointerIfNecessary((CExpression)rhs, lhs.getExpressionType());
-    }
-
-    Formula r = rhs.accept(this);
-    Formula l = conv.buildLvalueTerm(lhs, edge, function, ssa, constraints);
-    r = conv.makeCast(
-          rhs.getExpressionType(),
-          lhs.getExpressionType(),
-          r,
-          edge);
-
-    return conv.fmgr.assignment(l, r);
-  }
-
   @Override
   public BooleanFormula visit(CExpressionAssignmentStatement assignment) throws UnrecognizedCCodeException {
-    return handleAssignment(assignment.getLeftHandSide(), assignment.getRightHandSide());
+    return conv.makeAssignment(assignment.getLeftHandSide(), assignment.getRightHandSide(), edge, function, ssa, pts, constraints, errorConditions);
   }
 
   @Override
   public BooleanFormula visit(CFunctionCallAssignmentStatement assignment) throws UnrecognizedCCodeException {
-    return handleAssignment(assignment.getLeftHandSide(), assignment.getRightHandSide());
+    return conv.makeAssignment(assignment.getLeftHandSide(), assignment.getRightHandSide(), edge, function, ssa, pts, constraints, errorConditions);
   }
 
   @Override
   public BooleanFormula visit(CFunctionCallStatement fexp) throws UnrecognizedCCodeException {
     // this is an external call
     // visit expression in order to print warnings if necessary
-    visit(fexp.getFunctionCallExpression());
+    CRightHandSideVisitor<Formula, UnrecognizedCCodeException> ev = conv.getCRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions);
+    fexp.getFunctionCallExpression().accept(ev);
     return conv.bfmgr.makeBoolean(true);
   }
 }

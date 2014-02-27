@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.ForwardingCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -43,22 +42,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 
-class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula, UnrecognizedCCodeException>
+class RightHandSideToFormulaVisitor extends ExpressionToFormulaVisitor
                                      implements CRightHandSideVisitor<Formula, UnrecognizedCCodeException> {
 
-  final CtoFormulaConverter conv;
-  final CFAEdge       edge;
-  final String        function;
-  final SSAMapBuilder ssa;
-  final Constraints   constraints;
-
-  public RightHandSideToFormulaVisitor(ExpressionToFormulaVisitor pDelegate) {
-    super(pDelegate);
-    conv = pDelegate.conv;
-    edge = pDelegate.edge;
-    function = pDelegate.function;
-    ssa = pDelegate.ssa;
-    constraints = pDelegate.constraints;
+  public RightHandSideToFormulaVisitor(CtoFormulaConverter pCtoFormulaConverter,
+      CFAEdge pEdge, String pFunction,
+      SSAMapBuilder pSsa, Constraints pCo) {
+    super(pCtoFormulaConverter, pEdge, pFunction, pSsa, pCo);
   }
 
   @Override

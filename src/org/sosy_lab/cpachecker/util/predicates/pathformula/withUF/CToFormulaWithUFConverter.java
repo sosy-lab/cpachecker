@@ -54,6 +54,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -63,7 +65,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
@@ -460,13 +461,14 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return new RealPointerTargetSetBuilder(pts, fmgr, ptsMgr, options);
   }
 
-  private StatementToFormulaWithUFVisitor getStatementToFormulaWithUFVisitor(final CFAEdge cfaEdge,
-                                                                             final String function,
-                                                                             final SSAMapBuilder ssa,
-                                                                             final Constraints constraints,
-                                                                             final ErrorConditions errorConditions,
-                                                                             final PointerTargetSetBuilder pts) {
-    return new StatementToFormulaWithUFVisitor(this, cfaEdge, function, ssa, constraints, errorConditions, pts);
+  @Override
+  protected CRightHandSideVisitor<Formula, UnrecognizedCCodeException> getCRightHandSideVisitor(
+      CFAEdge pEdge, String pFunction,
+      SSAMapBuilder pSsa, PointerTargetSetBuilder pPts,
+      Constraints pConstraints, ErrorConditions pErrorConditions) {
+
+    RightHandSideToFormulaWithUFVisitor rhsVisitor = new RightHandSideToFormulaWithUFVisitor(this, pEdge, pFunction, pSsa, pConstraints, pErrorConditions, pPts);
+    return rhsVisitor.asFormulaVisitor();
   }
 
   @Override
@@ -494,7 +496,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   @Override
   protected BooleanFormula makeAssignment(
-      final CLeftHandSide lhs, final CExpression rhs,
+      final CLeftHandSide lhs, final CRightHandSide rhs,
       final CFAEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
@@ -514,17 +516,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     if (logger.wouldBeLogged(Level.ALL)) {
       logger.log(Level.ALL, getLogMessage(msg, edge));
     }
-  }
-
-  @Override
-  protected BooleanFormula makeStatement(
-      final CStatementEdge statement, final String function,
-      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
-      final Constraints constraints, final ErrorConditions errorConditions)
-          throws CPATransferException {
-    final StatementToFormulaWithUFVisitor statementVisitor =
-        getStatementToFormulaWithUFVisitor(statement, function, ssa, constraints, errorConditions, pts);
-    return statement.getStatement().accept(statementVisitor);
   }
 
   @Override

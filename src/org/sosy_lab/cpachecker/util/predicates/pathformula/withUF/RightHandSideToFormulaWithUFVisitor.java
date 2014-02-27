@@ -28,10 +28,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.AdaptingCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -51,10 +53,37 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Val
 public class RightHandSideToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
                                                  implements CRightHandSideVisitor<Expression, UnrecognizedCCodeException> {
 
+  private static class AdaptingRightHandSideToFormulaVisitor extends AdaptingCExpressionVisitor<Formula, Expression, UnrecognizedCCodeException>
+                                                             implements CRightHandSideVisitor<Formula, UnrecognizedCCodeException> {
+
+    private AdaptingRightHandSideToFormulaVisitor(RightHandSideToFormulaWithUFVisitor pDelegate) {
+      super(pDelegate);
+    }
+
+    @Override
+    protected Formula convert(Expression value, CExpression rhs) throws UnrecognizedCCodeException {
+      return convert(value, rhs);
+    }
+
+    private Formula convert(Expression value, CRightHandSide rhs) throws UnrecognizedCCodeException {
+      CType type = CTypeUtils.simplifyType(rhs.getExpressionType());
+      return ((RightHandSideToFormulaWithUFVisitor)delegate).asValueFormula(value, type);
+    }
+
+    @Override
+    public Formula visit(CFunctionCallExpression e) throws UnrecognizedCCodeException {
+      return convert(((RightHandSideToFormulaWithUFVisitor)delegate).visit(e), e);
+    }
+  }
+
   public RightHandSideToFormulaWithUFVisitor(CToFormulaWithUFConverter pCToFormulaConverter, CFAEdge pCfaEdge,
       String pFunction, SSAMapBuilder pSsa, Constraints pConstraints, ErrorConditions pErrorConditions,
       PointerTargetSetBuilder pPts) {
     super(pCToFormulaConverter, pCfaEdge, pFunction, pSsa, pConstraints, pErrorConditions, pPts);
+  }
+
+  public CRightHandSideVisitor<Formula, UnrecognizedCCodeException> asFormulaVisitor() {
+    return new AdaptingRightHandSideToFormulaVisitor(this);
   }
 
   @Override

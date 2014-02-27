@@ -54,6 +54,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -861,7 +863,7 @@ public class CtoFormulaConverter {
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
           throws CPATransferException {
-    StatementToFormulaVisitor v = getStatementVisitor(statement, function, ssa, constraints);
+    StatementToFormulaVisitor v = new StatementToFormulaVisitor(this, statement, function, ssa, pts, constraints, errorConditions);
     return statement.getStatement().accept(v);
   }
 
@@ -919,7 +921,7 @@ public class CtoFormulaConverter {
       }
     }
 
-    StatementToFormulaVisitor v = getStatementVisitor(edge, function, ssa, constraints);
+    StatementToFormulaVisitor v = new StatementToFormulaVisitor(this, edge, function, ssa, pts, constraints, errorConditions);
 
     for (CExpressionAssignmentStatement assignment : CInitializers.convertToAssignments(decl, edge)) {
       result = bfmgr.and(result, assignment.accept(v));
@@ -1067,25 +1069,52 @@ public class CtoFormulaConverter {
         retVarName, retVarName, scoped(retVarName, functionDeclaration.getName()), null);
   }
 
+  /**
+   * Creates formula for the given assignment.
+   * @param assignment the assignment to process
+   * @return the assignment formula
+   * @throws UnrecognizedCCodeException
+   */
   protected BooleanFormula makeAssignment(
-      final CLeftHandSide lhs, final CExpression rhs,
+      final CLeftHandSide lhs, CRightHandSide rhs,
       final CFAEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
           throws UnrecognizedCCodeException {
 
-    StatementToFormulaVisitor statementVisitor = getStatementVisitor(edge, function, ssa, constraints);
-    return statementVisitor.handleAssignment(lhs, rhs);
+    if (!isRelevantLeftHandSide(lhs)) {
+      // Optimization for unused variables and fields
+      return bfmgr.makeBoolean(true);
+    }
+
+    if (rhs instanceof CExpression) {
+      rhs = makeCastFromArrayToPointerIfNecessary((CExpression)rhs, lhs.getExpressionType());
+    }
+
+    RightHandSideToFormulaVisitor rhsVisitor = new RightHandSideToFormulaVisitor(this, edge, function, ssa, constraints);
+    Formula r = rhs.accept(rhsVisitor);
+    Formula l = buildLvalueTerm(lhs, edge, function, ssa, pts, constraints, errorConditions);
+    r = makeCast(
+          rhs.getExpressionType(),
+          lhs.getExpressionType(),
+          r,
+          edge);
+
+    return fmgr.assignment(l, r);
   }
 
   Formula buildTerm(CExpression exp, CFAEdge edge, String function,
-      SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
-    return exp.accept(getCExpressionVisitor(edge, function, ssa, constraints));
+      SSAMapBuilder ssa, PointerTargetSetBuilder pts,
+      Constraints constraints, ErrorConditions errorConditions)
+          throws UnrecognizedCCodeException {
+    return exp.accept(getCRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions));
   }
 
-  Formula buildLvalueTerm(CLeftHandSide exp, CFAEdge edge, String function,
-      SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
-    return exp.accept(getLvalueVisitor(edge, function, ssa, constraints));
+  Formula buildLvalueTerm(CLeftHandSide exp,
+      CFAEdge edge, String function,
+      SSAMapBuilder ssa, PointerTargetSetBuilder pts,
+      Constraints constraints, ErrorConditions errorConditions) throws UnrecognizedCCodeException {
+    return exp.accept(new LvalueVisitor(this, edge, function, ssa, pts, constraints, errorConditions));
   }
 
   BooleanFormula makeNondetAssignment(Formula left, Formula right) {
@@ -1147,7 +1176,7 @@ public class CtoFormulaConverter {
   protected BooleanFormula makePredicate(CExpression exp, boolean isTrue, CFAEdge edge,
       String function, SSAMapBuilder ssa, PointerTargetSetBuilder pts, Constraints constraints, ErrorConditions errorConditions) throws UnrecognizedCCodeException {
 
-    Formula f = exp.accept(getCExpressionVisitor(edge, function, ssa, constraints));
+    Formula f = exp.accept(getCRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions));
     BooleanFormula result = toBooleanFormula(f);
 
     if (!isTrue) {
@@ -1168,19 +1197,11 @@ public class CtoFormulaConverter {
     return DummyPointerTargetSetBuilder.INSTANCE;
   }
 
-  private StatementToFormulaVisitor getStatementVisitor(CFAEdge pEdge, String pFunction,
-      SSAMapBuilder pSsa, Constraints pConstraints) {
-    ExpressionToFormulaVisitor ev = getCExpressionVisitor(pEdge, pFunction, pSsa, pConstraints);
-    return new StatementToFormulaVisitor(ev);
-  }
-
-  private ExpressionToFormulaVisitor getCExpressionVisitor(CFAEdge pEdge, String pFunction,
-      SSAMapBuilder pSsa, Constraints pCo) {
-    return new ExpressionToFormulaVisitor(this, pEdge, pFunction, pSsa, pCo);
-  }
-
-  private LvalueVisitor getLvalueVisitor(CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
-    return new LvalueVisitor(this, pEdge, pFunction, pSsa, pCo);
+  protected CRightHandSideVisitor<Formula, UnrecognizedCCodeException> getCRightHandSideVisitor(
+      CFAEdge pEdge, String pFunction,
+      SSAMapBuilder ssa, PointerTargetSetBuilder pts,
+      Constraints constraints, ErrorConditions errorConditions) {
+    return new RightHandSideToFormulaVisitor(this, pEdge, pFunction, ssa, constraints);
   }
 
   /**
