@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
+import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.collect.SortedSetMultimap;
@@ -93,6 +94,7 @@ class CFABuilder extends ASTVisitor {
   private GlobalScope fileScope = new GlobalScope();
   private GlobalScope globalScope = new GlobalScope();
   private ASTConverter astCreator;
+  private final Function<String, String> niceFileNameFunction;
 
   private final MachineModel machine;
   private final LogManager logger;
@@ -104,9 +106,11 @@ class CFABuilder extends ASTVisitor {
   private Sideassignments sideAssignmentStack = null;
 
   public CFABuilder(Configuration pConfig, LogManager pLogger,
+      Function<String, String> pNiceFileNameFunction,
       MachineModel pMachine) throws InvalidConfigurationException {
 
     logger = pLogger;
+    niceFileNameFunction = pNiceFileNameFunction;
     machine = pMachine;
     config = pConfig;
 
@@ -126,7 +130,7 @@ class CFABuilder extends ASTVisitor {
                                 new HashMap<String, CTypeDefDeclaration>(),
                                 globalScope.getTypes(),
                                 staticVariablePrefix);
-    astCreator = new ASTConverter(config, fileScope, logger, machine, staticVariablePrefix, true, sideAssignmentStack);
+    astCreator = new ASTConverter(config, fileScope, logger, niceFileNameFunction, machine, staticVariablePrefix, true, sideAssignmentStack);
     functionDeclarations.add(Pair.of((List<IASTFunctionDefinition>)new ArrayList<IASTFunctionDefinition>(), Pair.of(staticVariablePrefix, fileScope)));
 
     ast.accept(this);
@@ -294,8 +298,8 @@ class CFABuilder extends ASTVisitor {
     CFAFunctionBuilder functionBuilder;
 
     try {
-      functionBuilder = new CFAFunctionBuilder(config, logger, localScope, machine,
-          fileName, sideAssignmentStack, checkBinding);
+      functionBuilder = new CFAFunctionBuilder(config, logger, localScope, niceFileNameFunction,
+          machine, fileName, sideAssignmentStack, checkBinding);
     } catch (InvalidConfigurationException e) {
       throw new CFAGenerationRuntimeException("Invalid configuration");
     }

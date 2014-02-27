@@ -58,8 +58,7 @@ class ASTLiteralConverter {
   }
 
   /** This function converts literals like chars or numbers. */
-  CLiteralExpression convert(final IASTLiteralExpression e) {
-    final FileLocation fileLoc = ASTConverter.getLocation(e);
+  CLiteralExpression convert(final IASTLiteralExpression e, final FileLocation fileLoc) {
     final CType type = typeConverter.convert(e.getExpressionType());
 
     if (!(type instanceof CSimpleType)

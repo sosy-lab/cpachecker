@@ -34,6 +34,7 @@ public class FileLocation {
 
   private final int endineLine;
   private final String fileName;
+  private final String niceFileName;
   private final int length;
   private final int offset;
   private final int startingLine;
@@ -41,13 +42,14 @@ public class FileLocation {
 
   public FileLocation(int pEndineLine, String pFileName, int pLength,
       int pOffset, int pStartingLine) {
-    this(pEndineLine, pFileName, pLength, pOffset, pStartingLine, pStartingLine);
+    this(pEndineLine, pFileName, pFileName, pLength, pOffset, pStartingLine, pStartingLine);
   }
 
-  public FileLocation(int pEndineLine, String pFileName, int pLength,
-      int pOffset, int pStartingLine, int pStartingLineInOrigin) {
+  public FileLocation(int pEndineLine, String pFileName, String pNiceFileName,
+      int pLength, int pOffset, int pStartingLine, int pStartingLineInOrigin) {
     endineLine = pEndineLine;
     fileName = pFileName;
+    niceFileName = pNiceFileName;
     length = pLength;
     offset = pOffset;
     startingLine = pStartingLine;
@@ -72,6 +74,7 @@ public class FileLocation {
     checkArgument(!Iterables.isEmpty(locations));
 
     String fileName = null;
+    String niceFileName = null;
     int startingLine = Integer.MAX_VALUE;
     int startingLineInOrigin = Integer.MAX_VALUE;
     int endingLine = Integer.MIN_VALUE;
@@ -81,6 +84,7 @@ public class FileLocation {
       }
       if (fileName == null) {
         fileName = loc.fileName;
+        niceFileName = loc.niceFileName;
       } else if (!fileName.equals(loc.fileName)) {
         return MULTIPLE_FILES;
       }
@@ -94,7 +98,7 @@ public class FileLocation {
       // only DUMMY elements
       return DUMMY;
     }
-    return new FileLocation(endingLine, fileName, 0, 0, startingLine, startingLineInOrigin);
+    return new FileLocation(endingLine, fileName, niceFileName, 0, 0, startingLine, startingLineInOrigin);
   }
 
   public int getStartingLineInOrigin() {
@@ -160,10 +164,13 @@ public class FileLocation {
 
   @Override
   public String toString() {
+    String prefix = niceFileName.isEmpty()
+        ? ""
+        : niceFileName + ", ";
     if (startingLine == endineLine) {
-      return "line " + startingLine;
+      return prefix + "line " + startingLine;
     } else {
-      return "lines " + startingLine + "-" + endineLine;
+      return prefix + "lines " + startingLine + "-" + endineLine;
     }
   }
 }
