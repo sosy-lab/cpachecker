@@ -46,8 +46,10 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 class MultiEdgeCreator extends DefaultCFAVisitor {
 
   static void createMultiEdges(MutableCFA cfa) {
-    CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(cfa.getMainFunction(),
-                                                         new MultiEdgeCreator(cfa));
+    final MultiEdgeCreator visitor = new MultiEdgeCreator(cfa);
+    for (final CFANode functionStart : cfa.getAllFunctionHeads()) {
+      CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(functionStart, visitor);
+    }
   }
 
   private final MutableCFA cfa;
@@ -127,16 +129,17 @@ class MultiEdgeCreator extends DefaultCFAVisitor {
         || edge.getEdgeType() == CFAEdgeType.StatementEdge
         || edge.getEdgeType() == CFAEdgeType.ReturnStatementEdge;
 
-    return result && !containsFunctionPointerCall(edge);
+    return result && !containsFunctionCall(edge);
   }
 
   /**
-   * This method checks, if the given (statement) edge contains a function call via a function pointer.
+   * This method checks, if the given (statement) edge contains a function call
+   * directly or via a function pointer.
    *
    * @param edge the edge to inspect
    * @return whether or not this edge contains a function call or not.
    */
-  private boolean containsFunctionPointerCall(CFAEdge edge) {
+  private boolean containsFunctionCall(CFAEdge edge) {
     if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
       CStatementEdge statementEdge = (CStatementEdge)edge;
 
@@ -144,9 +147,10 @@ class MultiEdgeCreator extends DefaultCFAVisitor {
         CFunctionCall call = ((CFunctionCall)statementEdge.getStatement());
         CSimpleDeclaration declaration = call.getFunctionCallExpression().getDeclaration();
 
-        if (declaration == null) {
-          return true;
-        }
+        // declaration == null -> functionPointer
+        // functionName exists in CFA -> functioncall with CFA for called function
+        // otherwise: call of non-existent function, example: nondet_int() -> ignore this case
+        return declaration == null || cfa.getAllFunctionNames().contains(declaration.getQualifiedName());
       }
       // simplest (close-to-optimal) solution, that would split at any function call
       //return (statementEdge.getStatement() instanceof CFunctionCall);
