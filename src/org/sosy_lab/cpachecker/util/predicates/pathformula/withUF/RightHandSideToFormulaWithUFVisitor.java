@@ -62,17 +62,17 @@ public class RightHandSideToFormulaWithUFVisitor extends ExpressionToFormulaWith
 
     @Override
     protected Formula convert(Expression value, CExpression rhs) throws UnrecognizedCCodeException {
-      return convert(value, rhs);
+      return convert0(value, rhs);
     }
 
-    private Formula convert(Expression value, CRightHandSide rhs) throws UnrecognizedCCodeException {
+    private Formula convert0(Expression value, CRightHandSide rhs) throws UnrecognizedCCodeException {
       CType type = CTypeUtils.simplifyType(rhs.getExpressionType());
       return ((RightHandSideToFormulaWithUFVisitor)delegate).asValueFormula(value, type);
     }
 
     @Override
     public Formula visit(CFunctionCallExpression e) throws UnrecognizedCCodeException {
-      return convert(((RightHandSideToFormulaWithUFVisitor)delegate).visit(e), e);
+      return convert0(((RightHandSideToFormulaWithUFVisitor)delegate).visit(e), e);
     }
   }
 
