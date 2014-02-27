@@ -235,12 +235,6 @@ class FunctionScope implements Scope {
     return true;
   }
 
-  @Override
-  public boolean isTypeNameAvailable(String name) {
-    // TODO fix this method or delete it
-    return !alreadyDeclaratedTypesInOtherFiles.containsKey(name);
-  }
-
   public CVariableDeclaration lookupLocalLabel(String name) {
     checkNotNull(name);
 

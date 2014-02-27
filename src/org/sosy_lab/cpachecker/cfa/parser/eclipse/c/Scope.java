@@ -63,13 +63,6 @@ interface Scope {
    */
   CType lookupTypedef(String name);
 
-  /**
-   * Looks up {@link CComplexType}s by their name.
-   * @param name The fully qualified name (e.g., "struct s").
-   * @return true if no type with this name is registered, false otherwise
-   */
-  boolean isTypeNameAvailable(String name);
-
   void registerDeclaration(CSimpleDeclaration declaration);
 
   /**

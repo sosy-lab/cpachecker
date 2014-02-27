@@ -163,12 +163,6 @@ class GlobalScope implements Scope {
   }
 
   @Override
-  public boolean isTypeNameAvailable(String name) {
-    // TODO fix this method or delete it
-    return !alreadyDeclaratedTypesInOtherFiles.containsKey(name);
-  }
-
-  @Override
   public String createScopedNameOf(String pName) {
     return pName;
   }
