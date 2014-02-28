@@ -27,8 +27,13 @@ import java.io.Serializable;
 
 import javax.annotation.Nonnull;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetManager;
 
 import com.google.common.base.Predicate;
@@ -68,6 +73,15 @@ public class PointerTargetPattern implements Serializable, Predicate<PointerTarg
     this.containerOffset = startOffset;
     this.properOffset = endOffset;
     this.matchRange = true;
+  }
+
+  public static PointerTargetPattern forLeftHandSide(final CLeftHandSide lhs,
+      final CtoFormulaTypeHandler pTypeHandler,
+      final PointerTargetSetManager pPtsMgr,
+      final CFAEdge pCfaEdge,
+      final PointerTargetSetBuilder pPts) throws UnrecognizedCCodeException {
+    LvalueToPointerTargetPatternVisitor v = new LvalueToPointerTargetPatternVisitor(pTypeHandler, pPtsMgr, pCfaEdge, pPts);
+    return lhs.accept(v);
   }
 
   public void setBase(final String base) {
