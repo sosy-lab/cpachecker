@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
 
 
@@ -137,12 +136,12 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
 
     @Override
     public PointerTargetPattern visit(final CIdExpression e) throws UnrecognizedCCodeException {
-      final Variable variable = conv.scopedIfNecessary(e);
       final CType expressionType = CTypeUtils.simplifyType(e.getExpressionType());
-      if (!pts.isBase(variable.getName(), expressionType) && !CTypeUtils.containsArray(expressionType)) {
+      final String name = e.getDeclaration().getQualifiedName();
+      if (!pts.isBase(name, expressionType) && !CTypeUtils.containsArray(expressionType)) {
         return null;
       } else {
-        return new PointerTargetPattern(variable.getName(), 0, 0);
+        return new PointerTargetPattern(name, 0, 0);
       }
     }
 
@@ -231,12 +230,12 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
 
   @Override
   public PointerTargetPattern visit(final CIdExpression e) throws UnrecognizedCCodeException {
-    final Variable variable = conv.scopedIfNecessary(e);
-    if (!pts.isActualBase(variable.getName()) &&
-        !CTypeUtils.containsArray(CTypeUtils.simplifyType(e.getExpressionType()))) {
+    final CType expressionType = CTypeUtils.simplifyType(e.getExpressionType());
+    final String name = e.getDeclaration().getQualifiedName();
+    if (!pts.isActualBase(name) && !CTypeUtils.containsArray(expressionType)) {
       return null;
     } else {
-      return new PointerTargetPattern(variable.getName(), 0, 0);
+      return new PointerTargetPattern(name, 0, 0);
     }
   }
 

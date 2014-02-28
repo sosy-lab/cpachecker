@@ -40,14 +40,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
 
 
 class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeException>{
 
-  public BaseVisitor(final CToFormulaWithUFConverter conv, final CFAEdge cfaEdge, final PointerTargetSetBuilder pts) {
-    this.conv = conv;
+  public BaseVisitor(final CFAEdge cfaEdge, final PointerTargetSetBuilder pts) {
     this.cfaEdge = cfaEdge;
     this.pts = pts;
   }
@@ -88,9 +88,11 @@ class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeExcep
 
   @Override
   public Variable visit(final CIdExpression e) throws UnrecognizedCCodeException {
+    CType type = CTypeUtils.simplifyType(e.getExpressionType());
     if (!pts.isActualBase(e.getDeclaration().getQualifiedName()) &&
-        !CTypeUtils.containsArray(CTypeUtils.simplifyType(e.getExpressionType()))) {
-      return lastBase = conv.scopedIfNecessary(e);
+        !CTypeUtils.containsArray(type)) {
+      lastBase = Variable.create(e.getDeclaration().getQualifiedName(), type);
+      return lastBase;
     } else {
       return null;
     }
@@ -156,7 +158,6 @@ class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeExcep
     return lastBase;
   }
 
-  private final CToFormulaWithUFConverter conv;
   private final PointerTargetSetBuilder pts;
   private final CFAEdge cfaEdge;
 

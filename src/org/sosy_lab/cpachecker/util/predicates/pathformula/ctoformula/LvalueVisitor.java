@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetBuilder;
 
 import com.google.common.base.Optional;
@@ -74,8 +73,7 @@ class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCode
 
   @Override
   public Formula visit(CIdExpression idExp) {
-    Variable var = conv.scopedIfNecessary(idExp);
-    return conv.makeFreshVariable(var.getName(), var.getType(), ssa);
+    return conv.makeFreshVariable(idExp.getDeclaration().getQualifiedName(), idExp.getExpressionType(), ssa);
   }
 
   /**  This method is called when we don't know what else to do. */

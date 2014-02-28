@@ -123,7 +123,7 @@ class ExpressionToFormulaWithUFVisitor extends DefaultCExpressionVisitor<Express
     this.errorConditions = errorConditions;
     this.pts = pts;
 
-    this.baseVisitor = new BaseVisitor(conv, cfaEdge, pts);
+    this.baseVisitor = new BaseVisitor(cfaEdge, pts);
   }
 
   public CRightHandSideVisitor<Formula, UnrecognizedCCodeException> asFormulaVisitor() {
@@ -309,8 +309,7 @@ class ExpressionToFormulaWithUFVisitor extends DefaultCExpressionVisitor<Express
         return Value.ofValue(conv.makeConstant(variable.getName(), variable.getType()));
       }
     } else {
-      variable = conv.scopedIfNecessary(e);
-      final Formula address = conv.makeConstant(PointerTargetSet.getBaseName(variable.getName()),
+      final Formula address = conv.makeConstant(PointerTargetSet.getBaseName(e.getDeclaration().getQualifiedName()),
                                                 CTypeUtils.getBaseType(resultType));
       return AliasedLocation.ofAddress(address);
     }

@@ -241,10 +241,6 @@ public class CtoFormulaConverter {
     return true;
   }
 
-  protected Variable scopedIfNecessary(CIdExpression var) {
-    return Variable.create(var.getDeclaration().getQualifiedName(), var.getExpressionType());
-  }
-
   Variable makeFieldVariable(Variable pName, CFieldReference fExp, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
     Pair<Integer, Integer> msb_lsb = getFieldOffsetMsbLsb(fExp);
     String fieldVarName = makeFieldVariableName(pName.getName(), msb_lsb, ssa);
@@ -436,9 +432,6 @@ public class CtoFormulaConverter {
    */
   protected Formula makeVariable(String name, CType type, SSAMapBuilder ssa) {
     return resolveFields(name, type, ssa, false);
-  }
-  protected final Formula makeVariable(Variable var, SSAMapBuilder ssa) {
-    return makeVariable(var.getName(), var.getType(), ssa);
   }
 
   /**
@@ -902,8 +895,7 @@ public class CtoFormulaConverter {
 
       int size = machineModel.getSizeof(decl.getType());
       if (size > 0) {
-        Variable v = Variable.create(varName, decl.getType());
-        Formula var = makeVariable(v, ssa);
+        Formula var = makeVariable(varName, decl.getType(), ssa);
         Formula zero = fmgr.makeNumber(getFormulaTypeFromCType(decl.getType()), 0L);
         result = bfmgr.and(result, fmgr.assignment(var, zero));
       }

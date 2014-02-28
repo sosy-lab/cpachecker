@@ -157,12 +157,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   @Override
-  protected Variable scopedIfNecessary(CIdExpression var) {
-    return Variable.create(var.getDeclaration().getQualifiedName(),
-                           CTypeUtils.simplifyType(var.getExpressionType()));
-  }
-
-  @Override
   protected void checkSsaSavedType(final String name, final CType type, final SSAMapBuilder ssa) {
     CType ssaSavedType = ssa.getType(name);
     if (ssaSavedType != null) {
@@ -322,7 +316,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     } else {
       // Make sure to not add invalid-deref constraints for this dereference
       constraints.addConstraint(fmgr.makeEqual(makeSafeDereference(baseType, address, ssa),
-                                               makeVariable(base, ssa)));
+                                               makeVariable(base.getName(), baseType, ssa)));
     }
   }
 
