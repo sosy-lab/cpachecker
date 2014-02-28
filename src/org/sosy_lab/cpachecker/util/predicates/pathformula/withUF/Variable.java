@@ -21,12 +21,12 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.pathformula;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 
-public class Variable {
+class Variable {
   private final String name;
   private final CType type;
 
