@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -376,32 +375,29 @@ public class CFAUtils {
 
   /**
    * This Visitor searches for backwards edges in the CFA, if some backwards edges
-   * were found can be obtained by calling the method hasBackwardsEdges()
+   * were found can be obtained by calling the method hasBackwardsEdges().
+   * If the successor of an edge is not in pNodes, the edge will be ignored.
    */
   static class FindBackwardsEdgesVisitor extends DefaultCFAVisitor {
 
     private boolean hasBackwardsEdges = false;
+    final Collection<CFANode> nodes;
+
+    FindBackwardsEdgesVisitor(final Collection<CFANode> pNodes) {
+      this.nodes = pNodes;
+    }
 
     @Override
-    public TraversalProcess visitNode(CFANode pNode) {
+    public TraversalProcess visitNode(final CFANode pNode) {
 
-      if (pNode.getNumLeavingEdges() == 0) {
-        return TraversalProcess.CONTINUE;
-      } else if (pNode.getNumLeavingEdges() == 1
-                 && pNode.getLeavingEdge(0).getSuccessor().getReversePostorderId() >= pNode.getReversePostorderId()) {
-
-        hasBackwardsEdges = true;
-        return TraversalProcess.ABORT;
-      } else if (pNode.getNumLeavingEdges() == 2
-                 && (pNode.getLeavingEdge(0).getSuccessor().getReversePostorderId() >= pNode.getReversePostorderId() ||
-                 pNode.getLeavingEdge(1).getSuccessor().getReversePostorderId() >= pNode.getReversePostorderId())) {
-        hasBackwardsEdges = true;
-        return TraversalProcess.ABORT;
-      } else if (pNode.getNumLeavingEdges() > 2) {
-        throw new CFAGenerationRuntimeException("forgotten case in traversing cfa with more than 2 leaving edges");
-      } else {
-        return TraversalProcess.CONTINUE;
+      for (final CFAEdge edge : leavingEdges(pNode)) {
+        final CFANode succ = edge.getSuccessor();
+        if (nodes.contains(succ) && succ.getReversePostorderId() >= pNode.getReversePostorderId()) {
+          hasBackwardsEdges = true;
+          return TraversalProcess.ABORT;
+        }
       }
+      return TraversalProcess.CONTINUE;
     }
 
     public boolean hasBackwardsEdges() {
@@ -411,11 +407,12 @@ public class CFAUtils {
 
   /**
    * Searches for backwards edges from a given starting node
-   * @param actNode The node where the search is started
+   * @param rootNode The node where the search is started
+   * @param pNodes both end-nodes of an searched edge are be part this collection
    * @return indicates if a backwards edge was found
    */
-  private static boolean hasBackWardsEdges(CFANode rootNode) {
-    FindBackwardsEdgesVisitor visitor = new FindBackwardsEdgesVisitor();
+  private static boolean hasBackWardsEdges(CFANode rootNode, Collection<CFANode> pNodes) {
+    FindBackwardsEdgesVisitor visitor = new FindBackwardsEdgesVisitor(pNodes);
 
     CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(rootNode, visitor);
 
@@ -424,8 +421,8 @@ public class CFAUtils {
 
   /**
    * Find all loops inside a given set of CFA nodes.
-   * The nodes in the given set may not be connected
-   * with any nodes outside of this set.
+   * If the nodes in the given set are connected with any nodes outside of this set,
+   * those edges will not be analysed.
    * This method tries to differentiate nested loops.
    *
    * @param nodes The set of nodes to look for loops in.
@@ -442,7 +439,7 @@ public class CFAUtils {
       if (functionExitNode instanceof FunctionExitNode) {
         CFANode functionEntryNode = ((FunctionExitNode)functionExitNode).getEntryNode();
 
-        if (!hasBackWardsEdges(functionEntryNode)) {
+        if (!hasBackWardsEdges(functionEntryNode, nodes)) {
           return ImmutableList.of();
         }
       }
@@ -486,6 +483,7 @@ public class CFAUtils {
 
       for (CFAEdge edge : leavingEdges(n)) {
         CFANode succ = edge.getSuccessor();
+        if (!nodes.contains(succ)) continue;
         int j = arrayIndexForNode.apply(succ);
         edges[i][j] = new Edge();
 
