@@ -37,9 +37,10 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -56,6 +57,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -719,8 +721,27 @@ public class CtoFormulaConverter {
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
           throws CPATransferException {
-    StatementToFormulaVisitor v = new StatementToFormulaVisitor(this, statement, function, ssa, pts, constraints, errorConditions);
-    return statement.getStatement().accept(v);
+
+    CStatement stmt = statement.getStatement();
+    if (stmt instanceof CAssignment) {
+      CAssignment assignment = (CAssignment)stmt;
+      return makeAssignment(assignment.getLeftHandSide(), assignment.getRightHandSide(),
+          statement, function, ssa, pts, constraints, errorConditions);
+
+    } else {
+      if (stmt instanceof CFunctionCallStatement) {
+        CRightHandSideVisitor<Formula, UnrecognizedCCodeException> ev = createCRightHandSideVisitor(
+            statement, function, ssa, pts, constraints, errorConditions);
+        CFunctionCallStatement callStmt = (CFunctionCallStatement)stmt;
+        callStmt.getFunctionCallExpression().accept(ev);
+
+      } else if (!(stmt instanceof CExpressionStatement)) {
+        throw new UnrecognizedCCodeException("Unknown statement", statement, stmt);
+      }
+
+      // side-effect free statement, ignore
+      return bfmgr.makeBoolean(true);
+    }
   }
 
   protected BooleanFormula makeDeclaration(
@@ -777,10 +798,8 @@ public class CtoFormulaConverter {
       }
     }
 
-    StatementToFormulaVisitor v = new StatementToFormulaVisitor(this, edge, function, ssa, pts, constraints, errorConditions);
-
-    for (CExpressionAssignmentStatement assignment : CInitializers.convertToAssignments(decl, edge)) {
-      result = bfmgr.and(result, assignment.accept(v));
+    for (CAssignment assignment : CInitializers.convertToAssignments(decl, edge)) {
+      result = bfmgr.and(result, makeAssignment(assignment.getLeftHandSide(), assignment.getRightHandSide(), edge, function, ssa, pts, constraints, errorConditions));
     }
 
     return result;
