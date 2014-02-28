@@ -67,8 +67,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Val
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
 
-import com.google.common.collect.ImmutableMap;
-
 /**
  * This class is responsible for handling everything related to dynamic memory,
  * e.g. calls to malloc() and free(),
@@ -424,8 +422,8 @@ class DynamicMemoryHandler {
 
   void handleDeferredAllocationsInAssignment(final CLeftHandSide lhs, final CRightHandSide rhs,
       final Location lhsLocation, final Expression rhsExpression, final CType lhsType,
-      ImmutableMap<String, CType> lhsUsedDeferredAllocationPointers,
-      final ImmutableMap<String, CType> rhsUsedDeferredAllocationPointers) throws UnrecognizedCCodeException {
+      final Map<String, CType> lhsUsedDeferredAllocationPointers,
+      final Map<String, CType> rhsUsedDeferredAllocationPointers) throws UnrecognizedCCodeException {
     // Handle allocations: reveal the actual type form the LHS type or defer the allocation until later
     boolean isAllocation = false;
     if ((conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) &&

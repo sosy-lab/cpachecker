@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,9 +66,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Loc
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Value;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 
 class ExpressionToFormulaWithUFVisitor extends DefaultCExpressionVisitor<Expression, UnrecognizedCCodeException>
                                        implements CRightHandSideVisitor<Expression, UnrecognizedCCodeException> {
@@ -466,16 +464,16 @@ class ExpressionToFormulaWithUFVisitor extends DefaultCExpressionVisitor<Express
     }
   }
 
-  ImmutableList<Pair<CCompositeType, String>> getUsedFields() {
-    return ImmutableList.copyOf(usedFields);
+  List<Pair<CCompositeType, String>> getUsedFields() {
+    return Collections.unmodifiableList(usedFields);
   }
 
-  ImmutableList<Pair<CCompositeType, String>> getInitializedFields() {
-    return ImmutableList.copyOf(initializedFields);
+  List<Pair<CCompositeType, String>> getInitializedFields() {
+    return Collections.unmodifiableList(initializedFields);
   }
 
-  ImmutableMap<String, CType> getUsedDeferredAllocationPointers() {
-    return ImmutableMap.copyOf(usedDeferredAllocationPointers);
+  Map<String, CType> getUsedDeferredAllocationPointers() {
+    return Collections.unmodifiableMap(usedDeferredAllocationPointers);
   }
 
   private final CToFormulaWithUFConverter conv;
@@ -488,7 +486,7 @@ class ExpressionToFormulaWithUFVisitor extends DefaultCExpressionVisitor<Express
   private final BaseVisitor baseVisitor;
   private final ExpressionToFormulaVisitor delegate;
 
-  private final List<Pair<CCompositeType, String>> usedFields = new ArrayList<>();
+  private final List<Pair<CCompositeType, String>> usedFields = new ArrayList<>(1);
   private final List<Pair<CCompositeType, String>> initializedFields = new ArrayList<>();
-  private final Map<String, CType> usedDeferredAllocationPointers = new HashMap<>();
+  private final Map<String, CType> usedDeferredAllocationPointers = new HashMap<>(1);
 }

@@ -29,6 +29,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.CTypeUt
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -118,8 +119,8 @@ class AssignmentHandler {
                                         CNumericTypes.SIGNED_CHAR;
 
     // RHS handling
-    final ImmutableList<Pair<CCompositeType, String>> rhsUsedFields;
-    final ImmutableMap<String, CType> rhsUsedDeferredAllocationPointers;
+    final List<Pair<CCompositeType, String>> rhsUsedFields;
+    final Map<String, CType> rhsUsedDeferredAllocationPointers;
     final Expression rhsExpression;
     // RHS is neither null nor a nondet() function call
     if (rhs != null &&
@@ -140,9 +141,9 @@ class AssignmentHandler {
     // LHS handling
     ExpressionToFormulaWithUFVisitor lhsVisitor = new ExpressionToFormulaWithUFVisitor(conv, edge, function, ssa, constraints, errorConditions, pts);
     final Location lhsLocation = lhs.accept(lhsVisitor).asLocation();
-    ImmutableMap<String, CType> lhsUsedDeferredAllocationPointers = lhsVisitor.getUsedDeferredAllocationPointers();
+    final Map<String, CType> lhsUsedDeferredAllocationPointers = lhsVisitor.getUsedDeferredAllocationPointers();
     pts.addEssentialFields(lhsVisitor.getInitializedFields());
-    final ImmutableList<Pair<CCompositeType, String>> lhsUsedFields = lhsVisitor.getUsedFields();
+    final List<Pair<CCompositeType, String>> lhsUsedFields = lhsVisitor.getUsedFields();
     // the pattern matching possibly aliased locations
     LvalueToPointerTargetPatternVisitor lvalueVisitor = new LvalueToPointerTargetPatternVisitor(conv, edge, pts);
     final PointerTargetPattern pattern = lhsLocation.isUnaliasedLocation() ? null : lhs.accept(lvalueVisitor);
