@@ -339,6 +339,10 @@ public class CFACreator {
         sorter.assignSorting(function);
       }
 
+      // get loop information
+      // (needs post-order information)
+      Optional<ImmutableMultimap<String, Loop>> loopStructure = getLoopStructure(cfa);
+
       // FOURTH, insert call and return edges and build the supergraph
       if (interprocedural) {
         logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
@@ -367,10 +371,6 @@ public class CFACreator {
 
       // SIXTH, get information about the CFA,
       // the cfa should not be modified after this line (TODO except SingleLoopTransformation).
-
-      // get loop information
-      // (needs post-order information)
-      Optional<ImmutableMultimap<String, Loop>> loopStructure = getLoopStructure(cfa);
 
       // Get information about variables, needed for some analysis.
       final Optional<VariableClassification> varClassification
