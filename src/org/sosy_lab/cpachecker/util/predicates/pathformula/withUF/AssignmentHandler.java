@@ -542,7 +542,7 @@ class AssignmentHandler {
                                                 final Formula startAddress,
                                                 final int size,
                                                 final Set<CType> types) {
-    final PointerTargetPattern exact = new PointerTargetPattern();
+    final PointerTargetPattern exact = PointerTargetPattern.any();
     for (final PointerTarget target : pts.getMatchingTargets(firstElementType, pattern)) {
       final Formula candidateAddress = fmgr.makePlus(fmgr.makeVariable(conv.voidPointerFormulaType, target.getBaseName()),
                                                      fmgr.makeNumber(conv.voidPointerFormulaType, target.getOffset()));
@@ -575,7 +575,7 @@ class AssignmentHandler {
   private void addInexactRetentionConstraints(final Formula startAddress,
                                               final int size,
                                               final Set<CType> types) {
-    final PointerTargetPattern any = new PointerTargetPattern();
+    final PointerTargetPattern any = PointerTargetPattern.any();
     for (final CType type : types) {
       final String ufName = CToFormulaWithUFConverter.getUFName(type);
       final int oldIndex = conv.getIndex(ufName, type, ssa);

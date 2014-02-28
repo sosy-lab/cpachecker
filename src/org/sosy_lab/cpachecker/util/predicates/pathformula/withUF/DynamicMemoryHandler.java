@@ -290,7 +290,7 @@ class DynamicMemoryHandler {
         CNumericTypes.SIGNED_CHAR,
         AliasedLocation.ofAddress(result),
         Value.ofValue(conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(CNumericTypes.SIGNED_CHAR), 0)),
-        new PointerTargetPattern(base, 0, 0),
+        PointerTargetPattern.forBase(base),
         true,
         null);
       constraints.addConstraint(initialization);

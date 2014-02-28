@@ -40,39 +40,31 @@ import com.google.common.base.Predicate;
 
 public class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
 
-  /**
-   * Constructor for matching any possible target
-   */
-  public PointerTargetPattern() {
+  private PointerTargetPattern() {
+    this.matchRange = false;
+  }
+
+  private PointerTargetPattern(final String base) {
+    this.base = base;
+    this.containerOffset = 0;
+    this.properOffset = 0;
     this.matchRange = false;
   }
 
   /**
-   * Constructor for matching targets in the memory block with the specified base name
+   * Create PointerTargetPattern matching any possible target.
+   */
+  public static PointerTargetPattern any() {
+    return new PointerTargetPattern();
+  }
+
+  /**
+   * Create PointerTargetPattern matching targets in the memory block with the specified base name
+   * and offset 0.
    * @param base the base name specified
    */
-  public PointerTargetPattern(final String base) {
-    this.base = base;
-    this.matchRange = false;
-  }
-
-  public PointerTargetPattern(final String base, final int containerOffset, final int properOffset) {
-    this.base = base;
-    this.containerOffset = containerOffset;
-    this.properOffset = properOffset;
-    this.matchRange = false;
-  }
-
-  /**
-   * Constructor for matching several adjacent targets at once
-   * @param base
-   * @param startOffset
-   * @param endOffset
-   */
-  public PointerTargetPattern(final int startOffset, final int endOffset) {
-    this.containerOffset = startOffset;
-    this.properOffset = endOffset;
-    this.matchRange = true;
+  public static PointerTargetPattern forBase(String base) {
+    return new PointerTargetPattern(base);
   }
 
   public static PointerTargetPattern forLeftHandSide(final CLeftHandSide lhs,
@@ -103,7 +95,7 @@ public class PointerTargetPattern implements Serializable, Predicate<PointerTarg
     this.containerType = null;
   }
 
-  public void setProperOffset(final int properOffset) {
+  void setProperOffset(final int properOffset) {
     assert !matchRange : "Contradiction in target pattern: properOffset";
     this.properOffset = properOffset;
   }
@@ -127,7 +119,7 @@ public class PointerTargetPattern implements Serializable, Predicate<PointerTarg
    * Useful for array subscript visitors.
    * @param containerType
    */
-  public void shift(final CType containerType) {
+  void shift(final CType containerType) {
     assert !matchRange : "Contradiction in target pattern: shift";
     this.containerType = containerType;
     if (containerOffset != null) {
@@ -145,7 +137,7 @@ public class PointerTargetPattern implements Serializable, Predicate<PointerTarg
    * Useful for field access visitors.
    * @param containerType
    */
-  public void shift(final CType containerType, final int properOffset) {
+  void shift(final CType containerType, final int properOffset) {
     shift(containerType);
     this.properOffset = properOffset;
   }
@@ -153,7 +145,7 @@ public class PointerTargetPattern implements Serializable, Predicate<PointerTarg
   /**
    * Unset everything, except base
    */
-  public void retainBase() {
+  void retainBase() {
     assert !matchRange : "Contradiction in target pattern: retainBase";
     containerType = null;
     properOffset = null;
@@ -163,7 +155,7 @@ public class PointerTargetPattern implements Serializable, Predicate<PointerTarg
   /**
    * Unset all criteria
    */
-  public void clear() {
+  void clear() {
     assert !matchRange : "Contradiction in target pattern: clear";
     base = null;
     containerType = null;

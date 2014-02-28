@@ -151,7 +151,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
       if (!pts.isBase(name, expressionType) && !CTypeUtils.containsArray(expressionType)) {
         return null;
       } else {
-        return new PointerTargetPattern(name, 0, 0);
+        return PointerTargetPattern.forBase(name);
       }
     }
 
@@ -187,7 +187,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
     final CExpression arrayExpression = e.getArrayExpression();
     PointerTargetPattern result = arrayExpression.accept(new PointerTargetEvaluatingVisitor());
     if (result == null) {
-      result = new PointerTargetPattern();
+      result = PointerTargetPattern.any();
     }
     CType containerType = CTypeUtils.simplifyType(arrayExpression.getExpressionType());
     if (containerType instanceof CArrayType || containerType instanceof CPointerType) {
@@ -245,7 +245,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
     if (!pts.isActualBase(name) && !CTypeUtils.containsArray(expressionType)) {
       return null;
     } else {
-      return new PointerTargetPattern(name, 0, 0);
+      return PointerTargetPattern.forBase(name);
     }
   }
 
@@ -272,14 +272,14 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
         result.clear();
         return result;
       } else {
-        return new PointerTargetPattern();
+        return PointerTargetPattern.any();
       }
     } else if (type instanceof CArrayType) {
       if (result != null) {
         result.shift(type, 0);
         return result;
       } else {
-        return new PointerTargetPattern();
+        return PointerTargetPattern.any();
       }
     } else {
       throw new UnrecognizedCCodeException("Dereferencing non-pointer expression", cfaEdge, e);
