@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils.getCanonicalType;
-
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -32,13 +30,13 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils.CtoFormulaSizeofVisitor;
 
 
 public class CtoFormulaTypeHandler {
@@ -48,7 +46,7 @@ public class CtoFormulaTypeHandler {
 
   private final BitvectorFormulaManagerView efmgr;
 
-  private final CtoFormulaSizeofVisitor sizeofVisitor;
+  private final BaseSizeofVisitor sizeofVisitor;
 
   private final FormulaType<?> pointerType;
 
@@ -60,7 +58,7 @@ public class CtoFormulaTypeHandler {
     machineModel = pMachineModel;
     efmgr = pFmgr.getBitvectorFormulaManager();
 
-    sizeofVisitor = new CtoFormulaSizeofVisitor(pMachineModel);
+    sizeofVisitor = new BaseSizeofVisitor(pMachineModel);
 
     final int pointerSize = machineModel.getSizeofPtr();
     final int bitsPerByte = machineModel.getSizeofCharInBits();
@@ -77,7 +75,7 @@ public class CtoFormulaTypeHandler {
   public int getSizeof(CType pType) {
     int size = pType.accept(sizeofVisitor);
     if (size == 0) {
-      CType type = getCanonicalType(pType);
+      CType type = pType.getCanonicalType();
       if (type instanceof CArrayType) {
         // C11 §6.7.6.2 (1)
         logger.logOnce(Level.WARNING, "Type", pType, "is a zero-length array, this is undefined.");

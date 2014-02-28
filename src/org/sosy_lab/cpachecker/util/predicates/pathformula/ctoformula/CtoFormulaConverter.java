@@ -103,13 +103,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CFieldTrackType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetBuilder.DummyPointerTargetSetBuilder;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -140,8 +137,6 @@ public class CtoFormulaConverter {
 
   private static final String EXPAND_VARIABLE = "__expandVariable__";
   private int expands = 0;
-
-  private static final String FIELD_VARIABLE = "__field_of__";
 
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of(
       "printf", "printk"
@@ -241,32 +236,6 @@ public class CtoFormulaConverter {
     return true;
   }
 
-  Variable makeFieldVariable(Variable pName, CFieldReference fExp, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
-    Pair<Integer, Integer> msb_lsb = getFieldOffsetMsbLsb(fExp);
-    String fieldVarName = makeFieldVariableName(pName.getName(), msb_lsb, ssa);
-
-    // For explanation of the following types,
-    // c.f. CFieldTrackType
-    CType fieldType = fExp.getExpressionType();
-    CType structType = getRealFieldOwner(fExp).getExpressionType();
-    structType = structType.getCanonicalType();
-    if (!(structType instanceof CCompositeType)) {
-      throw new UnrecognizedCCodeException("Accessing field in non-compsite type", fExp);
-    }
-
-    // NOTE: ALWAYS use pName.getType() as the actual type,
-    // because pName.getType() could be an instance of CFieldTrackType
-    CType ownerTypeWithoutCasts = pName.getType();
-
-    if (!getCanonicalType(ownerTypeWithoutCasts).equals(structType)) {
-      logger.logOnce(Level.WARNING, "Cast of non-matching type", ownerTypeWithoutCasts, "to",
-          structType, "in field access", fExp, "so analysis could be imprecise");
-    }
-
-    return Variable.create(fieldVarName,
-        new CFieldTrackType(fieldType, ownerTypeWithoutCasts, (CCompositeType)structType));
-  }
-
   public FormulaType<?> getFormulaTypeFromCType(CType type) {
     return typeHandler.getFormulaTypeFromCType(type);
   }
@@ -317,12 +286,15 @@ public class CtoFormulaConverter {
         // not from 1, because this is an assignment,
         // so the SSA index must be fresh.
       }
-      setSsaIndex(ssa, name, type, idx);
+      checkSsaSavedType(name, type, ssa);
+      ssa.setIndex(name, type, idx);
     } else {
       if (idx <= 0) {
         logger.log(Level.ALL, "WARNING: Auto-instantiating variable:", name);
         idx = 1;
-        setSsaIndex(ssa, name, type, idx);
+        checkSsaSavedType(name, type, ssa);
+
+        ssa.setIndex(name, type, idx);
       } else {
         checkSsaSavedType(name, type, ssa);
       }
@@ -356,27 +328,6 @@ public class CtoFormulaConverter {
     }
   }
 
-  private void setSsaIndex(SSAMapBuilder ssa, String name, CType type, int idx) {
-    if (isDereferenceType(type)) {
-      CType guess = getGuessedType(type);
-      if (guess == null) {
-        // This should not happen when guessing aliasing types would always work
-        logger.logOnce(Level.FINE, "No Type-Guess for variable", name, "of type", type);
-        CType oneByte = CNumericTypes.CHAR;
-        type = setGuessedType(type, oneByte);
-      }
-    }
-
-    assert
-      !isDereferenceType(type) ||
-      getGuessedType(type) != null
-      : "The guess should be resolved now!";
-
-    checkSsaSavedType(name, type, ssa);
-
-    ssa.setIndex(name, type, idx);
-  }
-
   /**
    * Create a formula for a given variable, which is assumed to be constant.
    * This method does not handle scoping!
@@ -386,109 +337,34 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * Create a formula for a given variable with a fresh index for the left-hand if needed
-   * side of an assignment.
-   * This method does not handle scoping and the NON_DET_VARIABLE!
-   */
-  private Formula resolveFields(String name, CType type, SSAMapBuilder ssa, boolean makeFreshIndex) {
-    // Resolve Fields
-
-    if (!isFieldVariable(name)) {
-      int idx = getIndex(name, type, ssa, makeFreshIndex);
-
-      assert !isFieldVariable(name)
-        : "Never make variables for field! Always use the underlaying bitvector! Fieldvariable-Names are only used as intermediate step!";
-      return fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, idx);
-    }
-
-    assert options.handleFieldAccess() : "Field Variables are only allowed with handleFieldAccess";
-
-    Pair<String, Pair<Integer, Integer>> data = removeFieldVariable(name);
-    String structName = data.getFirst();
-    Pair<Integer, Integer> msb_lsb = data.getSecond();
-    // With this we are able to track the types properly
-    assert type instanceof CFieldTrackType
-     : "Was not able to track types of Field-references";
-
-    CFieldTrackType trackType = (CFieldTrackType)type;
-    CType ownerType = trackType.getOwnerTypeWithoutCasts();
-    Formula struct = resolveFields(structName, ownerType, ssa, makeFreshIndex);
-
-    // If there is a cast inside the field access expression,
-    // the types may differ (c.f. #makeFieldVariable()).
-    // The only thing we can do at this point is to expand the variable with nondet bits.
-    CCompositeType structType = trackType.getStructType();
-    BitvectorFormula realStruct = makeExtractOrConcatNondet(ownerType, structType, struct);
-
-    return accessField(msb_lsb, realStruct);
-  }
-
-  /**
    * Create a formula for a given variable.
    * This method does not handle scoping and the NON_DET_VARIABLE!
-   * But it does handles Fields.
    *
    * This method does not update the index of the variable.
    */
   protected Formula makeVariable(String name, CType type, SSAMapBuilder ssa) {
-    return resolveFields(name, type, ssa, false);
+    return makeVariable(name, type, ssa, false);
   }
 
   /**
    * Create a formula for a given variable with a fresh index if needed.
    * This method does not handle scoping and the NON_DET_VARIABLE!
-   * But it does handles Fields.
    *
    * This method does not update the index of the variable.
    */
   private Formula makeVariable(String name, CType type, SSAMapBuilder ssa, boolean makeFreshIndex) {
-    return resolveFields(name, type, ssa, makeFreshIndex);
+    int idx = getIndex(name, type, ssa, makeFreshIndex);
+    return fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, idx);
   }
 
   /**
    * Create a formula for a given variable with a fresh index for the left-hand
    * side of an assignment.
    * This method does not handle scoping and the NON_DET_VARIABLE!
-   * But it does handles Fields.
    */
   protected Formula makeFreshVariable(String name, CType type, SSAMapBuilder ssa) {
-    return resolveFields(name, type, ssa, true);
+    return makeVariable(name, type, ssa, true);
   }
-
-
-  /** Takes a (scoped) struct variable name and returns the field variable name. */
-  @VisibleForTesting
-  static String makeFieldVariableName(String scopedId, Pair<Integer, Integer> msb_lsb, SSAMapBuilder ssa) {
-    return FIELD_VARIABLE + scopedId +
-          "__in__" + String.format("[%d:%d]", msb_lsb.getFirst(), msb_lsb.getSecond()) +
-          "__at__" + ssa.getIndex(scopedId) +
-          "__end";
-  }
-
-  @VisibleForTesting
-  static boolean isFieldVariable(String var) {
-    return var.startsWith(FIELD_VARIABLE);
-  }
-
-  /**
-   * Takes a field variable name and returns the name and offset of the associated
-   * struct variable.
-   */
-  static Pair<String, Pair<Integer, Integer>> removeFieldVariable(String fieldVariable) {
-    assert isFieldVariable(fieldVariable);
-
-    String name = fieldVariable.substring(FIELD_VARIABLE.length(), fieldVariable.lastIndexOf("__in__"));
-    String msbLsbString =
-        fieldVariable.substring(
-            fieldVariable.lastIndexOf("__in__") + "__in__".length(),
-            fieldVariable.lastIndexOf("__at__"));
-    // Remove []
-    msbLsbString = msbLsbString.substring(1, msbLsbString.length() - 1);
-    String[] splits = msbLsbString.split(":");
-    assert splits.length == 2 : "Expect msb and lsb part";
-    return Pair.of(name, Pair.of(Integer.parseInt(splits[0]), Integer.parseInt(splits[1])));
-  }
-
 
   BitvectorFormula makeStringLiteral(String literal) {
     BitvectorFormula result = stringLitToFormula.get(literal);

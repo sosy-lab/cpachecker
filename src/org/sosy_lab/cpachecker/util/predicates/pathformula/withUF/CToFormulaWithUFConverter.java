@@ -178,14 +178,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   @Override
-  protected Formula makeVariable(final String name,
-                       final CType type,
-                       final SSAMapBuilder ssa) {
-    final int index = getIndex(name, type, ssa);
-    return fmgr.makeVariable(getFormulaTypeFromCType(type), name, index);
-  }
-
-  @Override
   protected Formula makeFreshVariable(final String name,
                             final CType type,
                             final SSAMapBuilder ssa) {
@@ -728,6 +720,11 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   @Override
   protected Formula makeConstant(String pName, CType pType) {
     return super.makeConstant(pName, pType);
+  }
+
+  @Override
+  protected Formula makeVariable(String pName, CType pType, SSAMapBuilder pSsa) {
+    return super.makeVariable(pName, pType, pSsa);
   }
 
   @Override
