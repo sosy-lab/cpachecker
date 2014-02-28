@@ -411,7 +411,7 @@ cpa.arg.errorPath.file = "ErrorPath.%d.txt"
 cpa.arg.errorPath.graph = "ErrorPath.%d.dot"
 
 # export error path to file as an automaton to a graphml file
-cpa.arg.errorPath.graphml = "ErrorPath.%d.graphml"
+cpa.arg.errorPath.graphml = no default value
 
 # export error path to file, if one is found
 cpa.arg.errorPath.json = "ErrorPath.%d.json"
@@ -872,11 +872,6 @@ cpa.predicate.handleFieldAccess = false
 # If disabled, all implicitly initialized fields and elements are treated as
 # non-dets
 cpa.predicate.handleImplicitInitialization = true
-
-# Handle pointer aliasing for pointers with unknown values (coming from
-# uninitialized variables or external function calls). This is slow and
-# provides little benefit.
-cpa.predicate.handleNondetPointerAliasing = false
 
 # Handle aliasing of pointers. This adds disjunctions to the formulas, so be
 # careful when using cartesian abstraction.

@@ -43,11 +43,6 @@ public class FormulaEncodingOptions {
   @Option(description = "Handle field access via extract and concat instead of new variables.")
   private boolean handleFieldAccess = false;
 
-  @Option(description = "Handle pointer aliasing for pointers with unknown values "
-      + "(coming from uninitialized variables or external function calls). "
-      + "This is slow and provides little benefit.")
-  private boolean handleNondetPointerAliasing = false;
-
   @Option(description="Set of functions that should be considered as giving "
     + "a non-deterministic return value. "
     + "If you specify this option, the default values are not added automatically "
@@ -86,10 +81,6 @@ public class FormulaEncodingOptions {
 
   public boolean handleFieldAccess() {
     return handleFieldAccess;
-  }
-
-  public boolean handleNondetPointerAliasing() {
-    return handleNondetPointerAliasing;
   }
 
   public boolean isNondetFunction(String function) {
