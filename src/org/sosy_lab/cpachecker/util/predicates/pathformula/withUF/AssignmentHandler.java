@@ -144,7 +144,7 @@ class AssignmentHandler {
     pts.addEssentialFields(lhsVisitor.getInitializedFields());
     final List<Pair<CCompositeType, String>> lhsUsedFields = lhsVisitor.getUsedFields();
     // the pattern matching possibly aliased locations
-    LvalueToPointerTargetPatternVisitor lvalueVisitor = new LvalueToPointerTargetPatternVisitor(conv, edge, pts);
+    LvalueToPointerTargetPatternVisitor lvalueVisitor = new LvalueToPointerTargetPatternVisitor(conv.typeHandler, conv.ptsMgr, edge, pts);
     final PointerTargetPattern pattern = lhsLocation.isUnaliasedLocation() ? null : lhs.accept(lvalueVisitor);
 
     if (conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) {
@@ -183,7 +183,7 @@ class AssignmentHandler {
                                                        updatedTypes));
     }
     if (lhsLocation.isAliased()) {
-      LvalueToPointerTargetPatternVisitor lvalueVisitor = new LvalueToPointerTargetPatternVisitor(conv, edge, pts);
+      LvalueToPointerTargetPatternVisitor lvalueVisitor = new LvalueToPointerTargetPatternVisitor(conv.typeHandler, conv.ptsMgr, edge, pts);
       finishAssignments(CTypeUtils.simplifyType(variable.getExpressionType()),
                              lhsLocation.asAliased(),
                              variable.accept(lvalueVisitor),

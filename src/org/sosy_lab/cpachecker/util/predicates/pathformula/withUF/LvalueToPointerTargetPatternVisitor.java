@@ -40,19 +40,26 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
 
 
 class LvalueToPointerTargetPatternVisitor
 extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeException> {
 
-  public LvalueToPointerTargetPatternVisitor(final CToFormulaWithUFConverter conv,
-                                             final CFAEdge cfaEdge,
-                                             final PointerTargetSetBuilder pts) {
-    this.pointerVisitor = new PointerTargetEvaluatingVisitor();
-    this.conv = conv;
-    this.cfaEdge = cfaEdge;
-    this.pts = pts;
+  private final CtoFormulaTypeHandler typeHandler;
+  private final PointerTargetSetManager ptsMgr;
+  private final PointerTargetSetBuilder pts;
+  private final CFAEdge cfaEdge;
+
+  LvalueToPointerTargetPatternVisitor(final CtoFormulaTypeHandler pTypeHandler,
+                                      final PointerTargetSetManager pPtsMgr,
+                                      final CFAEdge pCfaEdge,
+                                      final PointerTargetSetBuilder pPts) {
+   typeHandler = pTypeHandler;
+    ptsMgr = pPtsMgr;
+    cfaEdge = pCfaEdge;
+    pts = pPts;
   }
 
   private class PointerTargetEvaluatingVisitor
@@ -105,13 +112,13 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
         PointerTargetPattern result = operand1.accept(this);
         final Integer offset;
         if (result == null) {
-          result = operand2.accept(pointerVisitor);
+          result = operand2.accept(this);
           offset = tryEvaluateExpression(operand1);
         } else {
           offset = tryEvaluateExpression(operand2);
         }
         if (result != null) {
-          final Integer remaining = result.getRemainingOffset(conv.ptsMgr);
+          final Integer remaining = result.getRemainingOffset(ptsMgr);
           if (offset != null && remaining != null && offset < remaining) {
             assert result.getProperOffset() != null : "Unexpected nondet proper offset";
             result.setProperOffset(result.getProperOffset() + offset);
@@ -175,7 +182,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
   @Override
   public PointerTargetPattern visit(final CArraySubscriptExpression e) throws UnrecognizedCCodeException {
     final CExpression arrayExpression = e.getArrayExpression();
-    PointerTargetPattern result = arrayExpression.accept(pointerVisitor);
+    PointerTargetPattern result = arrayExpression.accept(new PointerTargetEvaluatingVisitor());
     if (result == null) {
       result = new PointerTargetPattern();
     }
@@ -194,7 +201,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
       result.shift(containerType);
       final Integer index = tryEvaluateExpression(e.getSubscriptExpression());
       if (index != null) {
-        result.setProperOffset(index * conv.getSizeof(elementType));
+        result.setProperOffset(index * typeHandler.getSizeof(elementType));
       }
       return result;
     } else {
@@ -210,7 +217,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
   @Override
   public PointerTargetPattern visit(CFieldReference e) throws UnrecognizedCCodeException {
 
-    e = ExpressionToFormulaWithUFVisitor.eliminateArrow(e, cfaEdge);
+    e = CToFormulaWithUFConverter.eliminateArrow(e, cfaEdge);
 
     final CExpression ownerExpression = e.getFieldOwner();
     final PointerTargetPattern result = ownerExpression.accept(this);
@@ -218,7 +225,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
       final CType containerType = CTypeUtils.simplifyType(ownerExpression.getExpressionType());
       if (containerType instanceof CCompositeType) {
         assert  ((CCompositeType) containerType).getKind() != ComplexTypeKind.ENUM : "Enums are not composites!";
-        result.shift(containerType, conv.ptsMgr.getOffset((CCompositeType) containerType, e.getFieldName()));
+        result.shift(containerType, ptsMgr.getOffset((CCompositeType) containerType, e.getFieldName()));
         return result;
       } else {
         throw new UnrecognizedCCodeException("Field owner expression has incompatible type", cfaEdge, e);
@@ -256,7 +263,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
   public PointerTargetPattern visit(final CPointerExpression e) throws UnrecognizedCCodeException {
     final CExpression operand = e.getOperand();
     final CType type = CTypeUtils.simplifyType(operand.getExpressionType());
-    final PointerTargetPattern result = e.getOperand().accept(pointerVisitor);
+    final PointerTargetPattern result = e.getOperand().accept(new PointerTargetEvaluatingVisitor());
     if (type instanceof CPointerType) {
       if (result != null) {
         result.clear();
@@ -276,16 +283,10 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
     }
   }
 
-  private Integer tryEvaluateExpression(CExpression e) {
+  private static Integer tryEvaluateExpression(CExpression e) {
     if (e instanceof CIntegerLiteralExpression) {
       return ((CIntegerLiteralExpression)e).getValue().intValue();
     }
     return null;
   }
-
-  private final PointerTargetEvaluatingVisitor pointerVisitor;
-
-  private final CToFormulaWithUFConverter conv;
-  private final PointerTargetSetBuilder pts;
-  private final CFAEdge cfaEdge;
 }

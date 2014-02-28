@@ -190,30 +190,10 @@ class ExpressionToFormulaWithUFVisitor extends DefaultCExpressionVisitor<Express
     return AliasedLocation.ofAddress(address);
   }
 
-  static CFieldReference eliminateArrow(final CFieldReference e, final CFAEdge edge)
-  throws UnrecognizedCCodeException {
-    if (e.isPointerDereference()) {
-      final CType fieldOwnerType = CTypeUtils.simplifyType(e.getFieldOwner().getExpressionType());
-      if (fieldOwnerType instanceof CPointerType) {
-        return new CFieldReference(e.getFileLocation(),
-                                   e.getExpressionType(),
-                                   e.getFieldName(),
-                                   new CPointerExpression(e.getFieldOwner().getFileLocation(),
-                                                          ((CPointerType) fieldOwnerType).getType(),
-                                                          e.getFieldOwner()),
-                                   false);
-      } else {
-        throw new UnrecognizedCCodeException("Can't dereference a non-pointer in the field reference", edge, e);
-      }
-    } else {
-      return e;
-    }
-  }
-
   @Override
   public Location visit(CFieldReference e) throws UnrecognizedCCodeException {
 
-    e = eliminateArrow(e, edge);
+    e = CToFormulaWithUFConverter.eliminateArrow(e, edge);
 
     final Variable variable = e.accept(baseVisitor);
     if (variable != null) {

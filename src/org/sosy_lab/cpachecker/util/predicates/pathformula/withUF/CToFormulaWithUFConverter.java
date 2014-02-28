@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -106,7 +107,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   @SuppressWarnings("hiding")
   final MachineModel machineModel = super.machineModel;
 
-  private final CToFormulaWithUFTypeHandler typeHandler;
+  final CToFormulaWithUFTypeHandler typeHandler;
   final PointerTargetSetManager ptsMgr;
 
   final FormulaType<?> voidPointerFormulaType;
@@ -153,6 +154,26 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   Formula makeBaseAddressOfTerm(final Formula address) {
     return ffmgr.createFuncAndCall("__BASE_ADDRESS_OF__", voidPointerFormulaType, ImmutableList.of(address));
+  }
+
+  public static CFieldReference eliminateArrow(final CFieldReference e, final CFAEdge edge)
+      throws UnrecognizedCCodeException {
+    if (e.isPointerDereference()) {
+      final CType fieldOwnerType = CTypeUtils.simplifyType(e.getFieldOwner().getExpressionType());
+      if (fieldOwnerType instanceof CPointerType) {
+        return new CFieldReference(e.getFileLocation(),
+                                   e.getExpressionType(),
+                                   e.getFieldName(),
+                                   new CPointerExpression(e.getFieldOwner().getFileLocation(),
+                                                          ((CPointerType) fieldOwnerType).getType(),
+                                                          e.getFieldOwner()),
+                                   false);
+      } else {
+        throw new UnrecognizedCCodeException("Can't dereference a non-pointer in the field reference", edge, e);
+      }
+    } else {
+      return e;
+    }
   }
 
   @Override
