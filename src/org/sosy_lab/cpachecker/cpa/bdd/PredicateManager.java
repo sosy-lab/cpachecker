@@ -34,6 +34,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -71,13 +72,13 @@ public class PredicateManager {
 
   public PredicateManager(final Configuration config, final NamedRegionManager pRmgr,
                           final BDDPrecision pPrecision, final CFA pCfa,
-                          final BDDTransferRelation pTransferRelation
+                          final MachineModel pMachineModel
                           ) throws InvalidConfigurationException {
     config.inject(this);
     this.rmgr = pRmgr;
 
     if (initPartitions) {
-      initVars(pPrecision, pCfa, pTransferRelation);
+      initVars(pPrecision, pCfa, pMachineModel);
     }
   }
 
@@ -99,7 +100,7 @@ public class PredicateManager {
    *  (later vars are deeper in the BDD).
    *  This function declares those vars in the beginning of the analysis,
    *  so that we can choose between some orders. */
-  protected void initVars(BDDPrecision precision, CFA cfa, BDDTransferRelation transferRelation) {
+  protected void initVars(BDDPrecision precision, CFA cfa, MachineModel pMachineModel) {
     List<VariableClassification.Partition> partitions;
     if (initPartitionsOrdered) {
       BDDPartitionOrderer d = new BDDPartitionOrderer(cfa);
@@ -111,7 +112,8 @@ public class PredicateManager {
 
     for (VariableClassification.Partition partition : partitions) {
       // maxBitSize is too much for most variables. we only create an order here, so this should not matter.
-      createPredicates(partition.getVars(), precision, transferRelation.getMaxBitsize());
+      createPredicates(partition.getVars(), precision,
+              pMachineModel.getSizeofLongLongInt() * pMachineModel.getSizeofCharInBits());
     }
   }
 
@@ -136,10 +138,8 @@ public class PredicateManager {
       for (int i = 0; i < bitsize; i++) {
         int index = initBitsIncreasing ? i : (bitsize - i - 1);
         for (Map.Entry<String, String> entry : vars.entries()) {
-          if (precision.isTracking(entry.getKey(), entry.getValue())) {
-            createPredicateDirectly(entry.getKey(), entry.getValue(), index);
-            isTrackingSomething = true;
-          }
+          createPredicateDirectly(entry.getKey(), entry.getValue(), index);
+          isTrackingSomething = true;
         }
         if (isTrackingSomething) {
           createPredicateDirectly(null, tmpVar, index);
@@ -150,11 +150,9 @@ public class PredicateManager {
       // [a2, a1, a0, b2, b1, b0, c2, c1, c0]
       boolean isTrackingSomething = false;
       for (Map.Entry<String, String> entry : vars.entries()) { // different loop order!
-        if (precision.isTracking(entry.getKey(), entry.getValue())) {
-          for (int i = 0; i < bitsize; i++) {
-            int index = initBitsIncreasing ? i : (bitsize - i - 1);
-            createPredicateDirectly(entry.getKey(), entry.getValue(), index);
-          }
+        for (int i = 0; i < bitsize; i++) {
+          int index = initBitsIncreasing ? i : (bitsize - i - 1);
+          createPredicateDirectly(entry.getKey(), entry.getValue(), index);
           isTrackingSomething = true;
         }
       }
