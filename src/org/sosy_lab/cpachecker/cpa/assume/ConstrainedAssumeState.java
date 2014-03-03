@@ -23,9 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cpa.assume;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import java.util.List;
 
-public class ConstrainedAssumeState implements AssumeState {
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
+
+import com.google.common.collect.ImmutableList;
+
+public class ConstrainedAssumeState implements AssumeState, AbstractStateWithAssumptions {
 
   private CExpression mExpression;
 
@@ -35,6 +47,18 @@ public class ConstrainedAssumeState implements AssumeState {
 
   public CExpression getExpression() {
     return mExpression;
+  }
+
+  @Override
+  public List<IAStatement> getAssumptions() {
+    return ImmutableList.<IAStatement>of(new CExpressionStatement(FileLocation.DUMMY, mExpression));
+  }
+
+  @Override
+  public List<AssumeEdge> getAsAssumeEdges(AIdExpression pFunctionReturnVar, String pFunctionName) {
+    CFANode dummyNode = new CFANode(0, pFunctionName);
+    return ImmutableList.<AssumeEdge>of(new CAssumeEdge(mExpression.toASTString(),
+        FileLocation.DUMMY, dummyNode, dummyNode, mExpression, true));
   }
 
   @Override
@@ -60,5 +84,4 @@ public class ConstrainedAssumeState implements AssumeState {
   public int hashCode() {
     return mExpression.hashCode() + 1029;
   }
-
 }
