@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class CHCPrecisionAdjustment implements PrecisionAdjustment {
 
-  private static LogManager logger;
+  private final LogManager logger;
 
   public CHCPrecisionAdjustment(LogManager logM) {
     logger = logM;
