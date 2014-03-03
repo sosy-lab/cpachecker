@@ -30,8 +30,6 @@ import org.junit.Test;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
-import org.sosy_lab.cpachecker.cpa.smg.SMG;
-import org.sosy_lab.cpachecker.cpa.smg.SMGConsistencyVerifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
@@ -90,16 +88,6 @@ public class SMGSingleLinkedListTest {
     Integer addressAfterPrune = state.getAddress(sll, 0);
     Assert.assertNull(addressAfterPrune);
     Assert.assertTrue(state.checkProperty("has-leaks"));
-  }
-
-  @Test
-  public void consistencyInvalidSLLTest() {
-    SMG smg = new SMG(mm);
-    SMGRegion prototype = new SMGRegion(16, "prototype");
-    SMGSingleLinkedList sll = new SMGSingleLinkedList(prototype, 2, 4);
-    smg.addObject(sll, false);
-
-    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg));
   }
 
   @Test

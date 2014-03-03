@@ -23,15 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import org.sosy_lab.cpachecker.cpa.smg.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.ReadableSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.WritableSMG;
 
 final class SMGJoinValues {
   private SMGJoinStatus status;
-  private SMG inputSMG1;
-  private SMG inputSMG2;
-  private SMG destSMG;
+  private ReadableSMG inputSMG1;
+  private ReadableSMG inputSMG2;
+  private WritableSMG destSMG;
   private Integer value;
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
@@ -104,7 +105,7 @@ final class SMGJoinValues {
   }
 
   public SMGJoinValues(SMGJoinStatus pStatus,
-                        SMG pSMG1, SMG pSMG2, SMG pDestSMG,
+                        ReadableSMG pSMG1, ReadableSMG pSMG2, WritableSMG pDestSMG,
                         SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
                         Integer pValue1, Integer pValue2) throws SMGInconsistentException {
     mapping1 = pMapping1;
@@ -144,15 +145,15 @@ final class SMGJoinValues {
     return status;
   }
 
-  public SMG getInputSMG1() {
+  public ReadableSMG getInputSMG1() {
     return inputSMG1;
   }
 
-  public SMG getInputSMG2() {
+  public ReadableSMG getInputSMG2() {
     return inputSMG2;
   }
 
-  public SMG getDestinationSMG() {
+  public WritableSMG getDestinationSMG() {
     return destSMG;
   }
 

@@ -29,9 +29,11 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
-import org.sosy_lab.cpachecker.cpa.smg.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.ReadableSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGFactory;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
@@ -73,7 +75,7 @@ public class SMGSingleLinkedListCandidateTest {
 
   @Test
   public void executeOnSimpleList() {
-    CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
+    WritableSMG smg = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
     int NODE_SIZE = 8;
     int SEGMENT_LENGTH = 18;
@@ -85,7 +87,7 @@ public class SMGSingleLinkedListCandidateTest {
     SMGObject startObject = smg.getPointer(value).getObject();
     SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(startObject, OFFSET, SEGMENT_LENGTH);
 
-    CLangSMG abstractedSmg = candidate.execute(smg);
+    ReadableSMG abstractedSmg = candidate.execute(smg);
     Set<SMGObject> heap = abstractedSmg.getHeapObjects();
     Assert.assertEquals(3, heap.size());
     SMGObject pointedObject = abstractedSmg.getPointer(value).getObject();
@@ -112,13 +114,13 @@ public class SMGSingleLinkedListCandidateTest {
 
   @Test
   public void executeOnNullTerminatedList() {
-    CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
+    WritableSMG smg = SMGFactory.createWritableSMG(MachineModel.LINUX64);
     SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, 2, 16, 8, "pointer");
 
     Integer value = root.getValue();
     SMGObject startObject = smg.getPointer(value).getObject();
     SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(startObject, 8, 2);
-    CLangSMG abstractedSmg = candidate.execute(smg);
+    ReadableSMG abstractedSmg = candidate.execute(smg);
     Set<SMGObject> heap = abstractedSmg.getHeapObjects();
     Assert.assertEquals(2, heap.size());
 

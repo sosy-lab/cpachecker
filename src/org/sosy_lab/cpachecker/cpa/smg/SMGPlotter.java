@@ -26,15 +26,14 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.ReadableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectVisitor;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
@@ -68,10 +67,10 @@ final class SMGObjectNode {
 }
 
 class SMGNodeDotVisitor implements SMGObjectVisitor {
-  final private CLangSMG smg;
+  final private ReadableSMG smg;
   private SMGObjectNode node = null;
 
-  public SMGNodeDotVisitor(CLangSMG pSmg) {
+  public SMGNodeDotVisitor(ReadableSMG pSmg) {
     smg = pSmg;
   }
 
@@ -98,10 +97,6 @@ class SMGNodeDotVisitor implements SMGObjectVisitor {
     String shape = "rectangle";
     String color = "blue";
 
-    if (! smg.isObjectValid(pSll)) {
-      color="red";
-    }
-
     String style = "dashed";
     node = new SMGObjectNode("sll", defaultDefinition(color, shape, style, pSll));
   }
@@ -121,7 +116,7 @@ class SMGNodeDotVisitor implements SMGObjectVisitor {
 }
 
 public final class SMGPlotter {
-  static final public void debuggingPlot(CLangSMG pSmg, String pId, Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) throws IOException {
+  static final public void debuggingPlot(ReadableSMG pSmg, String pId, Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) throws IOException {
     Path exportSMGFilePattern = Paths.get("smg-debug-%s.dot");
     pId = pId.replace("\"", "");
     Path outputFile = Paths.get(String.format(exportSMGFilePattern.toAbsolutePath().getPath(), pId));
@@ -140,7 +135,7 @@ public final class SMGPlotter {
     return original.replaceAll("[:]", "_");
   }
 
-  public String smgAsDot(CLangSMG smg, String name, String location, Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) {
+  public String smgAsDot(ReadableSMG smg, String name, String location, Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) {
     StringBuilder sb = new StringBuilder();
 
     sb.append("digraph gr_" + name.replace('-', '_') + "{\n");
@@ -185,7 +180,7 @@ public final class SMGPlotter {
       sb.append(newLineWithOffset(smgHVEdgeAsDot(edge)));
     }
 
-    for (SMGEdgePointsTo edge: smg.getPTEdges().values()) {
+    for (SMGEdgePointsTo edge: smg.getPTEdges()) {
       if (edge.getValue() != smg.getNullValue()) {
         sb.append(newLineWithOffset(smgPTEdgeAsDot(edge)));
       }
@@ -196,7 +191,7 @@ public final class SMGPlotter {
     return sb.toString();
   }
 
-  private void addStackSubgraph(CLangSMG pSmg, StringBuilder pSb) {
+  private void addStackSubgraph(ReadableSMG pSmg, StringBuilder pSb) {
     pSb.append(newLineWithOffset("subgraph cluster_stack {"));
     offset += 2;
     pSb.append(newLineWithOffset("label=\"Stack\";"));
@@ -253,7 +248,7 @@ public final class SMGPlotter {
     return sb.toString();
   }
 
-  private void addGlobalObjectSubgraph(CLangSMG pSmg, StringBuilder pSb) {
+  private void addGlobalObjectSubgraph(ReadableSMG pSmg, StringBuilder pSb) {
     if (pSmg.getGlobalObjects().size() > 0) {
       pSb.append(newLineWithOffset("subgraph cluster_global{"));
       offset += 2;

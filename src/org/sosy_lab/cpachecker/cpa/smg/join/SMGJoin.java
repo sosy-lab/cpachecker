@@ -30,9 +30,11 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cpa.smg.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.ReadableSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGFactory;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
@@ -43,12 +45,12 @@ final public class SMGJoin {
 
   private boolean defined = false;
   private SMGJoinStatus status = SMGJoinStatus.EQUAL;
-  private final CLangSMG smg;
+  private final WritableSMG smg;
 
-  public SMGJoin(CLangSMG pSMG1, CLangSMG pSMG2) throws SMGInconsistentException {
-    CLangSMG opSMG1 = new CLangSMG(pSMG1);
-    CLangSMG opSMG2 = new CLangSMG(pSMG2);
-    smg = new CLangSMG(opSMG1.getMachineModel());
+  public SMGJoin(ReadableSMG pSMG1, ReadableSMG pSMG2) throws SMGInconsistentException {
+    ReadableSMG opSMG1 = SMGFactory.createWritableCopy(pSMG1);
+    ReadableSMG opSMG2 = SMGFactory.createWritableCopy(pSMG2);
+    smg = SMGFactory.createWritableSMG(opSMG1.getMachineModel());
 
     SMGNodeMapping mapping1 = new SMGNodeMapping();
     SMGNodeMapping mapping2 = new SMGNodeMapping();
@@ -148,7 +150,7 @@ final public class SMGJoin {
     return status;
   }
 
-  public CLangSMG getJointSMG() {
+  public ReadableSMG getJointSMG() {
     return smg;
   }
 }

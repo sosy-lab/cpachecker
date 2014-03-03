@@ -32,12 +32,14 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
-import org.sosy_lab.cpachecker.cpa.smg.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.ReadableSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGFactory;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
 import com.google.common.collect.Iterables;
@@ -47,16 +49,16 @@ public class SMGJoinFieldsTest {
   static private final CType mockType4b = AnonymousTypes.createTypeWithLength(4);
   static private final CType mockType8b = AnonymousTypes.createTypeWithLength(8);
 
-  private SMG smg1;
-  private SMG smg2;
+  private WritableSMG smg1;
+  private WritableSMG smg2;
 
   final private Integer value1 = SMGValueFactory.getNewValue();
   final private Integer value2 = SMGValueFactory.getNewValue();
 
   @Before
   public void setUp() {
-    smg1 = new SMG(MachineModel.LINUX64);
-    smg2 = new SMG(MachineModel.LINUX64);
+    smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
   }
 
   @Test
@@ -69,8 +71,8 @@ public class SMGJoinFieldsTest {
     SMGEdgeHasValue obj2hv2at0 = new SMGEdgeHasValue(mockType4b, 0, obj2, value2);
     SMGEdgeHasValue obj2hv0at4 = new SMGEdgeHasValue(mockType4b, 4, obj2, smg1.getNullValue());
 
-    smg1.addObject(obj1);
-    smg1.addObject(obj2);
+    smg1.addHeapObject(obj1);
+    smg1.addHeapObject(obj2);
     smg1.addValue(value1);
     smg1.addValue(value2);
     smg1.addHasValueEdge(obj1hv0at4);
@@ -90,8 +92,8 @@ public class SMGJoinFieldsTest {
     SMGRegion obj1 = new SMGRegion(8, "1");
     SMGRegion obj2 = new SMGRegion(8, "2");
 
-    smg1.addObject(obj1);
-    smg2.addObject(obj2);
+    smg1.addHeapObject(obj1);
+    smg2.addHeapObject(obj2);
     smg2.addValue(value2);
 
     SMGEdgeHasValue nullifyObj1 = new SMGEdgeHasValue(8, 0, obj1, smg1.getNullValue());
@@ -109,7 +111,7 @@ public class SMGJoinFieldsTest {
     Assert.assertEquals(1, hvSet.size());
 
     SMGEdgeHasValue newHv = Iterables.getOnlyElement(hvSet);
-    Assert.assertEquals(smg1.getNullValue(), newHv.getValue());
+    Assert.assertEquals(smg1.getNullValue().intValue(), newHv.getValue());
     Assert.assertSame(obj1, newHv.getObject());
     Assert.assertEquals(4, newHv.getSizeInBytes(MachineModel.LINUX64));
     Assert.assertEquals(2, newHv.getOffset());
@@ -137,7 +139,7 @@ public class SMGJoinFieldsTest {
     Set<SMGEdgeHasValue> hvSet = SMGJoinFields.getHVSetOfCommonNullValues(smg1, smg2, obj1, obj1);
     Assert.assertEquals(2, hvSet.size());
     for (SMGEdgeHasValue hv : hvSet) {
-      Assert.assertEquals(hv.getValue(), smg1.getNullValue());
+      Assert.assertEquals(hv.getValue(), smg1.getNullValue().intValue());
       Assert.assertSame(hv.getObject(), obj1);
       Assert.assertTrue(hv.getOffset() == 14 || hv.getOffset() == 18);
       if (hv.getOffset() == 14) {
@@ -154,9 +156,9 @@ public class SMGJoinFieldsTest {
     SMGRegion obj = new SMGRegion(32, "Object");
     SMGRegion differentObject = new SMGRegion(16, "Different object");
 
-    smg1.addObject(obj);
-    smg2.addObject(obj);
-    smg1.addObject(differentObject);
+    smg1.addHeapObject(obj);
+    smg2.addHeapObject(obj);
+    smg1.addHeapObject(differentObject);
 
     smg2.addValue(value1);
 
@@ -207,14 +209,14 @@ public class SMGJoinFieldsTest {
     SMGEdgeHasValue smg1_4bFrom2ToV2 = new SMGEdgeHasValue(mockType4b, 2, object, value2);
     SMGEdgeHasValue smg1_4bFrom4ToNull = new SMGEdgeHasValue(mockType4b, 4, object, smg1.getNullValue());
 
-    smg1.addObject(object);
+    smg1.addHeapObject(object);
     smg1.addValue(value1);
     smg1.addValue(value2);
     smg1.addHasValueEdge(smg1_4bFrom4ToNull);
     smg1.addHasValueEdge(smg1_4bFrom2ToV2);
     smg1.addHasValueEdge(smg1_4bFrom0ToV1);
 
-    smg2.addObject(object);
+    smg2.addHeapObject(object);
 
     Set<SMGEdgeHasValue> hvSet = SMGJoinFields.mergeNonNullHasValueEdges(smg1, smg2, object, object);
     Assert.assertEquals(2, hvSet.size());
@@ -248,20 +250,20 @@ public class SMGJoinFieldsTest {
   public void mergeNonNullAplliedTest() {
     SMGRegion obj1 = new SMGRegion(8, "Object 1");
     SMGRegion obj2 = new SMGRegion(8, "Object 2");
-    smg1.addObject(obj1);
-    smg2.addObject(obj2);
+    smg1.addHeapObject(obj1);
+    smg2.addHeapObject(obj2);
 
     Integer value1 = SMGValueFactory.getNewValue();
     smg1.addValue(value1);
     smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, value1));
 
-    SMGJoinFields jf = new SMGJoinFields(new SMG(smg1), new SMG(smg2), obj1, obj2);
-    SMG resultSMG = jf.getSMG2();
+    SMGJoinFields jf = new SMGJoinFields(SMGFactory.createWritableCopy(smg1), SMGFactory.createWritableCopy(smg2), obj1, obj2);
+    ReadableSMG resultSMG = jf.getSMG2();
 
     Iterable<SMGEdgeHasValue> edges = resultSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2));
     Assert.assertTrue(edges.iterator().hasNext());
 
-    jf = new SMGJoinFields(new SMG(smg2), new SMG(smg1), obj2, obj1);
+    jf = new SMGJoinFields(SMGFactory.createWritableCopy(smg2), SMGFactory.createWritableCopy(smg1), obj2, obj1);
     resultSMG = jf.getSMG1();
 
     edges = resultSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2));
@@ -271,12 +273,12 @@ public class SMGJoinFieldsTest {
   @Test
   public void joinFieldsRelaxStatusTest() {
     SMGRegion object = new SMGRegion(8, "Object");
-    smg1.addObject(object);
+    smg1.addHeapObject(object);
 
-    SMG smg04 = new SMG(smg1);
-    SMG smg48 = new SMG(smg1);
-    SMG smg26 = new SMG(smg1);
-    SMG smg08 = new SMG(smg1);
+    WritableSMG smg04 = SMGFactory.createWritableCopy(smg1);
+    WritableSMG smg48 = SMGFactory.createWritableCopy(smg1);
+    WritableSMG smg26 = SMGFactory.createWritableCopy(smg1);
+    WritableSMG smg08 = SMGFactory.createWritableCopy(smg1);
 
     smg04.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, object, smg04.getNullValue()));
     smg48.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 4, object, smg48.getNullValue()));
@@ -329,10 +331,10 @@ public class SMGJoinFieldsTest {
   public void differentSizeCheckTest(){
     SMGRegion obj1 = new SMGRegion(8, "Object 1");
     SMGRegion obj2 = new SMGRegion(12, "Object 2");
-    SMG smg1 = new SMG(MachineModel.LINUX64);
-    SMG smg2 = new SMG(MachineModel.LINUX64);
-    smg1.addObject(obj1);
-    smg2.addObject(obj2);
+    WritableSMG smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    WritableSMG smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    smg1.addHeapObject(obj1);
+    smg2.addHeapObject(obj2);
 
     SMGJoinFields jf = new SMGJoinFields(smg1, smg2, obj1, obj2);
     jf.getStatus(); // Avoid dead store warning
@@ -340,16 +342,16 @@ public class SMGJoinFieldsTest {
 
   @Test
   public void consistencyCheckTest() throws SMGInconsistentException {
-    SMG smg1 = new SMG(MachineModel.LINUX64);
-    SMG smg2 = new SMG(MachineModel.LINUX32);
+    WritableSMG smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    WritableSMG smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
     SMGRegion obj1 = new SMGRegion(32, "Object 1");
     SMGRegion obj2 = new SMGRegion(32, "Object 2");
     Integer value1 = SMGValueFactory.getNewValue();
     Integer value2 = SMGValueFactory.getNewValue();
 
-    smg1.addObject(obj1);
-    smg2.addObject(obj2);
+    smg1.addHeapObject(obj1);
+    smg2.addHeapObject(obj2);
     smg1.addValue(value1);
     smg2.addValue(value2);
 
@@ -381,8 +383,8 @@ public class SMGJoinFieldsTest {
 
   @Test(expected=SMGInconsistentException.class)
   public void consistencyCheckNegativeTest1() throws SMGInconsistentException {
-    SMG smg1 = new SMG(MachineModel.LINUX64);
-    SMG smg2 = new SMG(MachineModel.LINUX32);
+    WritableSMG smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    ReadableSMG smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
     SMGRegion obj1 = new SMGRegion(32, "Object 1");
     SMGRegion obj2 = new SMGRegion(32, "Object 2");
@@ -394,8 +396,8 @@ public class SMGJoinFieldsTest {
 
   @Test(expected=SMGInconsistentException.class)
   public void consistencyCheckNegativeTest2() throws SMGInconsistentException {
-    SMG smg1 = new SMG(MachineModel.LINUX64);
-    SMG smg2 = new SMG(MachineModel.LINUX32);
+    WritableSMG smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    WritableSMG smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
     SMGRegion obj1 = new SMGRegion(32, "Object 1");
     SMGRegion obj2 = new SMGRegion(32, "Object 2");
@@ -407,8 +409,8 @@ public class SMGJoinFieldsTest {
 
   @Test(expected=SMGInconsistentException.class)
   public void consistencyCheckNegativeTest3() throws SMGInconsistentException {
-    SMG smg1 = new SMG(MachineModel.LINUX64);
-    SMG smg2 = new SMG(MachineModel.LINUX32);
+    WritableSMG smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    WritableSMG smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
     SMGRegion obj1 = new SMGRegion(32, "Object 1");
     SMGRegion obj2 = new SMGRegion(32, "Object 2");
@@ -421,8 +423,8 @@ public class SMGJoinFieldsTest {
 
   @Test(expected=SMGInconsistentException.class)
   public void consistencyCheckNegativeTest4() throws SMGInconsistentException {
-    SMG smg1 = new SMG(MachineModel.LINUX64);
-    SMG smg2 = new SMG(MachineModel.LINUX32);
+    WritableSMG smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    WritableSMG smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
     SMGRegion obj1 = new SMGRegion(32, "Object 1");
     SMGRegion obj2 = new SMGRegion(32, "Object 2");
@@ -439,8 +441,8 @@ public class SMGJoinFieldsTest {
 
   @Test(expected=SMGInconsistentException.class)
   public void consistencyCheckNegativeTest5() throws SMGInconsistentException {
-    SMG smg1 = new SMG(MachineModel.LINUX64);
-    SMG smg2 = new SMG(MachineModel.LINUX32);
+    WritableSMG smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    WritableSMG smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
     SMGRegion obj1 = new SMGRegion(32, "Object 1");
     SMGRegion obj2 = new SMGRegion(32, "Object 2");
@@ -453,8 +455,8 @@ public class SMGJoinFieldsTest {
 
   @Test
   public void consistencyCheckPositiveTest1() throws SMGInconsistentException {
-    SMG smg1 = new SMG(MachineModel.LINUX64);
-    SMG smg2 = new SMG(MachineModel.LINUX32);
+    WritableSMG smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    WritableSMG smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
     SMGRegion obj1 = new SMGRegion(32, "Object 1");
     SMGRegion obj2 = new SMGRegion(32, "Object 2");
@@ -471,12 +473,12 @@ public class SMGJoinFieldsTest {
 
   @Test(expected=IllegalArgumentException.class)
   public void nonMemberObjectTest1(){
-    SMG smg1 = new SMG(MachineModel.LINUX64);
-    SMG smg2 = new SMG(MachineModel.LINUX32);
+    ReadableSMG smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    WritableSMG smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
     SMGRegion obj1 = new SMGRegion(32, "Object 1");
     SMGRegion obj2 = new SMGRegion(32, "Object 2");
-    smg2.addObject(obj2);
+    smg2.addHeapObject(obj2);
 
     SMGJoinFields jf = new SMGJoinFields(smg1, smg2, obj1, obj2);
     jf.getStatus(); // Avoid dead store warning
@@ -484,12 +486,12 @@ public class SMGJoinFieldsTest {
 
   @Test(expected=IllegalArgumentException.class)
   public void nonMemberObjectTest2(){
-    SMG smg1 = new SMG(MachineModel.LINUX64);
-    SMG smg2 = new SMG(MachineModel.LINUX32);
+    WritableSMG smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    ReadableSMG smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
     SMGRegion obj1 = new SMGRegion(32, "Object 1");
     SMGRegion obj2 = new SMGRegion(32, "Object 2");
-    smg1.addObject(obj1);
+    smg1.addHeapObject(obj1);
 
     SMGJoinFields jf = new SMGJoinFields(smg1, smg2, obj1, obj2);
     jf.getStatus(); // Avoid dead store warning

@@ -21,12 +21,20 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg;
+package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import org.sosy_lab.cpachecker.cpa.smg.graphs.ReadableSMG;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
+public class SMGFactory {
+  private SMGFactory() {}
+  static public final WritableSMG createWritableSMG(MachineModel pMachineModel) {
+    return new CLangSMG(pMachineModel);
+  }
 
-public interface SMGAbstractionCandidate {
-  public int getScore();
-  public ReadableSMG execute(ReadableSMG pSMG);
+  static public final WritableSMG createWritableCopy(ReadableSMG pSMG) {
+    if (pSMG instanceof CLangSMG) {
+      return new CLangSMG((CLangSMG)pSMG);
+    }
+    throw new IllegalArgumentException("createWritableCopy() called on non-CLangSMG");
+  }
 }

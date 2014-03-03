@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg;
+package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import java.util.ArrayDeque;
 import java.util.Collections;
@@ -32,11 +32,12 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
+import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
@@ -47,7 +48,7 @@ import com.google.common.collect.Sets;
  *  - separation of global, heap and stack objects
  *  - null object and value
  */
-public class CLangSMG extends SMG {
+class CLangSMG extends SMG implements WritableSMG {
   /**
    * A container for object found on the stack:
    *  - local variables
@@ -136,6 +137,7 @@ public class CLangSMG extends SMG {
    *
    * @param pObject Object to add.
    */
+  @Override
   public void addHeapObject(SMGObject pObject) {
     if (CLangSMG.performChecks() && heap_objects.contains(pObject)) {
       throw new IllegalArgumentException("Heap object already in the SMG: [" + pObject + "]");
@@ -155,6 +157,7 @@ public class CLangSMG extends SMG {
 
    * @param pObject Object to add
    */
+  @Override
   public void addGlobalObject(SMGRegion pObject) {
     if (CLangSMG.performChecks() && global_objects.values().contains(pObject)) {
       throw new IllegalArgumentException("Global object already in the SMG: [" + pObject + "]");
@@ -182,6 +185,7 @@ public class CLangSMG extends SMG {
    *
    * TODO: Shall we need an extension for putting objects to upper frames?
    */
+  @Override
   public void addStackObject(SMGRegion pObject) {
     super.addObject(pObject);
     stack_objects.peek().addStackVariable(pObject.getLabel(), pObject);
@@ -194,6 +198,7 @@ public class CLangSMG extends SMG {
    *
    * @param pFunctionDeclaration A function for which to create a new stack frame
    */
+  @Override
   public void addStackFrame(CFunctionDeclaration pFunctionDeclaration) {
     CLangStackFrame newFrame = new CLangStackFrame(pFunctionDeclaration, getMachineModel());
 
@@ -211,6 +216,7 @@ public class CLangSMG extends SMG {
    *
    * Keeps consistency: yes
    */
+  @Override
   public void setMemoryLeak() {
     has_leaks = true;
   }
@@ -225,6 +231,7 @@ public class CLangSMG extends SMG {
    *
    * Keeps consistency: yes
    */
+  @Override
   public void dropStackFrame() {
     CLangStackFrame frame = stack_objects.pop();
     for (SMGObject object : frame.getAllObjects()) {
@@ -244,6 +251,7 @@ public class CLangSMG extends SMG {
    *
    * Keeps consistency: yes
    */
+  @Override
   public void pruneUnreachable() {
     Set<SMGObject> seen = new HashSet<>();
     Set<Integer> seen_values = new HashSet<>();
@@ -291,7 +299,7 @@ public class CLangSMG extends SMG {
     Set<SMGObject> stray_objects = new HashSet<>(Sets.difference(getObjects(), seen));
     for (SMGObject stray_object : stray_objects) {
       if (stray_object.notNull()) {
-        if (isObjectValid(stray_object)) {
+        if (stray_object.isAbstract() || isObjectValid((SMGRegion)stray_object)) {
           setMemoryLeak();
         }
         removeObjectAndEdges(stray_object);
@@ -342,6 +350,7 @@ public class CLangSMG extends SMG {
    *
    * TODO: [SCOPES] Test for getting visible local object hiding other local object
    */
+  @Override
   public SMGRegion getObjectForVisibleVariable(String pVariableName) {
     // Look in the local frame
     if (stack_objects.size() != 0) {
@@ -358,14 +367,12 @@ public class CLangSMG extends SMG {
   }
 
   /**
-   * Returns the (modifiable) stack of frames containing objects. Constant.
+   * Returns the stack of frames containing objects. Constant.
    *
    * @return Stack of frames
    */
+  @Override
   public ArrayDeque<CLangStackFrame> getStackFrames() {
-    //TODO: [FRAMES-STACK-STRUCTURE] This still allows modification, as queues
-    // do not have the appropriate unmodifiable method. There is probably some good
-    // way how to provide a read-only view for iteration, but I do not know it
     return stack_objects;
   }
 
@@ -374,6 +381,7 @@ public class CLangSMG extends SMG {
    *
    * @return Unmodifiable view of the set of the heap objects
    */
+  @Override
   public Set<SMGObject> getHeapObjects() {
     return Collections.unmodifiableSet(heap_objects);
   }
@@ -387,6 +395,7 @@ public class CLangSMG extends SMG {
    * @return True, if the given object is referenced in the set of heap objects, false otherwise.
    *
    */
+  @Override
   public boolean isHeapObject(SMGObject object) {
     return heap_objects.contains(object);
   }
@@ -396,6 +405,7 @@ public class CLangSMG extends SMG {
    *
    * @return Unmodifiable map from variable names to global objects.
    */
+  @Override
   public Map<String, SMGRegion> getGlobalObjects() {
     return Collections.unmodifiableMap(global_objects);
   }
@@ -406,10 +416,8 @@ public class CLangSMG extends SMG {
    * @return True if the SMG is a successor over the edge causing some memory
    * to be leaked. Returns false otherwise.
    */
+  @Override
   public boolean hasMemoryLeaks() {
-    // TODO: [MEMLEAK DETECTION] There needs to be a proper graph algorithm
-    //       in the future. Right now, we can discover memory leaks only
-    //       after unassigned malloc call result, so we know that immediately.
     return has_leaks;
   }
 
@@ -418,19 +426,19 @@ public class CLangSMG extends SMG {
    *
    * @return a {@link SMGObject} for current function return value
    */
-  public SMGObject getFunctionReturnObject() {
+  @Override
+  public SMGRegion getStackReturnObject(int pUp) {
     return stack_objects.peek().getReturnObject();
   }
 
-  @Nullable
-  public String getFunctionName(SMGObject pObject) {
+  public String getFunctionName(SMGRegion pObject) {
     for (CLangStackFrame cLangStack : stack_objects) {
       if (cLangStack.getAllObjects().contains(pObject)) {
         return cLangStack.getFunctionDeclaration().getName();
       }
     }
 
-    return null;
+    throw new IllegalArgumentException("No function name for non-stack object");
   }
 
   @Override
