@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
@@ -61,6 +62,7 @@ public class SMGJoinMapTargetAddressTest {
   }
 
   @Test
+  @Ignore
   public void mapTargetAddressExistingNull() {
     ReadableSMG origDestSMG = SMGFactory.createWritableCopy(destSMG);
     SMGNodeMapping origMapping1 = new SMGNodeMapping(mapping1);
@@ -73,6 +75,7 @@ public class SMGJoinMapTargetAddressTest {
   }
 
   @Test
+  @Ignore
   public void mapTargetAddressExisting() {
     SMGEdgePointsTo destEdge = new SMGEdgePointsTo(destValue, destObj, 0);
 

@@ -101,6 +101,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.AssumeVisitor;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.LValueAssignmentVisitor;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisSMGCommunicator;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -408,7 +409,10 @@ public class SMGTransferRelation implements TransferRelation {
             + pFunctionCall.getFileLocation().getStartingLineNumber() + " is 0");
 
       } else {
-        currentState.free(pointer.getValue(), pointer.getOffset(), pointer.getObject());
+        if (pointer.getObject().isAbstract()) {
+          throw new UnrecognizedCCodeException("Built-in free(): Cannot concretize yet", cfaEdge, pFunctionCall);
+        }
+        currentState.free(pointer.getValue(), pointer.getOffset(), (SMGRegion)pointer.getObject());
       }
     }
 
@@ -1886,11 +1890,6 @@ public class SMGTransferRelation implements TransferRelation {
     protected SMGSymbolicValue evaluateExpressionValue(SMGState pSmgState, CFAEdge pCfaEdge, CExpression pRValue)
         throws CPATransferException {
       return resolveRValue(oldState, pSmgState, explicitState, pRValue, pCfaEdge);
-    }
-
-    @Override
-    protected String getDot(SMGState pCurrentState, String pName, String pLocation) {
-      return pCurrentState.toDot(pName, pLocation, explicitState);
     }
 
     @Override

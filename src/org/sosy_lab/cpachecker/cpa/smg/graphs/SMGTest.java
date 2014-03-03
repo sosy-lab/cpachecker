@@ -54,8 +54,8 @@ public class SMGTest {
   private SMG smg;
   CType mockType = AnonymousTypes.createTypeWithLength(4);
 
-  SMGObject obj1 = new SMGRegion(8, "object-1");
-  SMGObject obj2 = new SMGRegion(8, "object-2");
+  SMGRegion obj1 = new SMGRegion(8, "object-1");
+  SMGRegion obj2 = new SMGRegion(8, "object-2");
 
   Integer val1 = Integer.valueOf(1);
   Integer val2 = Integer.valueOf(2);
@@ -231,7 +231,7 @@ public class SMGTest {
     Assert.assertTrue(Iterables.contains(smg.getHVEdges(), hv0));
     Assert.assertTrue(Iterables.contains(smg.getHVEdges(), hv4));
 
-    Assert.assertTrue(smg.getPTEdges().values().contains(pt));
+    Assert.assertTrue(smg.getPTEdges().contains(pt));
   }
 
   @Test
@@ -255,7 +255,7 @@ public class SMGTest {
     Assert.assertFalse(smg.getObjects().contains(object));
     Assert.assertFalse(Iterables.contains(smg.getHVEdges(), hv0));
     Assert.assertFalse(Iterables.contains(smg.getHVEdges(), hv4));
-    Assert.assertFalse(smg.getPTEdges().values().contains(pt));
+    Assert.assertFalse(smg.getPTEdges().contains(pt));
   }
 
   @Test
@@ -283,13 +283,6 @@ public class SMGTest {
     Assert.assertFalse(smg_copy.isObjectValid(smg_copy.getNullObject()));
     Assert.assertTrue(smg_copy.isObjectValid(obj1));
     Assert.assertTrue(smg_copy.isObjectValid(obj2));
-  }
-
-  @Test
-  public void consistencyViolationValidNullTest() {
-    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
-    smg.setValidity(smg.getNullObject(), true);
-    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg));
   }
 
   @Test
@@ -473,7 +466,7 @@ public class SMGTest {
     HashSet<SMGEdgePointsTo> set = new HashSet<>();
     set.add(pt1to1);
 
-    Assert.assertTrue(smg.getPTEdges().values().containsAll(set));
+    Assert.assertTrue(smg.getPTEdges().containsAll(set));
   }
 
   @Test

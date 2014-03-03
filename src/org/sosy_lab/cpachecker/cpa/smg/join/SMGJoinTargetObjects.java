@@ -111,7 +111,10 @@ final class SMGJoinTargetObjects {
     }
 
     SMGObject newObject = target1.join(target2);
-    destSMG.addObject(newObject);
+
+    // BUG: In order to actually use a joint SMG, we need this object to be properly
+    //      put into stack or global
+    destSMG.addHeapObject(newObject);
 
     if (mapping1.containsKey(target1)) {
       throw new UnsupportedOperationException("Delayed join not yet implemented");

@@ -128,7 +128,7 @@ class SMG {
    *
    * @param pObj Object to remove
    */
-  public final void removeObject(final SMGObject pObj) {
+  protected void removeObject(final SMGObject pObj) {
     objects.remove(pObj);
     object_validity.remove(pObj);
   }
@@ -370,7 +370,7 @@ class SMG {
    * TODO: Test
    * TODO: Consistency check: no value can point to more objects
    */
-  final SMGObject getObjectPointedBy(Integer pValue) {
+  public final SMGObject getObjectPointedBy(Integer pValue) {
     if ( ! values.contains(pValue)) {
       throw new IllegalArgumentException("Value [" + pValue + "] not in SMG");
     }
@@ -391,7 +391,7 @@ class SMG {
    * @param pObject An object.
    * @return True if {@link pObject} is valid, False if it is invalid.
    */
-  public final boolean isObjectValid(SMGRegion pObject) {
+  public final boolean isObjectValid(SMGObject pObject) {
     if ( ! objects.contains(pObject)) {
       throw new IllegalArgumentException("Object [" + pObject + "] not in SMG");
     }
@@ -454,11 +454,11 @@ class SMG {
     return pt_edges.get(value);
   }
 
-  final boolean isCoveredByNullifiedBlocks(SMGEdgeHasValue pEdge) {
+  public final boolean isCoveredByNullifiedBlocks(SMGEdgeHasValue pEdge) {
     return isCoveredByNullifiedBlocks(pEdge.getObject(), pEdge.getOffset(), pEdge.getSizeInBytes(machine_model));
   }
 
-  final boolean isCoveredByNullifiedBlocks(SMGObject pObject, int pOffset, CType pType ) {
+  public final boolean isCoveredByNullifiedBlocks(SMGObject pObject, int pOffset, CType pType ) {
     return isCoveredByNullifiedBlocks(pObject, pOffset, machine_model.getSizeof(pType));
   }
 

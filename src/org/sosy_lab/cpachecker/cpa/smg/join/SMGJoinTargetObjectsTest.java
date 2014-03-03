@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
@@ -133,6 +134,7 @@ public class SMGJoinTargetObjectsTest {
   }
 
   @Test
+  @Ignore
   public void joinTargetObjectsAlreadyJoinedNull() throws SMGInconsistentException {
     SMGEdgePointsTo pt1null = new SMGEdgePointsTo(value1, smg1.getNullObject(), 0);
     SMGEdgePointsTo pt2null = new SMGEdgePointsTo(value2, smg2.getNullObject(), 0);
