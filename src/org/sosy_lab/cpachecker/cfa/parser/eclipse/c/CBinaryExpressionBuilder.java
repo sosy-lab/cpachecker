@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
-import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 
 /** This Class build binary expression.
@@ -195,7 +194,8 @@ public class CBinaryExpressionBuilder {
    * @param pType1 type of the first operand
    * @param pType2 type of the second operand
    * @param pBinOperator used to get the result-type
-   * @param op1, op2 for logging only
+   * @param op1 for logging only
+   * @param op2 for logging only
    */
   @VisibleForTesting
   CType getResultTypeForBinaryOperation(final CType pType1, final CType pType2,
@@ -262,7 +262,9 @@ public class CBinaryExpressionBuilder {
    *
    * @param pType1 type of the first operand
    * @param pType2 type of the second operand
-   * @param pBinOperator, op1, op2 for logging only
+   * @param pBinOperator for logging only
+   * @param op1 for logging only
+   * @param op2 for logging only
    */
   @VisibleForTesting
   CType getCalculationTypeForBinaryOperation(CType pType1, CType pType2,
@@ -340,7 +342,9 @@ public class CBinaryExpressionBuilder {
    * This method does not depend on the first type.
    *
    * @param pType type to analyse
-   * @param pBinOperator, op1, op2 for checks and logging only
+   * @param pBinOperator for checks and logging only
+   * @param op1 for checks and logging only
+   * @param op2 for checks and logging only
    */
   private CType getSecondTypeToSimpleType(final CType pType,
       final BinaryOperator pBinOperator, final CExpression op1, final CExpression op2) {
@@ -536,6 +540,6 @@ public class CBinaryExpressionBuilder {
   private static void checkIntegerType(final CType pType, final BinaryOperator op, CExpression e) {
     if (!integerTypes.contains(((CSimpleType) pType).getType())) {
       throw new CFAGenerationRuntimeException("unexpected type " + pType + " for operation " + op, e);
-    };
+    }
   }
 }
