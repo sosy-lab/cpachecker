@@ -32,6 +32,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -45,11 +46,11 @@ import com.google.common.collect.ImmutableList;
 
 public class CLangSMGTest {
   static private final CFunctionType functionType = AnonymousTypes.createSimpleFunctionType(AnonymousTypes.dummyInt);
-  static private final CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(null, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
+  static private final CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
   private CLangStackFrame sf;
 
   static private final LogManager logger = mock(LogManager.class);
-  static private final CIdExpression id_expression = new CIdExpression(null, null, "label", null);
+  static private final CIdExpression id_expression = new CIdExpression(FileLocation.DUMMY, null, "label", null);
 
   private static CLangSMG getNewCLangSMG64() {
     return new CLangSMG(MachineModel.LINUX64);
