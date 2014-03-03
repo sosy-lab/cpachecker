@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -122,13 +123,13 @@ implements GenericAssumptionBuilder {
 
     if (bounds.getFirst() != null) {
 
-      result.add(new CBinaryExpression(null, null, null, exp,
+      result.add(new CBinaryExpression(FileLocation.DUMMY, null, null, exp,
               bounds.getFirst(), BinaryOperator.GREATER_EQUAL));
     }
 
     if (bounds.getSecond() != null) {
 
-      result.add(new CBinaryExpression(null, null, null, exp,
+      result.add(new CBinaryExpression(FileLocation.DUMMY, null, null, exp,
               bounds.getSecond(), BinaryOperator.LESS_EQUAL));
     }
   }

@@ -53,6 +53,7 @@ import org.eclipse.cdt.core.dom.ast.IType;
 import org.eclipse.cdt.core.dom.ast.ITypedef;
 import org.eclipse.cdt.core.dom.ast.IValue;
 import org.eclipse.cdt.core.dom.ast.c.ICArrayType;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -359,7 +360,7 @@ class ASTTypeConverter {
     CExpression length = null;
     IValue v = t.getSize();
     if (v != null && v.numericalValue() != null) {
-      length = new CIntegerLiteralExpression(null, CNumericTypes.INT, BigInteger.valueOf(v.numericalValue()));
+      length = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(v.numericalValue()));
     } else {
       try {
         length = converter.convertExpressionWithoutSideEffects(t.getArraySizeExpression());
