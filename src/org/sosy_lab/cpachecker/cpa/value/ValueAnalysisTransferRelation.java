@@ -721,12 +721,12 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       Value rightValue                 = rVarInBinaryExp.accept(this);
 
       if ((binaryOperator == BinaryOperator.EQUALS && truthValue) || (binaryOperator == BinaryOperator.NOT_EQUALS && !truthValue)) {
-        if (leftValue == Value.UnknownValue.getInstance() &&  rightValue != Value.UnknownValue.getInstance() && isAssignable(lVarInBinaryExp)) {
+        if (leftValue.isUnknown() && !rightValue.isUnknown() && isAssignable(lVarInBinaryExp)) {
           MemoryLocation leftVariableLocation = getMemoryLocation(lVarInBinaryExp);
           assignableState.assignConstant(leftVariableLocation, rightValue);
         }
 
-        else if (rightValue == Value.UnknownValue.getInstance() && leftValue != Value.UnknownValue.getInstance() && isAssignable(rVarInBinaryExp)) {
+        else if (rightValue.isUnknown() && !leftValue.isUnknown() && isAssignable(rVarInBinaryExp)) {
           MemoryLocation rightVariableName = getMemoryLocation(rVarInBinaryExp);
           assignableState.assignConstant(rightVariableName, leftValue);
         }
