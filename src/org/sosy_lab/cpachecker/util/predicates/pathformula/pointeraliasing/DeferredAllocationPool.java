@@ -26,8 +26,11 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.collect.FluentIterable.from;
 
+import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
+
+import javax.annotation.concurrent.Immutable;
 
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
@@ -61,7 +64,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
  *                         // (but their addresses can be different!)
  *   </pre>
  */
- class DeferredAllocationPool {
+@Immutable
+class DeferredAllocationPool implements Serializable {
+
+  private static final long serialVersionUID = -6957524864610223235L;
 
   private DeferredAllocationPool(final PersistentList<String> pointerVariables,
                                  final boolean isZeroing,

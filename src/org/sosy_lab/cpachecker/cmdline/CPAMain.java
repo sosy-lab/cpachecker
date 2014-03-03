@@ -315,6 +315,8 @@ public class CPAMain {
     if (stream instanceof PrintStream) {
       return (PrintStream)stream;
     } else {
+      // Default encoding is actually desired here because we output to the terminal,
+      // so the default PrintStream constructor is ok.
       return new PrintStream(stream);
     }
   }

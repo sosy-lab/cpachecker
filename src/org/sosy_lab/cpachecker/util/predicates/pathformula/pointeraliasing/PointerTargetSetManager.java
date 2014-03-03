@@ -43,6 +43,7 @@ import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.common.collect.PersistentSortedMaps;
 import org.sosy_lab.common.collect.PersistentSortedMaps.MergeConflictHandler;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
@@ -73,7 +74,7 @@ public class PointerTargetSetManager {
   private static final String FAKE_ALLOC_FUNCTION_NAME = "__VERIFIER_fake_alloc";
 
   static final CType getFakeBaseType(int size) {
-    return CTypeUtils.simplifyType(new CArrayType(false, false, CNumericTypes.VOID, new CIntegerLiteralExpression(null,
+    return CTypeUtils.simplifyType(new CArrayType(false, false, CNumericTypes.VOID, new CIntegerLiteralExpression(FileLocation.DUMMY,
                                                                                         CNumericTypes.SIGNED_CHAR,
                                                                                         BigInteger.valueOf(size))));
   }

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import java.math.BigInteger;
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 
 
@@ -48,7 +49,7 @@ public class CNumericTypes {
   public final static CSimpleType VOID          = new CSimpleType(false, false, CBasicType.VOID, false, false, false, false, false, false, false);
 
   private static CIntegerLiteralExpression create(long l, CType type) {
-    return new CIntegerLiteralExpression(null, type, BigInteger.valueOf(l));
+    return new CIntegerLiteralExpression(FileLocation.DUMMY, type, BigInteger.valueOf(l));
   }
 
   public static final CIntegerLiteralExpression ZERO = create(0L, INT);

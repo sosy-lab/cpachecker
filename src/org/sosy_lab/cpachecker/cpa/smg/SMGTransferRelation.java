@@ -77,6 +77,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -100,6 +101,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.AssumeVisitor;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.LValueAssignmentVisitor;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisSMGCommunicator;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -407,7 +409,10 @@ public class SMGTransferRelation implements TransferRelation {
             + pFunctionCall.getFileLocation().getStartingLineNumber() + " is 0");
 
       } else {
-        currentState.free(pointer.getValue(), pointer.getOffset(), pointer.getObject());
+        if (pointer.getObject().isAbstract()) {
+          throw new UnrecognizedCCodeException("Built-in free(): Cannot concretize yet", cfaEdge, pFunctionCall);
+        }
+        currentState.free(pointer.getValue(), pointer.getOffset(), (SMGRegion)pointer.getObject());
       }
     }
 
@@ -1639,12 +1644,15 @@ public class SMGTransferRelation implements TransferRelation {
   private Collection<? extends AbstractState> strengthen(AutomatonState pAutomatonState, SMGState pElement,
       CFAEdge pCfaEdge) throws CPATransferException {
 
-    List<CAssumeEdge> assumptions = pAutomatonState.getAsAssumeEdges(null, pCfaEdge.getPredecessor().getFunctionName());
+    List<AssumeEdge> assumptions = pAutomatonState.getAsAssumeEdges(null, pCfaEdge.getPredecessor().getFunctionName());
 
     SMGState newElement = new SMGState(pElement);
 
-    for (CAssumeEdge assume : assumptions) {
-      newElement = handleAssumption(newElement, assume.getExpression(), pCfaEdge, assume.getTruthAssumption());
+    for (AssumeEdge assume : assumptions) {
+      if (!(assume instanceof CAssumeEdge)) {
+        continue;
+      }
+      newElement = handleAssumption(newElement, ((CAssumeEdge)assume).getExpression(), pCfaEdge, assume.getTruthAssumption());
       if (newElement == null) {
         break;
       }
@@ -1882,11 +1890,6 @@ public class SMGTransferRelation implements TransferRelation {
     protected SMGSymbolicValue evaluateExpressionValue(SMGState pSmgState, CFAEdge pCfaEdge, CExpression pRValue)
         throws CPATransferException {
       return resolveRValue(oldState, pSmgState, explicitState, pRValue, pCfaEdge);
-    }
-
-    @Override
-    protected String getDot(SMGState pCurrentState, String pName, String pLocation) {
-      return pCurrentState.toDot(pName, pLocation, explicitState);
     }
 
     @Override

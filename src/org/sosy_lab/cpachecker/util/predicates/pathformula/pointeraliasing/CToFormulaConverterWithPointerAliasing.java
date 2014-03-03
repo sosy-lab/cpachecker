@@ -492,7 +492,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final CFunctionDeclaration functionDeclaration =
           ((CFunctionEntryNode) returnEdge.getSuccessor().getEntryNode()).getFunctionDefinition();
 
-      final CVariableDeclaration returnVariableDeclaraton = createReturnVariable(functionDeclaration);
+      final CVariableDeclaration returnVariableDeclaraton = createReturnVariableDeclaration(functionDeclaration);
       final boolean containsArray = CTypeUtils.containsArray(returnVariableDeclaraton.getType());
 
       declareSharedBase(returnVariableDeclaraton, containsArray, constraints, pts);

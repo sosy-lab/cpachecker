@@ -29,6 +29,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.ReadableSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGFactory;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
@@ -36,10 +39,10 @@ import com.google.common.collect.Iterables;
 
 
 public class SMGAbstractionManagerTest {
-  private CLangSMG smg;
+  private WritableSMG smg;
   @Before
   public void setUp() {
-    smg = new CLangSMG(MachineModel.LINUX64);
+    smg = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
     SMGRegion globalVar = new SMGRegion(8, "pointer");
 
@@ -73,7 +76,7 @@ public class SMGAbstractionManagerTest {
   @Test
   public void testExecute() {
     SMGAbstractionManager manager = new SMGAbstractionManager(smg);
-    CLangSMG afterAbstraction = manager.execute();
+    ReadableSMG afterAbstraction = manager.execute();
 
     SMGRegion globalVar = afterAbstraction.getObjectForVisibleVariable("pointer");
     Iterable<SMGEdgeHasValue> hvs = afterAbstraction.getHVEdges(SMGEdgeHasValueFilter.objectFilter(globalVar));

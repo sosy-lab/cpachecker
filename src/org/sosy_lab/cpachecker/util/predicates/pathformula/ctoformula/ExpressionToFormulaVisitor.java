@@ -63,9 +63,7 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 
 public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException>
                                         implements CRightHandSideVisitor<Formula, UnrecognizedCCodeException> {
@@ -74,21 +72,13 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
   private final CFAEdge       edge;
   private final String        function;
   private final SSAMapBuilder ssa;
-  private final PointerTargetSetBuilder pts;
-  private final Constraints   constraints;
-  private final ErrorConditions errorConditions;
 
   public ExpressionToFormulaVisitor(CtoFormulaConverter pCtoFormulaConverter,
-      CFAEdge pEdge, String pFunction,
-      SSAMapBuilder pSsa, PointerTargetSetBuilder pPts,
-      Constraints pCo, ErrorConditions pErrorConditions) {
+      CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa) {
     conv = pCtoFormulaConverter;
     edge = pEdge;
     function = pFunction;
     ssa = pSsa;
-    pts = pPts;
-    constraints = pCo;
-    errorConditions = pErrorConditions;
   }
 
   @Override
@@ -466,12 +456,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     final String functionName;
     if (functionNameExpression instanceof CIdExpression) {
       functionName = ((CIdExpression)functionNameExpression).getName();
-      if (functionName.equals(CtoFormulaConverter.ASSUME_FUNCTION_NAME) && parameters.size() == 1) {
-        final BooleanFormula condition = conv.makePredicate(parameters.get(0), true, edge, function, ssa, pts, constraints, errorConditions);
-        constraints.addConstraint(condition);
-        return makeNondet(functionName, returnType);
-
-      } else if (conv.options.isNondetFunction(functionName)
+      if (conv.options.isNondetFunction(functionName)
           || conv.options.isMemoryAllocationFunction(functionName)
           || conv.options.isMemoryAllocationFunctionWithZeroing(functionName)) {
         // Function call like "random()".

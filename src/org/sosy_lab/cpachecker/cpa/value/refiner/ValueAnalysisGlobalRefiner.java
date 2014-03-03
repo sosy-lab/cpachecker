@@ -53,7 +53,6 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -471,17 +470,6 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     }
 
     /**
-     * This method returns a CFA edge from the current state to its next successor.
-     * TODO: always picks first, no good!
-     *
-     * @param state the state for which to obtain an edge to its successor.
-     * @return the edge to the successor
-     */
-    private CFAEdge getEdgeToSuccessor(ARGState state) {
-      return state.getEdgeToChild(successorRelation.get(state).iterator().next());
-    }
-
-    /**
      * This method returns the interpolant to be used for interpolation of the given path.
      *
      * @param errorPath the path for which to obtain the initial interpolant
@@ -527,7 +515,9 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
         if (isNonTrivialInterpolantAvailable(currentState) && !currentState.isTarget()) {
           ValueAnalysisInterpolant itp = interpolants.get(currentState);
           for (MemoryLocation memoryLocation : itp.getMemoryLocations()) {
-            increment.put(getEdgeToSuccessor(currentState).getSuccessor(), memoryLocation);
+            for(ARGState successor : successorRelation.get(currentState)) {
+              increment.put(currentState.getEdgeToChild(successor).getSuccessor(), memoryLocation);
+            }
           }
         }
 

@@ -100,7 +100,7 @@ public enum MachineModel {
 
   // a char is always a byte, but a byte doesn't have to be 8 bits
   private final int mSizeofCharInBits = 8;
-  private CSimpleType ptrEquivalent;
+  private final CSimpleType ptrEquivalent;
 
   private MachineModel(int pSizeofShort, int pSizeofInt, int pSizeofLongInt,
       int pSizeofLongLongInt, int pSizeofFloat, int pSizeofDouble,
@@ -269,9 +269,10 @@ public enum MachineModel {
     }
   }
 
-  public CTypeVisitor<Integer, IllegalArgumentException> sizeofVisitor = new BaseSizeofVisitor(this);
+  private final CTypeVisitor<Integer, IllegalArgumentException> sizeofVisitor = new BaseSizeofVisitor(this);
+
   public static class BaseSizeofVisitor implements CTypeVisitor<Integer, IllegalArgumentException> {
-    private MachineModel model;
+    private final MachineModel model;
 
     public BaseSizeofVisitor(MachineModel model) {
       this.model = model;

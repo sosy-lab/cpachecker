@@ -111,7 +111,7 @@ class ASTLiteralConverter {
   }
 
   private CImaginaryLiteralExpression handleImaginaryNumber(FileLocation fileLoc, CSimpleType type, IASTLiteralExpression exp, String valueStr) {
-    String value = valueStr.substring(0, valueStr.length()-1);
+    valueStr = valueStr.substring(0, valueStr.length()-1);
     String imaginary = valueStr.charAt(valueStr.length()-1) + "";
     type = new CSimpleType(type.isConst(), type.isVolatile(), type.getType(), type.isLong(),
         type.isShort(), type.isSigned(), type.isUnsigned(), type.isComplex(), true, type.isLongLong());
@@ -119,14 +119,14 @@ class ASTLiteralConverter {
     case IASTLiteralExpression.lk_char_constant:
       return new CImaginaryLiteralExpression(fileLoc,
                                              type,
-                                             new CCharLiteralExpression(fileLoc, type, parseCharacterLiteral(value, exp)),
+                                             new CCharLiteralExpression(fileLoc, type, parseCharacterLiteral(valueStr, exp)),
                                              imaginary) ;
 
 
     case IASTLiteralExpression.lk_integer_constant:
       return new CImaginaryLiteralExpression(fileLoc,
                                              type,
-                                             new CIntegerLiteralExpression(fileLoc, type, parseIntegerLiteral(value, exp)),
+                                             new CIntegerLiteralExpression(fileLoc, type, parseIntegerLiteral(valueStr, exp)),
                                              imaginary) ;
 
     case IASTLiteralExpression.lk_float_constant:
@@ -139,13 +139,13 @@ class ASTLiteralConverter {
           valueStr = valueStr.substring(0, valueStr.length()-1) + "d";
         }
 
-        val = new BigDecimal(value);
+        val = new BigDecimal(valueStr);
       } catch (NumberFormatException nfe1) {
         try {
           // this might be a hex floating point literal
           // BigDecimal doesn't support this, but Double does
           // TODO handle hex floating point literals that are too large for Double
-          val = BigDecimal.valueOf(Double.parseDouble(value));
+          val = BigDecimal.valueOf(Double.parseDouble(valueStr));
         } catch (NumberFormatException nfe2) {
           throw new CFAGenerationRuntimeException("illegal floating point literal", exp);
         }

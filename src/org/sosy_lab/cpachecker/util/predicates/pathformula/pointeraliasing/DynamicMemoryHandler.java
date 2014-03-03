@@ -35,6 +35,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.collect.Collections3;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -401,7 +402,7 @@ class DynamicMemoryHandler {
     final CIntegerLiteralExpression size = deferredAllocationPool.getSize() != null ?
                                              deferredAllocationPool.getSize() :
                                              new CIntegerLiteralExpression(
-                                                   null,
+                                                   FileLocation.DUMMY,
                                                    CNumericTypes.SIGNED_CHAR,
                                                    BigInteger.valueOf(conv.options.defaultAllocationSize()));
     conv.logger.logfOnce(Level.WARNING,
@@ -566,6 +567,11 @@ class DynamicMemoryHandler {
             handleDeferredAllocationTypeRevelation(usedPointer.getKey(), type);
           }
           break;
+        case NOT_EQUALS:
+          // TODO Do something here?
+          break;
+        default:
+          throw new UnrecognizedCCodeException("unexpected binary operator in assume", e);
         }
       }
     }

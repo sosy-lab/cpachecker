@@ -23,13 +23,51 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.sll;
 
+import static org.mockito.Mockito.mock;
+
 import org.junit.Assert;
 import org.junit.Test;
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
+import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.DummyAbstraction;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 
 public class SMGSingleLinkedListTest {
+  static private final  LogManager logger = mock(LogManager.class);
+  static private MachineModel mm = MachineModel.LINUX64;
+
+  private SMGRegion prepareSingleLinkedList(SMGState pState) throws SMGInconsistentException {
+    SMGRegion pointer = new SMGRegion(mm.getSizeofPtr(), "pointer");
+    Integer listAddress = pState.getAddress(pState.getNullObject(), 0);
+    pState.addGlobalObject(pointer);
+    for (int i = 0; i < 15; i++) {
+      SMGEdgePointsTo pt = pState.addNewHeapAllocation(mm.getSizeofPtr(), "node");
+      pState.writeValue(pt.getObject(), 0, AnonymousTypes.dummyPointer, SMGKnownSymValue.valueOf(listAddress));
+      listAddress = pt.getValue();
+      pState.writeValue(pointer, 0, AnonymousTypes.dummyPointer,SMGKnownSymValue.valueOf(listAddress));
+    }
+    pState.attemptAbstraction();
+
+    Integer sllAddress = pState.readValue(pointer, 0, AnonymousTypes.dummyPointer);
+    SMGEdgePointsTo pt = pState.getPointerFromValue(sllAddress);
+    SMGObject object = pt.getObject();
+
+    Assert.assertTrue(object instanceof SMGSingleLinkedList);
+    SMGSingleLinkedList sll = (SMGSingleLinkedList) object;
+    Assert.assertEquals(15, sll.getLength());
+    Assert.assertEquals(0, sll.getOffset());
+
+    return pointer;
+  }
+
 
   @Test
   public void basicsTest() {

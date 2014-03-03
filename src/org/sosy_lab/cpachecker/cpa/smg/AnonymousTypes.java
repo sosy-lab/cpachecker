@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import java.math.BigInteger;
 import java.util.ArrayList;
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -46,7 +47,7 @@ public class AnonymousTypes {
   }
 
   public static CType createTypeWithLength(long pSizeInBytes) {
-    CIntegerLiteralExpression arrayLen = new CIntegerLiteralExpression(null, AnonymousTypes.dummyInt, BigInteger.valueOf(pSizeInBytes));
+    CIntegerLiteralExpression arrayLen = new CIntegerLiteralExpression(FileLocation.DUMMY, AnonymousTypes.dummyInt, BigInteger.valueOf(pSizeInBytes));
     return new CArrayType(false, false, AnonymousTypes.dummyChar, arrayLen);
   }
 }
