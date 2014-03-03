@@ -646,7 +646,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     @Override
     public void close() {
       if (isProverInitialized()) {
-        //prover.pop();
+        prover.pop();
         prover.close();
       }
     }
