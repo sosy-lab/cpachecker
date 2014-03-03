@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -143,6 +142,8 @@ class MultiEdgeCreator extends DefaultCFAVisitor {
     if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
       CStatementEdge statementEdge = (CStatementEdge)edge;
 
+/* Temporarily disabled because SV-COMP specification relies on matching
+ * extern function calls, and target states cannot appear within a multi edge.
       if ((statementEdge.getStatement() instanceof CFunctionCall)) {
         CFunctionCall call = ((CFunctionCall)statementEdge.getStatement());
         CSimpleDeclaration declaration = call.getFunctionCallExpression().getDeclaration();
@@ -152,8 +153,8 @@ class MultiEdgeCreator extends DefaultCFAVisitor {
         // otherwise: call of non-existent function, example: nondet_int() -> ignore this case
         return declaration == null || cfa.getAllFunctionNames().contains(declaration.getQualifiedName());
       }
-      // simplest (close-to-optimal) solution, that would split at any function call
-      //return (statementEdge.getStatement() instanceof CFunctionCall);
+*/
+      return (statementEdge.getStatement() instanceof CFunctionCall);
     }
     return false;
   }
