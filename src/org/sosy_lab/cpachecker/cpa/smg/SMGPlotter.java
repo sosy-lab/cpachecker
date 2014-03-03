@@ -164,18 +164,6 @@ public final class SMGPlotter {
       }
     }
 
-    Set<Integer> processed = new HashSet<>();
-    for (Integer value : smg.getValues()) {
-      if (value != smg.getNullValue()) {
-        for (Integer neqValue : smg.getNeqsForValue(value)) {
-          if (! processed.contains(neqValue)) {
-            sb.append(newLineWithOffset(neqRelationAsDot(value, neqValue)));
-          }
-        }
-        processed.add(value);
-      }
-    }
-
     for (SMGEdgeHasValue edge: smg.getHVEdges()) {
       sb.append(newLineWithOffset(smgHVEdgeAsDot(edge)));
     }
@@ -289,18 +277,6 @@ public final class SMGPlotter {
     }
 
     return "value_" + value + "[label=\"#" + value + explicitValue +  "\"];";
-  }
-
-  private static String neqRelationAsDot(Integer v1, Integer v2) {
-    String targetNode;
-    String returnString = "";
-    if (v2.equals(0)) {
-      targetNode = newNullLabel();
-      returnString = targetNode + "[shape=plaintext, label=\"NULL\", fontcolor=\"red\"];\n";
-    } else {
-      targetNode = "value_" + v2;
-    }
-    return returnString + "value_" + v1 + " -> " + targetNode + "[color=\"red\", fontcolor=\"red\", label=\"neq\"]";
   }
 
   private String newLineWithOffset(String pLine) {
