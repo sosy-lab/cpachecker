@@ -26,7 +26,8 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
 import com.google.common.base.Function;
 
@@ -96,8 +97,10 @@ public class ReplacingFormulaManager implements FormulaManager {
     Formula f;
     if (type.isBitvectorType()) {
       f = new WrappingBitvectorFormula<>((FormulaType<BitvectorFormula>)type, toWrap);
+    } else if (type.isIntegerType()) {
+      f = new WrappingIntegerFormula<>((FormulaType<IntegerFormula>)type, toWrap);
     } else if (type.isRationalType()) {
-      f = new WrappingNumeralFormula<>((FormulaType<NumeralFormula>)type, toWrap);
+      f = new WrappingRationalFormula<>((FormulaType<RationalFormula>)type, toWrap);
     } else if (type.isBooleanType()) {
       f = new WrappingBooleanFormula<>((FormulaType<BooleanFormula>)type, toWrap);
     } else {

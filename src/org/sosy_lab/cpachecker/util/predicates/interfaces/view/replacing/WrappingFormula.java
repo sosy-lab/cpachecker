@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
 
 abstract class WrappingFormula<TWrap extends Formula, TOut extends Formula> {
@@ -80,11 +82,20 @@ final class WrappingBitvectorFormula<TWrap extends Formula>
   }
 }
 
-final class WrappingNumeralFormula<TWrap extends Formula>
-    extends WrappingFormula<TWrap, NumeralFormula>
-    implements NumeralFormula {
+final class WrappingIntegerFormula<TWrap extends Formula>
+    extends WrappingFormula<TWrap, IntegerFormula>
+    implements IntegerFormula {
 
-  WrappingNumeralFormula(FormulaType<NumeralFormula> type, TWrap pToWrap) {
+  WrappingIntegerFormula(FormulaType<IntegerFormula> type, TWrap pToWrap) {
+    super(type, pToWrap);
+  }
+}
+
+final class WrappingRationalFormula<TWrap extends Formula>
+    extends WrappingFormula<TWrap, RationalFormula>
+    implements RationalFormula {
+
+  WrappingRationalFormula(FormulaType<RationalFormula> type, TWrap pToWrap) {
     super(type, pToWrap);
   }
 }
