@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+
+<!--
+     In the future, these integration tests are meant to test smgcpa as well as 
+     smgcpa with explicitCPA without any kind of abstraction.
+      -->
+      
+<benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="3000" cpuCores="2">
+
+  <option name="-noout"/>
+  <option name="-heap">2000M</option>
+  <option name="-preprocess" />
+  <option name="-timelimit">1min</option>
+    
+  <rundefinition>
+    
+    <sourcefiles name ="label">
+      <option name="-CPAlien-label"/>
+      <option name="-setprop">cpa.smg.handleUnknownFunctions=assume_safe</option>
+      
+      <include>../programs/smg_Explicity_Test/lists/*.c</include>
+      <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
+    </sourcefiles>
+  
+    <sourcefiles name="memsafety">
+      <option name="-CPAlien"/>
+      <option name="-setprop">memorysafety.config=config/CPAlien.properties</option>
+      
+      <include>../programs/smg_Explicity_Test/heap-memory/*.c</include>
+      <propertyfile>../programs/benchmarks/PropertyMemSafety.prp</propertyfile>
+    </sourcefiles>
+  </rundefinition>
+
+  <columns>
+    <column title="total">time for CPAchecker</column>
+    <column title="reached">reached set</column>
+  </columns>
+</benchmark>
