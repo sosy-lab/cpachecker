@@ -100,7 +100,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
                                           final ErrorConditions errorConditions,
                                           final PointerTargetSetBuilder pts) {
 
-    delegate = new ExpressionToFormulaVisitor(cToFormulaConverter, cfaEdge, function, ssa, pts, constraints, errorConditions) {
+    delegate = new ExpressionToFormulaVisitor(cToFormulaConverter, cfaEdge, function, ssa) {
       @Override
       protected Formula toFormula(CExpression e) throws UnrecognizedCCodeException {
         return asValueFormula(e.accept(CExpressionVisitorWithPointerAliasing.this),
