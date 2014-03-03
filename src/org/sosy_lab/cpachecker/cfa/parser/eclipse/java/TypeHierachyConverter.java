@@ -98,8 +98,7 @@ public class TypeHierachyConverter {
 
     @SuppressWarnings({ "cast", "unchecked" })
     List<JParameterDeclaration> param =
-        convertParameterList((List<SingleVariableDeclaration>)
-            md.parameters(), pFileOfDeclaration);
+        convertParameterList(md.parameters(), pFileOfDeclaration);
 
     List<JType> parameterTypes = FluentIterable.from(param).transform(
         new Function<JParameterDeclaration, JType>() {
@@ -260,11 +259,11 @@ public class TypeHierachyConverter {
   private FileLocation convertFileLocation(ASTNode l, String fileOfDeclaration) {
 
     if (l == null) {
-      return new FileLocation(0, "", 0, 0, 0);
+      return FileLocation.DUMMY;
     } else if (l.getRoot().getNodeType() != ASTNode.COMPILATION_UNIT) {
       logger.log(Level.WARNING, "Can't find Placement Information for :"
           + l.toString());
-      return new FileLocation(0, "", 0, 0, 0);
+      return FileLocation.DUMMY;
     }
 
     CompilationUnit co = (CompilationUnit) l.getRoot();

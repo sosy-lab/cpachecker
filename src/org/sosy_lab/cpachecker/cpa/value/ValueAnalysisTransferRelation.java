@@ -113,7 +113,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
-@Options(prefix="cpa.explicit")
+@Options(prefix="cpa.value")
 public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<ValueAnalysisState, ValueAnalysisPrecision> {
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
@@ -228,7 +228,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
       if (exp instanceof JExpression) {
         // value = ((JExpression) exp).accept(visitor); TODO
-        value = Value.ExplicitUnknownValue.getInstance();
+        value = Value.UnknownValue.getInstance();
       } else if (exp instanceof CExpression) {
         value = visitor.evaluate((CExpression) exp, (CType) parameters.get(i).getType());
       } else {
@@ -406,7 +406,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     // get the variable name in the declarator
     String varName = decl.getName();
 
-    Value initialValue = Value.ExplicitUnknownValue.getInstance();
+    Value initialValue = Value.UnknownValue.getInstance();
 
     // get initial value
     IAInitializer init = decl.getInitializer();
@@ -457,7 +457,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     boolean complexType = decl.getType() instanceof JClassOrInterfaceType || decl.getType() instanceof JArrayType;
 
 
-    if (!complexType  && (missingInformationRightJExpression != null || initialValue != Value.ExplicitUnknownValue.getInstance())) {
+    if (!complexType  && (missingInformationRightJExpression != null || initialValue != Value.UnknownValue.getInstance())) {
       if (missingFieldVariableObject) {
         fieldNameAndInitialValue = Pair.of(varName, initialValue);
       } else if (missingInformationRightJExpression == null) {
@@ -611,7 +611,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     Value value;
     if (exp instanceof JRightHandSide) {
        // value = ((JRightHandSide) exp).accept(visitor); TODO
-      value = Value.ExplicitUnknownValue.getInstance();
+      value = Value.UnknownValue.getInstance();
     } else if (exp instanceof CRightHandSide) {
        value = visitor.evaluate((CRightHandSide) exp, (CType) lType);
     } else {
@@ -649,7 +649,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     } else {
       // some heuristics to clear wrong information
       // when a struct or a pointer to one is assigned
-      // TODO not implemented in SMG version of ExplicitCPA
+      // TODO not implemented in SMG version of ValueAnalysisCPA
 //      newElement.forgetAllWithPrefix(assignedVar + ".");
 //      newElement.forgetAllWithPrefix(assignedVar + "->");
 
@@ -721,12 +721,12 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       Value rightValue                 = rVarInBinaryExp.accept(this);
 
       if ((binaryOperator == BinaryOperator.EQUALS && truthValue) || (binaryOperator == BinaryOperator.NOT_EQUALS && !truthValue)) {
-        if (leftValue == Value.ExplicitUnknownValue.getInstance() &&  rightValue != Value.ExplicitUnknownValue.getInstance() && isAssignable(lVarInBinaryExp)) {
+        if (leftValue == Value.UnknownValue.getInstance() &&  rightValue != Value.UnknownValue.getInstance() && isAssignable(lVarInBinaryExp)) {
           MemoryLocation leftVariableLocation = getMemoryLocation(lVarInBinaryExp);
           assignableState.assignConstant(leftVariableLocation, rightValue);
         }
 
-        else if (rightValue == Value.ExplicitUnknownValue.getInstance() && leftValue != Value.ExplicitUnknownValue.getInstance() && isAssignable(rVarInBinaryExp)) {
+        else if (rightValue == Value.UnknownValue.getInstance() && leftValue != Value.UnknownValue.getInstance() && isAssignable(rVarInBinaryExp)) {
           MemoryLocation rightVariableName = getMemoryLocation(rVarInBinaryExp);
           assignableState.assignConstant(rightVariableName, leftValue);
         }
@@ -993,7 +993,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     if (expression instanceof JRightHandSide) {
 
-      final Value value = Value.ExplicitUnknownValue.getInstance(); // TODO ((JRightHandSide) expression).accept(evv);
+      final Value value = Value.UnknownValue.getInstance(); // TODO ((JRightHandSide) expression).accept(evv);
 
       if (evv.hasMissingFieldAccessInformation() || evv.hasMissingEnumComparisonInformation()) {
         missingInformationRightJExpression = (JRightHandSide) expression;
@@ -1238,15 +1238,15 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       return pNewElement;
     }
 
-    Value explicitValue = Value.ExplicitUnknownValue.getInstance();
+    Value value = Value.UnknownValue.getInstance();
 
     if (pMissingInformation.hasKnownValue()) {
-      explicitValue = pMissingInformation.getcExpressionValue();
+      value = pMissingInformation.getcExpressionValue();
     } else if (pMissingInformation.hasUnknownValue()) {
-      explicitValue = resolveValue(pSmgState, pMissingInformation.getMissingCExpressionInformation());
+      value = resolveValue(pSmgState, pMissingInformation.getMissingCExpressionInformation());
     }
 
-    if (explicitValue.isUnknown()) {
+    if (value.isUnknown()) {
       // Always return the new Element
       // if you want to interrupt the calculation
       // in case it was changed before
@@ -1256,7 +1256,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       return pNewElement;
     }
 
-    pNewElement.assignConstant(memoryLocation, explicitValue);
+    pNewElement.assignConstant(memoryLocation, value);
 
     return pNewElement;
   }
@@ -1350,7 +1350,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       }
     } else if (missingInformationRightJExpression != null) {
 
-      //ExplicitValueBase value = null; // TODO handleMissingInformationRightJExpression(rttState);
+      //Value value = null; // TODO handleMissingInformationRightJExpression(rttState);
       //
       //if (value != null) {
         //newElement.assignConstant(missingInformationLeftJVariable, value);
@@ -1389,7 +1389,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
      Value value = notScopedFieldValue;
      if (missingInformationRightJExpression != null) {
-       value = Value.ExplicitUnknownValue.getInstance(); // TODO handleMissingInformationRightJExpression(rttState);
+       value = Value.UnknownValue.getInstance(); // TODO handleMissingInformationRightJExpression(rttState);
      }
 
      if (!value.isUnknown()) {

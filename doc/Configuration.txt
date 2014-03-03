@@ -88,8 +88,8 @@ has to be prefixed with the identifier of the CPA as described above.
 
 A simple example (the first line could be ommitted as it's the default):
 cpa = cpa.composite.CompositeCPA
-CompositeCPA.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.explicit.ExplicitCPA explicitCPA
-explicitCPA.cpa.explicit.threshold = 10
+CompositeCPA.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.value.ValueAnalysisCPA
+cpa.value.merge = "SEP"
 
 A more complex example:
 cpa = cpa.arg.ARGCPA arg

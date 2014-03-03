@@ -23,9 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -56,7 +60,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 
 /**
  * Base implementation that should work with all CDT versions we support.
@@ -177,7 +185,8 @@ abstract class AbstractEclipseCParser<T> implements CParser {
 
     Sideassignments sa = new Sideassignments();
     sa.enterBlock();
-    return new ASTConverter(config, new FunctionScope(), logger, machine, "", false, sa).convert(statements[0]);
+    return new ASTConverter(config, new FunctionScope(), logger, Functions.<String>identity(), machine, "", false, sa)
+        .convert(statements[0]);
   }
 
   @Override
@@ -207,7 +216,8 @@ abstract class AbstractEclipseCParser<T> implements CParser {
     Sideassignments sa = new Sideassignments();
     sa.enterBlock();
 
-    ASTConverter converter = new ASTConverter(config, new FunctionScope(), logger, machine, "", false, sa);
+    ASTConverter converter = new ASTConverter(config, new FunctionScope(), logger,
+        Functions.<String>identity(), machine, "", false, sa);
 
     List<CAstNode> nodeList = new ArrayList<>(statements.length);
 
@@ -268,9 +278,12 @@ abstract class AbstractEclipseCParser<T> implements CParser {
    * @throws InvalidConfigurationException
    */
   private ParseResult buildCFA(List<Pair<IASTTranslationUnit, String>> asts) throws CParserException, InvalidConfigurationException {
+    checkArgument(!asts.isEmpty());
     cfaTimer.start();
+
+    Function<String, String> niceFileNameFunction = createNiceFileNameFunction(asts);
     try {
-      CFABuilder builder = new CFABuilder(config, logger, machine);
+      CFABuilder builder = new CFABuilder(config, logger, niceFileNameFunction, machine);
       for(Pair<IASTTranslationUnit, String> ast : asts) {
         builder.analyzeTranslationUnit(ast.getFirst(), ast.getSecond());
       }
@@ -281,6 +294,64 @@ abstract class AbstractEclipseCParser<T> implements CParser {
       throw new CParserException(e);
     } finally {
       cfaTimer.stop();
+    }
+  }
+
+  /**
+   * Given a file name, this function returns a "nice" representation of it.
+   * This should be used for situations where the name is going
+   * to be presented to the user.
+   * The result may be the empty string, if for example CPAchecker only uses
+   * one file (we expect the user to know its name in this case).
+   */
+  private Function<String, String> createNiceFileNameFunction(List<Pair<IASTTranslationUnit, String>> asts) {
+    Iterator<String> fileNames = Lists.transform(asts, new Function<Pair<IASTTranslationUnit, String>, String>() {
+      @Override
+      public String apply(Pair<IASTTranslationUnit, String> pInput) {
+        return pInput.getFirst().getFilePath();
+      }}).iterator();
+
+    if (asts.size() == 1) {
+      final String mainFileName = fileNames.next();
+      return new Function<String, String>() {
+        @Override
+        public String apply(String pInput) {
+          return mainFileName.equals(pInput)
+              ? "" // no file name necessary for main file if there is only one
+              : pInput;
+          }
+        };
+
+    } else {
+      String commonStringPrefix = fileNames.next();
+      while (fileNames.hasNext()) {
+        commonStringPrefix = Strings.commonPrefix(commonStringPrefix, fileNames.next());
+      }
+
+      final String commonPathPrefix;
+      int pos = commonStringPrefix.lastIndexOf(File.separator);
+      if (pos < 0) {
+        commonPathPrefix = commonStringPrefix;
+      } else {
+        commonPathPrefix = commonStringPrefix.substring(0, pos+1);
+      }
+
+      return new Function<String, String>() {
+          @Override
+          public String apply(String pInput) {
+            if (pInput.isEmpty()) {
+              return pInput;
+            }
+            if (pInput.charAt(0) == '"' && pInput.charAt(pInput.length()-1) == '"') {
+              pInput = pInput.substring(1, pInput.length()-1);
+            }
+            if (pInput.startsWith(commonPathPrefix)) {
+              return pInput.substring(commonPathPrefix.length()).intern();
+            } else {
+              return pInput.intern();
+            }
+          }
+        };
     }
   }
 

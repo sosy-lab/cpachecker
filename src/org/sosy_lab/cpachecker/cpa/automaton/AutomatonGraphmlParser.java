@@ -168,7 +168,7 @@ public class AutomatonGraphmlParser {
     }
 
   }
-
+/*
   private Set<Integer> getTokensOfExpr(AutomatonBoolExpr expr, boolean excludeNegations) {
     TokenCollector collector = new TokenCollector();
     return collector.collectFromExpr(expr, excludeNegations);
@@ -178,7 +178,7 @@ public class AutomatonGraphmlParser {
     OriginLineCollector collector = new OriginLineCollector();
     return collector.collectFromExpr(expr, excludeNegations);
   }
-
+*/
   private boolean leafSetsDisjoint(CollectorOnExprLeaf<? extends Comparable<?>> collector, List<AutomatonTransition> transitions) {
     Set<Comparable<?>> allItems = Sets.newTreeSet();
     for (AutomatonTransition t : transitions) {

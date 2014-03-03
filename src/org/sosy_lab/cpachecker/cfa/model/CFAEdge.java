@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.model;
 
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
 
 import com.google.common.base.Optional;
@@ -39,6 +40,8 @@ public interface CFAEdge {
   public Optional<? extends IAstNode> getRawAST();
 
   public int getLineNumber();
+
+  public FileLocation getFileLocation();
 
   /**
    * Returns the part of the original input file from which this edge was

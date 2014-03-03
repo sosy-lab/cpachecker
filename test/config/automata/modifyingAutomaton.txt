@@ -6,17 +6,17 @@ INITIAL STATE Init;
 
 STATE USEFIRST Init:
   MATCH {$? = func($1, $2); } -> 
-    ASSERT CHECK(ExplicitAnalysis,"$1==$$a") 
-    MODIFY(ExplicitAnalysis,"deletevalues($2);setvalue($2:=0)")
+    ASSERT CHECK(ValueAnalysis,"$1==$$a") 
+    MODIFY(ValueAnalysis,"deletevalues($2);setvalue($2:=0)")
     PRINT "MODIFIED" 
     GOTO Init;
     
     
     // these edges are to check for bugs. The functionality is implemented in the first edge.
   MATCH "somefunction();" -> 
-    ASSERT CHECK(ExplicitAnalysis, "c==0")
-    ASSERT EVAL(ExplicitAnalysis("c"))==0
-    PRINT "Explicit Value of c: " EVAL(ExplicitAnalysis,"c") " Modification successful" 
+    ASSERT CHECK(ValueAnalysis, "c==0")
+    ASSERT EVAL(ValueAnalysis("c"))==0
+    PRINT "Value of c: " EVAL(ValueAnalysis,"c") " Modification successful" 
     GOTO Init;
     
   MATCH "error();" -> PRINT "Found an error" ERROR;

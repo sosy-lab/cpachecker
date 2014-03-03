@@ -65,14 +65,13 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 /**
- * Refiner implementation that delegates to {@link ValueAnalysisInterpolationBasedRefiner},
- * and if this fails, optionally delegates also to {@link PredicatingExplicitRefiner}.
+ * Refiner implementation that extracts a precision increment solely based on syntactical information from error traces.
  */
-@Options(prefix="cpa.explicit.refiner")
+@Options(prefix="cpa.value.refiner")
 public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefiner implements Statistics, StatisticsProvider {
   // statistics
-  private int numberOfExplicitRefinements           = 0;
-  private int numberOfSuccessfulExplicitRefinements = 0;
+  private int numberOfRefinements           = 0;
+  private int numberOfSuccessfulRefinements = 0;
 
   private final CFA cfa;
 
@@ -80,33 +79,33 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
 
   public static ValueAnalysisUseDefinitionBasedRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
-      throw new InvalidConfigurationException(ValueAnalysisUseDefinitionBasedRefiner.class.getSimpleName() + " could not find the ExplicitCPA");
+      throw new InvalidConfigurationException(ValueAnalysisUseDefinitionBasedRefiner.class.getSimpleName() + " could not find the ValueAnalysisCPA");
     }
 
-    ValueAnalysisCPA explicitCpa = ((WrapperCPA)cpa).retrieveWrappedCpa(ValueAnalysisCPA.class);
-    if (explicitCpa == null) {
-      throw new InvalidConfigurationException(ValueAnalysisUseDefinitionBasedRefiner.class.getSimpleName() + " needs a ExplicitCPA");
+    ValueAnalysisCPA valueAnalysisCpa = ((WrapperCPA)cpa).retrieveWrappedCpa(ValueAnalysisCPA.class);
+    if (valueAnalysisCpa == null) {
+      throw new InvalidConfigurationException(ValueAnalysisUseDefinitionBasedRefiner.class.getSimpleName() + " needs a ValueAnalysisCPA");
     }
 
-    ValueAnalysisUseDefinitionBasedRefiner refiner = initialiseRefiner(cpa, explicitCpa);
-    explicitCpa.getStats().addRefiner(refiner);
+    ValueAnalysisUseDefinitionBasedRefiner refiner = initialiseRefiner(cpa, valueAnalysisCpa);
+    valueAnalysisCpa.getStats().addRefiner(refiner);
 
     return refiner;
   }
 
   private static ValueAnalysisUseDefinitionBasedRefiner initialiseRefiner(
-      ConfigurableProgramAnalysis cpa, ValueAnalysisCPA explicitCpa)
+      ConfigurableProgramAnalysis cpa, ValueAnalysisCPA pValueAnalysisCpa)
           throws CPAException, InvalidConfigurationException {
-    Configuration config              = explicitCpa.getConfiguration();
-    LogManager logger                 = explicitCpa.getLogger();
+    Configuration config = pValueAnalysisCpa.getConfiguration();
+    LogManager logger    = pValueAnalysisCpa.getLogger();
 
     return new ValueAnalysisUseDefinitionBasedRefiner(
         config,
         logger,
-        explicitCpa.getShutdownNotifier(),
+        pValueAnalysisCpa.getShutdownNotifier(),
         cpa,
-        explicitCpa.getStaticRefiner(),
-        explicitCpa.getCFA());
+        pValueAnalysisCpa.getStaticRefiner(),
+        pValueAnalysisCpa.getCFA());
   }
 
   protected ValueAnalysisUseDefinitionBasedRefiner(
@@ -114,13 +113,13 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final ConfigurableProgramAnalysis pCpa,
-      ValueAnalysisStaticRefiner pExplicitStaticRefiner,
+      ValueAnalysisStaticRefiner pValueAnalysisStaticRefiner,
       final CFA pCfa) throws CPAException, InvalidConfigurationException {
     super(pCpa);
     pConfig.inject(this);
 
-    cfa                   = pCfa;
-    logger                = pLogger;
+    cfa    = pCfa;
+    logger = pLogger;
   }
 
   @Override
@@ -132,7 +131,7 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
       return CounterexampleInfo.feasible(errorPath, null);
     }
 
-    else if (performExplicitRefinement(reached, errorPath)) {
+    else if (performValueAnalysisRefinement(reached, errorPath)) {
       return CounterexampleInfo.spurious();
     }
 
@@ -140,19 +139,19 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
   }
 
   /**
-   * This method performs an explicit refinement.
+   * This method performs an value-analysis refinement.
    *
    * @param reached the current reached set
    * @param errorPath the current error path
-   * @returns true, if the explicit refinement was successful, else false
-   * @throws CPAException when explicit interpolation fails
+   * @returns true, if the value-analysis refinement was successful, else false
+   * @throws CPAException when value-analysis interpolation fails
    */
-  private boolean performExplicitRefinement(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException, InterruptedException {
-    numberOfExplicitRefinements++;
+  private boolean performValueAnalysisRefinement(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException, InterruptedException {
+    numberOfRefinements++;
 
-    UnmodifiableReachedSet reachedSet   = reached.asReachedSet();
-    Precision precision                 = reachedSet.getPrecision(reachedSet.getLastState());
-    ValueAnalysisPrecision explicitPrecision = Precisions.extractPrecisionByType(precision, ValueAnalysisPrecision.class);
+    UnmodifiableReachedSet reachedSet             = reached.asReachedSet();
+    Precision precision                           = reachedSet.getPrecision(reachedSet.getLastState());
+    ValueAnalysisPrecision valueAnalysisPrecision = Precisions.extractPrecisionByType(precision, ValueAnalysisPrecision.class);
 
     List<CFAEdge> cfaTrace = Lists.newArrayList();
     for(Pair<ARGState, CFAEdge> elem : errorPath) {
@@ -162,27 +161,27 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
     Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
     for(String var : new AssumptionUseDefinitionCollector().obtainUseDefInformation(cfaTrace)) {
       String[] s = var.split("::");
-     
+
       // just add to BOGUS LOCATION
       increment.put(cfaTrace.get(0).getSuccessor(), (s.length == 1)
                                                       ? MemoryLocation.valueOf(s[0])
                                                       : MemoryLocation.valueOf(s[0], s[1], 0));
     }
-    
+
     // no increment - Refinement was not successful
     if(increment.isEmpty()) {
       return false;
     }
 
-    ValueAnalysisPrecision refinedExplicitPrecision  = new ValueAnalysisPrecision(explicitPrecision, increment);
-    
+    ValueAnalysisPrecision refinedValueAnalysisPrecision = new ValueAnalysisPrecision(valueAnalysisPrecision, increment);
+
     ArrayList<Precision> refinedPrecisions = new ArrayList<>(2);
-    refinedPrecisions.add(refinedExplicitPrecision);
-    
+    refinedPrecisions.add(refinedValueAnalysisPrecision);
+
     ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(2);
     newPrecisionTypes.add(ValueAnalysisPrecision.class);
 
-    numberOfSuccessfulExplicitRefinements++;
+    numberOfSuccessfulRefinements++;
     reached.removeSubtree(errorPath.get(1).getFirst(), refinedPrecisions, newPrecisionTypes);
     return true;
   }
@@ -194,13 +193,13 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
 
   @Override
   public String getName() {
-    return "Use-Definition-Based Explicit-Refiner";
+    return "ValueAnalysisUseDefinitionBasedRefiner";
   }
 
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-    out.println("  number of explicit refinements:                      " + numberOfExplicitRefinements);
-    out.println("  number of successful explicit refinements:           " + numberOfSuccessfulExplicitRefinements);
+    out.println("  number of refinements:                      " + numberOfRefinements);
+    out.println("  number of successful refinements:           " + numberOfSuccessfulRefinements);
   }
 
   /**
@@ -212,7 +211,7 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
    */
   boolean isPathFeasable(ARGPath path) throws CPAException {
     try {
-      // create a new ExplicitPathChecker, which does check the given path at full precision
+      // create a new ValueAnalysisChecker, which does check the given path at full precision
       ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
 
       return checker.isFeasible(path);

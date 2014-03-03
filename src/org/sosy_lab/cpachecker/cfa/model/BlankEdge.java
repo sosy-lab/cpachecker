@@ -23,15 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cfa.model;
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+
 
 public class BlankEdge extends AbstractCFAEdge {
 
   private final String description;
 
-  public BlankEdge(String pRawStatement, int pLineNumber,  CFANode pPredecessor,
+  public BlankEdge(String pRawStatement, FileLocation pFileLocation,  CFANode pPredecessor,
       CFANode pSuccessor, String pDescription) {
 
-    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
+    super(pRawStatement, pFileLocation, pPredecessor, pSuccessor);
     description = pDescription;
   }
 

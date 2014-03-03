@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
@@ -99,20 +100,22 @@ public class UnrecognizedCodeException extends CPATransferException {
     }
 
     StringBuilder sb = new StringBuilder();
+    FileLocation fileLocation = null;
+    if (astNode != null) {
+      fileLocation = astNode.getFileLocation();
+    } else if (edge != null) {
+      fileLocation = edge.getFileLocation();
+    }
+    if (fileLocation != null) {
+      sb.append(fileLocation);
+      sb.append(": ");
+    }
+
     sb.append(msg1);
     if (msg2 != null) {
       sb.append(" (");
       sb.append(msg2);
       sb.append(")");
-    }
-
-    if (edge != null || astNode != null) {
-      sb.append(" in line ");
-      if (edge != null) {
-        sb.append(edge.getLineNumber());
-      } else {
-        sb.append(astNode.getFileLocation().getStartingLineNumber());
-      }
     }
 
     if (astNode != null || edge != null) {

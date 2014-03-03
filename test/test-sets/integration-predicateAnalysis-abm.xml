@@ -7,7 +7,7 @@
   <option name="-heap">2000M</option>
   <option name="-timelimit">1min</option>
 
-  <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
   <rundefinition>
     <sourcefiles>

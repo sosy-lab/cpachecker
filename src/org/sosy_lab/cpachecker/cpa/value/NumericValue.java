@@ -31,13 +31,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
  * Stores a numeric value that can be tracked by the
- * ExplicitCPA.
+ * ValueAnalysisCPA.
  */
 public class NumericValue implements Value {
   private Number number;
 
   /**
-   * Creates a new <code>ExplicitNumberValue</code>, given the type and a
+   * Creates a new <code>NumericValue</code>, given the type and a
    * <code>BigDecimal</code>.
    * @param pType the inital type of the number.
    * @param pNumber the value of the number (must be a <code>BigDecimal</code>)
@@ -92,7 +92,7 @@ public class NumericValue implements Value {
    */
   @Override
   public String toString() {
-    return "ExplicitNumericValue [number=" + number + "]";
+    return "NumericValue [number=" + number + "]";
   }
 
   @Override

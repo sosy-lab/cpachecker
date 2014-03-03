@@ -37,6 +37,7 @@ import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -179,7 +180,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
         // do nothing we require that the edge does not exist
       }
       // note: expression of created edge does not match error condition, only error condition will describe correct failure cause
-      CAssumeEdge assumeEdge = new CAssumeEdge("1", node.getLineNumber(), node, node, CNumericTypes.ONE, true);
+      CAssumeEdge assumeEdge = new CAssumeEdge("1", FileLocation.DUMMY, node, node, CNumericTypes.ONE, true);
 
       fakeEdgeFromLastRun = assumeEdge;
       node.addEnteringEdge(assumeEdge);

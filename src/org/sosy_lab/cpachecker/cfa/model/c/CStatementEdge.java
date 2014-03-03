@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.model.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -33,9 +34,9 @@ public class CStatementEdge extends AStatementEdge {
 
 
   public CStatementEdge(String pRawStatement, CStatement pStatement,
-      int pLineNumber, CFANode pPredecessor, CFANode pSuccessor) {
+      FileLocation pFileLocation, CFANode pPredecessor, CFANode pSuccessor) {
 
-    super(pRawStatement, pStatement, pLineNumber, pPredecessor, pSuccessor);
+    super(pRawStatement, pStatement, pFileLocation, pPredecessor, pSuccessor);
   }
 
 

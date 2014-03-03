@@ -52,7 +52,7 @@ import com.google.common.collect.Multimap;
 
 public class ValueAnalysisStaticRefiner extends StaticRefiner {
 
-  private final ValueAnalysisPrecision explicitPrecision;
+  private final ValueAnalysisPrecision valueAnalysisPrecision;
 
   public ValueAnalysisStaticRefiner(
       Configuration pConfig,
@@ -60,7 +60,7 @@ public class ValueAnalysisStaticRefiner extends StaticRefiner {
       ValueAnalysisPrecision initialPrecision) throws InvalidConfigurationException {
     super(pConfig, pLogger);
 
-    explicitPrecision = initialPrecision;
+    valueAnalysisPrecision = initialPrecision;
   }
 
   public ValueAnalysisPrecision extractPrecisionFromCfa(UnmodifiableReachedSet pReached,
@@ -81,6 +81,6 @@ public class ValueAnalysisStaticRefiner extends StaticRefiner {
       }
     }
 
-    return new ValueAnalysisPrecision(explicitPrecision, increment);
+    return new ValueAnalysisPrecision(valueAnalysisPrecision, increment);
   }
 }

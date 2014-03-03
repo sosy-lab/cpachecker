@@ -73,22 +73,22 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
-@Options(prefix="cpa.explicit")
+@Options(prefix="cpa.value")
 public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider, ProofChecker {
 
   @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
-      description="which merge operator to use for ExplicitCPA")
+      description="which merge operator to use for ValueAnalysisCPA")
   private String mergeType = "SEP";
 
   @Option(name="stop", toUppercase=true, values={"SEP", "JOIN", "NEVER"},
-      description="which stop operator to use for ExplicitCPA")
+      description="which stop operator to use for ValueAnalysisCPA")
   private String stopType = "SEP";
 
   @Option(name="variableBlacklist",
-      description="blacklist regex for variables that won't be tracked by ExplicitCPA")
+      description="blacklist regex for variables that won't be tracked by ValueAnalysisCPA")
   private String variableBlacklist = "";
 
-  @Option(description="enables target checking for explicit anlaysis, needed for predicated analysis")
+  @Option(description="enables target checking for value-analysis, needed for predicate-analysis")
   private boolean doTargetCheck = false;
 
   @Option(name="inPredicatedAnalysis",
@@ -184,8 +184,8 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
   private ValueAnalysisPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
     if(refinementWithoutAbstraction(config) && !useInPredicatedAnalysisWithoutRefinement) {
-      logger.log(Level.WARNING, "Explicit-Value analysis with refinement needs " +
-            "ComponentAwareExplicitPrecisionAdjustment. Please set option cpa.composite.precAdjust to 'COMPONENT'");
+      logger.log(Level.WARNING, "ValueAnalysis with refinement needs " +
+            "ComponentAwarePrecisionAdjustment. Please set option cpa.composite.precAdjust to 'COMPONENT'");
     }
 
     // create default (empty) precision

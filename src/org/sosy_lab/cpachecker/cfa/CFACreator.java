@@ -54,6 +54,7 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CParser.FileToParse;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -61,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -347,18 +349,9 @@ public class CFACreator {
         spbuilder.insertCallEdgesRecursively();
       }
 
-      if (useGlobalVars) {
-        // add global variables at the beginning of main
-        insertGlobalDeclarations(cfa, c.getGlobalDeclarations());
-      }
-
       // FIFTH, do post-processings on the supergraph
       // Mutating post-processings should be checked carefully for their effect
       // on the information collected above (such as loops and post-order ids).
-
-      if (useMultiEdges) {
-        MultiEdgeCreator.createMultiEdges(cfa);
-      }
 
       // remove irrelevant locations
       if (cfaReduction != null) {
@@ -523,7 +516,7 @@ public class CFACreator {
             CFANode terminationNode = new CFATerminationNode(node.getLineNumber(), node.getFunctionName());
             BlankEdge terminationEdge =
                     new BlankEdge(leavingBlankEdge.getRawStatement(),
-                            leavingBlankEdge.getLineNumber(),
+                            leavingBlankEdge.getFileLocation(),
                             leavingBlankEdge.getPredecessor(),
                             terminationNode,
                             leavingBlankEdge.getDescription());
@@ -539,6 +532,15 @@ public class CFACreator {
     }
     for (CFANode nodeToAdd : toAdd) {
       cfa.addNode(nodeToAdd);
+    }
+
+    if (useGlobalVars) {
+      // add global variables at the beginning of main
+      insertGlobalDeclarations(cfa, globalDeclarations);
+    }
+
+    if (useMultiEdges) {
+      MultiEdgeCreator.createMultiEdges(cfa);
     }
   }
 
@@ -648,9 +650,9 @@ public class CFACreator {
   }
 
   /**
-   * Insert nodes for global declarations after first node of CFA.
+   * Insert nodes for global declarations after first node of the CFA of the main-function.
    */
-  public static void insertGlobalDeclarations(final MutableCFA cfa, List<Pair<IADeclaration, String>> globalVars) {
+  private void insertGlobalDeclarations(final MutableCFA cfa, final List<Pair<IADeclaration, String>> globalVars) {
     if (globalVars.isEmpty()) {
       return;
     }
@@ -662,19 +664,22 @@ public class CFACreator {
     }
 
     // split off first node of CFA
-    FunctionEntryNode firstNode = cfa.getMainFunction();
+    final FunctionEntryNode firstNode = cfa.getMainFunction();
     assert firstNode.getNumLeavingEdges() == 1;
-    CFAEdge firstEdge = firstNode.getLeavingEdge(0);
-    assert firstEdge instanceof BlankEdge;
-    CFANode secondNode = firstEdge.getSuccessor();
+    final CFAEdge firstEdge = firstNode.getLeavingEdge(0);
+    assert firstEdge.getEdgeType() == CFAEdgeType.BlankEdge;
+    final CFANode secondNode = firstEdge.getSuccessor();
 
     CFACreationUtils.removeEdgeFromNodes(firstEdge);
+
+    // now the first node is not connected to the second node,
+    // we can add new edges between them and then reconnect the nodes
 
     // insert one node to start the series of declarations
     CFANode cur = new CFANode(0, firstNode.getFunctionName());
     cfa.addNode(cur);
-    BlankEdge be = new BlankEdge("", 0, firstNode, cur, "INIT GLOBAL VARS");
-    addToCFA(be);
+    final CFAEdge newFirstEdge = new BlankEdge("", FileLocation.DUMMY, firstNode, cur, "INIT GLOBAL VARS");
+    CFACreationUtils.addEdgeUnconditionallyToCFA(newFirstEdge);
 
     // create a series of GlobalDeclarationEdges, one for each declaration
     for (Pair<? extends IADeclaration, String> p : globalVars) {
@@ -685,22 +690,26 @@ public class CFACreator {
       CFANode n = new CFANode(d.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
       cfa.addNode(n);
 
-      if (cfa.getLanguage() == Language.C) {
-        CDeclarationEdge e = new CDeclarationEdge(rawSignature,
-            d.getFileLocation().getStartingLineNumber(), cur, n, (CDeclaration) d);
-        addToCFA(e);
-        cur = n;
-      } else if (cfa.getLanguage() == Language.JAVA) {
-        JDeclarationEdge e = new JDeclarationEdge(rawSignature,
-            d.getFileLocation().getStartingLineNumber(), cur, n, (JDeclaration) d);
-        addToCFA(e);
-        cur = n;
+      final CFAEdge newEdge;
+      switch (cfa.getLanguage()) {
+        case C:
+          newEdge = new CDeclarationEdge(rawSignature, d.getFileLocation(), cur, n, (CDeclaration) d);
+          break;
+        case JAVA :
+          newEdge = new JDeclarationEdge(rawSignature, d.getFileLocation(), cur, n, (JDeclaration) d);
+          break;
+        default:
+          throw new AssertionError("unknown language");
       }
+
+      CFACreationUtils.addEdgeUnconditionallyToCFA(newEdge);
+      cur = n;
     }
 
-    // and a blank edge connecting the declarations with the second node of CFA
-    be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode, firstEdge.getDescription());
-    addToCFA(be);
+    // add a blank edge connecting the declarations with the (old) second node of CFA
+    final CFAEdge newLastEdge = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getFileLocation(),
+            cur, secondNode, firstEdge.getDescription());
+    CFACreationUtils.addEdgeUnconditionallyToCFA(newLastEdge);
   }
 
   /**
@@ -815,11 +824,6 @@ public class CFACreator {
     }
 
     stats.exportTime.stop();
-  }
-
-  private static void addToCFA(CFAEdge edge) {
-    edge.getPredecessor().addLeavingEdge(edge);
-    edge.getSuccessor().addEnteringEdge(edge);
   }
 
   public CFACreatorStatistics getStatistics() {

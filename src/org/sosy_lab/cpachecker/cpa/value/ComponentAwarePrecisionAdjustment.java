@@ -34,7 +34,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -56,13 +55,16 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 
-@Options(prefix="cpa.explicit.blk")
+@Options(prefix="cpa.value.blk")
 public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustment implements StatisticsProvider {
 
   @Option(description="restrict abstractions to loop heads")
@@ -80,12 +82,12 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
   private final ImmutableSet<CFANode> loopHeads;
 
   // statistics
-  final Timer totalEnforceAbstraction         = new Timer();
-  final Timer totalEnforcePathThreshold       = new Timer();
-  final Timer totalEnforceReachedSetThreshold = new Timer();
-  final Timer totalComposite                  = new Timer();
-  final Timer total                           = new Timer();
-  int abstractionComputations                           = 0;
+  final StatTimer total             = new StatTimer("Total time for precision adjustment");
+  final StatTimer totalComposite    = new StatTimer("Total time for composite");
+  final StatTimer totalEnforcePath  = new StatTimer("Total time for path threshold");
+  final StatTimer totalReachedSet   = new StatTimer("Total time for reached set threshold");
+  final StatTimer totalAbstraction  = new StatTimer("Total time for abstraction computation");
+  final StatCounter abstractions    = new StatCounter("Number of abstraction computations");
 
   private Statistics stats  = null;
   private boolean modified = false;
@@ -110,17 +112,20 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
     stats = new Statistics() {
       @Override
       public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-        pOut.println("Total time:                 " + ComponentAwarePrecisionAdjustment.this.total);
-        pOut.println("Total time for composite:   " + ComponentAwarePrecisionAdjustment.this.totalComposite);
-        pOut.println("Total time for abstraction: " + ComponentAwarePrecisionAdjustment.this.totalEnforceAbstraction);
-        pOut.println("Total time for reached set: " + ComponentAwarePrecisionAdjustment.this.totalEnforceReachedSetThreshold);
-        pOut.println("Total time for path:        " + ComponentAwarePrecisionAdjustment.this.totalEnforcePathThreshold);
-        pOut.println("Number of abstractions:     " + ComponentAwarePrecisionAdjustment.this.abstractionComputations);
+
+        StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
+        writer.put(total);
+        writer = writer.beginLevel();
+        writer.put(totalComposite);
+        writer.put(totalAbstraction);
+        writer.put(totalReachedSet);
+        writer.put(totalEnforcePath);
+        writer.put(abstractions);
       }
 
       @Override
       public String getName() {
-        return "ComponentAwareExplicitPrecisionAdjustment Statistics";
+        return "ComponentAwarePrecisionAdjustment Statistics";
       }
     };
   }
@@ -139,7 +144,7 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
     CompositePrecision precision  = (CompositePrecision)pPrecision;
     assert (composite.getWrappedStates().size() == precision.getPrecisions().size());
 
-    int indexOfExplicitState = getIndexOfExplicitState(composite);
+    int indexOfValueAnalysisState = getIndexOfValueAnalysisState(composite);
 
     ImmutableList.Builder<AbstractState> outElements  = ImmutableList.builder();
     ImmutableList.Builder<Precision> outPrecisions    = ImmutableList.builder();
@@ -152,30 +157,30 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
       AbstractState oldState = composite.get(i);
       Precision oldPrecision = precision.get(i);
 
-      // enforce thresholds for explicit element, by incorporating information from reached set and path condition element
-      if (i == indexOfExplicitState) {
-        ValueAnalysisState explicitState                   = (ValueAnalysisState)oldState;
-        ValueAnalysisPrecision explicitPrecision           = (ValueAnalysisPrecision)oldPrecision;
+      // enforce thresholds for value-analysis state, by incorporating information from reached set and path condition element
+      if (i == indexOfValueAnalysisState) {
+        ValueAnalysisState valueAnalysisState         = (ValueAnalysisState)oldState;
+        ValueAnalysisPrecision valueAnalysisPrecision = (ValueAnalysisPrecision)oldPrecision;
         LocationState location                        = AbstractStates.extractStateByType(composite, LocationState.class);
         UniqueAssignmentsInPathConditionState assigns = AbstractStates.extractStateByType(composite, UniqueAssignmentsInPathConditionState.class);
 
-        // compute the abstraction based on the explicit-value precision, unless assignment information is available
+        // compute the abstraction based on the value-analysis precision, unless assignment information is available
         // then, this is dealt with during enforcement of the path thresholds, see below
         if(assigns == null) {
-          totalEnforceAbstraction.start();
-          explicitState = enforceAbstraction(explicitState, location, explicitPrecision);
-          totalEnforceAbstraction.stop();
+          totalAbstraction.start();
+          valueAnalysisState = enforceAbstraction(valueAnalysisState, location, valueAnalysisPrecision);
+          totalAbstraction.stop();
         }
 
         // compute the abstraction for reached set thresholds
-        totalEnforceReachedSetThreshold.start();
-        explicitState = enforceReachedSetThreshold(explicitState, explicitPrecision, slice.getReached(location.getLocationNode()));
-        totalEnforceReachedSetThreshold.stop();
+        totalReachedSet.start();
+        valueAnalysisState = enforceReachedSetThreshold(valueAnalysisState, valueAnalysisPrecision, slice.getReached(location.getLocationNode()));
+        totalReachedSet.stop();
 
         // compute the abstraction for assignment thresholds
-        totalEnforcePathThreshold.start();
-        Pair<ValueAnalysisState, ValueAnalysisPrecision> result = enforcePathThreshold(explicitState, explicitPrecision, assigns);
-        totalEnforcePathThreshold.stop();
+        totalEnforcePath.start();
+        Pair<ValueAnalysisState, ValueAnalysisPrecision> result = enforcePathThreshold(valueAnalysisState, valueAnalysisPrecision, assigns);
+        totalEnforcePath.stop();
 
         outElements.add(result.getFirst());
         outPrecisions.add(result.getSecond());
@@ -214,7 +219,7 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
   }
 
   /**
-   * This method performs an abstraction computation on the current explicit state.
+   * This method performs an abstraction computation on the current value-analysis state.
    *
    * @param location the current location
    * @param state the current state
@@ -228,7 +233,7 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
         || abstractAtLoopHead(location)) {
       state = precision.computeAbstraction(state, location.getLocationNode());
       state.clearDelta();
-      abstractionComputations++;
+      abstractions.inc();
     }
 
     return state;
@@ -291,10 +296,10 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
   /**
    * This method abstracts variables that exceed the threshold of assignments along the current path.
    *
-   * @param state the explicit state
+   * @param state the state to abstract
    * @param precision the current precision
    * @param assignments the assignment information
-   * @return the abstracted explicit state
+   * @return the abstracted state
    */
   private Pair<ValueAnalysisState, ValueAnalysisPrecision> enforcePathThreshold(ValueAnalysisState state,
       ValueAnalysisPrecision precision,
@@ -333,10 +338,10 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
   /**
    * This method abstracts variables that exceed the threshold of different values in a given slice of the reached set.
    *
-   * @param state the explicit state
+   * @param state the state to abstract
    * @param precision the current precision
    * @param reachedSetAtLocation the slice of the reached set from where to retrieve the values per variable
-   * @return the abstracted explicit state
+   * @return the abstracted state
    */
   private ValueAnalysisState enforceReachedSetThreshold(ValueAnalysisState state, ValueAnalysisPrecision precision, Collection<AbstractState> reachedSetAtLocation) {
     if (precision.isReachedSetThresholdActive()) {
@@ -369,19 +374,19 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
   }
 
   /**
-   * This helper gets the index of the explicit state within the composite state.
+   * This helper gets the index of the value-analysis state within the composite state.
    *
-   * @param composite the composite state in which to look for the explicit state
-   * @return the index of the explicit state within the composite state
-   * @throws CPAException if no explicit state could be found
+   * @param composite the composite state in which to look for the value-analysis state
+   * @return the index of the value-analysis state within the composite state
+   * @throws CPAException if no value-analysis state could be found
    */
-  private int getIndexOfExplicitState(CompositeState composite) throws CPAException {
+  private int getIndexOfValueAnalysisState(CompositeState composite) throws CPAException {
     for (int i = 0; i < composite.getWrappedStates().size(); ++i) {
       if (composite.get(i) instanceof ValueAnalysisState) {
         return i;
       }
     }
 
-    throw new CPAException("Explicit-State could not be found within Composite-State.");
+    throw new CPAException("ValueAnalysisState could not be found within CompositeState.");
   }
 }

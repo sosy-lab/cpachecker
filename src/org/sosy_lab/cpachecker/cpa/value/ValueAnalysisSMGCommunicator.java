@@ -59,12 +59,12 @@ public class ValueAnalysisSMGCommunicator {
   private final LogManager logger;
   private final MachineModel machineModel;
   private final SMGState smgState;
-  private final ValueAnalysisState explicitState;
+  private final ValueAnalysisState valueAnalysisState;
   private final String functionName;
 
-  public ValueAnalysisSMGCommunicator(ValueAnalysisState pExplicitState, String pFunctionName,
+  public ValueAnalysisSMGCommunicator(ValueAnalysisState pValueAnalysisState, String pFunctionName,
       SMGState pSmgState, MachineModel pMachineModel, LogManager pLogger, CFAEdge pCfaEdge) {
-    explicitState = pExplicitState;
+    valueAnalysisState = pValueAnalysisState;
     smgState = pSmgState;
     machineModel = pMachineModel;
     logger = pLogger;
@@ -115,12 +115,12 @@ public class ValueAnalysisSMGCommunicator {
     private final SMGExplicitExpressionEvaluator smgEvaluator;
 
     public ExplicitExpressionValueVisitor() {
-      super(explicitState, functionName, machineModel, logger, cfaEdge);
+      super(valueAnalysisState, functionName, machineModel, logger, cfaEdge);
       smgEvaluator = new SMGExplicitExpressionEvaluator(this);
     }
 
     public ExplicitExpressionValueVisitor(SMGExplicitExpressionEvaluator pSmgEvaluator) {
-      super(explicitState, functionName, machineModel, logger, cfaEdge);
+      super(valueAnalysisState, functionName, machineModel, logger, cfaEdge);
       smgEvaluator = pSmgEvaluator;
     }
 
@@ -169,21 +169,21 @@ public class ValueAnalysisSMGCommunicator {
       CExpression op2 = pE.getOperand2();
 
       if (!(op1.getExpressionType().getCanonicalType() instanceof CPointerType)) {
-        return Value.ExplicitUnknownValue.getInstance();
+        return Value.UnknownValue.getInstance();
       }
       if (!(op2.getExpressionType().getCanonicalType() instanceof CPointerType)) {
-        return Value.ExplicitUnknownValue.getInstance();
+        return Value.UnknownValue.getInstance();
       }
 
       try {
         SMGAddressValue op1Value = evaluateSMGAddressExpression(op1);
         SMGAddressValue op2Value = evaluateSMGAddressExpression(op2);
         if (op1Value.isUnknown() || op2Value.isUnknown()) {
-          return Value.ExplicitUnknownValue.getInstance();
+          return Value.UnknownValue.getInstance();
         }
 
         if (op1Value.getOffset().isUnknown() || op2Value.getOffset().isUnknown()) {
-          return Value.ExplicitUnknownValue.getInstance();
+          return Value.UnknownValue.getInstance();
         }
         long op1Offset = op1Value.getOffset().getAsLong();
         long op2Offset = op2Value.getOffset().getAsLong();
@@ -202,7 +202,7 @@ public class ValueAnalysisSMGCommunicator {
         case LESS_EQUAL:
         case LESS_THAN:
           if (!op1Value.getObject().equals(op2Value.getObject())) {
-            return Value.ExplicitUnknownValue.getInstance();
+            return Value.UnknownValue.getInstance();
           }
           switch (pE.getOperator()) {
           case GREATER_EQUAL:
@@ -218,7 +218,7 @@ public class ValueAnalysisSMGCommunicator {
           }
 
         default:
-          return Value.ExplicitUnknownValue.getInstance();
+          return Value.UnknownValue.getInstance();
         }
       } catch (CPATransferException e) {
         UnrecognizedCCodeException e2 = new UnrecognizedCCodeException("Could not symbolically evaluate expression", pE);
@@ -240,7 +240,7 @@ public class ValueAnalysisSMGCommunicator {
     private Value getValueFromLocation(MemoryLocation pMemloc, CExpression rValue) throws UnrecognizedCCodeException {
 
       if(pMemloc == null) {
-        return Value.ExplicitUnknownValue.getInstance();
+        return Value.UnknownValue.getInstance();
       }
 
       ValueAnalysisState explState = getState();
@@ -248,8 +248,8 @@ public class ValueAnalysisSMGCommunicator {
       if (explState.contains(pMemloc) ) {
         return explState.getValueFor(pMemloc);
       } else {
-        // In rare cases, through reinterpretations of nullified blocks, smgState can ecaluate an
-        // explicit Value while explicit State cannot.
+        // In rare cases, through reinterpretations of nullified blocks, smgState can evaluate an
+        // explicit value while explicit state cannot.
         // TODO Erase when null reinterpretations an memset is implemented for explicit state
         SMGSymbolicValue value;
 
@@ -261,7 +261,7 @@ public class ValueAnalysisSMGCommunicator {
         }
 
          if(value.isUnknown() || value.getAsInt() != 0) {
-           return Value.ExplicitUnknownValue.getInstance();
+           return Value.UnknownValue.getInstance();
          } else {
            return new NumericValue(0L);
          }

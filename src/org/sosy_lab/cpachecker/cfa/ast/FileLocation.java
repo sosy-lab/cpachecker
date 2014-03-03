@@ -23,12 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import static com.google.common.base.Preconditions.*;
+
+import java.util.List;
 import java.util.Objects;
 
-public final class FileLocation {
+import com.google.common.collect.Iterables;
+
+public class FileLocation {
 
   private final int endineLine;
   private final String fileName;
+  private final String niceFileName;
   private final int length;
   private final int offset;
   private final int startingLine;
@@ -36,17 +42,63 @@ public final class FileLocation {
 
   public FileLocation(int pEndineLine, String pFileName, int pLength,
       int pOffset, int pStartingLine) {
-    this(pEndineLine, pFileName, pLength, pOffset, pStartingLine, pStartingLine);
+    this(pEndineLine, pFileName, pFileName, pLength, pOffset, pStartingLine, pStartingLine);
   }
 
-  public FileLocation(int pEndineLine, String pFileName, int pLength,
-      int pOffset, int pStartingLine, int pStartingLineInOrigin) {
+  public FileLocation(int pEndineLine, String pFileName, String pNiceFileName,
+      int pLength, int pOffset, int pStartingLine, int pStartingLineInOrigin) {
     endineLine = pEndineLine;
-    fileName = pFileName;
+    fileName = checkNotNull(pFileName);
+    niceFileName = checkNotNull(pNiceFileName);
     length = pLength;
     offset = pOffset;
     startingLine = pStartingLine;
     startingLineInOrigin = pStartingLineInOrigin;
+  }
+
+  public static final FileLocation DUMMY = new FileLocation(0, "<none>", 0, 0, 0) {
+    @Override
+    public String toString() {
+      return "none";
+    }
+  };
+
+  public static final FileLocation MULTIPLE_FILES = new FileLocation(0, "<multiple files>", 0, 0, 0) {
+    @Override
+    public String toString() {
+      return getFileName();
+    }
+  };
+
+  public static FileLocation merge(List<FileLocation> locations) {
+    checkArgument(!Iterables.isEmpty(locations));
+
+    String fileName = null;
+    String niceFileName = null;
+    int startingLine = Integer.MAX_VALUE;
+    int startingLineInOrigin = Integer.MAX_VALUE;
+    int endingLine = Integer.MIN_VALUE;
+    for (FileLocation loc : locations) {
+      if (loc == DUMMY) {
+        continue;
+      }
+      if (fileName == null) {
+        fileName = loc.fileName;
+        niceFileName = loc.niceFileName;
+      } else if (!fileName.equals(loc.fileName)) {
+        return MULTIPLE_FILES;
+      }
+
+      startingLine = Math.min(startingLine, loc.getStartingLineNumber());
+      startingLineInOrigin = Math.min(startingLineInOrigin, loc.getStartingLineInOrigin());
+      endingLine = Math.max(endingLine, loc.getEndingLineNumber());
+    }
+
+    if (fileName == null) {
+      // only DUMMY elements
+      return DUMMY;
+    }
+    return new FileLocation(endingLine, fileName, niceFileName, 0, 0, startingLine, startingLineInOrigin);
   }
 
   public int getStartingLineInOrigin() {
@@ -112,10 +164,13 @@ public final class FileLocation {
 
   @Override
   public String toString() {
+    String prefix = niceFileName.isEmpty()
+        ? ""
+        : niceFileName + ", ";
     if (startingLine == endineLine) {
-      return "line " + startingLine;
+      return prefix + "line " + startingLine;
     } else {
-      return "lines " + startingLine + "-" + endineLine;
+      return prefix + "lines " + startingLine + "-" + endineLine;
     }
   }
 }

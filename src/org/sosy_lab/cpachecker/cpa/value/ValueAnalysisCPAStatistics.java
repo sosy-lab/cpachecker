@@ -45,10 +45,13 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision.RefinablePrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import com.google.common.collect.HashMultimap;
 
-@Options(prefix="cpa.explicit")
+@Options(prefix="cpa.value")
 public class ValueAnalysisCPAStatistics implements Statistics {
 
   @Option(description="target file to hold the exported precision")
@@ -67,7 +70,7 @@ public class ValueAnalysisCPAStatistics implements Statistics {
 
   @Override
   public String getName() {
-    return "ExplicitCPA";
+    return "ValueAnalysisCPA";
   }
 
   public void addRefiner(Refiner refiner) {
@@ -76,30 +79,19 @@ public class ValueAnalysisCPAStatistics implements Statistics {
 
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-    int maxNumberOfVariables            = 0;
-    int maxNumberOfGlobalVariables      = 0;
-
-    long totalNumberOfVariables         = 0;
-    long totalNumberOfGlobalVariables   = 0;
+    StatInt numberOfVariables       = new StatInt(StatKind.COUNT, "Number of variables");
+    StatInt numberOfGlobalVariables = new StatInt(StatKind.COUNT, "Number of global variables");
 
     for (AbstractState currentAbstractState : reached) {
       ValueAnalysisState currentState = AbstractStates.extractStateByType(currentAbstractState, ValueAnalysisState.class);
 
-      int numberOfVariables         = currentState.getSize();
-      int numberOfGlobalVariables   = currentState.getNumberOfGlobalVariables();
-
-      totalNumberOfVariables        = totalNumberOfGlobalVariables + numberOfVariables;
-      totalNumberOfGlobalVariables  = totalNumberOfGlobalVariables + numberOfGlobalVariables;
-
-      maxNumberOfVariables          = Math.max(maxNumberOfVariables, numberOfVariables);
-      maxNumberOfGlobalVariables    = Math.max(maxNumberOfGlobalVariables, numberOfGlobalVariables);
+      numberOfVariables.setNextValue(currentState.getSize());
+      numberOfGlobalVariables.setNextValue(currentState.getNumberOfGlobalVariables());
     }
 
-    out.println("Max. number of variables: " + maxNumberOfVariables);
-    out.println("Max. number of globals variables: " + maxNumberOfGlobalVariables);
-
-    out.println("Avg. number of variables: " + ((totalNumberOfVariables * 10000) / reached.size()) / 10000.0);
-    out.println("Avg. number of global variables: " + ((totalNumberOfGlobalVariables * 10000) / reached.size()) / 10000.0);
+    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
+    writer.put(numberOfVariables);
+    writer.put(numberOfGlobalVariables);
 
     if (refiner != null && precisionFile != null) {
       exportPrecision(reached);
@@ -116,7 +108,7 @@ public class ValueAnalysisCPAStatistics implements Statistics {
     try (Writer writer = Files.openOutputFile(precisionFile)) {
       consolidatedPrecision.serialize(writer);
     } catch (IOException e) {
-      cpa.getLogger().logUserException(Level.WARNING, e, "Could not write explicit precision to file");
+      cpa.getLogger().logUserException(Level.WARNING, e, "Could not write value-analysis precision to file");
     }
   }
 

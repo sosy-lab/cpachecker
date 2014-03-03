@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils.*;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,10 +37,10 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -54,7 +54,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -99,13 +102,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CFieldTrackType;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetBuilder.DummyPointerTargetSetBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.DummyPointerTargetSetBuilder;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -136,8 +136,6 @@ public class CtoFormulaConverter {
 
   private static final String EXPAND_VARIABLE = "__expandVariable__";
   private int expands = 0;
-
-  private static final String FIELD_VARIABLE = "__field_of__";
 
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of(
       "printf", "printk"
@@ -190,19 +188,10 @@ public class CtoFormulaConverter {
 
   void logfOnce(Level level, CFAEdge edge, String msg, Object... args) {
     if (logger.wouldBeLogged(level)) {
-      logger.logfOnce(level, "Line %d: %s: %s",
-          edge.getLineNumber(),
+      logger.logfOnce(level, "%s: %s: %s",
+          edge.getFileLocation(),
           String.format(msg, args),
           edge.getDescription());
-    }
-  }
-
-  void logfOnce(Level level, CAstNode astNode, String msg, Object... args) {
-    if (logger.wouldBeLogged(level)) {
-      logger.logfOnce(level, "Line %d: %s: %s",
-          astNode.getFileLocation().getStartingLineNumber(),
-          String.format(msg, args),
-          astNode.toASTString());
     }
   }
 
@@ -244,36 +233,6 @@ public class CtoFormulaConverter {
            variableClassification.get().getRelevantVariables().containsEntry(function, name);
     }
     return true;
-  }
-
-  protected Variable scopedIfNecessary(CIdExpression var) {
-    return Variable.create(var.getDeclaration().getQualifiedName(), var.getExpressionType());
-  }
-
-  Variable makeFieldVariable(Variable pName, CFieldReference fExp, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
-    Pair<Integer, Integer> msb_lsb = getFieldOffsetMsbLsb(fExp);
-    String fieldVarName = makeFieldVariableName(pName.getName(), msb_lsb, ssa);
-
-    // For explanation of the following types,
-    // c.f. CFieldTrackType
-    CType fieldType = fExp.getExpressionType();
-    CType structType = getRealFieldOwner(fExp).getExpressionType();
-    structType = structType.getCanonicalType();
-    if (!(structType instanceof CCompositeType)) {
-      throw new UnrecognizedCCodeException("Accessing field in non-compsite type", fExp);
-    }
-
-    // NOTE: ALWAYS use pName.getType() as the actual type,
-    // because pName.getType() could be an instance of CFieldTrackType
-    CType ownerTypeWithoutCasts = pName.getType();
-
-    if (!getCanonicalType(ownerTypeWithoutCasts).equals(structType)) {
-      logger.logOnce(Level.WARNING, "Cast of non-matching type", ownerTypeWithoutCasts, "to",
-          structType, "in field access", fExp, "so analysis could be imprecise");
-    }
-
-    return Variable.create(fieldVarName,
-        new CFieldTrackType(fieldType, ownerTypeWithoutCasts, (CCompositeType)structType));
   }
 
   public FormulaType<?> getFormulaTypeFromCType(CType type) {
@@ -326,12 +285,15 @@ public class CtoFormulaConverter {
         // not from 1, because this is an assignment,
         // so the SSA index must be fresh.
       }
-      setSsaIndex(ssa, name, type, idx);
+      checkSsaSavedType(name, type, ssa);
+      ssa.setIndex(name, type, idx);
     } else {
       if (idx <= 0) {
         logger.log(Level.ALL, "WARNING: Auto-instantiating variable:", name);
         idx = 1;
-        setSsaIndex(ssa, name, type, idx);
+        checkSsaSavedType(name, type, ssa);
+
+        ssa.setIndex(name, type, idx);
       } else {
         checkSsaSavedType(name, type, ssa);
       }
@@ -365,27 +327,6 @@ public class CtoFormulaConverter {
     }
   }
 
-  private void setSsaIndex(SSAMapBuilder ssa, String name, CType type, int idx) {
-    if (isDereferenceType(type)) {
-      CType guess = getGuessedType(type);
-      if (guess == null) {
-        // This should not happen when guessing aliasing types would always work
-        logger.logOnce(Level.FINE, "No Type-Guess for variable", name, "of type", type);
-        CType oneByte = CNumericTypes.CHAR;
-        type = setGuessedType(type, oneByte);
-      }
-    }
-
-    assert
-      !isDereferenceType(type) ||
-      getGuessedType(type) != null
-      : "The guess should be resolved now!";
-
-    checkSsaSavedType(name, type, ssa);
-
-    ssa.setIndex(name, type, idx);
-  }
-
   /**
    * Create a formula for a given variable, which is assumed to be constant.
    * This method does not handle scoping!
@@ -393,117 +334,36 @@ public class CtoFormulaConverter {
   protected Formula makeConstant(String name, CType type) {
     return fmgr.makeVariable(getFormulaTypeFromCType(type), name);
   }
-  protected Formula makeConstant(Variable var) {
-    return makeConstant(var.getName(), var.getType());
-  }
-
-  /**
-   * Create a formula for a given variable with a fresh index for the left-hand if needed
-   * side of an assignment.
-   * This method does not handle scoping and the NON_DET_VARIABLE!
-   */
-  private Formula resolveFields(String name, CType type, SSAMapBuilder ssa, boolean makeFreshIndex) {
-    // Resolve Fields
-
-    if (!isFieldVariable(name)) {
-      int idx = getIndex(name, type, ssa, makeFreshIndex);
-
-      assert !isFieldVariable(name)
-        : "Never make variables for field! Always use the underlaying bitvector! Fieldvariable-Names are only used as intermediate step!";
-      return fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, idx);
-    }
-
-    assert options.handleFieldAccess() : "Field Variables are only allowed with handleFieldAccess";
-
-    Pair<String, Pair<Integer, Integer>> data = removeFieldVariable(name);
-    String structName = data.getFirst();
-    Pair<Integer, Integer> msb_lsb = data.getSecond();
-    // With this we are able to track the types properly
-    assert type instanceof CFieldTrackType
-     : "Was not able to track types of Field-references";
-
-    CFieldTrackType trackType = (CFieldTrackType)type;
-    CType ownerType = trackType.getOwnerTypeWithoutCasts();
-    Formula struct = resolveFields(structName, ownerType, ssa, makeFreshIndex);
-
-    // If there is a cast inside the field access expression,
-    // the types may differ (c.f. #makeFieldVariable()).
-    // The only thing we can do at this point is to expand the variable with nondet bits.
-    CCompositeType structType = trackType.getStructType();
-    BitvectorFormula realStruct = makeExtractOrConcatNondet(ownerType, structType, struct);
-
-    return accessField(msb_lsb, realStruct);
-  }
 
   /**
    * Create a formula for a given variable.
    * This method does not handle scoping and the NON_DET_VARIABLE!
-   * But it does handles Fields.
    *
    * This method does not update the index of the variable.
    */
   protected Formula makeVariable(String name, CType type, SSAMapBuilder ssa) {
-    return resolveFields(name, type, ssa, false);
-  }
-  protected final Formula makeVariable(Variable var, SSAMapBuilder ssa) {
-    return makeVariable(var.getName(), var.getType(), ssa);
+    return makeVariable(name, type, ssa, false);
   }
 
   /**
    * Create a formula for a given variable with a fresh index if needed.
    * This method does not handle scoping and the NON_DET_VARIABLE!
-   * But it does handles Fields.
    *
    * This method does not update the index of the variable.
    */
   private Formula makeVariable(String name, CType type, SSAMapBuilder ssa, boolean makeFreshIndex) {
-    return resolveFields(name, type, ssa, makeFreshIndex);
+    int idx = getIndex(name, type, ssa, makeFreshIndex);
+    return fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, idx);
   }
 
   /**
    * Create a formula for a given variable with a fresh index for the left-hand
    * side of an assignment.
    * This method does not handle scoping and the NON_DET_VARIABLE!
-   * But it does handles Fields.
    */
   protected Formula makeFreshVariable(String name, CType type, SSAMapBuilder ssa) {
-    return resolveFields(name, type, ssa, true);
+    return makeVariable(name, type, ssa, true);
   }
-
-
-  /** Takes a (scoped) struct variable name and returns the field variable name. */
-  @VisibleForTesting
-  static String makeFieldVariableName(String scopedId, Pair<Integer, Integer> msb_lsb, SSAMapBuilder ssa) {
-    return FIELD_VARIABLE + scopedId +
-          "__in__" + String.format("[%d:%d]", msb_lsb.getFirst(), msb_lsb.getSecond()) +
-          "__at__" + ssa.getIndex(scopedId) +
-          "__end";
-  }
-
-  @VisibleForTesting
-  static boolean isFieldVariable(String var) {
-    return var.startsWith(FIELD_VARIABLE);
-  }
-
-  /**
-   * Takes a field variable name and returns the name and offset of the associated
-   * struct variable.
-   */
-  static Pair<String, Pair<Integer, Integer>> removeFieldVariable(String fieldVariable) {
-    assert isFieldVariable(fieldVariable);
-
-    String name = fieldVariable.substring(FIELD_VARIABLE.length(), fieldVariable.lastIndexOf("__in__"));
-    String msbLsbString =
-        fieldVariable.substring(
-            fieldVariable.lastIndexOf("__in__") + "__in__".length(),
-            fieldVariable.lastIndexOf("__at__"));
-    // Remove []
-    msbLsbString = msbLsbString.substring(1, msbLsbString.length() - 1);
-    String[] splits = msbLsbString.split(":");
-    assert splits.length == 2 : "Expect msb and lsb part";
-    return Pair.of(name, Pair.of(Integer.parseInt(splits[0]), Integer.parseInt(splits[1])));
-  }
-
 
   BitvectorFormula makeStringLiteral(String literal) {
     BitvectorFormula result = stringLitToFormula.get(literal);
@@ -725,7 +585,7 @@ public class CtoFormulaConverter {
     return ret;
   }
 
-  protected CType getPromotedCType(CType t) {
+  CType getPromotedCType(CType t) {
     t = t.getCanonicalType();
     if (t instanceof CSimpleType) {
       // Integer types smaller than int are promoted when an operation is performed on them.
@@ -858,8 +718,27 @@ public class CtoFormulaConverter {
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
           throws CPATransferException {
-    StatementToFormulaVisitor v = getStatementVisitor(statement, function, ssa, constraints);
-    return statement.getStatement().accept(v);
+
+    CStatement stmt = statement.getStatement();
+    if (stmt instanceof CAssignment) {
+      CAssignment assignment = (CAssignment)stmt;
+      return makeAssignment(assignment.getLeftHandSide(), assignment.getRightHandSide(),
+          statement, function, ssa, pts, constraints, errorConditions);
+
+    } else {
+      if (stmt instanceof CFunctionCallStatement) {
+        CRightHandSideVisitor<Formula, UnrecognizedCCodeException> ev = createCRightHandSideVisitor(
+            statement, function, ssa, pts, constraints, errorConditions);
+        CFunctionCallStatement callStmt = (CFunctionCallStatement)stmt;
+        callStmt.getFunctionCallExpression().accept(ev);
+
+      } else if (!(stmt instanceof CExpressionStatement)) {
+        throw new UnrecognizedCCodeException("Unknown statement", statement, stmt);
+      }
+
+      // side-effect free statement, ignore
+      return bfmgr.makeBoolean(true);
+    }
   }
 
   protected BooleanFormula makeDeclaration(
@@ -878,7 +757,8 @@ public class CtoFormulaConverter {
     final String varName = decl.getQualifiedName();
 
     if (!isRelevantVariable(decl)) {
-      logfOnce(Level.FINEST, decl, "Ignoring declaration of unused variable %s.", decl);
+      logger.logfOnce(Level.FINEST, "%s: Ignoring declaration of unused variable: %s",
+          decl.getFileLocation(), decl.toASTString());
       return bfmgr.makeBoolean(true);
     }
 
@@ -909,17 +789,14 @@ public class CtoFormulaConverter {
 
       int size = machineModel.getSizeof(decl.getType());
       if (size > 0) {
-        Variable v = Variable.create(varName, decl.getType());
-        Formula var = makeVariable(v, ssa);
+        Formula var = makeVariable(varName, decl.getType(), ssa);
         Formula zero = fmgr.makeNumber(getFormulaTypeFromCType(decl.getType()), 0L);
         result = bfmgr.and(result, fmgr.assignment(var, zero));
       }
     }
 
-    StatementToFormulaVisitor v = getStatementVisitor(edge, function, ssa, constraints);
-
-    for (CExpressionAssignmentStatement assignment : CInitializers.convertToAssignments(decl, edge)) {
-      result = bfmgr.and(result, assignment.accept(v));
+    for (CAssignment assignment : CInitializers.convertToAssignments(decl, edge)) {
+      result = bfmgr.and(result, makeAssignment(assignment.getLeftHandSide(), assignment.getRightHandSide(), edge, function, ssa, pts, constraints, errorConditions));
     }
 
     return result;
@@ -1064,25 +941,51 @@ public class CtoFormulaConverter {
         retVarName, retVarName, scoped(retVarName, functionDeclaration.getName()), null);
   }
 
+  /**
+   * Creates formula for the given assignment.
+   * @param assignment the assignment to process
+   * @return the assignment formula
+   * @throws UnrecognizedCCodeException
+   */
   protected BooleanFormula makeAssignment(
-      final CLeftHandSide lhs, final CExpression rhs,
+      final CLeftHandSide lhs, CRightHandSide rhs,
       final CFAEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
           throws UnrecognizedCCodeException {
 
-    StatementToFormulaVisitor statementVisitor = getStatementVisitor(edge, function, ssa, constraints);
-    return statementVisitor.handleAssignment(lhs, rhs);
+    if (!isRelevantLeftHandSide(lhs)) {
+      // Optimization for unused variables and fields
+      return bfmgr.makeBoolean(true);
+    }
+
+    if (rhs instanceof CExpression) {
+      rhs = makeCastFromArrayToPointerIfNecessary((CExpression)rhs, lhs.getExpressionType());
+    }
+
+    Formula r = buildTerm(rhs, edge, function, ssa, pts, constraints, errorConditions);
+    Formula l = buildLvalueTerm(lhs, edge, function, ssa, pts, constraints, errorConditions);
+    r = makeCast(
+          rhs.getExpressionType(),
+          lhs.getExpressionType(),
+          r,
+          edge);
+
+    return fmgr.assignment(l, r);
   }
 
-  Formula buildTerm(CExpression exp, CFAEdge edge, String function,
-      SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
-    return exp.accept(getCExpressionVisitor(edge, function, ssa, constraints));
+  Formula buildTerm(CRightHandSide exp, CFAEdge edge, String function,
+      SSAMapBuilder ssa, PointerTargetSetBuilder pts,
+      Constraints constraints, ErrorConditions errorConditions)
+          throws UnrecognizedCCodeException {
+    return exp.accept(createCRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions));
   }
 
-  Formula buildLvalueTerm(CLeftHandSide exp, CFAEdge edge, String function,
-      SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
-    return exp.accept(getLvalueVisitor(edge, function, ssa, constraints));
+  Formula buildLvalueTerm(CLeftHandSide exp,
+      CFAEdge edge, String function,
+      SSAMapBuilder ssa, PointerTargetSetBuilder pts,
+      Constraints constraints, ErrorConditions errorConditions) throws UnrecognizedCCodeException {
+    return exp.accept(new LvalueVisitor(this, edge, function, ssa, pts, constraints, errorConditions));
   }
 
   BooleanFormula makeNondetAssignment(Formula left, Formula right) {
@@ -1114,13 +1017,13 @@ public class CtoFormulaConverter {
     throw new IllegalArgumentException("Assignment between different types");
   }
 
-  protected <T extends Formula> T ifTrueThenOneElseZero(FormulaType<T> type, BooleanFormula pCond) {
+  <T extends Formula> T ifTrueThenOneElseZero(FormulaType<T> type, BooleanFormula pCond) {
     T one = fmgr.makeNumber(type, 1);
     T zero = fmgr.makeNumber(type, 0);
     return bfmgr.ifThenElse(pCond, one, zero);
   }
 
-  protected <T extends Formula> BooleanFormula toBooleanFormula(T pF) {
+  protected final <T extends Formula> BooleanFormula toBooleanFormula(T pF) {
     // If this is not a predicate, make it a predicate by adding a "!= 0"
     assert !fmgr.getFormulaType(pF).isBooleanType();
 
@@ -1144,7 +1047,7 @@ public class CtoFormulaConverter {
   protected BooleanFormula makePredicate(CExpression exp, boolean isTrue, CFAEdge edge,
       String function, SSAMapBuilder ssa, PointerTargetSetBuilder pts, Constraints constraints, ErrorConditions errorConditions) throws UnrecognizedCCodeException {
 
-    Formula f = exp.accept(getCExpressionVisitor(edge, function, ssa, constraints));
+    Formula f = exp.accept(createCRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions));
     BooleanFormula result = toBooleanFormula(f);
 
     if (!isTrue) {
@@ -1165,19 +1068,11 @@ public class CtoFormulaConverter {
     return DummyPointerTargetSetBuilder.INSTANCE;
   }
 
-  private StatementToFormulaVisitor getStatementVisitor(CFAEdge pEdge, String pFunction,
-      SSAMapBuilder pSsa, Constraints pConstraints) {
-    ExpressionToFormulaVisitor ev = getCExpressionVisitor(pEdge, pFunction, pSsa, pConstraints);
-    return new StatementToFormulaVisitor(ev);
-  }
-
-  private ExpressionToFormulaVisitor getCExpressionVisitor(CFAEdge pEdge, String pFunction,
-      SSAMapBuilder pSsa, Constraints pCo) {
-    return new ExpressionToFormulaVisitor(this, pEdge, pFunction, pSsa, pCo);
-  }
-
-  private LvalueVisitor getLvalueVisitor(CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
-    return new LvalueVisitor(this, pEdge, pFunction, pSsa, pCo);
+  protected CRightHandSideVisitor<Formula, UnrecognizedCCodeException> createCRightHandSideVisitor(
+      CFAEdge pEdge, String pFunction,
+      SSAMapBuilder ssa, PointerTargetSetBuilder pts,
+      Constraints constraints, ErrorConditions errorConditions) {
+    return new ExpressionToFormulaVisitor(this, pEdge, pFunction, ssa, pts, constraints, errorConditions);
   }
 
   /**
@@ -1305,7 +1200,8 @@ public class CtoFormulaConverter {
     if (makeFresh) {
       logger.logOnce(Level.WARNING, "Program contains array, or pointer (multiple level of indirection), or field (enable handleFieldAccess and handleFieldAliasing) access; analysis is imprecise in case of aliasing.");
     }
-    logfOnce(Level.FINEST, exp, "Unhandled expression treated as free variable");
+    logger.logfOnce(Level.FINEST, "%s: Unhandled expression treated as free variable: %s",
+        exp.getFileLocation(), exp.toASTString());
 
     String var = scoped(exprToVarName(exp), function);
     return makeVariable(var, exp.getExpressionType(), ssa, makeFresh);

@@ -45,12 +45,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
+import org.sosy_lab.cpachecker.cpa.value.Value;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
-import org.sosy_lab.cpachecker.cpa.value.Value;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
-import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationBasedRefiner.ExplicitValueInterpolant;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationBasedRefiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
@@ -60,7 +60,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
-@Options(prefix="cpa.explicit.interpolation")
+@Options(prefix="cpa.value.interpolation")
 public class ValueAnalysisInterpolator {
   @Option(description="whether or not to ignore the semantics of loop-leaving-assume-edges during interpolation - "
       + "this avoids to have loop-counters in the interpolant")
@@ -155,10 +155,10 @@ public class ValueAnalysisInterpolator {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public ExplicitValueInterpolant deriveInterpolant(
+  public ValueAnalysisInterpolant deriveInterpolant(
       final List<CFAEdge> pErrorPath,
       final int pOffset,
-      final ExplicitValueInterpolant pInputInterpolant) throws CPAException, InterruptedException {
+      final ValueAnalysisInterpolant pInputInterpolant) throws CPAException, InterruptedException {
     numberOfInterpolationQueries = 0;
 
     if(pOffset == 0) {
@@ -166,10 +166,10 @@ public class ValueAnalysisInterpolator {
     }
 
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
-    ValueAnalysisState initialState      = pInputInterpolant.createExplicitValueState();
+    ValueAnalysisState initialState      = pInputInterpolant.createValueAnalysisState();
     ValueAnalysisState initialSuccessor  = getInitialSuccessor(initialState, pErrorPath.get(pOffset));
     if (initialSuccessor == null) {
-      return ExplicitValueInterpolant.FALSE;
+      return ValueAnalysisInterpolant.FALSE;
     }
 
     // if initial state and successor are equal, return the input interpolant
@@ -185,18 +185,18 @@ public class ValueAnalysisInterpolator {
     // if the current edge just changes the names of variables (e.g. function arguments, returned variables)
     // then return the input interpolant with those renamings
     if (isOnlyVariableRenamingEdge(pErrorPath.get(pOffset))) {
-      return new ExplicitValueInterpolant(new HashMap<>(initialSuccessor.getConstantsMapView()));
+      return new ValueAnalysisInterpolant(new HashMap<>(initialSuccessor.getConstantsMapView()));
     }
 
     // if the remaining path is infeasible by itself, i.e., contradicting by itself, skip interpolation
     Iterable<CFAEdge> remainingErrorPath = skip(pErrorPath, pOffset + 1);
     if (initialSuccessor.getSize() > 1 && !isRemainingPathFeasible(remainingErrorPath, new ValueAnalysisState(), assumptionsAreRelevant)) {
-      return ExplicitValueInterpolant.TRUE;
+      return ValueAnalysisInterpolant.TRUE;
     }
 
     // optimization, which however, leads to too strong interpolants, as the successor is used directly as interpolant
     //if (!isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
-      //return new ExplicitValueInterpolant(initialSuccessor.getConstantsMapView());
+      //return new ValueAnalysisInterpolant(initialSuccessor.getConstantsMapView());
     //}
 
     for (MemoryLocation currentMemoryLocation : determineInterpolationCandidates(initialSuccessor)) {
@@ -211,18 +211,18 @@ public class ValueAnalysisInterpolator {
       }
     }
 
-    return new ExplicitValueInterpolant(new HashMap<>(initialSuccessor.getConstantsMapView()));
+    return new ValueAnalysisInterpolant(new HashMap<>(initialSuccessor.getConstantsMapView()));
   }
 
   /**
    * This method returns a (possibly) reordered collection of interpolation candidates, which favors non-loop variables
    * to be part of the interpolant.
    *
-   * @param explicitState the collection of interpolation candidates, encoded in an explicit-value state
+   * @param valueAnalysisState the collection of interpolation candidates, encoded in an value-analysis state
    * @return a (possibly) reordered collection of interpolation candidates
    */
-  private Collection<MemoryLocation> determineInterpolationCandidates(ValueAnalysisState explicitState) {
-    Set<MemoryLocation> trackedMemoryLocations = explicitState.getTrackedMemoryLocations();
+  private Collection<MemoryLocation> determineInterpolationCandidates(ValueAnalysisState valueAnalysisState) {
+    Set<MemoryLocation> trackedMemoryLocations = valueAnalysisState.getTrackedMemoryLocations();
 
     List<MemoryLocation> reOrderedMemoryLocations = Lists.newArrayListWithCapacity(trackedMemoryLocations.size());
 

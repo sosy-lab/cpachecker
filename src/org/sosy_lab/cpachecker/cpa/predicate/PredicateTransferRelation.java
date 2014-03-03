@@ -312,7 +312,7 @@ public class PredicateTransferRelation implements TransferRelation {
   private PredicateAbstractState strengthen(CFANode pNode, PredicateAbstractState pElement,
       ConstrainedAssumeState pAssumeElement) throws CPATransferException {
     CAssumeEdge lEdge =
-        new CAssumeEdge(pAssumeElement.getExpression().toASTString(), pNode.getLineNumber(), pNode, pNode,
+        new CAssumeEdge(pAssumeElement.getExpression().toASTString(), pAssumeElement.getExpression().getFileLocation(), pNode, pNode,
             pAssumeElement.getExpression(), true);
 
     PathFormula pf = convertEdgeToPathFormula(pElement.getPathFormula(), lEdge);

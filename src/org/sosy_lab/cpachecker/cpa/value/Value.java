@@ -28,9 +28,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 
 /**
- * Base class for values that can be tracked by the ExplicitCPA.
+ * Base class for values that can be tracked by the ValueAnalysisCPA.
  *
- * Traditionally, ExplicitCPA would only keep track of long type values.
+ * Traditionally, ValueAnalysisCPA would only keep track of long type values.
  * For the future, floats, symbolic values, and SMG nodes should
  * also be supported.
  */
@@ -39,23 +39,23 @@ public interface Value {
 
   public boolean isUnknown();
 
-  /** Return the ExplicitNumericValue if this is a numeric value, null otherwise. **/
+  /** Return the NumericValue if this is a numeric value, null otherwise. **/
   public NumericValue asNumericValue();
 
   /** Return the long value if this is a long value, null otherwise. **/
   public Long asLong(CType type);
 
-  /** Singleton class used to signify that the explicit value us unknown(could be anything). **/
-  public static final class ExplicitUnknownValue implements Value {
+  /** Singleton class used to signal that the value is unknown (could be anything). **/
+  public static final class UnknownValue implements Value {
 
-    private static final ExplicitUnknownValue instance = new ExplicitUnknownValue();
+    private static final UnknownValue instance = new UnknownValue();
 
     @Override
     public String toString() {
       return "UNKNOWN";
     }
 
-    public static ExplicitUnknownValue getInstance() {
+    public static UnknownValue getInstance() {
       return instance;
     }
 

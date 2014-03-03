@@ -449,7 +449,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
 
   @Override
   public String getCPAName() {
-    return "ExplicitAnalysis";
+    return "ValueAnalysis";
   }
 
   @Override

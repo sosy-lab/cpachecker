@@ -147,12 +147,12 @@ class ExpandFunctionPointerArrayAssignments {
                                                         BigInteger.valueOf(i));
       CExpression assumeExp = builder.buildBinaryExpression(subscript, index, BinaryOperator.EQUALS);
       CAssumeEdge trueEdge = new CAssumeEdge(edge.getRawStatement(),
-                                             edge.getLineNumber(),
+                                             edge.getFileLocation(),
                                              predecessor,
                                              trueNode, assumeExp, true);
 
       CAssumeEdge falseEdge = new CAssumeEdge(edge.getRawStatement(),
-                                              edge.getLineNumber(),
+                                              edge.getFileLocation(),
                                               predecessor,
                                               falseNode, assumeExp, false);
 
@@ -168,7 +168,7 @@ class ExpandFunctionPointerArrayAssignments {
                                                                  rhs);
       CStatementEdge assignmentEdge = new CStatementEdge(edge.getRawStatement(),
                                                          assignment,
-                                                         edge.getLineNumber(),
+                                                         edge.getFileLocation(),
                                                          trueNode, endNode);
       CFACreationUtils.addEdgeUnconditionallyToCFA(assignmentEdge);
       predecessor = falseNode;

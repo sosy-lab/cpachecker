@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.model;
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 
 import com.google.common.base.Optional;
@@ -33,10 +34,10 @@ public class AssumeEdge extends AbstractCFAEdge {
   private final boolean truthAssumption;
   protected final IAExpression expression;
 
-  protected AssumeEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor,
+  protected AssumeEdge(String pRawStatement, FileLocation pFileLocation, CFANode pPredecessor,
       CFANode pSuccessor, IAExpression pExpression, boolean pTruthAssumption) {
 
-    super("[" + pRawStatement + "]", pLineNumber, pPredecessor, pSuccessor);
+    super("[" + pRawStatement + "]", pFileLocation, pPredecessor, pSuccessor);
     truthAssumption = pTruthAssumption;
     expression = pExpression;
   }

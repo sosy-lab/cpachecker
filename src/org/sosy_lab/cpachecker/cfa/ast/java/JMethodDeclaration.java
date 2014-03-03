@@ -68,7 +68,7 @@ public class JMethodDeclaration extends AFunctionDeclaration implements JDeclara
   private final String simpleName;
 
   private static final JMethodDeclaration UNRESOLVED_METHOD =
-      new JMethodDeclaration(new FileLocation(0, "", 0, 0, 0),
+      new JMethodDeclaration(FileLocation.DUMMY,
           JMethodType.createUnresolvableType(), "__Unresolved__",
           "__Unresolved__",
           new ArrayList<JParameterDeclaration>(),
@@ -240,7 +240,7 @@ public class JMethodDeclaration extends AFunctionDeclaration implements JDeclara
     List<JType> parameterTypes = pMethodType.getParameters();
     List<JParameterDeclaration> parameters = new ArrayList<>(parameterTypes.size());
 
-    FileLocation externFileLoc = new FileLocation(0, "", 0, 0, 0);
+    FileLocation externFileLoc = FileLocation.DUMMY;
 
     int i = 0;
 

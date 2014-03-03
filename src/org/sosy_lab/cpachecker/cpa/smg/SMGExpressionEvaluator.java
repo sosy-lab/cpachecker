@@ -78,7 +78,7 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.Value;
-import org.sosy_lab.cpachecker.cpa.value.Value.ExplicitUnknownValue;
+import org.sosy_lab.cpachecker.cpa.value.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -1505,7 +1505,7 @@ public class SMGExpressionEvaluator {
       SMGExplicitValue expValue = getExplicitValue(value);
 
       if (expValue.isUnknown()) {
-        return ExplicitUnknownValue.getInstance();
+        return UnknownValue.getInstance();
       } else {
         return new NumericValue(expValue.getAsLong());
       }

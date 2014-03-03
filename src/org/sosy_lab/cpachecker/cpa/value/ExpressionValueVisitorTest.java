@@ -51,7 +51,7 @@ public class ExpressionValueVisitorTest {
   // we need some dummy-values.
   private final ValueAnalysisState state = new ValueAnalysisState();
   private final String functionName = "dummy_function";
-  private final FileLocation loc = new FileLocation(0, "dummy_file", 0, 0, 0);
+  private final FileLocation loc = FileLocation.DUMMY;
 
 
   // constants for C

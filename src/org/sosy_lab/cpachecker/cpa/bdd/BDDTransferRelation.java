@@ -114,7 +114,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     this.machineModel = cfa.getMachineModel();
     this.rmgr = manager;
     this.bvmgr = new BitvectorManager(config, rmgr);
-    this.predmgr = new PredicateManager(config, manager, precision, cfa, this);
+    this.predmgr = new PredicateManager(config, manager, precision, cfa, machineModel);
 
     assert cfa.getVarClassification().isPresent();
     this.varClass = cfa.getVarClassification().get();

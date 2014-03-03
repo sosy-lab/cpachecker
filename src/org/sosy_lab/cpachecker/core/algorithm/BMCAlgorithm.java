@@ -476,7 +476,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   /**
    * Create a disjunctive formula of all the path formulas in the supplied iterable.
-    //invariantGenerator = null; // so that GC can collect the generator and the reached set
    */
   private BooleanFormula createFormulaFor(Iterable<AbstractState> states) {
     BooleanFormula f = bfmgr.makeBoolean(false);

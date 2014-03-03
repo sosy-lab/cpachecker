@@ -160,6 +160,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 
+import com.google.common.base.Function;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 
@@ -188,6 +189,15 @@ class ASTConverter {
   private final ASTLiteralConverter literalConverter;
   private final ASTTypeConverter typeConverter;
 
+  /**
+   * Given a file name, returns a "nice" representation of it.
+   * This should be used for situations where the name is going
+   * to be presented to the user.
+   * The result may be the empty string, if for example CPAchecker only uses
+   * one file (we expect the user to know its name in this case).
+   */
+  private final Function<String, String> niceFileNameFunction;
+
   private final Scope scope;
 
   // this counter is static to make the replacing names for anonymous types, in
@@ -203,6 +213,7 @@ class ASTConverter {
   private static final ContainsProblemTypeVisitor containsProblemTypeVisitor = new ContainsProblemTypeVisitor();
 
   public ASTConverter(Configuration pConfig, Scope pScope, LogManager pLogger,
+      Function<String, String> pNiceFileNameFunction,
       MachineModel pMachineModel, String pStaticVariablePrefix,
       boolean pSimplifyConstExpressions, Sideassignments pSideAssignmentStack) throws InvalidConfigurationException {
 
@@ -212,6 +223,7 @@ class ASTConverter {
     this.logger = pLogger;
     this.typeConverter = new ASTTypeConverter(scope, this, pStaticVariablePrefix);
     this.literalConverter = new ASTLiteralConverter(typeConverter, pMachineModel);
+    this.niceFileNameFunction = pNiceFileNameFunction;
     this.staticVariablePrefix = pStaticVariablePrefix;
     this.sideAssignmentStack = pSideAssignmentStack;
     this.simplifyConstExpressions = pSimplifyConstExpressions;
@@ -337,7 +349,7 @@ class ASTConverter {
       return exp;
 
     } else if (e instanceof IASTLiteralExpression) {
-      return literalConverter.convert((IASTLiteralExpression)e);
+      return literalConverter.convert((IASTLiteralExpression)e, getLocation(e));
 
     } else if (e instanceof IASTUnaryExpression) {
       return convert((IASTUnaryExpression)e);
@@ -731,14 +743,36 @@ class ASTConverter {
 
   private CRightHandSide convert(IASTFunctionCallExpression e) {
 
+    CExpression functionName = convertExpressionWithoutSideEffects(e.getFunctionNameExpression());
+    CFunctionDeclaration declaration = null;
+
+    if (functionName instanceof CIdExpression) {
+      if (((CIdExpression) functionName).getName().equals("__builtin_types_compatible_p")) {
+        sideAssignmentStack.enterBlock();
+        List<CExpression> params = new ArrayList<>();
+        for (IASTInitializerClause i : e.getArguments()) {
+          params.add(convertExpressionWithoutSideEffects(toExpression(i)));
+        }
+        sideAssignmentStack.getAndResetConditionalExpressions();
+        sideAssignmentStack.getAndResetPostSideAssignments();
+        sideAssignmentStack.getAndResetPreSideAssignments();
+        sideAssignmentStack.leaveBlock();
+        if (params.size() == 2) {
+          // TODO this is not completly right considering arrays and perhaps structs
+          // http://www.ocf.berkeley.edu/~pad/tigcc/doc/tigcclib/gnuexts_SEC104___builtin_types_compatible_p.html
+          if (areCompatibleTypes(params.get(0).getExpressionType(), params.get(1).getExpressionType())) {
+            return CNumericTypes.ONE;
+          } else {
+            return CNumericTypes.ZERO;
+          }
+        }
+      }
+    }
+
     List<CExpression> params = new ArrayList<>();
     for (IASTInitializerClause i : e.getArguments()) {
       params.add(convertExpressionWithoutSideEffects(toExpression(i)));
     }
-
-    CExpression functionName = convertExpressionWithoutSideEffects(e.getFunctionNameExpression());
-    CFunctionDeclaration declaration = null;
-
 
     if (functionName instanceof CIdExpression) {
       // this function is a gcc extension which checks if the given parameter is
@@ -792,6 +826,18 @@ class ASTConverter {
     }
 
     return new CFunctionCallExpression(getLocation(e), returnType, functionName, params, declaration);
+  }
+
+  // TODO this is not completly right considering arrays and perhaps structs
+  // http://www.ocf.berkeley.edu/~pad/tigcc/doc/tigcclib/gnuexts_SEC104___builtin_types_compatible_p.html
+  private boolean areCompatibleTypes(CType a, CType b) {
+    a = a.getCanonicalType(false, false);
+    b = b.getCanonicalType(false, false);
+    if (a.equals(b) ||
+        a instanceof CEnumType && b instanceof CEnumType) {
+      return true;
+    }
+    return false;
   }
 
   private CIdExpression convert(IASTIdExpression e) {
@@ -1268,7 +1314,7 @@ class ASTConverter {
     if (type instanceof CCompositeType) {
       // Nested struct declaration
       CCompositeType compositeType = (CCompositeType)type;
-      addSideEffectDeclarationForType(compositeType, convert(d.getFileLocation()));
+      addSideEffectDeclarationForType(compositeType, getLocation(d));
       type = new CElaboratedType(compositeType.isConst(), compositeType.isVolatile(),
           compositeType.getKind(), compositeType.getName(), compositeType);
     }
@@ -1761,11 +1807,11 @@ class ASTConverter {
 
 
   /** This function returns the converted file-location of an IASTNode. */
-  static FileLocation getLocation(final IASTNode n) {
-    return convert(n.getFileLocation());
+  FileLocation getLocation(final IASTNode n) {
+    return getLocation(n.getFileLocation());
   }
 
-  static FileLocation convert(IASTFileLocation l) {
+  FileLocation getLocation(IASTFileLocation l) {
     if (l == null) {
       return null;
     }
@@ -1786,6 +1832,7 @@ class ASTConverter {
     }
 
     return new FileLocation(l.getEndingLineNumber(), originFileName,
+        niceFileNameFunction.apply(originFileName),
         l.getNodeLength(), l.getNodeOffset(),
         startingLineInInput, startingLineInOrigin);
   }
