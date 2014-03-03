@@ -51,7 +51,11 @@ public final class PointerTargetSet implements Serializable {
    * keep the set of currently tracked fields in rather simple way (no special-case merging is required).
    * </p>
    */
-  public static class CompositeField implements Comparable<CompositeField> {
+  @Immutable
+  public static class CompositeField implements Comparable<CompositeField>, Serializable {
+
+    private static final long serialVersionUID = -5194535211223682619L;
+
     private CompositeField(final String compositeType, final String fieldName) {
       this.compositeType = compositeType;
       this.fieldName = fieldName;

@@ -566,6 +566,11 @@ class DynamicMemoryHandler {
             handleDeferredAllocationTypeRevelation(usedPointer.getKey(), type);
           }
           break;
+        case NOT_EQUALS:
+          // TODO Do something here?
+          break;
+        default:
+          throw new UnrecognizedCCodeException("unexpected binary operator in assume", e);
         }
       }
     }
