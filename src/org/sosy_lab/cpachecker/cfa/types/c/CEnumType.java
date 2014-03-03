@@ -29,6 +29,8 @@ import static com.google.common.collect.Iterables.transform;
 import java.util.List;
 import java.util.Objects;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclarations;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
@@ -113,7 +115,7 @@ public final class CEnumType implements CComplexType {
 
   public static final class CEnumerator extends ASimpleDeclarations implements CSimpleDeclaration {
 
-    private final Long           value;
+    private final @Nullable Long  value;
     private CEnumType             enumType;
     private final String         qualifiedName;
 
@@ -146,7 +148,7 @@ public final class CEnumType implements CComplexType {
 
       CEnumerator other = (CEnumerator) obj;
 
-      return (value == other.value) && (qualifiedName.equals(other.qualifiedName));
+      return Objects.equals(value, other.value) && (qualifiedName.equals(other.qualifiedName));
       // do not compare the enumType, comparing it with == is wrong because types which
       // are the same but not identical would lead to wrong results
       // comparing it with equals is no good choice, too. This would lead to a stack
