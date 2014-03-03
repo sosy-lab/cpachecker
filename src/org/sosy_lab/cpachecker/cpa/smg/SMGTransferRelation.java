@@ -77,6 +77,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -1639,12 +1640,15 @@ public class SMGTransferRelation implements TransferRelation {
   private Collection<? extends AbstractState> strengthen(AutomatonState pAutomatonState, SMGState pElement,
       CFAEdge pCfaEdge) throws CPATransferException {
 
-    List<CAssumeEdge> assumptions = pAutomatonState.getAsAssumeEdges(null, pCfaEdge.getPredecessor().getFunctionName());
+    List<AssumeEdge> assumptions = pAutomatonState.getAsAssumeEdges(null, pCfaEdge.getPredecessor().getFunctionName());
 
     SMGState newElement = new SMGState(pElement);
 
-    for (CAssumeEdge assume : assumptions) {
-      newElement = handleAssumption(newElement, assume.getExpression(), pCfaEdge, assume.getTruthAssumption());
+    for (AssumeEdge assume : assumptions) {
+      if (!(assume instanceof CAssumeEdge)) {
+        continue;
+      }
+      newElement = handleAssumption(newElement, ((CAssumeEdge)assume).getExpression(), pCfaEdge, assume.getTruthAssumption());
       if (newElement == null) {
         break;
       }

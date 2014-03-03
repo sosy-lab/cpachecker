@@ -84,7 +84,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -1090,7 +1089,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     CIdExpression retVarName = new CIdExpression(null, new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false), "___cpa_temp_result_var_", null);
 
-    List<CAssumeEdge> assumeEdges = pAutomatonState.getAsAssumeEdges(retVarName, pCfaEdge.getPredecessor().getFunctionName());
+    List<AssumeEdge> assumeEdges = pAutomatonState.getAsAssumeEdges(retVarName, pCfaEdge.getPredecessor().getFunctionName());
 
     ValueAnalysisState state = this.state;
 
