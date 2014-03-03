@@ -36,6 +36,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -822,9 +823,7 @@ public class CtoFormulaConverter {
 
       String callerFunction = ce.getSuccessor().getFunctionName();
 
-      final CVariableDeclaration returnVariableDeclaration = createReturnVariable(funcCallExp.getDeclaration());
-      final CIdExpression rhs = new CIdExpression(funcCallExp.getFileLocation(),
-                         returnVariableDeclaration);
+      final CIdExpression rhs = createReturnVariable(funcCallExp.getFileLocation(), funcCallExp.getDeclaration());
 
       return makeAssignment(exp.getLeftHandSide(), rhs, ce, callerFunction, ssa, pts, constraints, errorConditions);
     } else {
@@ -926,15 +925,21 @@ public class CtoFormulaConverter {
       // that will hold the return value
       final CFunctionDeclaration functionDeclaration =
           ((CFunctionEntryNode) edge.getSuccessor().getEntryNode()).getFunctionDefinition();
-      final CVariableDeclaration returnVariableDeclaration = createReturnVariable(functionDeclaration);
-      final CIdExpression lhs = new CIdExpression(rightExp.getFileLocation(),
-                         returnVariableDeclaration);
+      final CIdExpression lhs = createReturnVariable(rightExp.getFileLocation(), functionDeclaration);
 
       return makeAssignment(lhs, rightExp, edge, function, ssa, pts, constraints, errorConditions);
     }
   }
 
-  protected final CVariableDeclaration createReturnVariable(
+  private static CIdExpression createReturnVariable(final FileLocation fileLocation,
+      final CFunctionDeclaration functionDeclaration) {
+    final CVariableDeclaration returnVariableDeclaration = createReturnVariableDeclaration(functionDeclaration);
+    final CIdExpression lhs = new CIdExpression(fileLocation,
+                       returnVariableDeclaration);
+    return lhs;
+  }
+
+  protected static final CVariableDeclaration createReturnVariableDeclaration(
       final CFunctionDeclaration functionDeclaration) {
     final String retVarName = RETURN_VARIABLE_NAME;
     final CType returnType = functionDeclaration.getType().getReturnType();
