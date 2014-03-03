@@ -21,10 +21,10 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.CTypeUtils.*;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.*;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -59,12 +59,12 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaMa
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Location;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Location.AliasedLocation;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Location.UnaliasedLocation;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Value;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTarget;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.pointerTarget.PointerTarget;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.pointerTarget.PointerTargetPattern;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -73,12 +73,12 @@ import com.google.common.collect.ImmutableMap;
 
 class AssignmentHandler {
 
-  private final FormulaEncodingWithUFOptions options;
+  private final FormulaEncodingWithPointerAliasingOptions options;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final FunctionFormulaManagerView ffmgr;
 
-  private final CToFormulaWithUFConverter conv;
+  private final CToFormulaConverterWithPointerAliasing conv;
   private final CFAEdge edge;
   private final String function;
   private final SSAMapBuilder ssa;
@@ -86,7 +86,7 @@ class AssignmentHandler {
   private final Constraints constraints;
   private final ErrorConditions errorConditions;
 
-  AssignmentHandler(CToFormulaWithUFConverter pConv, CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa,
+  AssignmentHandler(CToFormulaConverterWithPointerAliasing pConv, CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa,
       PointerTargetSetBuilder pPts, Constraints pConstraints, ErrorConditions pErrorConditions) {
     conv = pConv;
 
@@ -126,7 +126,7 @@ class AssignmentHandler {
         (!(rhs instanceof CFunctionCallExpression) ||
          !(((CFunctionCallExpression) rhs).getFunctionNameExpression() instanceof CIdExpression) ||
          !conv.options.isNondetFunction(((CIdExpression)((CFunctionCallExpression) rhs).getFunctionNameExpression()).getName()))) {
-      ExpressionToFormulaWithUFVisitor rhsVisitor = new ExpressionToFormulaWithUFVisitor(conv, edge, function, ssa, constraints, errorConditions, pts);
+      CExpressionVisitorWithPointerAliasing rhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
       rhsExpression = rhs.accept(rhsVisitor);
       pts.addEssentialFields(rhsVisitor.getInitializedFields());
       rhsUsedFields = rhsVisitor.getUsedFields();
@@ -138,7 +138,7 @@ class AssignmentHandler {
     }
 
     // LHS handling
-    ExpressionToFormulaWithUFVisitor lhsVisitor = new ExpressionToFormulaWithUFVisitor(conv, edge, function, ssa, constraints, errorConditions, pts);
+    CExpressionVisitorWithPointerAliasing lhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
     final Location lhsLocation = lhs.accept(lhsVisitor).asLocation();
     final Map<String, CType> lhsUsedDeferredAllocationPointers = lhsVisitor.getUsedDeferredAllocationPointers();
     pts.addEssentialFields(lhsVisitor.getInitializedFields());
@@ -172,7 +172,7 @@ class AssignmentHandler {
   public BooleanFormula handleInitializationAssignments(final CLeftHandSide variable,
                                                         final List<CExpressionAssignmentStatement> assignments)
                                                             throws UnrecognizedCCodeException {
-    ExpressionToFormulaWithUFVisitor lhsVisitor = new ExpressionToFormulaWithUFVisitor(conv, edge, function, ssa, constraints, errorConditions, pts);
+    CExpressionVisitorWithPointerAliasing lhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
     final Location lhsLocation = variable.accept(lhsVisitor).asLocation();
     final Set<CType> updatedTypes = new HashSet<>();
     BooleanFormula result = conv.bfmgr.makeBoolean(true);
@@ -346,7 +346,7 @@ class AssignmentHandler {
                // The variable representing the RHS was used somewhere (i.e. has SSA index)
                !rvalue.asLocation().isAliased() &&
                  conv.hasIndex(rvalue.asLocation().asUnaliased().getVariableName() +
-                            CToFormulaWithUFConverter.FIELD_NAME_SEPARATOR +
+                            CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR +
                             memberName,
                           newLvalueType,
                           ssa))) {
@@ -417,7 +417,7 @@ class AssignmentHandler {
 
     assert !(lvalueType instanceof CFunctionType) : "Can't assign to functions";
 
-    final String targetName = !lvalue.isAliased() ? lvalue.asUnaliased().getVariableName() : CToFormulaWithUFConverter.getUFName(lvalueType);
+    final String targetName = !lvalue.isAliased() ? lvalue.asUnaliased().getVariableName() : CToFormulaConverterWithPointerAliasing.getUFName(lvalueType);
     final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lvalueType);
     final int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
     final int newIndex = !useOldSSAIndices ? oldIndex + 1 : oldIndex;
@@ -463,7 +463,7 @@ class AssignmentHandler {
     if (isSimpleType(lvalueType)) {
       Preconditions.checkArgument(startAddress != null,
                                   "Start address is mandatory for assigning to lvalues of simple types");
-      final String ufName = CToFormulaWithUFConverter.getUFName(lvalueType);
+      final String ufName = CToFormulaConverterWithPointerAliasing.getUFName(lvalueType);
       final int oldIndex = conv.getIndex(ufName, lvalueType, ssa);
       final int newIndex = oldIndex + 1;
       final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lvalueType);
@@ -477,7 +477,7 @@ class AssignmentHandler {
     } else if (pattern.isExact()) {
       pattern.setRange(size);
       for (final CType type : typesToRetain) {
-        final String ufName = CToFormulaWithUFConverter.getUFName(type);
+        final String ufName = CToFormulaConverterWithPointerAliasing.getUFName(type);
         final int oldIndex = conv.getIndex(ufName, type, ssa);
         final int newIndex = oldIndex + 1;
         final FormulaType<?> targetType = conv.getFormulaTypeFromCType(type);
@@ -551,7 +551,7 @@ class AssignmentHandler {
       exact.setRange(target.getOffset(), size);
       BooleanFormula consequent = bfmgr.makeBoolean(true);
       for (final CType type : types) {
-        final String ufName = CToFormulaWithUFConverter.getUFName(type);
+        final String ufName = CToFormulaConverterWithPointerAliasing.getUFName(type);
         final int oldIndex = conv.getIndex(ufName, type, ssa);
         final int newIndex = oldIndex + 1;
         final FormulaType<?> returnType = conv.getFormulaTypeFromCType(type);
@@ -577,7 +577,7 @@ class AssignmentHandler {
                                               final Set<CType> types) {
     final PointerTargetPattern any = PointerTargetPattern.any();
     for (final CType type : types) {
-      final String ufName = CToFormulaWithUFConverter.getUFName(type);
+      final String ufName = CToFormulaConverterWithPointerAliasing.getUFName(type);
       final int oldIndex = conv.getIndex(ufName, type, ssa);
       final int newIndex = oldIndex + 1;
       final FormulaType<?> returnType = conv.getFormulaTypeFromCType(type);
@@ -601,7 +601,7 @@ class AssignmentHandler {
 
   private void updateSSA(final @Nonnull Set<CType> types, final SSAMapBuilder ssa) {
     for (final CType type : types) {
-      final String ufName = CToFormulaWithUFConverter.getUFName(type);
+      final String ufName = CToFormulaConverterWithPointerAliasing.getUFName(type);
       final int newIndex = conv.getIndex(ufName, type, ssa) + 1;
       ssa.setIndex(ufName, type, newIndex);
     }
@@ -656,7 +656,7 @@ class AssignmentHandler {
 
     } else {
       final UnaliasedLocation newLvalue = Location.ofVariableName(lvalue.asUnaliased().getVariableName() +
-                                                                  CToFormulaWithUFConverter.FIELD_NAME_SEPARATOR + memberName);
+                                                                  CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR + memberName);
       return Pair.of(newLvalue, newLvalueType);
     }
 
@@ -678,7 +678,7 @@ class AssignmentHandler {
     }
     case UNALIASED_LOCATION: {
       final UnaliasedLocation newRvalue = Location.ofVariableName(rvalue.asUnaliasedLocation().getVariableName() +
-                                                                  CToFormulaWithUFConverter.FIELD_NAME_SEPARATOR +
+                                                                  CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR +
                                                                   memberName);
       return Pair.of(newRvalue, newLvalueType);
     }

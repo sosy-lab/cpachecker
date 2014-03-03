@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -61,18 +61,18 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExpressionToFormulaVisitor;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Location;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Location.AliasedLocation;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Location.UnaliasedLocation;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Value;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 
-class ExpressionToFormulaWithUFVisitor extends DefaultCExpressionVisitor<Expression, UnrecognizedCCodeException>
+class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Expression, UnrecognizedCCodeException>
                                        implements CRightHandSideVisitor<Expression, UnrecognizedCCodeException> {
 
   private static class AdaptingExpressionToFormulaVisitor extends AdaptingCExpressionVisitor<Formula, Expression, UnrecognizedCCodeException>
                                                              implements CRightHandSideVisitor<Formula, UnrecognizedCCodeException> {
 
-    private AdaptingExpressionToFormulaVisitor(ExpressionToFormulaWithUFVisitor pDelegate) {
+    private AdaptingExpressionToFormulaVisitor(CExpressionVisitorWithPointerAliasing pDelegate) {
       super(pDelegate);
     }
 
@@ -83,16 +83,16 @@ class ExpressionToFormulaWithUFVisitor extends DefaultCExpressionVisitor<Express
 
     private Formula convert0(Expression value, CRightHandSide rhs) throws UnrecognizedCCodeException {
       CType type = CTypeUtils.simplifyType(rhs.getExpressionType());
-      return ((ExpressionToFormulaWithUFVisitor)delegate).asValueFormula(value, type);
+      return ((CExpressionVisitorWithPointerAliasing)delegate).asValueFormula(value, type);
     }
 
     @Override
     public Formula visit(CFunctionCallExpression e) throws UnrecognizedCCodeException {
-      return convert0(((ExpressionToFormulaWithUFVisitor)delegate).visit(e), e);
+      return convert0(((CExpressionVisitorWithPointerAliasing)delegate).visit(e), e);
     }
   }
 
-  public ExpressionToFormulaWithUFVisitor(final CToFormulaWithUFConverter cToFormulaConverter,
+  public CExpressionVisitorWithPointerAliasing(final CToFormulaConverterWithPointerAliasing cToFormulaConverter,
                                           final CFAEdge cfaEdge,
                                           final String function,
                                           final SSAMapBuilder ssa,
@@ -103,13 +103,13 @@ class ExpressionToFormulaWithUFVisitor extends DefaultCExpressionVisitor<Express
     delegate = new ExpressionToFormulaVisitor(cToFormulaConverter, cfaEdge, function, ssa, pts, constraints, errorConditions) {
       @Override
       protected Formula toFormula(CExpression e) throws UnrecognizedCCodeException {
-        return asValueFormula(e.accept(ExpressionToFormulaWithUFVisitor.this),
+        return asValueFormula(e.accept(CExpressionVisitorWithPointerAliasing.this),
                               CTypeUtils.simplifyType(e.getExpressionType()));
       }
 
       @Override
       protected Formula makeNondet(String pVarName, CType pType) {
-        // ExpressionToFormulaWithUFVisitor.visit(CFunctionCallExpression)
+        // CExpressionVisitorWithPointerAliasing.visit(CFunctionCallExpression)
         // will treat this as nondet and return Value.nondetValue().
         return null;
       }
@@ -193,7 +193,7 @@ class ExpressionToFormulaWithUFVisitor extends DefaultCExpressionVisitor<Express
   @Override
   public Location visit(CFieldReference e) throws UnrecognizedCCodeException {
 
-    e = CToFormulaWithUFConverter.eliminateArrow(e, edge);
+    e = CToFormulaConverterWithPointerAliasing.eliminateArrow(e, edge);
 
     final Variable variable = e.accept(baseVisitor);
     if (variable != null) {
@@ -350,7 +350,7 @@ class ExpressionToFormulaWithUFVisitor extends DefaultCExpressionVisitor<Express
                                          ssa,
                                          constraints,
                                          pts);
-          if (ssa.getIndex(base.getName()) != CToFormulaWithUFConverter.VARIABLE_UNSET) {
+          if (ssa.getIndex(base.getName()) != CToFormulaConverterWithPointerAliasing.VARIABLE_UNSET) {
             ssa.deleteVariable(base.getName());
           }
           conv.addPreFilledBase(base.getName(),
@@ -454,7 +454,7 @@ class ExpressionToFormulaWithUFVisitor extends DefaultCExpressionVisitor<Express
     return Collections.unmodifiableMap(usedDeferredAllocationPointers);
   }
 
-  private final CToFormulaWithUFConverter conv;
+  private final CToFormulaConverterWithPointerAliasing conv;
   private final CFAEdge edge;
   private final SSAMapBuilder ssa;
   private final Constraints constraints;

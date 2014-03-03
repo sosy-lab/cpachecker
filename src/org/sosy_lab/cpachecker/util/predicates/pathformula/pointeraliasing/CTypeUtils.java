@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import javax.annotation.Nonnull;
 
@@ -152,7 +152,7 @@ public class CTypeUtils {
    * The method is used in two cases:
    * <ul>
    * <li>
-   * by {@link CToFormulaWithUFConverter#getUFName(CType)} to get the UF name corresponding to the given type.
+   * by {@link CToFormulaConverterWithPointerAliasing#getUFName(CType)} to get the UF name corresponding to the given type.
    * </li>
    * <li>
    * to convert {@link CType}s to strings in order to use them as keys in a {@link PathCopyingPersistentTreeMap}.

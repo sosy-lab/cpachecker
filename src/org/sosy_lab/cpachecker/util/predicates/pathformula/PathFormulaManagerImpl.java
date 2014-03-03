@@ -66,12 +66,12 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.CToFormulaWithUFConverter;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.CToFormulaWithUFTypeHandler;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.FormulaEncodingWithUFOptions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTarget;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.pointerTarget.PointerTarget;
 
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
@@ -140,11 +140,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
 
     if (handlePointerAliasing) {
-      final FormulaEncodingWithUFOptions options = new FormulaEncodingWithUFOptions(config);
-      CToFormulaWithUFTypeHandler ufTypeHandler = new CToFormulaWithUFTypeHandler(pLogger, pMachineModel, pFmgr, options);
-      typeHandler = ufTypeHandler;
-      ptsManager = new PointerTargetSetManager(options, pFmgr, ufTypeHandler);
-      converter = new CToFormulaWithUFConverter(options, pFmgr, pMachineModel, ptsManager, pVariableClassification, pLogger, ufTypeHandler);
+      final FormulaEncodingWithPointerAliasingOptions options = new FormulaEncodingWithPointerAliasingOptions(config);
+      TypeHandlerWithPointerAliasing aliasingTypeHandler = new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, pFmgr, options);
+      typeHandler = aliasingTypeHandler;
+      ptsManager = new PointerTargetSetManager(options, pFmgr, aliasingTypeHandler);
+      converter = new CToFormulaConverterWithPointerAliasing(options, pFmgr, pMachineModel, ptsManager, pVariableClassification, pLogger, aliasingTypeHandler);
 
     } else {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
@@ -314,8 +314,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         if (useNondetFlags && symbolName.equals(NONDET_FLAG_VARIABLE)) {
           mergeFormula = makeSsaNondetFlagMerger(index2, index1);
 
-        } else if (CToFormulaWithUFConverter.isUF(symbolName)) {
-          assert symbolName.equals(CToFormulaWithUFConverter.getUFName(resultSSA.getType(symbolName)));
+        } else if (CToFormulaConverterWithPointerAliasing.isUF(symbolName)) {
+          assert symbolName.equals(CToFormulaConverterWithPointerAliasing.getUFName(resultSSA.getType(symbolName)));
           mergeFormula = makeSsaUFMerger(symbolName, resultSSA.getType(symbolName),
               index2, index1, pts2);
 
@@ -336,8 +336,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         if (useNondetFlags && symbolName.equals(NONDET_FLAG_VARIABLE)) {
           mergeFormula = makeSsaNondetFlagMerger(index1, index2);
 
-        } else if (CToFormulaWithUFConverter.isUF(symbolName)) {
-          assert symbolName.equals(CToFormulaWithUFConverter.getUFName(resultSSA.getType(symbolName)));
+        } else if (CToFormulaConverterWithPointerAliasing.isUF(symbolName)) {
+          assert symbolName.equals(CToFormulaConverterWithPointerAliasing.getUFName(resultSSA.getType(symbolName)));
           mergeFormula = makeSsaUFMerger(symbolName,
               resultSSA.getType(symbolName),
               index1, index2, pts1);

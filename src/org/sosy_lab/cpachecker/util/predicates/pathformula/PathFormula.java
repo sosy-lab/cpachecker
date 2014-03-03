@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 import java.io.Serializable;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 public final class PathFormula implements Serializable {
 

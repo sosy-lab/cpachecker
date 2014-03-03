@@ -21,12 +21,12 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.pointerTarget;
 
 import java.io.Serializable;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 public class PointerTarget implements Serializable {
 

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEnc
 import com.google.common.collect.ImmutableSet;
 
 @Options(prefix="cpa.predicate")
-public class FormulaEncodingWithUFOptions extends FormulaEncodingOptions {
+public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOptions {
 
   @Option(description = "Memory allocation functions of which all parameters but the first should be ignored.")
   private ImmutableSet<String> memoryAllocationFunctionsWithSuperfluousParameters = ImmutableSet.of(
@@ -81,9 +81,9 @@ public class FormulaEncodingWithUFOptions extends FormulaEncodingOptions {
   @Option(description = "If disabled, all implicitly initialized fields and elements are treated as non-dets")
   private boolean handleImplicitInitialization = true;
 
-  public FormulaEncodingWithUFOptions(Configuration config) throws InvalidConfigurationException {
+  public FormulaEncodingWithPointerAliasingOptions(Configuration config) throws InvalidConfigurationException {
     super(config);
-    config.inject(this, FormulaEncodingWithUFOptions.class);
+    config.inject(this, FormulaEncodingWithPointerAliasingOptions.class);
   }
 
   public boolean hasSuperfluousParameters(final String name) {

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Objects.firstNonNull;
 import static org.sosy_lab.common.collect.PersistentSortedMaps.*;
@@ -58,9 +58,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.CompositeField;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTarget;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.pointerTarget.PointerTarget;
 
 import com.google.common.collect.ImmutableList;
 
@@ -87,14 +87,14 @@ public class PointerTargetSetManager {
   }
 
 
-  private final FormulaEncodingWithUFOptions options;
+  private final FormulaEncodingWithPointerAliasingOptions options;
   private final FormulaManagerView formulaManager;
   private final BooleanFormulaManagerView bfmgr;
   private final FunctionFormulaManagerView ffmgr;
-  private final CToFormulaWithUFTypeHandler typeHandler;
+  private final TypeHandlerWithPointerAliasing typeHandler;
 
-  public PointerTargetSetManager(FormulaEncodingWithUFOptions pOptions,
-      FormulaManagerView pFormulaManager, CToFormulaWithUFTypeHandler pTypeHandler) {
+  public PointerTargetSetManager(FormulaEncodingWithPointerAliasingOptions pOptions,
+      FormulaManagerView pFormulaManager, TypeHandlerWithPointerAliasing pTypeHandler) {
     options = pOptions;
     formulaManager = pFormulaManager;
     bfmgr = formulaManager.getBooleanFormulaManager();
@@ -159,8 +159,8 @@ public class PointerTargetSetManager {
     } else {
       final CType fakeBaseType = getFakeBaseType(0);
       final String fakeBaseName = FAKE_ALLOC_FUNCTION_NAME +
-                                  CToFormulaWithUFConverter.getUFName(fakeBaseType) +
-                                  CToFormulaWithUFConverter.FRESH_INDEX_SEPARATOR +
+                                  CToFormulaConverterWithPointerAliasing.getUFName(fakeBaseType) +
+                                  CToFormulaConverterWithPointerAliasing.FRESH_INDEX_SEPARATOR +
                                   RealPointerTargetSetBuilder.getNextDynamicAllocationIndex();
       mergedBases =
         Triple.of(mergedBases.getFirst(),
@@ -325,7 +325,7 @@ public class PointerTargetSetManager {
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final String memberName = memberDeclaration.getName();
         final CType memberType = CTypeUtils.simplifyType(memberDeclaration.getType());
-        final String newPrefix = variablePrefix + CToFormulaWithUFConverter.FIELD_NAME_SEPARATOR + memberName;
+        final String newPrefix = variablePrefix + CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR + memberName;
         if (ssa.getIndex(newPrefix) > 0) {
           sharedFields.add(Pair.of(compositeType, memberName));
           result = bfmgr.and(result, makeSharingConstraints(
@@ -356,7 +356,7 @@ public class PointerTargetSetManager {
   private Formula makeDereferece(final CType type,
                                  final Formula address,
                                  final SSAMap ssa) {
-    final String ufName = CToFormulaWithUFConverter.getUFName(type);
+    final String ufName = CToFormulaConverterWithPointerAliasing.getUFName(type);
     final int index = ssa.getIndex(ufName);
     final FormulaType<?> returnType = typeHandler.getFormulaTypeFromCType(type);
     return ffmgr.createFuncAndCall(ufName, index, returnType, ImmutableList.of(address));

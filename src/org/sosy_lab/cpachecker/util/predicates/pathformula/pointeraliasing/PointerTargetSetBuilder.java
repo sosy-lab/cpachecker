@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Objects.firstNonNull;
 import static com.google.common.base.Predicates.not;
@@ -45,9 +45,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.CompositeField;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTarget;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.pointerTarget.PointerTarget;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.pointerTarget.PointerTargetPattern;
 
 
 public interface PointerTargetSetBuilder {
@@ -129,7 +129,7 @@ public interface PointerTargetSetBuilder {
 
     private final FormulaManagerView formulaManager;
     private final PointerTargetSetManager ptsMgr;
-    private final FormulaEncodingWithUFOptions options;
+    private final FormulaEncodingWithPointerAliasingOptions options;
 
     // These fields all exist in PointerTargetSet and are documented there.
     private PersistentSortedMap<String, CType> bases;
@@ -141,7 +141,7 @@ public interface PointerTargetSetBuilder {
     RealPointerTargetSetBuilder(final PointerTargetSet pointerTargetSet,
         final FormulaManagerView pFormulaManager,
         final PointerTargetSetManager pPtsMgr,
-        final FormulaEncodingWithUFOptions pOptions) {
+        final FormulaEncodingWithPointerAliasingOptions pOptions) {
       bases = pointerTargetSet.bases;
       lastBase = pointerTargetSet.lastBase;
       fields = pointerTargetSet.fields;

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import java.math.BigInteger;
 import java.util.Collections;
@@ -61,11 +61,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Location;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Location.AliasedLocation;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.Expression.Value;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.pointerTarget.PointerTargetPattern;
 
 /**
  * This class is responsible for handling everything related to dynamic memory,
@@ -77,14 +77,14 @@ class DynamicMemoryHandler {
 
   private static final String CALLOC_FUNCTION = "calloc";
 
-  private final CToFormulaWithUFConverter conv;
+  private final CToFormulaConverterWithPointerAliasing conv;
   private final CFAEdge edge;
   private final SSAMapBuilder ssa;
   private final PointerTargetSetBuilder pts;
   private final Constraints constraints;
   private final ErrorConditions errorConditions;
 
-  DynamicMemoryHandler(CToFormulaWithUFConverter pConv,
+  DynamicMemoryHandler(CToFormulaConverterWithPointerAliasing pConv,
       CFAEdge pEdge, SSAMapBuilder pSsa,
       PointerTargetSetBuilder pPts, Constraints pConstraints,
       ErrorConditions pErrorConditions) {
@@ -97,7 +97,7 @@ class DynamicMemoryHandler {
   }
 
   Value handleDynamicMemoryFunction(final CFunctionCallExpression e, final String functionName,
-      final ExpressionToFormulaWithUFVisitor expressionVisitor) throws UnrecognizedCCodeException {
+      final CExpressionVisitorWithPointerAliasing expressionVisitor) throws UnrecognizedCCodeException {
 
     if ((conv.options.isSuccessfulAllocFunctionName(functionName) ||
         conv.options.isSuccessfulZallocFunctionName(functionName))) {
@@ -257,7 +257,7 @@ class DynamicMemoryHandler {
    * Handle calls to free()
    */
   private Value handleMemoryFree(final CFunctionCallExpression e,
-      final ExpressionToFormulaWithUFVisitor expressionVisitor) throws UnrecognizedCCodeException {
+      final CExpressionVisitorWithPointerAliasing expressionVisitor) throws UnrecognizedCCodeException {
     final List<CExpression> parameters = e.getParameterExpressions();
     if (parameters.size() != 1) {
       throw new UnrecognizedCCodeException(
@@ -302,8 +302,8 @@ class DynamicMemoryHandler {
   private String makeAllocVariableName(final String functionName,
                                final CType type,
                                final CType baseType) {
-    final String allocVariableName = functionName + "_" + CToFormulaWithUFConverter.getUFName(type);
-    return  allocVariableName + CToFormulaWithUFConverter.FRESH_INDEX_SEPARATOR + RealPointerTargetSetBuilder.getNextDynamicAllocationIndex();
+    final String allocVariableName = functionName + "_" + CToFormulaConverterWithPointerAliasing.getUFName(type);
+    return  allocVariableName + CToFormulaConverterWithPointerAliasing.FRESH_INDEX_SEPARATOR + RealPointerTargetSetBuilder.getNextDynamicAllocationIndex();
   }
 
   private static Integer tryEvaluateExpression(CExpression e) {
@@ -438,12 +438,12 @@ class DynamicMemoryHandler {
         if (pts.isTemporaryDeferredAllocationPointer(variable)) {
           if (!isAllocation) {
             // We can reveal the type from the LHS
-            if (ExpressionToFormulaWithUFVisitor.isRevealingType(lhsType)) {
+            if (CExpressionVisitorWithPointerAliasing.isRevealingType(lhsType)) {
               handleDeferredAllocationTypeRevelation(variable, lhsType);
             // We can defer the allocation and start tracking the variable in the LHS
             } else if (lhsType.equals(CPointerType.POINTER_TO_VOID) &&
                        // TODO: remove the double-check (?)
-                       ExpressionToFormulaWithUFVisitor.isUnaliasedLocation(lhs) &&
+                       CExpressionVisitorWithPointerAliasing.isUnaliasedLocation(lhs) &&
                        lhsLocation.isUnaliasedLocation()) {
               final String variableName = lhsLocation.asUnaliasedLocation().getVariableName();
               if (pts.isDeferredAllocationPointer(variableName)) {
@@ -484,12 +484,12 @@ class DynamicMemoryHandler {
     boolean passed = false;
     for (final Map.Entry<String, CType> usedPointer : rhsUsedDeferredAllocationPointers.entrySet()) {
       boolean handled = false;
-      if (ExpressionToFormulaWithUFVisitor.isRevealingType(usedPointer.getValue())) {
+      if (CExpressionVisitorWithPointerAliasing.isRevealingType(usedPointer.getValue())) {
         handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
         handled = true;
       } else if (rhs instanceof CExpression &&
                  // TODO: use rhsExpression.isUnaliasedLocation() instead?
-                 ExpressionToFormulaWithUFVisitor.isUnaliasedLocation((CExpression) rhs)) {
+                 CExpressionVisitorWithPointerAliasing.isUnaliasedLocation((CExpression) rhs)) {
         assert rhsExpression.isUnaliasedLocation() &&
                rhsExpression.asUnaliasedLocation().getVariableName().equals(usedPointer.getKey()) &&
                rhsUsedDeferredAllocationPointers.size() == 1 :
@@ -497,7 +497,7 @@ class DynamicMemoryHandler {
         final CType lhsType = CTypeUtils.simplifyType(lhs.getExpressionType());
         if (lhsType.equals(CPointerType.POINTER_TO_VOID) &&
             // TODO: is the following isUnaliasedLocation() check really needed?
-            ExpressionToFormulaWithUFVisitor.isUnaliasedLocation(lhs) &&
+            CExpressionVisitorWithPointerAliasing.isUnaliasedLocation(lhs) &&
             !lhsLocation.isAliased()) {
           final Map.Entry<String, CType> lhsUsedPointer = !lhsUsedDeferredAllocationPointers.isEmpty() ?
                                                        lhsUsedDeferredAllocationPointers.entrySet().iterator().next() :
@@ -513,7 +513,7 @@ class DynamicMemoryHandler {
           pts.addDeferredAllocationPointer(lhsLocation.asUnaliased().getVariableName(), usedPointer.getKey());
           passed = true;
           handled = true;
-        } else if (ExpressionToFormulaWithUFVisitor.isRevealingType(lhsType)) {
+        } else if (CExpressionVisitorWithPointerAliasing.isRevealingType(lhsType)) {
           handleDeferredAllocationTypeRevelation(usedPointer.getKey(), lhsType);
           handled = true;
         }
@@ -526,7 +526,7 @@ class DynamicMemoryHandler {
       if (!usedPointer.getValue().equals(CPointerType.POINTER_TO_VOID)) {
         handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
       // TODO: use lhsExpression.isUnaliasedLoation() instead (?)
-      } else if (ExpressionToFormulaWithUFVisitor.isUnaliasedLocation(lhs)) {
+      } else if (CExpressionVisitorWithPointerAliasing.isUnaliasedLocation(lhs)) {
         assert !lhsLocation.isAliased() &&
                lhsLocation.asUnaliased().getVariableName().equals(usedPointer.getKey()) &&
                lhsUsedDeferredAllocationPointers.size() == 1 :
@@ -557,9 +557,9 @@ class DynamicMemoryHandler {
           final CType operand1Type = CTypeUtils.simplifyType(binaryExpression.getOperand1().getExpressionType());
           final CType operand2Type = CTypeUtils.simplifyType(binaryExpression.getOperand2().getExpressionType());
           CType type = null;
-          if (ExpressionToFormulaWithUFVisitor.isRevealingType(operand1Type)) {
+          if (CExpressionVisitorWithPointerAliasing.isRevealingType(operand1Type)) {
             type = operand1Type;
-          } else if (ExpressionToFormulaWithUFVisitor.isRevealingType(operand2Type)) {
+          } else if (CExpressionVisitorWithPointerAliasing.isRevealingType(operand2Type)) {
             type = operand2Type;
           }
           if (type != null) {

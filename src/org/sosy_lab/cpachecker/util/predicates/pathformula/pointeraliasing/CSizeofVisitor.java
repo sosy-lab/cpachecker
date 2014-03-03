@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
@@ -32,7 +32,7 @@ class CSizeofVisitor extends BaseSizeofVisitor
                                    implements CTypeVisitor<Integer, IllegalArgumentException> {
 
   public CSizeofVisitor(final MachineModel machineModel,
-                         final FormulaEncodingWithUFOptions options) {
+                         final FormulaEncodingWithPointerAliasingOptions options) {
     super(machineModel);
     this.options = options;
   }
@@ -49,5 +49,5 @@ class CSizeofVisitor extends BaseSizeofVisitor
     return length * sizeOfType;
   }
 
-  private final FormulaEncodingWithUFOptions options;
+  private final FormulaEncodingWithPointerAliasingOptions options;
 }

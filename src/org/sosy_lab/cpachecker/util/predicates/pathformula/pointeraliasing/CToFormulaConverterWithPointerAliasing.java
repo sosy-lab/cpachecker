@@ -21,9 +21,9 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.CTypeUtils.isSimpleType;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -87,12 +87,12 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 
-public class CToFormulaWithUFConverter extends CtoFormulaConverter {
+public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter {
 
   // Overrides just for visibility in other classes of this package
 
@@ -107,19 +107,19 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   @SuppressWarnings("hiding")
   final MachineModel machineModel = super.machineModel;
 
-  final CToFormulaWithUFTypeHandler typeHandler;
+  final TypeHandlerWithPointerAliasing typeHandler;
   final PointerTargetSetManager ptsMgr;
 
   final FormulaType<?> voidPointerFormulaType;
   final Formula nullPointer;
 
-  public CToFormulaWithUFConverter(final FormulaEncodingWithUFOptions pOptions,
+  public CToFormulaConverterWithPointerAliasing(final FormulaEncodingWithPointerAliasingOptions pOptions,
                                    final FormulaManagerView formulaManagerView,
                                    final MachineModel pMachineModel,
                                    final PointerTargetSetManager pPtsMgr,
                                    final Optional<VariableClassification> pVariableClassification,
                                    final LogManager logger,
-                                   final CToFormulaWithUFTypeHandler pTypeHandler)
+                                   final TypeHandlerWithPointerAliasing pTypeHandler)
   throws InvalidConfigurationException {
     super(pOptions, formulaManagerView, pMachineModel, pVariableClassification, logger, pTypeHandler);
     variableClassification = pVariableClassification;
@@ -473,7 +473,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       SSAMapBuilder pSsa, PointerTargetSetBuilder pPts,
       Constraints pConstraints, ErrorConditions pErrorConditions) {
 
-    ExpressionToFormulaWithUFVisitor rhsVisitor = new ExpressionToFormulaWithUFVisitor(this, pEdge, pFunction, pSsa, pConstraints, pErrorConditions, pPts);
+    CExpressionVisitorWithPointerAliasing rhsVisitor = new CExpressionVisitorWithPointerAliasing(this, pEdge, pFunction, pSsa, pConstraints, pErrorConditions, pPts);
     return rhsVisitor.asFormulaVisitor();
   }
 
@@ -654,7 +654,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final Constraints constraints, final ErrorConditions errorConditions)
           throws UnrecognizedCCodeException {
     final CType expressionType = CTypeUtils.simplifyType(e.getExpressionType());
-    ExpressionToFormulaWithUFVisitor ev = new ExpressionToFormulaWithUFVisitor(this, edge, function, ssa, constraints, errorConditions, pts);
+    CExpressionVisitorWithPointerAliasing ev = new CExpressionVisitorWithPointerAliasing(this, edge, function, ssa, constraints, errorConditions, pts);
     BooleanFormula result = toBooleanFormula(ev.asValueFormula(e.accept(ev),
                                                                  expressionType));
 
@@ -706,7 +706,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   @SuppressWarnings("hiding") // same instance with narrower type
-  final FormulaEncodingWithUFOptions options;
+  final FormulaEncodingWithPointerAliasingOptions options;
 
   private final Optional<VariableClassification> variableClassification;
 

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.pointerTarget;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -41,10 +41,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.CToFormulaWithUFConverter;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.CTypeUtils;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSetManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetManager;
 
 
 class LvalueToPointerTargetPatternVisitor
@@ -220,7 +220,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
   @Override
   public PointerTargetPattern visit(CFieldReference e) throws UnrecognizedCCodeException {
 
-    e = CToFormulaWithUFConverter.eliminateArrow(e, cfaEdge);
+    e = CToFormulaConverterWithPointerAliasing.eliminateArrow(e, cfaEdge);
 
     final CExpression ownerExpression = e.getFieldOwner();
     final PointerTargetPattern result = ownerExpression.accept(this);

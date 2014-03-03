@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -39,7 +39,7 @@ import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 
 
-public class CToFormulaWithUFTypeHandler extends CtoFormulaTypeHandler {
+public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
 
   private final CSizeofVisitor sizeofVisitor;
 
@@ -53,8 +53,8 @@ public class CToFormulaWithUFTypeHandler extends CtoFormulaTypeHandler {
   private final Multiset<CCompositeType> sizes = HashMultiset.create();
   private final Map<CCompositeType, Multiset<String>> offsets = new HashMap<>();
 
-  public CToFormulaWithUFTypeHandler(LogManager pLogger, MachineModel pMachineModel,
-      FormulaManagerView pFmgr, FormulaEncodingWithUFOptions pOptions) {
+  public TypeHandlerWithPointerAliasing(LogManager pLogger, MachineModel pMachineModel,
+      FormulaManagerView pFmgr, FormulaEncodingWithPointerAliasingOptions pOptions) {
     super(pLogger, pMachineModel, pFmgr);
 
     sizeofVisitor = new CSizeofVisitor(pMachineModel, pOptions);

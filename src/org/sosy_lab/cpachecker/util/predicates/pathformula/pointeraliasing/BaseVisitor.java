@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -74,11 +74,11 @@ class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeExcep
   @Override
   public Variable visit(CFieldReference e) throws UnrecognizedCCodeException {
 
-    e = CToFormulaWithUFConverter.eliminateArrow(e, cfaEdge);
+    e = CToFormulaConverterWithPointerAliasing.eliminateArrow(e, cfaEdge);
 
     final Variable base = e.getFieldOwner().accept(this);
     if (base != null) {
-      return Variable.create(base.getName()  + CToFormulaWithUFConverter.FIELD_NAME_SEPARATOR + e.getFieldName(),
+      return Variable.create(base.getName()  + CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR + e.getFieldName(),
                              CTypeUtils.simplifyType(e.getExpressionType()));
     } else {
       return null;
