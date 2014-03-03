@@ -12,6 +12,8 @@
   <option name="-heap">2000M</option>
   <option name="-preprocess" />
   <option name="-timelimit">1min</option>
+  
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
     
   <rundefinition>
     
@@ -20,7 +22,6 @@
       <option name="-setprop">cpa.smg.handleUnknownFunctions=assume_safe</option>
       
       <include>../programs/smg_Explicity_Test/lists/*.c</include>
-      <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
     </sourcefiles>
   
     <sourcefiles name="memsafety">
@@ -28,7 +29,6 @@
       <option name="-setprop">memorysafety.config=config/CPAlien.properties</option>
       
       <include>../programs/smg_Explicity_Test/heap-memory/*.c</include>
-      <propertyfile>../programs/benchmarks/PropertyMemSafety.prp</propertyfile>
     </sourcefiles>
   </rundefinition>
 
