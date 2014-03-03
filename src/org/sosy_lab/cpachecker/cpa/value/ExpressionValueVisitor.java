@@ -110,7 +110,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     if (state.contains(memLoc)) {
       return state.getValueFor(memLoc);
     } else {
-      return new SymbolicValueFormula(new SymbolicValueFormula.SymbolicValue(memLoc));
+      return Value.UnknownValue.getInstance();
     }
   }
 
