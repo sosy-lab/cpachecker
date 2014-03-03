@@ -120,8 +120,6 @@ import com.google.common.collect.ImmutableSet;
  */
 public class CtoFormulaConverter {
 
-  public static final String ASSUME_FUNCTION_NAME = "__VERIFIER_assume";
-
   // list of functions that are pure (no side-effects from the perspective of this analysis)
   public static final Set<String> PURE_EXTERNAL_FUNCTIONS
       = ImmutableSet.of("abort", "exit", "__assert_fail", "__VERIFIER_error",
