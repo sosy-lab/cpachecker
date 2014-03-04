@@ -39,7 +39,7 @@ class Tool(benchmark.tools.template.BaseTool):
         return self.preprocessedFile
 
 
-    def getCmdline(self, executable, options, sourcefile):
+    def getCmdline(self, executable, options, sourcefile, propertyfile):
         sourcefile = self.preprocessSourcefile(sourcefile)
 
         # also append '.cc' to the predecessor-file

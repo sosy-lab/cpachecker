@@ -6,6 +6,7 @@ import subprocess
 import sys
 import string
 import os
+import re
 import benchmark.result as result
 
 sys.dont_write_bytecode = True # prevent creation of .pyc files
@@ -99,16 +100,14 @@ class Tool(benchmark.tools.cpachecker.Tool):
 
             elif line.startswith('Verification result: '):
                 line = line[21:].strip()
-                if line.startswith('SAFE'):
+                if line.startswith('TRUE'):
                     newStatus = result.STR_TRUE
-                elif line.startswith('UNSAFE'):
+                elif line.startswith('FALSE'):
                   newStatus = result.STR_FALSE_LABEL
-                  if memory_leak:
-                    newStatus = result.STR_FALSE_MEMTRACK
-                  if bad_free:
-                    newStatus = result.STR_FALSE_FREE
-                  if bad_deref:
-                    newStatus = result.STR_FALSE_DEREF
+                  match = re.match('.* Violation of propert[a-z]* (.*) found by chosen configuration.*', line)
+                  if match:
+                      newStatus = result.STR_FALSE + '(' + match.group(1) + ')'
+
                 else:
                     newStatus = result.STR_UNKNOWN if not status.startswith('ERROR') else None
                 if newStatus and not status:

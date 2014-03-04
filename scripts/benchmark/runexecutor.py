@@ -2,7 +2,7 @@
 CPAchecker is a tool for configurable software verification.
 This file is part of CPAchecker.
 
-Copyright (C) 2007-2013  Dirk Beyer
+Copyright (C) 2007-2014  Dirk Beyer
 All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -235,6 +235,7 @@ class RunExecutor():
 
         timelimitThread = None
         oomThread = None
+        energyBefore = Util.getEnergy()
         wallTimeBefore = time.time()
 
         p = None
@@ -297,9 +298,11 @@ class RunExecutor():
                 _killAllTasksInCgroup(cgroup)
 
         wallTimeAfter = time.time()
+        energyAfter = Util.getEnergy()
+        energy = (energyAfter - energyBefore) if (energyAfter and energyBefore) else None
         wallTime = wallTimeAfter - wallTimeBefore
         cpuTime = ru_child.ru_utime + ru_child.ru_stime if ru_child else 0
-        return (returnvalue, wallTime, cpuTime)
+        return (returnvalue, wallTime, cpuTime, energy)
 
 
 
@@ -377,7 +380,7 @@ class RunExecutor():
         (cgroups, myCpuCount) = self._setupCGroups(args, rlimits, myCpuIndex)
 
         logging.debug("executeRun: executing tool.")
-        (returnvalue, wallTime, cpuTime) = \
+        (returnvalue, wallTime, cpuTime, energy) = \
             self._execute(args, rlimits, outputFileName, cgroups, myCpuCount, environments, runningDir)
 
         logging.debug("executeRun: getting exact measures.")
@@ -401,10 +404,10 @@ class RunExecutor():
         output = output[6:] # first 6 lines are for logging, rest is output of subprocess
 
 
-        logging.debug("executeRun: Run execution returns with code {0}, walltime={1}, cputime={2}, memory={3}"
-                      .format(returnvalue, wallTime, cpuTime, memUsage))
+        logging.debug("executeRun: Run execution returns with code {0}, walltime={1}, cputime={2}, memory={3}, energy={4}"
+                      .format(returnvalue, wallTime, cpuTime, memUsage, energy))
 
-        return (wallTime, cpuTime, memUsage, returnvalue, '\n'.join(output))
+        return (wallTime, cpuTime, memUsage, returnvalue, '\n'.join(output), energy)
 
 
     def kill(self):
@@ -622,18 +625,21 @@ def _hasSwap():
     return True
 
 def _findCgroupMount(subsystem=None):
-    with open('/proc/mounts', 'rt') as mounts:
-        for mount in mounts:
-            mount = mount.split(' ')
-            if mount[2] == 'cgroup':
-                mountpoint = mount[1]
-                options = mount[3]
-                logging.debug('Found cgroup mount at {0} with options {1}'.format(mountpoint, options))
-                if subsystem:
-                    if subsystem in options.split(','):
+    try:
+        with open('/proc/mounts', 'rt') as mounts:
+            for mount in mounts:
+                mount = mount.split(' ')
+                if mount[2] == 'cgroup':
+                    mountpoint = mount[1]
+                    options = mount[3]
+                    logging.debug('Found cgroup mount at {0} with options {1}'.format(mountpoint, options))
+                    if subsystem:
+                        if subsystem in options.split(','):
+                            return mountpoint
+                    else:
                         return mountpoint
-                else:
-                    return mountpoint
+    except:
+        pass # /proc/mounts cannot be read
     return None
 
 

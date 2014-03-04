@@ -2,7 +2,7 @@
 CPAchecker is a tool for configurable software verification.
 This file is part of CPAchecker.
 
-Copyright (C) 2007-2013  Dirk Beyer
+Copyright (C) 2007-2014  Dirk Beyer
 All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,31 +24,53 @@ CPAchecker web page:
 
 # prepare for Python 3
 from __future__ import absolute_import, print_function, unicode_literals
-
 from . import util
+import os
+
+
+# CONSTANTS
+
+CATEGORY_CORRECT = 'correct'
+CATEGORY_WRONG   = 'wrong'
+CATEGORY_UNKNOWN = 'unknown'
+CATEGORY_ERROR   = 'error'
+CATEGORY_MISSING = 'missing'
 
 STR_TRUE = 'true'
 STR_UNKNOWN = 'unknown'
-STR_FALSE_LABEL = 'false(label)'
-STR_FALSE_DEREF = 'false(valid-deref)'
-STR_FALSE_FREE = 'false(valid-free)'
-STR_FALSE_MEMTRACK = 'false(valid-memtrack)'
+STR_FALSE = 'false' # only for special cases. STR_FALSE is no official result, because property is missing
 
-STR_LIST = [STR_TRUE, STR_UNKNOWN, STR_FALSE_LABEL, STR_FALSE_DEREF, STR_FALSE_FREE, STR_FALSE_MEMTRACK]
+STR_FALSE_LABEL =       'false(label)'
+STR_FALSE_TERMINATION = 'false(termination)'
+STR_FALSE_DEREF =        'false(valid-deref)'
+STR_FALSE_FREE =         'false(valid-free)'
+STR_FALSE_MEMTRACK =     'false(valid-memtrack)'
+
+STR_LIST = [STR_TRUE, STR_UNKNOWN, 
+            STR_FALSE_LABEL, STR_FALSE_TERMINATION, 
+            STR_FALSE_DEREF, STR_FALSE_FREE, STR_FALSE_MEMTRACK]
 
 # string searched in filenames to determine correct or incorrect status.
 # use lower case! the dict contains assignments 'filename' --> 'status'
-PROP_SUBSTRINGS ={'_false-unreach-label': STR_FALSE_LABEL,
-                  '_false-valid-deref':   STR_FALSE_DEREF,
-                  '_false-valid-free':     STR_FALSE_FREE,
-                  '_false-valid-memtrack': STR_FALSE_MEMTRACK
-                  }
+FALSE_SUBSTRINGS = {'_false-unreach-label':  STR_FALSE_LABEL,
+                    '_false-termination':    STR_FALSE_TERMINATION,
+                    '_false-valid-deref':    STR_FALSE_DEREF,
+                    '_false-valid-free':     STR_FALSE_FREE,
+                    '_false-valid-memtrack': STR_FALSE_MEMTRACK
+                   }
 
-assert all('_false' in k for k in PROP_SUBSTRINGS.keys())
+assert all('_false-' in k for k in FALSE_SUBSTRINGS.keys())
 
-TRUE_SUBSTRINGS ={'.true.':                STR_TRUE,
-                  '_true':                 STR_TRUE
-                  }
+
+# this map contains substring of property-files with their status
+PROPERTY_MATCHER = {'LTL(G ! label(':         STR_FALSE_LABEL,
+                    'LTL(G ! call(__VERIFIER_error()))': STR_FALSE_LABEL,
+                    'LTL(F end)':             STR_FALSE_TERMINATION,
+                    'LTL(G valid-free)':      STR_FALSE_FREE,
+                    'LTL(G valid-deref)' :    STR_FALSE_DEREF,
+                    'LTL(G valid-memtrack)' : STR_FALSE_MEMTRACK
+                   }
+
 
 # Score values taken from http://sv-comp.sosy-lab.org/
 SCORE_CORRECT_TRUE = 2
@@ -57,78 +79,79 @@ SCORE_UNKNOWN = 0
 SCORE_WRONG_FALSE = -4
 SCORE_WRONG_TRUE = -8
 
-CATEGORY_UNKNOWN = ('', )
 
-RESULT_CORRECT_TRUE = ('correct', STR_TRUE)
-RESULT_CORRECT_FALSE_LABEL = ('correct', STR_FALSE_LABEL)
-RESULT_CORRECT_FALSE_DEREF = ('correct', STR_FALSE_DEREF)
-RESULT_CORRECT_FALSE_FREE = ('correct', STR_FALSE_FREE)
-RESULT_CORRECT_FALSE_MEMTRACK = ('correct', STR_FALSE_MEMTRACK)
-
-RESULT_UNKNOWN = ('unknown', )
-RESULT_ERROR = ('error', )
-
-RESULT_WRONG_TRUE = ('wrong', STR_TRUE)
-RESULT_WRONG_FALSE_LABEL = ('wrong', STR_FALSE_LABEL)
-RESULT_WRONG_FALSE_DEREF = ('wrong', STR_FALSE_DEREF)
-RESULT_WRONG_FALSE_FREE = ('wrong', STR_FALSE_FREE)
-RESULT_WRONG_FALSE_MEMTRACK = ('wrong', STR_FALSE_MEMTRACK)
-
-
-def statusOfFile(filename):
+def _statusesOfFile(filename):
     """
-    This function returns the status of a file, 
-    this is the property in the filename.
+    This function returns all statuses of a file, 
+    this is the list of false-properties in the filename.
     """
-    # first check PROP/FALSE, because it is a substring of PROP
-    for key in PROP_SUBSTRINGS:
-        if key in filename.lower():
-            return PROP_SUBSTRINGS[key]
-    return STR_TRUE # if no hint is given, assume TRUE
+    statuses = [val for (key,val) in FALSE_SUBSTRINGS.items() if key in filename]
+    #TODO: enable next line, when all sourcefiles are renamed
+    #if not statuses: assert not '_false' in filename
+    return statuses
 
 
+def _statusesOfPropertyFile(propertyFile):
+    assert os.path.isfile(propertyFile)
+    
+    statuses = []
+    with open(propertyFile) as f:
+        content = f.read()
+        assert 'CHECK' in content, "Invalid property {0}".format(content)
+
+        # TODO: should we switch to regex or line-based reading?
+        for substring, status in PROPERTY_MATCHER.items():
+            if substring in content:
+                statuses.append(status)
+
+        assert statuses, "Unkown property {0}".format(content)
+    return statuses
+
+
+# the functions fileIsFalse and fileIsTrue are only used tocount files,
+# not in any other logic. They should return complementary values.
 def fileIsFalse(filename):
-    return util.containsAny(filename, PROP_SUBSTRINGS.keys())
+    return util.containsAny(filename, FALSE_SUBSTRINGS.keys())
 
 def fileIsTrue(filename):
-    return util.containsAny(filename, TRUE_SUBSTRINGS.keys())
+    return not util.containsAny(filename, FALSE_SUBSTRINGS.keys())
 
 
-def getResultCategory(filename, status):
+def getResultCategory(filename, status, propertyFile=None):
     '''
     This function return a string
     that shows the relation between status and file.
     '''
-    status = status.lower()
 
-    # for backwards-compatibility of table-generator only
-    if status == 'safe': status = STR_TRUE
-    if status == 'unsafe': status = STR_FALSE_LABEL
+    if status == STR_UNKNOWN:
+        category = CATEGORY_UNKNOWN
+    elif status in STR_LIST:
+        
+        # Without propertyfile we do not return correct or wrong results, but always UNKNOWN.
+        if propertyFile is None: 
+            category = CATEGORY_MISSING
+        else:
+            fileStatuses = _statusesOfFile(filename)
+            propertiesToCheck = _statusesOfPropertyFile(propertyFile)
+            commonBugs = set(propertiesToCheck).intersection(set(fileStatuses)) # list of bugs, that are searched and part of the filename
+            if status == STR_TRUE and not commonBugs:
+                category = CATEGORY_CORRECT
+            elif status in commonBugs:
+                category = CATEGORY_CORRECT
+            else:
+                category = CATEGORY_WRONG
 
-    fileStatus = statusOfFile(filename)
-
-    if status == fileStatus:
-        prefix = 'correct'
     else:
-        prefix = 'wrong'
+        category = CATEGORY_ERROR
+    return category
 
-    if status in [STR_FALSE_LABEL, STR_FALSE_DEREF, STR_FALSE_FREE, STR_FALSE_MEMTRACK, STR_TRUE]:
-        return (prefix, status)
-    elif status == STR_UNKNOWN:
-        return RESULT_UNKNOWN
+
+def calculateScore(category, status):
+    if category == CATEGORY_CORRECT:
+        return SCORE_CORRECT_TRUE if status == STR_TRUE else SCORE_CORRECT_FALSE
+    elif category == CATEGORY_WRONG:
+        return SCORE_WRONG_TRUE if status == STR_TRUE else SCORE_WRONG_FALSE
+    elif category in [CATEGORY_UNKNOWN, CATEGORY_ERROR, CATEGORY_MISSING]:
+        return SCORE_UNKNOWN
     else:
-        return RESULT_ERROR
-
-
-def calculateScore(category):
-    return {RESULT_CORRECT_TRUE:   SCORE_CORRECT_TRUE,
-            RESULT_WRONG_TRUE:     SCORE_WRONG_TRUE,
-            RESULT_CORRECT_FALSE_LABEL:    SCORE_CORRECT_FALSE,
-            RESULT_CORRECT_FALSE_DEREF:    SCORE_CORRECT_FALSE,
-            RESULT_CORRECT_FALSE_FREE:     SCORE_CORRECT_FALSE,
-            RESULT_CORRECT_FALSE_MEMTRACK: SCORE_CORRECT_FALSE,
-            RESULT_WRONG_FALSE_LABEL:      SCORE_WRONG_FALSE,
-            RESULT_WRONG_FALSE_DEREF:      SCORE_WRONG_FALSE,
-            RESULT_WRONG_FALSE_FREE:       SCORE_WRONG_FALSE,
-            RESULT_WRONG_FALSE_MEMTRACK:   SCORE_WRONG_FALSE,
-            }.get(category,  SCORE_UNKNOWN)
+        assert False, 'impossible category {0}'.format(category)
