@@ -470,26 +470,33 @@ public class CtoFormulaConverter {
    * When the fromType is a signed type a bit-extension will be done,
    * on any other case it will be filled with 0 bits.
    */
-  private Formula makeSimpleCast(CSimpleType pfromType, CSimpleType ptoType, Formula pFormula) {
-    int sfrom = machineModel.getSizeof(pfromType);
-    int sto = machineModel.getSizeof(ptoType);
+  private Formula makeSimpleCast(CSimpleType pFromCType, CSimpleType pToCType, Formula pFormula) {
+    final FormulaType<?> fromType = typeHandler.getFormulaTypeFromCType(pFromCType);
+    final FormulaType<?> toType = typeHandler.getFormulaTypeFromCType(pToCType);
 
-    int bitsPerByte = machineModel.getSizeofCharInBits();
+    final Formula ret;
+    if (fromType == toType) {
+      ret = pFormula;
 
-    // Currently everything is a bitvector
-    Formula ret;
-    if (sfrom > sto) {
-      ret = fmgr.makeExtract(pFormula, sto * bitsPerByte - 1, 0);
-    } else if (sfrom < sto) {
-      boolean signed = machineModel.isSigned(pfromType);
-      int bitsToExtend = (sto - sfrom) * bitsPerByte;
-      ret = fmgr.makeExtend(pFormula, bitsToExtend, signed);
+    } else if (fromType.isBitvectorType() && toType.isBitvectorType()) {
+      int fromSize = ((FormulaType.BitvectorType)fromType).getSize();
+      int toSize = ((FormulaType.BitvectorType)toType).getSize();
+      if (fromSize > toSize) {
+        ret = fmgr.makeExtract(pFormula, toSize-1, 0);
+
+      } else if (fromSize < toSize) {
+        ret = fmgr.makeExtend(pFormula, (toSize - fromSize), machineModel.isSigned(pFromCType));
+
+      } else {
+        ret = pFormula;
+      }
 
     } else {
-      ret = pFormula;
+      throw new IllegalArgumentException("Cast from " + pFromCType + " to " + pToCType
+          + " needs theory conversion between " + fromType + " and " + toType);
     }
 
-    assert fmgr.getFormulaType(ret) == getFormulaTypeFromCType(ptoType);
+    assert fmgr.getFormulaType(ret) == toType;
     return ret;
   }
 
