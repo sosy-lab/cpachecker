@@ -48,8 +48,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -58,7 +56,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -382,11 +379,11 @@ public class CtoFormulaConverter {
    * @param formula the formula of the expression.
    * @return the new formula after the cast.
    */
-  protected Formula makeCast(CType fromType, CType toType, Formula formula, CFAEdge edge) throws UnrecognizedCCodeException {
+  protected Formula makeCast(final CType pFromType, final CType pToType, Formula formula, CFAEdge edge) throws UnrecognizedCCodeException {
     // UNDEFINED: Casting a numeric value into a value that can't be represented by the target type (either directly or via static_cast)
 
-    fromType = fromType.getCanonicalType();
-    toType = toType.getCanonicalType();
+    CType fromType = pFromType.getCanonicalType();
+    CType toType = pToType.getCanonicalType();
 
     if (fromType.equals(toType)) {
       return formula; // No cast required;
@@ -412,37 +409,9 @@ public class CtoFormulaConverter {
 
     if (fromCanBeHandledAsInt || toCanBeHandledAsInt) {
       // See Enums/Pointers as Integers
-      if (fromCanBeHandledAsInt && !(toType instanceof CArrayType)) {
+      if (fromCanBeHandledAsInt) {
         fromType = fromIsPointer ? machineModel.getPointerEquivalentSimpleType() : CNumericTypes.INT;
         fromType = fromType.getCanonicalType();
-
-        // a stringliteralepxression casted to an arraytype
-      } else if (toType instanceof CArrayType
-          && edge instanceof CDeclarationEdge
-          && ((CDeclarationEdge)edge).getDeclaration() instanceof CVariableDeclaration) {
-
-        CInitializer rhs = ((CVariableDeclaration)((CDeclarationEdge)edge).getDeclaration()).getInitializer();
-        if (rhs instanceof CInitializerExpression) {
-          if (((CInitializerExpression) rhs).getExpression() instanceof CStringLiteralExpression) {
-            logger.logf(Level.INFO, "Ignoring cast from %s to %s. This was an assignment of a String to a Char Array.", fromType, toType);
-            int sfrom = machineModel.getSizeof(fromType);
-            int sto = machineModel.getSizeof(toType);
-
-            int bitsPerByte = machineModel.getSizeofCharInBits();
-
-            // Currently everything is a bitvector
-            if (sfrom > sto) {
-              return fmgr.makeExtract(formula, sto * bitsPerByte - 1, 0);
-
-            } else if (sfrom < sto) {
-              int bitsToExtend = (sto - sfrom) * bitsPerByte;
-              return fmgr.makeExtend(formula, bitsToExtend, false);
-
-            } else {
-              return formula;
-            }
-          }
-        }
       }
 
       if (toCanBeHandledAsInt) {
@@ -450,8 +419,6 @@ public class CtoFormulaConverter {
         toType = toType.getCanonicalType();
       }
     }
-
-
 
     if (fromType instanceof CSimpleType) {
       CSimpleType sfromType = (CSimpleType)fromType;
@@ -474,7 +441,7 @@ public class CtoFormulaConverter {
       logger.logfOnce(Level.WARNING, "Ignoring cast from %s to %s.", fromType, toType);
       return formula;
     } else {
-      throw new UnrecognizedCCodeException("Cast from " + fromType + " to " + toType + " not supported!", edge);
+      throw new UnrecognizedCCodeException("Cast from " + pFromType + " to " + pToType + " not supported!", edge);
     }
   }
 
@@ -904,15 +871,23 @@ public class CtoFormulaConverter {
       return bfmgr.makeBoolean(true);
     }
 
+    CType lhsType = lhs.getExpressionType().getCanonicalType();
+
+    if (lhsType instanceof CArrayType) {
+      // Probably a (string) initializer, ignore assignments to arrays
+      // as they cannot behandled precisely anyway.
+      return bfmgr.makeBoolean(true);
+    }
+
     if (rhs instanceof CExpression) {
-      rhs = makeCastFromArrayToPointerIfNecessary((CExpression)rhs, lhs.getExpressionType());
+      rhs = makeCastFromArrayToPointerIfNecessary((CExpression)rhs, lhsType);
     }
 
     Formula r = buildTerm(rhs, edge, function, ssa, pts, constraints, errorConditions);
     Formula l = buildLvalueTerm(lhs, edge, function, ssa, pts, constraints, errorConditions);
     r = makeCast(
           rhs.getExpressionType(),
-          lhs.getExpressionType(),
+          lhsType,
           r,
           edge);
 
