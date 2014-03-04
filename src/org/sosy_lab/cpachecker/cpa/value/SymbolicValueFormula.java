@@ -100,7 +100,7 @@ public class SymbolicValueFormula implements Value {
        */
       public static BinaryOperator fromString(String key) {
         for(BinaryOperator iter : BinaryOperator.values()) {
-          if(iter.op == key) {
+          if(iter.op.equals(key)) {
             return iter;
           }
         }
