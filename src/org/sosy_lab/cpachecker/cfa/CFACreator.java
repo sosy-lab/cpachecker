@@ -183,6 +183,10 @@ public class CFACreator {
         + "single loop and an artificial program counter.")
   private boolean transformIntoSingleLoop = false;
 
+  @Option(name="cfa.simplyfyCfa",
+        description="Remove all edges which don't have any effect on the program")
+  private boolean simplyfyCfa = true;
+
   @Option(name="cfa.moveDeclarationsToFunctionStart",
       description="With this option, all declarations in each function will be moved"
           + "to the beginning of each function.")
@@ -464,7 +468,9 @@ public class CFACreator {
           throws InvalidConfigurationException, CParserException {
 
     // remove all edges which don't have any effect on the program
-    CFASimplifier.simplifyCFA(cfa);
+    if (simplyfyCfa) {
+      CFASimplifier.simplifyCFA(cfa);
+    }
 
     if (simplifyExpressions) {
       // this replaces some edges in the CFA with new edges.
