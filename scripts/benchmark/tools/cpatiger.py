@@ -17,6 +17,16 @@ if __name__ == "__main__":
 import benchmark.util as Util
 import benchmark.tools.template
 
+REQUIRED_PATHS = [
+                  "lib/java/runtime",
+                  "lib/JavaParser",
+                  "lib/*.jar",
+                  "lib/native",
+                  "scripts",
+                  "cpachecker.jar",
+                  "config",
+                  ]
+
 class Tool(benchmark.tools.template.BaseTool):
 
     def getExecutable(self):
@@ -25,21 +35,21 @@ class Tool(benchmark.tools.template.BaseTool):
         if os.path.isdir(os.path.join(executableDir, 'src')):
             self._buildCPAchecker(executableDir)
         if not os.path.isfile(os.path.join(executableDir, "cpachecker.jar")):
-            logging.warning("Required JAR file for CPAchecker not found in {0}.".format(executableDir))
+            logging.warning("Required JAR file for CPAtiger not found in {0}.".format(executableDir))
         return executable
 
 
     def _buildCPAchecker(self, executableDir):
-        logging.info('Building CPAchecker in directory {0}.'.format(executableDir))
+        logging.info('Building CPAtiger in directory {0}.'.format(executableDir))
         ant = subprocess.Popen(['ant', '-q', 'jar'], cwd=executableDir)
         (stdout, stderr) = ant.communicate()
         if ant.returncode:
-            sys.exit('Failed to build CPAchecker, please fix the build first.')
+            sys.exit('Failed to build CPAtiger, please fix the build first.')
 
 
     def getProgrammFiles(self, executable):
         executableDir = os.path.join(os.path.dirname(executable),"../")
-        return [os.path.join(executableDir, path) for path in ["lib", "scripts", "cpachecker.jar", "config"]]
+        return Util.flatten(Util.expandFileNamePattern(path, executableDir) for path in REQUIRED_PATHS)
 
 
     def getWorkingDirectory(self, executable):
@@ -54,7 +64,7 @@ class Tool(benchmark.tools.template.BaseTool):
         if process.returncode:
             sys.exit('CPAchecker returned exit code {0}'.format(process.returncode))
         stdout = Util.decodeToString(stdout)
-        version = ' '.join(stdout.splitlines()[0].split()[1:])  # first word is 'CPAchecker'
+        version = stdout.splitlines()[0].split()[1]  # first word is 'CPAchecker'
 
         # CPAchecker might be within a SVN repository
         # Determine the revision and add it to the version.
@@ -98,13 +108,14 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def getName(self):
-        return 'CPATiger'
+        return 'CPAtiger'
 
 
-    def getCmdline(self, executable, options, sourcefile):
+    def getCmdline(self, executable, options, sourcefile, propertyfile=None):
         if ("-stats" not in options):
             options = options + ["-stats"]
-        return [executable] + options + [sourcefile]
+        spec = ["-spec", propertyfile] if propertyfile is not None else []
+        return [executable] + options + spec + [sourcefile]
 
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
@@ -144,7 +155,6 @@ class Tool(benchmark.tools.template.BaseTool):
         else:
             status = ''
 
-        property = None
         for line in output.splitlines():
             if 'java.lang.OutOfMemoryError' in line:
                 status = 'OUT OF JAVA MEMORY'
@@ -170,22 +180,19 @@ class Tool(benchmark.tools.template.BaseTool):
                 elif 'Parsing failed' in line:
                     status = 'ERROR (parsing failed)'
 
-            elif line.startswith('Found violation of property '):
-                property = re.match('Found violation of property ([^ ]*) .*', line).group(1)
-
             elif line.startswith('Verification result: '):
                 line = line[21:].strip()
-                if line.startswith('SAFE'):
+                if line.startswith('TRUE'):
                     newStatus = result.STR_TRUE
-                elif line.startswith('UNSAFE'):
+                elif line.startswith('FALSE'):
                     newStatus = result.STR_FALSE_LABEL
-                    if property:
-                        newStatus = newStatus + '(' + property + ')'
+                    match = re.match('.* Violation of propert[a-z]* (.*) found by chosen configuration.*', line)
+                    if match:
+                        newStatus = result.STR_FALSE + '(' + match.group(1) + ')'
                 else:
                     newStatus = result.STR_UNKNOWN if not status.startswith('ERROR') else None
                 if newStatus:
                     status = newStatus if not status else "{0} ({1})".format(status, newStatus)
-
 
         if status == 'KILLED (UNKNOWN)':
             status = 'KILLED'
