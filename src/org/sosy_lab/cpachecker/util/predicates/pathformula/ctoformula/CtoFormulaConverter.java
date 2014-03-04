@@ -403,19 +403,20 @@ public class CtoFormulaConverter {
       fromType = new CPointerType(false, false, fromType);
     }
 
-    boolean fromCanBeHandledAsInt, toCanBeHandledAsInt;
-    boolean fromIsPointer, toIsPointer;
-    if ((fromCanBeHandledAsInt =
-          ((fromIsPointer = fromType instanceof CPointerType) ||
-           fromType instanceof CEnumType ||
-          (fromType instanceof CElaboratedType &&
-              ((CElaboratedType)fromType).getKind() == ComplexTypeKind.ENUM))) |
-        (toCanBeHandledAsInt =
-          ((toIsPointer = toType instanceof CPointerType) ||
-           toType instanceof CEnumType ||
-          (toType instanceof CElaboratedType &&
-              ((CElaboratedType)toType).getKind() == ComplexTypeKind.ENUM)))) {
+    final boolean fromIsPointer = fromType instanceof CPointerType;
+    final boolean toIsPointer = toType instanceof CPointerType;
+    final boolean fromCanBeHandledAsInt =
+        (fromIsPointer ||
+         fromType instanceof CEnumType ||
+        (fromType instanceof CElaboratedType &&
+            ((CElaboratedType)fromType).getKind() == ComplexTypeKind.ENUM));
+    final boolean toCanBeHandledAsInt =
+        (toIsPointer ||
+         toType instanceof CEnumType ||
+        (toType instanceof CElaboratedType &&
+            ((CElaboratedType)toType).getKind() == ComplexTypeKind.ENUM));
 
+    if (fromCanBeHandledAsInt || toCanBeHandledAsInt) {
       // See Enums/Pointers as Integers
       if (fromCanBeHandledAsInt && !(toType instanceof CArrayType)) {
         fromType = fromIsPointer ? machineModel.getPointerEquivalentSimpleType() : CNumericTypes.INT;
