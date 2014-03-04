@@ -39,7 +39,6 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -135,9 +134,6 @@ public class CtoFormulaConverter {
 
   //names for special variables needed to deal with functions
   protected static final String RETURN_VARIABLE_NAME = "__retval__";
-
-  private static final String EXPAND_VARIABLE = "__expandVariable__";
-  private int expands = 0;
 
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of(
       "printf", "printk"
@@ -482,12 +478,6 @@ public class CtoFormulaConverter {
     }
   }
 
-  Formula makeCast(CCastExpression e, Formula inner, CFAEdge edge) throws UnrecognizedCCodeException {
-    CType after = e.getExpressionType();
-    CType before = e.getOperand().getExpressionType();
-    return makeCast(before, after, inner, edge);
-  }
-
   protected CExpression makeCastFromArrayToPointerIfNecessary(CExpression exp, CType targetType) {
     if (exp.getExpressionType().getCanonicalType() instanceof CArrayType) {
       targetType = targetType.getCanonicalType();
@@ -506,56 +496,6 @@ public class CtoFormulaConverter {
 
     return new CUnaryExpression(arrayExpression.getFileLocation(), pointerType,
         arrayExpression, UnaryOperator.AMPER);
-  }
-
-  /**
-   * Change the size of the given formula from fromType to toType.
-   * This method extracts or concats with nondet-bits.
-   */
-  BitvectorFormula makeExtractOrConcatNondet(CType pFromType, CType pToType, Formula pFormula) {
-    assert pFormula instanceof BitvectorFormula
-      : "Can't makeExtractOrConcatNondet for something other than Bitvectors";
-    int sfrom = getSizeof(pFromType);
-    int sto = getSizeof(pToType);
-
-    int bitsPerByte = machineModel.getSizeofCharInBits();
-    return changeFormulaSize(sfrom * bitsPerByte, sto * bitsPerByte, (BitvectorFormula)pFormula);
-  }
-
-  /**
-   * Change the given Formulasize from the given size to the new size.
-   * if sfrom > sto an extract will be done.
-   * if sto > sfrom an concat with nondet-bits will be done.
-   * else pFormula is returned.
-   * @param sfrom
-   * @param sto
-   * @param pFormula
-   * @return the resized formula
-   */
-  BitvectorFormula changeFormulaSize(int sfrombits, int stobits, BitvectorFormula pFormula) {
-    assert fmgr.getFormulaType(pFormula) == efmgr.getFormulaType(sfrombits)
-         : "expected to get sfrombits sized formula!";
-
-    // Currently everything is a bitvector
-    BitvectorFormula ret;
-    if (sfrombits > stobits) {
-      if (stobits == 0) {
-        ret = efmgr.makeBitvector(0, 0);
-      } else {
-        ret = fmgr.makeExtract(pFormula, stobits - 1, 0);
-      }
-    } else if (sfrombits < stobits) {
-      // Sign extend with ones when pfromType is signed and sign bit is set
-      int bitsToExtend = stobits - sfrombits;
-      FormulaType<BitvectorFormula> t = efmgr.getFormulaType(bitsToExtend);
-      BitvectorFormula extendBits = fmgr.makeVariable(t, CtoFormulaConverter.EXPAND_VARIABLE + expands++, 0); // for every call a new variable
-      ret = fmgr.makeConcat(extendBits, pFormula);
-    } else {
-      ret = pFormula;
-    }
-
-    assert fmgr.getFormulaType(ret) == efmgr.getFormulaType(stobits);
-    return ret;
   }
 
   /**
@@ -991,35 +931,6 @@ public class CtoFormulaConverter {
       SSAMapBuilder ssa, PointerTargetSetBuilder pts,
       Constraints constraints, ErrorConditions errorConditions) throws UnrecognizedCCodeException {
     return exp.accept(new LvalueVisitor(this, edge, function, ssa, pts, constraints, errorConditions));
-  }
-
-  BooleanFormula makeNondetAssignment(Formula left, Formula right) {
-    BitvectorFormulaManagerView bitvectorFormulaManager = efmgr;
-    FormulaType<Formula> tl = fmgr.getFormulaType(left);
-    FormulaType<Formula> tr = fmgr.getFormulaType(right);
-    if (tl == tr) {
-      return fmgr.assignment(left, right);
-    }
-
-    if (tl.isBitvectorType() && tr.isBitvectorType()) {
-
-      BitvectorFormula leftBv = (BitvectorFormula) left;
-      BitvectorFormula rightBv = (BitvectorFormula) right;
-      int leftSize = bitvectorFormulaManager.getLength(leftBv);
-      int rightSize = bitvectorFormulaManager.getLength(rightBv);
-
-      // Expand the smaller one with nondet-bits
-      if (leftSize < rightSize) {
-        leftBv =
-            changeFormulaSize(leftSize, rightSize, leftBv);
-      } else {
-        rightBv =
-            changeFormulaSize(rightSize, leftSize, rightBv);
-      }
-      return bitvectorFormulaManager.equal(leftBv, rightBv);
-    }
-
-    throw new IllegalArgumentException("Assignment between different types");
   }
 
   <T extends Formula> T ifTrueThenOneElseZero(FormulaType<T> type, BooleanFormula pCond) {
