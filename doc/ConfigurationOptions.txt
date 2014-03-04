@@ -1297,10 +1297,25 @@ cpa.value.precision.sharing = "scope"
 # target file to hold the exported precision
 cpa.value.precisionFile = no default value
 
+# when to export the interpolation tree
+# NEVER:   never export the interpolation tree
+# FINAL:   export the interpolation tree once after each refinement
+# ALWAYD:  export the interpolation tree once after each interpolation, i.e.
+# multiple times per refinmenet
+cpa.value.refinement.exportInterpolationTree = "NEVER"
+  allowed values: [NEVER, FINAL, ALWAYS]
+
+# whether or not to do lazy-abstraction
+cpa.value.refinement.restart = TOP
+  enum:     [TOP, BOTTOM, COMMON]
+
+# whether to use the top-down interpolation strategy or the bottom-up
+# interpolation strategy
+cpa.value.refinement.useTopDownInterpolationStrategy = true
+
 # whether or not to avoid restarting at assume edges after a refinement
 cpa.value.refiner.avoidAssumes = false
 
-# checkForRepeatedRefinements
 # whether or not to check for repeated refinements, to then reset the
 # refinement root
 cpa.value.refiner.checkForRepeatedRefinements = true
@@ -1308,21 +1323,9 @@ cpa.value.refiner.checkForRepeatedRefinements = true
 # whether or not to do lazy-abstraction
 cpa.value.refiner.doLazyAbstraction = true
 
-# when to export the interpolation tree
-# NEVER:   never export the interpolation tree
-# FINAL:   export the interpolation tree once after each refinement
-# ALWAYD:  export the interpolation tree once after each interpolation, i.e.
-# multiple times per refinmenet
-cpa.value.refiner.exportInterpolationTree = "NEVER"
-  allowed values: [NEVER, FINAL, ALWAYS]
-
 # use heuristic to extract a precision from the CFA statically on first
 # refinement
 cpa.value.refiner.performInitialStaticRefinement = false
-
-# whether to use the top-down interpolation strategy or the bottom-up
-# interpolation strategy
-cpa.value.refiner.useTopDownInterpolationStrategy = true
 
 # which stop operator to use for ValueAnalysisCPA
 cpa.value.stop = "SEP"

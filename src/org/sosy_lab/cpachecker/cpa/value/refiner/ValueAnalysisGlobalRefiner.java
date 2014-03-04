@@ -83,14 +83,11 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 
-@Options(prefix="cpa.value.refiner")
+@Options(prefix="cpa.value.refinement")
 public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
-  @Option(description="whether or not to do lazy-abstraction")
-  private boolean doLazyAbstraction = true;
-
-  @Option(description="checkForRepeatedRefinements")
-  private boolean checkForRepeatedRefinements = true;
+  @Option(description="whether or not to do lazy-abstraction", name="restart", toUppercase = true)
+  private RestartStrategy restartStrategy = RestartStrategy.TOP;
 
   @Option(description="whether to use the top-down interpolation strategy or the bottom-up interpolation strategy")
   private boolean useTopDownInterpolationStrategy = true;
@@ -108,10 +105,9 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
   private final LogManager logger;
 
   // statistics
-  private int totalRefinements        = 0;
-  private int totalTargetsFound       = 0;
-
-  private final Timer totalTime       = new Timer();
+  private int totalRefinements  = 0;
+  private int totalTargetsFound = 0;
+  private final Timer totalTime = new Timer();
 
   public static ValueAnalysisGlobalRefiner create(final ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     final ValueAnalysisCPA valueAnalysisCpa = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
@@ -187,7 +183,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     }
 
     Map<ARGState, ValueAnalysisPrecision> refinementInformation = new HashMap<>();
-    for(ARGState root : interpolationTree.obtainRefinementRoots(doLazyAbstraction)) {
+    for(ARGState root : interpolationTree.obtainRefinementRoots(restartStrategy)) {
       Collection<ARGState> targetsReachableFromRoot = interpolationTree.getTargetsInSubtree(root);
 
       // join the precisions of the subtree of this roots into a single precision
@@ -317,7 +313,18 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     }
   }
 
-
+  /**
+   * The strategy to determine where to restart the analysis after a successful refinement.
+   * {@link #TOP} means that the analysis is restarted from the root of the ARG
+   * {@link #BOTTOM} means that the analysis is restarted from the individual refinement roots identified
+   * {@link #COMMON} means that the analysis is restarted from lowest ancestor common to all refinement roots, if more
+   * than two refinement roots where identified
+   */
+  public enum RestartStrategy {
+    TOP,
+    BOTTOM,
+    COMMON
+  }
 
   /**
    * This class represents an interpolation tree, i.e. a set of states connected through a successor-predecessor-relation.
@@ -536,10 +543,13 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
      * @param whether to perform lazy abstraction or not
      * @return the set of refinement roots
      */
-    private Collection<ARGState> obtainRefinementRoots(boolean doLazyAbstraction) {
-      if (!doLazyAbstraction) {
-        return new HashSet<>(Collections.singleton(root));
+    private Collection<ARGState> obtainRefinementRoots(RestartStrategy strategy) {
+      if (strategy == RestartStrategy.TOP) {
+        assert successorRelation.get(root).size() == 1 : "ARG root has more than one successor";
+        return new HashSet<>(Collections.singleton(successorRelation.get(root).iterator().next()));
       }
+
+      ARGState commonRoot = null;
 
       Collection<ARGState> refinementRoots = new HashSet<>();
 
@@ -547,8 +557,18 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
       while (!todo.isEmpty()) {
         final ARGState currentState = todo.removeFirst();
 
+        // determine the first branching point, which is the lowest node common to all refinement roots
+        if (commonRoot == null && successorRelation.get(currentState).size() > 1) {
+          commonRoot = currentState;
+        }
+
         if (isNonTrivialInterpolantAvailable(currentState)) {
           refinementRoots.addAll(successorRelation.get(currentState));
+
+          if(strategy == RestartStrategy.COMMON && refinementRoots.size() > 2) {
+            assert commonRoot != null: "common root not yet set";
+            return new HashSet<>(Collections.singleton(commonRoot));
+          }
           continue;
         }
 
