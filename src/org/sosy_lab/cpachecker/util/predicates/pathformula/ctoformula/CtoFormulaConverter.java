@@ -145,7 +145,7 @@ public class CtoFormulaConverter {
 
   private static final String SCOPE_SEPARATOR = "::";
 
-  private final Map<String, BitvectorFormula> stringLitToFormula = new HashMap<>();
+  private final Map<String, Formula> stringLitToFormula = new HashMap<>();
   private int nextStringLitIndex = 0;
 
   final FormulaEncodingOptions options;
@@ -156,14 +156,14 @@ public class CtoFormulaConverter {
   protected final FormulaManagerView fmgr;
   protected final BooleanFormulaManagerView bfmgr;
   private final RationalFormulaManagerView nfmgr;
-  protected final BitvectorFormulaManagerView efmgr;
+  private final BitvectorFormulaManagerView efmgr;
   protected final FunctionFormulaManagerView ffmgr;
   protected final LogManagerWithoutDuplicates logger;
 
   public static final int          VARIABLE_UNSET          = -1;
   static final int                 VARIABLE_UNINITIALIZED  = 2;
 
-  private final FunctionFormulaType<BitvectorFormula> stringUfDecl;
+  private final FunctionFormulaType<?> stringUfDecl;
 
   public CtoFormulaConverter(FormulaEncodingOptions pOptions, FormulaManagerView fmgr,
       MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification,
@@ -182,10 +182,8 @@ public class CtoFormulaConverter {
     this.ffmgr = fmgr.getFunctionFormulaManager();
     this.logger = new LogManagerWithoutDuplicates(logger);
 
-    FormulaType<BitvectorFormula> pointerType =
-        efmgr.getFormulaType(machineModel.getSizeofPtr() * machineModel.getSizeofCharInBits());
     stringUfDecl = ffmgr.createFunction(
-            "__string__", pointerType, FormulaType.RationalType);
+            "__string__", typeHandler.getPointerType(), FormulaType.RationalType);
   }
 
   void logfOnce(Level level, CFAEdge edge, String msg, Object... args) {
@@ -367,8 +365,8 @@ public class CtoFormulaConverter {
     return makeVariable(name, type, ssa, true);
   }
 
-  BitvectorFormula makeStringLiteral(String literal) {
-    BitvectorFormula result = stringLitToFormula.get(literal);
+  Formula makeStringLiteral(String literal) {
+    Formula result = stringLitToFormula.get(literal);
 
     if (result == null) {
       // generate a new string literal. We generate a new UIf
