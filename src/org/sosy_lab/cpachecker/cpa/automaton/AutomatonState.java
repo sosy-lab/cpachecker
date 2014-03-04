@@ -167,7 +167,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     if (pObj == null) {
       return false;
     }
-    if (!pObj.getClass().equals(AutomatonState.class)) {
+    if (!pObj.getClass().equals(this.getClass())) {
       return false;
     }
     AutomatonState otherState = (AutomatonState) pObj;
@@ -242,7 +242,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
       if (this == pObj) {
         return true;
       }
-      if (!(pObj instanceof AutomatonUnknownState)) {
+      if (!pObj.getClass().equals(this.getClass())) {
         return false;
       }
       AutomatonUnknownState otherState = (AutomatonUnknownState) pObj;
