@@ -145,7 +145,7 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
       totalTime.stop();
       return false;
     }
-//System.out.println("refinement");
+
     InterpolationTree interpolationTree = new InterpolationTree(logger, targets, useTopDownInterpolationStrategy);
 
     int i = 0;
@@ -153,7 +153,7 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
       i++;
 
       ARGPath errorPath = interpolationTree.getNextPathForInterpolation();
-//System.out.println(errorPath.toString().hashCode());
+
       if(errorPath.isEmpty()) {
         logger.log(Level.FINEST, "skipping interpolation, error path is empty, because initial interpolant is already false");
         continue;
@@ -176,7 +176,7 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
       interpolationTree.exportToDot(totalRefinements, i);
     }
 
-    Set<ARGState> uncover = new HashSet<>();
+    ARGReachedSet reached = new ARGReachedSet(pReached);
 
     for(Map.Entry<ARGState, ValueAnalysisInterpolant> entry : interpolationTree.interpolants.entrySet()) {
       ARGState currentState = entry.getKey();
@@ -186,24 +186,14 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
       ValueAnalysisInterpolant itp = entry.getValue();
 
       if(itp.strengthen(valueState)) {
-//System.out.println("strengthened at " + currentState.getStateId());
-        for(ARGState covered : currentState.getCoveredByThis()) {
-          assert covered.isCovered();
-          uncover.add(covered);
-        }
+        reached.removeCoverageOf(currentState);
       }
-    }
-
-    for(ARGState s : uncover) {
-      //s.uncover();
     }
 
     Collection<ARGState> refinementRoots = interpolationTree.obtainRefinementRoots(restartStrategy);
 
-    ARGReachedSet reached = new ARGReachedSet(pReached);
     for(ARGState state : refinementRoots) {
-//System.out.println("cut-off at " + state.getStateId());
-      reached.removeSubtree(state);
+      reached.removeInfeasiblePartofARG(state);
     }
 
     totalTime.stop();
