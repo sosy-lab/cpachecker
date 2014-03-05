@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.ImmutableList.copyOf;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
 
@@ -37,11 +38,11 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -59,6 +60,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -116,15 +118,26 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
       assert ARGUtils.checkARG(reached);
 
       AbstractState lastState = reached.getLastState();
-      if (!(lastState instanceof ARGState)) {
+      if (lastState != null && !(lastState instanceof ARGState)) {
         // no analysis possible
         break;
       }
 
       ARGState errorState = (ARGState)lastState;
-      if (!errorState.isTarget()) {
-        // no analysis necessary
-        break;
+      if (errorState == null || !errorState.isTarget()) {
+        List<ARGState> errorStates = from(reached)
+            .transform(AbstractStates.toState(ARGState.class))
+            .filter(AbstractStates.IS_TARGET_STATE)
+            .toList();
+
+        assert errorStates.size() <= 1 : "Number of error states is wrong, namely " + errorStates.size();
+
+        if(errorStates.isEmpty()) {
+          // no errors, so no analysis necessary
+          break;
+        } else {
+          errorState = Iterables.getOnlyElement(errorStates);
+        }
       }
 
       // check counterexample
@@ -167,7 +180,6 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
             if (removeInfeasibleErrors) {
               sound &= handleInfeasibleCounterexample(reached, statesOnErrorPath);
-
             } else if (sound) {
               logger.log(Level.WARNING, "Infeasible counterexample found, but could not remove it from the ARG. Therefore, we cannot prove safety.");
               sound = false;
