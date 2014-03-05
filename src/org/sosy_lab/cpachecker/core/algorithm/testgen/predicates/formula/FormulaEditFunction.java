@@ -24,10 +24,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.testgen.predicates.formula;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 
 public interface FormulaEditFunction {
 
-  public BooleanFormula negateAtomOfFormula(BooleanFormula f, int pos);
+  public BooleanFormula negateAtomOfFormula(BooleanFormula f, int pos, FormulaManagerView fmv);
 
 }
