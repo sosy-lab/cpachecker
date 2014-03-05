@@ -519,5 +519,29 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
       return assignment.toString();
     }
+
+    public boolean strengthen(ValueAnalysisState valueState) {
+      if (isTrivial()) {
+        return false;
+      }
+      
+      boolean strengthened = false;
+      
+      for (Map.Entry<MemoryLocation, Value> itp : assignment.entrySet()) {
+        if(!valueState.contains(itp.getKey())) {
+          valueState.assignConstant(itp.getKey(), itp.getValue());
+          
+          strengthened = true;
+        }
+        
+        else if(valueState.contains(itp.getKey()) && !valueState.getValueFor(itp.getKey()).equals(itp.getValue())) {
+          valueState.assignConstant(itp.getKey(), itp.getValue());
+          
+          strengthened = true;
+        }
+      }
+      
+      return strengthened;
+    }
   }
 }
