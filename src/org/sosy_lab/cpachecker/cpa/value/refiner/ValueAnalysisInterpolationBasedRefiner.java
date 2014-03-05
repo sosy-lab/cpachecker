@@ -131,26 +131,17 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
     timerInterpolation.start();
 
     interpolationOffset = -1;
-
     List<CFAEdge> cfaTrace = from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
     Map<ARGState, ValueAnalysisInterpolant> pathInterpolants = new LinkedHashMap<>(errorPath.size());
 
     for (int i = 0; i < errorPath.size(); i++) {
       shutdownNotifier.shutdownIfNecessary();
 
-      interpolant               = interpolator.deriveInterpolant(cfaTrace, i, interpolant);
-      totalInterpolationQueries = totalInterpolationQueries + interpolator.getNumberOfInterpolationQueries();
-
-      // stop once interpolant is false
-      if (interpolant.isFalse()) {
-        while (i < errorPath.size()) {
-          pathInterpolants.put(errorPath.get(i).getFirst(), ValueAnalysisInterpolant.FALSE);
-          i++;
-        }
-
-        timerInterpolation.stop();
-        return pathInterpolants;
+      if(!interpolant.isFalse()) {
+        interpolant = interpolator.deriveInterpolant(cfaTrace, i, interpolant);
       }
+      
+      totalInterpolationQueries = totalInterpolationQueries + interpolator.getNumberOfInterpolationQueries();
 
       // remove variables from the interpolant that belong to the scope of the returning function
       // this is done one iteration after returning from the function, as the special FUNCTION_RETURN_VAR is needed that long
@@ -164,7 +155,9 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
       pathInterpolants.put(errorPath.get(i).getFirst(), interpolant);
     }
-
+    
+    assert interpolant.isFalse() : "final interpolant is not false";
+    
     timerInterpolation.stop();
     return pathInterpolants;
   }
@@ -494,6 +487,10 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      * @param functionName the name of the function for which to remove assignments
      */
     private void clearScope(String functionName) {
+      if(isTrivial()) {
+        return;
+      }
+      
       for (Iterator<MemoryLocation> variableNames = assignment.keySet().iterator(); variableNames.hasNext(); ) {
         if (variableNames.next().isOnFunctionStack(functionName)) {
           variableNames.remove();
