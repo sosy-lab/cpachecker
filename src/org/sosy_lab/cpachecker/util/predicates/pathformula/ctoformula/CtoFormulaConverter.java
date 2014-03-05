@@ -213,15 +213,18 @@ public class CtoFormulaConverter {
   }
 
   protected boolean isRelevantLeftHandSide(final CLeftHandSide lhs) {
-    return lhs.accept(new IsRelevantLhsVisitor(this));
+    if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
+      return lhs.accept(new IsRelevantLhsVisitor(this));
+    } else {
+      return true;
+    }
   }
 
   protected final boolean isRelevantVariable(final CSimpleDeclaration var) {
-    final String qualifiedName = var.getQualifiedName();
-    final Pair<String, String> parsedName = parseQualifiedName(qualifiedName);
-    final String function = parsedName.getFirst();
-    final String name = parsedName.getSecond();
     if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
+      final Pair<String, String> parsedName = parseQualifiedName(var.getQualifiedName());
+      final String function = parsedName.getFirst();
+      final String name = parsedName.getSecond();
       return name.equals(RETURN_VARIABLE_NAME) ||
            variableClassification.get().getRelevantVariables().containsEntry(function, name);
     }
