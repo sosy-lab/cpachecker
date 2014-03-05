@@ -84,12 +84,15 @@ public class CPAInvariantGenerator implements InvariantGenerator {
   private final ConfigurableProgramAnalysis invariantCPAs;
   private final ReachedSet reached;
 
+  private final ShutdownNotifier shutdownNotifier;
+
   private Future<UnmodifiableReachedSet> invariantGenerationFuture = null;
 
   public CPAInvariantGenerator(Configuration config, LogManager pLogger,
       ReachedSetFactory reachedSetFactory, ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException, CPAException {
     config.inject(this);
     logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
 
     Configuration invariantConfig;
     try {
@@ -132,7 +135,7 @@ public class CPAInvariantGenerator implements InvariantGenerator {
   @Override
   public void cancel() {
     checkState(invariantGenerationFuture != null);
-
+    shutdownNotifier.requestShutdown("Invariant generation cancel requested.");
     invariantGenerationFuture.cancel(true);
   }
 
