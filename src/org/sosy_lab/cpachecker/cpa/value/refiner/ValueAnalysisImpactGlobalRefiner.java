@@ -195,7 +195,7 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
     }
 
     for(ARGState s : uncover) {
-      s.uncover();
+      //s.uncover();
     }
 
     Collection<ARGState> refinementRoots = interpolationTree.obtainRefinementRoots(restartStrategy);
