@@ -140,7 +140,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
       if(!interpolant.isFalse()) {
         interpolant = interpolator.deriveInterpolant(cfaTrace, i, interpolant);
       }
-      
+
       totalInterpolationQueries = totalInterpolationQueries + interpolator.getNumberOfInterpolationQueries();
 
       // remove variables from the interpolant that belong to the scope of the returning function
@@ -155,9 +155,9 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
       pathInterpolants.put(errorPath.get(i).getFirst(), interpolant);
     }
-    
+
     assert interpolant.isFalse() : "final interpolant is not false";
-    
+
     timerInterpolation.stop();
     return pathInterpolants;
   }
@@ -490,7 +490,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
       if(isTrivial()) {
         return;
       }
-      
+
       for (Iterator<MemoryLocation> variableNames = assignment.keySet().iterator(); variableNames.hasNext(); ) {
         if (variableNames.next().isOnFunctionStack(functionName)) {
           variableNames.remove();
@@ -524,23 +524,23 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
       if (isTrivial()) {
         return false;
       }
-      
+
       boolean strengthened = false;
-      
+
       for (Map.Entry<MemoryLocation, Value> itp : assignment.entrySet()) {
         if(!valueState.contains(itp.getKey())) {
           valueState.assignConstant(itp.getKey(), itp.getValue());
-          
+
           strengthened = true;
         }
-        
+
         else if(valueState.contains(itp.getKey()) && !valueState.getValueFor(itp.getKey()).equals(itp.getValue())) {
           valueState.assignConstant(itp.getKey(), itp.getValue());
-          
+
           strengthened = true;
         }
       }
-      
+
       return strengthened;
     }
   }
