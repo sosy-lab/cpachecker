@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMGConsistencyVerifier;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.ReadableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoin;
@@ -256,16 +257,6 @@ public class SMGState implements AbstractQueryableState, Targetable {
   }
 
   /**
-   * Get memory of variable with the given name.
-   *
-   * @param pVariableName A name of the desired variable
-   * @return An object corresponding to the variable name
-   */
-  public SMGObject getObjectForVisibleVariable(String pVariableName) {
-    return heap.getObjectForVisibleVariable(pVariableName);
-  }
-
-  /**
    * Based on the current setting of runtime check level, it either performs
    * a full consistency check or not. If the check is performed and the
    * state is deemed inconsistent, a {@link SMGInconsistentException} is thrown.
@@ -328,21 +319,6 @@ public class SMGState implements AbstractQueryableState, Targetable {
     }
 
     throw new SMGInconsistentException("Asked for a Points-To edge for a non-pointer value");
-  }
-
-  /**
-   * Checks, if a symbolic value is an address.
-   *
-   * Constant.
-   *
-   * @param pValue A value for which to return the Points-To edge
-   * @return True, if the smg contains a {@link SMGEdgePointsTo} edge
-   * with {@link pValue} as source, false otherwise.
-   *
-   */
-  public boolean isPointer(Integer pValue) {
-
-    return heap.isPointer(pValue);
   }
 
   /**
@@ -430,7 +406,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
     // If the value represents an address, and the address is known,
     // add the necessary points-To edge.
     if (pValue instanceof SMGAddressValue) {
-      if (!containsValue(value)) {
+      if (!heap.containsValue(value)) {
         SMGAddress address = ((SMGAddressValue) pValue).getAddress();
 
         if (!address.isUnknown()) {
@@ -448,7 +424,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
   private void addPointsToEdge(SMGObject pObject, int pOffset, int pValue) {
 
     // If the value is not known by the SMG, add it.
-    if(!containsValue(pValue)) {
+    if(!heap.containsValue(pValue)) {
       heap.addValue(pValue);
     }
 
@@ -692,7 +668,6 @@ public class SMGState implements AbstractQueryableState, Targetable {
   @Override
   public void modifyProperty(String pModification) throws InvalidQueryException {
     // TODO Auto-generated method stub
-
   }
 
   public void addGlobalObject(SMGRegion newObject) {
@@ -705,10 +680,6 @@ public class SMGState implements AbstractQueryableState, Targetable {
 
   public boolean isGlobal(SMGObject object) {
     return heap.getGlobalObjects().containsValue(object);
-  }
-
-  public boolean isHeapObject(SMGObject object) {
-    return heap.getHeapObjects().contains(object);
   }
 
   public SMGEdgePointsTo addNewHeapAllocation(int pSize, String pLabel) throws SMGInconsistentException {
@@ -726,10 +697,6 @@ public class SMGState implements AbstractQueryableState, Targetable {
   public void setMemLeak() {
     heap.setMemoryLeak();
   }
-
- public boolean containsValue(int value) {
-   return heap.getValues().contains(value);
- }
 
   /**
    * Get the symbolic value, that represents the address
@@ -822,7 +789,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
   public boolean isUnequal(int value1, int value2) {
     // TODO Neq Relation for more precise comparison
 
-    if (isPointer(value1) && isPointer(value2)) {
+    if (heap.isPointer(value1) && heap.isPointer(value2)) {
 
       if (value1 != value2) {
         /* This is just a safety check,
@@ -867,16 +834,12 @@ public class SMGState implements AbstractQueryableState, Targetable {
     invalidFree = true;
   }
 
-  public Iterable<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {
-    return heap.getHVEdges(pFilter);
-  }
-
   @Nullable
   public MemoryLocation resolveMemLoc(SMGAddress pValue, String pFunctionName) {
     SMGObject object = pValue.getObject();
     long offset = pValue.getOffset().getAsLong();
 
-    if (isGlobal(object) || isHeapObject(object)) {
+    if (isGlobal(object) || heap.isHeapObject(object)) {
       return MemoryLocation.valueOf(object.getLabel(), offset);
     } else {
       return MemoryLocation.valueOf(pFunctionName, object.getLabel(), offset);
@@ -921,7 +884,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
     SMGEdgeHasValueFilter filterTarget = SMGEdgeHasValueFilter.objectFilter(pTarget);
 
     //Remove all Target edges in range
-    Iterable<SMGEdgeHasValue> targetEdges = getHVEdges(filterTarget);
+    Iterable<SMGEdgeHasValue> targetEdges = heap.getHVEdges(filterTarget);
 
     List<SMGEdgeHasValue> toBeErased = new ArrayList<>();
 
@@ -941,7 +904,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
 
     List<SMGEdgeHasValue> toBeWritten = new ArrayList<>();
 
-    for (SMGEdgeHasValue edge : getHVEdges(filterSource)) {
+    for (SMGEdgeHasValue edge : heap.getHVEdges(filterSource)) {
       if (edge.overlapsWith(pSourceRangeOffset, pSourceRangeSize, heap.getMachineModel())) {
         // Be wary of concurrent modification while writing values
         toBeWritten.add(edge);
@@ -968,10 +931,6 @@ public class SMGState implements AbstractQueryableState, Targetable {
     //      The flagging mechanism should be improved
 
     invalidWrite = true;
-  }
-
-  public SMGObject getNullObject() {
-    return heap.getNullObject();
   }
 
   @Override
@@ -1001,5 +960,9 @@ public class SMGState implements AbstractQueryableState, Targetable {
   public void attemptAbstraction() {
     SMGAbstractionManager manager = new SMGAbstractionManager(heap);
     heap = SMGFactory.createWritableCopy(manager.execute());
+  }
+
+  public ReadableSMG getSMG() {
+    return heap;
   }
 }
