@@ -944,9 +944,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
           collectedInterestingAssumptions, precision);
 
       if (result != null) {
-        if (result.equalsState(element2)) {
-          result = element2;
-        } else if (result.equalsState(element1)) {
+        if (result.equalsState(element1)) {
           result = element1;
         }
       }
