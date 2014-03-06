@@ -75,7 +75,9 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
@@ -167,6 +169,11 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
       ValueAnalysisInterpolant initialItp = interpolationTree.getInitialInterpolantForPath(errorPath);
 
+      if(initialInterpolantIsTooWeak(interpolationTree.root, initialItp, errorPath)) {
+        errorPath   = ARGUtils.getOnePathTo(errorPath.getLast().getFirst());
+        initialItp  = ValueAnalysisInterpolant.createInitial();
+      }
+
       logger.log(Level.FINEST, "performing interpolation, starting at ", errorPath.getFirst().getFirst().getStateId(), ", using interpolant ", initialItp);
 
       interpolationTree.addInterpolants(interpolatingRefiner.performInterpolation(errorPath, initialItp));
@@ -199,6 +206,24 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
     totalTime.stop();
     return true;
+  }
+
+  private boolean initialInterpolantIsTooWeak(ARGState root, ValueAnalysisInterpolant initialItp, ARGPath errorPath)
+      throws CPAException, InterruptedException {
+
+    // if the first state of the error path is the root, the interpolant cannot be to weak
+    if(errorPath.getFirst().getFirst() == root) {
+      return false;
+    }
+
+    // for all other cases, check if the path is feasible when using the interpolant as initial state
+    try {
+      return checker.isFeasible(errorPath,
+          new ValueAnalysisPrecision("", Configuration.builder().build(), Optional.<VariableClassification>absent()),
+          initialItp.createValueAnalysisState());
+    } catch (InvalidConfigurationException e) {
+      throw new CPAException("Configuring ValueAnalysisPrecision failed: " + e.getMessage(), e);
+    }
   }
 
   private ValueAnalysisPrecision joinSubtreePrecisions(final ReachedSet pReached,
@@ -492,8 +517,6 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
      * @param newItps the new mapping to add
      */
     private void addInterpolants(Map<ARGState, ValueAnalysisInterpolant> newItps) {
-      assert strategy.areInterpolantsConsistent(newItps) : "interpolants are inconsistent";
-
       for (Map.Entry<ARGState, ValueAnalysisInterpolant> entry : newItps.entrySet()) {
         ARGState state                = entry.getKey();
         ValueAnalysisInterpolant itp  = entry.getValue();
@@ -622,8 +645,6 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
       public boolean hasNextPathForInterpolation();
 
-      public boolean areInterpolantsConsistent(Map<ARGState, ValueAnalysisInterpolant> newItps);
-
       public ValueAnalysisInterpolant getInitialInterpolantForRoot(ARGState root);
     }
 
@@ -648,6 +669,10 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
         if(!isValidInterpolationRoot(current)) {
           logger.log(Level.FINEST, "interpolant of predecessor of ", current.getStateId(), " is already false ... return empty path");
           return errorPath;
+        }
+
+        if(current != root) {
+          errorPath.add(Pair.of(predecessorRelation.get(current), predecessorRelation.get(current).getEdgeToChild(current)));
         }
 
         while(successorRelation.get(current).iterator().hasNext()) {
@@ -705,14 +730,6 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
       }
 
       @Override
-      public boolean areInterpolantsConsistent(Map<ARGState, ValueAnalysisInterpolant> newInterpolants) {
-        // if the set of keys of the interpolants changes, this means the two key sets had a non-empty intersection
-        // this then means, for at least one ARGState, more than one interpolation was performed, which is illegal
-        // according to this strategy
-        return !interpolants.keySet().removeAll(newInterpolants.keySet());
-      }
-
-      @Override
       public boolean hasNextPathForInterpolation() {
         return !sources.isEmpty();
       }
@@ -750,11 +767,6 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
       @Override
       public ValueAnalysisInterpolant getInitialInterpolantForRoot(ARGState root) {
         return ValueAnalysisInterpolant.createInitial();
-      }
-
-      @Override
-      public boolean areInterpolantsConsistent(Map<ARGState, ValueAnalysisInterpolant> newInterpolants) {
-        return true;
       }
 
       @Override

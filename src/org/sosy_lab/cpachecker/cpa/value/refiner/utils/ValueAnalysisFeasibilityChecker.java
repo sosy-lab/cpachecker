@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
@@ -53,7 +52,11 @@ public class ValueAnalysisFeasibilityChecker {
 
   /**
    * This method acts as the constructor of the class.
-   * @throws CounterexampleAnalysisFailed
+   *
+   * @param pLogger the logger to use
+   * @param pCfa the cfa in use
+   * @param pInitial the initial state for starting the exploration
+   * @throws InvalidConfigurationException
    */
   public ValueAnalysisFeasibilityChecker(LogManager pLogger, CFA pCfa) throws InvalidConfigurationException {
     this.cfa    = pCfa;
@@ -84,14 +87,31 @@ public class ValueAnalysisFeasibilityChecker {
    * This method checks if the given path is feasible, when not tracking the given set of variables.
    *
    * @param path the path to check
+   * @param pPrecision the precision to use
    * @return true, if the path is feasible, else false
    * @throws CPAException
    * @throws InterruptedException
    */
   public boolean isFeasible(final ARGPath path, final ValueAnalysisPrecision pPrecision)
       throws CPAException, InterruptedException {
+    return isFeasible(path, pPrecision, new ValueAnalysisState());
+  }
+
+  /**
+   * This method checks if the given path is feasible, when not tracking the given set of variables, starting with the
+   * given initial state.
+   *
+   * @param path the path to check
+   * @param pPrecision the precision to use
+   * @param pInitial the initial state
+   * @return true, if the path is feasible, else false
+   * @throws CPAException
+   * @throws InterruptedException
+   */
+  public boolean isFeasible(final ARGPath path, final ValueAnalysisPrecision pPrecision, ValueAnalysisState pInitial)
+      throws CPAException, InterruptedException {
     try {
-      ValueAnalysisState next = new ValueAnalysisState();
+      ValueAnalysisState next = pInitial;
 
       for (Pair<ARGState, CFAEdge> pathElement : path) {
         Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessors(
