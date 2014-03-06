@@ -169,6 +169,10 @@ analysis.traversal.useTopsort = false
 # Do not report unknown if analysis terminated, report true (UNSOUND!).
 analysis.unknownAsTrue = false
 
+# stop the analysis with the result unknown if the program does not satisfies
+# certain restrictions.
+analysis.unknownIfUnrestrictedProgram = false
+
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
 
@@ -318,6 +322,9 @@ cfa.simplifyConstExpressions = false
 # is simplified until at maximum one pointer is allowed for left- and
 # rightHandSide
 cfa.simplifyPointerExpressions = false
+
+# Remove all edges which don't have any effect on the program
+cfa.simplyfyCfa = true
 
 # This option causes the control flow automaton to be transformed into the
 # automaton of an equivalent program with one single loop and an artificial
@@ -1340,6 +1347,9 @@ cpa.value.variableBlacklist = ""
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
+
+# adjust invariant generation conditions if supported by the analysis
+invariantGeneration.adjustConditions = false
 
 # generate invariants in parallel to the normal analysis
 invariantGeneration.async = false

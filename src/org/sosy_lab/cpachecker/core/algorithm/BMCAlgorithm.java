@@ -487,23 +487,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     return f;
   }
 
-  private BooleanFormula extractInvariantsAt(CFANode loc) throws CPAException, InterruptedException {
-    BooleanFormula invariant = bfmgr.makeBoolean(false);
-    UnmodifiableReachedSet reached = invariantGenerator.get();
-
-    if (reached.isEmpty()) {
-      return bfmgr.makeBoolean(true); // no invariants available
-    }
-
-    for (AbstractState locState : AbstractStates.filterLocation(reached, loc)) {
-      BooleanFormula f = AbstractStates.extractReportedFormulas(fmgr, locState);
-      logger.log(Level.ALL, "Invariant:", f);
-
-      invariant = bfmgr.or(invariant, f);
-    }
-    return invariant;
-  }
-
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
@@ -526,6 +509,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     private final ReachedSet reachedSet;
 
     private final Loop loop;
+
+    private UnmodifiableReachedSet invariantsReachedSet;
 
     public KInductionProver() {
       FluentIterable<CFAEdge> incomingEdges = null;
@@ -631,15 +616,21 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     private ProverEnvironment getProver() throws CPAException, InterruptedException {
-      if (!isProverInitialized()) {
-        // get global invariants
-        CFANode loopHead = Iterables.getOnlyElement(getLoop().getLoopHeads());
+      // get global invariants
+      CFANode loopHead = Iterables.getOnlyElement(getLoop().getLoopHeads());
+      UnmodifiableReachedSet currentInvariantsReachedSet = invariantGenerator.get();
+      if (currentInvariantsReachedSet != invariantsReachedSet) {
+        invariantsReachedSet = currentInvariantsReachedSet;
         BooleanFormula invariants = extractInvariantsAt(loopHead);
+        if (isProverInitialized()) {
+          prover.pop();
+        } else {
+          prover = solver.newProverEnvironmentWithModelGeneration();
+        }
         invariants = fmgr.instantiate(invariants, SSAMap.emptySSAMap().withDefault(1));
-
-        prover = solver.newProverEnvironmentWithModelGeneration();
         prover.push(invariants);
       }
+      assert isProverInitialized();
       return prover;
     }
 
@@ -649,6 +640,22 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         prover.pop();
         prover.close();
       }
+    }
+
+    private BooleanFormula extractInvariantsAt(CFANode pLocation) throws CPAException, InterruptedException {
+      BooleanFormula invariant = bfmgr.makeBoolean(false);
+
+      if (invariantsReachedSet.isEmpty()) {
+        return bfmgr.makeBoolean(true); // no invariants available
+      }
+
+      for (AbstractState locState : AbstractStates.filterLocation(invariantsReachedSet, pLocation)) {
+        BooleanFormula f = AbstractStates.extractReportedFormulas(fmgr, locState);
+        logger.log(Level.ALL, "Invariant:", f);
+
+        invariant = bfmgr.or(invariant, f);
+      }
+      return invariant;
     }
 
     public final boolean check() throws CPAException, InterruptedException {
