@@ -666,11 +666,13 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
         ARGState current = sources.pop();
 
-        if(!isValidInterpolationRoot(current)) {
+        if(!isValidInterpolationRoot(predecessorRelation.get(current))) {
           logger.log(Level.FINEST, "interpolant of predecessor of ", current.getStateId(), " is already false ... return empty path");
           return errorPath;
         }
 
+        // if the current state is not the root, it is a child of a branch , however, the path should not start with the
+        // child, but with the branching node (children are stored on the stack because this needs less book-keeping)
         if(current != root) {
           errorPath.add(Pair.of(predecessorRelation.get(current), predecessorRelation.get(current).getEdgeToChild(current)));
         }
@@ -680,6 +682,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
           ARGState child = children.next();
           errorPath.add(Pair.of(current, current.getEdgeToChild(child)));
 
+          // push all other children of the current state, if any, onto the stack for later interpolations
           if(children.hasNext()) {
             ARGState sibling = children.next();
             logger.log(Level.FINEST, "\tpush new root ", sibling.getStateId(), " onto stack for parent ", predecessorRelation.get(sibling).getStateId());
@@ -688,7 +691,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
           current = child;
 
-          // add out-going edges of final state, too (just for compatiblity reasons to compare to DelegatingRefiner)
+          // add out-going edges of final state, too (just for compatibility reasons to compare to DelegatingRefiner)
           if(!successorRelation.get(current).iterator().hasNext()) {
             errorPath.add(Pair.of(current, CFAUtils.leavingEdges(AbstractStates.extractLocation(current)).first().orNull()));
           }
@@ -701,13 +704,11 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
        * The given state is not a valid interpolation root if it is associated with a interpolant representing "false"
        */
       public boolean isValidInterpolationRoot(ARGState root) {
-        ARGState predecessor = predecessorRelation.get(root);
-
-        if(!interpolants.containsKey(predecessor)) {
+        if(!interpolants.containsKey(root)) {
           return true;
         }
 
-        if(!interpolants.get(predecessor).isFalse()) {
+        if(!interpolants.get(root).isFalse()) {
           return true;
         }
 
