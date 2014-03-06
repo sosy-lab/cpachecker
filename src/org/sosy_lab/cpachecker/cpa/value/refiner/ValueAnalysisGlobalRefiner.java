@@ -545,9 +545,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
         if (isNonTrivialInterpolantAvailable(currentState) && !currentState.isTarget()) {
           ValueAnalysisInterpolant itp = interpolants.get(currentState);
           for (MemoryLocation memoryLocation : itp.getMemoryLocations()) {
-            for(ARGState successor : successorRelation.get(currentState)) {
-              increment.put(currentState.getEdgeToChild(successor).getSuccessor(), memoryLocation);
-            }
+            increment.put(AbstractStates.extractLocation(currentState), memoryLocation);
           }
         }
 
@@ -586,7 +584,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
         }
 
         if (isNonTrivialInterpolantAvailable(currentState)) {
-          refinementRoots.addAll(successorRelation.get(currentState));
+          refinementRoots.add(currentState);
 
           if(strategy == RestartStrategy.COMMON && refinementRoots.size() > 2) {
             assert commonRoot != null: "common root not yet set";
