@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState.EdgeBasedAbstractionStrategyFactories;
@@ -93,7 +94,7 @@ import com.google.common.collect.ImmutableSet;
 /**
  * This is a CPA for collecting simple invariants about integer variables.
  */
-public class InvariantsCPA extends AbstractCPA {
+public class InvariantsCPA extends AbstractCPA implements AdjustableConditionCPA {
 
   /**
    * A formula visitor for collecting the variables contained in a formula.
@@ -165,6 +166,8 @@ public class InvariantsCPA extends AbstractCPA {
 
   private final WeakHashMap<CFANode, InvariantsPrecision> initialPrecisionMap = new WeakHashMap<>();
 
+  private boolean relevantVariableLimitReached = false;
+
   /**
    * Gets a factory for creating InvariantCPAs.
    *
@@ -226,9 +229,14 @@ public class InvariantsCPA extends AbstractCPA {
           }
         }
       } catch (InvalidConfigurationException | CPAException | InterruptedException e) {
-        this.logManager.logException(Level.SEVERE, e, "Unable to find target locations. Defaulting to selecting all locations.");
+        if (!shutdownNotifier.shouldShutdown()) {
+          this.logManager.logException(Level.SEVERE, e, "Unable to find target locations. Defaulting to selecting all locations.");
+        }
         determineTargetLocations = false;
       }
+    }
+    if (shutdownNotifier.shouldShutdown()) {
+      return new InvariantsState(options.useBitvectors, new AcceptAllVariableSelection<CompoundInterval>(), InvariantsPrecision.NONE);
     }
     if (options.analyzeTargetPathsOnly && determineTargetLocations) {
       relevantLocations.addAll(targetLocations);
@@ -290,6 +298,11 @@ public class InvariantsCPA extends AbstractCPA {
         }
       }
     }
+
+    if (shutdownNotifier.shouldShutdown()) {
+      return new InvariantsState(options.useBitvectors, new AcceptAllVariableSelection<CompoundInterval>(), InvariantsPrecision.NONE);
+    }
+
     // Try to specify all relevant variables
     Set<String> relevantVariables = new HashSet<>();
     boolean specifyRelevantVariables = options.analyzeRelevantVariablesOnly;
@@ -326,6 +339,8 @@ public class InvariantsCPA extends AbstractCPA {
       }
     }
 
+    relevantVariableLimitReached = options.interestingVariableLimit > interestingVariables.size();
+
     InvariantsPrecision precision = new InvariantsPrecision(relevantEdges,
         ImmutableSet.copyOf(limit(interestingPredicates, options.interestingPredicatesLimit)),
         ImmutableSet.copyOf(limit(interestingVariables, options.interestingVariableLimit)),
@@ -361,6 +376,15 @@ public class InvariantsCPA extends AbstractCPA {
       return FluentIterable.from(pIterable).limit(pLimit);
     }
     return pIterable;
+  }
+
+  @Override
+  public boolean adjustPrecision() {
+    if (relevantVariableLimitReached) {
+      return false;
+    }
+    ++options.interestingVariableLimit;
+    return true;
   }
 
   private static void expand(Set<String> pRelevantVariables, Collection<CFAEdge> pCfaEdges, int pLimit) {
