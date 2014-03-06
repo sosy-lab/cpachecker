@@ -50,6 +50,11 @@ public class TestGenAlgorithm implements Algorithm {
   private ARGStateDummyCreator dummyCreator;
 
 
+//  ConfigurationBuilder singleConfigBuilder = Configuration.builder();
+//  singleConfigBuilder.copyFrom(globalConfig);
+//  singleConfigBuilder.clearOption("restartAlgorithm.configFiles");
+//  singleConfigBuilder.clearOption("analysis.restartAfterUnknown");
+
 
   public TestGenAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
                              ShutdownNotifier pShutdownNotifier, CFA pCfa, String filename,

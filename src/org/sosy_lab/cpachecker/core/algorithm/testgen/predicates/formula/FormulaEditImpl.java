@@ -23,9 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.testgen.predicates.formula;
 
-import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -46,15 +48,22 @@ public class FormulaEditImpl implements FormulaEditFunction {
     //      zerlege formel in teilformeln
 
     // boolean splitArithEqualities, boolean conjunctionsOnly
-    Collection<BooleanFormula> formulaAtoms = fmv.extractAtoms(pF, false, false);
+    Pair<String, List<String>> splitFormulas = PredicatePersistenceUtils.splitFormula(fmv, pF);
+    List<BooleanFormula> bFormulas = new LinkedList<>();
+    for (String stringFormula : splitFormulas.getSecond()) {
+      System.out.println(stringFormula);
+      bFormulas.add(fmv.parse(stringFormula));
+    }
+//    Collection<BooleanFormula> formulaAtoms = fmv.extractAtoms(pF, false, false);
     //    wähle eine teilformel nach BlubStrategie aus
-    BooleanFormula fTeil = ((List<BooleanFormula>) formulaAtoms).get(pPos);
+    BooleanFormula fTeil = (bFormulas).get(pPos);
     //    negiere die gewählte teilformel
     BooleanFormula negatedFTeil = fmv.makeNot(fTeil);
+    System.out.println("fTeil: " + fTeil.toString() + " -> " + negatedFTeil);
     //    schmeiß die ausgewählte Formel aus der Menge der Formeln raus
     BooleanFormula sum = null;
 
-    for (BooleanFormula t : formulaAtoms) {
+    for (BooleanFormula t : bFormulas) {
       if (t == fTeil) {
         if (sum == null) {
           sum = negatedFTeil;
