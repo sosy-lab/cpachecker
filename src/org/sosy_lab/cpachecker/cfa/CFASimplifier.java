@@ -32,6 +32,11 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.CFAGenerationRuntimeException;
 
 
@@ -235,13 +240,23 @@ public class CFASimplifier {
       actualFrom = left.getSuccessor();
       actualFrom.removeEnteringEdge(left);
       if (actualFrom != to) {
+        if (actualFrom.getNumEnteringEdges() > 0) {
+          for (int i = 0;  i < actualFrom.getNumEnteringEdges(); i++) {
+            moveEdgeToOtherSuccessor(actualFrom.getEnteringEdge(i), to);
+          }
+        }
         cfa.removeNode(actualFrom);
         removeNodesBetween(from, actualFrom, to, cfa, removedFileLocations);
       }
 
       actualFrom = right.getSuccessor();
       actualFrom.removeEnteringEdge(right);
-      if (actualFrom != to) {
+      if (actualFrom != to && actualFrom.getNumEnteringEdges() == 0) {
+        if (actualFrom.getNumEnteringEdges() > 0) {
+          for (int i = 0;  i < actualFrom.getNumEnteringEdges(); i++) {
+            moveEdgeToOtherSuccessor(actualFrom.getEnteringEdge(i), to);
+          }
+        }
         cfa.removeNode(actualFrom);
         removeNodesBetween(from, actualFrom, to, cfa, removedFileLocations);
       }
@@ -269,4 +284,61 @@ public class CFASimplifier {
     }
   }
 
+  private static CFAEdge moveEdgeToOtherSuccessor(CFAEdge edge, CFANode succ) {
+    CFANode pred = edge.getPredecessor();
+    pred.removeLeavingEdge(edge);
+    switch (edge.getEdgeType()) {
+    case AssumeEdge:
+      edge = new CAssumeEdge(((CAssumeEdge)edge).getRawStatement(),
+                             edge.getFileLocation(),
+                             pred,
+                             succ,
+                             ((CAssumeEdge)edge).getExpression(),
+                             ((CAssumeEdge)edge).getTruthAssumption());
+      pred.addLeavingEdge(edge);
+      succ.addEnteringEdge(edge);
+      return edge;
+    case BlankEdge:
+      edge = new BlankEdge(((BlankEdge)edge).getRawStatement(),
+                            edge.getFileLocation(),
+                            pred,
+                            succ,
+                            ((BlankEdge)edge).getDescription());
+      pred.addLeavingEdge(edge);
+      succ.addEnteringEdge(edge);
+      return edge;
+    case DeclarationEdge:
+      edge = new CDeclarationEdge(((CDeclarationEdge)edge).getRawStatement(),
+                                  edge.getFileLocation(),
+                                  pred,
+                                  succ,
+                                  ((CDeclarationEdge)edge).getDeclaration());
+      pred.addLeavingEdge(edge);
+      succ.addEnteringEdge(edge);
+      return edge;
+    case ReturnStatementEdge:
+      edge = new CReturnStatementEdge(((CReturnStatementEdge)edge).getRawStatement(),
+                                      ((CReturnStatementEdge)edge).getRawAST().orNull(),
+                                      edge.getFileLocation(),
+                                      pred,
+                                      (FunctionExitNode) succ);
+      pred.addLeavingEdge(edge);
+      succ.addEnteringEdge(edge);
+      return edge;
+    case StatementEdge:
+      edge = new CStatementEdge(((CStatementEdge)edge).getRawStatement(),
+                                ((CStatementEdge)edge).getStatement(),
+                                edge.getFileLocation(),
+                                pred,
+                                succ);
+      pred.addLeavingEdge(edge);
+      succ.addEnteringEdge(edge);
+      return edge;
+    case CallToReturnEdge:
+    case FunctionReturnEdge:
+    case MultiEdge:
+    default:
+      throw new AssertionError("should never happen");
+    }
+  }
 }

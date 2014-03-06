@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.PrintStream;
+import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +41,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.time.Timer;
@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
+import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
 
 /**
@@ -101,98 +102,85 @@ public class CParserWithLocationMapper implements CParser {
   private String processCode(String fileName, String pCode) throws CParserException {
     StringBuilder tokenizedCode = new StringBuilder();
 
-    List<Appendable> tokenizingTargets = Lists.newArrayList();
-    tokenizingTargets.add(tokenizedCode);
+    LexerOptions options = new LexerOptions();
+    ILexerLog log = ILexerLog.NULL;
+    Object source = null;
+    Lexer lx = new Lexer(pCode.toCharArray(), options, log, source);
 
-    PrintStream dumpTokenizedTo = null;
     try {
-      if (dumpTokenizedProgramToFile != null) {
-        try {
-            dumpTokenizedTo = new PrintStream(dumpTokenizedProgramToFile.toFile());
-            tokenizingTargets.add(dumpTokenizedTo);
-        } catch (FileNotFoundException e1) {
-          logger.log(Level.WARNING, "Opening target for tokenized program-file failed!");
+      int absoluteTokenNumber = 0;
+      int relativeTokenNumber = absoluteTokenNumber;
+      int absoluteLineNumber = 1;
+      int relativeLineNumber = absoluteLineNumber;
+
+      String rangeLinesOriginFilename = fileName;
+      int includeStartedWithAbsoluteLine = 0;
+      int includeStartedWithAbsoluteToken = 0;
+      int newLineStartedWithAbsoluteToken = absoluteTokenNumber;
+
+      Token token;
+      while ((token = lx.nextToken()).getType() != Token.tEND_OF_INPUT) {
+        if (token.getType() == Lexer.tNEWLINE) {
+          CSourceOriginMapping.INSTANCE.mapAbsoluteTokenRangeToInputLine(newLineStartedWithAbsoluteToken, absoluteTokenNumber, absoluteLineNumber);
+          absoluteLineNumber += 1;
+          relativeLineNumber += 1;
+          newLineStartedWithAbsoluteToken = absoluteTokenNumber;
         }
-      }
 
-      LexerOptions options = new LexerOptions();
-      ILexerLog log = ILexerLog.NULL;
-      Object source = null;
-      Lexer lx = new Lexer(pCode.toCharArray(), options, log, source);
-
-      try {
-        int absoluteTokenNumber = 0;
-        int relativeTokenNumber = absoluteTokenNumber;
-        int absoluteLineNumber = 1;
-        int relativeLineNumber = absoluteLineNumber;
-
-        String rangeLinesOriginFilename = fileName;
-        int includeStartedWithAbsoluteLine = 0;
-        int includeStartedWithAbsoluteToken = 0;
-        int newLineStartedWithAbsoluteToken = absoluteTokenNumber;
-
-        Token token;
-        while ((token = lx.nextToken()).getType() != Token.tEND_OF_INPUT) {
-          if (token.getType() == Lexer.tNEWLINE) {
-            CSourceOriginMapping.INSTANCE.mapAbsoluteTokenRangeToInputLine(newLineStartedWithAbsoluteToken, absoluteTokenNumber, absoluteLineNumber);
-            absoluteLineNumber += 1;
-            relativeLineNumber += 1;
-            newLineStartedWithAbsoluteToken = absoluteTokenNumber;
-          }
-
-          if (token.getType() == Token.tPOUND) { // match #
-            // Read the complete line containing the directive...
-            ArrayList<Token> directiveTokens = Lists.newArrayList();
+        if (token.getType() == Token.tPOUND) { // match #
+          // Read the complete line containing the directive...
+          ArrayList<Token> directiveTokens = Lists.newArrayList();
+          token = lx.nextToken();
+          while (token.getType() != Lexer.tNEWLINE && token.getType() != Token.tEND_OF_INPUT) {
+            directiveTokens.add(token);
             token = lx.nextToken();
-            while (token.getType() != Lexer.tNEWLINE && token.getType() != Token.tEND_OF_INPUT) {
-              directiveTokens.add(token);
-              token = lx.nextToken();
-            }
-            absoluteLineNumber += 1;
-            relativeLineNumber += 1;
+          }
+          absoluteLineNumber += 1;
+          relativeLineNumber += 1;
 
-            // Evaluate the preprocessor directive...
-            if (directiveTokens.size() > 0) {
-              String firstTokenImage = directiveTokens.get(0).getImage();
-              if (firstTokenImage.equals("line")) {
+          // Evaluate the preprocessor directive...
+          if (directiveTokens.size() > 0) {
+            String firstTokenImage = directiveTokens.get(0).getImage();
+            if (firstTokenImage.equals("line")) {
 
-              } else if (firstTokenImage.matches("[0-9]+")) {
-                putLineRangeMapping(rangeLinesOriginFilename, includeStartedWithAbsoluteLine, absoluteLineNumber, relativeLineNumber - absoluteLineNumber);
-                putTokenRangeMapping(rangeLinesOriginFilename, includeStartedWithAbsoluteToken, absoluteTokenNumber, relativeTokenNumber - absoluteTokenNumber);
+            } else if (firstTokenImage.matches("[0-9]+")) {
+              putLineRangeMapping(rangeLinesOriginFilename, includeStartedWithAbsoluteLine, absoluteLineNumber, relativeLineNumber - absoluteLineNumber);
+              putTokenRangeMapping(rangeLinesOriginFilename, includeStartedWithAbsoluteToken, absoluteTokenNumber, relativeTokenNumber - absoluteTokenNumber);
 
-                includeStartedWithAbsoluteLine = absoluteLineNumber;
-                includeStartedWithAbsoluteToken = absoluteTokenNumber;
-                relativeLineNumber = Integer.parseInt(firstTokenImage);
-                rangeLinesOriginFilename = directiveTokens.get(1).getImage();
-                relativeTokenNumber = 0;
-              }
-            }
-          } else if (!token.getImage().trim().isEmpty()) {
-            if (tokenizeCode) {
-              absoluteTokenNumber += 1;
-              relativeTokenNumber += 1;
-
-              for (Appendable out: tokenizingTargets) {
-                out.append(token.toString());
-                out.append(System.lineSeparator());
-              }
+              includeStartedWithAbsoluteLine = absoluteLineNumber;
+              includeStartedWithAbsoluteToken = absoluteTokenNumber;
+              relativeLineNumber = Integer.parseInt(firstTokenImage);
+              rangeLinesOriginFilename = directiveTokens.get(1).getImage();
+              relativeTokenNumber = 0;
             }
           }
-        }
+        } else if (!token.getImage().trim().isEmpty()) {
+          if (tokenizeCode) {
+            absoluteTokenNumber += 1;
+            relativeTokenNumber += 1;
 
-        putLineRangeMapping(rangeLinesOriginFilename, includeStartedWithAbsoluteLine + 1, absoluteLineNumber, relativeLineNumber - absoluteLineNumber);
-        putTokenRangeMapping(rangeLinesOriginFilename, includeStartedWithAbsoluteToken + 1, absoluteTokenNumber, relativeTokenNumber - absoluteTokenNumber);
-        CSourceOriginMapping.INSTANCE.mapAbsoluteTokenRangeToInputLine(newLineStartedWithAbsoluteToken, absoluteTokenNumber, absoluteLineNumber);
-      } catch (OffsetLimitReachedException | IOException e) {
-        throw new CParserException("Tokenizing failed", e);
+            tokenizedCode.append(token.toString());
+            tokenizedCode.append(System.lineSeparator());
+          }
+        }
       }
 
-      return tokenizeCode ? tokenizedCode.toString() : pCode;
-    } finally {
-      if (dumpTokenizedTo != null) {
-        dumpTokenizedTo.close();
+      putLineRangeMapping(rangeLinesOriginFilename, includeStartedWithAbsoluteLine + 1, absoluteLineNumber, relativeLineNumber - absoluteLineNumber);
+      putTokenRangeMapping(rangeLinesOriginFilename, includeStartedWithAbsoluteToken + 1, absoluteTokenNumber, relativeTokenNumber - absoluteTokenNumber);
+      CSourceOriginMapping.INSTANCE.mapAbsoluteTokenRangeToInputLine(newLineStartedWithAbsoluteToken, absoluteTokenNumber, absoluteLineNumber);
+    } catch (OffsetLimitReachedException e) {
+      throw new CParserException("Tokenizing failed", e);
+    }
+
+    String code = tokenizeCode ? tokenizedCode.toString() : pCode;
+    if (tokenizeCode && dumpTokenizedProgramToFile != null) {
+      try (Writer out = Files.openOutputFile(dumpTokenizedProgramToFile, Charsets.US_ASCII)) {
+        out.append(code);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write tokenized program to file");
       }
     }
+    return code;
   }
 
   private void putLineRangeMapping(String originFilename, int fromLine, int toLine, int deltaToOrigin) {

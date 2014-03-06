@@ -99,7 +99,24 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
         }
       }
     }
-    return operand1.logicalEquals(operand2);
+    CompoundInterval result = operand1.logicalEquals(operand2);
+    if (result.isTop()) {
+      if (pEqual.getOperand1() instanceof Variable) {
+        Variable<CompoundInterval> var = (Variable<CompoundInterval>) pEqual.getOperand1();
+        InvariantsFormula<CompoundInterval> value = pEnvironment.get(var.getName());
+        if (value != null && value.equals(pEqual.getOperand2())) {
+          return CompoundInterval.logicalTrue();
+        }
+      }
+      if (pEqual.getOperand2() instanceof Variable) {
+        Variable<CompoundInterval> var = (Variable<CompoundInterval>) pEqual.getOperand2();
+        InvariantsFormula<CompoundInterval> value = pEnvironment.get(var.getName());
+        if (value != null && value.equals(pEqual.getOperand1())) {
+          return CompoundInterval.logicalTrue();
+        }
+      }
+    }
+    return result;
   }
 
   @Override

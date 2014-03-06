@@ -248,8 +248,13 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
         default:
           throw new AssertionError();
       }
-      ret = conv.ifTrueThenOneElseZero(returnFormulaType, result);
-      break;
+
+      // Here we directly use the returnFormulaType instead of the calculcationType
+      // to avoid a useless cast.
+      // However, this means that we may not call makeCast() below
+      // because it expects the input in the calculationType.
+      // So we return here directly.
+      return conv.ifTrueThenOneElseZero(returnFormulaType, result);
     }
     default:
       throw new UnrecognizedCCodeException("Unknown binary operator", edge, exp);

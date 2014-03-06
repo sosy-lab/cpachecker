@@ -431,6 +431,21 @@ public class VariableClassification {
     return irrelevantVariables;
   }
 
+  public boolean hasRelevantNonIntAddVars() {
+    build();
+
+    for (String key: nonIntAddVars.keySet()) {
+      Collection<String> keyVars = nonIntAddVars.get(key);
+      for (String var: keyVars) {
+        if (relevantVariables.containsEntry(key, var)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
   /**
    * All variables that may be essential for reachability properties.
    * The variables are returned as a collection of (functionName, varNames).

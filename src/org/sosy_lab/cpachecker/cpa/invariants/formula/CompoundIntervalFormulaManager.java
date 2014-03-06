@@ -160,9 +160,6 @@ public enum CompoundIntervalFormulaManager {
         }
       }
     }
-    if (pFormula.accept(FORMULA_EVALUATION_VISITOR, tmpEnvironment).isDefinitelyTrue()) {
-      return true;
-    }
 
     return definitelyImplies(formulas, tmpEnvironment, pFormula);
   }
@@ -189,6 +186,11 @@ public enum CompoundIntervalFormulaManager {
             }
           }
         }
+
+        if (pFormula.accept(FORMULA_EVALUATION_VISITOR, pCompleteEnvironment).isDefinitelyTrue()) {
+          continue;
+        }
+
         if (!pCompleteEnvironment.isEmpty() && formula2Part.accept(CONTAINS_ONLY_ENV_INFO_VISITOR)) {
           tmpEnvironment2.clear();
           Set<String> varNames = formula2Part.accept(COLLECT_VARS_VISITOR);
