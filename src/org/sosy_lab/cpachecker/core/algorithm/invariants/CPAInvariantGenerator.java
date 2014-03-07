@@ -215,7 +215,16 @@ public class CPAInvariantGenerator implements InvariantGenerator {
 
     public AdjustingInvariantGenerationFuture(final ReachedSetFactory pReachedSetFactory, CFANode pInitialLocation) {
       conditionCPAs = CPAs.asIterable(invariantCPAs).filter(AdjustableConditionCPA.class).toList();
-      currentFuture.set(scheduleTask(pReachedSetFactory, pInitialLocation));
+      Callable<UnmodifiableReachedSet> initialTask = new Callable<UnmodifiableReachedSet>() {
+
+        @Override
+        public UnmodifiableReachedSet call() {
+          return pReachedSetFactory.create();
+        }
+
+      };
+      currentFuture.set(executorService.submit(initialTask));
+      scheduleTask(pReachedSetFactory, pInitialLocation);
     }
 
     @Override
