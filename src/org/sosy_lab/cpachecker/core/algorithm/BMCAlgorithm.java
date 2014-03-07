@@ -195,7 +195,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private final BMCStatistics stats = new BMCStatistics();
   private final Algorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
-  private @Nullable InvariantGenerator invariantGenerator;
+
+  private final InvariantGenerator invariantGenerator;
 
   private final FormulaManagerView fmgr;
   private final PathFormulaManager pmgr;
