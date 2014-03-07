@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.Writer;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
@@ -129,6 +130,10 @@ public class VariableClassification {
   @Option(description = "Dump variable type mapping to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path typeMapFile = Paths.get("VariableTypeMapping.txt");
+
+  @Option(description = "Dump domain type statistics to a CSV file.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path domainTypeStatisticsFile = null;
 
   @Option(description = "Print some information about the variable classification.")
   private boolean printStatsOnStartup = false;
@@ -321,6 +326,46 @@ public class VariableClassification {
       if (typeMapFile != null) {
         dumpVariableTypeMapping(typeMapFile);
       }
+
+      if (domainTypeStatisticsFile != null) {
+        dumpDomainTypeStatistics(domainTypeStatisticsFile);
+      }
+    }
+  }
+
+  private void dumpDomainTypeStatistics(Path pDomainTypeStatisticsFile) {
+    try (Writer w = Files.openOutputFile(pDomainTypeStatisticsFile)) {
+      try (PrintWriter p = new PrintWriter(w)) {
+        Object[][] statMapping = {
+              {"intBoolVars",           intBoolVars.size()},
+              {"intEqualVars",          intEqualVars.size()},
+              {"intAddVars",            intAddVars.size()},
+              {"allVars",               allVars.size()},
+              {"irrelevantFields",      irrelevantFields.size()},
+              {"intBoolVarsRelevant",   countNumberOfRelevantVars(intBoolVars)},
+              {"intEqualVarsRelevant",  countNumberOfRelevantVars(intEqualVars)},
+              {"intAddVarsRelevant",    countNumberOfRelevantVars(intAddVars)},
+              {"allVarsRelevant",       countNumberOfRelevantVars(allVars)}
+        };
+        // Write header
+        for (int col=0; col<statMapping.length; col++) {
+          p.print(statMapping[col][0]);
+          if (col != statMapping.length-1) {
+            p.print("\t");
+          }
+        }
+        p.print("\n");
+        // Write data
+        for (int col=0; col<statMapping.length; col++) {
+          p.print(statMapping[col][1]);
+          if (col != statMapping.length-1) {
+            p.print("\t");
+          }
+        }
+        p.print("\n");
+      }
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not write variable classification statistics to file");
     }
   }
 
@@ -430,6 +475,23 @@ public class VariableClassification {
     build();
     return irrelevantVariables;
   }
+
+  private int countNumberOfRelevantVars(Multimap<String, String> ofVars) {
+    build();
+
+    int result = 0;
+    for (String key: ofVars.keySet()) {
+      Collection<String> keyVars = ofVars.get(key);
+      for (String var: keyVars) {
+        if (relevantVariables.containsEntry(key, var)) {
+          result++;
+        }
+      }
+    }
+
+    return result;
+  }
+
 
   public boolean hasRelevantNonIntAddVars() {
     build();
