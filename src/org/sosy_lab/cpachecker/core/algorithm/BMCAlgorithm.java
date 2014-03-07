@@ -529,9 +529,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         // e.g. it is ok if there is only a single loop on each path.
         if (loops.size() > 1) {
           logger.log(Level.WARNING, "Could not use induction for proving program safety, program has too many loops");
+          invariantGenerator.cancel();
           trivialResult = false;
         } else if (loops.isEmpty()) {
           // induction is unnecessary, program has no loops
+          invariantGenerator.cancel();
           trivialResult = true;
         } else {
           stats.inductionPreparation.start();
@@ -870,7 +872,10 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
             }
             // filter out exit edges that do not lead to a target state, we don't care about them
             CFANode exitLocation = pEdge.getSuccessor();
-            Iterable<AbstractState> exitStates = reachedPerLocation.get(exitLocation);
+            Collection<AbstractState> exitStates = reachedPerLocation.get(exitLocation);
+            if (exitStates.isEmpty()) {
+              return false;
+            }
             ARGState lastExitState = (ARGState) Iterables.getLast(exitStates);
 
             // the states reachable from the exit edge
