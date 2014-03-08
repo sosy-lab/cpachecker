@@ -134,12 +134,13 @@ public class FunctionCloner implements CFAVisitor {
     // TODO do we need to override this function?
     // each cloned edge also clones its predecessor and successor (if nodes not in nodeMapping).
 
-    final CFANode newNode = cloneNode(node, true);
+    cloneNode(node, true);
 
     return TraversalProcess.CONTINUE;
   }
 
   /** clone edge with new start-node and end-node, copy content of old edge into new edge. */
+  @SuppressWarnings("unchecked")
   public <T extends CFAEdge> T cloneEdge(final T edge, final CFANode start, final CFANode end) {
 
     final FileLocation loc = edge.getFileLocation();

@@ -56,11 +56,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-@Options(prefix = "cfa.recursionUnwinding")
+@Options(prefix = "cfa.functionCalls")
 public class FunctionCallUnwinder {
 
   @Option(description = "how often can a function appear in the callstack as a clone of the original function?")
-  private int unwindings = 5;
+  private int recursionDepth = 5;
 
   // TODO find better name, it is not always recursive
   private final static String RECURSION_SEPARATOR = "__recursive_call__";
@@ -241,7 +241,7 @@ public class FunctionCallUnwinder {
         int index = function.indexOf(RECURSION_SEPARATOR);
         if (index != -1) {
           int depth = Integer.valueOf(function.substring(index + RECURSION_SEPARATOR.length()));
-          return depth >= unwindings;
+          return depth >= recursionDepth;
         }
       }
     }
