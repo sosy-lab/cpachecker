@@ -23,13 +23,15 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.testgen.predicates.formula;
 
-import java.util.LinkedList;
 import java.util.List;
 
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+
+import com.google.common.collect.Lists;
 
 
 public class FormulaEditImpl implements FormulaEditFunction {
@@ -40,7 +42,6 @@ public class FormulaEditImpl implements FormulaEditFunction {
     //      Formula f;
     //      fm = predCPA.getFormulaManager();
 
-    // TODO get a useful FMV
 
     /*
      * negiere eine teilformel einer gegebenen Formel
@@ -48,13 +49,10 @@ public class FormulaEditImpl implements FormulaEditFunction {
     //      zerlege formel in teilformeln
 
     // boolean splitArithEqualities, boolean conjunctionsOnly
-    Pair<String, List<String>> splitFormulas = PredicatePersistenceUtils.splitFormula(fmv, pF);
-    List<BooleanFormula> bFormulas = new LinkedList<>();
-    for (String stringFormula : splitFormulas.getSecond()) {
-      System.out.println(stringFormula);
-      bFormulas.add(fmv.parse(stringFormula));
-    }
-//    Collection<BooleanFormula> formulaAtoms = fmv.extractAtoms(pF, false, false);
+
+    List<BooleanFormula> bFormulas = new FormulaSplitter().splitCNF(pF, fmv);
+
+    //    Collection<BooleanFormula> formulaAtoms = fmv.extractAtoms(pF, false, false);
     //    wähle eine teilformel nach BlubStrategie aus
     BooleanFormula fTeil = (bFormulas).get(pPos);
     //    negiere die gewählte teilformel
@@ -82,5 +80,51 @@ public class FormulaEditImpl implements FormulaEditFunction {
 
     return sum;
 
+  }
+
+  public class FormulaSplitter {
+
+    List<BooleanFormula> formulas;
+
+    public FormulaSplitter() {
+      formulas = Lists.newLinkedList();
+    }
+
+    public List<BooleanFormula> splitCNF(BooleanFormula f, FormulaManagerView fmv) {
+      internalSplitCNF(f, fmv);
+      return formulas;
+    }
+
+    private boolean internalSplitCNF(BooleanFormula f, FormulaManagerView fmv) {
+      UnsafeFormulaManager unsafeManager = fmv.getUnsafeFormulaManager();
+      BooleanFormulaManager rawBooleanManager = fmv.getBooleanFormulaManager();
+      BooleanFormula t = f;
+
+      if (rawBooleanManager.isAnd(f)) {
+        for (int i = 0; i < unsafeManager.getArity(f); ++i) {
+          if (!internalSplitCNF( //just a comment for blocking the formatter
+              unsafeManager.typeFormula(FormulaType.BooleanType, unsafeManager.getArg(f, i)), fmv))//
+          { return false; }
+        }
+        return true;
+
+      } else {
+        formulas.add(t);
+        return true;
+      }
+      //      if (/*unsafeManager.isAtom(t) || unsafeManager.isUF(t) || */(!rawBooleanManager.isAnd(t))) {
+      //        formulas.add(t);
+      //        return true;
+      //
+      //      } else if (rawBooleanManager.isAnd(f)) {
+      //        for (int i = 0; i < unsafeManager.getArity(f); ++i) {
+      //          if (!internalSplitCNF(unsafeManager.typeFormula(FormulaType.BooleanType, unsafeManager.getArg(f, i)), fmv)) { return false; }
+      //        }
+      //        return true;
+      //
+      //      } else {
+      //        return false;
+      //      }
+    }
   }
 }

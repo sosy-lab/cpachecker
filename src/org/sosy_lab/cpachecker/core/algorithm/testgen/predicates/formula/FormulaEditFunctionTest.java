@@ -35,13 +35,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 
-public class FormulaEditFunctionTest{
+public class FormulaEditFunctionTest {
 
   private FormulaEditFunction editFunction;
 
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
-//    editFunction;
+    //    editFunction;
   }
 
   @Before
@@ -59,22 +59,38 @@ public class FormulaEditFunctionTest{
     FormulaManagerView manager = new FormulaManagerView(factory.getFormulaManager());
     BooleanFormula cnf = null;
     List<BooleanFormula> formulas = new LinkedList<>();
-    for (int i = 0; i < 2; i++) {
-      formulas.add(manager.getBooleanFormulaManager().makeVariable("testVar", i));
-//      if(cnf == null) {
-//        cnf = manager.getBooleanFormulaManager().makeVariable("testVar", i);
-//      } else
-//      {
-//        BooleanFormula tmp = manager.getBooleanFormulaManager().makeVariable("testVar", i);
-//        cnf = manager.makeAnd(cnf, tmp);
-//      }
+    int negateAt = 2;
+    for (int i = 0; i < 5; i++) {
+      //      formulas.add(manager.getBooleanFormulaManager().makeVariable("testVar", i));
+      if (cnf == null) {
+        //        cnf = manager.getBooleanFormulaManager().makeVariable("testVar", i);
+        cnf = manager.createPredicateVariable("testVar" + i);
+        if (i == negateAt) {
+          cnf = manager.makeNot(cnf);
+        }
+      } else
+      {
+        //        BooleanFormula tmp = manager.getBooleanFormulaManager().makeVariable("testVar", i);
+        BooleanFormula tmp = manager.createPredicateVariable("testVar" + i);
+        if (i == negateAt) {
+          tmp = manager.makeNot(tmp);
+        }
+        cnf = manager.makeAnd(tmp, cnf);
+      }
 
     }
-    cnf = manager.getBooleanFormulaManager().and(formulas);
+    //    cnf = manager.getBooleanFormulaManager().and(formulas);
     System.out.println(cnf.toString());
+    //    splitCNF(cnf, manager);
+    //    List<BooleanFormula> splitCNF = new FormulaSplitter().splitCNF2(cnf, manager);
+    //    for (BooleanFormula booleanFormula : splitCNF) {
+    //      System.out.println(booleanFormula);
+
     BooleanFormula changedFormula = editFunction.negateAtomOfFormula(cnf, 1, manager);
     System.out.println(changedFormula.toString());
-//    throw new RuntimeException("not yet implemented");
+    //    throw new RuntimeException("not yet implemented");
   }
+
+
 
 }

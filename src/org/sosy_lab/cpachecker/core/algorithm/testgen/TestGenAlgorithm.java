@@ -80,6 +80,10 @@ public class TestGenAlgorithm implements Algorithm {
     /* run the given alg ones using the "config/specification/onepathloopautomaton.spc" and DFS */
     ReachedSet currentReachedSet = pReachedSet;
     success &= algorithm.run(currentReachedSet);
+    do{
+//      combinedExplPredAlg.run(currentReachedSet);
+    }while(success);
+
     do {
 //      pReachedSet.get
 //      AbstractStates.isTargetState(as)
