@@ -240,7 +240,7 @@ public class FunctionCallUnwinder {
       if (function.startsWith(calledFunction)) {
         int index = function.indexOf(RECURSION_SEPARATOR);
         if (index != -1) {
-          int depth = Integer.valueOf(function.substring(index + RECURSION_SEPARATOR.length()));
+          int depth = Integer.parseInt(function.substring(index + RECURSION_SEPARATOR.length()));
           return depth >= recursionDepth;
         }
       }
@@ -252,7 +252,7 @@ public class FunctionCallUnwinder {
     int i = function.indexOf(RECURSION_SEPARATOR);
     int index = 0;
     if (i != -1) {
-      index = Integer.valueOf(function.substring(i + RECURSION_SEPARATOR.length(), function.length())) + 1;
+      index = Integer.parseInt(function.substring(i + RECURSION_SEPARATOR.length(), function.length())) + 1;
       function = function.substring(0, i);
     }
     return function + RECURSION_SEPARATOR + index;
