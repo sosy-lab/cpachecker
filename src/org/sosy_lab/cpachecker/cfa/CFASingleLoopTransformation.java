@@ -939,7 +939,7 @@ public class CFASingleLoopTransformation {
     for (Map.Entry<Integer, CFANode> newPredecessorToPC : pNewPredecessorsToPC.entries()) {
       int pcToSet = newPredecessorToPC.getKey();
       CFANode subgraphPredecessor = newPredecessorToPC.getValue();
-      CFAEdge edgeToLoopHead = createProgramCounterAssumeEdge(pMainLocation, subgraphPredecessor, pLoopHead, pPCIdExpression, pcToSet);
+      CFAEdge edgeToLoopHead = createProgramCounterAssignmentEdge(pMainLocation, subgraphPredecessor, pLoopHead, pPCIdExpression, pcToSet);
       addToNodes(edgeToLoopHead);
     }
   }
@@ -1363,7 +1363,7 @@ public class CFASingleLoopTransformation {
     Deque<FunctionSummaryEdge> emptyStack = new ArrayDeque<>();
     Queue<Deque<FunctionSummaryEdge>> callstacks = new ArrayDeque<>();
     Set<CFANode> reachableSuccessors = new HashSet<>();
-    Set<CFANode> visited = new HashSet<>();
+    Set<Pair<CFANode, FunctionSummaryEdge>> visited = new HashSet<>();
     waitlist.offer(pSingleLoopHead);
     callstacks.offer(emptyStack);
     boolean firstIteration = true;
@@ -1392,7 +1392,7 @@ public class CFASingleLoopTransformation {
           }
         }
         CFANode successor = leavingEdge.getSuccessor();
-        if (visited.add(successor)) {
+        if (visited.add(Pair.of(successor, newCallstack.peek()))) {
           waitlist.offer(successor);
           callstacks.offer(newCallstack);
         }
@@ -1434,7 +1434,7 @@ public class CFASingleLoopTransformation {
             }
           }
           CFANode predecessor = enteringEdge.getPredecessor();
-          if (visited.add(predecessor)) {
+          if (visited.add(Pair.of(predecessor, newCallstack.peek()))) {
             waitlist.offer(predecessor);
             callstacks.offer(newCallstack);
           }
@@ -1485,7 +1485,7 @@ public class CFASingleLoopTransformation {
    * {@code false} otherwise.
    */
   private static boolean existsPath(CFANode pSource, CFANode pTarget, Function<? super CFANode, Iterable<? extends CFAEdge>> pGetLeavingEdges) {
-    Set<CFANode> visited = new HashSet<>();
+    Set<Pair<CFANode, FunctionSummaryEdge>> visited = new HashSet<>();
     Queue<CFANode> waitlist = new ArrayDeque<>();
     Queue<Deque<FunctionSummaryEdge>> callstacks = new ArrayDeque<>();
     callstacks.offer(new ArrayDeque<FunctionSummaryEdge>());
@@ -1496,7 +1496,7 @@ public class CFASingleLoopTransformation {
         return true;
       }
       Deque<FunctionSummaryEdge> callstack = callstacks.poll();
-      if (visited.add(current)) {
+      if (visited.add(Pair.of(current, callstack.peek()))) {
         for (CFAEdge leavingEdge : pGetLeavingEdges.apply(current)) {
           Deque<FunctionSummaryEdge> newCallstack = callstack;
           if (leavingEdge instanceof FunctionCallEdge) {
@@ -1644,7 +1644,7 @@ public class CFASingleLoopTransformation {
 
   }
 
-  private static CProgramCounterValueAssignmentEdge createProgramCounterAssumeEdge(FileLocation pLocation,
+  private static CProgramCounterValueAssignmentEdge createProgramCounterAssignmentEdge(FileLocation pLocation,
       CFANode pPredecessor,
       CFANode pSuccessor,
       CIdExpression pPCIdExpression,

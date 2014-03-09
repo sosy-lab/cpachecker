@@ -131,26 +131,17 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
     timerInterpolation.start();
 
     interpolationOffset = -1;
-
     List<CFAEdge> cfaTrace = from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
     Map<ARGState, ValueAnalysisInterpolant> pathInterpolants = new LinkedHashMap<>(errorPath.size());
 
-    for (int i = 0; i < errorPath.size(); i++) {
+    for (int i = 0; i < errorPath.size() - 1; i++) {
       shutdownNotifier.shutdownIfNecessary();
 
-      interpolant               = interpolator.deriveInterpolant(cfaTrace, i, interpolant);
-      totalInterpolationQueries = totalInterpolationQueries + interpolator.getNumberOfInterpolationQueries();
-
-      // stop once interpolant is false
-      if (interpolant.isFalse()) {
-        while (i < errorPath.size()) {
-          pathInterpolants.put(errorPath.get(i).getFirst(), ValueAnalysisInterpolant.FALSE);
-          i++;
-        }
-
-        timerInterpolation.stop();
-        return pathInterpolants;
+      if(!interpolant.isFalse()) {
+        interpolant = interpolator.deriveInterpolant(cfaTrace, i, interpolant);
       }
+
+      totalInterpolationQueries = totalInterpolationQueries + interpolator.getNumberOfInterpolationQueries();
 
       // remove variables from the interpolant that belong to the scope of the returning function
       // this is done one iteration after returning from the function, as the special FUNCTION_RETURN_VAR is needed that long
@@ -162,8 +153,10 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
         interpolationOffset = i + 1;
       }
 
-      pathInterpolants.put(errorPath.get(i).getFirst(), interpolant);
+      pathInterpolants.put(errorPath.get(i + 1).getFirst(), interpolant);
     }
+
+    assert interpolant.isFalse() : "final interpolant is not false";
 
     timerInterpolation.stop();
     return pathInterpolants;
@@ -179,28 +172,26 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
     Map<ARGState, ValueAnalysisInterpolant> itps = performInterpolation(errorPath, ValueAnalysisInterpolant.createInitial());
 
-    int i = 0;
     for(Map.Entry<ARGState, ValueAnalysisInterpolant> itp : itps.entrySet()) {
-      addToPrecisionIncrement(increment, errorPath.get(i).getSecond(), itp.getValue());
-      i++;
+      addToPrecisionIncrement(increment, AbstractStates.extractLocation(itp.getKey()), itp.getValue());
     }
 
     return increment;
   }
 
   /**
-   * This method adds the given variable at the given edge/location to the increment.
+   * This method adds the given variable at the given location to the increment.
    *
    * @param increment the current increment
-   * @param currentEdge the current edge for which to add a new variable
+   * @param currentNode the current node for which to add a new variable
    * @param memoryLocation the name of the variable to add to the increment at the given edge
    */
   private void addToPrecisionIncrement(Multimap<CFANode, MemoryLocation> increment,
-      CFAEdge currentEdge,
+      CFANode currentNode,
       ValueAnalysisInterpolant itp) {
     for(MemoryLocation memoryLocation : itp.getMemoryLocations()) {
       if(assignments == null || !assignments.exceedsHardThreshold(memoryLocation)) {
-        increment.put(currentEdge.getSuccessor(), memoryLocation);
+        increment.put(currentNode, memoryLocation);
       }
     }
   }
@@ -494,6 +485,10 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      * @param functionName the name of the function for which to remove assignments
      */
     private void clearScope(String functionName) {
+      if(isTrivial()) {
+        return;
+      }
+
       for (Iterator<MemoryLocation> variableNames = assignment.keySet().iterator(); variableNames.hasNext(); ) {
         if (variableNames.next().isOnFunctionStack(functionName)) {
           variableNames.remove();
@@ -521,6 +516,30 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
       }
 
       return assignment.toString();
+    }
+
+    public boolean strengthen(ValueAnalysisState valueState) {
+      if (isTrivial()) {
+        return false;
+      }
+
+      boolean strengthened = false;
+
+      for (Map.Entry<MemoryLocation, Value> itp : assignment.entrySet()) {
+        if(!valueState.contains(itp.getKey())) {
+          valueState.assignConstant(itp.getKey(), itp.getValue());
+
+          strengthened = true;
+        }
+
+        else if(valueState.contains(itp.getKey()) && !valueState.getValueFor(itp.getKey()).equals(itp.getValue())) {
+          valueState.assignConstant(itp.getKey(), itp.getValue());
+
+          strengthened = true;
+        }
+      }
+
+      return strengthened;
     }
   }
 }

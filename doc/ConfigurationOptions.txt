@@ -169,6 +169,10 @@ analysis.traversal.useTopsort = false
 # Do not report unknown if analysis terminated, report true (UNSOUND!).
 analysis.unknownAsTrue = false
 
+# stop the analysis with the result unknown if the program does not satisfies
+# certain restrictions.
+analysis.unknownIfUnrestrictedProgram = false
+
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
 
@@ -318,6 +322,9 @@ cfa.simplifyConstExpressions = false
 # is simplified until at maximum one pointer is allowed for left- and
 # rightHandSide
 cfa.simplifyPointerExpressions = false
+
+# Remove all edges which don't have any effect on the program
+cfa.simplyfyCfa = true
 
 # This option causes the control flow automaton to be transformed into the
 # automaton of an equivalent program with one single loop and an artificial
@@ -1297,10 +1304,25 @@ cpa.value.precision.sharing = "scope"
 # target file to hold the exported precision
 cpa.value.precisionFile = no default value
 
+# when to export the interpolation tree
+# NEVER:   never export the interpolation tree
+# FINAL:   export the interpolation tree once after each refinement
+# ALWAYD:  export the interpolation tree once after each interpolation, i.e.
+# multiple times per refinmenet
+cpa.value.refinement.exportInterpolationTree = "NEVER"
+  allowed values: [NEVER, FINAL, ALWAYS]
+
+# whether or not to do lazy-abstraction
+cpa.value.refinement.restart = TOP
+  enum:     [TOP, BOTTOM, COMMON]
+
+# whether to use the top-down interpolation strategy or the bottom-up
+# interpolation strategy
+cpa.value.refinement.useTopDownInterpolationStrategy = true
+
 # whether or not to avoid restarting at assume edges after a refinement
 cpa.value.refiner.avoidAssumes = false
 
-# checkForRepeatedRefinements
 # whether or not to check for repeated refinements, to then reset the
 # refinement root
 cpa.value.refiner.checkForRepeatedRefinements = true
@@ -1308,21 +1330,9 @@ cpa.value.refiner.checkForRepeatedRefinements = true
 # whether or not to do lazy-abstraction
 cpa.value.refiner.doLazyAbstraction = true
 
-# when to export the interpolation tree
-# NEVER:   never export the interpolation tree
-# FINAL:   export the interpolation tree once after each refinement
-# ALWAYD:  export the interpolation tree once after each interpolation, i.e.
-# multiple times per refinmenet
-cpa.value.refiner.exportInterpolationTree = "NEVER"
-  allowed values: [NEVER, FINAL, ALWAYS]
-
 # use heuristic to extract a precision from the CFA statically on first
 # refinement
 cpa.value.refiner.performInitialStaticRefinement = false
-
-# whether to use the top-down interpolation strategy or the bottom-up
-# interpolation strategy
-cpa.value.refiner.useTopDownInterpolationStrategy = true
 
 # which stop operator to use for ValueAnalysisCPA
 cpa.value.stop = "SEP"
@@ -1337,6 +1347,9 @@ cpa.value.variableBlacklist = ""
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
+
+# adjust invariant generation conditions if supported by the analysis
+invariantGeneration.adjustConditions = false
 
 # generate invariants in parallel to the normal analysis
 invariantGeneration.async = false

@@ -341,6 +341,11 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
         description="use CBMC as an external tool from CPAchecker")
         boolean runCBMCasExternalTool = false;
 
+    @Option(name="analysis.unknownIfUnrestrictedProgram",
+        description="stop the analysis with the result unknown if the program does not satisfies certain restrictions.")
+    private boolean unknownIfUnrestrictedProgram = false;
+
+
   }
 
   private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createNextAlgorithm(Path singleConfigFileName, CFANode mainFunction, ShutdownNotifier singleShutdownNotifier) throws InvalidConfigurationException, CPAException, InterruptedException, IOException {
@@ -428,6 +433,10 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     if (pOptions.collectAssumptions) {
       algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, pConfig, logger);
+    }
+
+    if (pOptions.unknownIfUnrestrictedProgram) {
+      algorithm = new RestrictedProgramDomainAlgorithm(algorithm, cpa, cfa, logger, pConfig, shutdownNotifier);
     }
 
     return algorithm;

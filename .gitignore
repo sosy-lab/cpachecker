@@ -6,6 +6,11 @@
 /cpachecker.jar
 /CPAchecker-*.zip
 /CPAchecker-*.tar.*
+/FindBugs.html
+/FindBugs.xml
+/FindBugs.diff.html
+/FindBugs.diff.xml
+/JUnit.html
 
 # /META-INF/
 /META-INF/.hg*

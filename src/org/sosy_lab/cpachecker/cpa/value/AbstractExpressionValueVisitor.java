@@ -173,7 +173,6 @@ public abstract class AbstractExpressionValueVisitor
     final Value rVal = pE.getOperand2().accept(this);
     if (rVal.isUnknown()) { return rVal; }
     Value result = calculateBinaryOperation(lVal, rVal, pE, machineModel, logger, edge);
-
     return result;
   }
 
@@ -212,7 +211,12 @@ public abstract class AbstractExpressionValueVisitor
           castCValue(rVal, binaryExpr.getOperand2().getExpressionType(), calculationType, machineModel, logger, edge);
     }
 
+    if (lVal instanceof SymbolicValueFormula || rVal instanceof SymbolicValueFormula) {
+      return calculateSymbolicBinaryExpression(lVal, rVal, binaryExpr, logger, edge);
+    }
+
     Value result;
+
     switch (binaryOperator) {
     case PLUS:
     case MINUS:
@@ -258,6 +262,32 @@ public abstract class AbstractExpressionValueVisitor
     }
 
     return result;
+  }
+
+  /**
+   * Join a symbolic formula with something else using a binary expression.
+   *
+   * e.g. joining `a` and `5` with `+` will produce `a + 5`
+   */
+  public static Value calculateSymbolicBinaryExpression(Value lVal, Value rVal,
+      final CBinaryExpression binaryExpr, final LogManager logger, @Nullable CFAEdge edge) {
+
+    // Convert the CBinaryOperator to an operator suitable for our symbolic value formulas
+    SymbolicValueFormula.BinaryExpression.BinaryOperator op =
+        SymbolicValueFormula.BinaryExpression.BinaryOperator.fromString(
+            binaryExpr.getOperator().getOperator());
+
+    // If there's no suitable operator, return UNKNOWN
+    if(op == null) {
+      return Value.UnknownValue.getInstance();
+    }
+
+    SymbolicValueFormula.ExpressionBase leftHand =
+        SymbolicValueFormula.expressionFromExplicitValue(lVal);
+    SymbolicValueFormula.ExpressionBase rightHand =
+        SymbolicValueFormula.expressionFromExplicitValue(rVal);
+
+    return new SymbolicValueFormula(new SymbolicValueFormula.BinaryExpression(leftHand, rightHand, op, binaryExpr.getExpressionType(), binaryExpr.getCalculationType())).simplify();
   }
 
   /**
@@ -926,6 +956,7 @@ public abstract class AbstractExpressionValueVisitor
     // For now can only cast numeric value's
     if (!value.isNumericValue()) {
       logger.logf(Level.FINE, "Can not cast C value %s to %s", value.toString(), targetType.toString());
+      return value;
     }
     NumericValue numericValue = (NumericValue) value;
 

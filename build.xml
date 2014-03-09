@@ -20,6 +20,7 @@
     <property name="source.dir" value="src"/>
     <property name="class.format" value="1.7"/>
     <property name="class.dir" value="bin"/>
+    <property name="test.report.dir" value="output/junit"/>
 
     <antversion property="ant.version.exact"/> <!-- Define property that contains the Ant version. -->
     <property name="ivy.lib.dir" value="${basedir}/lib/java"/>
@@ -213,25 +214,35 @@
         <taskdef name="junit"
                  classname="org.apache.tools.ant.taskdefs.optional.junit.JUnitTask"
                  classpath="${ivy.jar.dir}/ant-junit.jar"/>
+        <taskdef name="junitreport"
+                 classname="org.apache.tools.ant.taskdefs.optional.junit.XMLResultAggregator"
+                 classpath="${ivy.jar.dir}/ant-junit.jar"/>
     </target>
 
     <target description="Run all JUnit tests" depends="build, load-junit" name="unit-tests">
-        <property name="test.report.dir" value="output"/>
         <mkdir dir="${test.report.dir}"/>
-        <junit fork="true" printSummary="true" showOutput="false" haltonfailure="true">
+        <junit fork="true" printSummary="true" showOutput="false" failureproperty="junit.failed" timeout="100000">
             <assertions>
             <enable />
             </assertions>
             <formatter type="plain"/>
+            <formatter type="xml"/>
             <classpath refid="CPAchecker.classpath"/>
             <batchtest fork="true" todir="${test.report.dir}">
                 <fileset dir="${class.dir}">
                     <include name="**/*Test.*"/>
                     <exclude name="**/*$*Test.*"/>
-                    <exclude name="org/sosy_lab/cpachecker/util/octagon/OctLibraryTest.class"/>
                 </fileset>
             </batchtest>
         </junit>
+        <junitreport todir="${test.report.dir}">
+            <fileset dir="${test.report.dir}">
+                <include name="TEST-*.xml" />
+            </fileset>
+            <report format="noframes" />
+        </junitreport>
+        <move file="junit-noframes.html" tofile="JUnit.html"/>
+        <fail if="junit.failed" message="JUnit tests failed, look at JUnit.html"/>
     </target>
 
     <target description="Run CPAchecker on some simple test cases in various configurations" depends="build" name="benchmark-tests">

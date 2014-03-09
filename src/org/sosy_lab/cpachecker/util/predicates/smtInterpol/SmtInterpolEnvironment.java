@@ -61,9 +61,9 @@ import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
 import de.uni_freiburg.informatik.ultimate.logic.Theory;
-import de.uni_freiburg.informatik.ultimate.smtinterpol.dpll.DPLLEngine;
 import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.ParseEnvironment;
 import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.SMTInterpol;
+import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.TerminationRequest;
 
 /** This is a Wrapper around SmtInterpol.
  * It guarantees the stack-behavior of function-declarations towards the SmtSolver,
@@ -128,12 +128,18 @@ class SmtInterpolEnvironment {
   /** The Constructor creates the wrapped Element, sets some options
    * and initializes the logger. */
   public SmtInterpolEnvironment(Configuration config, Logics pLogic,
-      final LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+      final LogManager pLogger, final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
     shutdownNotifier = checkNotNull(pShutdownNotifier);
 
-    final SMTInterpol smtInterpol = new SMTInterpol(createLog4jLogger(logger));
+    final SMTInterpol smtInterpol = new SMTInterpol(createLog4jLogger(logger),
+        new TerminationRequest() {
+          @Override
+          public boolean isTerminationRequested() {
+            return pShutdownNotifier.shouldShutdown();
+          }
+        });
 
     if (logAllQueries && smtLogfile != null) {
       script = createLoggingWrapper(smtInterpol);
@@ -155,17 +161,6 @@ class SmtInterpolEnvironment {
     }
 
     theory = smtInterpol.getTheory();
-
-    shutdownNotifier.registerAndCheckImmediately(new ShutdownNotifier.ShutdownRequestListener() {
-        @Override
-        public void shutdownRequested(String pReason) {
-          DPLLEngine engine = smtInterpol.getEngine();
-          if (engine != null) {
-            engine.setCompleteness(DPLLEngine.INCOMPLETE_TIMEOUT);
-            engine.stop();
-          }
-        }
-      });
   }
 
   private Script createLoggingWrapper(SMTInterpol smtInterpol) {

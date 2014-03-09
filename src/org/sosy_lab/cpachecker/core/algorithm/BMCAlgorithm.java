@@ -195,7 +195,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private final BMCStatistics stats = new BMCStatistics();
   private final Algorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
-  private @Nullable InvariantGenerator invariantGenerator;
+
+  private final InvariantGenerator invariantGenerator;
 
   private final FormulaManagerView fmgr;
   private final PathFormulaManager pmgr;
@@ -487,23 +488,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     return f;
   }
 
-  private BooleanFormula extractInvariantsAt(CFANode loc) throws CPAException, InterruptedException {
-    BooleanFormula invariant = bfmgr.makeBoolean(false);
-    UnmodifiableReachedSet reached = invariantGenerator.get();
-
-    if (reached.isEmpty()) {
-      return bfmgr.makeBoolean(true); // no invariants available
-    }
-
-    for (AbstractState locState : AbstractStates.filterLocation(reached, loc)) {
-      BooleanFormula f = AbstractStates.extractReportedFormulas(fmgr, locState);
-      logger.log(Level.ALL, "Invariant:", f);
-
-      invariant = bfmgr.or(invariant, f);
-    }
-    return invariant;
-  }
-
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
@@ -527,6 +511,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     private final Loop loop;
 
+    private UnmodifiableReachedSet invariantsReachedSet;
+
     public KInductionProver() {
       FluentIterable<CFAEdge> incomingEdges = null;
       FluentIterable<CFAEdge> outgoingEdges = null;
@@ -543,9 +529,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         // e.g. it is ok if there is only a single loop on each path.
         if (loops.size() > 1) {
           logger.log(Level.WARNING, "Could not use induction for proving program safety, program has too many loops");
+          invariantGenerator.cancel();
           trivialResult = false;
         } else if (loops.isEmpty()) {
           // induction is unnecessary, program has no loops
+          invariantGenerator.cancel();
           trivialResult = true;
         } else {
           stats.inductionPreparation.start();
@@ -631,15 +619,21 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     private ProverEnvironment getProver() throws CPAException, InterruptedException {
-      if (!isProverInitialized()) {
-        // get global invariants
-        CFANode loopHead = Iterables.getOnlyElement(getLoop().getLoopHeads());
+      // get global invariants
+      CFANode loopHead = Iterables.getOnlyElement(getLoop().getLoopHeads());
+      UnmodifiableReachedSet currentInvariantsReachedSet = invariantGenerator.get();
+      if (currentInvariantsReachedSet != invariantsReachedSet) {
+        invariantsReachedSet = currentInvariantsReachedSet;
         BooleanFormula invariants = extractInvariantsAt(loopHead);
+        if (isProverInitialized()) {
+          prover.pop();
+        } else {
+          prover = solver.newProverEnvironmentWithModelGeneration();
+        }
         invariants = fmgr.instantiate(invariants, SSAMap.emptySSAMap().withDefault(1));
-
-        prover = solver.newProverEnvironmentWithModelGeneration();
         prover.push(invariants);
       }
+      assert isProverInitialized();
       return prover;
     }
 
@@ -649,6 +643,22 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         prover.pop();
         prover.close();
       }
+    }
+
+    private BooleanFormula extractInvariantsAt(CFANode pLocation) throws CPAException, InterruptedException {
+      BooleanFormula invariant = bfmgr.makeBoolean(false);
+
+      if (invariantsReachedSet.isEmpty()) {
+        return bfmgr.makeBoolean(true); // no invariants available
+      }
+
+      for (AbstractState locState : AbstractStates.filterLocation(invariantsReachedSet, pLocation)) {
+        BooleanFormula f = AbstractStates.extractReportedFormulas(fmgr, locState);
+        logger.log(Level.ALL, "Invariant:", f);
+
+        invariant = bfmgr.or(invariant, f);
+      }
+      return invariant;
     }
 
     public final boolean check() throws CPAException, InterruptedException {
@@ -749,40 +759,13 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       // Create formula
       BooleanFormula inductions = bfmgr.makeBoolean(true);
 
-      /*
-       * Consider the predecessors of all edges that lead from the loop to a
-       * target location. This is the combination of all edges leaving the loop
-       * leading to a target location and all edges leading to target locations
-       * within the loop, but not any target locations preceding the loop.
-       */
-      final Iterable<CFAEdge> cutPointEdges;
-      {
-        Iterable<CFAEdge> relevantOutgoingEdges = getOutgoingEdges().filter(new Predicate<CFAEdge>() {@Override
-          public boolean apply(@Nullable CFAEdge pEdge) {
-            if (pEdge == null) {
-              return false;
-            }
-            // filter out exit edges that do not lead to a target state, we don't care about them
-            CFANode exitLocation = pEdge.getSuccessor();
-            Iterable<AbstractState> exitStates = reachedPerLocation.get(exitLocation);
-            ARGState lastExitState = (ARGState) Iterables.getLast(exitStates);
+      final Iterable<CFAEdge> cutPointEdges = getCutPointEdges(reachedPerLocation, loopStates);
 
-            // the states reachable from the exit edge
-            Set<ARGState> outOfLoopStates = lastExitState.getSubgraph();
-            if (!from(outOfLoopStates).anyMatch(IS_TARGET_STATE)) {
-              return false;
-            }
-            return true;
-          }
-
-        });
-        Iterable<CFAEdge> relevantInsideEdges = loopStates.filter(IS_TARGET_STATE).transformAndConcat(ENTERING_EDGES);
-        cutPointEdges = Iterables.concat(relevantOutgoingEdges, relevantInsideEdges);
-      }
+      int inductionCutPoints = 0;
 
       for (CFAEdge cutPointEdge : cutPointEdges) {
 
-        stats.inductionCutPoints++;
+        inductionCutPoints++;
         logger.log(Level.FINEST, "Considering cut point edge", cutPointEdge);
 
         CFANode cutPoint = cutPointEdge.getPredecessor();
@@ -841,6 +824,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         inductions = bfmgr.and(inductions, f);
       }
 
+      stats.inductionCutPoints = inductionCutPoints;
+
       // now prove that (A & B) => C is a tautology by checking if the negation is unsatisfiable
 
       inductions = bfmgr.not(inductions);
@@ -864,6 +849,48 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
       logger.log(Level.FINER, "Soundness after induction check:", sound);
       return sound;
+    }
+
+    /**
+     * Consider all edges that lead from the loop to a target location. This is
+     * the combination of all edges leaving the loop leading to a target
+     * location and all edges leading to target locations within the loop, but
+     * not any target locations preceding the loop.
+     *
+     * @param reachedPerLocation the reached set mapped to the reached locations.
+     * @param loopStates the loop states.
+     * @return all edges that lead from the loop to a target location.
+     */
+    private Iterable<CFAEdge> getCutPointEdges(final Multimap<CFANode, AbstractState> reachedPerLocation,
+        FluentIterable<AbstractState> loopStates) {
+      final Iterable<CFAEdge> cutPointEdges;
+      {
+        Iterable<CFAEdge> relevantOutgoingEdges = getOutgoingEdges().filter(new Predicate<CFAEdge>() {@Override
+          public boolean apply(@Nullable CFAEdge pEdge) {
+            if (pEdge == null) {
+              return false;
+            }
+            // filter out exit edges that do not lead to a target state, we don't care about them
+            CFANode exitLocation = pEdge.getSuccessor();
+            Collection<AbstractState> exitStates = reachedPerLocation.get(exitLocation);
+            if (exitStates.isEmpty()) {
+              return false;
+            }
+            ARGState lastExitState = (ARGState) Iterables.getLast(exitStates);
+
+            // the states reachable from the exit edge
+            Set<ARGState> outOfLoopStates = lastExitState.getSubgraph();
+            if (!from(outOfLoopStates).anyMatch(IS_TARGET_STATE)) {
+              return false;
+            }
+            return true;
+          }
+
+        });
+        Iterable<CFAEdge> relevantInsideEdges = loopStates.filter(IS_TARGET_STATE).transformAndConcat(ENTERING_EDGES);
+        cutPointEdges = Iterables.concat(relevantOutgoingEdges, relevantInsideEdges);
+      }
+      return cutPointEdges;
     }
 
   }

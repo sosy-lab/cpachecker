@@ -397,7 +397,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       SMGEdgePointsTo pointer;
 
-      if (currentState.isPointer(address.getAsInt())) {
+      if (currentState.getSMG().isPointer(address.getAsInt())) {
         pointer = currentState.getPointerFromValue(address.getAsInt());
       } else {
         pointer = new SMGEdgePointsTo(address.getAsInt(), address.getObject(), address.getOffset().getAsInt());
@@ -1022,7 +1022,7 @@ public class SMGTransferRelation implements TransferRelation {
     if (pVarDecl.isGlobal()) {
       newObject = pNewState.addGlobalVariable(cType, varName);
     } else {
-      newObject = pNewState.getObjectForVisibleVariable(varName);
+      newObject = pNewState.getSMG().getObjectForVisibleVariable(varName);
 
       /*
        *  The variable is not null if we seen the declaration already, for example in loops. Invalid

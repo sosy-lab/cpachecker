@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
+import org.sosy_lab.cpachecker.cfa.manipulation.FunctionCallUnwinder;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -183,10 +184,18 @@ public class CFACreator {
         + "single loop and an artificial program counter.")
   private boolean transformIntoSingleLoop = false;
 
+  @Option(name="cfa.simplyfyCfa",
+        description="Remove all edges which don't have any effect on the program")
+  private boolean simplyfyCfa = true;
+
   @Option(name="cfa.moveDeclarationsToFunctionStart",
       description="With this option, all declarations in each function will be moved"
           + "to the beginning of each function.")
   private boolean moveDeclarationsToFunctionStart = false;
+
+  @Option(name="cfa.useFunctionCallUnwinding",
+      description="unwind recursive functioncalls (bounded to max call stack size)")
+  private boolean useFunctionCallUnwinding = false;
 
   @Option(description="C or Java?")
   private Language language = Language.C;
@@ -328,7 +337,7 @@ public class CFACreator {
       // SECOND, do those post-processings that change the CFA by adding/removing nodes/edges
       stats.processingTime.start();
 
-      postProcessingOnMutableCFAs(cfa, c.getGlobalDeclarations());
+      cfa = postProcessingOnMutableCFAs(cfa, c.getGlobalDeclarations());
 
       // THIRD, do read-only post-processings on each single function CFA
 
@@ -459,12 +468,17 @@ public class CFACreator {
   }
 
   /** This method changes the CFAs of the functions with adding, removing, replacing or moving CFAEdges.
-   * The CFAs are independent, i.e. there are no super-edges (functioncall- and return-edges) between them. */
-  private void postProcessingOnMutableCFAs(final MutableCFA cfa, final List<Pair<IADeclaration, String>> globalDeclarations)
+   * The CFAs are independent, i.e. there are no super-edges (functioncall- and return-edges) between them.
+   *
+   * @return either a modified old CFA or a complete new CFA
+   */
+  private MutableCFA postProcessingOnMutableCFAs(MutableCFA cfa, final List<Pair<IADeclaration, String>> globalDeclarations)
           throws InvalidConfigurationException, CParserException {
 
     // remove all edges which don't have any effect on the program
-    CFASimplifier.simplifyCFA(cfa);
+    if (simplyfyCfa) {
+      CFASimplifier.simplifyCFA(cfa);
+    }
 
     if (simplifyExpressions) {
       // this replaces some edges in the CFA with new edges.
@@ -534,6 +548,12 @@ public class CFACreator {
       cfa.addNode(nodeToAdd);
     }
 
+    if (useFunctionCallUnwinding) {
+      // must be done before adding global vars
+      final FunctionCallUnwinder fca = new FunctionCallUnwinder(cfa, config, logger);
+      cfa = fca.unwindRecursion();
+    }
+
     if (useGlobalVars) {
       // add global variables at the beginning of main
       insertGlobalDeclarations(cfa, globalDeclarations);
@@ -542,6 +562,8 @@ public class CFACreator {
     if (useMultiEdges) {
       MultiEdgeCreator.createMultiEdges(cfa);
     }
+
+    return cfa;
   }
 
   private FunctionEntryNode getJavaMainMethod(List<String> sourceFiles, Map<String, FunctionEntryNode> cfas)

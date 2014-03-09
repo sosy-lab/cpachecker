@@ -53,6 +53,7 @@ public interface ReadableSMG {
   public BitSet getNullBytesForObject(SMGObject pObject);
 
   public Set<Integer> getValues();
+  public boolean containsValue(Integer pValue);
   public int getNullValue();
 
   public SMGEdgePointsTo getPointer(Integer pValue);

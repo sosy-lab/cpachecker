@@ -39,7 +39,6 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -49,8 +48,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -59,7 +56,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -133,16 +129,13 @@ public class CtoFormulaConverter {
   //names for special variables needed to deal with functions
   protected static final String RETURN_VARIABLE_NAME = "__retval__";
 
-  private static final String EXPAND_VARIABLE = "__expandVariable__";
-  private int expands = 0;
-
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of(
       "printf", "printk"
       );
 
   private static final String SCOPE_SEPARATOR = "::";
 
-  private final Map<String, BitvectorFormula> stringLitToFormula = new HashMap<>();
+  private final Map<String, Formula> stringLitToFormula = new HashMap<>();
   private int nextStringLitIndex = 0;
 
   final FormulaEncodingOptions options;
@@ -153,14 +146,14 @@ public class CtoFormulaConverter {
   protected final FormulaManagerView fmgr;
   protected final BooleanFormulaManagerView bfmgr;
   private final NumeralFormulaManagerView nfmgr;
-  protected final BitvectorFormulaManagerView efmgr;
+  private final BitvectorFormulaManagerView efmgr;
   protected final FunctionFormulaManagerView ffmgr;
   protected final LogManagerWithoutDuplicates logger;
 
   public static final int          VARIABLE_UNSET          = -1;
   static final int                 VARIABLE_UNINITIALIZED  = 2;
 
-  private final FunctionFormulaType<BitvectorFormula> stringUfDecl;
+  private final FunctionFormulaType<?> stringUfDecl;
 
   public CtoFormulaConverter(FormulaEncodingOptions pOptions, FormulaManagerView fmgr,
       MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification,
@@ -179,10 +172,8 @@ public class CtoFormulaConverter {
     this.ffmgr = fmgr.getFunctionFormulaManager();
     this.logger = new LogManagerWithoutDuplicates(logger);
 
-    FormulaType<BitvectorFormula> pointerType =
-        efmgr.getFormulaType(machineModel.getSizeofPtr() * machineModel.getSizeofCharInBits());
     stringUfDecl = ffmgr.createFunction(
-            "__string__", pointerType, FormulaType.RationalType);
+            "__string__", typeHandler.getPointerType(), FormulaType.RationalType);
   }
 
   void logfOnce(Level level, CFAEdge edge, String msg, Object... args) {
@@ -219,15 +210,18 @@ public class CtoFormulaConverter {
   }
 
   protected boolean isRelevantLeftHandSide(final CLeftHandSide lhs) {
-    return lhs.accept(new IsRelevantLhsVisitor(this));
+    if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
+      return lhs.accept(new IsRelevantLhsVisitor(this));
+    } else {
+      return true;
+    }
   }
 
   protected final boolean isRelevantVariable(final CSimpleDeclaration var) {
-    final String qualifiedName = var.getQualifiedName();
-    final Pair<String, String> parsedName = parseQualifiedName(qualifiedName);
-    final String function = parsedName.getFirst();
-    final String name = parsedName.getSecond();
     if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
+      final Pair<String, String> parsedName = parseQualifiedName(var.getQualifiedName());
+      final String function = parsedName.getFirst();
+      final String name = parsedName.getSecond();
       return name.equals(RETURN_VARIABLE_NAME) ||
            variableClassification.get().getRelevantVariables().containsEntry(function, name);
     }
@@ -364,8 +358,8 @@ public class CtoFormulaConverter {
     return makeVariable(name, type, ssa, true);
   }
 
-  BitvectorFormula makeStringLiteral(String literal) {
-    BitvectorFormula result = stringLitToFormula.get(literal);
+  Formula makeStringLiteral(String literal) {
+    Formula result = stringLitToFormula.get(literal);
 
     if (result == null) {
       // generate a new string literal. We generate a new UIf
@@ -385,11 +379,11 @@ public class CtoFormulaConverter {
    * @param formula the formula of the expression.
    * @return the new formula after the cast.
    */
-  protected Formula makeCast(CType fromType, CType toType, Formula formula, CFAEdge edge) throws UnrecognizedCCodeException {
+  protected Formula makeCast(final CType pFromType, final CType pToType, Formula formula, CFAEdge edge) throws UnrecognizedCCodeException {
     // UNDEFINED: Casting a numeric value into a value that can't be represented by the target type (either directly or via static_cast)
 
-    fromType = fromType.getCanonicalType();
-    toType = toType.getCanonicalType();
+    CType fromType = pFromType.getCanonicalType();
+    CType toType = pToType.getCanonicalType();
 
     if (fromType.equals(toType)) {
       return formula; // No cast required;
@@ -400,51 +394,24 @@ public class CtoFormulaConverter {
       fromType = new CPointerType(false, false, fromType);
     }
 
-    boolean fromCanBeHandledAsInt, toCanBeHandledAsInt;
-    boolean fromIsPointer, toIsPointer;
-    if ((fromCanBeHandledAsInt =
-          ((fromIsPointer = fromType instanceof CPointerType) ||
-           fromType instanceof CEnumType ||
-          (fromType instanceof CElaboratedType &&
-              ((CElaboratedType)fromType).getKind() == ComplexTypeKind.ENUM))) |
-        (toCanBeHandledAsInt =
-          ((toIsPointer = toType instanceof CPointerType) ||
-           toType instanceof CEnumType ||
-          (toType instanceof CElaboratedType &&
-              ((CElaboratedType)toType).getKind() == ComplexTypeKind.ENUM)))) {
+    final boolean fromIsPointer = fromType instanceof CPointerType;
+    final boolean toIsPointer = toType instanceof CPointerType;
+    final boolean fromCanBeHandledAsInt =
+        (fromIsPointer ||
+         fromType instanceof CEnumType ||
+        (fromType instanceof CElaboratedType &&
+            ((CElaboratedType)fromType).getKind() == ComplexTypeKind.ENUM));
+    final boolean toCanBeHandledAsInt =
+        (toIsPointer ||
+         toType instanceof CEnumType ||
+        (toType instanceof CElaboratedType &&
+            ((CElaboratedType)toType).getKind() == ComplexTypeKind.ENUM));
 
+    if (fromCanBeHandledAsInt || toCanBeHandledAsInt) {
       // See Enums/Pointers as Integers
-      if (fromCanBeHandledAsInt && !(toType instanceof CArrayType)) {
+      if (fromCanBeHandledAsInt) {
         fromType = fromIsPointer ? machineModel.getPointerEquivalentSimpleType() : CNumericTypes.INT;
         fromType = fromType.getCanonicalType();
-
-        // a stringliteralepxression casted to an arraytype
-      } else if (toType instanceof CArrayType
-          && edge instanceof CDeclarationEdge
-          && ((CDeclarationEdge)edge).getDeclaration() instanceof CVariableDeclaration) {
-
-        CInitializer rhs = ((CVariableDeclaration)((CDeclarationEdge)edge).getDeclaration()).getInitializer();
-        if (rhs instanceof CInitializerExpression) {
-          if (((CInitializerExpression) rhs).getExpression() instanceof CStringLiteralExpression) {
-            logger.logf(Level.INFO, "Ignoring cast from %s to %s. This was an assignment of a String to a Char Array.", fromType, toType);
-            int sfrom = machineModel.getSizeof(fromType);
-            int sto = machineModel.getSizeof(toType);
-
-            int bitsPerByte = machineModel.getSizeofCharInBits();
-
-            // Currently everything is a bitvector
-            if (sfrom > sto) {
-              return fmgr.makeExtract(formula, sto * bitsPerByte - 1, 0);
-
-            } else if (sfrom < sto) {
-              int bitsToExtend = (sto - sfrom) * bitsPerByte;
-              return fmgr.makeExtend(formula, bitsToExtend, false);
-
-            } else {
-              return formula;
-            }
-          }
-        }
       }
 
       if (toCanBeHandledAsInt) {
@@ -452,8 +419,6 @@ public class CtoFormulaConverter {
         toType = toType.getCanonicalType();
       }
     }
-
-
 
     if (fromType instanceof CSimpleType) {
       CSimpleType sfromType = (CSimpleType)fromType;
@@ -476,14 +441,8 @@ public class CtoFormulaConverter {
       logger.logfOnce(Level.WARNING, "Ignoring cast from %s to %s.", fromType, toType);
       return formula;
     } else {
-      throw new UnrecognizedCCodeException("Cast from " + fromType + " to " + toType + " not supported!", edge);
+      throw new UnrecognizedCCodeException("Cast from " + pFromType + " to " + pToType + " not supported!", edge);
     }
-  }
-
-  Formula makeCast(CCastExpression e, Formula inner, CFAEdge edge) throws UnrecognizedCCodeException {
-    CType after = e.getExpressionType();
-    CType before = e.getOperand().getExpressionType();
-    return makeCast(before, after, inner, edge);
   }
 
   protected CExpression makeCastFromArrayToPointerIfNecessary(CExpression exp, CType targetType) {
@@ -507,80 +466,37 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * Change the size of the given formula from fromType to toType.
-   * This method extracts or concats with nondet-bits.
-   */
-  BitvectorFormula makeExtractOrConcatNondet(CType pFromType, CType pToType, Formula pFormula) {
-    assert pFormula instanceof BitvectorFormula
-      : "Can't makeExtractOrConcatNondet for something other than Bitvectors";
-    int sfrom = getSizeof(pFromType);
-    int sto = getSizeof(pToType);
-
-    int bitsPerByte = machineModel.getSizeofCharInBits();
-    return changeFormulaSize(sfrom * bitsPerByte, sto * bitsPerByte, (BitvectorFormula)pFormula);
-  }
-
-  /**
-   * Change the given Formulasize from the given size to the new size.
-   * if sfrom > sto an extract will be done.
-   * if sto > sfrom an concat with nondet-bits will be done.
-   * else pFormula is returned.
-   * @param sfrom
-   * @param sto
-   * @param pFormula
-   * @return the resized formula
-   */
-  BitvectorFormula changeFormulaSize(int sfrombits, int stobits, BitvectorFormula pFormula) {
-    assert fmgr.getFormulaType(pFormula) == efmgr.getFormulaType(sfrombits)
-         : "expected to get sfrombits sized formula!";
-
-    // Currently everything is a bitvector
-    BitvectorFormula ret;
-    if (sfrombits > stobits) {
-      if (stobits == 0) {
-        ret = efmgr.makeBitvector(0, 0);
-      } else {
-        ret = fmgr.makeExtract(pFormula, stobits - 1, 0);
-      }
-    } else if (sfrombits < stobits) {
-      // Sign extend with ones when pfromType is signed and sign bit is set
-      int bitsToExtend = stobits - sfrombits;
-      FormulaType<BitvectorFormula> t = efmgr.getFormulaType(bitsToExtend);
-      BitvectorFormula extendBits = fmgr.makeVariable(t, CtoFormulaConverter.EXPAND_VARIABLE + expands++, 0); // for every call a new variable
-      ret = fmgr.makeConcat(extendBits, pFormula);
-    } else {
-      ret = pFormula;
-    }
-
-    assert fmgr.getFormulaType(ret) == efmgr.getFormulaType(stobits);
-    return ret;
-  }
-
-  /**
    * Handles casts between simple types.
    * When the fromType is a signed type a bit-extension will be done,
    * on any other case it will be filled with 0 bits.
    */
-  private Formula makeSimpleCast(CSimpleType pfromType, CSimpleType ptoType, Formula pFormula) {
-    int sfrom = machineModel.getSizeof(pfromType);
-    int sto = machineModel.getSizeof(ptoType);
+  private Formula makeSimpleCast(CSimpleType pFromCType, CSimpleType pToCType, Formula pFormula) {
+    final FormulaType<?> fromType = typeHandler.getFormulaTypeFromCType(pFromCType);
+    final FormulaType<?> toType = typeHandler.getFormulaTypeFromCType(pToCType);
 
-    int bitsPerByte = machineModel.getSizeofCharInBits();
+    final Formula ret;
+    if (fromType == toType) {
+      ret = pFormula;
 
-    // Currently everything is a bitvector
-    Formula ret;
-    if (sfrom > sto) {
-      ret = fmgr.makeExtract(pFormula, sto * bitsPerByte - 1, 0);
-    } else if (sfrom < sto) {
-      boolean signed = machineModel.isSigned(pfromType);
-      int bitsToExtend = (sto - sfrom) * bitsPerByte;
-      ret = fmgr.makeExtend(pFormula, bitsToExtend, signed);
+    } else if (fromType.isBitvectorType() && toType.isBitvectorType()) {
+      int fromSize = ((FormulaType.BitvectorType)fromType).getSize();
+      int toSize = ((FormulaType.BitvectorType)toType).getSize();
+      if (fromSize > toSize) {
+        ret = fmgr.makeExtract(pFormula, toSize-1, 0);
+
+      } else if (fromSize < toSize) {
+        ret = fmgr.makeExtend(pFormula, (toSize - fromSize), machineModel.isSigned(pFromCType));
+
+      } else {
+        ret = pFormula;
+      }
 
     } else {
-      ret = pFormula;
+      throw new IllegalArgumentException("Cast from " + pFromCType + " to " + pToCType
+          + " needs theory conversion between " + fromType + " and " + toType);
     }
 
-    assert fmgr.getFormulaType(ret) == getFormulaTypeFromCType(ptoType);
+    assert fmgr.getFormulaType(ret) == toType;
     return ret;
   }
 
@@ -962,15 +878,23 @@ public class CtoFormulaConverter {
       return bfmgr.makeBoolean(true);
     }
 
+    CType lhsType = lhs.getExpressionType().getCanonicalType();
+
+    if (lhsType instanceof CArrayType) {
+      // Probably a (string) initializer, ignore assignments to arrays
+      // as they cannot behandled precisely anyway.
+      return bfmgr.makeBoolean(true);
+    }
+
     if (rhs instanceof CExpression) {
-      rhs = makeCastFromArrayToPointerIfNecessary((CExpression)rhs, lhs.getExpressionType());
+      rhs = makeCastFromArrayToPointerIfNecessary((CExpression)rhs, lhsType);
     }
 
     Formula r = buildTerm(rhs, edge, function, ssa, pts, constraints, errorConditions);
     Formula l = buildLvalueTerm(lhs, edge, function, ssa, pts, constraints, errorConditions);
     r = makeCast(
           rhs.getExpressionType(),
-          lhs.getExpressionType(),
+          lhsType,
           r,
           edge);
 
@@ -989,35 +913,6 @@ public class CtoFormulaConverter {
       SSAMapBuilder ssa, PointerTargetSetBuilder pts,
       Constraints constraints, ErrorConditions errorConditions) throws UnrecognizedCCodeException {
     return exp.accept(new LvalueVisitor(this, edge, function, ssa, pts, constraints, errorConditions));
-  }
-
-  BooleanFormula makeNondetAssignment(Formula left, Formula right) {
-    BitvectorFormulaManagerView bitvectorFormulaManager = efmgr;
-    FormulaType<Formula> tl = fmgr.getFormulaType(left);
-    FormulaType<Formula> tr = fmgr.getFormulaType(right);
-    if (tl == tr) {
-      return fmgr.assignment(left, right);
-    }
-
-    if (tl.isBitvectorType() && tr.isBitvectorType()) {
-
-      BitvectorFormula leftBv = (BitvectorFormula) left;
-      BitvectorFormula rightBv = (BitvectorFormula) right;
-      int leftSize = bitvectorFormulaManager.getLength(leftBv);
-      int rightSize = bitvectorFormulaManager.getLength(rightBv);
-
-      // Expand the smaller one with nondet-bits
-      if (leftSize < rightSize) {
-        leftBv =
-            changeFormulaSize(leftSize, rightSize, leftBv);
-      } else {
-        rightBv =
-            changeFormulaSize(rightSize, leftSize, rightBv);
-      }
-      return bitvectorFormulaManager.equal(leftBv, rightBv);
-    }
-
-    throw new IllegalArgumentException("Assignment between different types");
   }
 
   <T extends Formula> T ifTrueThenOneElseZero(FormulaType<T> type, BooleanFormula pCond) {

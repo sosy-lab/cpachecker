@@ -1045,7 +1045,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   private CONDITION getConditionKind(final CExpression cond) {
     Number value = cond.accept(expressionSimplificator).getSecond();
     if (value != null) {
-      return value.longValue() == 1 ? CONDITION.ALWAYS_TRUE : CONDITION.ALWAYS_FALSE;
+      return value.longValue() == 0 ? CONDITION.ALWAYS_FALSE : CONDITION.ALWAYS_TRUE;
     }
 
     return CONDITION.NORMAL;
