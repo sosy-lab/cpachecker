@@ -409,7 +409,9 @@ public class FormulaManagerView {
     Formula t;
     if (clazz==BooleanFormula.class) {
       t = booleanFormulaManager.and((BooleanFormula)pF1, (BooleanFormula)pF2);
-    } else if (clazz == NumeralFormula.class) {
+    } else if (clazz == IntegerFormula.class) {
+      throw new IllegalArgumentException();
+    } else if (clazz == RationalFormula.class) {
       throw new IllegalArgumentException();
     } else if (clazz == BitvectorFormula.class) {
       t = bitvectorFormulaManager.and((BitvectorFormula)pF1, (BitvectorFormula)pF2);
@@ -426,7 +428,9 @@ public class FormulaManagerView {
     Formula t;
     if (clazz==BooleanFormula.class) {
       t = booleanFormulaManager.or((BooleanFormula)pF1, (BooleanFormula)pF2);
-    } else if (clazz == NumeralFormula.class) {
+    } else if (clazz == IntegerFormula.class) {
+      throw new IllegalArgumentException();
+    } else if (clazz == RationalFormula.class) {
       throw new IllegalArgumentException();
     } else if (clazz == BitvectorFormula.class) {
       t = bitvectorFormulaManager.or((BitvectorFormula)pF1, (BitvectorFormula)pF2);
@@ -444,7 +448,9 @@ public class FormulaManagerView {
     Formula t;
     if (clazz==BooleanFormula.class) {
       t = booleanFormulaManager.xor((BooleanFormula)pF1, (BooleanFormula)pF2);
-    } else if (clazz == NumeralFormula.class) {
+    } else if (clazz == IntegerFormula.class) {
+      throw new IllegalArgumentException();
+    } else if (clazz == RationalFormula.class) {
       throw new IllegalArgumentException();
     } else if (clazz == BitvectorFormula.class) {
       t = bitvectorFormulaManager.xor((BitvectorFormula)pF1, (BitvectorFormula)pF2);
@@ -461,7 +467,9 @@ public class FormulaManagerView {
     Formula t;
     if (clazz==BooleanFormula.class) {
       throw new IllegalArgumentException();
-    } else if (clazz == NumeralFormula.class) {
+    } else if (clazz == IntegerFormula.class) {
+      throw new IllegalArgumentException();
+    } else if (clazz == RationalFormula.class) {
       throw new IllegalArgumentException();
     } else if (clazz == BitvectorFormula.class) {
       t = bitvectorFormulaManager.shiftLeft((BitvectorFormula)pF1, (BitvectorFormula)pF2);
@@ -478,7 +486,9 @@ public class FormulaManagerView {
     Formula t;
     if (clazz==BooleanFormula.class) {
       throw new IllegalArgumentException();
-    } else if (clazz == NumeralFormula.class) {
+    } else if (clazz == IntegerFormula.class) {
+      throw new IllegalArgumentException();
+    } else if (clazz == RationalFormula.class) {
       throw new IllegalArgumentException();
     } else if (clazz == BitvectorFormula.class) {
       t = bitvectorFormulaManager.shiftRight((BitvectorFormula)pF1, (BitvectorFormula)pF2, signed);
@@ -504,7 +514,9 @@ public class FormulaManagerView {
     Formula t;
     if (clazz==BooleanFormula.class) {
       throw new IllegalArgumentException();
-    } else if (clazz == NumeralFormula.class) {
+    } else if (clazz == IntegerFormula.class) {
+      throw new IllegalArgumentException();
+    } else if (clazz == RationalFormula.class) {
       throw new IllegalArgumentException();
     } else if (clazz == BitvectorFormula.class) {
       t = bitvectorFormulaManager.extract((BitvectorFormula)pFormula, pMsb, pLsb);
@@ -521,7 +533,9 @@ public class FormulaManagerView {
     Formula t;
     if (clazz==BooleanFormula.class) {
       throw new IllegalArgumentException();
-    } else if (clazz == NumeralFormula.class) {
+    } else if (clazz == IntegerFormula.class) {
+      throw new IllegalArgumentException();
+    } else if (clazz == RationalFormula.class) {
       throw new IllegalArgumentException();
     } else if (clazz == BitvectorFormula.class) {
       t = bitvectorFormulaManager.concat((BitvectorFormula)pFormula, (BitvectorFormula)pAppendFormula);
@@ -552,7 +566,9 @@ public class FormulaManagerView {
     Formula t;
     if (clazz==BooleanFormula.class) {
       throw new IllegalArgumentException();
-    } else if (clazz == NumeralFormula.class) {
+    } else if (clazz == IntegerFormula.class) {
+      throw new IllegalArgumentException();
+    } else if (clazz == RationalFormula.class) {
       throw new IllegalArgumentException();
     } else if (clazz == BitvectorFormula.class) {
       t = bitvectorFormulaManager.extend((BitvectorFormula)pFormula, pExtensionBits, pSigned);

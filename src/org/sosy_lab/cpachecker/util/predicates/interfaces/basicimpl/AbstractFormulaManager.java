@@ -138,6 +138,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
   @Override
   public AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, IntegerFormula, IntegerFormula> getIntegerFormulaManager() {
     if (integerManager == null) {
+      // TODO fallback to rationalManager?
       throw new UnsupportedOperationException();
     }
     return integerManager;
@@ -146,6 +147,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
   @Override
   public AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, NumeralFormula, RationalFormula> getRationalFormulaManager() {
     if (rationalManager == null) {
+      // TODO fallback to integerManager?
       throw new UnsupportedOperationException();
     }
     return rationalManager;
@@ -196,8 +198,10 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
     FormulaType<?> t;
     if (clazz==BooleanFormula.class) {
       t = booleanManager.getFormulaType();
-    } else if (clazz == NumeralFormula.class) {
-      t = rationalManager.getFormulaType(); // TODO integer?
+    } else if (clazz == IntegerFormula.class) {
+      t = integerManager.getFormulaType();
+    } else if (clazz == RationalFormula.class) {
+      t = rationalManager.getFormulaType();
     } else if (clazz == BitvectorFormula.class) {
       int size = bitvectorManager.getLength((BitvectorFormula)formula);
       t = bitvectorManager.getFormulaType(size);
