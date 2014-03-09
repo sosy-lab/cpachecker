@@ -169,9 +169,9 @@ public abstract class AbstractExpressionValueVisitor
   public Value visit(final CBinaryExpression pE) throws UnrecognizedCCodeException {
 
     final Value lVal = pE.getOperand1().accept(this);
-    if (lVal.isUnknown()) { return lVal; }
+    if (lVal.isUnknown() && !(lVal instanceof SymbolicValueFormula)) { return lVal; }
     final Value rVal = pE.getOperand2().accept(this);
-    if (rVal.isUnknown()) { return rVal; }
+    if (rVal.isUnknown() && !(rVal instanceof SymbolicValueFormula)) { return rVal; }
     Value result = calculateBinaryOperation(lVal, rVal, pE, machineModel, logger, edge);
     return result;
   }
@@ -951,7 +951,7 @@ public abstract class AbstractExpressionValueVisitor
   public static Value castCValue(@Nonnull final Value value, final CType sourceType,
       final CType targetType,
       final MachineModel machineModel, final LogManager logger, @Nullable final CFAEdge edge) {
-    if (value.isUnknown()) { return Value.UnknownValue.getInstance(); }
+    if (value.isUnknown() && !(value instanceof SymbolicValueFormula)) { return Value.UnknownValue.getInstance(); }
 
     // For now can only cast numeric value's
     if (!value.isNumericValue()) {

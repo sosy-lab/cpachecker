@@ -352,9 +352,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     // get the value of the expression (either true[1L], false[0L], or unknown[null])
     Value value = getExpressionValue(expression, CNumericTypes.INT, evv);
+    System.out.println(value.toString());
 
     // value is null, try to derive further information
-    if (value.isUnknown()) {
+    System.out.println("Value before comparsion for (not) equals: " + value.toString());
+    if (value.isUnknown() && !(value instanceof SymbolicValueFormula)) {
 
       ValueAnalysisState element = state.clone();
       AssigningValueVisitor avv = new AssigningValueVisitor(element, truthValue);
