@@ -2,7 +2,7 @@
 <project basedir="." default="server" name="CPAchecker on Google App Engine" xmlns:ivy="antlib:org.apache.ivy.ant">
 	
 	<!-- use this to set the SDK version -->
-	<property name="gae-sdk.name" value="appengine-java-sdk-1.8.9" />
+	<property name="gae-sdk.name" value="appengine-java-sdk-1.9.0" />
 
 	<property name="specification.dir" value="${basedir}/config/specification" />
 	<property name="configuration.dir" value="${basedir}/config" />
@@ -75,7 +75,7 @@
 	</target>
 
 	<target name="getsdk" description="Downloads the Google App Engine SDK.">
-		<get dest="${lib.dir}" src="http://googleappengine.googlecode.com/files/${gae-sdk.name}.zip" usetimestamp="true" verbose="true" />
+		<get dest="${lib.dir}" src="https://commondatastorage.googleapis.com/appengine-sdks/featured/${gae-sdk.name}.zip" usetimestamp="true" verbose="true" />
 	</target>
 
 	<available file="${lib.dir}/${gae-sdk.name}" property="gae-sdk.expanded"/>
