@@ -353,8 +353,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     // get the value of the expression (either true[1L], false[0L], or unknown[null])
     Value value = getExpressionValue(expression, CNumericTypes.INT, evv);
 
-    // value is null, try to derive further information
-    if (value.isUnknown()) {
+    // can not evaluate expression to something explicit, try to derive further information
+    if (!value.isExplicitlyKnown()) {
 
       ValueAnalysisState element = state.clone();
       AssigningValueVisitor avv = new AssigningValueVisitor(element, truthValue);
@@ -457,7 +457,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     boolean complexType = decl.getType() instanceof JClassOrInterfaceType || decl.getType() instanceof JArrayType;
 
 
-    if (!complexType  && (missingInformationRightJExpression != null || initialValue != Value.UnknownValue.getInstance())) {
+    if (!complexType  && (missingInformationRightJExpression != null || !initialValue.isUnknown())) {
       if (missingFieldVariableObject) {
         fieldNameAndInitialValue = Pair.of(varName, initialValue);
       } else if (missingInformationRightJExpression == null) {
@@ -619,7 +619,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
 
     if (visitor.hasMissingPointer()) {
-      assert value.isUnknown();
+      assert !value.isExplicitlyKnown();
     }
 
     if (isMissingCExpressionInformation(visitor, exp)) {
@@ -1288,11 +1288,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     Value value = resolveValue(pSmgState, pMissingInformation.getMissingCExpressionInformation());
 
-    if(!value.isUnknown() && value.equals(new NumericValue(truthValue))) {
+    if(value.isExplicitlyKnown() && value.equals(new NumericValue(truthValue))) {
       return null;
     } else {
 
-      if(value.isUnknown()) {
+      if(!value.isExplicitlyKnown()) {
 
         // Try deriving further Information
         ValueAnalysisState element = pNewElement.clone();

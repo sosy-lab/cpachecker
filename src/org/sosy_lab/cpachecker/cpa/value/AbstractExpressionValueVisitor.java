@@ -951,7 +951,9 @@ public abstract class AbstractExpressionValueVisitor
   public static Value castCValue(@Nonnull final Value value, final CType sourceType,
       final CType targetType,
       final MachineModel machineModel, final LogManager logger, @Nullable final CFAEdge edge) {
-    if (value.isUnknown()) { return Value.UnknownValue.getInstance(); }
+
+    // If we don't know the value explicitly, just return it.
+    if (!value.isExplicitlyKnown()) { return value; }
 
     // For now can only cast numeric value's
     if (!value.isNumericValue()) {

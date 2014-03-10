@@ -142,6 +142,11 @@ public class NumericValue implements Value {
   }
 
   @Override
+  public boolean isExplicitlyKnown() {
+    return true;
+  }
+
+  @Override
   public int hashCode() {
     // fulfills contract that if this.equals(other),
     // then this.hashCode() == other.hashCode()

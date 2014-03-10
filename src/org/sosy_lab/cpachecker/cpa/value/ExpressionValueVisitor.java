@@ -75,6 +75,17 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
   /* additional methods */
 
+  /**
+   * Get the value for an unknown IdExpression(variable).
+   *
+   * With symbolic value analysis enabled, this should be
+   * a formula containing just that IdExpression.
+   */
+  private Value getUnknownIdExpressionValue(MemoryLocation memLoc) {
+    // TODO: switch to enable/disable symbolic value analysis
+    return new SymbolicValueFormula(new SymbolicValueFormula.SymbolicValue(memLoc));
+  }
+
   @Override
   public void reset() {
     super.reset();
@@ -110,7 +121,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     if (state.contains(memLoc)) {
       return state.getValueFor(memLoc);
     } else {
-      return new SymbolicValueFormula(new SymbolicValueFormula.SymbolicValue(memLoc));
+      return getUnknownIdExpressionValue(memLoc);
     }
   }
 

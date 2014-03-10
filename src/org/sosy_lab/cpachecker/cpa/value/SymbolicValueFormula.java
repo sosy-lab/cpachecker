@@ -56,8 +56,15 @@ public class SymbolicValueFormula implements Value {
    * Returns a version of this symboli{c value that was simplified
    * as much as possible.
    */
-  public SymbolicValueFormula simplify() {
+  public Value simplify() {
     ExpressionBase simplifiedTree = recursiveSimplify(root);
+
+    // If we actually know the value, return the known value.
+    if(simplifiedTree instanceof ConstantValue) {
+      return ((ConstantValue) simplifiedTree).getValue();
+    }
+
+    // Otherwise, return the formula.
     return new SymbolicValueFormula(simplifiedTree);
   }
 
@@ -259,7 +266,12 @@ public class SymbolicValueFormula implements Value {
 
   @Override
   public boolean isUnknown() {
-    return true;
+    return false;
+  }
+
+  @Override
+  public boolean isExplicitlyKnown() {
+    return false;
   }
 
   @Override
