@@ -87,7 +87,7 @@ public class TestGenAlgorithm implements Algorithm {
 
 
   public TestGenAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
-      ShutdownNotifier pShutdownNotifier, CFA pCfa, String filename,
+      ShutdownNotifier pShutdownNotifier, CFA pCfa,
       Configuration config, LogManager pLogger) throws InvalidConfigurationException, CPAException {
     TestHelper helper = new TestHelper();
     StartupConfig predConfig = helper.createPredicateConfig();
