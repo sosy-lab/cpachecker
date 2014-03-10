@@ -219,64 +219,45 @@ public class SMGTransferRelation implements TransferRelation {
       dumpSMGPlot(name, currentState, functionCall.toString());
     }
 
-    // TODO: Seems like there is large code sharing with evaluate calloc
-    public final SMGEdgePointsTo evaluateMalloc(CFunctionCallExpression functionCall, SMGState currentState, CFAEdge cfaEdge)
-        throws CPATransferException {
-      CRightHandSide sizeExpr;
-
+    private CExpression extractParameter(CFunctionCallExpression pCall, int pPosition, String pParam, CFAEdge pEdge) throws UnrecognizedCCodeException {
       try {
-        sizeExpr = functionCall.getParameterExpressions().get(MALLOC_PARAMETER);
+        return pCall.getParameterExpressions().get(pPosition);
       } catch (IndexOutOfBoundsException e) {
         logger.logDebugException(e);
-        throw new UnrecognizedCCodeException("Malloc argument not found.", cfaEdge, functionCall);
+        throw new UnrecognizedCCodeException(pCall.getDeclaration().getName() + "() argument not found: " + pParam, pEdge, pCall);
       }
+    }
 
-      SMGExplicitValue value = evaluateExplicitValue(currentState, cfaEdge, sizeExpr);
+    // TODO: Seems like there is large code sharing with evaluate calloc
+    public final SMGEdgePointsTo evaluateMalloc(CFunctionCallExpression pCall, SMGState currentState, CFAEdge pEdge)
+        throws CPATransferException {
+      CRightHandSide sizeExpr = extractParameter(pCall, MALLOC_PARAMETER, "size", pEdge);
+
+      SMGExplicitValue value = evaluateExplicitValue(currentState, pEdge, sizeExpr);
 
       if (value.isUnknown()) {
         //throw new UnrecognizedCCodeException("Not able to compute allocation size", cfaEdge);
         return null;
       }
 
-      String allocation_label = "malloc_ID" + SMGValueFactory.getNewValue() + "_Line:" + functionCall.getFileLocation().getStartingLineNumber();
+      String allocation_label = "malloc_ID" + SMGValueFactory.getNewValue() + "_Line:" + pCall.getFileLocation().getStartingLineNumber();
       SMGEdgePointsTo new_pointer = currentState.addNewHeapAllocation(value.getAsInt(), allocation_label);
 
       possibleMallocFail = true;
       return new_pointer;
     }
 
-    public final SMGEdgePointsTo evaluateMemset(CFunctionCallExpression functionCall,
+    public final SMGEdgePointsTo evaluateMemset(CFunctionCallExpression pCall,
         SMGState currentState, CFAEdge cfaEdge) throws CPATransferException {
 
       //evaluate function: void *memset( void *buffer, int ch, size_t count );
 
-      CExpression bufferExpr;
-      CExpression chExpr;
-      CExpression countExpr;
+      CExpression bufferExpr = extractParameter(pCall, MEMSET_BUFFER_PARAMETER, "buffer", cfaEdge);
+      CExpression chExpr = extractParameter(pCall, MEMSET_CHAR_PARAMETER, "ch", cfaEdge);
+      CExpression countExpr = extractParameter(pCall, MEMSET_COUNT_PARAMETER, "count", cfaEdge);
 
-      try {
-        bufferExpr = functionCall.getParameterExpressions().get(MEMSET_BUFFER_PARAMETER);
-      } catch (IndexOutOfBoundsException e) {
-        logger.logDebugException(e);
-        throw new UnrecognizedCCodeException("Memset buffer argument not found.", cfaEdge, functionCall);
-      }
-
-      try {
-        chExpr = functionCall.getParameterExpressions().get(MEMSET_CHAR_PARAMETER);
-      } catch (IndexOutOfBoundsException e) {
-        logger.logDebugException(e);
-        throw new UnrecognizedCCodeException("Memset ch argument not found.", cfaEdge, functionCall);
-      }
-
-      try {
-        countExpr = functionCall.getParameterExpressions().get(MEMSET_COUNT_PARAMETER);
-      } catch (IndexOutOfBoundsException e) {
-        logger.logDebugException(e);
-        throw new UnrecognizedCCodeException("Memset count argument not found.", cfaEdge, functionCall);
-      }
 
       SMGAddressValue bufferAddress = evaluateAddress(currentState, cfaEdge, bufferExpr);
-
       SMGExplicitValue countValue = evaluateExplicitValue(currentState, cfaEdge, countExpr);
 
       if (bufferAddress.isUnknown() || countValue.isUnknown()) {
@@ -295,7 +276,7 @@ public class SMGTransferRelation implements TransferRelation {
       SMGSymbolicValue ch = evaluateExpressionValue(currentState, cfaEdge, chExpr);
 
       if (ch.isUnknown()) {
-        throw new UnrecognizedCCodeException("Can't simulate memset", cfaEdge, functionCall);
+        throw new UnrecognizedCCodeException("Can't simulate memset", cfaEdge, pCall);
       }
 
       SMGExpressionEvaluator expEvaluator = new SMGExpressionEvaluator(logger, machineModel);
@@ -339,22 +320,8 @@ public class SMGTransferRelation implements TransferRelation {
     public final SMGEdgePointsTo evaluateCalloc(CFunctionCallExpression functionCall,
         SMGState currentState, CFAEdge cfaEdge) throws CPATransferException {
 
-      CExpression numExpr;
-      CExpression sizeExpr;
-
-      try {
-        numExpr = functionCall.getParameterExpressions().get(CALLOC_NUM_PARAMETER);
-      } catch (IndexOutOfBoundsException e) {
-        logger.logDebugException(e);
-        throw new UnrecognizedCCodeException("Calloc num argument not found.", cfaEdge, functionCall);
-      }
-
-      try {
-        sizeExpr = functionCall.getParameterExpressions().get(CALLOC_SIZE_PARAMETER);
-      } catch (IndexOutOfBoundsException e) {
-        logger.logDebugException(e);
-        throw new UnrecognizedCCodeException("Calloc size argument not found.", cfaEdge, functionCall);
-      }
+      CExpression numExpr = extractParameter(functionCall, CALLOC_NUM_PARAMETER, "num", cfaEdge);
+      CExpression sizeExpr = extractParameter(functionCall, CALLOC_SIZE_PARAMETER, "size", cfaEdge);
 
       SMGExplicitValue numValue = expressionEvaluator.evaluateExplicitValue(currentState, cfaEdge, numExpr);
       SMGExplicitValue sizeValue = expressionEvaluator.evaluateExplicitValue(currentState, cfaEdge, sizeExpr);
@@ -379,15 +346,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     public final void evaluateFree(CFunctionCallExpression pFunctionCall, SMGState currentState,
         CFAEdge cfaEdge) throws CPATransferException {
-      CExpression pointerExp;
-
-      try {
-        pointerExp = pFunctionCall.getParameterExpressions().get(0);
-      } catch (IndexOutOfBoundsException e) {
-        logger.logDebugException(e);
-        throw new UnrecognizedCCodeException("Built-in free(): No parameter passed", cfaEdge, pFunctionCall);
-      }
-
+      CExpression pointerExp = extractParameter(pFunctionCall, 0, "pointer", cfaEdge);
       SMGAddressValue address = expressionEvaluator.evaluateAddress(currentState, cfaEdge, pointerExp);
 
       if (address.isUnknown()) {
