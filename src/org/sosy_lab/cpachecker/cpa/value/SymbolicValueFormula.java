@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 
 /**
  * This class extends the ExplicitCPA with the ability to keep track of
- * "symbolic values", and formulas which contain these.<br>
+ * "symbolic values", and formulas which contain these.
  *
  * Example values:
  * foo() + 2
@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
  * bar * someVariable
  *
  * Eventually, it should also become possible to simplify these formulae,
- * e.g. X - X becomes 0.<br>
+ * e.g. X + X becomes 0
  *
  * However, these simplifications are more restricted than those in purely
  * mathematical formulae. For instance, consider "X / 10 * 10". Using
@@ -221,7 +221,6 @@ public class SymbolicValueFormula implements Value {
   private static ExpressionBase recursiveSimplify(ExpressionBase expression) {
     if(expression instanceof BinaryExpression) {
       BinaryExpression binaryExpression = (BinaryExpression) expression;
-      System.out.println("Simplyfy: " + binaryExpression.getOperator());
 
       switch(binaryExpression.getOperator()) {
       case MINUS:
