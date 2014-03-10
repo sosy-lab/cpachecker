@@ -110,6 +110,10 @@ public class CoreComponentsFactory {
       + "if reached set fulfills property specified by ConfigurableProgramAnalysisWithPropertyChecker")
   private boolean usePropertyCheckingAlgorithm = false;
 
+  @Option(name="algorithm.testGen",
+      description = "use the TestGen Algorithm")
+  private boolean useTestGenAlgorithm = false;
+
   @Option(name="checkProof",
       description = "do analysis and then check analysis result")
   private boolean useResultCheckAlgorithm = false;
