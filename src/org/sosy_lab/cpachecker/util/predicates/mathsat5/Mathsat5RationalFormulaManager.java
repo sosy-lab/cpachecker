@@ -37,10 +37,8 @@ class Mathsat5RationalFormulaManager extends Mathsat5NumeralFormulaManager<Numer
     super(pCreator, functionManager, RationalFormula.class);
   }
 
-  @Override
-  public Long makeVariableImpl(String var) {
-    long numberType = getFormulaCreator().getRealType();
-    return getFormulaCreator().makeVariable(numberType, var);
+  protected long getNumeralType() {
+    return getFormulaCreator().getRealType();
   }
 
   @Override

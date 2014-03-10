@@ -85,11 +85,11 @@ abstract class Mathsat5NumeralFormulaManager
     return msat_make_number(mathsatEnv, pI);
   }
 
+  abstract protected long getNumeralType();
 
   @Override
   public Long makeVariableImpl(String var) {
-    long numberType = getFormulaCreator().getRealType();
-    return getFormulaCreator().makeVariable(numberType, var);
+    return getFormulaCreator().makeVariable(getNumeralType(), var);
   }
 
   @Override

@@ -38,10 +38,8 @@ class Mathsat5IntegerFormulaManager extends Mathsat5NumeralFormulaManager<Intege
     super(pCreator, functionManager, IntegerFormula.class);
   }
 
-  @Override
-  public Long makeVariableImpl(String var) {
-    long numberType = getFormulaCreator().getIntegerType();
-    return getFormulaCreator().makeVariable(numberType, var);
+  protected long getNumeralType() {
+    return getFormulaCreator().getIntegerType();
   }
 
   @Override
