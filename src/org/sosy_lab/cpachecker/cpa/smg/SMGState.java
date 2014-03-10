@@ -777,39 +777,6 @@ public class SMGState implements AbstractQueryableState, Targetable {
   }
 
   /**
-   * Determine, whether the two given symbolic values are not equal.
-   * If this method does not return true, the relation of these
-   * symbolic values is unknown.
-   *
-   * @param value1 first symbolic value to be checked
-   * @param value2 second symbolic value to be checked
-   * @return true, if the symbolic values are known to be not equal, false, if it is unknown.
-   * @throws SMGInconsistentException
-   */
-  public boolean isUnequal(int value1, int value2) {
-    // TODO Neq Relation for more precise comparison
-
-    if (heap.isPointer(value1) && heap.isPointer(value2)) {
-
-      if (value1 != value2) {
-        /* This is just a safety check,
-        equal pointers should have equal symbolic values.*/
-        SMGEdgePointsTo edge1;
-        SMGEdgePointsTo edge2;
-        try {
-          edge1 = getPointerFromValue(value1);
-          edge2 = getPointerFromValue(value2);
-        } catch (SMGInconsistentException e) {
-          throw new AssertionError(e.getMessage());
-        }
-
-        return edge1.getObject() != edge2.getObject() || edge1.getOffset() != edge2.getOffset();
-      }
-    }
-    return false;
-  }
-
-  /**
    * Drop the stack frame representing the stack of
    * the function with the given name
    *
@@ -957,6 +924,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
     }
     return SMGUnknownValue.getInstance();
   }
+
   public void attemptAbstraction() {
     SMGAbstractionManager manager = new SMGAbstractionManager(heap);
     heap = SMGFactory.createWritableCopy(manager.execute());

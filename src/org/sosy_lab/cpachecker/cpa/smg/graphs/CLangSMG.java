@@ -37,6 +37,8 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
@@ -467,5 +469,33 @@ class CLangSMG extends SMG implements WritableSMG {
   @Override
   public boolean containsValue(Integer pValue) {
     return getValues().contains(pValue);
+  }
+
+  /**
+   * Determine, whether the two given symbolic values are not equal.
+   * If this method does not return true, the relation of these
+   * symbolic values is unknown.
+   *
+   * @param value1 first symbolic value to be checked
+   * @param value2 second symbolic value to be checked
+   * @return true, if the symbolic values are known to be not equal, false, if it is unknown.
+   * @throws SMGInconsistentException
+   */
+  public boolean isUnequal(int value1, int value2) {
+
+    if (isPointer(value1) && isPointer(value2)) {
+
+      if (value1 != value2) {
+        /* This is just a safety check,
+        equal pointers should have equal symbolic values.*/
+        SMGEdgePointsTo edge1;
+        SMGEdgePointsTo edge2;
+        edge1 = getPointer(value1);
+        edge2 = getPointer(value2);
+
+        return edge1.getObject() != edge2.getObject() || edge1.getOffset() != edge2.getOffset();
+      }
+    }
+    return false;
   }
 }

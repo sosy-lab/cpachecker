@@ -55,6 +55,7 @@ public interface ReadableSMG {
   public Set<Integer> getValues();
   public boolean containsValue(Integer pValue);
   public int getNullValue();
+  public boolean isUnequal(int pV1, int pV2);
 
   public SMGEdgePointsTo getPointer(Integer pValue);
   public Set<SMGEdgePointsTo> getPTEdges();
