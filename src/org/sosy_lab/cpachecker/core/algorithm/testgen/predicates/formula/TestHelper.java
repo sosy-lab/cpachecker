@@ -34,6 +34,8 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 
 public class TestHelper {
 
+
+
   public StartupConfig createPredicateConfig()
   {
     try {
