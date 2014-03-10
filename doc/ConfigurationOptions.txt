@@ -620,10 +620,18 @@ cpa.conditions.global.time.wall = -1
 # When using adjustable conditions, analysis will end after this threshold
 cpa.conditions.global.time.wall.hardlimit = -1
 
-# (hard) threshold for assignments (-1 for infinite)
+# This option sets the hard threshold for assignments (-1 for infinite). A
+# variable reaching this assignment threshold is not tracked anymore, even if
+# it is contained in the precision.
 cpa.conditions.path.assignments.hardThreshold = -1
 
-# (soft) threshold for assignments (-1 for infinite)
+# This option sets the soft threshold for assignments (-1 for infinite). The
+# semantics are that variables are tracked up to this threshold, even if not
+# being contained in the precison yet, and are removed once there are more
+# assignments for a variable then defined by this threshold. Once the
+# variable is found to be relevant, e.g., through refinement and
+# interpolation, the variable is tracked again, until reaching the  hard
+# threshold.
 cpa.conditions.path.assignments.softThreshold = -1
 
 # maximum number of assume edges length (-1 for infinite)
