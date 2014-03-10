@@ -876,7 +876,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
     return SMGUnknownValue.getInstance();
   }
 
-  public void attemptAbstraction() {
+  public void attemptAbstraction() throws SMGInconsistentException {
     SMGAbstractionManager manager = new SMGAbstractionManager(heap);
     heap = SMGFactory.createWritableCopy(manager.execute());
   }

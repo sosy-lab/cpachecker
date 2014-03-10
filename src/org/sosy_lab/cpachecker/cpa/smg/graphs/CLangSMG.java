@@ -484,7 +484,7 @@ class CLangSMG extends SMG implements WritableSMG {
    * @throws SMGInconsistentException
    */
   @Override
-  public boolean isUnequal(int value1, int value2) {
+  public boolean isUnequal(int value1, int value2) throws SMGInconsistentException {
 
     if (isPointer(value1) && isPointer(value2)) {
 
