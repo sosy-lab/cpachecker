@@ -133,6 +133,7 @@ public class TestGenAlgorithm implements Algorithm {
          */
         return true;
       }
+//      ARGUtils.producePathAutomaton(sb, pRootState, pPathStates, name, pCounterExample);
       /*
        * not an error path. selecting new path to traverse.
        */
