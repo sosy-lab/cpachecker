@@ -76,6 +76,9 @@ import com.google.common.collect.Multimap;
 @Options(prefix="cpa.value")
 public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider, ProofChecker {
 
+  @Option(name="symbolicValues", description="enables generation of symbolic values")
+  private boolean symbolicValues = false;
+
   @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for ValueAnalysisCPA")
   private String mergeType = "SEP";
@@ -255,6 +258,17 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
       idToNodeMap.put(n.getNodeNumber(), n);
     }
     return idToNodeMap;
+  }
+
+  /**
+   * Getter for the "symbolicValues" option which enables the generation of
+   * symbolic values. <code>false</code> by default.
+   *
+   * @return <code>true</code> if the generation of symbolic values is enabled,
+   *         <code>false</code> otherwise
+   */
+  public boolean isSymbolicValuesEnabled() {
+    return symbolicValues;
   }
 
   @Override
