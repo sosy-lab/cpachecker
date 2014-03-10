@@ -283,7 +283,7 @@ public class SMGTransferRelation implements TransferRelation {
         return null;
       }
 
-      SMGEdgePointsTo pointer = currentState.getPointerFromValue(bufferAddress.getAsInt());
+      SMGEdgePointsTo pointer = currentState.getSMG().getPointer(bufferAddress.getAsInt());
 
       long count = countValue.getAsLong();
 
@@ -398,7 +398,7 @@ public class SMGTransferRelation implements TransferRelation {
       SMGEdgePointsTo pointer;
 
       if (currentState.getSMG().isPointer(address.getAsInt())) {
-        pointer = currentState.getPointerFromValue(address.getAsInt());
+        pointer = currentState.getSMG().getPointer(address.getAsInt());
       } else {
         pointer = new SMGEdgePointsTo(address.getAsInt(), address.getObject(), address.getOffset().getAsInt());
       }

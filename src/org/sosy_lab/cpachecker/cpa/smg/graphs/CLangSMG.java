@@ -31,6 +31,8 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -481,6 +483,7 @@ class CLangSMG extends SMG implements WritableSMG {
    * @return true, if the symbolic values are known to be not equal, false, if it is unknown.
    * @throws SMGInconsistentException
    */
+  @Override
   public boolean isUnequal(int value1, int value2) {
 
     if (isPointer(value1) && isPointer(value2)) {
@@ -497,5 +500,35 @@ class CLangSMG extends SMG implements WritableSMG {
       }
     }
     return false;
+  }
+
+  /**
+   * Get the symbolic value, that represents the address
+   * pointing to the given memory with the given offset, if it exists.
+   *
+   * @param memory
+   *          get address belonging to this memory.
+   * @param offset
+   *          get address with this offset relative to the beginning of the
+   *          memory.
+   * @return Address of the given field, or null, if such an address does not
+   *         yet exist in the SMG.
+   */
+  @Override
+  @Nullable
+  public Integer getAddress(SMGObject pMemory, Integer pOffset) {
+
+    // TODO A better way of getting those edges, maybe with a filter
+    // like the Has-Value-Edges
+
+    Set<SMGEdgePointsTo> pointsToEdges = getPTEdges();
+
+    for (SMGEdgePointsTo edge : pointsToEdges) {
+      if (edge.getObject().equals(pMemory) && edge.getOffset() == pOffset) {
+        return edge.getValue();
+      }
+    }
+
+    return null;
   }
 }
