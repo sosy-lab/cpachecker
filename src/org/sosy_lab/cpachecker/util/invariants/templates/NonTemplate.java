@@ -25,10 +25,10 @@ package org.sosy_lab.cpachecker.util.invariants.templates;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
-public class NonTemplate extends TemplateFormula implements BooleanFormula, BitvectorFormula, NumeralFormula {
+public class NonTemplate extends TemplateFormula implements BooleanFormula, BitvectorFormula, RationalFormula {
 
   private FormulaType<?> type;
 

@@ -42,15 +42,15 @@ public class TFtester {
     FormulaManagerView view = new FormulaManagerView(tfm);
     NumeralFormulaManagerView<NumeralFormula, RationalFormula> nfmgr = view.getRationalFormulaManager();
     BooleanFormulaManagerView bfmgr = view.getBooleanFormulaManager();
-    FormulaType<? extends NumeralFormula> type = FormulaType.RationalType;
-    NumeralFormula a1 = view.makeVariable(type, "a", 1);
-    NumeralFormula a2 = view.makeVariable(type, "a", 2);
-    NumeralFormula b1 = view.makeVariable(type, "b", 1);
-    NumeralFormula b2 = view.makeVariable(type, "b", 2);
-    NumeralFormula c1 = view.makeVariable(type, "c", 1);
-    NumeralFormula c2 = view.makeVariable(type, "c", 2);
-    NumeralFormula d1 = view.makeVariable(type, "d", 1);
-    NumeralFormula d2 = view.makeVariable(type, "d", 2);
+    FormulaType<RationalFormula> type = FormulaType.RationalType;
+    RationalFormula a1 = view.makeVariable(type, "a", 1);
+    RationalFormula a2 = view.makeVariable(type, "a", 2);
+    RationalFormula b1 = view.makeVariable(type, "b", 1);
+    RationalFormula b2 = view.makeVariable(type, "b", 2);
+    RationalFormula c1 = view.makeVariable(type, "c", 1);
+    RationalFormula c2 = view.makeVariable(type, "c", 2);
+    RationalFormula d1 = view.makeVariable(type, "d", 1);
+    RationalFormula d2 = view.makeVariable(type, "d", 2);
 
     BooleanFormula A = nfmgr.greaterOrEquals(a1, a2);
     BooleanFormula B = nfmgr.greaterThan(b1, b2);

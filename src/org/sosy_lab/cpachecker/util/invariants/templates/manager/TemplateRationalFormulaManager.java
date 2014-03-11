@@ -24,10 +24,9 @@
 package org.sosy_lab.cpachecker.util.invariants.templates.manager;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
 
-public class TemplateRationalFormulaManager extends TemplateNumericFormulaManager<RationalFormula> {
+public class TemplateRationalFormulaManager extends TemplateNumericFormulaManager {
 
   public TemplateRationalFormulaManager(TemplateFormulaManager manager) {
     super(manager, FormulaType.RationalType);

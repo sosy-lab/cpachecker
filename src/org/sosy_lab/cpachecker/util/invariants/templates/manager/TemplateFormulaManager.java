@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 public class TemplateFormulaManager implements FormulaManager {
 
   private final TemplateParseMode tpMode;
-  private  TemplateIntegerFormulaManager ifmgr;
   private  TemplateRationalFormulaManager rfmgr;
   private  TemplateBooleanFormulaManager bfmgr;
   private  TemplateBitvectorFormulaManager efmgr;
@@ -61,7 +60,6 @@ public class TemplateFormulaManager implements FormulaManager {
   }
 
   private void init() {
-    ifmgr = new TemplateIntegerFormulaManager(this);
     rfmgr = new TemplateRationalFormulaManager(this);
     bfmgr = new TemplateBooleanFormulaManager(this);
     efmgr = new TemplateBitvectorFormulaManager(this);
@@ -76,7 +74,7 @@ public class TemplateFormulaManager implements FormulaManager {
 
   @Override
   public NumeralFormulaManager<IntegerFormula, IntegerFormula> getIntegerFormulaManager() {
-    return ifmgr;
+    throw new UnsupportedOperationException();
   }
 
   @Override

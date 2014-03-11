@@ -30,23 +30,24 @@ import org.sosy_lab.cpachecker.util.invariants.templates.TemplateTerm;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 
 
-abstract class TemplateNumericFormulaManager<T extends NumeralFormula> implements NumeralFormulaManager {
+abstract class TemplateNumericFormulaManager implements NumeralFormulaManager<NumeralFormula, RationalFormula> {
 
-  private FormulaType<T> type;
+  private FormulaType<RationalFormula> type;
   private TemplateNumericBaseFormulaManager baseManager;
   private TemplateFormulaManager manager;
 
-  public TemplateNumericFormulaManager(TemplateFormulaManager manager, FormulaType<T> pType) {
+  public TemplateNumericFormulaManager(TemplateFormulaManager manager, FormulaType<RationalFormula> pType) {
     this.manager = manager;
     this.type = pType;
     baseManager = new TemplateNumericBaseFormulaManager();
   }
 
   @Override
-  public NumeralFormula makeNumber(long pI) {
+  public RationalFormula makeNumber(long pI) {
     TemplateNumber N = new TemplateNumber(type, (int) pI);
     TemplateTerm T = new TemplateTerm(type);
     T.setCoefficient(N);
@@ -54,28 +55,28 @@ abstract class TemplateNumericFormulaManager<T extends NumeralFormula> implement
   }
 
   @Override
-  public NumeralFormula makeNumber(BigInteger pI) {
+  public RationalFormula makeNumber(BigInteger pI) {
     return makeNumber(pI.longValue());
   }
 
   @Override
-  public NumeralFormula makeNumber(String pI) {
+  public RationalFormula makeNumber(String pI) {
     return makeNumber(Long.parseLong(pI));
   }
 
   @Override
-  public NumeralFormula makeVariable(String pVar) {
+  public RationalFormula makeVariable(String pVar) {
     return manager.makeVariable(type, pVar, null);
   }
 
   @Override
-  public FormulaType<T> getFormulaType() {
+  public FormulaType<RationalFormula> getFormulaType() {
     return type;
   }
 
   @Override
-  public NumeralFormula negate(NumeralFormula pNumber) {
-    return (NumeralFormula) baseManager.negate(pNumber);
+  public RationalFormula negate(NumeralFormula pNumber) {
+    return (RationalFormula) baseManager.negate(pNumber);
   }
 
   @Override
@@ -84,8 +85,8 @@ abstract class TemplateNumericFormulaManager<T extends NumeralFormula> implement
   }
 
   @Override
-  public NumeralFormula add(NumeralFormula pNumber1, NumeralFormula pNumber2) {
-    return (NumeralFormula) baseManager.add(pNumber1, pNumber1);
+  public RationalFormula add(NumeralFormula pNumber1, NumeralFormula pNumber2) {
+    return (RationalFormula) baseManager.add(pNumber1, pNumber1);
   }
 
   @Override
@@ -94,8 +95,8 @@ abstract class TemplateNumericFormulaManager<T extends NumeralFormula> implement
   }
 
   @Override
-  public NumeralFormula subtract(NumeralFormula pNumber1, NumeralFormula pNumber2) {
-    return (NumeralFormula) baseManager.subtract(pNumber1, pNumber1);
+  public RationalFormula subtract(NumeralFormula pNumber1, NumeralFormula pNumber2) {
+    return (RationalFormula) baseManager.subtract(pNumber1, pNumber1);
   }
 
   @Override
@@ -104,8 +105,8 @@ abstract class TemplateNumericFormulaManager<T extends NumeralFormula> implement
   }
 
   @Override
-  public NumeralFormula divide(NumeralFormula pNumber1, NumeralFormula pNumber2) {
-    return (NumeralFormula) baseManager.divide(pNumber1, pNumber2);
+  public RationalFormula divide(NumeralFormula pNumber1, NumeralFormula pNumber2) {
+    return (RationalFormula) baseManager.divide(pNumber1, pNumber2);
   }
 
   @Override
@@ -114,8 +115,8 @@ abstract class TemplateNumericFormulaManager<T extends NumeralFormula> implement
   }
 
   @Override
-  public NumeralFormula modulo(NumeralFormula pNumber1, NumeralFormula pNumber2) {
-    return (NumeralFormula) baseManager.modulo(pNumber1, pNumber1);
+  public RationalFormula modulo(NumeralFormula pNumber1, NumeralFormula pNumber2) {
+    return (RationalFormula) baseManager.modulo(pNumber1, pNumber1);
   }
 
   @Override
@@ -124,8 +125,8 @@ abstract class TemplateNumericFormulaManager<T extends NumeralFormula> implement
   }
 
   @Override
-  public NumeralFormula multiply(NumeralFormula pNumber1, NumeralFormula pNumber2) {
-    return (NumeralFormula) baseManager.multiply(pNumber1, pNumber2);
+  public RationalFormula multiply(NumeralFormula pNumber1, NumeralFormula pNumber2) {
+    return (RationalFormula) baseManager.multiply(pNumber1, pNumber2);
   }
 
   @Override
