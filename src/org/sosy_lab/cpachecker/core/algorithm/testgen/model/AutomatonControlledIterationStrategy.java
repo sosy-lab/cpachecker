@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.StartupConfig;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
@@ -50,16 +51,17 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 public class AutomatonControlledIterationStrategy implements TestGenIterationStrategy {
 
   private Configuration config;
-  private CPABuilder cpaBuilder;
   private LogManager logger;
   private ShutdownNotifier shutdownNotifier;
   private CFA cfa;
   private final TestGenIterationStrategy.IterationModel model;
+  private ReachedSetFactory reachedSetFactory;
 
-  public AutomatonControlledIterationStrategy(StartupConfig startupConfig, CPABuilder pCpaBuilder, CFA pCfa, IterationModel model) {
+  public AutomatonControlledIterationStrategy(StartupConfig startupConfig, CFA pCfa, IterationModel model,
+      ReachedSetFactory pReachedSetFactory) {
     super();
+    this.reachedSetFactory = pReachedSetFactory;
     config = startupConfig.getConfig();
-    cpaBuilder = pCpaBuilder;
     logger = startupConfig.getLog();
     shutdownNotifier = startupConfig.getNotifier();
     cfa = pCfa;
@@ -100,7 +102,9 @@ public class AutomatonControlledIterationStrategy implements TestGenIterationStr
         ARGUtils.producePathAutomaton(w, "nextPathAutomaton", pNewPath);
       }
 
-      ConfigurableProgramAnalysis nextCpa = cpaBuilder.buildCPAs(cfa);
+
+      CPABuilder cbuilder = new CPABuilder(nextConfig, logger, shutdownNotifier, reachedSetFactory);
+      ConfigurableProgramAnalysis nextCpa = cbuilder.buildCPAs(cfa);
 
       if (model.getAlgorithm() instanceof CPAAlgorithm) {
         return CPAAlgorithm.create(nextCpa, logger, nextConfig, shutdownNotifier);

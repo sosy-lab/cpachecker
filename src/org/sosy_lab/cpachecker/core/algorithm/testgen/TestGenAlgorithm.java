@@ -28,7 +28,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.BasicTestGenPathAnalysisStrategy;
@@ -81,7 +80,7 @@ public class TestGenAlgorithm implements Algorithm {
 
   public TestGenAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
       ShutdownNotifier pShutdownNotifier, CFA pCfa,
-      Configuration pConfig, LogManager pLogger, CPABuilder pCpaBuilder) throws InvalidConfigurationException, CPAException {
+      Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException, CPAException {
     startupConfig = new StartupConfig(pConfig, pLogger, pShutdownNotifier);
     startupConfig.getConfig().inject(this);
     cfa = pCfa;
@@ -99,8 +98,8 @@ public class TestGenAlgorithm implements Algorithm {
 
     IterationModel model = new IterationModel(pAlgorithm, null, null);
 
-    iterationStrategy = new AutomatonControlledIterationStrategy(startupConfig, pCpaBuilder, pCfa, model);
-//    iterationStrategy = new SameAlgorithmRestartAtDecisionIterationStrategy(startupConfig, reachedSetFactory, model);
+    iterationStrategy = new AutomatonControlledIterationStrategy(startupConfig, pCfa, model, reachedSetFactory);
+    //    iterationStrategy = new SameAlgorithmRestartAtDecisionIterationStrategy(startupConfig, reachedSetFactory, model);
 
     analysisStrategy = new BasicTestGenPathAnalysisStrategy(pathChecker);
 
