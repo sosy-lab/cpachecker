@@ -26,9 +26,18 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view.wrapping;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.*;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BitvectorFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 
 
@@ -50,9 +59,13 @@ public class WrappingFormulaManager extends FormulaManagerView {
       }
 
       @Override
-      public <P extends NumeralFormula, R extends NumeralFormula>
-              NumeralFormulaManagerView<P,R> wrapManager(NumeralFormulaManager<P,R> pManager) {
-        return new WrappingNumeralFormulaManagerView<>(pManager);
+      public NumeralFormulaManagerView<IntegerFormula, IntegerFormula> wrapIntegerManager(NumeralFormulaManager<IntegerFormula, IntegerFormula> pManager) {
+        return new WrappingIntegerFormulaManagerView(pManager);
+      }
+
+      @Override
+      public NumeralFormulaManagerView<NumeralFormula, RationalFormula> wrapRationalManager(NumeralFormulaManager<NumeralFormula, RationalFormula> pManager) {
+        return new WrappingRationalFormulaManagerView(pManager);
       }
 
       @Override

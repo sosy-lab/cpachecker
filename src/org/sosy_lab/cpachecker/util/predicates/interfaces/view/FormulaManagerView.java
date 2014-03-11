@@ -73,8 +73,8 @@ public class FormulaManagerView {
 
   public interface LoadManagers {
     public BooleanFormulaManagerView wrapManager(BooleanFormulaManager manager);
-    public <P extends NumeralFormula, R  extends NumeralFormula>
-            NumeralFormulaManagerView<P, R> wrapManager(NumeralFormulaManager<P, R> manager);
+    public NumeralFormulaManagerView<IntegerFormula, IntegerFormula> wrapIntegerManager(NumeralFormulaManager<IntegerFormula, IntegerFormula> manager);
+    public NumeralFormulaManagerView<NumeralFormula, RationalFormula> wrapRationalManager(NumeralFormulaManager<NumeralFormula, RationalFormula> manager);
     public BitvectorFormulaManagerView wrapManager(BitvectorFormulaManager manager);
     public FunctionFormulaManagerView wrapManager(FunctionFormulaManager pManager);
   }
@@ -87,8 +87,12 @@ public class FormulaManagerView {
         }
 
         @Override
-        public <PF extends NumeralFormula, RF  extends NumeralFormula>
-                NumeralFormulaManagerView<PF, RF> wrapManager(NumeralFormulaManager<PF, RF> pManager) {
+        public NumeralFormulaManagerView<IntegerFormula, IntegerFormula> wrapIntegerManager(NumeralFormulaManager<IntegerFormula, IntegerFormula> pManager) {
+          return new NumeralFormulaManagerView<>(pManager);
+        }
+
+        @Override
+        public NumeralFormulaManagerView<NumeralFormula, RationalFormula> wrapRationalManager(NumeralFormulaManager<NumeralFormula, RationalFormula> pManager) {
           return new NumeralFormulaManagerView<>(pManager);
         }
 
@@ -141,9 +145,9 @@ public class FormulaManagerView {
     manager = baseManager;
     bitvectorFormulaManager = loadManagers.wrapManager(baseManager.getBitvectorFormulaManager());
     bitvectorFormulaManager.couple(this);
-    integerFormulaManager = loadManagers.wrapManager(baseManager.getIntegerFormulaManager());
+    integerFormulaManager = loadManagers.wrapIntegerManager(baseManager.getIntegerFormulaManager());
     integerFormulaManager.couple(this);
-    rationalFormulaManager = loadManagers.wrapManager(baseManager.getRationalFormulaManager());
+    rationalFormulaManager = loadManagers.wrapRationalManager(baseManager.getRationalFormulaManager());
     rationalFormulaManager.couple(this);
     booleanFormulaManager = loadManagers.wrapManager(baseManager.getBooleanFormulaManager());
     booleanFormulaManager.couple(this);

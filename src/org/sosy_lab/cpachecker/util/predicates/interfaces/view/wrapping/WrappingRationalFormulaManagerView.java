@@ -24,35 +24,26 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view.wrapping;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.wrapping.NumeralFormulaView.IntegerFormulaView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.wrapping.NumeralFormulaView.RationalFormulaView;
 
 
-public class WrappingNumeralFormulaManagerView
-        <ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
-        extends NumeralFormulaManagerView<ParamFormulaType, ResultFormulaType> {
+class WrappingRationalFormulaManagerView
+        extends NumeralFormulaManagerView<NumeralFormula, RationalFormula> {
 
-  public WrappingNumeralFormulaManagerView(NumeralFormulaManager<ParamFormulaType, ResultFormulaType> pManager) {
+  public WrappingRationalFormulaManagerView(NumeralFormulaManager<NumeralFormula, RationalFormula> pManager) {
     super(pManager);
   }
 
   @Override
-  public ResultFormulaType wrapInView(ResultFormulaType pFormula) {
-    if (pFormula instanceof IntegerFormula) {
-      return (ResultFormulaType) new IntegerFormulaView((IntegerFormula)pFormula);
-    } else if (pFormula instanceof RationalFormula) {
-      return (ResultFormulaType) new RationalFormulaView((RationalFormula)pFormula);
-    } else {
-      throw new AssertionError("unhandled formulatype: " + pFormula.getClass());
-    }
+  public RationalFormula wrapInView(RationalFormula pFormula) {
+    return new RationalFormulaView(pFormula);
   }
 
   @Override
-  public ParamFormulaType extractFromView(ParamFormulaType pFormula) {
-    return (ParamFormulaType)((NumeralFormulaView<?>)pFormula).getWrapped();
+  public NumeralFormula extractFromView(NumeralFormula pFormula) {
+    return ((NumeralFormulaView<?>)pFormula).getWrapped();
   }
 }
