@@ -113,6 +113,8 @@ public class TestGenAlgorithm implements Algorithm {
 
     ReachedSet globalReached = pReachedSet;
     ReachedSet currentReached = reachedSetFactory.create();
+    AbstractState initialState = globalReached.getFirstState();
+    currentReached.add(initialState, globalReached.getPrecision(initialState));
 
 //    currentReached.add(globalReached. precision);
     while(globalReached.hasWaitingState()){
@@ -120,8 +122,16 @@ public class TestGenAlgorithm implements Algorithm {
       boolean sound = explicitAlg.run(currentReached);
       //sound should normally be unsound for us.
       //check if reachedSet contains error
-      if(AbstractStates.isTargetState(currentReached.getLastState()))
+      if(!(currentReached.getLastState() instanceof ARGState)) {
+        throw new IllegalStateException("wrong configuration of explicit cpa, because concolicAlg needs ARGState");
+      }
+      ARGState pseudoTarget = (ARGState)currentReached.getLastState();
+      ARGPath executedPath = ARGUtils.getOnePathTo(pseudoTarget);
+      if(AbstractStates.isTargetState(pseudoTarget))
       {
+        //FIXME HACK
+        CFANode errorLocation = AbstractStates.extractLocation(pseudoTarget);
+        System.out.println("error location: " + errorLocation);
         /*
          * target state means error state.
          * we found an error path and leave the analysis to the surrounding alg.
@@ -132,11 +142,6 @@ public class TestGenAlgorithm implements Algorithm {
       /*
        * not an error path. selecting new path to traverse.
        */
-      if(!(currentReached.getLastState() instanceof ARGState)) {
-        throw new IllegalStateException("wrong configuration of explicit cpa, because concolicAlg needs ARGState");
-      }
-      ARGState pseudoTarget = (ARGState)currentReached.getLastState();
-      ARGPath executedPath = ARGUtils.getOnePathTo(pseudoTarget);
 
       CounterexampleTraceInfo newPath = findNewFeasiblePathUsingPredicates(executedPath);
       if(newPath == null){
