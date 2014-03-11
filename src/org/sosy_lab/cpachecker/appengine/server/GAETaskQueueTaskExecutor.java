@@ -27,7 +27,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.appengine.common.TaskRunner;
+import org.sosy_lab.cpachecker.appengine.common.TaskExecutor;
 import org.sosy_lab.cpachecker.appengine.dao.TaskDAO;
 import org.sosy_lab.cpachecker.appengine.entity.Task;
 
@@ -38,7 +38,7 @@ import com.google.appengine.api.taskqueue.TaskHandle;
 import com.google.appengine.api.taskqueue.TaskOptions;
 
 @Options
-public class TaskQueueTaskRunner implements TaskRunner {
+public class GAETaskQueueTaskExecutor implements TaskExecutor {
 
   public enum InstanceType {
     /**
@@ -59,7 +59,7 @@ public class TaskQueueTaskRunner implements TaskRunner {
   public static final String BACKEND_NAME = "task-worker-b1";
 
   @Option(name = "gae.instanceType",
-      description = "The instance type to use when running CPAchecker on Google App Engine."
+      description = "The instance type to use when executing CPAchecker on Google App Engine."
           + "Frontend instances have a wall time limit of 9 minutes. Backends may run for up to 24 hours."
           + "However, instance hours on backends are limited",
       values = { "FRONTEND", "BACKEND" })
@@ -67,24 +67,24 @@ public class TaskQueueTaskRunner implements TaskRunner {
 
   /**
    * Constructs a new instance.
-   * The {@link Task} submitted via {@link #run(Task)} will be enqueued immediately.
+   * The {@link Task} submitted via {@link #execute(Task)} will be enqueued immediately.
    */
-  public TaskQueueTaskRunner() {
+  public GAETaskQueueTaskExecutor() {
     instanceType = InstanceType.FRONTEND;
   }
 
   /**
    * Constructs a new instance that enqueues the {@link Task} submitted via
-   * {@link #run(Task)} immediately.
+   * {@link #execute(Task)} immediately.
    *
    * @param instancyType The instance type to use for processing the {@link Task}.
    */
-  public TaskQueueTaskRunner(Configuration config) throws InvalidConfigurationException {
+  public GAETaskQueueTaskExecutor(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
   }
 
   @Override
-  public Task run(Task task) {
+  public Task execute(Task task) {
     String taskKey = task.getKey();
 
     Queue queue = QueueFactory.getQueue(QUEUE_NAME);

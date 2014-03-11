@@ -48,7 +48,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.appengine.dao.TaskDAO;
 import org.sosy_lab.cpachecker.appengine.entity.Task;
 import org.sosy_lab.cpachecker.appengine.json.TaskMixinAnnotations;
-import org.sosy_lab.cpachecker.appengine.server.TaskQueueTaskRunner;
+import org.sosy_lab.cpachecker.appengine.server.GAETaskQueueTaskExecutor;
 import org.sosy_lab.cpachecker.appengine.server.common.TasksResource;
 import org.sosy_lab.cpachecker.appengine.util.DefaultOptions;
 import org.sosy_lab.cpachecker.appengine.util.FreemarkerUtil;
@@ -138,7 +138,7 @@ public class TasksServerResource extends WadlServerResource implements TasksReso
       try {
         Configuration config = Configuration.builder()
             .setOptions(task.getOptions()).build();
-        new TaskQueueTaskRunner(config).run(task);
+        new GAETaskQueueTaskExecutor(config).execute(task);
       } catch (InvalidConfigurationException e) {
         errors.add("error.invalidConfiguration");
       }
@@ -189,7 +189,7 @@ public class TasksServerResource extends WadlServerResource implements TasksReso
       try {
         Configuration config = Configuration.builder()
             .setOptions(task.getOptions()).build();
-        new TaskQueueTaskRunner(config).run(task);
+        new GAETaskQueueTaskExecutor(config).execute(task);
       } catch (InvalidConfigurationException e) {
         errors.add("error.invalidConfiguration");
       }

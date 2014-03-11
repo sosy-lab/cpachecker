@@ -26,24 +26,24 @@ package org.sosy_lab.cpachecker.appengine.common;
 import org.sosy_lab.cpachecker.appengine.entity.Task;
 
 /**
- * Interface for classes that are able to run a verification {@link Task}.
- * Running the {@link Task} does not need to be immediate. An implementation of
- * this interface might also delay the run.
+ * Interface for classes that are able to execute a verification {@link Task}.
+ * Execution of the {@link Task} does not need to be immediate.
+ * An implementation of this interface might also delay the run.
  * Examples are:
- * - Asynchronous runner
- * - Synchronous runner
- * - Task Queue runner
- * - Remote runner
+ * - Asynchronous executor
+ * - Synchronous executor
+ * - Task Queue executor
+ * - Remote executor
  * - ...
  */
-public interface TaskRunner {
+public interface TaskExecutor {
 
   /**
-   * Runs the given {@link Task} and returns it.
+   * Executes the given {@link Task} and returns it.
    *
-   * @param task The {@link Task} to run.
-   * @return The {@link Task} that was run.
+   * @param task The {@link Task} to execute.
+   * @return The {@link Task} that was executed.
    */
-  public Task run(Task task);
+  public Task execute(Task task);
 
 }
