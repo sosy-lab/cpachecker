@@ -59,6 +59,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
   private boolean invalidWrite = false;
   private boolean invalidRead = false;
   private boolean invalidFree = false;
+  private boolean memoryLeak = false;
 
   /*
    * If a property is violated by this state, this member is set
@@ -229,7 +230,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
       // check memory leaks
       // if reached does NOT contain memory leak and this DOES
       //   this shouldn't be drop
-      this.heap.pruneUnreachable();
+      heap.pruneUnreachable();
       if (heap.hasMemoryLeaks()){
         reachedState.heap.pruneUnreachable();
         if (!reachedState.heap.hasMemoryLeaks()){
@@ -255,7 +256,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
 
     switch (pProperty) {
       case "has-leaks":
-        if (heap.hasMemoryLeaks()) {
+        if (memoryLeak || heap.hasMemoryLeaks()) {
           //TODO: Give more information
           violatedProperty = ViolatedProperty.VALID_MEMTRACK;
           issueMemoryLeakMessage();
@@ -302,7 +303,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
   }
 
   public void setMemLeak() {
-    heap.setMemoryLeak();
+    memoryLeak = true;
   }
 
   /**
