@@ -1348,6 +1348,10 @@ cpa.value.refiner.checkForRepeatedRefinements = true
 # whether or not to do lazy-abstraction
 cpa.value.refiner.doLazyAbstraction = true
 
+# whether or not to interpolate the shortest infeasible prefix rather than
+# the whole error path
+cpa.value.refiner.interpolateInfeasiblePrefix = false
+
 # use heuristic to extract a precision from the CFA statically on first
 # refinement
 cpa.value.refiner.performInitialStaticRefinement = false

@@ -67,14 +67,18 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.value.Value;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -91,6 +95,9 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
   @Option(description="whether or not to avoid restarting at assume edges after a refinement")
   private boolean avoidAssumes = false;
+
+  @Option(description="whether or not to interpolate the shortest infeasible prefix rather than the whole error path")
+  private boolean interpolateInfeasiblePrefix = false;
 
   /**
    * the offset in the path from where to cut-off the subtree, and restart the analysis
@@ -109,20 +116,22 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
   private final CFA cfa;
   private final LogManager logger;
+  private final Configuration config;
   private final ShutdownNotifier shutdownNotifier;
 
   private final ValueAnalysisInterpolator interpolator;
 
-  protected ValueAnalysisInterpolationBasedRefiner(Configuration config,
+  protected ValueAnalysisInterpolationBasedRefiner(Configuration pConfig,
       final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa)
       throws InvalidConfigurationException {
-    config.inject(this);
+    pConfig.inject(this);
 
     logger           = pLogger;
+    config           = pConfig;
     cfa              = pCfa;
     shutdownNotifier = pShutdownNotifier;
-    interpolator     = new ValueAnalysisInterpolator(config, logger, shutdownNotifier, cfa);
+    interpolator     = new ValueAnalysisInterpolator(pConfig, logger, shutdownNotifier, cfa);
   }
 
   protected Map<ARGState, ValueAnalysisInterpolant> performInterpolation(ARGPath errorPath,
@@ -131,14 +140,15 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
     timerInterpolation.start();
 
     interpolationOffset = -1;
-    List<CFAEdge> cfaTrace = from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
+
+    List<CFAEdge> errorTrace = obtainErrorTrace(errorPath, interpolant);
     Map<ARGState, ValueAnalysisInterpolant> pathInterpolants = new LinkedHashMap<>(errorPath.size());
 
     for (int i = 0; i < errorPath.size() - 1; i++) {
       shutdownNotifier.shutdownIfNecessary();
 
       if(!interpolant.isFalse()) {
-        interpolant = interpolator.deriveInterpolant(cfaTrace, i, interpolant);
+        interpolant = interpolator.deriveInterpolant(errorTrace, i, interpolant);
       }
 
       totalInterpolationQueries = totalInterpolationQueries + interpolator.getNumberOfInterpolationQueries();
@@ -240,6 +250,35 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
     else {
       return errorPath.get(1);
     }
+  }
+
+  /**
+   * This method obtains, from the error path, the list of CFA edges to be interpolated. This might not include all CFA
+   * edges from the original path, but might be limited to the infeasible prefix.
+   *
+   * @param errorPath the error path
+   * @param interpolant the input interpolant
+   * @return the list of CFA edges to be interpolated
+   * @throws CPAException
+   * @throws InterruptedException
+   */
+  private List<CFAEdge> obtainErrorTrace(ARGPath errorPath,
+      ValueAnalysisInterpolant interpolant) throws CPAException,
+      InterruptedException {
+
+    if(interpolateInfeasiblePrefix) {
+      ValueAnalysisFeasibilityChecker checker;
+      try {
+        checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
+        errorPath = checker.getInfeasilbePrefix(errorPath,
+            new ValueAnalysisPrecision("", Configuration.builder().build(), Optional.<VariableClassification>absent()),
+            interpolant.createValueAnalysisState());
+      } catch (InvalidConfigurationException e) {
+        throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
+      }
+    }
+
+    return from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
   }
 
   /**

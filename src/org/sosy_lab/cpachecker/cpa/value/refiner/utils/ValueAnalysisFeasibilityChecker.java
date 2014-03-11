@@ -96,10 +96,30 @@ public class ValueAnalysisFeasibilityChecker {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public boolean isFeasible(final ARGPath path, final ValueAnalysisPrecision pPrecision, ValueAnalysisState pInitial)
+  public boolean isFeasible(final ARGPath path, final ValueAnalysisPrecision pPrecision, final ValueAnalysisState pInitial)
+      throws CPAException, InterruptedException {
+
+    return path.size() == getInfeasilbePrefix(path, pPrecision, pInitial).size();
+  }
+
+  /**
+   * This method obtains the prefix of the path, that is infeasible by itself. If the path is feasible, the whole path
+   * is returned
+   *
+   * @param path the path to check
+   * @param pPrecision the precision to use
+   * @param pInitial the initial state
+   * @return the prefix of the path that is feasible by itself
+   * @throws CPAException
+   * @throws InterruptedException
+   */
+  public ARGPath getInfeasilbePrefix(final ARGPath path, final ValueAnalysisPrecision pPrecision, final ValueAnalysisState pInitial)
       throws CPAException, InterruptedException {
     try {
       ValueAnalysisState next = pInitial;
+
+      ARGPath prefix = new ARGPath();
+
 
       for (Pair<ARGState, CFAEdge> pathElement : path) {
         Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessors(
@@ -107,18 +127,18 @@ public class ValueAnalysisFeasibilityChecker {
             pPrecision,
             pathElement.getSecond());
 
+        prefix.addLast(pathElement);
+
         // no successors => path is infeasible
         if(successors.isEmpty()) {
-          return false;
+          break;
         }
 
         // get successor state and apply precision
         next = pPrecision.computeAbstraction(successors.iterator().next(),
             AbstractStates.extractLocation(pathElement.getFirst()));
       }
-
-      // path is feasible
-      return true;
+      return prefix;
     } catch (CPATransferException e) {
       throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
     }
