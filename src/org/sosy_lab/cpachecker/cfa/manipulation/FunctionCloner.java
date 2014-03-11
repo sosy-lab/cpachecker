@@ -430,6 +430,19 @@ public class FunctionCloner implements CFAVisitor {
 
     } else if (ast instanceof CReturnStatement) {
       return new CReturnStatement(loc, cloneAst(((CReturnStatement) ast).getReturnValue()));
+
+    } else if (ast instanceof CDesignator) {
+
+      if (ast instanceof CArrayDesignator) {
+        return new CArrayDesignator(loc, cloneAst(((CArrayDesignator) ast).getSubscriptExpression()));
+
+      } else if (ast instanceof CArrayRangeDesignator) {
+        return new CArrayRangeDesignator(loc, cloneAst(((CArrayRangeDesignator) ast).getFloorExpression()),
+                cloneAst(((CArrayRangeDesignator) ast).getCeilExpression()));
+
+      } else if (ast instanceof CFieldDesignator) {
+        return new CFieldDesignator(loc, ((CFieldDesignator)ast).getFieldName());
+      }
     }
 
     throw new AssertionError("unhandled ASTNode " + ast + " of " + ast.getClass());
