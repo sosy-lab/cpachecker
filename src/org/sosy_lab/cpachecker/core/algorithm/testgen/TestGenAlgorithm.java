@@ -40,7 +40,7 @@ import org.sosy_lab.common.io.Files.DeleteOnCloseFile;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
+import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -85,6 +85,7 @@ public class TestGenAlgorithm implements Algorithm {
   private ReachedSetFactory reachedSetFactory;
   private Configuration config;
   private ShutdownNotifier shutdownNotifier;
+  private CPABuilder cpaBuilder;
 
 
   //  ConfigurationBuilder singleConfigBuilder = Configuration.builder();
@@ -95,12 +96,13 @@ public class TestGenAlgorithm implements Algorithm {
 
   public TestGenAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
       ShutdownNotifier pShutdownNotifier, CFA pCfa,
-      Configuration config, LogManager pLogger) throws InvalidConfigurationException, CPAException {
+      Configuration config, LogManager pLogger, CPABuilder pCpaBuilder) throws InvalidConfigurationException, CPAException {
 
     shutdownNotifier = pShutdownNotifier;
     cfa = pCfa;
     cpa = pCpa;
     this.config = config;
+    cpaBuilder = pCpaBuilder;
     config.inject(this);
     this.explicitAlg = pAlgorithm;
     this.logger = pLogger;
@@ -190,8 +192,7 @@ public class TestGenAlgorithm implements Algorithm {
         ARGUtils.producePathAutomaton(w, "nextPathAutomaton", pNewPath);
       }
 
-      ConfigurableProgramAnalysis nextCpa =
-          new CoreComponentsFactory(nextConfig, logger, shutdownNotifier).createCPA(cfa, null);
+      ConfigurableProgramAnalysis nextCpa = cpaBuilder.buildCPAs(cfa);
 
       if (explicitAlg instanceof CPAAlgorithm) {
         return CPAAlgorithm.create(nextCpa, logger, nextConfig, shutdownNotifier);
