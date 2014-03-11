@@ -180,7 +180,7 @@ public class TestGenAlgorithm implements Algorithm {
     try (DeleteOnCloseFile automatonFile = Files.createTempFile("next_automaton", ".txt")) {
 
       ConfigurationBuilder builder = Configuration.builder().copyFrom(config);
-      // TODO: use the right automaton (the modified one)
+      // TODO: build the right automaton (the modified default one)
       builder = builder.setOption("specification", automatonFile.toPath().toAbsolutePath().toString());
       Configuration lconfig = builder.build();
 
