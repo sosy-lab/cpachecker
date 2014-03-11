@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.testgen.predicates.formula;
+package org.sosy_lab.cpachecker.core.algorithm.testgen.old.predicates.formula;
 
 import java.io.IOException;
 
@@ -30,6 +30,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.StartupConfig;
 
 
 public class TestHelper {

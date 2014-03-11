@@ -21,14 +21,33 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.testgen.predicates.formula;
+package org.sosy_lab.cpachecker.core.algorithm.testgen.old.predicates.formula;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import java.util.Set;
+
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
+import com.google.common.collect.Sets;
 
-public interface FormulaEditFunction {
 
-  public BooleanFormula negateAtomOfFormula(BooleanFormula f, int pos, FormulaManagerView fmv);
+public class FormulaPathFinder {
+
+  Set<Formula> reachedFormulas;
+  FormulaEditFunction formulaEditor;
+  private FormulaManagerView fmv;
+
+
+  public FormulaPathFinder(FormulaManagerView pFmv) {
+    reachedFormulas = Sets.newHashSet();
+    this.fmv = pFmv;
+  }
+
+  public Formula findNewFeasiblePath(Formula f){
+//    formulaEditor.negateAtomOfFormula(f, pos, fmv);
+//    ARGUtils.
+    return null;
+
+  }
 
 }

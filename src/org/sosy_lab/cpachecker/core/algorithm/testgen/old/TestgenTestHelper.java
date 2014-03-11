@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.testgen.dummygen;
+package org.sosy_lab.cpachecker.core.algorithm.testgen.old;
 
 import java.io.IOException;
 import java.util.Collections;

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.testgen;
+package org.sosy_lab.cpachecker.core.algorithm.testgen.old;
 
 import java.util.Collection;
 
@@ -33,8 +33,6 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.dummygen.ARGStateDummyCreator;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.dummygen.TestgenTestHelper;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;

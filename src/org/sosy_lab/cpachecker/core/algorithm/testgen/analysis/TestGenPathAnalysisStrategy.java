@@ -21,33 +21,15 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.testgen.predicates.formula;
+package org.sosy_lab.cpachecker.core.algorithm.testgen.analysis;
 
-import java.util.Set;
-
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-
-import com.google.common.collect.Sets;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.model.PredicatePathAnalysisResult;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 
-public class FormulaPathFinder {
+public interface TestGenPathAnalysisStrategy {
 
-  Set<Formula> reachedFormulas;
-  FormulaEditFunction formulaEditor;
-  private FormulaManagerView fmv;
-
-
-  public FormulaPathFinder(FormulaManagerView pFmv) {
-    reachedFormulas = Sets.newHashSet();
-    this.fmv = pFmv;
-  }
-
-  public Formula findNewFeasiblePath(Formula f){
-//    formulaEditor.negateAtomOfFormula(f, pos, fmv);
-//    ARGUtils.
-    return null;
-
-  }
+  public PredicatePathAnalysisResult findNewFeasiblePathUsingPredicates(ARGPath pExecutedPath) throws CPATransferException, InterruptedException;
 
 }

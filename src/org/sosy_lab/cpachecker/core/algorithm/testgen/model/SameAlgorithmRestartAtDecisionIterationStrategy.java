@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.testgen.model;
 
-import org.sosy_lab.cpachecker.core.algorithm.testgen.predicates.formula.StartupConfig;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.StartupConfig;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
