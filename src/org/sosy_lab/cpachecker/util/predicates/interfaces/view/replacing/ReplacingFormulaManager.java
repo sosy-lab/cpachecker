@@ -91,7 +91,7 @@ public class ReplacingFormulaManager implements FormulaManager {
 
     if (replaceBitvectorWithRationalAndFunctions) {
       bitvectorTheory =
-          new ReplaceBitvectorWithRationalAndFunctionTheory(
+          new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
               this,
               rawFormulaManager.getRationalFormulaManager(),
               rawFormulaManager.getFunctionFormulaManager(),

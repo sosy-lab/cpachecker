@@ -41,37 +41,36 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorT
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 
 import com.google.common.base.Function;
 
 
-public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorFormulaManager {
+public class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> implements BitvectorFormulaManager {
 
-  private final NumeralFormulaManager<NumeralFormula, RationalFormula> rationalFormulaManager;
+  private final NumeralFormulaManager<? super T, T> numericFormulaManager;
   private final FunctionFormulaManager functionManager;
   private final ReplacingFormulaManager replaceManager;
-  private final FunctionFormulaType<? extends NumeralFormula> bitwiseAndUfDecl;
-  private final FunctionFormulaType<? extends NumeralFormula> bitwiseOrUfDecl;
-  private final FunctionFormulaType<? extends NumeralFormula> bitwiseXorUfDecl;
-  private final FunctionFormulaType<? extends NumeralFormula> bitwiseNotUfDecl;
-  private final FunctionFormulaType<? extends NumeralFormula> leftShiftUfDecl;
-  private final FunctionFormulaType<? extends NumeralFormula> rightShiftUfDecl;
-  private final FormulaType<? extends NumeralFormula> formulaType;
+  private final FunctionFormulaType<T> bitwiseAndUfDecl;
+  private final FunctionFormulaType<T> bitwiseOrUfDecl;
+  private final FunctionFormulaType<T> bitwiseXorUfDecl;
+  private final FunctionFormulaType<T> bitwiseNotUfDecl;
+  private final FunctionFormulaType<T> leftShiftUfDecl;
+  private final FunctionFormulaType<T> rightShiftUfDecl;
+  private final FormulaType<T> formulaType;
   private final boolean ignoreExtractConcat;
 
-  public ReplaceBitvectorWithRationalAndFunctionTheory(
+  public ReplaceBitvectorWithNumeralAndFunctionTheory(
       ReplacingFormulaManager pReplacingFormulaManager,
-      NumeralFormulaManager<NumeralFormula, RationalFormula> pNumericFormulaManager,
+      NumeralFormulaManager<? super T, T> pNumericFormulaManager,
       FunctionFormulaManager rawFunctionManager,
       final boolean ignoreExtractConcat) {
     replaceManager = pReplacingFormulaManager;
-    rationalFormulaManager = pNumericFormulaManager;
+    numericFormulaManager = pNumericFormulaManager;
     this.ignoreExtractConcat = ignoreExtractConcat;
     this.functionManager = rawFunctionManager;
 
-    formulaType = FormulaType.RationalType;
+    formulaType = pNumericFormulaManager.getFormulaType();
     bitwiseAndUfDecl = functionManager.createFunction(BitwiseAndUfName, formulaType, formulaType, formulaType);
     bitwiseOrUfDecl = functionManager.createFunction(BitwiseOrUfName, formulaType, formulaType, formulaType);
     bitwiseXorUfDecl = functionManager.createFunction(BitwiseXorUfName, formulaType, formulaType, formulaType);
@@ -82,7 +81,7 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
     rightShiftUfDecl = functionManager.createFunction("_>>_", formulaType, formulaType, formulaType);
   }
 
-  private BitvectorFormula makeUf(FormulaType<BitvectorFormula> realreturn, FunctionFormulaType<? extends NumeralFormula> decl, BitvectorFormula... t1) {
+  private BitvectorFormula makeUf(FormulaType<BitvectorFormula> realreturn, FunctionFormulaType<T> decl, BitvectorFormula... t1) {
     List<BitvectorFormula> wrapped = Arrays.<BitvectorFormula>asList(t1);
 
     List<Formula> unwrapped = from(wrapped)
@@ -96,16 +95,16 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
     return wrap(realreturn, functionManager.createUninterpretedFunctionCall(decl, unwrapped));
   }
 
-  private boolean isUf(FunctionFormulaType<? extends NumeralFormula> funcDecl, BitvectorFormula pBits) {
+  private boolean isUf(FunctionFormulaType<T> funcDecl, BitvectorFormula pBits) {
 
     return functionManager.isUninterpretedFunctionCall(funcDecl, unwrap(pBits));
   }
 
-  private final Map<Integer[], FunctionFormulaType<? extends NumeralFormula>> extractMethods = new HashMap<>();
+  private final Map<Integer[], FunctionFormulaType<T>> extractMethods = new HashMap<>();
 
-  private FunctionFormulaType<? extends NumeralFormula> getExtractDecl(int pMsb, int pLsb) {
+  private FunctionFormulaType<T> getExtractDecl(int pMsb, int pLsb) {
     Integer[] hasKey = new Integer[]{pMsb, pLsb};
-    FunctionFormulaType<? extends NumeralFormula> value = extractMethods.get(hasKey);
+    FunctionFormulaType<T> value = extractMethods.get(hasKey);
     if (value == null) {
       value = functionManager.createFunction("_extract("+ pMsb + "," + pLsb + ")_", formulaType, formulaType);
       extractMethods.put(hasKey, value);
@@ -113,11 +112,11 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
     return value;
   }
 
-  private Map<Integer[], FunctionFormulaType<? extends NumeralFormula>> concatMethods = new HashMap<>();
+  private Map<Integer[], FunctionFormulaType<T>> concatMethods = new HashMap<>();
 
-  private FunctionFormulaType<? extends NumeralFormula> getConcatDecl(int firstSize, int secoundSize) {
+  private FunctionFormulaType<T> getConcatDecl(int firstSize, int secoundSize) {
     Integer[] hasKey = new Integer[]{firstSize, secoundSize};
-    FunctionFormulaType<? extends NumeralFormula> value = concatMethods.get(hasKey);
+    FunctionFormulaType<T> value = concatMethods.get(hasKey);
     if (value == null) {
       value = functionManager.createFunction("_concat("+ firstSize + "," + secoundSize + ")_", formulaType, formulaType);
       concatMethods.put(hasKey, value);
@@ -125,12 +124,12 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
     return value;
   }
 
-  private Map<Integer, FunctionFormulaType<? extends NumeralFormula>> extendSignedMethods = new HashMap<>();
-  private Map<Integer, FunctionFormulaType<? extends NumeralFormula>> extendUnsignedMethods = new HashMap<>();
+  private Map<Integer, FunctionFormulaType<T>> extendSignedMethods = new HashMap<>();
+  private Map<Integer, FunctionFormulaType<T>> extendUnsignedMethods = new HashMap<>();
 
-  private FunctionFormulaType<? extends NumeralFormula> getExtendDecl(int extensionBits, boolean pSigned) {
+  private FunctionFormulaType<T> getExtendDecl(int extensionBits, boolean pSigned) {
     Integer hasKey = Integer.valueOf(extensionBits);
-    FunctionFormulaType<? extends NumeralFormula> value;
+    FunctionFormulaType<T> value;
     if (pSigned) {
       value = extendSignedMethods.get(hasKey);
       if (value == null) {
@@ -149,32 +148,32 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
 
   @Override
   public BitvectorFormula makeBitvector(int pLength, long pI) {
-    NumeralFormula number = rationalFormulaManager.makeNumber(pI);
+    T number = numericFormulaManager.makeNumber(pI);
     return wrap(getFormulaType(pLength), number);
   }
 
   @Override
   public BitvectorFormula makeBitvector(int pLength, BigInteger pI) {
-    NumeralFormula number = rationalFormulaManager.makeNumber(pI);
+    T number = numericFormulaManager.makeNumber(pI);
     return wrap(getFormulaType(pLength), number);
   }
 
   @Override
   public BitvectorFormula makeBitvector(int pLength, String pI) {
-    NumeralFormula number = rationalFormulaManager.makeNumber(pI);
+    T number = numericFormulaManager.makeNumber(pI);
     return wrap(getFormulaType(pLength), number);
   }
 
-  private BitvectorFormula wrap(FormulaType<BitvectorFormula> pFormulaType, NumeralFormula number) {
+  private BitvectorFormula wrap(FormulaType<BitvectorFormula> pFormulaType, T number) {
     return replaceManager.wrap(pFormulaType, number);
   }
 
-  private NumeralFormula unwrap(BitvectorFormula pNumber) {
+  private T unwrap(BitvectorFormula pNumber) {
     return replaceManager.unwrap(pNumber);
   }
   @Override
   public BitvectorFormula makeVariable(int pLength, String pVar) {
-    return wrap(getFormulaType(pLength), rationalFormulaManager.makeVariable(pVar));
+    return wrap(getFormulaType(pLength), numericFormulaManager.makeVariable(pVar));
   }
 
   @Override
@@ -190,7 +189,7 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
 
   @Override
   public BitvectorFormula negate(BitvectorFormula pNumber) {
-    return wrap(getFormulaType(pNumber), rationalFormulaManager.negate(unwrap(pNumber)));
+    return wrap(getFormulaType(pNumber), numericFormulaManager.negate(unwrap(pNumber)));
   }
 
   private FormulaType<BitvectorFormula> getFormulaType(BitvectorFormula pNumber) {
@@ -200,112 +199,112 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
 
   @Override
   public boolean isNegate(BitvectorFormula pNumber) {
-    return rationalFormulaManager.isNegate(unwrap(pNumber));
+    return numericFormulaManager.isNegate(unwrap(pNumber));
   }
 
   @Override
   public BitvectorFormula add(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
-    return wrap(getFormulaType(pNumber1), rationalFormulaManager.add(unwrap(pNumber1), unwrap(pNumber2)));
+    return wrap(getFormulaType(pNumber1), numericFormulaManager.add(unwrap(pNumber1), unwrap(pNumber2)));
   }
 
   @Override
   public boolean isAdd(BitvectorFormula pNumber) {
-    return rationalFormulaManager.isAdd(unwrap(pNumber));
+    return numericFormulaManager.isAdd(unwrap(pNumber));
   }
 
   @Override
   public BitvectorFormula subtract(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
-    return wrap(getFormulaType(pNumber1), rationalFormulaManager.subtract(unwrap(pNumber1), unwrap(pNumber2)));
+    return wrap(getFormulaType(pNumber1), numericFormulaManager.subtract(unwrap(pNumber1), unwrap(pNumber2)));
   }
 
   @Override
   public boolean isSubtract(BitvectorFormula pNumber) {
-    return rationalFormulaManager.isSubtract(unwrap(pNumber));
+    return numericFormulaManager.isSubtract(unwrap(pNumber));
   }
 
   @Override
   public BitvectorFormula divide(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
-    return wrap(getFormulaType(pNumber1), rationalFormulaManager.divide(unwrap(pNumber1), unwrap(pNumber2)));
+    return wrap(getFormulaType(pNumber1), numericFormulaManager.divide(unwrap(pNumber1), unwrap(pNumber2)));
   }
 
   @Override
   public boolean isDivide(BitvectorFormula pNumber, boolean pSigned) {
-    return rationalFormulaManager.isDivide(unwrap(pNumber));
+    return numericFormulaManager.isDivide(unwrap(pNumber));
   }
 
   @Override
   public BitvectorFormula modulo(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
-    return wrap(getFormulaType(pNumber1), rationalFormulaManager.modulo(unwrap(pNumber1), unwrap(pNumber2)));
+    return wrap(getFormulaType(pNumber1), numericFormulaManager.modulo(unwrap(pNumber1), unwrap(pNumber2)));
   }
 
   @Override
   public boolean isModulo(BitvectorFormula pNumber, boolean pSigned) {
-    return rationalFormulaManager.isModulo(unwrap(pNumber));
+    return numericFormulaManager.isModulo(unwrap(pNumber));
   }
 
   @Override
   public BitvectorFormula multiply(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
-    return wrap(getFormulaType(pNumber1), rationalFormulaManager.multiply(unwrap(pNumber1), unwrap(pNumber2)));
+    return wrap(getFormulaType(pNumber1), numericFormulaManager.multiply(unwrap(pNumber1), unwrap(pNumber2)));
   }
 
   @Override
   public boolean isMultiply(BitvectorFormula pNumber) {
-    return rationalFormulaManager.isMultiply(unwrap(pNumber));
+    return numericFormulaManager.isMultiply(unwrap(pNumber));
   }
 
   @Override
   public BooleanFormula equal(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
-    return rationalFormulaManager.equal(unwrap(pNumber1), unwrap(pNumber2));
+    return numericFormulaManager.equal(unwrap(pNumber1), unwrap(pNumber2));
   }
 
   @Override
   public boolean isEqual(BooleanFormula pNumber) {
-    return rationalFormulaManager.isEqual(pNumber);
+    return numericFormulaManager.isEqual(pNumber);
   }
 
   @Override
   public BooleanFormula greaterThan(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
-    return rationalFormulaManager.greaterThan(unwrap(pNumber1), unwrap(pNumber2));
+    return numericFormulaManager.greaterThan(unwrap(pNumber1), unwrap(pNumber2));
   }
 
   @Override
   public boolean isGreaterThan(BooleanFormula pNumber, boolean pSigned) {
-    return rationalFormulaManager.isGreaterThan(pNumber);
+    return numericFormulaManager.isGreaterThan(pNumber);
   }
 
   @Override
   public BooleanFormula greaterOrEquals(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
-    return rationalFormulaManager.greaterOrEquals(unwrap(pNumber1), unwrap(pNumber2));
+    return numericFormulaManager.greaterOrEquals(unwrap(pNumber1), unwrap(pNumber2));
   }
 
   @Override
   public boolean isGreaterOrEquals(BooleanFormula pNumber, boolean pSigned) {
-    return rationalFormulaManager.isGreaterOrEquals(pNumber);
+    return numericFormulaManager.isGreaterOrEquals(pNumber);
   }
 
   @Override
   public BooleanFormula lessThan(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
-    return rationalFormulaManager.lessThan(unwrap(pNumber1), unwrap(pNumber2));
+    return numericFormulaManager.lessThan(unwrap(pNumber1), unwrap(pNumber2));
   }
 
   @Override
   public boolean isLessThan(BooleanFormula pNumber, boolean pSigned) {
-    return rationalFormulaManager.isLessThan(pNumber);
+    return numericFormulaManager.isLessThan(pNumber);
   }
 
   @Override
   public BooleanFormula lessOrEquals(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
-    return rationalFormulaManager.lessOrEquals(unwrap(pNumber1), unwrap(pNumber2));
+    return numericFormulaManager.lessOrEquals(unwrap(pNumber1), unwrap(pNumber2));
   }
 
   @Override
   public boolean isLessOrEquals(BooleanFormula pNumber, boolean pSigned) {
-    return rationalFormulaManager.isLessOrEquals(pNumber);
+    return numericFormulaManager.isLessOrEquals(pNumber);
   }
 
   /**
@@ -331,7 +330,7 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
     if (ignoreExtractConcat) {
       return wrap(returnType, unwrap(pSecound));
     }
-    FunctionFormulaType<? extends NumeralFormula> concatUfDecl = getConcatDecl(firstLength, secoundLength);
+    FunctionFormulaType<T> concatUfDecl = getConcatDecl(firstLength, secoundLength);
     return makeUf(returnType, concatUfDecl, pFirst, pSecound);
   }
 
@@ -341,7 +340,7 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
     if (ignoreExtractConcat) {
       return wrap(returnType, unwrap(pFirst));
     }
-    FunctionFormulaType<? extends NumeralFormula> extractUfDecl = getExtractDecl(pMsb, pLsb);
+    FunctionFormulaType<T> extractUfDecl = getExtractDecl(pMsb, pLsb);
     return makeUf(returnType, extractUfDecl, pFirst);
   }
 
@@ -351,7 +350,7 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
     if (ignoreExtractConcat) {
       return wrap(returnType, unwrap(pNumber));
     }
-    FunctionFormulaType<? extends NumeralFormula> extendUfDecl = getExtendDecl(pExtensionBits, pSigned);
+    FunctionFormulaType<T> extendUfDecl = getExtendDecl(pExtensionBits, pSigned);
     return makeUf(returnType, extendUfDecl, pNumber);
   }
 
