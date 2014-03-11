@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 import org.sosy_lab.cpachecker.appengine.entity.TaskStatistic;
 import org.sosy_lab.cpachecker.appengine.entity.Taskset;
 import org.sosy_lab.cpachecker.appengine.server.GAETaskQueueTaskExecutor;
-import org.sosy_lab.cpachecker.appengine.server.common.TaskRunnerResource;
+import org.sosy_lab.cpachecker.appengine.server.common.TaskExecutorResource;
 import org.sosy_lab.cpachecker.appengine.util.DefaultOptions;
 
 import com.google.appengine.api.log.LogQuery;
@@ -321,7 +321,7 @@ public class TaskDAO {
             || task.getStatus() == Status.TIMEOUT) {
 
           if (task.getStatus() == Status.DONE) {
-            TaskFile file = TaskFileDAO.loadByName(TaskRunnerResource.ERROR_FILE_NAME, task);
+            TaskFile file = TaskFileDAO.loadByName(TaskExecutorResource.ERROR_FILE_NAME, task);
             if (file != null) {
               TaskFileDAO.delete(file);
             }
@@ -344,7 +344,7 @@ public class TaskDAO {
             // no stats file
           }
 
-          TaskFile errorFile = TaskFileDAO.loadByName(TaskRunnerResource.ERROR_FILE_NAME, task);
+          TaskFile errorFile = TaskFileDAO.loadByName(TaskExecutorResource.ERROR_FILE_NAME, task);
           if (errorFile != null) {
             if (errorFile.getContent().contains("Deadline")
                 || errorFile.getContent().contains("Timeout")) {
@@ -361,7 +361,7 @@ public class TaskDAO {
 
           // FIXME checking request might not work
           // if tried once and fails second time without starting then retries is always < max_retries
-          if (record.getStatus() == 500 && task.getRetries() < TaskRunnerResource.MAX_RETRIES) {
+          if (record.getStatus() == 500 && task.getRetries() < TaskExecutorResource.MAX_RETRIES) {
             reset(task);
             task.setStatus(Status.PENDING);
             return save(task);
@@ -397,7 +397,7 @@ public class TaskDAO {
       }
 
       // retry count is 0-indexed, therefore e.g. 2 records for MAX_RETRIES == 1
-      if (amountOfDetectedRecords > TaskRunnerResource.MAX_RETRIES) {
+      if (amountOfDetectedRecords > TaskExecutorResource.MAX_RETRIES) {
         TaskDAO.reset(task);
         task.setStatus(Status.ERROR);
         task.setStatusMessage("The task's request has finished, the task's status did not reflect this and no retries are left");

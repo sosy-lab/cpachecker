@@ -31,8 +31,8 @@ import org.restlet.routing.Router;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.appengine.server.resource.RootServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.SettingsServerResource;
+import org.sosy_lab.cpachecker.appengine.server.resource.TaskExecutorServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.TaskFileServerResource;
-import org.sosy_lab.cpachecker.appengine.server.resource.TaskRunnerServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.TaskServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.TaskStatisticServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.TasksServerResource;
@@ -71,7 +71,7 @@ public class CPAcheckerApplication extends WadlApplication {
     router.attach("/tasksets/{tasksetKey}", TasksetServerResource.class);
     router.attach("/tasksets/{tasksetKey}/tasks", TasksetTasksServerResource.class);
 
-    router.attach("/workers/run-task", TaskRunnerServerResource.class);
+    router.attach("/workers/execute-task", TaskExecutorServerResource.class);
 
     CapabilitiesFilter capabilitiesFilter = new CapabilitiesFilter(getContext());
     capabilitiesFilter.setNext(router);

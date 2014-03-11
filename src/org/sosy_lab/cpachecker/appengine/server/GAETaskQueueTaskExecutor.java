@@ -55,7 +55,7 @@ public class GAETaskQueueTaskExecutor implements TaskExecutor {
   }
 
   public static final String QUEUE_NAME = "cpachecker";
-  public static final String WORKER_PATH = "/workers/run-task";
+  public static final String WORKER_PATH = "/workers/execute-task";
   public static final String BACKEND_NAME = "task-worker-b1";
 
   @Option(name = "gae.instanceType",

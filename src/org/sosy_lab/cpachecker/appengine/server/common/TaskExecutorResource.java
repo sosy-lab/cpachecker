@@ -27,11 +27,11 @@ import org.restlet.representation.Representation;
 import org.restlet.resource.Post;
 
 
-public interface TaskRunnerResource {
+public interface TaskExecutorResource {
 
   public static final String ERROR_FILE_NAME = "ERROR.txt";
   public static final int MAX_RETRIES = 1; // see queue.xml
 
   @Post
-  public void runTask(Representation entity) throws Exception;
+  public void executeTask(Representation entity) throws Exception;
 }

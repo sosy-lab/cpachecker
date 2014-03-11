@@ -58,7 +58,7 @@ import org.sosy_lab.cpachecker.appengine.entity.Task.Status;
 import org.sosy_lab.cpachecker.appengine.io.GAEPathFactory;
 import org.sosy_lab.cpachecker.appengine.log.GAELogHandler;
 import org.sosy_lab.cpachecker.appengine.log.GAELogManager;
-import org.sosy_lab.cpachecker.appengine.server.common.TaskRunnerResource;
+import org.sosy_lab.cpachecker.appengine.server.common.TaskExecutorResource;
 import org.sosy_lab.cpachecker.appengine.util.DefaultOptions;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
@@ -73,7 +73,7 @@ import com.google.common.base.Charsets;
 import com.google.common.io.FileWriteMode;
 
 
-public class TaskRunnerServerResource extends WadlServerResource implements TaskRunnerResource {
+public class TaskExecutorServerResource extends WadlServerResource implements TaskExecutorResource {
 
   private Task task;
   private Level logLevel;
@@ -91,7 +91,7 @@ public class TaskRunnerServerResource extends WadlServerResource implements Task
   private boolean shutdownComplete = false;
 
   @Override
-  public void runTask(Representation entity) throws Exception {
+  public void executeTask(Representation entity) throws Exception {
     Form requestValues = new Form(entity);
     task = TaskDAO.loadWithoutSanitizing(requestValues.getFirstValue("taskKey"));
 
