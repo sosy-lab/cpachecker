@@ -465,7 +465,7 @@ public class ARGUtils {
 
       if (it.hasNext()) {
         String code = edge.getAsCode();
-        String assumption = "ASSUME {" + code + "}";
+        String assumption = code == null ? "" : "ASSUME {" + code + "}";
         sb.append(assumption + "GOTO ARG" + ++stateCounter);
       } else {
         sb.append("ERROR");
