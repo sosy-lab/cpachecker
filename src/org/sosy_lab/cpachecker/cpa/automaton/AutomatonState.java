@@ -210,6 +210,15 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     return result;
   }
 
+  /**
+   * returns the name of the automaton, to whom this state belongs to (the name is specified in the automaton file)
+   * forwards to <code>automatonCPA.getAutomaton().getName()</code>.
+   * @return name of automaton
+   */
+  public String getOwningAutomatonName() {
+    return automatonCPA.getAutomaton().getName();
+  }
+
   @Override
   public String toString() {
     return (automatonCPA!=null?automatonCPA.getAutomaton().getName() + ": ": "") + internalState.getName() + ' ' + Joiner.on(' ').withKeyValueSeparator("=").join(vars);

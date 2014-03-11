@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
@@ -59,6 +60,7 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
@@ -116,46 +118,56 @@ public class TestGenAlgorithm implements Algorithm {
     AbstractState initialState = globalReached.getFirstState();
     currentReached.add(initialState, globalReached.getPrecision(initialState));
 
-//    currentReached.add(globalReached. precision);
-    while(globalReached.hasWaitingState()){
+    //    currentReached.add(globalReached. precision);
+    while (globalReached.hasWaitingState()) {
       //explicit, DFS, PRECISION=TRACK_ALL; with automaton of new path created in previous iteration OR custom CPA
       boolean sound = explicitAlg.run(currentReached);
       //sound should normally be unsound for us.
-      //check if reachedSet contains error
-      if(!(currentReached.getLastState() instanceof ARGState)) {
-        throw new IllegalStateException("wrong configuration of explicit cpa, because concolicAlg needs ARGState");
-      }
-      ARGState pseudoTarget = (ARGState)currentReached.getLastState();
-      ARGPath executedPath = ARGUtils.getOnePathTo(pseudoTarget);
-      if(AbstractStates.isTargetState(pseudoTarget))
+      if (!(currentReached.getLastState() instanceof ARGState)) { throw new IllegalStateException(
+          "wrong configuration of explicit cpa, because concolicAlg needs ARGState"); }
+      /*
+       * check if reachedSet contains a target state.
+       * A target state is either an ERROR (declared by at least one Automaton) or TestGenTarget.
+       * TestGenTarget signals that the current DFS-searched path has no more successors.
+       * If TargetState is only a TestGenTarget, we continue with the TestGenAlgorithm.
+       * If ERROR we can exit because we found a real error.
+       */
+      ARGState pseudoTarget = (ARGState) currentReached.getLastState();
+      if (AbstractStates.isTargetState(pseudoTarget))
       {
-        //FIXME HACK
-        CFANode errorLocation = AbstractStates.extractLocation(pseudoTarget);
-        System.out.println("error location: " + errorLocation);
-        /*
-         * target state means error state.
-         * we found an error path and leave the analysis to the surrounding alg.
-         */
-        return true;
+        FluentIterable<AbstractState> w = AbstractStates.asIterable(pseudoTarget);
+        //get all wrapped automaton states.
+        FluentIterable<AutomatonState> wrapped = AbstractStates.projectToType(w, AutomatonState.class);
+        //check if any automaton except the TestGenAutomaton "EvalOnlyOnePathAutomaton" reached a target state.
+        for (AutomatonState autoState : wrapped) {
+          if (!autoState.getOwningAutomatonName().equals("EvalOnlyOnePathAutomaton")) {
+            /*
+             * target state means error state.
+             * we found an error path and leave the analysis to the surrounding alg.
+             */
+            if (autoState.isTarget()) { return true; }
+          }
+        }
       }
-//      ARGUtils.producePathAutomaton(sb, pRootState, pPathStates, name, pCounterExample);
+      ARGPath executedPath = ARGUtils.getOnePathTo(pseudoTarget);
+      //      ARGUtils.producePathAutomaton(sb, pRootState, pPathStates, name, pCounterExample);
       /*
        * not an error path. selecting new path to traverse.
        */
 
       CounterexampleTraceInfo newPath = findNewFeasiblePathUsingPredicates(executedPath);
-      if(newPath == null){
+      if (newPath == null) {
         return false; //true = sound or false = unsound. Which case is it here??
-      }else
+      } else
       {
         AbstractState newInitialState = createNewInitialState(newPath);
         currentReached = reachedSetFactory.create();
         currentReached.add(newInitialState, null);
       }
 
-//ARGUtils.producePathAutomaton(sb, pRootState, pPathStates, name, pCounterExample);
+      //ARGUtils.producePathAutomaton(sb, pRootState, pPathStates, name, pCounterExample);
       //traceInfo.getModel()
-//      globalReached.add(currentReached.getAllReached);
+      //      globalReached.add(currentReached.getAllReached);
     }
     return false;
   }
@@ -166,32 +178,35 @@ public class TestGenAlgorithm implements Algorithm {
   }
 
 
-  private CounterexampleTraceInfo findNewFeasiblePathUsingPredicates( ARGPath pExecutedPath) throws CPATransferException, InterruptedException {
+  private CounterexampleTraceInfo findNewFeasiblePathUsingPredicates(ARGPath pExecutedPath)
+      throws CPATransferException, InterruptedException {
     List<CFAEdge> newPath = Lists.newArrayList(pExecutedPath.asEdgesList());
-    Iterator<Pair<ARGState,CFAEdge>> branchingEdges =
-    Iterators.filter(Iterators.consumingIterator(pExecutedPath.descendingIterator()), new Predicate<Pair<ARGState,CFAEdge>>() {
+    Iterator<Pair<ARGState, CFAEdge>> branchingEdges =
+        Iterators.filter(Iterators.consumingIterator(pExecutedPath.descendingIterator()),
+            new Predicate<Pair<ARGState, CFAEdge>>() {
 
-      @Override
-      public boolean apply(Pair<ARGState, CFAEdge> pInput) {
-        CFAEdge lastEdge = pInput.getSecond();
-        if(lastEdge == null) {
-          return false;
-        }
-        CFANode decidingNode = lastEdge.getPredecessor();
-        //num of leaving edges does not include a summary edge, so the check is valid.
-        if(decidingNode.getNumLeavingEdges()==2) {
-          return true;
-        }
-        return false;
-      }});
-    while(branchingEdges.hasNext())
+              @Override
+              public boolean apply(Pair<ARGState, CFAEdge> pInput) {
+                CFAEdge lastEdge = pInput.getSecond();
+                if (lastEdge == null) {
+                return false;
+                }
+                CFANode decidingNode = lastEdge.getPredecessor();
+                //num of leaving edges does not include a summary edge, so the check is valid.
+                if (decidingNode.getNumLeavingEdges() == 2) {
+                return true;
+                }
+                return false;
+              }
+            });
+    while (branchingEdges.hasNext())
     {
       Pair<ARGState, CFAEdge> branchingPair = branchingEdges.next();
       CFAEdge wrongEdge = branchingPair.getSecond();
       CFANode decidingNode = wrongEdge.getPredecessor();
       CFAEdge otherEdge = null;
       for (CFAEdge cfaEdge : CFAUtils.leavingEdges(decidingNode)) {
-        if(cfaEdge.equals(wrongEdge)) {
+        if (cfaEdge.equals(wrongEdge)) {
           continue;
         } else {
           otherEdge = cfaEdge;
@@ -203,11 +218,8 @@ public class TestGenAlgorithm implements Algorithm {
       newPath = Lists.newArrayList(pExecutedPath.asEdgesList());
       newPath.add(otherEdge);
       CounterexampleTraceInfo traceInfo = pathChecker.checkPath(newPath);
-//      traceInfo.
-      if(!traceInfo.isSpurious())
-      {
-        return traceInfo;
-      }
+      //      traceInfo.
+      if (!traceInfo.isSpurious()) { return traceInfo; }
 
     }
     return null;
