@@ -37,9 +37,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.dummygen.ARGStateDummyCreator;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.predicates.formula.TestHelper;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.predicates.formula.TestHelper.StartupConfig;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -72,7 +69,6 @@ public class TestGenAlgorithm implements Algorithm {
   private LogManager logger;
   private CFA cfa;
   private ConfigurableProgramAnalysis cpa;
-  private ARGStateDummyCreator dummyCreator;
 
   private PathFormulaManager pfMgr;
   private Solver solver;
@@ -89,16 +85,6 @@ public class TestGenAlgorithm implements Algorithm {
   public TestGenAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
       ShutdownNotifier pShutdownNotifier, CFA pCfa,
       Configuration config, LogManager pLogger) throws InvalidConfigurationException, CPAException {
-    TestHelper helper = new TestHelper();
-    StartupConfig predConfig = helper.createPredicateConfig();
-    FormulaManagerFactory formulaManagerFactory =
-        new FormulaManagerFactory(predConfig.getConfig(), pLogger, ShutdownNotifier.createWithParent(pShutdownNotifier));
-    FormulaManagerView formulaManager =
-        new FormulaManagerView(formulaManagerFactory.getFormulaManager(), config, logger);
-    pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger, cfa);
-    solver = new Solver(formulaManager, formulaManagerFactory);
-    pathChecker = new PathChecker(pLogger, pfMgr, solver);
-    reachedSetFactory = new ReachedSetFactory(config, logger);
 
     cfa = pCfa;
     cpa = pCpa;
@@ -106,7 +92,15 @@ public class TestGenAlgorithm implements Algorithm {
     this.explicitAlg = pAlgorithm;
     this.logger = pLogger;
 
-    dummyCreator = new ARGStateDummyCreator(pCpa, logger);
+    FormulaManagerFactory formulaManagerFactory =
+        new FormulaManagerFactory(config, pLogger, ShutdownNotifier.createWithParent(pShutdownNotifier));
+    FormulaManagerView formulaManager =
+        new FormulaManagerView(formulaManagerFactory.getFormulaManager(), config, logger);
+    pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger, cfa);
+    solver = new Solver(formulaManager, formulaManagerFactory);
+    pathChecker = new PathChecker(pLogger, pfMgr, solver);
+    reachedSetFactory = new ReachedSetFactory(config, logger);
+
     /*TODO change the config file, so we can configure 'dfs'*/
     //    Configuration testCaseConfig = Configuration.copyWithNewPrefix(config, "testgen.");
     //    explicitAlg = new ExplicitTestcaseGenerator(config, logger, pShutdownNotifier, cfa, filename);
@@ -116,6 +110,7 @@ public class TestGenAlgorithm implements Algorithm {
   @Override
   public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
       PredicatedAnalysisPropertyViolationException {
+
     ReachedSet globalReached = pReachedSet;
     ReachedSet currentReached = reachedSetFactory.create();
 
