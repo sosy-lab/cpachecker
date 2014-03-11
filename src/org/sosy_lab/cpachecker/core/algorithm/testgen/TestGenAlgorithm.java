@@ -23,32 +23,21 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.testgen;
 
-import static java.lang.String.format;
-
-import java.io.IOException;
-import java.io.Writer;
-import java.util.Iterator;
-import java.util.List;
-import java.util.logging.Level;
-
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Files.DeleteOnCloseFile;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.model.AutomatonControlledIterationStrategy;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.model.PredicatePathAnalysisResult;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.model.TestGenIterationStrategy;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.model.TestGenIterationStrategy.IterationModel;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.predicates.formula.StartupConfig;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -56,38 +45,31 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 
 @Options(prefix = "testgen")
 public class TestGenAlgorithm implements Algorithm {
 
-  private Algorithm explicitAlg;
+  StartupConfig startupConfig;
   private LogManager logger;
+
+//  private Algorithm explicitAlg;
   private CFA cfa;
   private ConfigurableProgramAnalysis cpa;
 
-  private PathFormulaManager pfMgr;
-  private Solver solver;
-  PathChecker pathChecker;
   private ReachedSetFactory reachedSetFactory;
-  private Configuration config;
-  private ShutdownNotifier shutdownNotifier;
-  private CPABuilder cpaBuilder;
+
+  private TestGenIterationStrategy iterationStrategy;
+  private TestGenPathAnalysisStrategy analysisStrategy;
 
 
   //  ConfigurationBuilder singleConfigBuilder = Configuration.builder();
@@ -98,25 +80,30 @@ public class TestGenAlgorithm implements Algorithm {
 
   public TestGenAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
       ShutdownNotifier pShutdownNotifier, CFA pCfa,
-      Configuration config, LogManager pLogger, CPABuilder pCpaBuilder) throws InvalidConfigurationException, CPAException {
-
-    shutdownNotifier = pShutdownNotifier;
+      Configuration pConfig, LogManager pLogger, CPABuilder pCpaBuilder) throws InvalidConfigurationException, CPAException {
+    startupConfig = new StartupConfig(pConfig, pLogger, pShutdownNotifier);
+    startupConfig.getConfig().inject(this);
     cfa = pCfa;
     cpa = pCpa;
-    this.config = config;
-    cpaBuilder = pCpaBuilder;
-    config.inject(this);
-    this.explicitAlg = pAlgorithm;
     this.logger = pLogger;
 
     FormulaManagerFactory formulaManagerFactory =
-        new FormulaManagerFactory(config, pLogger, ShutdownNotifier.createWithParent(pShutdownNotifier));
+        new FormulaManagerFactory(startupConfig.getConfig(), pLogger, ShutdownNotifier.createWithParent(pShutdownNotifier));
     FormulaManagerView formulaManager =
-        new FormulaManagerView(formulaManagerFactory.getFormulaManager(), config, logger);
-    pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger, cfa);
-    solver = new Solver(formulaManager, formulaManagerFactory);
-    pathChecker = new PathChecker(pLogger, pfMgr, solver);
-    reachedSetFactory = new ReachedSetFactory(config, logger);
+        new FormulaManagerView(formulaManagerFactory.getFormulaManager(), startupConfig.getConfig(), logger);
+    PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, startupConfig.getConfig(), logger, cfa);
+    Solver solver = new Solver(formulaManager, formulaManagerFactory);
+    PathChecker pathChecker = new PathChecker(pLogger, pfMgr, solver);
+    reachedSetFactory = new ReachedSetFactory(startupConfig.getConfig(), logger);
+
+    IterationModel model = new IterationModel(pAlgorithm, null, null);
+
+    iterationStrategy = new AutomatonControlledIterationStrategy(startupConfig, pCpaBuilder, pCfa, model);
+//    iterationStrategy = new SameAlgorithmRestartAtDecisionIterationStrategy(startupConfig, reachedSetFactory, model);
+
+    analysisStrategy = new BasicTestGenPathAnalysisStrategy(pathChecker);
+
+
 
     /*TODO change the config file, so we can configure 'dfs'*/
     //    Configuration testCaseConfig = Configuration.copyWithNewPrefix(config, "testgen.");
@@ -127,17 +114,27 @@ public class TestGenAlgorithm implements Algorithm {
   @Override
   public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
       PredicatedAnalysisPropertyViolationException {
-
+//    List<ReachedSet> reachedSetHistory = Lists.newLinkedList();
+    PredicatePathAnalysisResult lastResult = PredicatePathAnalysisResult.INVALID;
     ReachedSet globalReached = pReachedSet;
     ReachedSet currentReached = reachedSetFactory.create();
+    iterationStrategy.getModel().setGlobalReached(globalReached);
+    iterationStrategy.getModel().setLocalReached(currentReached);
+
     AbstractState initialState = globalReached.getFirstState();
     currentReached.add(initialState, globalReached.getPrecision(initialState));
 
-    //    currentReached.add(globalReached. precision);
     while (globalReached.hasWaitingState()) {
+
       //explicit, DFS, PRECISION=TRACK_ALL; with automaton of new path created in previous iteration OR custom CPA
-      boolean sound = explicitAlg.run(currentReached);
+      boolean sound = iterationStrategy.runAlgorithm();
       //sound should normally be unsound for us.
+
+      //maybe remove marker node from currentReached. might depend on iterationStrategy and should be part of the runAlg()
+      if(lastResult.isValid())
+      {
+        currentReached.remove(lastResult.getWrongState());
+      }
       if (!(currentReached.getLastState() instanceof ARGState)) { throw new IllegalStateException(
           "wrong configuration of explicit cpa, because concolicAlg needs ARGState"); }
       /*
@@ -152,9 +149,10 @@ public class TestGenAlgorithm implements Algorithm {
       /*
        * not an error path. selecting new path to traverse.
        */
+
       ARGPath executedPath = ARGUtils.getOnePathTo(pseudoTarget);
-      CounterexampleTraceInfo newPath = findNewFeasiblePathUsingPredicates(executedPath);
-      if (newPath == null) {
+      PredicatePathAnalysisResult result = analysisStrategy.findNewFeasiblePathUsingPredicates(executedPath);
+      if (result.isEmpty()) {
         /*
          * we reached all variations (identified by predicates) of the program path.
          * If we didn't find an error, the program is safe and sound, in the sense of a concolic test.
@@ -166,49 +164,12 @@ public class TestGenAlgorithm implements Algorithm {
        * symbolic analysis of the path conditions returned a new feasible path (or a new model)
        * the next iteration. Creating automaton to guide next iteration.
        */
-      //TODO: Peter Implement me
-      explicitAlg = createAlgorithmForNextIteration(newPath);
-      initialState = globalReached.getFirstState();
-      currentReached = reachedSetFactory.create();
-      currentReached.add(initialState, globalReached.getPrecision(initialState));
+      iterationStrategy.updateIterationModelForNextIteration(result);
+//      CounterexampleTraceInfo newPath = result.getTrace();
 
-      //ARGUtils.producePathAutomaton(sb, pRootState, pPathStates, name, pCounterExample);
-      //traceInfo.getModel()
-      //      globalReached.add(currentReached.getAllReached);
+      lastResult = result;
     }
     return false;
-  }
-
-  private Algorithm createAlgorithmForNextIteration(CounterexampleTraceInfo pNewPath) {
-
-    // This temp file will be automatically deleted when the try block terminates.
-    try (DeleteOnCloseFile automatonFile = Files.createTempFile("next_automaton", ".txt")) {
-
-      ConfigurationBuilder builder = Configuration.builder().copyFrom(config);
-      // TODO: check if we really can use multiple specification files this way
-      String automatonAbsPath = automatonFile.toPath().toAbsolutePath().toString();
-      String originalSpec = config.getProperty("specification");
-      builder = builder.setOption("specification", format("%s,%s", automatonAbsPath, originalSpec));
-      Configuration nextConfig = builder.build();
-
-
-      try (Writer w = Files.openOutputFile(automatonFile.toPath())) {
-        ARGUtils.producePathAutomaton(w, "nextPathAutomaton", pNewPath);
-      }
-
-      ConfigurableProgramAnalysis nextCpa = cpaBuilder.buildCPAs(cfa);
-
-      if (explicitAlg instanceof CPAAlgorithm) {
-        return CPAAlgorithm.create(nextCpa, logger, nextConfig, shutdownNotifier);
-      } else {
-        throw new InvalidConfigurationException("Generating a new Algorithm here only Works if the "
-            + "Algorithm is a CPAAlgorithm");
-      }
-
-    } catch (IOException | InvalidConfigurationException | CPAException e) {
-      // TODO: use another exception?
-      throw new IllegalStateException("Unable to create the Algorithm for next Iteration", e);
-    }
   }
 
 
@@ -228,7 +189,7 @@ public class TestGenAlgorithm implements Algorithm {
       //get all wrapped automaton states.
       FluentIterable<AutomatonState> wrapped = AbstractStates.projectToType(w, AutomatonState.class);
       //check if any automaton except the TestGenAutomaton "EvalOnlyOnePathAutomaton" reached a target state.
-      for (AutomatonState autoState : wrapped) {
+      for (AutomatonState autoState : wrapped) {//TODO extract into method that is resistant to String-changes
         if (!autoState.getOwningAutomatonName().equals("EvalOnlyOnePathAutomaton")) {
           /*
            * target state means error state.
@@ -241,94 +202,6 @@ public class TestGenAlgorithm implements Algorithm {
     return false;
   }
 
-  private CounterexampleTraceInfo findNewFeasiblePathUsingPredicates(ARGPath pExecutedPath)
-      throws CPATransferException, InterruptedException {
-    List<CFAEdge> newPath = Lists.newArrayList(pExecutedPath.asEdgesList());
-    Iterator<Pair<ARGState, CFAEdge>> branchingEdges =
-        Iterators.filter(Iterators.consumingIterator(pExecutedPath.descendingIterator()),
-            new Predicate<Pair<ARGState, CFAEdge>>() {
 
-              @Override
-              public boolean apply(Pair<ARGState, CFAEdge> pInput) {
-                CFAEdge lastEdge = pInput.getSecond();
-                if (lastEdge == null) {
-                return false;
-                }
-                CFANode decidingNode = lastEdge.getPredecessor();
-                //num of leaving edges does not include a summary edge, so the check is valid.
-                if (decidingNode.getNumLeavingEdges() == 2) {
-                return true;
-                }
-                return false;
-              }
-            });
-    while (branchingEdges.hasNext())
-    {
-      Pair<ARGState, CFAEdge> branchingPair = branchingEdges.next();
-      CFAEdge wrongEdge = branchingPair.getSecond();
-      CFANode decidingNode = wrongEdge.getPredecessor();
-      CFAEdge otherEdge = null;
-      for (CFAEdge cfaEdge : CFAUtils.leavingEdges(decidingNode)) {
-        if (cfaEdge.equals(wrongEdge)) {
-          continue;
-        } else {
-          otherEdge = cfaEdge;
-          break;
-        }
-      }
-      //should not happen; If it does make it visible.
-      assert otherEdge != null;
-      newPath = Lists.newArrayList(pExecutedPath.asEdgesList());
-      newPath.add(otherEdge);
-      CounterexampleTraceInfo traceInfo = pathChecker.checkPath(newPath);
-      //      traceInfo.
-      if (!traceInfo.isSpurious()) { return traceInfo; }
-
-    }
-    return null;
-  }
-
-  private ReachedSet createNextReachedSet(
-      ConfigurableProgramAnalysis cpa,
-      CFANode mainFunction,
-      ReachedSetFactory pReachedSetFactory) {
-    logger.log(Level.FINE, "Creating initial reached set");
-
-    AbstractState initialState = cpa.getInitialState(mainFunction);
-    Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
-
-    ReachedSet reached = pReachedSetFactory.create();
-    reached.add(initialState, initialPrecision);
-    return reached;
-  }
-
-
-  //  boolean pathToExplore = true;
-  //  boolean success = true;
-  //  /* run the given alg ones using the "config/specification/onepathloopautomaton.spc" and DFS */
-  //  ReachedSet currentReachedSet = pReachedSet;
-  //  success &= algorithm.run(currentReachedSet);
-  //  do{
-  ////    combinedExplPredAlg.run(currentReachedSet);
-  //  }while(success);
-  //
-  //  do {
-  ////    pReachedSet.get
-  ////    AbstractStates.isTargetState(as)
-  //    /**/
-  //    ARGState currentRootState =(ARGState) currentReachedSet.getFirstState();
-  //    ARGState lastState = (ARGState) currentReachedSet.getLastState();
-  //    ARGPath path = ARGUtils.getOnePathTo(lastState);
-  //
-  ////    for (AbstractState s : from(reached).filter(IS_TARGET_STATE)) {
-  //    currentReachedSet = explicitAlg.analysePath(currentRootState, lastState, path.getStateSet());
-  ////    dummyCreator.computeOtherSuccessor(pState, pNotToChildState)
-  ////    dummyCreator.computeOtherSuccessor(pState, pNotToChildState);
-  //    /**/
-  ////    pReachedSet.getFirstState()
-  ////    ARGUtils.getPathFromBranchingInformation(root, arg, branchingInformation)
-  ////    explicitAlg.analysePath(currentRootState, null, errorPathStates);
-  //  }while(pathToExplore & success);
-  //  return false;
 
 }

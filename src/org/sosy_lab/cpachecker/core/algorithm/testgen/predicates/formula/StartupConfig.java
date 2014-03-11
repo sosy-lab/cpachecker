@@ -23,37 +23,31 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.testgen.predicates.formula;
 
-import java.io.IOException;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 
+public class StartupConfig {
 
-public class TestHelper {
-
-
-
-  public StartupConfig createPredicateConfig()
-  {
-    try {
-      return createConfigSet("config/predicateAnalysis.properties");
-    } catch (InvalidConfigurationException | IOException e) {
-      throw new IllegalStateException(e);
-    }
+  public StartupConfig(Configuration pLConfig, LogManager pLogManager, ShutdownNotifier pLShutdownNotifier) {
+    this.config = pLConfig;
+    this.notifier = pLShutdownNotifier;
+    this.log = pLogManager;
   }
 
-  public StartupConfig createConfigSet(String configFileName) throws InvalidConfigurationException, IOException
-  {
+  private Configuration config;
+  private ShutdownNotifier notifier;
+  private LogManager log;
 
-    Configuration lConfig = Configuration.builder()
-        .loadFromFile(configFileName).build();
-    LogManager logManager = new BasicLogManager(lConfig);
-
-    ShutdownNotifier lShutdownNotifier = ShutdownNotifier.create();
-    return new StartupConfig(lConfig, logManager, lShutdownNotifier);
+  public Configuration getConfig() {
+    return config;
   }
 
+  public ShutdownNotifier getNotifier() {
+    return notifier;
+  }
+
+  public LogManager getLog() {
+    return log;
+  }
 }
