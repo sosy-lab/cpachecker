@@ -31,17 +31,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
-public abstract class AbstractBitvectorFormulaManager<TFormulaInfo>
-  extends AbstractBaseFormulaManager<TFormulaInfo>
-  implements
-    BitvectorFormulaManager {
-
+public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
+  extends AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv>
+  implements BitvectorFormulaManager {
 
   protected AbstractBitvectorFormulaManager(
-      FormulaCreator<TFormulaInfo> pCreator
-      ) {
+      AbstractFormulaCreator<TFormulaInfo, TType, TEnv> pCreator) {
     super(pCreator);
-
   }
 
 
@@ -68,10 +64,7 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo>
     return wrap(negate(param1));
   }
 
-
   protected abstract TFormulaInfo negate(TFormulaInfo pParam1);
-
-
 
   @Override
   public BitvectorFormula add(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {

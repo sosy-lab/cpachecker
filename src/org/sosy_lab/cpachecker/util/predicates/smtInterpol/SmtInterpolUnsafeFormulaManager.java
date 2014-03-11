@@ -31,15 +31,10 @@ import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
-class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term> {
-
-  private final SmtInterpolEnvironment env;
-  private final SmtInterpolFormulaCreator creator;
+class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term, Sort, SmtInterpolEnvironment> {
 
   SmtInterpolUnsafeFormulaManager(SmtInterpolFormulaCreator pCreator) {
     super(pCreator);
-    this.creator = pCreator;
-    this.env = pCreator.getEnv();
   }
 
   /** ApplicationTerms can be wrapped with "|".
@@ -94,14 +89,14 @@ class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term>
 
   @Override
   public Term replaceArgs(Term pT, List<Term> newArgs) {
-    return SmtInterpolUtil.replaceArgs(env, pT, SmtInterpolUtil.toTermArray(newArgs));
+    return SmtInterpolUtil.replaceArgs(getFormulaCreator().getEnv(), pT, SmtInterpolUtil.toTermArray(newArgs));
   }
 
   @Override
   public Term replaceName(Term t, String pNewName) {
 
     if (isVariable(t)) {
-      return creator.makeVariable(t.getSort(), pNewName);
+      return getFormulaCreator().makeVariable(t.getSort(), pNewName);
     } else if (isUF(t)) {
       ApplicationTerm at = (ApplicationTerm) t;
       Term[] args = at.getParameters();
@@ -109,7 +104,7 @@ class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term>
       for (int i = 0; i < sorts.length; i++) {
         sorts[i] = args[i].getSort();
       }
-      env.declareFun(pNewName, sorts, t.getSort());
+      getFormulaCreator().getEnv().declareFun(pNewName, sorts, t.getSort());
       return createUIFCallImpl(pNewName, args);
     } else {
       throw new IllegalArgumentException("The Term " + t + " has no name!");
@@ -117,7 +112,7 @@ class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term>
   }
 
   Term createUIFCallImpl(String funcDecl, Term[] args) {
-    Term ufc = env.term(funcDecl, args);
+    Term ufc = getFormulaCreator().getEnv().term(funcDecl, args);
     assert SmtInterpolUtil.isUIF(ufc);
     return ufc;
   }

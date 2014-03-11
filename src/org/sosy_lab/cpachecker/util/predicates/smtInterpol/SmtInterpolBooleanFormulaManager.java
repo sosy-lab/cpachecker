@@ -25,13 +25,14 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import java.util.List;
 
+import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
 
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.logic.Theory;
 
 
-class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaManager<Term> {
+class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaManager<Term, Sort, SmtInterpolEnvironment> {
 
   private SmtInterpolFormulaCreator creator;
 
@@ -41,13 +42,12 @@ class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaManager<Ter
 
   SmtInterpolBooleanFormulaManager(SmtInterpolFormulaCreator creator, Theory pTheory) {
     super(creator);
-    this.creator = creator;
     theory = pTheory;
   }
 
   @Override
   public Term makeVariableImpl(String varName) {
-    return creator.makeVariable(creator.getBoolType(), varName);
+    return getFormulaCreator().makeVariable(getFormulaCreator().getBoolType(), varName);
   }
 
   @Override

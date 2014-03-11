@@ -27,15 +27,18 @@ import java.math.BigInteger;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 
 
-public class RationalFormulaManagerView extends BaseManagerView<RationalFormula> implements RationalFormulaManager {
+public class NumeralFormulaManagerView
+        <ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
+        extends BaseManagerView<ParamFormulaType, ResultFormulaType>
+        implements NumeralFormulaManager<ParamFormulaType, ResultFormulaType> {
 
-  private RationalFormulaManager manager;
+  private NumeralFormulaManager<ParamFormulaType, ResultFormulaType> manager;
 
-  public RationalFormulaManagerView(RationalFormulaManager pManager) {
+  public NumeralFormulaManagerView(NumeralFormulaManager<ParamFormulaType, ResultFormulaType> pManager) {
     this.manager = pManager;
   }
 
@@ -48,79 +51,79 @@ public class RationalFormulaManagerView extends BaseManagerView<RationalFormula>
   }
 
   @Override
-  public RationalFormula negate(RationalFormula pNumber) {
+  public ResultFormulaType negate(ParamFormulaType pNumber) {
     return wrapInView(manager.negate(extractFromView(pNumber)));
   }
 
   @Override
-  public RationalFormula add(RationalFormula pNumber1, RationalFormula pNumbe2) {
+  public ResultFormulaType add(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
     return wrapInView(manager.add(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
-  public RationalFormula subtract(RationalFormula pNumber1, RationalFormula pNumbe2) {
+  public ResultFormulaType subtract(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
     return wrapInView(manager.subtract(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
-  public RationalFormula divide(RationalFormula pNumber1, RationalFormula pNumbe2) {
+  public ResultFormulaType divide(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
     return wrapInView(manager.divide(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
-  public RationalFormula modulo(RationalFormula pNumber1, RationalFormula pNumbe2) {
+  public ResultFormulaType modulo(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
     return wrapInView(manager.modulo(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
-  public RationalFormula multiply(RationalFormula pNumber1, RationalFormula pNumbe2) {
+  public ResultFormulaType multiply(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
     return wrapInView(manager.multiply(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
-  public BooleanFormula equal(RationalFormula pNumber1, RationalFormula pNumbe2) {
+  public BooleanFormula equal(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
     return wrapInView(manager.equal(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
-  public BooleanFormula greaterThan(RationalFormula pNumber1, RationalFormula pNumbe2) {
+  public BooleanFormula greaterThan(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
     return wrapInView(manager.greaterThan(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
-  public BooleanFormula greaterOrEquals(RationalFormula pNumber1, RationalFormula pNumbe2) {
+  public BooleanFormula greaterOrEquals(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
     return wrapInView(manager.greaterOrEquals(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
-  public BooleanFormula lessThan(RationalFormula pNumber1, RationalFormula pNumbe2) {
+  public BooleanFormula lessThan(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
     return wrapInView(manager.lessThan(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
-  public BooleanFormula lessOrEquals(RationalFormula pNumber1, RationalFormula pNumbe2) {
+  public BooleanFormula lessOrEquals(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
     return wrapInView(manager.lessOrEquals(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
 
 
   @Override
-  public boolean isNegate(RationalFormula pNumber) {
+  public boolean isNegate(ParamFormulaType pNumber) {
     return manager.isNegate(extractFromView(pNumber));
   }
 
   @Override
-  public boolean isAdd(RationalFormula pNumber) {
+  public boolean isAdd(ParamFormulaType pNumber) {
     return manager.isAdd(extractFromView(pNumber));
   }
 
   @Override
-  public boolean isSubtract(RationalFormula pNumber) {
+  public boolean isSubtract(ParamFormulaType pNumber) {
     return manager.isSubtract(extractFromView(pNumber));
   }
 
   @Override
-  public boolean isDivide(RationalFormula pNumber) {
+  public boolean isDivide(ParamFormulaType pNumber) {
     return manager.isDivide(extractFromView(pNumber));
   }
 
   @Override
-  public boolean isModulo(RationalFormula pNumber) {
+  public boolean isModulo(ParamFormulaType pNumber) {
     return manager.isModulo(extractFromView(pNumber));
   }
 
   @Override
-  public boolean isMultiply(RationalFormula pNumber) {
+  public boolean isMultiply(ParamFormulaType pNumber) {
     return manager.isMultiply(extractFromView(pNumber));
   }
 
@@ -152,27 +155,27 @@ public class RationalFormulaManagerView extends BaseManagerView<RationalFormula>
   }
 
   @Override
-  public RationalFormula makeNumber(long pI) {
+  public ResultFormulaType makeNumber(long pI) {
     return wrapInView(manager.makeNumber(pI));
   }
 
   @Override
-  public RationalFormula makeNumber(BigInteger pI) {
+  public ResultFormulaType makeNumber(BigInteger pI) {
     return wrapInView(manager.makeNumber(pI));
   }
 
   @Override
-  public RationalFormula makeNumber(String pI) {
+  public ResultFormulaType makeNumber(String pI) {
     return wrapInView(manager.makeNumber(pI));
   }
 
   @Override
-  public RationalFormula makeVariable(String pVar) {
+  public ResultFormulaType makeVariable(String pVar) {
     return wrapInView(manager.makeVariable(pVar));
   }
 
   @Override
-  public FormulaType<RationalFormula> getFormulaType() {
+  public FormulaType<? extends NumeralFormula> getFormulaType() {
     return manager.getFormulaType();
   }
 

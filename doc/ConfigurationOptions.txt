@@ -304,6 +304,10 @@ cfa.exportPerFunction = true
 # export CFA as .dot file
 cfa.file = "cfa.dot"
 
+# how often can a function appear in the callstack as a clone of the original
+# function?
+cfa.functionCalls.recursionDepth = 5
+
 # Also initialize local variables with default values, or leave them
 # uninitialized.
 cfa.initializeAllVariables = false
@@ -358,8 +362,14 @@ cfa.transformIntoSingleLoop.programCounterValueProviderFactory = INCREMENTAL
 cfa.transformIntoSingleLoop.subgraphGrowthStrategy = no default value
   enum:     [MULTIPLE_PATHS, SINGLE_PATH, SINGLE_EDGE]
 
+# unwind recursive functioncalls (bounded to max call stack size)
+cfa.useFunctionCallUnwinding = false
+
 # combine sequences of simple edges into a single edge
 cfa.useMultiEdges = false
+
+# Dump domain type statistics to a CSV file.
+cfa.variableClassification.domainTypeStatisticsFile = no default value
 
 # Dump variable classification to a file.
 cfa.variableClassification.logfile = "VariableClassification.log"

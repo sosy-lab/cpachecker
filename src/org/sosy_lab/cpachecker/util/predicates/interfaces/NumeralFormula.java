@@ -21,25 +21,13 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.invariants.templates;
+package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 
-public abstract class TemplateNumericValue extends TemplateFormula implements RationalFormula, BitvectorFormula {
+public interface NumeralFormula extends Formula {
 
-  private FormulaType<?> myType;
+  public interface IntegerFormula extends NumeralFormula {};
 
-  TemplateNumericValue(FormulaType<?> myType) {
-    this.myType = myType;
-  }
-
-  @Override
-  public FormulaType<?> getFormulaType() {
-    return myType;
-  }
-
-  public abstract TemplateNumericValue withFormulaType(FormulaType<?> newType);
+  public interface RationalFormula extends NumeralFormula {};
 
 }

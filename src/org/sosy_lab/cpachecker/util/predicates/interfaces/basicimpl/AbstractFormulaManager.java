@@ -26,45 +26,51 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.common.Appender;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
 /**
  * Simplifies building a solver from the specific theories.
  * @param <TFormulaInfo> The solver specific type.
  */
-public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaManager {
+public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implements FormulaManager {
 
-  private final AbstractBooleanFormulaManager<TFormulaInfo> booleanManager;
+  private final AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv> booleanManager;
 
-  private final AbstractRationalFormulaManager<TFormulaInfo> rationalManager;
+  private final AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, IntegerFormula, IntegerFormula> integerManager;
 
-  private final AbstractBitvectorFormulaManager<TFormulaInfo> bitvectorManager;
+  private final AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, NumeralFormula, RationalFormula> rationalManager;
 
-  private final AbstractFunctionFormulaManager<TFormulaInfo> functionManager;
+  private final AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv> bitvectorManager;
+
+  private final AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> functionManager;
 
   private final FormulaCreator<TFormulaInfo> formulaCreator;
 
-  private final AbstractUnsafeFormulaManager<TFormulaInfo> unsafeManager;
+  private final AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> unsafeManager;
+
+  private final TEnv environment;
 
   /**
    * Builds a solver from the given theory implementations
    * @param unsafeManager the unsafe manager
    * @param functionManager the function theory
    * @param booleanManager the boolean theory
-   * @param rationalManager the rational theory
+   * @param pIntegerManager the integer theory
+   * @param pRationalManager the rational theory
    * @param bitvectorManager the bitvector theory
    */
   protected AbstractFormulaManager(
-      AbstractUnsafeFormulaManager<TFormulaInfo> unsafeManager,
-      AbstractFunctionFormulaManager<TFormulaInfo> functionManager,
-      AbstractBooleanFormulaManager<TFormulaInfo> booleanManager,
-      AbstractRationalFormulaManager<TFormulaInfo> rationalManager,
-      AbstractBitvectorFormulaManager<TFormulaInfo> bitvectorManager) {
+      TEnv pEnvironment,
+      FormulaCreator<TFormulaInfo> pFormulaCreator,
+      AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> unsafeManager,
+      AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> functionManager,
+      AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv> booleanManager,
+      AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, IntegerFormula, IntegerFormula> pIntegerManager,
+      AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, NumeralFormula, RationalFormula> pRationalManager,
+      AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv> bitvectorManager) {
     if (functionManager == null || booleanManager == null || unsafeManager == null) {
       throw new IllegalArgumentException("boolean, function and unsafe manager instances have to be valid!");
     }
@@ -73,17 +79,23 @@ public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaMan
 
     this.booleanManager = booleanManager;
 
-    this.rationalManager = rationalManager;
+    this.integerManager = pIntegerManager;
+
+    this.rationalManager = pRationalManager;
 
     this.bitvectorManager = bitvectorManager;
 
     this.unsafeManager = unsafeManager;
 
-    formulaCreator = functionManager.getFormulaCreator();
+    this.environment = pEnvironment;
+
+    this.formulaCreator = pFormulaCreator;
+
     if (booleanManager.getFormulaCreator() != formulaCreator
         || unsafeManager.getFormulaCreator() != formulaCreator
         || functionManager.getFormulaCreator() != formulaCreator
-        || (rationalManager != null && rationalManager.getFormulaCreator() != formulaCreator)
+            || (integerManager != null && integerManager.getFormulaCreator() != formulaCreator)
+            || (rationalManager != null && rationalManager.getFormulaCreator() != formulaCreator)
         || (bitvectorManager != null && bitvectorManager.getFormulaCreator() != formulaCreator)
         ) {
       throw new IllegalArgumentException("The creator instances must match across the managers!");
@@ -95,18 +107,24 @@ public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaMan
     return formulaCreator;
   }
 
+  public TEnv getEnvironment() {
+    return environment;
+  }
+
   @SuppressWarnings("unchecked")
   public static <T extends Formula> Class<T> getInterfaceHelper(T instance) {
     checkNotNull(instance);
     Class<?> c ;
     if (instance instanceof BooleanFormula) {
       c = BooleanFormula.class;
+    } else if (instance instanceof IntegerFormula) {
+      c = IntegerFormula.class;
     } else if (instance instanceof RationalFormula) {
       c = RationalFormula.class;
     } else if (instance instanceof BitvectorFormula) {
       c = BitvectorFormula.class;
     } else {
-      throw new IllegalArgumentException("Invalid instance");
+      throw new IllegalArgumentException("Invalid instance: " + instance.getClass());
     }
 
     return (Class<T>) c;
@@ -116,21 +134,32 @@ public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaMan
   public <T extends Formula> Class<T> getInterface(T pInstance) {
     return AbstractFormulaManager.getInterfaceHelper(pInstance);
   }
+
   @Override
-  public AbstractRationalFormulaManager<TFormulaInfo> getRationalFormulaManager() {
+  public AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, IntegerFormula, IntegerFormula> getIntegerFormulaManager() {
+    if (integerManager == null) {
+      // TODO fallback to rationalManager?
+      throw new UnsupportedOperationException();
+    }
+    return integerManager;
+  }
+
+  @Override
+  public AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, NumeralFormula, RationalFormula> getRationalFormulaManager() {
     if (rationalManager == null) {
+      // TODO fallback to integerManager?
       throw new UnsupportedOperationException();
     }
     return rationalManager;
   }
 
   @Override
-  public AbstractBooleanFormulaManager<TFormulaInfo> getBooleanFormulaManager() {
+  public AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv> getBooleanFormulaManager() {
     return booleanManager;
   }
 
   @Override
-  public AbstractBitvectorFormulaManager<TFormulaInfo> getBitvectorFormulaManager() {
+  public AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv> getBitvectorFormulaManager() {
     if (bitvectorManager == null) {
       throw new UnsupportedOperationException();
     }
@@ -138,12 +167,12 @@ public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaMan
   }
 
   @Override
-  public AbstractFunctionFormulaManager<TFormulaInfo> getFunctionFormulaManager() {
+  public AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> getFunctionFormulaManager() {
     return functionManager;
   }
 
   @Override
-  public AbstractUnsafeFormulaManager<TFormulaInfo> getUnsafeFormulaManager() {
+  public AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> getUnsafeFormulaManager() {
 
     return unsafeManager;
   }
@@ -169,6 +198,8 @@ public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaMan
     FormulaType<?> t;
     if (clazz==BooleanFormula.class) {
       t = booleanManager.getFormulaType();
+    } else if (clazz == IntegerFormula.class) {
+      t = integerManager.getFormulaType();
     } else if (clazz == RationalFormula.class) {
       t = rationalManager.getFormulaType();
     } else if (clazz == BitvectorFormula.class) {

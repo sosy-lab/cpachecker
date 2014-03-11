@@ -24,24 +24,21 @@
 package org.sosy_lab.cpachecker.util.invariants.templates.manager;
 
 import org.sosy_lab.cpachecker.util.invariants.InfixReln;
-import org.sosy_lab.cpachecker.util.invariants.templates.NonTemplate;
-import org.sosy_lab.cpachecker.util.invariants.templates.TemplateConstraint;
-import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormula;
-import org.sosy_lab.cpachecker.util.invariants.templates.TemplateNumericValue;
-import org.sosy_lab.cpachecker.util.invariants.templates.TemplateSum;
+import org.sosy_lab.cpachecker.util.invariants.templates.*;
+import org.sosy_lab.cpachecker.util.invariants.templates.TemplateNumeralValue;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 
 
 public class TemplateNumericBaseFormulaManager {
 
 
   public Formula negate(Formula pF) {
-    TemplateNumericValue tf = null;
+    TemplateNumeralValue tf = null;
     try {
-      tf = (TemplateNumericValue) pF;
-      //tf = (TemplateNumericValue) tf.copy();
+      tf = (TemplateNumeralValue) pF;
+      //tf = (TemplateNumeralValue) tf.copy();
       tf.negate();
     } catch (ClassCastException e) {
       System.err.println(e.getMessage());
@@ -50,7 +47,7 @@ public class TemplateNumericBaseFormulaManager {
   }
 
   public Formula add(Formula pF1, Formula pF2) {
-    RationalFormula F = null;
+    NumeralFormula F = null;
     try {
       TemplateSum s1 = (TemplateSum) pF1;
       TemplateSum s2 = (TemplateSum) pF2;

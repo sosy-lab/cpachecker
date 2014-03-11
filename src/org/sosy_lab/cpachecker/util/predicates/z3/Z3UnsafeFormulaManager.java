@@ -38,16 +38,14 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Longs;
 
-public class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long> {
+public class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Long> {
 
   private Set<Long> uifs = new HashSet<>();
   private long z3context;
-  private Z3FormulaCreator creator;
 
   public Z3UnsafeFormulaManager(
       Z3FormulaCreator pCreator) {
     super(pCreator);
-    this.creator = pCreator;
     this.z3context = pCreator.getEnv();
   }
 
@@ -56,7 +54,7 @@ public class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long> {
 
   @Override
   public Formula encapsulateUnsafe(Long pL) {
-    return creator.encapsulateUnsafe(pL);
+    return new Z3Formula(z3context, pL);
   }
 
   @Override
@@ -114,7 +112,7 @@ public class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long> {
   public Long replaceName(Long t, String pNewName) {
     if (isVariable(t)) {
       long sort = get_sort(z3context, t);
-      return creator.makeVariable(sort, pNewName);
+      return getFormulaCreator().makeVariable(sort, pNewName);
 
     } else if (uifs.contains(t)) {
       int n = get_app_num_args(z3context, t);

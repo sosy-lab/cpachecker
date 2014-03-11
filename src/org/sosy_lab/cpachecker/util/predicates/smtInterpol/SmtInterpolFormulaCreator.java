@@ -33,8 +33,9 @@ class SmtInterpolFormulaCreator extends AbstractFormulaCreator<Term, Sort, SmtIn
   SmtInterpolFormulaCreator(
       SmtInterpolEnvironment pMathsatEnv,
       Sort pBoolType,
-      Sort pNumberType) {
-    super(pMathsatEnv, pBoolType, pNumberType);
+      Sort pIntegerType,
+      Sort pRealType) {
+    super(pMathsatEnv, pBoolType, pIntegerType, pRealType);
   }
 
   @Override

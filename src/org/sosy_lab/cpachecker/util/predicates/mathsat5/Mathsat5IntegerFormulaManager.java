@@ -23,27 +23,28 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
-import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
-
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 
-class Mathsat5RationalFormulaManager extends Mathsat5NumeralFormulaManager<NumeralFormula, RationalFormula> {
+import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
-  public Mathsat5RationalFormulaManager(
+
+class Mathsat5IntegerFormulaManager extends Mathsat5NumeralFormulaManager<IntegerFormula, IntegerFormula> {
+
+  public Mathsat5IntegerFormulaManager(
           Mathsat5FormulaCreator pCreator,
           Mathsat5FunctionFormulaManager functionManager) {
-    super(pCreator, functionManager, RationalFormula.class);
+    super(pCreator, functionManager, IntegerFormula.class);
   }
 
   protected long getNumeralType() {
-    return getFormulaCreator().getRealType();
+    return getFormulaCreator().getIntegerType();
   }
 
   @Override
   public FormulaType<? extends NumeralFormula> getFormulaType() {
-    return FormulaType.RationalType;
+    return FormulaType.IntegerType;
   }
 
   @Override
@@ -61,7 +62,9 @@ class Mathsat5RationalFormulaManager extends Mathsat5NumeralFormulaManager<Numer
       }
       String[] frac = n.split("/");
       if (frac.length == 1) {
-        n = "1/" + n;
+        // cannot multiply with term 1/n because the result will have type rat instead of int
+        return makeUf(divUfDecl, t1, t2);
+
       } else {
         assert (frac.length == 2);
         n = frac[1] + "/" + frac[0];

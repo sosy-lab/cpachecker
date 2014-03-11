@@ -37,17 +37,15 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunc
 import com.google.common.base.Function;
 import com.google.common.primitives.Longs;
 
-class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long> {
+class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long, Long, Long> {
 
   private final long mathsatEnv;
-  private final Mathsat5FormulaCreator creator;
 
   public Mathsat5FunctionFormulaManager(
       Mathsat5FormulaCreator pCreator,
       Mathsat5UnsafeFormulaManager unsafeManager) {
     super(pCreator, unsafeManager);
     this.mathsatEnv = pCreator.getEnv();
-    this.creator = pCreator;
   }
 
   public long createUIFCallImpl(long funcDecl, long[] args) {
@@ -62,21 +60,6 @@ class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long
     long[] args = Longs.toArray(pArgs);
     long funcDecl = mathsatType.getFuncDecl();
     return createUIFCallImpl(funcDecl, args);
-  }
-
-  public long toMathsatType(FormulaType<?> formulaType) {
-    long t;
-    if (formulaType.isBooleanType()) {
-      t = creator.getBoolType();
-    } else if (formulaType.isRationalType()) {
-      t = creator.getNumberType();
-    } else if (formulaType.isBitvectorType()) {
-      FormulaType.BitvectorType bitPreciseType = (FormulaType.BitvectorType) formulaType;
-      t = creator.getBittype(bitPreciseType.getSize());
-    } else {
-      throw new IllegalArgumentException("Not supported interface");
-    }
-    return t;
   }
 
   @Override
@@ -95,12 +78,12 @@ class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long
 
         @Override
         public Long apply(FormulaType<?> pArg0) {
-          return toMathsatType(pArg0);
+          return toSolverType(pArg0);
         }})
         .toList();
     long[] msatTypes = Longs.toArray(types);
 
-    long returnType = toMathsatType(pReturnType);
+    long returnType = toSolverType(pReturnType);
     Long decl = createFunctionImpl(pName, returnType, msatTypes);
 
     return new Mathsat5FunctionType<>(formulaType.getReturnType(), formulaType.getArgumentTypes(), decl);

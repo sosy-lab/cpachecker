@@ -23,46 +23,46 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
+import java.math.BigInteger;
+
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
 
-class SmtInterpolRationalFormulaManager extends SmtInterpolNumeralFormulaManager<NumeralFormula, RationalFormula> {
+class SmtInterpolIntegerFormulaManager extends SmtInterpolNumeralFormulaManager<IntegerFormula, IntegerFormula> {
 
-  SmtInterpolRationalFormulaManager(
+  SmtInterpolIntegerFormulaManager(
           SmtInterpolFormulaCreator pCreator,
           SmtInterpolFunctionFormulaManager pFunctionManager) {
-    super(pCreator, pFunctionManager, RationalFormula.class);
+    super(pCreator, pFunctionManager, IntegerFormula.class);
   }
 
   @Override
   public FormulaType<? extends NumeralFormula> getFormulaType() {
-    return FormulaType.RationalType;
+    return FormulaType.IntegerType;
   }
 
   @Override
   protected Term makeNumberImpl(long i) {
-    return getFormulaCreator().getEnv().decimal(BigDecimal.valueOf(i));
+    return getFormulaCreator().getEnv().numeral(BigInteger.valueOf(i));
   }
 
   @Override
   protected Term makeNumberImpl(BigInteger pI) {
-    return getFormulaCreator().getEnv().decimal(new BigDecimal(pI));
+    return getFormulaCreator().getEnv().numeral(pI);
   }
 
   @Override
   protected Term makeNumberImpl(String pI) {
-    return getFormulaCreator().getEnv().decimal(pI);
+    return getFormulaCreator().getEnv().numeral(pI);
   }
 
   @Override
   protected Term makeVariableImpl(String varName) {
-    Sort t = getFormulaCreator().getRealType();
+    Sort t = getFormulaCreator().getIntegerType();
     return getFormulaCreator().makeVariable(t, varName);
   }
 }

@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorType;
 
 
-public class BitvectorFormulaManagerView extends BaseManagerView<BitvectorFormula> implements BitvectorFormulaManager {
+public class BitvectorFormulaManagerView extends BaseManagerView<BitvectorFormula, BitvectorFormula> implements BitvectorFormulaManager {
 
   private BitvectorFormulaManager manager;
   private BooleanFormulaManagerView bmgr;

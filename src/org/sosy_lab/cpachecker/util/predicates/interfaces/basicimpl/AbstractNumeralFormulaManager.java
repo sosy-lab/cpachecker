@@ -25,28 +25,25 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
 import java.math.BigInteger;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
 
 /**
  * This AbstractNumericFormulaManager allows you to implement the Rational-Theory by
  * providing a NumericBaseFormulaManager<TFormulaInfo,TFormulaInfo> and implementing 3 methods.
  * @param <TFormulaInfo> the Solver specific type.
  */
-public abstract class AbstractRationalFormulaManager<TFormulaInfo>
-  extends AbstractBaseFormulaManager<TFormulaInfo>
-  implements RationalFormulaManager {
+public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
+        ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
+  extends AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv>
+  implements NumeralFormulaManager<ParamFormulaType, ResultFormulaType> {
 
-    /**
-   *
-   * @param signedNumericManager
-   */
-  protected AbstractRationalFormulaManager(
-      FormulaCreator<TFormulaInfo> pCreator) {
+  // it is not possible to get a Class from Generics,so we need this field.
+  private final Class<ResultFormulaType> formulaType;
+
+  protected AbstractNumeralFormulaManager(
+      AbstractFormulaCreator<TFormulaInfo, TType, TEnv> pCreator, Class<ResultFormulaType> pType) {
     super(pCreator);
+    formulaType = pType;
   }
 
 
@@ -54,8 +51,8 @@ public abstract class AbstractRationalFormulaManager<TFormulaInfo>
     return getFormulaCreator().extractInfo(pNumber);
   }
 
-  protected RationalFormula wrap(TFormulaInfo pTerm) {
-    return getFormulaCreator().encapsulate(RationalFormula.class, pTerm);
+  protected ResultFormulaType wrap(TFormulaInfo pTerm) {
+    return getFormulaCreator().encapsulate(formulaType, pTerm);
   }
 
   protected BooleanFormula wrapBool(TFormulaInfo pTerm) {
@@ -63,36 +60,31 @@ public abstract class AbstractRationalFormulaManager<TFormulaInfo>
   }
 
   @Override
-  public RationalFormula makeNumber(long i) {
+  public ResultFormulaType makeNumber(long i) {
     return wrap(makeNumberImpl(i));
   }
   protected abstract TFormulaInfo makeNumberImpl(long i);
 
   @Override
-  public RationalFormula makeNumber(BigInteger i) {
+  public ResultFormulaType makeNumber(BigInteger i) {
     return wrap(makeNumberImpl(i));
   }
   protected abstract TFormulaInfo makeNumberImpl(BigInteger i);
 
   @Override
-  public RationalFormula makeNumber(String i) {
+  public ResultFormulaType makeNumber(String i) {
     return wrap(makeNumberImpl(i));
   }
   protected abstract TFormulaInfo makeNumberImpl(String i);
 
   @Override
-  public RationalFormula makeVariable(String pVar) {
+  public ResultFormulaType makeVariable(String pVar) {
     return wrap(makeVariableImpl(pVar));
   }
   protected abstract TFormulaInfo makeVariableImpl(String i);
 
   @Override
-  public FormulaType<RationalFormula> getFormulaType() {
-    return FormulaType.RationalType;
-  }
-
-  @Override
-  public RationalFormula negate(RationalFormula pNumber) {
+  public ResultFormulaType negate(NumeralFormula pNumber) {
     TFormulaInfo param1 = extractInfo(pNumber);
     return wrap(negate(param1));
   }
@@ -103,7 +95,7 @@ public abstract class AbstractRationalFormulaManager<TFormulaInfo>
 
 
   @Override
-  public RationalFormula add(RationalFormula pNumber1, RationalFormula pNumber2) {
+  public ResultFormulaType add(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
@@ -113,7 +105,7 @@ public abstract class AbstractRationalFormulaManager<TFormulaInfo>
   protected abstract TFormulaInfo add(TFormulaInfo pParam1, TFormulaInfo pParam2);
 
   @Override
-  public RationalFormula subtract(RationalFormula pNumber1, RationalFormula pNumber2) {
+  public ResultFormulaType subtract(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
@@ -124,7 +116,7 @@ public abstract class AbstractRationalFormulaManager<TFormulaInfo>
 
 
   @Override
-  public RationalFormula divide(RationalFormula pNumber1, RationalFormula pNumber2) {
+  public ResultFormulaType divide(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
@@ -135,7 +127,7 @@ public abstract class AbstractRationalFormulaManager<TFormulaInfo>
 
 
   @Override
-  public RationalFormula modulo(RationalFormula pNumber1, RationalFormula pNumber2) {
+  public ResultFormulaType modulo(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
@@ -146,7 +138,7 @@ public abstract class AbstractRationalFormulaManager<TFormulaInfo>
 
 
   @Override
-  public RationalFormula multiply(RationalFormula pNumber1, RationalFormula pNumber2) {
+  public ResultFormulaType multiply(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
@@ -157,7 +149,7 @@ public abstract class AbstractRationalFormulaManager<TFormulaInfo>
 
 
   @Override
-  public BooleanFormula equal(RationalFormula pNumber1, RationalFormula pNumber2) {
+  public BooleanFormula equal(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
@@ -168,7 +160,7 @@ public abstract class AbstractRationalFormulaManager<TFormulaInfo>
 
 
   @Override
-  public BooleanFormula greaterThan(RationalFormula pNumber1, RationalFormula pNumber2) {
+  public BooleanFormula greaterThan(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
@@ -179,7 +171,7 @@ public abstract class AbstractRationalFormulaManager<TFormulaInfo>
 
 
   @Override
-  public BooleanFormula greaterOrEquals(RationalFormula pNumber1, RationalFormula pNumber2) {
+  public BooleanFormula greaterOrEquals(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
@@ -189,7 +181,7 @@ public abstract class AbstractRationalFormulaManager<TFormulaInfo>
   protected abstract TFormulaInfo greaterOrEquals(TFormulaInfo pParam1, TFormulaInfo pParam2) ;
 
   @Override
-  public BooleanFormula lessThan(RationalFormula pNumber1, RationalFormula pNumber2) {
+  public BooleanFormula lessThan(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
@@ -200,7 +192,7 @@ public abstract class AbstractRationalFormulaManager<TFormulaInfo>
 
 
   @Override
-  public BooleanFormula lessOrEquals(RationalFormula pNumber1, RationalFormula pNumber2) {
+  public BooleanFormula lessOrEquals(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
@@ -210,14 +202,14 @@ public abstract class AbstractRationalFormulaManager<TFormulaInfo>
   protected abstract TFormulaInfo lessOrEquals(TFormulaInfo pParam1, TFormulaInfo pParam2);
 
   @Override
-  public boolean isNegate(RationalFormula pNumber) {
+  public boolean isNegate(NumeralFormula pNumber) {
     TFormulaInfo param = extractInfo(pNumber);
     return isNegate(param);
   }
   protected abstract boolean isNegate(TFormulaInfo pParam) ;
 
   @Override
-  public boolean isAdd(RationalFormula pNumber) {
+  public boolean isAdd(NumeralFormula pNumber) {
     TFormulaInfo param = extractInfo(pNumber);
     return isAdd(param);
   }
@@ -225,7 +217,7 @@ public abstract class AbstractRationalFormulaManager<TFormulaInfo>
 
 
   @Override
-  public boolean isSubtract(RationalFormula pNumber) {
+  public boolean isSubtract(NumeralFormula pNumber) {
     TFormulaInfo param = extractInfo(pNumber);
     return isSubtract(param);
   }
@@ -234,7 +226,7 @@ public abstract class AbstractRationalFormulaManager<TFormulaInfo>
 
 
   @Override
-  public boolean isDivide(RationalFormula pNumber) {
+  public boolean isDivide(NumeralFormula pNumber) {
     TFormulaInfo param = extractInfo(pNumber);
     return isDivide(param);
   }
@@ -242,7 +234,7 @@ public abstract class AbstractRationalFormulaManager<TFormulaInfo>
 
 
   @Override
-  public boolean isModulo(RationalFormula pNumber) {
+  public boolean isModulo(NumeralFormula pNumber) {
     TFormulaInfo param = extractInfo(pNumber);
     return isModulo(param);
   }
@@ -251,7 +243,7 @@ public abstract class AbstractRationalFormulaManager<TFormulaInfo>
 
 
   @Override
-  public boolean isMultiply(RationalFormula pNumber) {
+  public boolean isMultiply(NumeralFormula pNumber) {
     TFormulaInfo param = extractInfo(pNumber);
     return isMultiply(param);
   }

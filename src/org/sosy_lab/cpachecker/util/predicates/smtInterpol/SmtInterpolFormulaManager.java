@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.getOnlyElement;
 
 import java.io.IOException;
@@ -35,7 +34,7 @@ import java.util.Set;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -53,19 +52,17 @@ import de.uni_freiburg.informatik.ultimate.logic.PrintTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
-class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
-
-  private final SmtInterpolEnvironment env;
-  private final SmtInterpolFormulaCreator creator;
+class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtInterpolEnvironment> {
 
   private SmtInterpolFormulaManager(
+      SmtInterpolEnvironment pEnv,
+      SmtInterpolFormulaCreator pCreator,
       SmtInterpolUnsafeFormulaManager pUnsafeManager,
       SmtInterpolFunctionFormulaManager pFunctionManager,
       SmtInterpolBooleanFormulaManager pBooleanManager,
-      SmtInterpolRationalFormulaManager pNumericManager) {
-    super(pUnsafeManager, pFunctionManager, pBooleanManager, pNumericManager, null);
-    this.creator = checkNotNull((SmtInterpolFormulaCreator)getFormulaCreator());
-    this.env = creator.getEnv();
+      SmtInterpolIntegerFormulaManager pIntegerManager,
+      SmtInterpolRationalFormulaManager pRationalManager) {
+    super(pEnv, pCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pIntegerManager, pRationalManager, null);
   }
 
   public static SmtInterpolFormulaManager create(Configuration config, LogManager logger,
@@ -74,33 +71,36 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
     Logics logic = pUseIntegers ? Logics.QF_UFLIA : Logics.QF_UFLIRA;
     SmtInterpolEnvironment env = new SmtInterpolEnvironment(config, logic, logger, pShutdownNotifier);
 
-    Type type = pUseIntegers ? Type.INT : Type.REAL;
-    final Sort t = env.sort(type);
-    SmtInterpolFormulaCreator creator = new SmtInterpolFormulaCreator(env, env.sort(Type.BOOL), t);
+    final Sort integerType = env.sort(Type.INT);
+    final Sort realType = env.sort(Type.REAL);
+    SmtInterpolFormulaCreator creator = new SmtInterpolFormulaCreator(env, env.sort(Type.BOOL), integerType, realType);
 
     // Create managers
     SmtInterpolUnsafeFormulaManager unsafeManager = new SmtInterpolUnsafeFormulaManager(creator);
     SmtInterpolFunctionFormulaManager functionTheory = new SmtInterpolFunctionFormulaManager(creator, unsafeManager);
     SmtInterpolBooleanFormulaManager booleanTheory = new SmtInterpolBooleanFormulaManager(creator, env.getTheory());
-    SmtInterpolRationalFormulaManager rationalTheory = new SmtInterpolRationalFormulaManager(creator, functionTheory, pUseIntegers);
-    return new SmtInterpolFormulaManager(unsafeManager, functionTheory, booleanTheory, rationalTheory);
+    SmtInterpolIntegerFormulaManager integerTheory = new SmtInterpolIntegerFormulaManager(creator, functionTheory);
+    SmtInterpolRationalFormulaManager rationalTheory = new SmtInterpolRationalFormulaManager(creator, functionTheory);
+
+    return new SmtInterpolFormulaManager(env, creator, unsafeManager, functionTheory,
+            booleanTheory, integerTheory, rationalTheory);
   }
 
   public SmtInterpolInterpolatingProver createInterpolator() {
-    return env.getInterpolator(this);
+    return getEnvironment().getInterpolator(this);
   }
 
   SmtInterpolTheoremProver createProver() {
-    return env.createProver(this);
+    return getEnvironment().createProver(this);
   }
 
   BooleanFormula encapsulateBooleanFormula(Term t) {
-    return creator.encapsulate(BooleanFormula.class, t);
+    return getFormulaCreator().encapsulate(BooleanFormula.class, t);
   }
 
   @Override
   public BooleanFormula parse(String pS) throws IllegalArgumentException {
-    return encapsulateBooleanFormula(getOnlyElement(env.parseStringToTerms(pS)));
+    return encapsulateBooleanFormula(getOnlyElement(getEnvironment().parseStringToTerms(pS)));
   }
 
 
@@ -169,20 +169,14 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
 
   @Override
   public String getVersion() {
-    return env.getVersion();
+    return getEnvironment().getVersion();
   }
-
 
   /** This method returns a 'shared' environment or
    * a complete new environment. */
   SmtInterpolEnvironment createEnvironment() {
-    assert env != null;
-    return env;
-  }
-
-
-  SmtInterpolEnvironment getEnv() {
-    return env;
+    assert getEnvironment() != null;
+    return getEnvironment();
   }
 
   @Override

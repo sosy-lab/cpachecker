@@ -21,28 +21,14 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.interfaces.view.wrapping;
+package org.sosy_lab.cpachecker.util.invariants.templates.manager;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.RationalFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
 
-public class WrappingRationalFormulaManagerView extends RationalFormulaManagerView {
+public class TemplateRationalFormulaManager extends TemplateNumericFormulaManager {
 
-  public WrappingRationalFormulaManagerView(RationalFormulaManager pManager) {
-    super(pManager);
-
-  }
-
-  @Override
-  public RationalFormulaView wrapInView(RationalFormula pFormula) {
-    return new RationalFormulaView(pFormula, this);
-  }
-
-
-  @Override
-  public RationalFormula extractFromView(RationalFormula pFormula) {
-    return ((RationalFormulaView)pFormula).getWrapped();
+  public TemplateRationalFormulaManager(TemplateFormulaManager manager) {
+    super(manager, FormulaType.RationalType);
   }
 }

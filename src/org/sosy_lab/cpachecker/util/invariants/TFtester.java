@@ -27,10 +27,10 @@ import org.sosy_lab.cpachecker.util.invariants.templates.TemplateBoolean;
 import org.sosy_lab.cpachecker.util.invariants.templates.manager.TemplateFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.RationalFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 
 public class TFtester {
 
@@ -39,17 +39,17 @@ public class TFtester {
     TemplateFormulaManager tfm = new TemplateFormulaManager();
 
     FormulaManagerView view = new FormulaManagerView(tfm);
-    RationalFormulaManagerView nfmgr = view.getRationalFormulaManager();
+    NumeralFormulaManagerView nfmgr = view.getRationalFormulaManager();
     BooleanFormulaManagerView bfmgr = view.getBooleanFormulaManager();
-    FormulaType<RationalFormula> type = FormulaType.RationalType;
-    RationalFormula a1 = view.makeVariable(type, "a", 1);
-    RationalFormula a2 = view.makeVariable(type, "a", 2);
-    RationalFormula b1 = view.makeVariable(type, "b", 1);
-    RationalFormula b2 = view.makeVariable(type, "b", 2);
-    RationalFormula c1 = view.makeVariable(type, "c", 1);
-    RationalFormula c2 = view.makeVariable(type, "c", 2);
-    RationalFormula d1 = view.makeVariable(type, "d", 1);
-    RationalFormula d2 = view.makeVariable(type, "d", 2);
+    FormulaType<? extends NumeralFormula> type = FormulaType.RationalType;
+    NumeralFormula a1 = view.makeVariable(type, "a", 1);
+    NumeralFormula a2 = view.makeVariable(type, "a", 2);
+    NumeralFormula b1 = view.makeVariable(type, "b", 1);
+    NumeralFormula b2 = view.makeVariable(type, "b", 2);
+    NumeralFormula c1 = view.makeVariable(type, "c", 1);
+    NumeralFormula c2 = view.makeVariable(type, "c", 2);
+    NumeralFormula d1 = view.makeVariable(type, "d", 1);
+    NumeralFormula d2 = view.makeVariable(type, "d", 2);
 
     BooleanFormula A = nfmgr.greaterOrEquals(a1, a2);
     BooleanFormula B = nfmgr.greaterThan(b1, b2);

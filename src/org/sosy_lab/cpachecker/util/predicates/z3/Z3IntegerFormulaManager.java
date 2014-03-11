@@ -21,34 +21,27 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.invariants.templates;
+package org.sosy_lab.cpachecker.util.predicates.z3;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 
-public class NonTemplate extends TemplateFormula implements BooleanFormula, BitvectorFormula, NumeralFormula {
+public class Z3IntegerFormulaManager extends Z3NumeralFormulaManager<IntegerFormula, IntegerFormula> {
 
-  private FormulaType<?> type;
-
-  public NonTemplate(FormulaType<?> type) {this.type = type; }
-
-  public NonTemplate(FormulaType<?> type, String m) {
-    this(type);
-    if (m==null) {
-      message = "Used a Formula which was not a TemplateFormula.";
-    } else {
-      message = m;
-    }
-  }
-
-  public NonTemplate(String m, TemplateFormula f) {
-    message = m+"\n"+f.getMessage();
+  public Z3IntegerFormulaManager(
+          Z3FormulaCreator pCreator,
+          Z3FunctionFormulaManager pFunctionManager) {
+    super(pCreator, pFunctionManager, IntegerFormula.class);
   }
 
   @Override
-  public FormulaType<?> getFormulaType() {
-    return type;
+  public FormulaType<? extends NumeralFormula> getFormulaType() {
+    return FormulaType.IntegerType;
+  }
+
+  @Override
+  protected long getNumeralType() {
+    return getFormulaCreator().getIntegerType();
   }
 }

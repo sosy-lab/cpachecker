@@ -30,8 +30,9 @@ import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 /**
@@ -50,7 +51,7 @@ public class ToRationalFormulaVisitor implements ToFormulaVisitor<CompoundInterv
   /**
    * The rational formula manager used.
    */
-  private final RationalFormulaManager rfmgr;
+  private final NumeralFormulaManager<NumeralFormula, RationalFormula> rfmgr;
 
   /**
    * The rational formula representing the value zero.
@@ -107,7 +108,8 @@ public class ToRationalFormulaVisitor implements ToFormulaVisitor<CompoundInterv
    * formula or <code>null</code> if the evaluation of the given formula could
    * not be represented as a rational formula.
    */
-  private @Nullable RationalFormula evaluate(InvariantsFormula<CompoundInterval> pFormula, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+  private @Nullable
+  RationalFormula evaluate(InvariantsFormula<CompoundInterval> pFormula, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     CompoundInterval value = pFormula.accept(this.evaluationVisitor, pEnvironment);
     if (value.isSingleton()) {
       return this.rfmgr.makeNumber(value.getLowerBound());
@@ -129,7 +131,8 @@ public class ToRationalFormulaVisitor implements ToFormulaVisitor<CompoundInterv
    * boolean invariants formula or <code>null</code> if any of those
    * interpretations fail.
    */
-  private @Nullable RationalFormula fromBooleanFormula(InvariantsFormula<CompoundInterval> pBooleanFormula, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+  private @Nullable
+  RationalFormula fromBooleanFormula(InvariantsFormula<CompoundInterval> pBooleanFormula, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return fromBooleanFormula(pBooleanFormula.accept(this.toBooleanFormulaVisitor, pEnvironment));
   }
 
@@ -146,7 +149,8 @@ public class ToRationalFormulaVisitor implements ToFormulaVisitor<CompoundInterv
    * given boolean formula or <code>null</code> if the given boolean formula
    * is <code>null</code>.
    */
-  private @Nullable RationalFormula fromBooleanFormula(@Nullable BooleanFormula pBooleanFormula) {
+  private @Nullable
+  RationalFormula fromBooleanFormula(@Nullable BooleanFormula pBooleanFormula) {
     if (pBooleanFormula == null) {
       return null;
     }
@@ -155,8 +159,8 @@ public class ToRationalFormulaVisitor implements ToFormulaVisitor<CompoundInterv
 
   @Override
   public RationalFormula visit(Add<CompoundInterval> pAdd, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    RationalFormula summand1 = pAdd.getSummand1().accept(this, pEnvironment);
-    RationalFormula summand2 = pAdd.getSummand2().accept(this, pEnvironment);
+    NumeralFormula summand1 = pAdd.getSummand1().accept(this, pEnvironment);
+    NumeralFormula summand2 = pAdd.getSummand2().accept(this, pEnvironment);
     if (summand1 == null || summand2 == null) {
       return evaluate(pAdd, pEnvironment);
     }
@@ -190,8 +194,8 @@ public class ToRationalFormulaVisitor implements ToFormulaVisitor<CompoundInterv
 
   @Override
   public RationalFormula visit(Divide<CompoundInterval> pDivide, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    RationalFormula numerator = pDivide.getNumerator().accept(this, pEnvironment);
-    RationalFormula denominator = pDivide.getDenominator().accept(this, pEnvironment);
+    NumeralFormula numerator = pDivide.getNumerator().accept(this, pEnvironment);
+    NumeralFormula denominator = pDivide.getDenominator().accept(this, pEnvironment);
     if (numerator == null || denominator == null) {
       return evaluate(pDivide, pEnvironment);
     }
@@ -220,8 +224,8 @@ public class ToRationalFormulaVisitor implements ToFormulaVisitor<CompoundInterv
 
   @Override
   public RationalFormula visit(Modulo<CompoundInterval> pModulo, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    RationalFormula numerator = pModulo.getNumerator().accept(this, pEnvironment);
-    RationalFormula denominator = pModulo.getDenominator().accept(this, pEnvironment);
+    NumeralFormula numerator = pModulo.getNumerator().accept(this, pEnvironment);
+    NumeralFormula denominator = pModulo.getDenominator().accept(this, pEnvironment);
     if (numerator == null || denominator == null) {
       return evaluate(pModulo, pEnvironment);
     }
@@ -230,8 +234,8 @@ public class ToRationalFormulaVisitor implements ToFormulaVisitor<CompoundInterv
 
   @Override
   public RationalFormula visit(Multiply<CompoundInterval> pMultiply, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    RationalFormula factor1 = pMultiply.getFactor1().accept(this, pEnvironment);
-    RationalFormula factor2 = pMultiply.getFactor2().accept(this, pEnvironment);
+    NumeralFormula factor1 = pMultiply.getFactor1().accept(this, pEnvironment);
+    NumeralFormula factor2 = pMultiply.getFactor2().accept(this, pEnvironment);
     if (factor1 == null || factor2 == null) {
       return evaluate(pMultiply, pEnvironment);
     }
