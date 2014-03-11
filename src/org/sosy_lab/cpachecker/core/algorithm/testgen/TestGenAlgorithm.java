@@ -40,6 +40,7 @@ import org.sosy_lab.common.io.Files.DeleteOnCloseFile;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -182,21 +183,24 @@ public class TestGenAlgorithm implements Algorithm {
       ConfigurationBuilder builder = Configuration.builder().copyFrom(config);
       // TODO: build the right automaton (the modified default one)
       builder = builder.setOption("specification", automatonFile.toPath().toAbsolutePath().toString());
-      Configuration lconfig = builder.build();
+      Configuration nextConfig = builder.build();
 
 
       try (Writer w = Files.openOutputFile(automatonFile.toPath())) {
         ARGUtils.producePathAutomaton(w, "nextPathAutomaton", pNewPath);
       }
 
+      ConfigurableProgramAnalysis nextCpa =
+          new CoreComponentsFactory(nextConfig, logger, shutdownNotifier).createCPA(cfa, null);
+
       if (explicitAlg instanceof CPAAlgorithm) {
-        return CPAAlgorithm.create(cpa, logger, lconfig, shutdownNotifier);
+        return CPAAlgorithm.create(nextCpa, logger, nextConfig, shutdownNotifier);
       } else {
         throw new IllegalStateException("Generating a new Algorithm here only Works if the Algorithm"
             + " is a CPAAlgorithm");
       }
 
-    } catch (IOException | InvalidConfigurationException e) {
+    } catch (IOException | InvalidConfigurationException | CPAException e) {
       // TODO: use another exception?
       throw new IllegalStateException("Unable to create the Algorithm for next Iteration", e);
     }
