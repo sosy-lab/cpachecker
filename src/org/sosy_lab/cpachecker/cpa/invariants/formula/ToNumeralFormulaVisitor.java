@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -41,7 +40,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
  * always coexists with an instance of {@link ToBooleanFormulaVisitor}, which
  * should also be used to obtain an instance of this visitor.
  */
-public class ToRationalFormulaVisitor implements ToFormulaVisitor<CompoundInterval, RationalFormula> {
+public class ToNumeralFormulaVisitor<T extends NumeralFormula> implements ToFormulaVisitor<CompoundInterval, T> {
 
   /**
    * The boolean formula manager used.
@@ -51,17 +50,17 @@ public class ToRationalFormulaVisitor implements ToFormulaVisitor<CompoundInterv
   /**
    * The rational formula manager used.
    */
-  private final NumeralFormulaManager<NumeralFormula, RationalFormula> rfmgr;
+  private final NumeralFormulaManager<? super T, T> nfmgr;
 
   /**
    * The rational formula representing the value zero.
    */
-  private final RationalFormula zero;
+  private final T zero;
 
   /**
    * The rational formula representing the value one.
    */
-  private final RationalFormula one;
+  private final T one;
 
   /**
    * The corresponding compound state invariants formula visitor used to
@@ -81,18 +80,20 @@ public class ToRationalFormulaVisitor implements ToFormulaVisitor<CompoundInterv
    * {@link ToBooleanFormulaVisitor} and evaluation visitor.
    *
    * @param pFmgr the formula manager used.
+   * @param pNumeralFormualManager the formula manager for numeric types
    * @param pToBooleanFormulaVisitor the compound state invariants formula
    * visitor used to convert invariants formulae to boolean formulae.
    * @param pEvaluationVisitor the formula evaluation visitor used to evaluate
    * compound state invariants formulae to compound states.
    */
-  ToRationalFormulaVisitor(FormulaManagerView pFmgr,
+  ToNumeralFormulaVisitor(FormulaManagerView pFmgr,
+      NumeralFormulaManager<? super T, T> pNumeralFormualManager,
       ToFormulaVisitor<CompoundInterval, BooleanFormula> pToBooleanFormulaVisitor,
       FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
     this.bfmgr = pFmgr.getBooleanFormulaManager();
-    this.rfmgr = pFmgr.getRationalFormulaManager();
-    this.zero = this.rfmgr.makeNumber(0);
-    this.one = this.rfmgr.makeNumber(1);
+    this.nfmgr = pNumeralFormualManager;
+    this.zero = this.nfmgr.makeNumber(0);
+    this.one = this.nfmgr.makeNumber(1);
     this.toBooleanFormulaVisitor = pToBooleanFormulaVisitor;
     this.evaluationVisitor = pEvaluationVisitor;
   }
@@ -109,10 +110,10 @@ public class ToRationalFormulaVisitor implements ToFormulaVisitor<CompoundInterv
    * not be represented as a rational formula.
    */
   private @Nullable
-  RationalFormula evaluate(InvariantsFormula<CompoundInterval> pFormula, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+  T evaluate(InvariantsFormula<CompoundInterval> pFormula, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     CompoundInterval value = pFormula.accept(this.evaluationVisitor, pEnvironment);
     if (value.isSingleton()) {
-      return this.rfmgr.makeNumber(value.getLowerBound());
+      return this.nfmgr.makeNumber(value.getLowerBound());
     }
     return null;
   }
@@ -132,7 +133,7 @@ public class ToRationalFormulaVisitor implements ToFormulaVisitor<CompoundInterv
    * interpretations fail.
    */
   private @Nullable
-  RationalFormula fromBooleanFormula(InvariantsFormula<CompoundInterval> pBooleanFormula, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+  T fromBooleanFormula(InvariantsFormula<CompoundInterval> pBooleanFormula, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return fromBooleanFormula(pBooleanFormula.accept(this.toBooleanFormulaVisitor, pEnvironment));
   }
 
@@ -150,7 +151,7 @@ public class ToRationalFormulaVisitor implements ToFormulaVisitor<CompoundInterv
    * is <code>null</code>.
    */
   private @Nullable
-  RationalFormula fromBooleanFormula(@Nullable BooleanFormula pBooleanFormula) {
+  T fromBooleanFormula(@Nullable BooleanFormula pBooleanFormula) {
     if (pBooleanFormula == null) {
       return null;
     }
@@ -158,143 +159,143 @@ public class ToRationalFormulaVisitor implements ToFormulaVisitor<CompoundInterv
   }
 
   @Override
-  public RationalFormula visit(Add<CompoundInterval> pAdd, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    NumeralFormula summand1 = pAdd.getSummand1().accept(this, pEnvironment);
-    NumeralFormula summand2 = pAdd.getSummand2().accept(this, pEnvironment);
+  public T visit(Add<CompoundInterval> pAdd, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+    T summand1 = pAdd.getSummand1().accept(this, pEnvironment);
+    T summand2 = pAdd.getSummand2().accept(this, pEnvironment);
     if (summand1 == null || summand2 == null) {
       return evaluate(pAdd, pEnvironment);
     }
-    return this.rfmgr.add(summand1, summand2);
+    return this.nfmgr.add(summand1, summand2);
   }
 
   @Override
-  public RationalFormula visit(BinaryAnd<CompoundInterval> pAnd, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+  public T visit(BinaryAnd<CompoundInterval> pAnd, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return evaluate(pAnd, pEnvironment);
   }
 
   @Override
-  public RationalFormula visit(BinaryNot<CompoundInterval> pNot, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+  public T visit(BinaryNot<CompoundInterval> pNot, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return evaluate(pNot, pEnvironment);
   }
 
   @Override
-  public RationalFormula visit(BinaryOr<CompoundInterval> pOr, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+  public T visit(BinaryOr<CompoundInterval> pOr, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return evaluate(pOr, pEnvironment);
   }
 
   @Override
-  public RationalFormula visit(BinaryXor<CompoundInterval> pXor, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+  public T visit(BinaryXor<CompoundInterval> pXor, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return evaluate(pXor, pEnvironment);
   }
 
   @Override
-  public RationalFormula visit(Constant<CompoundInterval> pConstant, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+  public T visit(Constant<CompoundInterval> pConstant, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return evaluate(pConstant, pEnvironment);
   }
 
   @Override
-  public RationalFormula visit(Divide<CompoundInterval> pDivide, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    NumeralFormula numerator = pDivide.getNumerator().accept(this, pEnvironment);
-    NumeralFormula denominator = pDivide.getDenominator().accept(this, pEnvironment);
+  public T visit(Divide<CompoundInterval> pDivide, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+    T numerator = pDivide.getNumerator().accept(this, pEnvironment);
+    T denominator = pDivide.getDenominator().accept(this, pEnvironment);
     if (numerator == null || denominator == null) {
       return evaluate(pDivide, pEnvironment);
     }
-    return this.rfmgr.divide(numerator, denominator);
+    return this.nfmgr.divide(numerator, denominator);
   }
 
   @Override
-  public RationalFormula visit(Equal<CompoundInterval> pEqual, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+  public T visit(Equal<CompoundInterval> pEqual, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return fromBooleanFormula(pEqual, pEnvironment);
   }
 
   @Override
-  public RationalFormula visit(LessThan<CompoundInterval> pLessThan, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+  public T visit(LessThan<CompoundInterval> pLessThan, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return fromBooleanFormula(pLessThan, pEnvironment);
   }
 
   @Override
-  public RationalFormula visit(LogicalAnd<CompoundInterval> pAnd, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+  public T visit(LogicalAnd<CompoundInterval> pAnd, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return fromBooleanFormula(pAnd, pEnvironment);
   }
 
   @Override
-  public RationalFormula visit(LogicalNot<CompoundInterval> pNot, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+  public T visit(LogicalNot<CompoundInterval> pNot, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return fromBooleanFormula(pNot, pEnvironment);
   }
 
   @Override
-  public RationalFormula visit(Modulo<CompoundInterval> pModulo, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    NumeralFormula numerator = pModulo.getNumerator().accept(this, pEnvironment);
-    NumeralFormula denominator = pModulo.getDenominator().accept(this, pEnvironment);
+  public T visit(Modulo<CompoundInterval> pModulo, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+    T numerator = pModulo.getNumerator().accept(this, pEnvironment);
+    T denominator = pModulo.getDenominator().accept(this, pEnvironment);
     if (numerator == null || denominator == null) {
       return evaluate(pModulo, pEnvironment);
     }
-    return this.rfmgr.modulo(numerator, denominator);
+    return this.nfmgr.modulo(numerator, denominator);
   }
 
   @Override
-  public RationalFormula visit(Multiply<CompoundInterval> pMultiply, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    NumeralFormula factor1 = pMultiply.getFactor1().accept(this, pEnvironment);
-    NumeralFormula factor2 = pMultiply.getFactor2().accept(this, pEnvironment);
+  public T visit(Multiply<CompoundInterval> pMultiply, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+    T factor1 = pMultiply.getFactor1().accept(this, pEnvironment);
+    T factor2 = pMultiply.getFactor2().accept(this, pEnvironment);
     if (factor1 == null || factor2 == null) {
       return evaluate(pMultiply, pEnvironment);
     }
-    return this.rfmgr.multiply(factor1, factor2);
+    return this.nfmgr.multiply(factor1, factor2);
   }
 
   @Override
-  public RationalFormula visit(ShiftLeft<CompoundInterval> pShiftLeft, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+  public T visit(ShiftLeft<CompoundInterval> pShiftLeft, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return evaluate(pShiftLeft, pEnvironment);
   }
 
   @Override
-  public RationalFormula visit(ShiftRight<CompoundInterval> pShiftRight, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+  public T visit(ShiftRight<CompoundInterval> pShiftRight, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return evaluate(pShiftRight, pEnvironment);
   }
 
   @Override
-  public RationalFormula visit(Union<CompoundInterval> pUnion, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+  public T visit(Union<CompoundInterval> pUnion, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return evaluate(pUnion, pEnvironment);
   }
 
   @Override
-  public RationalFormula visit(Variable<CompoundInterval> pVariable, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    return rfmgr.makeVariable(pVariable.getName());
+  public T visit(Variable<CompoundInterval> pVariable, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+    return nfmgr.makeVariable(pVariable.getName());
   }
 
   @Override
-  public RationalFormula getZero() {
+  public T getZero() {
     return zero;
   }
 
   @Override
-  public RationalFormula getOne() {
+  public T getOne() {
     return one;
   }
 
   @Override
-  public BooleanFormula lessThan(RationalFormula pOp1, RationalFormula pOp2) {
-    return this.rfmgr.lessThan(pOp1, pOp2);
+  public BooleanFormula lessThan(T pOp1, T pOp2) {
+    return this.nfmgr.lessThan(pOp1, pOp2);
   }
 
   @Override
-  public BooleanFormula equal(RationalFormula pOp1, RationalFormula pOp2) {
-    return this.rfmgr.equal(pOp1, pOp2);
+  public BooleanFormula equal(T pOp1, T pOp2) {
+    return this.nfmgr.equal(pOp1, pOp2);
   }
 
   @Override
-  public BooleanFormula greaterThan(RationalFormula pOp1, RationalFormula pOp2) {
-    return this.rfmgr.greaterThan(pOp1, pOp2);
+  public BooleanFormula greaterThan(T pOp1, T pOp2) {
+    return this.nfmgr.greaterThan(pOp1, pOp2);
   }
 
   @Override
-  public BooleanFormula lessOrEqual(RationalFormula pOp1, RationalFormula pOp2) {
-    return this.rfmgr.lessOrEquals(pOp1, pOp2);
+  public BooleanFormula lessOrEqual(T pOp1, T pOp2) {
+    return this.nfmgr.lessOrEquals(pOp1, pOp2);
   }
 
   @Override
-  public BooleanFormula greaterOrEqual(RationalFormula pOp1, RationalFormula pOp2) {
-    return this.rfmgr.greaterOrEquals(pOp1, pOp2);
+  public BooleanFormula greaterOrEqual(T pOp1, T pOp2) {
+    return this.nfmgr.greaterOrEquals(pOp1, pOp2);
   }
 
 }
