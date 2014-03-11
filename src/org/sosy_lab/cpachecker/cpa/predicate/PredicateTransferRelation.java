@@ -284,9 +284,20 @@ public class PredicateTransferRelation implements TransferRelation {
           element = strengthen(element, (AssumptionStorageState) lElement);
         }
 
+        /*
+         * Temporarily disabled.
+         * The AssumeEdges produced by automata with assumptions
+         * are not parsed within the correct scope,
+         * and thus the types and declarations that are referenced
+         * within the AST are not valid.
+         * For example, all CIdExpressions in these AssumeEdges have CProblemTypes.
+         * The CtoFormulaConverter with pointer-alias handling cannot handle them.
+         * Probably the best would be to parse the automaton statements
+         * with the scope of the CFA.
         if (lElement instanceof AbstractStateWithAssumptions) {
           element = strengthen(edge.getSuccessor(), element, (AbstractStateWithAssumptions) lElement);
         }
+        */
 
         if (AbstractStates.isTargetState(lElement)) {
           errorFound = true;
@@ -310,6 +321,7 @@ public class PredicateTransferRelation implements TransferRelation {
     }
   }
 
+  @SuppressWarnings("unused")
   private PredicateAbstractState strengthen(CFANode pNode, PredicateAbstractState pElement,
       AbstractStateWithAssumptions pAssumeElement) throws CPATransferException {
 
