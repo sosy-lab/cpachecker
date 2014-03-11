@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.testgen;
 
+import java.io.IOException;
+import java.io.Writer;
 import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
@@ -30,13 +32,17 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Files.DeleteOnCloseFile;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -76,6 +82,8 @@ public class TestGenAlgorithm implements Algorithm {
   private Solver solver;
   PathChecker pathChecker;
   private ReachedSetFactory reachedSetFactory;
+  private Configuration config;
+  private ShutdownNotifier shutdownNotifier;
 
 
   //  ConfigurationBuilder singleConfigBuilder = Configuration.builder();
@@ -88,8 +96,10 @@ public class TestGenAlgorithm implements Algorithm {
       ShutdownNotifier pShutdownNotifier, CFA pCfa,
       Configuration config, LogManager pLogger) throws InvalidConfigurationException, CPAException {
 
+    shutdownNotifier = pShutdownNotifier;
     cfa = pCfa;
     cpa = pCpa;
+    this.config = config;
     config.inject(this);
     this.explicitAlg = pAlgorithm;
     this.logger = pLogger;
@@ -165,9 +175,31 @@ public class TestGenAlgorithm implements Algorithm {
   }
 
   private Algorithm createAlgorithmForNextIteration(CounterexampleTraceInfo pNewPath) {
-    // TODO Peter: implement me
-    throw new UnsupportedOperationException("not yet implemented by PETER :-)");
 
+    // This temp file will be automatically deleted when the try block terminates.
+    try (DeleteOnCloseFile automatonFile = Files.createTempFile("next_automaton", ".txt")) {
+
+      ConfigurationBuilder builder = Configuration.builder().copyFrom(config);
+      // TODO: use the right automaton (the modified one)
+      builder = builder.setOption("specification", automatonFile.toPath().toAbsolutePath().toString());
+      Configuration lconfig = builder.build();
+
+
+      try (Writer w = Files.openOutputFile(automatonFile.toPath())) {
+        ARGUtils.producePathAutomaton(w, "nextPathAutomaton", pNewPath);
+      }
+
+      if (explicitAlg instanceof CPAAlgorithm) {
+        return CPAAlgorithm.create(cpa, logger, lconfig, shutdownNotifier);
+      } else {
+        throw new IllegalStateException("Generating a new Algorithm here only Works if the Algorithm"
+            + " is a CPAAlgorithm");
+      }
+
+    } catch (IOException | InvalidConfigurationException e) {
+      // TODO: use another exception?
+      throw new IllegalStateException("Unable to create the Algorithm for next Iteration", e);
+    }
   }
 
 
