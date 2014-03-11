@@ -24,9 +24,10 @@
 package org.sosy_lab.cpachecker.util.invariants.templates.manager;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 
 
-public class TemplateIntegerFormulaManager extends TemplateNumericFormulaManager {
+public class TemplateIntegerFormulaManager extends TemplateNumericFormulaManager<IntegerFormula> {
 
   public TemplateIntegerFormulaManager(TemplateFormulaManager manager) {
     super(manager, FormulaType.IntegerType);

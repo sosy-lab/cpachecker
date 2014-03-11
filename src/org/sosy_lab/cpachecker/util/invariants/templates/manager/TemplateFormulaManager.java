@@ -27,8 +27,18 @@ import org.sosy_lab.common.Appender;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormula;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateTerm;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateVariable;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 
 public class TemplateFormulaManager implements FormulaManager {
 
@@ -65,12 +75,12 @@ public class TemplateFormulaManager implements FormulaManager {
   }
 
   @Override
-  public NumeralFormulaManager getIntegerFormulaManager() {
+  public NumeralFormulaManager<IntegerFormula, IntegerFormula> getIntegerFormulaManager() {
     return ifmgr;
   }
 
   @Override
-  public NumeralFormulaManager getRationalFormulaManager() {
+  public NumeralFormulaManager<NumeralFormula, RationalFormula> getRationalFormulaManager() {
     return rfmgr;
   }
 

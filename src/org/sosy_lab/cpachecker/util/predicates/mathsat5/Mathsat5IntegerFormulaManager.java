@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
+import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
-
-import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
 
 class Mathsat5IntegerFormulaManager extends Mathsat5NumeralFormulaManager<IntegerFormula, IntegerFormula> {
@@ -38,6 +38,7 @@ class Mathsat5IntegerFormulaManager extends Mathsat5NumeralFormulaManager<Intege
     super(pCreator, functionManager, IntegerFormula.class);
   }
 
+  @Override
   protected long getNumeralType() {
     return getFormulaCreator().getIntegerType();
   }

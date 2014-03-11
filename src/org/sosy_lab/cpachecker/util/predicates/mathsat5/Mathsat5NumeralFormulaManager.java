@@ -62,11 +62,11 @@ abstract class Mathsat5NumeralFormulaManager
 
   }
 
-  protected long makeUf(FunctionFormulaType decl, long t1, long t2) {
+  protected long makeUf(FunctionFormulaType<?> decl, long t1, long t2) {
     return functionManager.createUninterpretedFunctionCallImpl(decl, ImmutableList.of(t1, t2));
   }
 
-  private boolean isUf(Mathsat5FunctionType funcDecl, Long pBits) {
+  private boolean isUf(Mathsat5FunctionType<?> funcDecl, Long pBits) {
     return functionManager.isUninterpretedFunctionCall(funcDecl, pBits);
   }
 

@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.*;
 import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolUtil.isNumber;
 
-import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
@@ -34,6 +33,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractNume
 
 import com.google.common.collect.ImmutableList;
 
+import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 
@@ -61,11 +61,11 @@ abstract class SmtInterpolNumeralFormulaManager
     modUfDecl = functionManager.createFunction(formulaType + "_" + ModUfName, formulaType, formulaType, formulaType);
   }
 
-  private Term makeUf(FunctionFormulaType decl, Term t1, Term t2) {
+  private Term makeUf(FunctionFormulaType<?> decl, Term t1, Term t2) {
     return functionManager.createUninterpretedFunctionCallImpl(decl, ImmutableList.of(t1, t2));
   }
 
-  private boolean isUf(SmtInterpolFunctionType funcDecl, Term pBits) {
+  private boolean isUf(SmtInterpolFunctionType<?> funcDecl, Term pBits) {
     return functionManager.isUninterpretedFunctionCall(funcDecl, pBits);
   }
 

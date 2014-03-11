@@ -24,10 +24,20 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing;
 
 import org.sosy_lab.common.Appender;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 
 import com.google.common.base.Function;
 
@@ -135,12 +145,12 @@ public class ReplacingFormulaManager implements FormulaManager {
   }
 
   @Override
-  public NumeralFormulaManager getIntegerFormulaManager() {
+  public NumeralFormulaManager<IntegerFormula, IntegerFormula> getIntegerFormulaManager() {
     return rawFormulaManager.getIntegerFormulaManager();
   }
 
   @Override
-  public NumeralFormulaManager getRationalFormulaManager() {
+  public NumeralFormulaManager<NumeralFormula, RationalFormula> getRationalFormulaManager() {
     return rawFormulaManager.getRationalFormulaManager();
   }
 

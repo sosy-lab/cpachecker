@@ -32,8 +32,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 
 import com.google.common.base.Function;
@@ -41,7 +49,7 @@ import com.google.common.base.Function;
 
 public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorFormulaManager {
 
-  private final NumeralFormulaManager rationalFormulaManager;
+  private final NumeralFormulaManager<NumeralFormula, RationalFormula> rationalFormulaManager;
   private final FunctionFormulaManager functionManager;
   private final ReplacingFormulaManager replaceManager;
   private final FunctionFormulaType<? extends NumeralFormula> bitwiseAndUfDecl;
@@ -55,7 +63,7 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
 
   public ReplaceBitvectorWithRationalAndFunctionTheory(
       ReplacingFormulaManager pReplacingFormulaManager,
-      NumeralFormulaManager pNumericFormulaManager,
+      NumeralFormulaManager<NumeralFormula, RationalFormula> pNumericFormulaManager,
       FunctionFormulaManager rawFunctionManager,
       final boolean ignoreExtractConcat) {
     replaceManager = pReplacingFormulaManager;

@@ -23,10 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
 /**
  * Represents a type of a formula.
@@ -69,7 +70,7 @@ public abstract class FormulaType<T extends Formula> {
     }
   }
 
-  public static final FormulaType<? extends NumeralFormula> RationalType = new NumeralType<RationalFormula>() {
+  public static final FormulaType<RationalFormula> RationalType = new NumeralType<RationalFormula>() {
 
     @Override
     public Class<RationalFormula> getInterfaceType() {
@@ -87,7 +88,7 @@ public abstract class FormulaType<T extends Formula> {
     }
   };
 
-  public static final FormulaType<? extends NumeralFormula> IntegerType = new NumeralType<IntegerFormula>() {
+  public static final FormulaType<IntegerFormula> IntegerType = new NumeralType<IntegerFormula>() {
 
     @Override
     public Class<IntegerFormula> getInterfaceType() {

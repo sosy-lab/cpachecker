@@ -46,12 +46,13 @@ public class WrappingNumeralFormulaManagerView
       return (ResultFormulaType) new IntegerFormulaView((IntegerFormula)pFormula, this);
     } else if (pFormula instanceof RationalFormula) {
       return (ResultFormulaType) new RationalFormulaView((RationalFormula)pFormula, this);
-    } else
+    } else {
       throw new AssertionError("unhandled formulatype: " + pFormula.getClass());
+    }
   }
 
   @Override
   public ParamFormulaType extractFromView(ParamFormulaType pFormula) {
-    return (ParamFormulaType)((NumeralFormulaView)pFormula).getWrapped();
+    return (ParamFormulaType)((NumeralFormulaView<?>)pFormula).getWrapped();
   }
 }

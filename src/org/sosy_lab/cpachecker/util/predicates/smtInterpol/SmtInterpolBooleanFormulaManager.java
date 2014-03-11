@@ -25,16 +25,14 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import java.util.List;
 
-import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
 
+import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.logic.Theory;
 
 
 class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaManager<Term, Sort, SmtInterpolEnvironment> {
-
-  private SmtInterpolFormulaCreator creator;
 
   // We use the Theory directly here because the methods there perform simplifications
   // that we could not use otherwise.

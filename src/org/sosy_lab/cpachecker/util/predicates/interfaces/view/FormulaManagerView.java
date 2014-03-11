@@ -51,11 +51,19 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing.ReplacingFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -329,7 +337,7 @@ public class FormulaManagerView {
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
-    
+
     return (T) t;
   }
   @SuppressWarnings("unchecked")
@@ -364,7 +372,7 @@ public class FormulaManagerView {
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
-    
+
     return (T) t;
   }
 
@@ -627,7 +635,7 @@ public class FormulaManagerView {
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
-    
+
     return t;
   }
 
@@ -948,7 +956,7 @@ public class FormulaManagerView {
       boolean conjunctionsOnly) {
     BooleanFormulaManager rawBooleanManager = manager.getBooleanFormulaManager();
     BitvectorFormulaManager rawBitpreciseManager = manager.getBitvectorFormulaManager();
-    NumeralFormulaManager rawNumericManager = manager.getRationalFormulaManager();
+    NumeralFormulaManager<NumeralFormula, RationalFormula> rawNumericManager = manager.getRationalFormulaManager();
     UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
 
     Set<BooleanFormula> handled = new HashSet<>();

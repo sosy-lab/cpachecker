@@ -31,8 +31,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.ImmutableSet;
@@ -74,7 +79,7 @@ public class FormulaMeasuring {
 
   private final FormulaManagerView managerView;
   private final BooleanFormulaManager rawBooleanManager;
-  private final NumeralFormulaManager rawNumericManager;
+  private final NumeralFormulaManager<NumeralFormula, RationalFormula> rawNumericManager;
   private final UnsafeFormulaManager unsafeManager;
 
   public FormulaMeasuring(FormulaManagerView pManagerView) {

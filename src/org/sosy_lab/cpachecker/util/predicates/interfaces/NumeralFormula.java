@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 public interface NumeralFormula extends Formula {
 
-  public interface IntegerFormula extends NumeralFormula {};
+  public interface IntegerFormula extends NumeralFormula {}
 
-  public interface RationalFormula extends NumeralFormula {};
+  public interface RationalFormula extends NumeralFormula {}
 
 }
