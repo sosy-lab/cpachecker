@@ -321,7 +321,7 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
   }
 
   @Nullable
-  public Map<ARGState, CFAEdgeWithAssignments> getexactVariableValues(ARGPath pPath) {
+  public Map<ARGState, CFAEdgeWithAssignments> getExactVariableValues(ARGPath pPath) {
 
     if (assignments.isEmpty()) {
       return null;

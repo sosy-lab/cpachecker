@@ -476,7 +476,7 @@ public class ARGPathExport {
           CFAPathWithAssignments cfaPath = model.getAssignedTermsPerEdge();
           if (cfaPath != null) {
             ARGPath targetPath = pCounterExample.getTargetPath();
-            valueMap = model.getexactVariableValues(targetPath);
+            valueMap = model.getExactVariableValues(targetPath);
           }
         }
       }
