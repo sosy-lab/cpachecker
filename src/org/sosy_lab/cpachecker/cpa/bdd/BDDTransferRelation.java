@@ -340,7 +340,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
       // make variable (predicate) for LEFT SIDE of assignment,
       // delete variable, if it was used before, this is done with an existential operator
-      final Region[] var = createPredicate(lhs, size);
+      final Region[] var = createPredicate(outerFunctionName, lhs, size);
       newRegion = removePredicate(newRegion, var);
 
       // make region (predicate) for RIGHT SIDE
@@ -483,8 +483,10 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
     // track vars, so we can delete them after returning from a function,
     // see handleFunctionReturnEdge(...) for detail.
-    for (Region v : var) {
-      functionToVars.put(functionName, v);
+    if (!FUNCTION_RETURN_VARIABLE.equals(varName)) {
+      for (Region v : var) {
+        functionToVars.put(functionName, v);
+      }
     }
     return var;
   }
@@ -500,7 +502,16 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   }
 
   /** This function returns regions containing bits of a variable.
-   * The name of the variable is build from functionName and varName.
+   * The name of the variable is build from given functionName and varName.
+   * If the precision does not allow to track this variable, NULL is returned. */
+  private Region[] createPredicate(String function, final CExpression exp, final int size) {
+    final String var = exp.toASTString();
+    function = isGlobal(exp) ? null : function;
+    return createPredicate(function, var, size);
+  }
+
+  /** This function returns regions containing bits of a variable.
+   * The name of the variable is build from the default functionName and varName.
    * If the precision does not allow to track this variable, NULL is returned. */
   protected Region[] createPredicate(final CExpression exp, final int size) {
     final String var = exp.toASTString();
