@@ -76,25 +76,13 @@ public class ValueAnalysisFeasibilityChecker {
    */
   public boolean isFeasible(final ARGPath path) throws CPAException, InterruptedException {
     try {
-      return isFeasible(path, new ValueAnalysisPrecision("", config, Optional.<VariableClassification>absent()));
+      return isFeasible(path,
+          new ValueAnalysisPrecision("", config, Optional.<VariableClassification>absent()),
+          new ValueAnalysisState());
     }
     catch (InvalidConfigurationException e) {
       throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
     }
-  }
-
-  /**
-   * This method checks if the given path is feasible, when not tracking the given set of variables.
-   *
-   * @param path the path to check
-   * @param pPrecision the precision to use
-   * @return true, if the path is feasible, else false
-   * @throws CPAException
-   * @throws InterruptedException
-   */
-  public boolean isFeasible(final ARGPath path, final ValueAnalysisPrecision pPrecision)
-      throws CPAException, InterruptedException {
-    return isFeasible(path, pPrecision, new ValueAnalysisState());
   }
 
   /**

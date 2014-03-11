@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.manipulation;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -85,8 +86,8 @@ public class FunctionCloner implements CFAVisitor {
 
   // local caches
   private final Map<CFANode, CFANode> nodeCache = new HashMap<>(); // values will be used as CFANodes-Set for building new CFAs
-  private final Map<IAstNode, IAstNode> astCache = new HashMap<>();
-  private final Map<Type, Type> typeCache = new HashMap<>();
+  private final Map<IAstNode, IAstNode> astCache = new IdentityHashMap<>();
+  private final Map<Type, Type> typeCache = new IdentityHashMap<>();
   private final CExpressionCloner expCloner = new CExpressionCloner();
   private final CTypeCloner typeCloner = new CTypeCloner();
 
@@ -320,7 +321,7 @@ public class FunctionCloner implements CFAVisitor {
       return null;
     }
 
-    if (canBeCached(ast) && astCache.containsKey(ast)) {
+    if (astCache.containsKey(ast)) {
       return (T) astCache.get(ast);
     }
 
@@ -329,13 +330,6 @@ public class FunctionCloner implements CFAVisitor {
     astCache.put(ast, newAst);
 
     return (T) newAst;
-  }
-
-  private boolean canBeCached(IAstNode ast) {
-    // we do not cache CParameterDeclaration, but clone it directly,
-    // because its equals- and hashcode-methods are insufficient for caching
-    // TODO do we need to cache it?
-    return !(ast instanceof CParameterDeclaration);
   }
 
   /** returns a new list with cloned elements */

@@ -42,18 +42,18 @@ public class SMGSingleLinkedListTest {
   @SuppressWarnings("unused")
   private SMGRegion prepareSingleLinkedList(SMGState pState) throws SMGInconsistentException {
     SMGRegion pointer = new SMGRegion(mm.getSizeofPtr(), "pointer");
-    Integer listAddress = pState.getAddress(pState.getSMG().getNullObject(), 0);
+    Integer listAddress = pState.getSMG().getAddress(pState.getSMG().getNullObject(), 0);
     pState.addGlobalObject(pointer);
     for (int i = 0; i < 15; i++) {
-      SMGEdgePointsTo pt = pState.addNewHeapAllocation(mm.getSizeofPtr(), "node");
-      pState.writeValue(pt.getObject(), 0, AnonymousTypes.dummyPointer, SMGKnownSymValue.valueOf(listAddress));
+      SMGEdgePointsTo pt = pState.getWritableSMG().addNewHeapAllocation(mm.getSizeofPtr(), "node");
+      pState.getWritableSMG().writeValue(pt.getObject(), 0, AnonymousTypes.dummyPointer, SMGKnownSymValue.valueOf(listAddress));
       listAddress = pt.getValue();
-      pState.writeValue(pointer, 0, AnonymousTypes.dummyPointer,SMGKnownSymValue.valueOf(listAddress));
+      pState.getWritableSMG().writeValue(pointer, 0, AnonymousTypes.dummyPointer,SMGKnownSymValue.valueOf(listAddress));
     }
     pState.attemptAbstraction();
 
     Integer sllAddress = pState.readValue(pointer, 0, AnonymousTypes.dummyPointer);
-    SMGEdgePointsTo pt = pState.getPointerFromValue(sllAddress);
+    SMGEdgePointsTo pt = pState.getSMG().getPointer(sllAddress);
     SMGObject object = pt.getObject();
 
     Assert.assertTrue(object instanceof SMGSingleLinkedList);

@@ -29,6 +29,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.ReadableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGFactory;
@@ -63,7 +64,7 @@ public class SMGJoinMapTargetAddressTest {
 
   @Test
   @Ignore
-  public void mapTargetAddressExistingNull() {
+  public void mapTargetAddressExistingNull() throws SMGInconsistentException {
     ReadableSMG origDestSMG = SMGFactory.createWritableCopy(destSMG);
     SMGNodeMapping origMapping1 = new SMGNodeMapping(mapping1);
 
@@ -76,7 +77,7 @@ public class SMGJoinMapTargetAddressTest {
 
   @Test
   @Ignore
-  public void mapTargetAddressExisting() {
+  public void mapTargetAddressExisting() throws SMGInconsistentException {
     SMGEdgePointsTo destEdge = new SMGEdgePointsTo(destValue, destObj, 0);
 
     smg1.addValue(value1);
@@ -100,7 +101,7 @@ public class SMGJoinMapTargetAddressTest {
   }
 
   @Test
-  public void mapTargetAddressNew() {
+  public void mapTargetAddressNew() throws SMGInconsistentException {
     smg1.addValue(value1);
     smg1.addHeapObject(obj1);
     smg1.addPointsToEdge(edge1);

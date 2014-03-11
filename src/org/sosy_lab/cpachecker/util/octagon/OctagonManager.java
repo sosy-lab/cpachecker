@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.octagon;
 
 import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.*;
 
+import org.sosy_lab.common.Pair;
+
 import com.google.common.collect.BiMap;
 
 
@@ -265,4 +267,14 @@ public class OctagonManager {
     return str.toString();
   }
 
+  public static Pair<Long, Long> getVariableBounds(Octagon oct, int id) {
+    NumArray lower = OctagonManager.init_num_t(1);
+    NumArray upper = OctagonManager.init_num_t(1);
+    J_get_bounds(oct.getOctId(), id, upper.getArray(), lower.getArray());
+    Pair<Long, Long> retVal = Pair.of(J_num_get_int(lower.getArray(), 0)*-1,
+                                      J_num_get_int(upper.getArray(), 0));
+    J_num_clear_n(lower.getArray(), 1);
+    J_num_clear_n(upper.getArray(), 1);
+    return retVal;
+  }
 }

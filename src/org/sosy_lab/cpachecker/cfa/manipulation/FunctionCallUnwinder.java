@@ -236,21 +236,22 @@ public class FunctionCallUnwinder {
    * TODO implement better user-defined limits */
   private boolean isCallStackSizeReached(final String calledFunction, final Multimap<String, String> reverseGraph) {
     final Collection<String> functions = reverseGraph.keySet();
+    int maxDepth = 0;
     for (String function : functions) {
       if (function.startsWith(calledFunction)) {
         int index = function.indexOf(RECURSION_SEPARATOR);
         if (index != -1) {
           int depth = Integer.parseInt(function.substring(index + RECURSION_SEPARATOR.length()));
-          return depth >= recursionDepth;
+          maxDepth = Math.max(maxDepth,depth);
         }
       }
     }
-    return false;
+    return maxDepth >= recursionDepth;
   }
 
   private String incrementFunctionname(String function) {
     int i = function.indexOf(RECURSION_SEPARATOR);
-    int index = 0;
+    int index = 1;
     if (i != -1) {
       index = Integer.parseInt(function.substring(i + RECURSION_SEPARATOR.length(), function.length())) + 1;
       function = function.substring(0, i);

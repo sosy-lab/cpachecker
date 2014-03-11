@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.WritableSMG;
@@ -45,7 +46,7 @@ import com.google.common.collect.Iterables;
 
 public class SMGSingleLinkedListFinderTest {
   @Test
-  public void simpleListTest() {
+  public void simpleListTest() throws SMGInconsistentException {
     WritableSMG smg = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
     SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, 5, 16, 8, "pointer");
@@ -63,7 +64,7 @@ public class SMGSingleLinkedListFinderTest {
   }
 
   @Test
-  public void nullifiedPointerInferenceTest() {
+  public void nullifiedPointerInferenceTest() throws SMGInconsistentException {
     WritableSMG smg = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
     TestHelpers.createGlobalList(smg, 2, 16, 8, "pointer");
@@ -74,7 +75,7 @@ public class SMGSingleLinkedListFinderTest {
   }
 
   @Test
-  public void listWithInboundPointersTest() {
+  public void listWithInboundPointersTest() throws SMGInconsistentException {
     WritableSMG smg = SMGFactory.createWritableSMG(MachineModel.LINUX64);
     Integer tail = TestHelpers.createList(smg, 4, 16, 8, "tail");
 

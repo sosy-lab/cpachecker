@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 import java.util.Collection;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.ReadableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.WritableSMG;
@@ -39,7 +40,7 @@ final class SMGJoinMapTargetAddress {
 
   public SMGJoinMapTargetAddress(ReadableSMG pSMG1, ReadableSMG pSMG2, WritableSMG destSMG,
                              SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-                             Integer pAddress1, Integer pAddress2) {
+                             Integer pAddress1, Integer pAddress2) throws SMGInconsistentException {
     smg = destSMG;
     mapping1 = pMapping1;
     mapping2 = pMapping2;
