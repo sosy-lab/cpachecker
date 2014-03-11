@@ -54,7 +54,7 @@ def determineRevision(dir):
         (stdout, stderr) = gitProcess.communicate()
         stdout = Util.decodeToString(stdout).strip()
         if not (gitProcess.returncode or stderr) and stdout:
-            return version + ' ' + stdout + ('M' if _isGitRepositoryDirty(dir) else '')
+            return stdout + ('M' if _isGitRepositoryDirty(dir) else '')
 
         # Check for git repository
         gitProcess = subprocess.Popen(['git', 'log', '-1', '--pretty=format:%h', '--abbrev-commit'], env={'LANG': 'C'}, cwd=dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
