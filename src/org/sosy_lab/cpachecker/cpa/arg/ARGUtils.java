@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.GraphUtils;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -440,6 +441,44 @@ public class ARGUtils {
 
       return true;
     }
+
+
+  public static void producePathAutomaton(Appendable sb, String name, CounterexampleTraceInfo pCounterExampleTrace)
+      throws IOException {
+
+    Model model = pCounterExampleTrace.getModel();
+    CFAPathWithAssignments assignmentCFAPath = model.getAssignedTermsPerEdge();
+
+    int stateCounter = 1;
+
+    sb.append("CONTROL AUTOMATON " + name + "\n\n");
+    sb.append("INITIAL STATE ARG" + stateCounter + ";\n\n");
+
+    for (Iterator<CFAEdgeWithAssignments> it = assignmentCFAPath.iterator(); it.hasNext();) {
+      CFAEdgeWithAssignments edge = it.next();
+
+      sb.append("STATE USEFIRST ARG" + stateCounter + " :\n");
+
+      sb.append("    MATCH \"");
+      escape(edge.getCFAEdge().getRawStatement(), sb);
+      sb.append("\" -> ");
+
+      if (it.hasNext()) {
+        String code = edge.getAsCode();
+        String assumption = "ASSUME {" + code + "}";
+        sb.append(assumption + "GOTO ARG" + ++stateCounter);
+      } else {
+        sb.append("ERROR");
+      }
+
+      sb.append(";\n");
+
+      sb.append("    TRUE -> STOP;\n\n");
+    }
+
+    sb.append("END AUTOMATON\n");
+  }
+
 
   /**
    * Produce an automaton in the format for the AutomatonCPA from
