@@ -196,8 +196,8 @@ public class TestGenAlgorithm implements Algorithm {
       if (explicitAlg instanceof CPAAlgorithm) {
         return CPAAlgorithm.create(nextCpa, logger, nextConfig, shutdownNotifier);
       } else {
-        throw new IllegalStateException("Generating a new Algorithm here only Works if the Algorithm"
-            + " is a CPAAlgorithm");
+        throw new InvalidConfigurationException("Generating a new Algorithm here only Works if the "
+            + "Algorithm is a CPAAlgorithm");
       }
 
     } catch (IOException | InvalidConfigurationException | CPAException e) {
