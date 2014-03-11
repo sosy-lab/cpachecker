@@ -43,7 +43,7 @@ public class SMGSingleLinkedListTest {
   private SMGRegion prepareSingleLinkedList(SMGState pState) throws SMGInconsistentException {
     SMGRegion pointer = new SMGRegion(mm.getSizeofPtr(), "pointer");
     Integer listAddress = pState.getSMG().getAddress(pState.getSMG().getNullObject(), 0);
-    pState.addGlobalObject(pointer);
+    pState.getWritableSMG().addGlobalObject(pointer);
     for (int i = 0; i < 15; i++) {
       SMGEdgePointsTo pt = pState.getWritableSMG().addNewHeapAllocation(mm.getSizeofPtr(), "node");
       pState.getWritableSMG().writeValue(pt.getObject(), 0, AnonymousTypes.dummyPointer, SMGKnownSymValue.valueOf(listAddress));
@@ -52,7 +52,7 @@ public class SMGSingleLinkedListTest {
     }
     pState.attemptAbstraction();
 
-    Integer sllAddress = pState.readValue(pointer, 0, AnonymousTypes.dummyPointer);
+    Integer sllAddress = pState.getSMG().readValue(pointer, 0, AnonymousTypes.dummyPointer);
     SMGEdgePointsTo pt = pState.getSMG().getPointer(sllAddress);
     SMGObject object = pt.getObject();
 

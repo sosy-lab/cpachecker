@@ -896,4 +896,57 @@ class CLangSMG extends SMG implements WritableSMG {
     pruneUnreachable();
     performConsistencyCheck();
   }
+
+  @Override
+  public boolean isGlobalObject(SMGObject pObject) {
+    if (pObject.isAbstract()) {
+      return false;
+    }
+    return getGlobalObjects().containsValue(pObject);
+  }
+
+  /**
+   * Makes SMGState create a new object and put it into the current stack
+   * frame.
+   *
+   * Keeps consistency: yes
+   *
+   * @param pType Type of the new object
+   * @param pVarName Name of the local variable
+   * @return Newly created object
+   *
+   * @throws SMGInconsistentException when resulting SMGState is inconsistent
+   * and the checks are enabled
+   */
+  @Override
+  public SMGObject addLocalVariable(CType pType, String pVarName) throws SMGInconsistentException {
+    int size = getMachineModel().getSizeof(pType);
+    SMGRegion new_object = new SMGRegion(size, pVarName);
+
+    addStackObject(new_object);
+    performConsistencyCheck();
+    return new_object;
+  }
+
+  /**
+   * Makes SMGState create a new object and put it into the global namespace
+   *
+   * Keeps consistency: yes
+   *
+   * @param pType Type of the new object
+   * @param pVarName Name of the global variable
+   * @return Newly created object
+   *
+   * @throws SMGInconsistentException when resulting SMGState is inconsistent
+   * and the checks are enabled
+   */
+  @Override
+  public SMGObject addGlobalVariable(CType pType, String pVarName) throws SMGInconsistentException {
+    int size = getMachineModel().getSizeof(pType);
+    SMGRegion new_object = new SMGRegion(size, pVarName);
+
+    addGlobalObject(new_object);
+    performConsistencyCheck();
+    return new_object;
+  }
 }

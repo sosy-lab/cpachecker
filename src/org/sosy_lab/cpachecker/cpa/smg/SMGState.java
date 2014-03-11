@@ -29,9 +29,7 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddress;
@@ -42,7 +40,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoin;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
@@ -146,61 +143,6 @@ public class SMGState implements AbstractQueryableState, Targetable {
     runtimeCheckLevel = pLevel;
   }
 
-  /**
-   * Makes SMGState create a new object and put it into the global namespace
-   *
-   * Keeps consistency: yes
-   *
-   * @param pType Type of the new object
-   * @param pVarName Name of the global variable
-   * @return Newly created object
-   *
-   * @throws SMGInconsistentException when resulting SMGState is inconsistent
-   * and the checks are enabled
-   */
-  public SMGObject addGlobalVariable(CType pType, String pVarName) throws SMGInconsistentException {
-    int size = heap.getMachineModel().getSizeof(pType);
-    SMGRegion new_object = new SMGRegion(size, pVarName);
-
-    heap.addGlobalObject(new_object);
-    performConsistencyCheck(SMGRuntimeCheck.HALF);
-    return new_object;
-  }
-  /**
-   * Makes SMGState create a new object and put it into the current stack
-   * frame.
-   *
-   * Keeps consistency: yes
-   *
-   * @param pType Type of the new object
-   * @param pVarName Name of the local variable
-   * @return Newly created object
-   *
-   * @throws SMGInconsistentException when resulting SMGState is inconsistent
-   * and the checks are enabled
-   */
-  public SMGObject addLocalVariable(CType pType, String pVarName) throws SMGInconsistentException {
-    int size = heap.getMachineModel().getSizeof(pType);
-    SMGRegion new_object = new SMGRegion(size, pVarName);
-
-    heap.addStackObject(new_object);
-    performConsistencyCheck(SMGRuntimeCheck.HALF);
-    return new_object;
-  }
-
-  /**
-   * Adds a new frame for the function.
-   *
-   * Keeps consistency: yes
-   *
-   * @param pFunctionDefinition A function for which to create a new stack frame
-   * @throws SMGInconsistentException
-   */
-  public void addStackFrame(CFunctionDeclaration pFunctionDefinition) throws SMGInconsistentException {
-    heap.addStackFrame(pFunctionDefinition);
-    performConsistencyCheck(SMGRuntimeCheck.HALF);
-  }
-
   /* ********************************************* */
   /* Non-modifying functions: getters and the like */
   /* ********************************************* */
@@ -212,15 +154,6 @@ public class SMGState implements AbstractQueryableState, Targetable {
    */
   final public int getId() {
     return id;
-  }
-
-  /**
-   * Constant.
-   *
-   * @return A {@link SMGObject} for current function return value storage.
-   */
-  final public SMGObject getFunctionReturnObject() {
-    return heap.getStackReturnObject(0);
   }
 
   /**
@@ -248,24 +181,6 @@ public class SMGState implements AbstractQueryableState, Targetable {
   @Override
   public String toString() {
     return "SMGState [" + getId() + "]\n" + heap.toString();
-  }
-
-  /**
-   * Read Value in field (object, type) of an Object.
-   *
-   * @param pObject SMGObject representing the memory the field belongs to.
-   * @param pOffset offset of field being read.
-   * @param pType type of field
-   * @return
-   * @throws SMGInconsistentException
-   */
-  public Integer readValue(SMGObject pObject, int pOffset, CType pType) throws SMGInconsistentException {
-    if (!heap.isObjectValid(pObject)) {
-      setInvalidRead();
-      return null;
-    }
-
-    return heap.readValue(pObject, pOffset, pType);
   }
 
   public void setInvalidRead() {
@@ -322,7 +237,6 @@ public class SMGState implements AbstractQueryableState, Targetable {
         }
         // else return true
       }
-
 
       return true;
     }
@@ -387,38 +301,8 @@ public class SMGState implements AbstractQueryableState, Targetable {
     // TODO Auto-generated method stub
   }
 
-  public void addGlobalObject(SMGRegion newObject) {
-    heap.addGlobalObject(newObject);
-  }
-
-  public boolean isGlobal(String variable) {
-    return  heap.getGlobalObjects().containsValue(heap.getObjectForVisibleVariable(variable));
-  }
-
-  public boolean isGlobal(SMGObject object) {
-    return heap.getGlobalObjects().containsValue(object);
-  }
-
   public void setMemLeak() {
     heap.setMemoryLeak();
-  }
-
-  /**
-   * Drop the stack frame representing the stack of
-   * the function with the given name
-   *
-   * @param functionName
-   * @throws SMGInconsistentException
-   */
-  public void dropStackFrame() throws SMGInconsistentException {
-    heap.dropStackFrame();
-    performConsistencyCheck(SMGRuntimeCheck.FULL);
-  }
-
-  public void pruneUnreachable() throws SMGInconsistentException {
-    heap.pruneUnreachable();
-    //TODO: Explicit values pruning
-    performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
   /**
@@ -433,7 +317,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
     SMGObject object = pValue.getObject();
     long offset = pValue.getOffset().getAsLong();
 
-    if (isGlobal(object) || heap.isHeapObject(object)) {
+    if (heap.isGlobalObject(object) || heap.isHeapObject(object)) {
       return MemoryLocation.valueOf(object.getLabel(), offset);
     } else {
       return MemoryLocation.valueOf(pFunctionName, object.getLabel(), offset);

@@ -131,7 +131,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis {
 
     CFunctionEntryNode functionNode = (CFunctionEntryNode)pNode;
     try {
-      initState.addStackFrame(functionNode.getFunctionDefinition());
+      initState.getWritableSMG().addStackFrame(functionNode.getFunctionDefinition());
       initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
     } catch(SMGInconsistentException exc) {
       logger.log(Level.SEVERE, exc.getMessage());
@@ -144,5 +144,4 @@ public class SMGCPA implements ConfigurableProgramAnalysis {
   public Precision getInitialPrecision(CFANode pNode) {
     return SingletonPrecision.getInstance();
   }
-
 }

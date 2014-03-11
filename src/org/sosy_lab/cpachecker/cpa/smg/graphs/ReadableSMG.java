@@ -49,6 +49,7 @@ public interface ReadableSMG {
   public ArrayDeque<CLangStackFrame> getStackFrames();
   public SMGObject getNullObject();
   public boolean isHeapObject(SMGObject pObject);
+  public boolean isGlobalObject(SMGObject pObject);
   public SMGRegion getStackReturnObject(int pUp);
   public SMGObject getObjectPointedBy(Integer pValue);
 
