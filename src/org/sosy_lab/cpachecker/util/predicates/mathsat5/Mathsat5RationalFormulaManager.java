@@ -43,7 +43,7 @@ class Mathsat5RationalFormulaManager extends Mathsat5NumeralFormulaManager<Numer
   }
 
   @Override
-  public FormulaType<? extends NumeralFormula> getFormulaType() {
+  public FormulaType<RationalFormula> getFormulaType() {
     return FormulaType.RationalType;
   }
 

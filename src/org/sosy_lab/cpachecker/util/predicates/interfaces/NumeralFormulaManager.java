@@ -40,7 +40,7 @@ public interface NumeralFormulaManager
 
   public ResultFormulaType makeVariable(String pVar);
 
-  public FormulaType<? extends NumeralFormula> getFormulaType();
+  public FormulaType<ResultFormulaType> getFormulaType();
 
   // ----------------- Arithmetic relations, return type NumeralFormula -----------------
 

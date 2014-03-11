@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 
 public class Z3IntegerFormulaManager extends Z3NumeralFormulaManager<IntegerFormula, IntegerFormula> {
@@ -36,7 +35,7 @@ public class Z3IntegerFormulaManager extends Z3NumeralFormulaManager<IntegerForm
   }
 
   @Override
-  public FormulaType<? extends NumeralFormula> getFormulaType() {
+  public FormulaType<IntegerFormula> getFormulaType() {
     return FormulaType.IntegerType;
   }
 

@@ -36,7 +36,7 @@ public class Z3RationalFormulaManager extends Z3NumeralFormulaManager<NumeralFor
   }
 
   @Override
-  public FormulaType<? extends NumeralFormula> getFormulaType() {
+  public FormulaType<RationalFormula> getFormulaType() {
     return FormulaType.RationalType;
   }
 

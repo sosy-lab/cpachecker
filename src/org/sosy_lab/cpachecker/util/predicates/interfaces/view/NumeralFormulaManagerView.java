@@ -175,7 +175,7 @@ public class NumeralFormulaManagerView
   }
 
   @Override
-  public FormulaType<? extends NumeralFormula> getFormulaType() {
+  public FormulaType<ResultFormulaType> getFormulaType() {
     return manager.getFormulaType();
   }
 

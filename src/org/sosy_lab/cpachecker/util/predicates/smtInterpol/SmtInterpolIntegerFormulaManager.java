@@ -25,11 +25,11 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import java.math.BigInteger;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 
 
 class SmtInterpolIntegerFormulaManager extends SmtInterpolNumeralFormulaManager<IntegerFormula, IntegerFormula> {
@@ -41,7 +41,7 @@ class SmtInterpolIntegerFormulaManager extends SmtInterpolNumeralFormulaManager<
   }
 
   @Override
-  public FormulaType<? extends NumeralFormula> getFormulaType() {
+  public FormulaType<IntegerFormula> getFormulaType() {
     return FormulaType.IntegerType;
   }
 
