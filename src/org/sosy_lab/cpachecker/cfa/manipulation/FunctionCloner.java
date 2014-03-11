@@ -392,6 +392,10 @@ public class FunctionCloner implements CFAVisitor {
         }
         return new CFunctionDeclaration(loc, cloneType(decl.getType()), changeName(decl.getName()), l);
 
+      } else if (ast instanceof CComplexTypeDeclaration) {
+        CComplexTypeDeclaration decl = (CComplexTypeDeclaration) ast;
+        return new CComplexTypeDeclaration(loc, decl.isGlobal(), cloneType(decl.getType()));
+
       } else if (ast instanceof CTypeDefDeclaration) {
         CTypeDefDeclaration decl = (CTypeDefDeclaration) ast;
         return new CTypeDefDeclaration(loc, decl.isGlobal(), cloneType(decl.getType()),
