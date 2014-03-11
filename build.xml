@@ -6,7 +6,7 @@
          locally for one machine if necessary. -->
     <property file="build.properties"/>
 
-    <property name="version" value="1.3-svn"/> <!-- change here for a release -->
+    <property name="version.base" value="1.3-svn"/> <!-- change here for a release -->
 
     <!-- The following properties may be set via file build.properties or command line to change the build behavior. -->
     <!-- <property name="ivy.disable" value=""/> --> <!-- Disable ivy completely. -->
@@ -21,6 +21,7 @@
     <property name="class.format" value="1.7"/>
     <property name="class.dir" value="bin"/>
     <property name="test.report.dir" value="output/junit"/>
+    <property name="version.file" value="${class.dir}/org/sosy_lab/cpachecker/VERSION.txt"/>
 
     <antversion property="ant.version.exact"/> <!-- Define property that contains the Ant version. -->
     <property name="ivy.lib.dir" value="${basedir}/lib/java"/>
@@ -46,12 +47,13 @@
         <os family="windows"/>
     </condition>
     <target name="init" depends="create-version-file">
-        <echo message="Building ${ant.project.name} ${version}"/>
+        <echo message="Building ${ant.project.name} ${version.base}"/>
         <mkdir dir="${class.dir}/org/sosy_lab/cpachecker"/>
     </target>
-	<target name="create-version-file">
-		<echo message="${version}" file="${class.dir}/org/sosy_lab/cpachecker/VERSION.txt"/>
-	</target>
+        <target name="create-version-file">
+            <!-- Here we only write the imprecise base version. Exact version is only used for JAR files. -->
+            <echo message="${version.base}" file="${version.file}"/>
+        </target>
     <target name="clean">
         <delete includeEmptyDirs="true">
             <fileset dir="." includes="${class.dir}/** war/WEB-INF/classes war/WEB-INF/lib cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
@@ -166,6 +168,17 @@
     <target description="Make a distributable release" depends="build,jar,zip,tar" name="dist"/>
 
     <target name="jar" depends="build">
+        <!-- Determine full CPAchecker version including SVN revision. -->
+        <exec executable="scripts/determine-revision.py"
+            outputProperty="version.revision"
+            logError="true">
+            <arg value="${basedir}"/>
+        </exec>
+        <condition property="version" value="${version.base} ${version.revision}" else="${version.base}">
+            <contains string="${version.base}" substring="-svn"/>
+        </condition>
+        <echo message="${version}" file="${version.file}"/>
+
         <jar basedir="${class.dir}/" includes="**" destfile="cpachecker.jar"
                 whenmanifestonly="fail">
             <manifest>
