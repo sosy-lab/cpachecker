@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.testgen;
 
+import static java.lang.String.format;
+
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Iterator;
@@ -183,8 +185,10 @@ public class TestGenAlgorithm implements Algorithm {
     try (DeleteOnCloseFile automatonFile = Files.createTempFile("next_automaton", ".txt")) {
 
       ConfigurationBuilder builder = Configuration.builder().copyFrom(config);
-      // TODO: build the right automaton (the modified default one)
-      builder = builder.setOption("specification", automatonFile.toPath().toAbsolutePath().toString());
+      // TODO: check if we really can use multiple specification files this way
+      String automatonAbsPath = automatonFile.toPath().toAbsolutePath().toString();
+      String originalSpec = config.getProperty("specification");
+      builder = builder.setOption("specification", format("%s,%s", automatonAbsPath, originalSpec));
       Configuration nextConfig = builder.build();
 
 
