@@ -37,9 +37,9 @@ public class SMGStateBuilder {
 
   private static SMGRuntimeCheck runtimeCheckLevel = SMGRuntimeCheck.NONE;
 
-  public SMGStateBuilder(SMGState pOriginal) {
+  public SMGStateBuilder(SMGState pOriginal, LogManager pLogger) {
     smg = SMGFactory.createWritableCopy(pOriginal.getSMG());
-    logger = null;
+    logger = pLogger;
   }
 
   public SMGStateBuilder(LogManager pLogger, MachineModel pModel) {
@@ -74,6 +74,16 @@ public class SMGStateBuilder {
    */
   public void addStackFrame(CFunctionDeclaration pFunctionDeclaration) throws SMGInconsistentException {
     smg.addStackFrame(pFunctionDeclaration);
+    performConsistencyCheck(SMGRuntimeCheck.FULL);
+  }
+
+  public void pruneUnreachable() throws SMGInconsistentException {
+    smg.pruneUnreachable();
+    performConsistencyCheck(SMGRuntimeCheck.FULL);
+  }
+
+  public void dropStackFrame() throws SMGInconsistentException {
+    smg.dropStackFrame();
     performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 }

@@ -101,25 +101,6 @@ class CLangSMG extends SMG implements WritableSMG {
     CLangSMG.logger = logger;
   }
 
-  /**
-   * Based on the current setting of runtime check level, it either performs
-   * a full consistency check or not. If the check is performed and the
-   * state is deemed inconsistent, a {@link SMGInconsistentException} is thrown.
-   *
-   * Constant.
-   *
-   * @param pLevel A level of the check request. When e.g. HALF is passed, it
-   * means "perform the check if the setting is HALF or finer.
-   * @throws SMGInconsistentException
-   */
-  final public void performConsistencyCheck() throws SMGInconsistentException {
-    if (performChecks()) {
-      if ( ! CLangSMGConsistencyVerifier.verifyCLangSMG(logger, this) ) {
-        throw new SMGInconsistentException("SMG was found inconsistent during a check");
-      }
-    }
-  }
-
   static public boolean performChecks() {
     return CLangSMG.perform_checks;
   }
@@ -359,10 +340,6 @@ class CLangSMG extends SMG implements WritableSMG {
         removeValue(stray_value);
       }
     }
-
-    if (CLangSMG.performChecks()) {
-      CLangSMGConsistencyVerifier.verifyCLangSMG(CLangSMG.logger, this);
-    }
   }
 
   /* ********************************************* */
@@ -484,8 +461,6 @@ class CLangSMG extends SMG implements WritableSMG {
   @Override
   public void mergeValues(int v1, int v2) throws SMGInconsistentException {
     super.mergeValues(v1, v2);
-
-    performConsistencyCheck();
   }
 
   final public void removeHeapObjectAndEdges(SMGObject pObject) {
@@ -599,7 +574,6 @@ class CLangSMG extends SMG implements WritableSMG {
     addValue(new_value);
     addPointsToEdge(points_to);
 
-    performConsistencyCheck();
     return points_to;
   }
 
@@ -695,8 +669,6 @@ class CLangSMG extends SMG implements WritableSMG {
     for (SMGEdgeHasValue edge : to_remove) {
       removeHasValueEdge(edge);
     }
-
-    performConsistencyCheck();
   }
 
   /**
@@ -725,7 +697,6 @@ class CLangSMG extends SMG implements WritableSMG {
 
     Iterable<SMGEdgeHasValue> edges = getHVEdges(filter);
     if (Iterables.contains(edges, new_edge)) {
-      performConsistencyCheck();
       return new_edge;
     }
 
@@ -780,7 +751,6 @@ class CLangSMG extends SMG implements WritableSMG {
     shrinkOverlappingZeroEdges(new_edge, overlappingZeroEdges);
 
     addHasValueEdge(new_edge);
-    performConsistencyCheck();
 
     return new_edge;
   }
@@ -891,10 +861,8 @@ class CLangSMG extends SMG implements WritableSMG {
       writeValue(pTarget, offset, edge.getType(), edge.getValue());
     }
 
-    performConsistencyCheck();
     //TODO Why do I do this here?
     pruneUnreachable();
-    performConsistencyCheck();
   }
 
   @Override
@@ -924,7 +892,6 @@ class CLangSMG extends SMG implements WritableSMG {
     SMGRegion new_object = new SMGRegion(size, pVarName);
 
     addStackObject(new_object);
-    performConsistencyCheck();
     return new_object;
   }
 
@@ -946,7 +913,6 @@ class CLangSMG extends SMG implements WritableSMG {
     SMGRegion new_object = new SMGRegion(size, pVarName);
 
     addGlobalObject(new_object);
-    performConsistencyCheck();
     return new_object;
   }
 }
