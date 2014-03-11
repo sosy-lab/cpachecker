@@ -11,6 +11,8 @@ int main() {
 	}
 
 	if(c == 5) {
+		c = 6;
+	} else {
 		goto ERROR;	
 	}
 
@@ -21,6 +23,8 @@ int main() {
 
 
 	if (d == 13) {
+		d = 12; 
+	}else {		
 		ERROR: return 1;
 	}
 

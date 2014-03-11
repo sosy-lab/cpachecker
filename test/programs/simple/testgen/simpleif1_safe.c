@@ -19,6 +19,8 @@ int main() {
 	}
 
 	if(!(a == 6 && b == 6 && c == 6 && d == 6 )) {
+		a = 33;
+	} else {
 		ERROR: goto ERROR;
 	}
 	return 1;
