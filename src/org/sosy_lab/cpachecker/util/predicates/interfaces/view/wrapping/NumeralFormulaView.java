@@ -24,24 +24,23 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view.wrapping;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 
 
 public abstract class NumeralFormulaView<T extends NumeralFormula> extends FormulaView<T> implements NumeralFormula {
 
-  private NumeralFormulaView(T pWrapped, NumeralFormulaManagerView pView) {
-    super(pWrapped, pView.getViewManager());
+  private NumeralFormulaView(T pWrapped) {
+    super(pWrapped);
   }
 
   public static class IntegerFormulaView extends NumeralFormulaView<IntegerFormula> implements IntegerFormula {
-    public IntegerFormulaView(IntegerFormula pWrapped, NumeralFormulaManagerView pView) {
-      super(pWrapped, pView);
+    public IntegerFormulaView(IntegerFormula pWrapped) {
+      super(pWrapped);
     }
   }
 
   public static class RationalFormulaView extends NumeralFormulaView<RationalFormula> implements RationalFormula {
-    public RationalFormulaView(RationalFormula pWrapped, NumeralFormulaManagerView pView) {
-      super(pWrapped, pView);
+    public RationalFormulaView(RationalFormula pWrapped) {
+      super(pWrapped);
     }
   }
 

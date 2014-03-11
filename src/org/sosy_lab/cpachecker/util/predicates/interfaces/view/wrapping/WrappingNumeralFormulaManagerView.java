@@ -43,9 +43,9 @@ public class WrappingNumeralFormulaManagerView
   @Override
   public ResultFormulaType wrapInView(ResultFormulaType pFormula) {
     if (pFormula instanceof IntegerFormula) {
-      return (ResultFormulaType) new IntegerFormulaView((IntegerFormula)pFormula, this);
+      return (ResultFormulaType) new IntegerFormulaView((IntegerFormula)pFormula);
     } else if (pFormula instanceof RationalFormula) {
-      return (ResultFormulaType) new RationalFormulaView((RationalFormula)pFormula, this);
+      return (ResultFormulaType) new RationalFormulaView((RationalFormula)pFormula);
     } else {
       throw new AssertionError("unhandled formulatype: " + pFormula.getClass());
     }
