@@ -133,37 +133,29 @@ public class TestGenAlgorithm implements Algorithm {
        * If ERROR we can exit because we found a real error.
        */
       ARGState pseudoTarget = (ARGState) currentReached.getLastState();
-      if (AbstractStates.isTargetState(pseudoTarget))
-      {
-        FluentIterable<AbstractState> w = AbstractStates.asIterable(pseudoTarget);
-        //get all wrapped automaton states.
-        FluentIterable<AutomatonState> wrapped = AbstractStates.projectToType(w, AutomatonState.class);
-        //check if any automaton except the TestGenAutomaton "EvalOnlyOnePathAutomaton" reached a target state.
-        for (AutomatonState autoState : wrapped) {
-          if (!autoState.getOwningAutomatonName().equals("EvalOnlyOnePathAutomaton")) {
-            /*
-             * target state means error state.
-             * we found an error path and leave the analysis to the surrounding alg.
-             */
-            if (autoState.isTarget()) { return true; }
-          }
-        }
-      }
-      ARGPath executedPath = ARGUtils.getOnePathTo(pseudoTarget);
-      //      ARGUtils.producePathAutomaton(sb, pRootState, pPathStates, name, pCounterExample);
+      if (isRealTargetError(pseudoTarget)) { return true; }
       /*
        * not an error path. selecting new path to traverse.
        */
-
+      ARGPath executedPath = ARGUtils.getOnePathTo(pseudoTarget);
       CounterexampleTraceInfo newPath = findNewFeasiblePathUsingPredicates(executedPath);
       if (newPath == null) {
-        return false; //true = sound or false = unsound. Which case is it here??
-      } else
-      {
-        AbstractState newInitialState = createNewInitialState(newPath);
-        currentReached = reachedSetFactory.create();
-        currentReached.add(newInitialState, null);
+        /*
+         * we reached all variations (identified by predicates) of the program path.
+         * If we didn't find an error, the program is safe and sound, in the sense of a concolic test.
+         * TODO: Identify the problems with soundness in context on concolic testing
+         */
+        return true; //true = sound or false = unsound. Which case is it here??
       }
+      /*
+       * symbolic analysis of the path conditions returned a new feasible path (or a new model)
+       * the next iteration. Creating automaton to guide next iteration.
+       */
+      //TODO: Peter Implement me
+      explicitAlg = createAlgorithmForNextIteration(newPath);
+      initialState = globalReached.getFirstState();
+      currentReached = reachedSetFactory.create();
+      currentReached.add(initialState, globalReached.getPrecision(initialState));
 
       //ARGUtils.producePathAutomaton(sb, pRootState, pPathStates, name, pCounterExample);
       //traceInfo.getModel()
@@ -172,11 +164,41 @@ public class TestGenAlgorithm implements Algorithm {
     return false;
   }
 
-  private AbstractState createNewInitialState(CounterexampleTraceInfo pNewPath) {
-    //TODO implement me
-    throw new UnsupportedOperationException("Not yet implemented");
+  private Algorithm createAlgorithmForNextIteration(CounterexampleTraceInfo pNewPath) {
+    // TODO Peter: implement me
+    throw new UnsupportedOperationException("not yet implemented by PETER :-)");
+
   }
 
+
+  /**
+   * checks if the given state is a error-target-state in the sense of a program error.
+   * Since the concolic algorithm uses control-automaton target states to leave CPAAlgorithm early,
+   * a target state can be signalled without a program error.
+   * If another automaton signalled target state, the given state is handled as an error,
+   * even if the concolic control automaton signalled an error as well.
+   * @param pseudoTarget
+   * @return true if 'real' program error, false if target state only from concolic automaton.
+   */
+  private boolean isRealTargetError(ARGState pseudoTarget) {
+    if (AbstractStates.isTargetState(pseudoTarget))
+    {
+      FluentIterable<AbstractState> w = AbstractStates.asIterable(pseudoTarget);
+      //get all wrapped automaton states.
+      FluentIterable<AutomatonState> wrapped = AbstractStates.projectToType(w, AutomatonState.class);
+      //check if any automaton except the TestGenAutomaton "EvalOnlyOnePathAutomaton" reached a target state.
+      for (AutomatonState autoState : wrapped) {
+        if (!autoState.getOwningAutomatonName().equals("EvalOnlyOnePathAutomaton")) {
+          /*
+           * target state means error state.
+           * we found an error path and leave the analysis to the surrounding alg.
+           */
+          if (autoState.isTarget()) { return true; }
+        }
+      }
+    }
+    return false;
+  }
 
   private CounterexampleTraceInfo findNewFeasiblePathUsingPredicates(ARGPath pExecutedPath)
       throws CPATransferException, InterruptedException {
