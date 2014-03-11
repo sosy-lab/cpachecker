@@ -57,8 +57,8 @@ public enum PreventingHeuristic {
    */
   public BooleanFormula getFormula(FormulaManagerView fmgr, long thresholdValue) {
     NumeralFormulaManager<NumeralFormula, RationalFormula> nfmgr = fmgr.getRationalFormulaManager();
-    final NumeralFormula number = nfmgr.makeNumber(thresholdValue);
-    final NumeralFormula var = nfmgr.makeVariable(predicateString);
+    final RationalFormula number = nfmgr.makeNumber(thresholdValue);
+    final RationalFormula var = nfmgr.makeVariable(predicateString);
     // TODO better idea?
     return nfmgr.equal(var, number);
   }

@@ -42,9 +42,9 @@ abstract class SmtInterpolNumeralFormulaManager
         extends AbstractNumeralFormulaManager<Term, Sort, SmtInterpolEnvironment, ParamFormulaType, ResultFormulaType> {
 
   private final SmtInterpolEnvironment env;
-  private final SmtInterpolFunctionType<? extends NumeralFormula> multUfDecl;
-  private final SmtInterpolFunctionType<? extends NumeralFormula> divUfDecl;
-  private final SmtInterpolFunctionType<? extends NumeralFormula> modUfDecl;
+  private final SmtInterpolFunctionType<ResultFormulaType> multUfDecl;
+  private final SmtInterpolFunctionType<ResultFormulaType> divUfDecl;
+  private final SmtInterpolFunctionType<ResultFormulaType> modUfDecl;
   private final SmtInterpolFunctionFormulaManager functionManager;
 
   SmtInterpolNumeralFormulaManager(
@@ -55,7 +55,7 @@ abstract class SmtInterpolNumeralFormulaManager
     env = pCreator.getEnv();
     functionManager = pFunctionManager;
 
-    FormulaType<? extends NumeralFormula> formulaType = getFormulaType();
+    FormulaType<ResultFormulaType> formulaType = getFormulaType();
     multUfDecl = functionManager.createFunction(formulaType + "_" + MultUfName, formulaType, formulaType, formulaType);
     divUfDecl = functionManager.createFunction(formulaType + "_" + DivUfName, formulaType, formulaType, formulaType);
     modUfDecl = functionManager.createFunction(formulaType + "_" + ModUfName, formulaType, formulaType, formulaType);

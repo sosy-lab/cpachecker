@@ -984,8 +984,8 @@ public class FormulaManagerView {
         if (splitArithEqualities
             && myIsPurelyArithmetic(tt)) {
           if (rawNumericManager.isEqual(tt)) {
-            NumeralFormula a0 = unsafeManager.typeFormula(FormulaType.RationalType, unsafeManager.getArg(tt, 0));
-            NumeralFormula a1 = unsafeManager.typeFormula(FormulaType.RationalType, unsafeManager.getArg(tt, 1));
+            RationalFormula a0 = unsafeManager.typeFormula(FormulaType.RationalType, unsafeManager.getArg(tt, 0));
+            RationalFormula a1 = unsafeManager.typeFormula(FormulaType.RationalType, unsafeManager.getArg(tt, 1));
 
             BooleanFormula tt1 = rawNumericManager.lessOrEquals(a0, a1);
             //SymbolicFormula tt2 = encapsulate(t2);

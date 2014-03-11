@@ -43,9 +43,9 @@ abstract class Z3NumeralFormulaManager
         extends AbstractNumeralFormulaManager<Long, Long, Long, ParamFormulaType, ResultFormulaType> {
 
   private final long z3context;
-  private final Z3FunctionType<? extends NumeralFormula> multUfDecl;
-  private final Z3FunctionType<? extends NumeralFormula> divUfDecl;
-  private final Z3FunctionType<? extends NumeralFormula> modUfDecl;
+  private final Z3FunctionType<ResultFormulaType> multUfDecl;
+  private final Z3FunctionType<ResultFormulaType> divUfDecl;
+  private final Z3FunctionType<ResultFormulaType> modUfDecl;
   private final Z3FunctionFormulaManager functionManager;
 
   public Z3NumeralFormulaManager(
@@ -55,7 +55,7 @@ abstract class Z3NumeralFormulaManager
     super(pCreator, pFormulaType);
 
     this.z3context = pCreator.getEnv();
-    FormulaType<? extends NumeralFormula> formulaType = getFormulaType();
+    FormulaType<ResultFormulaType> formulaType = getFormulaType();
     this.functionManager = functionManager;
     multUfDecl = functionManager.createFunction(formulaType + "_" + MultUfName, formulaType, formulaType, formulaType);
     divUfDecl = functionManager.createFunction(formulaType + "_" + DivUfName, formulaType, formulaType, formulaType);
@@ -87,11 +87,11 @@ abstract class Z3NumeralFormulaManager
     return getFormulaCreator().makeVariable(type, varName);
   }
 
-  private Long makeUf(FunctionFormulaType<? extends NumeralFormula> decl, Long t1, Long t2) {
+  private Long makeUf(FunctionFormulaType<ResultFormulaType> decl, Long t1, Long t2) {
     return functionManager.createUninterpretedFunctionCallImpl(decl, ImmutableList.of(t1, t2));
   }
 
-  private boolean isUf(Z3FunctionType<? extends NumeralFormula> funcDecl, Long pBits) {
+  private boolean isUf(Z3FunctionType<ResultFormulaType> funcDecl, Long pBits) {
     return functionManager.isUninterpretedFunctionCall(funcDecl, pBits);
   }
 

@@ -40,9 +40,9 @@ abstract class Mathsat5NumeralFormulaManager
         <ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
         extends AbstractNumeralFormulaManager<Long, Long, Long, ParamFormulaType, ResultFormulaType> {
 
-  private final Mathsat5FunctionType<? extends NumeralFormula> multUfDecl;
-  protected final Mathsat5FunctionType<? extends NumeralFormula> divUfDecl;
-  private final Mathsat5FunctionType<? extends NumeralFormula> modUfDecl;
+  private final Mathsat5FunctionType<ResultFormulaType> multUfDecl;
+  protected final Mathsat5FunctionType<ResultFormulaType> divUfDecl;
+  private final Mathsat5FunctionType<ResultFormulaType> modUfDecl;
   private final Mathsat5FunctionFormulaManager functionManager;
 
   private final long mathsatEnv;
@@ -55,7 +55,7 @@ abstract class Mathsat5NumeralFormulaManager
 
     this.mathsatEnv = pCreator.getEnv();
     this.functionManager = functionManager;
-    FormulaType<? extends NumeralFormula> formulaType = getFormulaType();
+    FormulaType<ResultFormulaType> formulaType = getFormulaType();
     multUfDecl = functionManager.createFunction(formulaType + "_" + MultUfName, formulaType, formulaType, formulaType);
     divUfDecl = functionManager.createFunction(formulaType + "_" + DivUfName, formulaType, formulaType, formulaType);
     modUfDecl = functionManager.createFunction(formulaType + "_" + ModUfName, formulaType, formulaType, formulaType);
