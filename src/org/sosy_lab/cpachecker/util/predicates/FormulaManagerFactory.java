@@ -73,11 +73,6 @@ public class FormulaManagerFactory {
       description="log some solver actions, this may be slow!")
   private boolean useLogger = false;
 
-  @Option(name="solver.useIntegers",
-      description="Encode program variables as INTEGER variables, instead of "
-          + "using REALs. Not all solvers might support this.")
-  private boolean useIntegers = false;
-
   @Option(description="Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver (Z3 needs the FOCI library from http://www.kenmcmil.com/foci2/).")
   private Solvers solver = Solvers.MATHSAT5;
 
@@ -120,7 +115,7 @@ public class FormulaManagerFactory {
     try {
       switch (solver) {
       case SMTINTERPOL:
-        return loadSmtInterpol().create(config, logger, shutdownNotifier, useIntegers);
+        return loadSmtInterpol().create(config, logger, shutdownNotifier);
 
       case MATHSAT5:
           return Mathsat5FormulaManager.create(logger, config, shutdownNotifier);
@@ -220,7 +215,7 @@ public class FormulaManagerFactory {
    */
   public static interface SolverFactory {
     FormulaManager create(Configuration config, LogManager logger,
-        ShutdownNotifier pShutdownNotifier, boolean useIntegers) throws InvalidConfigurationException;
+        ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException;
 
     ProverEnvironment createProver(FormulaManager mgr);
 

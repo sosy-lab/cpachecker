@@ -1113,10 +1113,6 @@ cpa.predicate.smtinterpol.logfile = "smtinterpol.%03d.smt2"
 cpa.predicate.solver = MATHSAT5
   enum:     [MATHSAT5, SMTINTERPOL, Z3]
 
-# Encode program variables as INTEGER variables, instead of using REALs. Not
-# all solvers might support this.
-cpa.predicate.solver.useIntegers = false
-
 # log some solver actions, this may be slow!
 cpa.predicate.solver.useLogger = false
 
