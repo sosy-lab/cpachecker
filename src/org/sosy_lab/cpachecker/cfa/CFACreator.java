@@ -394,7 +394,7 @@ public class CFACreator {
         // special part of code, returns a transformed copy of the CFA.
         // TODO SLTransformation contains some code copied from the lines above. Is this necessary?
         stats.processingTime.start();
-        immutableCFA = CFASingleLoopTransformation.getSingleLoopTransformation(logger, config).apply(cfa);
+        immutableCFA = CFASingleLoopTransformation.getSingleLoopTransformation(logger, config).apply(cfa, loopStructure, varClassification);
         mainFunction = immutableCFA.getMainFunction();
         assert mainFunction != null;
         stats.processingTime.stop();

@@ -226,12 +226,27 @@ public class CFASingleLoopTransformation {
    * Applies the single loop transformation to the given CFA.
    *
    * @param pInputCFA the control flow automaton to be transformed.
+   * @param pVarClassification the variable classification.
+   * @param pLoopStructure the current loop structure.
    *
    * @return a new CFA with at most one loop.
    * @throws InvalidConfigurationException if the configuration this transformer was created with is invalid.
    * @throws InterruptedException if a shutdown has been requested by the registered shutdown notifier.
    */
-  public ImmutableCFA apply(CFA pInputCFA) throws InvalidConfigurationException, InterruptedException {
+  public ImmutableCFA apply(CFA pInputCFA, Optional<ImmutableMultimap<String, Loop>> pLoopStructure, Optional<VariableClassification> pVarClassification) throws InvalidConfigurationException, InterruptedException {
+    // If the transformation is not necessary, return the original graph
+    if (pLoopStructure.isPresent()) {
+      Collection<Loop> loops = pLoopStructure.get().values();
+      boolean modificationRequired = !loops.isEmpty();
+      if (modificationRequired && loops.size() == 1) {
+        Loop singleLoop = Iterables.getOnlyElement(loops);
+        modificationRequired = singleLoop.getLoopHeads().size() > 1 || singleLoop.getIncomingEdges().size() > 1;
+      }
+      if (!modificationRequired) {
+        return toImmutableCFA(pInputCFA, pLoopStructure, pVarClassification);
+      }
+    }
+
     // Create new main function entry and initialize the program counter there
     FunctionEntryNode oldMainFunctionEntryNode = pInputCFA.getMainFunction();
     AFunctionDeclaration mainFunctionDeclaration = oldMainFunctionEntryNode.getFunctionDefinition();
@@ -714,6 +729,39 @@ public class CFASingleLoopTransformation {
    */
   private ImmutableCFA buildCFA(FunctionEntryNode pStartNode, CFANode pLoopHead, MachineModel pMachineModel, Language pLanguage) throws InvalidConfigurationException, InterruptedException {
     Map<String, FunctionEntryNode> functions = new HashMap<>();
+    SortedSetMultimap<String, CFANode> allNodes = mapNodesToFunctions(pStartNode, functions);
+
+    // Instantiate the transformed graph in a preliminary form
+    MutableCFA cfa = new MutableCFA(pMachineModel, functions, allNodes, pStartNode, pLanguage);
+
+    // Get information about the loop structure
+    Optional<ImmutableMultimap<String, Loop>> loopStructure =
+        getLoopStructure(pLoopHead);
+
+    // Get information about variables, required by some analyses
+    final Optional<VariableClassification> varClassification
+        = loopStructure.isPresent()
+        ? Optional.of(new VariableClassification(cfa, config, logger, loopStructure.get()))
+        : Optional.<VariableClassification>absent();
+
+    // Finalize the transformed CFA
+    return cfa.makeImmutableCFA(loopStructure, varClassification);
+  }
+
+  /**
+   * Maps all nodes reachable from the given start node to their functions and
+   * builds a mapping of function entry nodes to their functions.
+   *
+   * @param pStartNode the start node.
+   * @param functions the found functions will be stored in this map.
+   *
+   * @return all nodes reachable from the given start node mapped to their
+   * functions.
+   *
+   * @throws InterruptedException if a shutdown has been requested by the registered shutdown notifier.
+   */
+  private SortedSetMultimap<String, CFANode> mapNodesToFunctions(FunctionEntryNode pStartNode,
+      Map<String, FunctionEntryNode> functions) throws InterruptedException {
     SortedSetMultimap<String, CFANode> allNodes = TreeMultimap.create();
     FunctionExitNode artificialFunctionExitNode = new FunctionExitNode(0, ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
     FunctionEntryNode artificialFunctionEntryNode =
@@ -732,9 +780,6 @@ public class CFASingleLoopTransformation {
         functions.put(node.getFunctionName(), artificialFunctionEntryNode);
       }
     }
-
-    // Instantiate the transformed graph in a preliminary form
-    MutableCFA cfa = new MutableCFA(pMachineModel, functions, allNodes, pStartNode, pLanguage);
 
     // Assign reverse post order ids to the control flow nodes
     Collection<CFANode> nodesWithNoIdAssigned = getAllNodes(pStartNode);
@@ -757,19 +802,24 @@ public class CFASingleLoopTransformation {
 
       }).toList();
     }
+    return allNodes;
+  }
 
-    // Get information about the loop structure
-    Optional<ImmutableMultimap<String, Loop>> loopStructure =
-        getLoopStructure(pLoopHead);
-
-    // Get information about variables, required by some analyses
-    final Optional<VariableClassification> varClassification
-        = loopStructure.isPresent()
-        ? Optional.of(new VariableClassification(cfa, config, logger, loopStructure.get()))
-        : Optional.<VariableClassification>absent();
-
-    // Finalize the transformed CFA
-    return cfa.makeImmutableCFA(loopStructure, varClassification);
+  private ImmutableCFA toImmutableCFA(CFA pCFA,
+      Optional<ImmutableMultimap<String, Loop>> pLoopStructure,
+      Optional<VariableClassification> pVarClassification) throws InterruptedException {
+    if (pCFA instanceof ImmutableCFA) {
+      return (ImmutableCFA) pCFA;
+    }
+    final MutableCFA mutableCFA;
+    if (pCFA instanceof MutableCFA) {
+      mutableCFA = (MutableCFA) pCFA;
+    } else {
+      Map<String, FunctionEntryNode> functions = new HashMap<>();
+      SortedSetMultimap<String, CFANode> allNodes = mapNodesToFunctions(pCFA.getMainFunction(), functions);
+      mutableCFA = new MutableCFA(pCFA.getMachineModel(), functions, allNodes, pCFA.getMainFunction(), pCFA.getLanguage());
+    }
+    return mutableCFA.makeImmutableCFA(pLoopStructure, pVarClassification);
   }
 
   /**
