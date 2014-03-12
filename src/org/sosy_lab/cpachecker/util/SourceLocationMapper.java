@@ -33,7 +33,7 @@ import java.util.TreeSet;
 import org.eclipse.cdt.internal.core.parser.scanner.Token;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
-import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping.NoOriginMappingAvailable;
+import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping.NoOriginMappingAvailableException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -272,7 +272,7 @@ public class SourceLocationMapper {
     return result;
   }
 
-  public static synchronized Pair<String, Set<Integer>> getRelativeTokensFromCFAEdge(CFAEdge pEdge, boolean overApproximateTokens) throws NoOriginMappingAvailable {
+  public static synchronized Pair<String, Set<Integer>> getRelativeTokensFromCFAEdge(CFAEdge pEdge, boolean overApproximateTokens) throws NoOriginMappingAvailableException {
     Set<Integer> absolute = getAbsoluteTokensFromCFAEdge(pEdge, overApproximateTokens);
     return CSourceOriginMapping.INSTANCE.getRelativeTokensFromAbsolute(absolute);
   }

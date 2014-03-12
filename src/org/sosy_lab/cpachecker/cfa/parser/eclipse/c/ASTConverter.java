@@ -93,7 +93,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
-import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping.NoOriginMappingAvailable;
+import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping.NoOriginMappingAvailableException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
@@ -1826,7 +1826,7 @@ class ASTConverter {
 
       originFileName = startingInOrigin.getFirst();
       startingLineInOrigin = startingInOrigin.getSecond();
-    } catch (NoOriginMappingAvailable e) {
+    } catch (NoOriginMappingAvailableException e) {
       originFileName = l.getFileName();
       startingLineInOrigin = l.getStartingLineNumber();
     }

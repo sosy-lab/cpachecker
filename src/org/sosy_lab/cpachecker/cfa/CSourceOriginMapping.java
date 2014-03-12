@@ -37,18 +37,18 @@ import com.google.common.collect.TreeRangeMap;
 public enum CSourceOriginMapping {
   INSTANCE;
 
-  public class NoOriginMappingAvailable extends Exception {
-    private static final long serialVersionUID = 1L;
+  public class NoOriginMappingAvailableException extends Exception {
+    private static final long serialVersionUID = -2094250312246030679L;
 
-    public NoOriginMappingAvailable(String message) {
+    public NoOriginMappingAvailableException(String message) {
       super(message);
     }
   }
 
-  public class NoTokenizingAvailable extends RuntimeException {
-    private static final long serialVersionUID = 1L;
+  public class NoTokenizingAvailableException extends RuntimeException {
+    private static final long serialVersionUID = 2376782857133795915L;
 
-    public NoTokenizingAvailable(String message) {
+    public NoTokenizingAvailableException(String message) {
       super(message);
     }
   }
@@ -107,13 +107,13 @@ public enum CSourceOriginMapping {
     tokenDeltaMapping.put(tokenRange, deltaTokensToOrigin);
   }
 
-  public Pair<String, Integer> getOriginLineFromAnalysisCodeLine(int analysisCodeLine) throws NoOriginMappingAvailable {
+  public Pair<String, Integer> getOriginLineFromAnalysisCodeLine(int analysisCodeLine) throws NoOriginMappingAvailableException {
     Integer inputLine = analysisCodeLine;
     if ((oneInputLinePerToken != null) && oneInputLinePerToken) {
       inputLine = tokenToLineMapping.get(analysisCodeLine);
 
       if (inputLine == null) {
-        throw new NoOriginMappingAvailable("Mapping from token to line failed!");
+        throw new NoOriginMappingAvailableException("Mapping from token to line failed!");
       }
     }
 
@@ -121,28 +121,28 @@ public enum CSourceOriginMapping {
     String originFileName = lineToFilenameMapping.get(inputLine);
 
     if (lineDelta == null || originFileName == null) {
-      throw new NoOriginMappingAvailable("Mapping failed! Delta or origin unknown!");
+      throw new NoOriginMappingAvailableException("Mapping failed! Delta or origin unknown!");
     }
 
     return Pair.of(originFileName, inputLine + lineDelta);
   }
 
-  public Pair<String, Integer> getOriginTokenNumberFromAbsoluteTokenNumber(int absoluteTokenNumber) throws NoOriginMappingAvailable {
+  public Pair<String, Integer> getOriginTokenNumberFromAbsoluteTokenNumber(int absoluteTokenNumber) throws NoOriginMappingAvailableException {
     if ((oneInputLinePerToken == null) || !oneInputLinePerToken) {
-      throw new NoTokenizingAvailable("Tokenizing was not performed on the input program! Please enable the tokenizer!");
+      throw new NoTokenizingAvailableException("Tokenizing was not performed on the input program! Please enable the tokenizer!");
     }
 
     Integer tokenDelta = tokenDeltaMapping.get(absoluteTokenNumber);
     String originFileName = tokenToFilenameMapping.get(absoluteTokenNumber);
 
     if (tokenDelta == null || originFileName == null) {
-      throw new NoOriginMappingAvailable("Mapping source code line to its origin is not possible due to missing mappings!");
+      throw new NoOriginMappingAvailableException("Mapping source code line to its origin is not possible due to missing mappings!");
     }
 
     return Pair.of(originFileName, absoluteTokenNumber + tokenDelta);
   }
 
-  public Pair<String, Set<Integer>> getRelativeTokensFromAbsolute(Set<Integer> absoluteTokens) throws NoOriginMappingAvailable {
+  public Pair<String, Set<Integer>> getRelativeTokensFromAbsolute(Set<Integer> absoluteTokens) throws NoOriginMappingAvailableException {
     Set<Integer> relative = Sets.newTreeSet();
     String originFilename = null;
     for (Integer abs: absoluteTokens) {
