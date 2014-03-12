@@ -229,7 +229,7 @@ public class InvariantsCPA extends AbstractCPA implements AdjustableConditionCPA
         CPAs.closeIfPossible(targetFindingAlgorithm, logManager);
       } catch (InvalidConfigurationException | CPAException | InterruptedException e) {
         if (!shutdownNotifier.shouldShutdown()) {
-          logManager.logException(Level.SEVERE, e, "Unable to find target locations. Defaulting to selecting all locations.");
+          logManager.logException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations.");
         }
         determineTargetLocations = false;
       }
