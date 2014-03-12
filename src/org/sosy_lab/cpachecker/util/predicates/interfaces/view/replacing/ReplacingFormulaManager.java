@@ -38,8 +38,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Rationa
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.Theory;
 
 import com.google.common.base.Function;
+import com.google.common.base.Functions;
 
 
 public class ReplacingFormulaManager implements FormulaManager {
@@ -55,24 +57,51 @@ public class ReplacingFormulaManager implements FormulaManager {
 
   public ReplacingFormulaManager(
       FormulaManager rawFormulaManager,
-      final boolean replaceBitvectorWithRationalAndFunctions,
+      final Theory bitvectorReplacement,
       final boolean ignoreExtractConcat) {
     this.rawFormulaManager = rawFormulaManager;
 
-    // Setup replacement environment
-    Function<FormulaType<?>, FormulaType<?>>
-    unwrapTypes = new
-        Function<FormulaType<?>, FormulaType<?>>() {
-          @Override
-          public FormulaType<?> apply(FormulaType<?> pArg0) {
-            if (pArg0.isBitvectorType()) {
-              if (replaceBitvectorWithRationalAndFunctions) {
-                return FormulaType.RationalType;
-              }
-            }
+    final Function<FormulaType<?>, FormulaType<?>> unwrapTypes;
 
-            return pArg0;
-          }};
+    if (bitvectorReplacement == Theory.BITVECTOR) {
+      bitvectorTheory = rawFormulaManager.getBitvectorFormulaManager();
+      unwrapTypes = Functions.identity();
+
+    } else {
+      final FormulaType<?> replacementType;
+      switch (bitvectorReplacement) {
+      case INTEGER:
+        bitvectorTheory = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
+            this,
+            rawFormulaManager.getIntegerFormulaManager(),
+            rawFormulaManager.getFunctionFormulaManager(),
+            ignoreExtractConcat);
+        replacementType = rawFormulaManager.getIntegerFormulaManager().getFormulaType();
+        break;
+      case RATIONAL:
+        bitvectorTheory = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
+            this,
+            rawFormulaManager.getRationalFormulaManager(),
+            rawFormulaManager.getFunctionFormulaManager(),
+            ignoreExtractConcat);
+        replacementType = rawFormulaManager.getRationalFormulaManager().getFormulaType();
+        break;
+      default:
+        throw new AssertionError("Unknown theory " + bitvectorReplacement);
+      }
+
+      unwrapTypes = new
+          Function<FormulaType<?>, FormulaType<?>>() {
+            @Override
+            public FormulaType<?> apply(FormulaType<?> pArg0) {
+              if (pArg0.isBitvectorType()) {
+                return replacementType;
+              }
+
+              return pArg0;
+            }};
+
+    }
 
     functionTheory =
         new ReplaceHelperFunctionFormulaManager(
@@ -88,18 +117,6 @@ public class ReplacingFormulaManager implements FormulaManager {
             this,
             rawFormulaManager.getUnsafeFormulaManager(),
             unwrapTypes);
-
-    if (replaceBitvectorWithRationalAndFunctions) {
-      bitvectorTheory =
-          new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
-              this,
-              rawFormulaManager.getRationalFormulaManager(),
-              rawFormulaManager.getFunctionFormulaManager(),
-              ignoreExtractConcat);
-      replacedBitvectorTheory = true;
-    } else {
-      bitvectorTheory = rawFormulaManager.getBitvectorFormulaManager();
-    }
   }
 
   @SuppressWarnings("unchecked")

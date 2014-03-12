@@ -107,6 +107,13 @@ public class FormulaManagerView {
         }
       };
 
+  public static enum Theory {
+    INTEGER,
+    RATIONAL,
+    BITVECTOR,
+    ;
+  }
+
   private BitvectorFormulaManagerView bitvectorFormulaManager;
   private NumeralFormulaManagerView<IntegerFormula, IntegerFormula> integerFormulaManager;
   private NumeralFormulaManagerView<NumeralFormula, RationalFormula> rationalFormulaManager;
@@ -127,13 +134,13 @@ public class FormulaManagerView {
     + "and add axioms like (0 & n = 0)")
   private boolean useBitwiseAxioms = false;
 
-  @Option(description="replace the Bitvector with the Rational- and FunctionTheory")
-  private boolean replaceBitvectorWithRationalAndFunctionTheory = true;
+  @Option(description="Theory to use as backend for bitvectors."
+      + " If different from BITVECTOR, the specified theory is used to approximate bitvectors."
+      + " This can be used for solvers that do not support bitvectors, or for increased performance.")
+  private Theory encodeBitvectorAs = Theory.RATIONAL;
 
-  @Option(description="Allows to ignore Concat and Extract Calls when Bitvector theory was replaced.")
+  @Option(description="Allows to ignore Concat and Extract Calls when Bitvector theory was replaced with Integer or Rational.")
   private boolean ignoreExtractConcat = true;
-
-  // TODO move option solver.useIntegers here to replace Bitvectors with LIA and EUF generically
 
   private LogManager logger;
 
@@ -158,9 +165,9 @@ public class FormulaManagerView {
 
   public FormulaManagerView(LoadManagers loadManagers, FormulaManager baseManager, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
-    if (replaceBitvectorWithRationalAndFunctionTheory) {
+    if (encodeBitvectorAs != Theory.BITVECTOR) {
       baseManager =
-          new ReplacingFormulaManager(baseManager, replaceBitvectorWithRationalAndFunctionTheory, ignoreExtractConcat);
+          new ReplacingFormulaManager(baseManager, encodeBitvectorAs, ignoreExtractConcat);
     }
 
     init(loadManagers, baseManager);

@@ -877,6 +877,12 @@ cpa.predicate.deferUntypedAllocations = true
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
 
+# Theory to use as backend for bitvectors. If different from BITVECTOR, the
+# specified theory is used to approximate bitvectors. This can be used for
+# solvers that do not support bitvectors, or for increased performance.
+cpa.predicate.encodeBitvectorAs = RATIONAL
+  enum:     [INTEGER, RATIONAL, BITVECTOR]
+
 # Name of an external function that will be interpreted as if the function
 # call would be replaced by an externally defined expression over the program
 # variables. This will only work when all variables referenced by the dimacs
@@ -903,7 +909,7 @@ cpa.predicate.handlePointerAliasing = true
 cpa.predicate.handleStringLiteralInitializers = false
 
 # Allows to ignore Concat and Extract Calls when Bitvector theory was
-# replaced.
+# replaced with Integer or Rational.
 cpa.predicate.ignoreExtractConcat = true
 
 # Ignore variables that are not relevant for reachability properties.
@@ -1082,9 +1088,6 @@ cpa.predicate.refinement.useBddInterpolantSimplification = false
 
 # verify if the interpolants fulfill the interpolant properties
 cpa.predicate.refinement.verifyInterpolants = false
-
-# replace the Bitvector with the Rational- and FunctionTheory
-cpa.predicate.replaceBitvectorWithRationalAndFunctionTheory = true
 
 # Enable the option to allow detecting the allocation type by type of the LHS
 # of the assignment, e.g. char *arr = malloc(size) is detected as char[size]
