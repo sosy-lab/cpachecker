@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -314,5 +316,79 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula, B
     protected R visitIfThenElse(BooleanFormula pCondition, BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
       throw new UnsupportedOperationException();
     }
+  }
+
+  /**
+   * Base class for visitors for boolean formulas that traverse recursively
+   * through the full formula (at least the boolean part, not inside atoms).
+   * This class ensures that each identical subtree of the formula
+   * is visited only once to avoid the exponential explosion.
+   *
+   * Subclasses of this class should call super.visit...() to ensure recursive
+   * traversal. If such a call is omitted, the respective part of the formula
+   * is not visited.
+   *
+   * No guarantee on iteration order is made.
+   */
+  public static abstract class RecursiveBooleanFormulaVisitor extends BooleanFormulaVisitor<Void> {
+
+    private final Set<BooleanFormula> seen = new HashSet<>();
+
+    protected RecursiveBooleanFormulaVisitor(FormulaManagerView pFmgr) {
+      super(pFmgr);
+    }
+
+    private Void visitIfNotSeen(BooleanFormula f) {
+      if (seen.add(f)) {
+        return visit(f);
+      }
+      return null;
+    }
+
+    private Void visitMulti(BooleanFormula... pOperands) {
+      for (BooleanFormula operand : pOperands) {
+        visitIfNotSeen(operand);
+      }
+      return null;
+    }
+
+    @Override
+    protected Void visitNot(BooleanFormula pOperand) {
+      return visitIfNotSeen(pOperand);
+    }
+
+    @Override
+    protected Void visitAnd(BooleanFormula... pOperands) {
+      return visitMulti(pOperands);
+    }
+
+    @Override
+    protected Void visitOr(BooleanFormula... pOperands) {
+      return visitMulti(pOperands);
+    }
+
+    @Override
+    protected Void visitEquivalence(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      visitIfNotSeen(pOperand1);
+      visitIfNotSeen(pOperand2);
+      return null;
+    }
+
+    @Override
+    protected Void visitImplication(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      visitIfNotSeen(pOperand1);
+      visitIfNotSeen(pOperand2);
+      return null;
+    }
+
+    @Override
+    protected Void visitIfThenElse(BooleanFormula pCondition, BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
+      visitIfNotSeen(pCondition);
+      visitIfNotSeen(pThenFormula);
+      visitIfNotSeen(pElseFormula);
+      return null;
+    }
+
+
   }
 }
