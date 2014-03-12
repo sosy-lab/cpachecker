@@ -540,8 +540,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
           loop = Iterables.getOnlyElement(loops.values());
           // function edges do not count as incoming/outgoing edges
-          incomingEdges = from(loop.getIncomingEdges())
-                                                       .filter(not(instanceOf(CFunctionReturnEdge.class)));
+          incomingEdges = from(loop.getIncomingEdges()).filter(not(instanceOf(CFunctionReturnEdge.class)));
           outgoingEdges = from(loop.getOutgoingEdges())
               .filter(new Predicate<CFAEdge>() {
                 @Override
@@ -770,10 +769,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
         CFANode cutPoint = cutPointEdge.getPredecessor();
         Iterable<AbstractState> cutPointStates = reachedPerLocation.get(cutPoint);
-        AbstractState lastcutPointState = Iterables.getLast(cutPointStates);
 
         // Create (A & B)
-        PathFormula pathFormulaAB = extractStateByType(lastcutPointState, PredicateAbstractState.class).getPathFormula();
+        PathFormula pathFormulaAB = extractLastIterationPath(cutPointStates);
         BooleanFormula formulaAB = pathFormulaAB.getFormula();
 
         BooleanFormula formulaC;
@@ -849,6 +847,35 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
       logger.log(Level.FINER, "Soundness after induction check:", sound);
       return sound;
+    }
+
+    /**
+     * Extracts the path formula to the cut point states representing the last iteration.
+     *
+     * @param cutPointStates the cut point states.
+     * @return the path formula to the cut point states representing the last iteration.
+     *
+     * @throws CPAException if no loopstack information is present.
+     */
+    private PathFormula extractLastIterationPath(Iterable<AbstractState> cutPointStates) throws CPAException {
+      int highestIteration = -1;
+      PathFormula pathFormula = null;
+      for (AbstractState cutPointState : cutPointStates) {
+        LoopstackState loopstackState = extractStateByType(cutPointState, LoopstackState.class);
+        if (loopstackState == null) {
+          throw new CPAException("BMC without LoopstackCPA is not supported. Please rerun with an instance of the LoopstackCPA.");
+        }
+        int iteration = loopstackState.getIteration();
+        if (iteration > highestIteration || pathFormula == null) {
+          highestIteration = iteration;
+          pathFormula = extractStateByType(cutPointState, PredicateAbstractState.class).getPathFormula();
+        } else if (iteration == highestIteration) {
+          assert pathFormula != null;
+          pathFormula = pmgr.makeOr(pathFormula, extractStateByType(cutPointState, PredicateAbstractState.class).getPathFormula());
+        }
+      }
+      Preconditions.checkArgument(pathFormula != null, "cutPointStates must not be empty.");
+      return pathFormula;
     }
 
     /**

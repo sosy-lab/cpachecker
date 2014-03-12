@@ -43,6 +43,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.LogManager;
@@ -161,12 +162,6 @@ public class CFASingleLoopTransformation {
         " falsehood for all other assumptions in the decision tree.")
   private boolean omitExplicitLastProgramCounterAssumption = true;
 
-  @Option(name="cfa.transformIntoSingleLoop.initialSubgraphAsPrefix",
-      description="Setting this option prefixes the loop with the initial" +
-          "subgraph instead of treating it like the other subgraphs as a " +
-          "leaf of the program counter value decision tree.")
-  private boolean initialSubgraphAsPrefix = true;
-
   @Option(name="cfa.transformIntoSingleLoop.programCounterValueProviderFactory",
       description="This option controls what program counter values are used" +
           ". Possible values are INCREMENTAL and NODE_NUMBER.")
@@ -240,13 +235,12 @@ public class CFASingleLoopTransformation {
     // Create new main function entry and initialize the program counter there
     FunctionEntryNode oldMainFunctionEntryNode = pInputCFA.getMainFunction();
     AFunctionDeclaration mainFunctionDeclaration = oldMainFunctionEntryNode.getFunctionDefinition();
-    FileLocation mainLocation = mainFunctionDeclaration.getFileLocation();
     FunctionEntryNode start = oldMainFunctionEntryNode instanceof CFunctionEntryNode ?
         new CFunctionEntryNode(0, (CFunctionDeclaration) mainFunctionDeclaration, oldMainFunctionEntryNode.getExitNode(), oldMainFunctionEntryNode.getFunctionParameterNames()) :
         new JMethodEntryNode(0, (JMethodDeclaration) mainFunctionDeclaration, oldMainFunctionEntryNode.getExitNode(), oldMainFunctionEntryNode.getFunctionParameterNames());
-    CFANode loopHead = new CFANode(0, ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+    SingleLoopHead loopHead = new SingleLoopHead();
 
-    Queue<CFANode> nodes = new ArrayDeque<>(getAllNodes(pInputCFA));
+    Queue<CFANode> nodes = new ArrayDeque<>(getAllNodes(oldMainFunctionEntryNode));
 
     // Eliminate self loops
     eliminateSelfLoops(nodes);
@@ -266,31 +260,21 @@ public class CFASingleLoopTransformation {
 
     // Declare program counter and initialize it to 0
     String pcVarName = PROGRAM_COUNTER_VAR_NAME;
-    CDeclaration pcDeclaration = new CVariableDeclaration(mainLocation, true, CStorageClass.AUTO, CNumericTypes.INT, pcVarName, pcVarName, pcVarName,
-        new CInitializerExpression(mainLocation, new CIntegerLiteralExpression(mainLocation, CNumericTypes.INT, BigInteger.valueOf(pcValueOfStart))));
-    CIdExpression pcIdExpression = new CIdExpression(mainLocation, pcDeclaration);
+    CDeclaration pcDeclaration = new CVariableDeclaration(FileLocation.DUMMY, true, CStorageClass.AUTO, CNumericTypes.INT, pcVarName, pcVarName, pcVarName,
+        new CInitializerExpression(FileLocation.DUMMY, new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(pcValueOfStart))));
+    CIdExpression pcIdExpression = new CIdExpression(FileLocation.DUMMY, pcDeclaration);
     CFAEdge pcDeclarationEdge = new CDeclarationEdge(String.format("int %s = %d;", pcVarName, pcValueOfStart), FileLocation.DUMMY, start, loopHead, pcDeclaration);
     start.addLeavingEdge(pcDeclarationEdge);
     loopHead.addEnteringEdge(pcDeclarationEdge);
-
-    CFANode firstSubgraphStart = newSuccessorsToPC.get(pcValueOfStart);
-
-    if (initialSubgraphAsPrefix) {
-      newSuccessorsToPC.remove(pcValueOfStart);
-      // Connect the first subgraph directly to the declaration
-      removeFromNodes(pcDeclarationEdge);
-      pcDeclarationEdge = copyCFAEdgeWithNewNodes(pcDeclarationEdge, start, firstSubgraphStart, globalNewToOld);
-      addToNodes(pcDeclarationEdge);
-    }
 
     /*
      * Connect the subgraph tails to their successors via the loop head by
      * setting the corresponding program counter values.
      */
-    connectSubgraphLeavingNodesToLoopHead(loopHead, newPredecessorsToPC, pcIdExpression, mainLocation);
+    connectSubgraphLeavingNodesToLoopHead(loopHead, newPredecessorsToPC, pcIdExpression);
 
     // Connect the subgraph entry nodes by assuming the program counter values
-    connectLoopHeadToSubgraphEntryNodes(loopHead, newSuccessorsToPC, pcIdExpression, mainLocation,
+    connectLoopHeadToSubgraphEntryNodes(loopHead, newSuccessorsToPC, pcIdExpression,
         new CBinaryExpressionBuilder(pInputCFA.getMachineModel(), logger));
 
     /*
@@ -299,26 +283,8 @@ public class CFASingleLoopTransformation {
      */
     fixSummaryEdges(start, newSuccessorsToPC, globalNewToOld);
 
-    // Skip the program counter initialization if it is never used
-    if (newPredecessorsToPC.size() <= 1) {
-      removeFromNodes(pcDeclarationEdge);
-      replaceInStructure(firstSubgraphStart, start);
-    }
-
-    // If there is only one pc value, then the loop head can be skipped
-    if (newPredecessorsToPC.size() == 1) {
-      Entry<Integer, CFANode> entry = newPredecessorsToPC.entries().iterator().next();
-      CFANode pred = entry.getValue();
-      int pcValue = entry.getKey();
-      CFANode succ = newSuccessorsToPC.get(pcValue);
-      removeFromGraph(loopHead);
-      replaceInStructure(pred, succ);
-      loopHead = succ;
-    }
-
     // Build the CFA from the syntactically reachable nodes
-    ImmutableCFA result = buildCFA(start, loopHead, pInputCFA.getMachineModel(), pInputCFA.getLanguage());
-    return result;
+    return buildCFA(start, loopHead, pInputCFA.getMachineModel(), pInputCFA.getLanguage());
   }
 
   /**
@@ -411,7 +377,6 @@ public class CFASingleLoopTransformation {
     for (FunctionCallEdge fce : findEdges(FunctionCallEdge.class, pStartNode)) {
       FunctionEntryNode entryNode = fce.getSuccessor();
       FunctionExitNode exitNode = entryNode.getExitNode();
-      //assert exitNode.getNumEnteringEdges() > 0;
       FunctionSummaryEdge oldSummaryEdge = fce.getSummaryEdge();
       if (!existsPath(entryNode, exitNode)) {
         for (CFunctionSummaryStatementEdge edge : CFAUtils.leavingEdges(oldSummaryEdge.getPredecessor()).filter(CFunctionSummaryStatementEdge.class).toList()) {
@@ -753,40 +718,18 @@ public class CFASingleLoopTransformation {
     FunctionExitNode artificialFunctionExitNode = new FunctionExitNode(0, ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
     FunctionEntryNode artificialFunctionEntryNode =
         new FunctionEntryNode(0, ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME, artificialFunctionExitNode, null, Collections.<String>emptyList());
-    boolean changed = true;
-    while (changed) {
-      this.shutdownNotifier.shutdownIfNecessary();
-      changed = false;
-      functions.clear();
-      allNodes.clear();
-      Queue<CFANode> waitlist = new ArrayDeque<>();
-      waitlist.add(pStartNode);
-      while (!waitlist.isEmpty()) {
-        this.shutdownNotifier.shutdownIfNecessary();
-        CFANode current = waitlist.poll();
-        String functionName = current.getFunctionName();
-        if (allNodes.put(functionName, current)) {
-          waitlist.addAll(CFAUtils.successorsOf(current).toList());
-          waitlist.addAll(CFAUtils.predecessorsOf(current).toList());
-          if (current instanceof FunctionEntryNode) {
-            functions.put(functionName, (FunctionEntryNode) current);
-          } else if (current == pLoopHead && functionName.equals(ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)) {
-            functions.put(functionName, artificialFunctionEntryNode);
-          }
+    Set<CFANode> nodes = getAllNodes(pStartNode);
+    for (CFANode node : nodes) {
+      for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(node).toList()) {
+        if (!nodes.contains(leavingEdge.getSuccessor())) {
+          removeFromNodes(leavingEdge);
         }
       }
-      // Remove nodes belonging to unreachable functions
-      Set<String> functionsToRemove = new HashSet<>();
-      for (String function : allNodes.keys()) {
-        if (!functions.containsKey(function)) {
-          changed = true;
-          functionsToRemove.add(function);
-        }
-      }
-      for (String function : functionsToRemove) {
-        for (CFANode removed : allNodes.removeAll(function)) {
-          removeFromGraph(removed);
-        }
+      allNodes.put(node.getFunctionName(), node);
+      if (node instanceof FunctionEntryNode) {
+        functions.put(node.getFunctionName(), (FunctionEntryNode) node);
+      } else if (node.getFunctionName().equals(ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)) {
+        functions.put(node.getFunctionName(), artificialFunctionEntryNode);
       }
     }
 
@@ -794,7 +737,7 @@ public class CFASingleLoopTransformation {
     MutableCFA cfa = new MutableCFA(pMachineModel, functions, allNodes, pStartNode, pLanguage);
 
     // Assign reverse post order ids to the control flow nodes
-    Collection<CFANode> nodesWithNoIdAssigned = getAllNodes(cfa);
+    Collection<CFANode> nodesWithNoIdAssigned = getAllNodes(pStartNode);
     for (CFANode n : nodesWithNoIdAssigned) {
       n.setReversePostorderId(-1);
     }
@@ -837,7 +780,7 @@ public class CFASingleLoopTransformation {
    *
    * @param pToRemove the node to be removed.
    */
-  private void removeFromGraph(CFANode pToRemove) {
+  private static void removeFromGraph(CFANode pToRemove) {
     while (pToRemove.getNumEnteringEdges() > 0) {
       removeFromNodes(pToRemove.getEnteringEdge(0));
     }
@@ -930,17 +873,24 @@ public class CFASingleLoopTransformation {
    * their subgraph mapped to the program counter values corresponding to the
    * correct successor states.
    * @param pPCIdExpression the CIdExpression used for the program counter variable.
-   * @param pMainLocation the location of the main function.
    */
   private static void connectSubgraphLeavingNodesToLoopHead(CFANode pLoopHead,
       Multimap<Integer, CFANode> pNewPredecessorsToPC,
-      CIdExpression pPCIdExpression,
-      FileLocation pMainLocation) {
+      CIdExpression pPCIdExpression) {
+    Map<Integer, CFANode> connectionNodes = new HashMap<>();
     for (Map.Entry<Integer, CFANode> newPredecessorToPC : pNewPredecessorsToPC.entries()) {
       int pcToSet = newPredecessorToPC.getKey();
+      CFANode connectionNode = connectionNodes.get(pcToSet);
+      if (connectionNode == null) {
+        connectionNode = new CFANode(pLoopHead.getLineNumber(), ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+        connectionNodes.put(pcToSet, connectionNode);
+        connectionNodes.put(pcToSet, connectionNode);
+        CFAEdge edgeToLoopHead = createProgramCounterAssignmentEdge(connectionNode, pLoopHead, pPCIdExpression, pcToSet);
+        addToNodes(edgeToLoopHead);
+      }
       CFANode subgraphPredecessor = newPredecessorToPC.getValue();
-      CFAEdge edgeToLoopHead = createProgramCounterAssignmentEdge(pMainLocation, subgraphPredecessor, pLoopHead, pPCIdExpression, pcToSet);
-      addToNodes(edgeToLoopHead);
+      CFAEdge dummyEdge = new BlankEdge("", FileLocation.DUMMY, subgraphPredecessor, connectionNode, "");
+      addToNodes(dummyEdge);
     }
   }
 
@@ -951,23 +901,44 @@ public class CFASingleLoopTransformation {
    * @param newSuccessorToPCMapping the mapping of subgraph entry nodes to the
    * corresponding program counter values.
    * @param pPCIdExpression the CIdExpression used for the program counter variable.
-   * @param pMainLocation the location of the main function.
    * @param pExpressionBuilder the CExpressionBuilder used to build the assume edges.
    */
-   private void connectLoopHeadToSubgraphEntryNodes(CFANode pLoopHead,
+   private void connectLoopHeadToSubgraphEntryNodes(SingleLoopHead pLoopHead,
       Map<Integer, CFANode> newSuccessorToPCMapping,
       CIdExpression pPCIdExpression,
-      FileLocation pMainLocation,
       CBinaryExpressionBuilder pExpressionBuilder) {
-    List<CAssumeEdge> toAdd = new ArrayList<>();
+    List<ProgramCounterValueAssumeEdge> toAdd = new ArrayList<>();
     CFANode decisionTreeNode = pLoopHead;
+    SimpleMap<CFANode, CFANode> tmpMap = SimpleMapAdapter.createSimpleHashMap();
     for (Entry<Integer, CFANode> pcToNewSuccessorMapping : newSuccessorToPCMapping.entrySet()) {
       CFANode newSuccessor = pcToNewSuccessorMapping.getValue();
       int pcToSet = pcToNewSuccessorMapping.getKey();
+
+      /*
+       * A subgraph root should only be entered via the loop head;
+       * other entries must be redirected.
+       */
+      if (newSuccessor.getNumEnteringEdges() > 0) {
+        assert tmpMap.isEmpty();
+        CFANode dummySuccessor = pLoopHead.getEnteringAssignmentEdge(pcToSet).getPredecessor();
+        for (CFAEdge enteringEdge : CFAUtils.allEnteringEdges(newSuccessor).toList()) {
+          CFANode replacementSuccessor = tmpMap.get(enteringEdge.getSuccessor());
+          if (replacementSuccessor == null) {
+            replacementSuccessor = getOrCreateNewFromOld(enteringEdge.getSuccessor(), tmpMap);
+            CFAEdge connectionEdge = new BlankEdge("", FileLocation.DUMMY, replacementSuccessor, dummySuccessor, "");
+            addToNodes(connectionEdge);
+          }
+          CFAEdge replacementEdge = copyCFAEdgeWithNewNodes(enteringEdge, enteringEdge.getPredecessor(), replacementSuccessor, tmpMap);
+          removeFromNodes(enteringEdge);
+          addToNodes(replacementEdge);
+        }
+        tmpMap.clear();
+      }
+
       // Connect the subgraph entry nodes to the loop header by assuming the program counter value
-      CFANode newDecisionTreeNode = new CFANode(0, decisionTreeNode.getFunctionName());
-      CAssumeEdge toSequence = createProgramCounterAssumeEdge(pMainLocation, pExpressionBuilder, decisionTreeNode, newSuccessor, pPCIdExpression, pcToSet, true);
-      CAssumeEdge toNewDecisionTreeNode = createProgramCounterAssumeEdge(pMainLocation, pExpressionBuilder, decisionTreeNode, newDecisionTreeNode, pPCIdExpression, pcToSet, false);
+      CFANode newDecisionTreeNode = new CFANode(0, ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+      ProgramCounterValueAssumeEdge toSequence = createProgramCounterAssumeEdge(pExpressionBuilder, decisionTreeNode, newSuccessor, pPCIdExpression, pcToSet, true);
+      ProgramCounterValueAssumeEdge toNewDecisionTreeNode = createProgramCounterAssumeEdge(pExpressionBuilder, decisionTreeNode, newDecisionTreeNode, pPCIdExpression, pcToSet, false);
       toAdd.add(toSequence);
       toAdd.add(toNewDecisionTreeNode);
       decisionTreeNode = newDecisionTreeNode;
@@ -990,9 +961,9 @@ public class CFASingleLoopTransformation {
          * positive edge can thus be set to the last relevant node
          */
         if (!toAdd.isEmpty()) {
-          CAssumeEdge secondToLastFalseEdge = removeLast(toAdd);
-          CAssumeEdge newLastEdge = new CAssumeEdge(secondToLastFalseEdge.getRawStatement(), FileLocation.DUMMY, secondToLastFalseEdge.getPredecessor(), lastTrueEdge.getSuccessor(),
-              secondToLastFalseEdge.getExpression(), false);
+          ProgramCounterValueAssumeEdge secondToLastFalseEdge = removeLast(toAdd);
+          ProgramCounterValueAssumeEdge newLastEdge = createProgramCounterAssumeEdge(pExpressionBuilder, secondToLastFalseEdge.getPredecessor(), lastTrueEdge.getSuccessor(),
+              pPCIdExpression, secondToLastFalseEdge.getProgramCounterValue(), false);
           toAdd.add(newLastEdge);
         } else {
           BlankEdge edge = new BlankEdge("", FileLocation.DUMMY, pLoopHead, lastTrueEdge.getSuccessor(), "");
@@ -1027,46 +998,50 @@ public class CFASingleLoopTransformation {
   }
 
   /**
-   * Gets all nodes of the given control flow automaton in breadth first search
-   * order with the function entry nodes as start nodes for the search.
+   * Gets all nodes syntactically reachable from the given start node.
    *
-   * @param pInputCFA the control flow automaton to extract the nodes from.
-   * @return all nodes of the given control flow automaton.
+   * @param pStartNode the start node of the search.
+   * @return all nodes syntactically reachable from the given start node.
    */
-  private static Set<CFANode> getAllNodes(CFA pInputCFA) {
-
-    // First, determine reachable functions
-    final Set<String> functionNames = new HashSet<>();
+  private static Set<CFANode> getAllNodes(CFANode pStartNode) {
     Set<CFANode> nodes = new LinkedHashSet<>();
     Queue<CFANode> waitlist = new ArrayDeque<>();
-    waitlist.add(pInputCFA.getMainFunction());
+    Queue<Deque<FunctionSummaryEdge>> callstacks = new ArrayDeque<>();
+    waitlist.add(pStartNode);
+    callstacks.offer(new ArrayDeque<FunctionSummaryEdge>());
+    Set<CFANode> ignoredNodes = new HashSet<>();
     while (!waitlist.isEmpty()) {
       CFANode current = waitlist.poll();
+      Deque<FunctionSummaryEdge> currentCallstack = callstacks.poll();
       if (nodes.add(current)) {
-        functionNames.add(current.getFunctionName());
-        waitlist.addAll(CFAUtils.successorsOf(current).toList());
-        waitlist.addAll(CFAUtils.predecessorsOf(current).toList());
+        for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(current)) {
+          final Deque<FunctionSummaryEdge> newCallstack;
+          CFANode successor = leavingEdge.getSuccessor();
+          if (leavingEdge instanceof FunctionCallEdge) {
+            newCallstack = new ArrayDeque<>(currentCallstack);
+            newCallstack.push(((FunctionCallEdge) leavingEdge).getSummaryEdge());
+          } else if (leavingEdge instanceof FunctionReturnEdge) {
+            if (currentCallstack.isEmpty()) {
+              ignoredNodes.add(successor);
+              continue;
+            }
+            newCallstack = new ArrayDeque<>(currentCallstack);
+            FunctionSummaryEdge summaryEdge = newCallstack.pop();
+            if (!summaryEdge.equals(((FunctionReturnEdge) leavingEdge).getSummaryEdge())) {
+              ignoredNodes.add(successor);
+              continue;
+            }
+          } else {
+            newCallstack = currentCallstack;
+          }
+          waitlist.offer(leavingEdge.getSuccessor());
+          callstacks.offer(currentCallstack);
+        }
       }
     }
-
-    // Now get all nodes of all syntactically reachable functions
-    nodes.clear();
-    waitlist.clear();
-    waitlist.add(pInputCFA.getMainFunction());
-    waitlist.addAll(FluentIterable.from(pInputCFA.getAllFunctionHeads()).filter(new Predicate<CFANode>() {
-
-      @Override
-      public boolean apply(@Nullable CFANode pArg0) {
-        return pArg0 != null && functionNames.contains(pArg0.getFunctionName());
-      }
-
-    }).toList());
-    while (!waitlist.isEmpty()) {
-      CFANode current = waitlist.poll();
-      if (nodes.add(current)) {
-        waitlist.addAll(CFAUtils.successorsOf(current).toList());
-        waitlist.addAll(CFAUtils.predecessorsOf(current).toList());
-      }
+    ignoredNodes.removeAll(nodes);
+    for (CFANode ignoredNode : ignoredNodes) {
+      removeFromGraph(ignoredNode);
     }
     return nodes;
   }
@@ -1358,44 +1333,28 @@ public class CFASingleLoopTransformation {
    * @throws InterruptedException if a shutdown has been requested by the registered shutdown notifier.
    */
   private Optional<ImmutableMultimap<String, Loop>> getLoopStructure(CFANode pSingleLoopHead) throws InterruptedException {
+
+    Predicate<CFAEdge> noFunctionReturnEdge = Predicates.not(new EdgeTypePredicate(CFAEdgeType.FunctionReturnEdge));
+
     // First, find all nodes reachable via the loop head
-    Queue<CFANode> waitlist = new ArrayDeque<>();
-    Deque<FunctionSummaryEdge> emptyStack = new ArrayDeque<>();
-    Queue<Deque<FunctionSummaryEdge>> callstacks = new ArrayDeque<>();
+    Deque<CFANode> waitlist = new ArrayDeque<>();
     Set<CFANode> reachableSuccessors = new HashSet<>();
-    Set<Pair<CFANode, FunctionSummaryEdge>> visited = new HashSet<>();
-    waitlist.offer(pSingleLoopHead);
-    callstacks.offer(emptyStack);
+    Set<CFANode> visited = new HashSet<>();
+    waitlist.push(pSingleLoopHead);
     boolean firstIteration = true;
     while (!waitlist.isEmpty()){
       shutdownNotifier.shutdownIfNecessary();
-      CFANode current = waitlist.poll();
-      Deque<FunctionSummaryEdge> callstack = callstacks.poll();
+      CFANode current = waitlist.pop();
+      for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(current).filter(noFunctionReturnEdge)) {
+        CFANode successor = leavingEdge.getSuccessor();
+        if (visited.add(successor)) {
+          waitlist.push(successor);
+        }
+      }
       if (firstIteration) {
         firstIteration = false;
       } else {
         reachableSuccessors.add(current);
-      }
-      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
-        Deque<FunctionSummaryEdge> newCallstack = callstack;
-        if (leavingEdge instanceof FunctionCallEdge) {
-          newCallstack = new ArrayDeque<>(newCallstack);
-          newCallstack.push(((FunctionCallEdge) leavingEdge).getSummaryEdge());
-        } else if (leavingEdge instanceof FunctionReturnEdge) {
-          if (newCallstack.isEmpty()) {
-            continue;
-          }
-          newCallstack = new ArrayDeque<>(newCallstack);
-          FunctionSummaryEdge summaryEdge = newCallstack.pop();
-          if (!summaryEdge.equals(((FunctionReturnEdge) leavingEdge).getSummaryEdge())) {
-            continue;
-          }
-        }
-        CFANode successor = leavingEdge.getSuccessor();
-        if (visited.add(Pair.of(successor, newCallstack.peek()))) {
-          waitlist.offer(successor);
-          callstacks.offer(newCallstack);
-        }
       }
     }
 
@@ -1410,33 +1369,16 @@ public class CFASingleLoopTransformation {
      */
     visited.clear();
     waitlist.offer(pSingleLoopHead);
-    callstacks.offer(emptyStack);
     Set<CFANode> loopNodes = new HashSet<>();
     while (!waitlist.isEmpty()) {
       shutdownNotifier.shutdownIfNecessary();
       CFANode current = waitlist.poll();
-      Deque<FunctionSummaryEdge> callstack = callstacks.poll();
       if (reachableSuccessors.contains(current)) {
         loopNodes.add(current);
-        for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current)) {
-          Deque<FunctionSummaryEdge> newCallstack = callstack;
-          if (enteringEdge instanceof FunctionReturnEdge) {
-            newCallstack = new ArrayDeque<>(newCallstack);
-            newCallstack.push(((FunctionReturnEdge) enteringEdge).getSummaryEdge());
-          } else if (enteringEdge instanceof FunctionCallEdge) {
-            if (newCallstack.isEmpty()) {
-              continue;
-            }
-            newCallstack = new ArrayDeque<>(newCallstack);
-            FunctionSummaryEdge summaryEdge = newCallstack.pop();
-            if (!summaryEdge.equals(((FunctionCallEdge) enteringEdge).getSummaryEdge())) {
-              continue;
-            }
-          }
+        for (CFAEdge enteringEdge : CFAUtils.allEnteringEdges(current)) {
           CFANode predecessor = enteringEdge.getPredecessor();
-          if (visited.add(Pair.of(predecessor, newCallstack.peek()))) {
+          if (visited.add(predecessor)) {
             waitlist.offer(predecessor);
-            callstacks.offer(newCallstack);
           }
         }
       }
@@ -1558,20 +1500,50 @@ public class CFASingleLoopTransformation {
 
   }
 
+  /**
+   * Instances of implementing classes provide program counter values for
+   * target control flow nodes.
+   */
   private static interface ProgramCounterValueProvider {
 
+    /**
+     * Gets the program counter value for the given target CFA node.
+     *
+     * @param pCFANode the target CFA node.
+     *
+     * @return the program counter value for the given target CFA node.
+     */
     int getPCValueFor(CFANode pCFANode);
 
   }
 
+  /**
+   * Instances of implementing classes are factories for program counter value
+   * providers.
+   */
   private static interface AbstractProgramCounterValueProviderFactory {
 
-    ProgramCounterValueProvider newOrImmutableProgramCounterValueProvider();
+    /**
+     * Creates a new or immutable program counter value provider. This implies
+     * that the returned program counter value provider cannot be modified by
+     * any other modification source but the caller unless shared by the
+     * caller.
+     *
+     * @return a new or immutable program counter value provider.
+     */
+    @Nonnull ProgramCounterValueProvider newOrImmutableProgramCounterValueProvider();
 
   }
 
+  /**
+   * Elements of this enumeration are program counter value provider factories.
+   */
   private static enum ProgramCounterValueProviderFactories implements AbstractProgramCounterValueProviderFactory {
 
+    /**
+     * This program counter value provider factory creates immutable program
+     * counter value providers based on CFA node numbers.
+     */
     NODE_NUMBER {
 
       @Override
@@ -1581,12 +1553,22 @@ public class CFASingleLoopTransformation {
 
     },
 
+    /**
+     * This program counter value provider factory creates new program counter
+     * value providers based on internal counters.
+     */
     INCREMENTAL {
 
       class IncrementalProgramCounterValueProvider implements ProgramCounterValueProvider {
 
+        /**
+         * The previously provided program counter values.
+         */
         private final Map<CFANode, Integer> providedPCValues = new HashMap<>();
 
+        /**
+         * The last program counter value provided.
+         */
         private int lastPCValue = -1;
 
         @Override
@@ -1610,6 +1592,10 @@ public class CFASingleLoopTransformation {
 
   }
 
+  /**
+   * The singleton element of this enumeration is a program counter value
+   * provider that uses the node numbers as program counter values.
+   */
   private static enum NodeNumberProgramCounterValueProvider implements ProgramCounterValueProvider {
 
     INSTANCE;
@@ -1621,19 +1607,51 @@ public class CFASingleLoopTransformation {
 
   }
 
+  /**
+   * Instances of implementing classes are CFA edges representing the
+   * assignment of values to the program counter variable.
+   */
   public static interface ProgramCounterValueAssignmentEdge extends CFAEdge {
 
+    /**
+     * Gets the assigned program counter value.
+     *
+     * @return the assigned program counter value.
+     */
     public int getProgramCounterValue();
 
   }
 
+  /**
+   * Instances of this class are CFA edges representing the assignment of
+   * values to the program counter variable.
+   */
   private static class CProgramCounterValueAssignmentEdge extends CStatementEdge implements ProgramCounterValueAssignmentEdge {
 
+    /**
+     * The program counter value.
+     */
     private int pcValue;
 
-    public CProgramCounterValueAssignmentEdge(String pRawStatement, CStatement pStatement,
-        CFANode pPredecessor, CFANode pSuccessor, int pPCValue) {
-      super(pRawStatement, pStatement, FileLocation.DUMMY, pPredecessor, pSuccessor);
+    /**
+     * Creates a new C program counter value assignment edge between the given
+     * predecessor and successor for the given program counter id expression
+     * and the program counter value to be assigned.
+     *
+     * @param pPredecessor the predecessor of the new edge.
+     * @param pSuccessor the successor of the new edge.
+     * @param pPCIdExpression the program counter id expression to be used.
+     * @param pPCValue the program counter value to be assigned.
+     */
+    public CProgramCounterValueAssignmentEdge(CFANode pPredecessor,
+        CFANode pSuccessor,
+        CIdExpression pPCIdExpression,
+        int pPCValue) {
+      super(buildRawStatement(pPCValue, pPCIdExpression),
+          buildStatement(pPCValue, pPCIdExpression),
+          FileLocation.DUMMY,
+          pPredecessor,
+          pSuccessor);
       this.pcValue = pPCValue;
     }
 
@@ -1642,17 +1660,50 @@ public class CFASingleLoopTransformation {
       return this.pcValue;
     }
 
+    /**
+     * Builds the raw statement for assigning the given value to the given id.
+     *
+     * @param pPCValue the value to assign.
+     * @param pPCIdExpression the id to assign the value to.
+     *
+     * @return the raw statement.
+     */
+    private static String buildRawStatement(int pPCValue, CIdExpression pPCIdExpression) {
+      return String.format("%s = %d",  pPCIdExpression.getName(), pPCValue);
+    }
+
+    /**
+     * Builds the actual statement for assigning the given value to the given id.
+     *
+     * @param pPCValue the value to assign.
+     * @param pPCIdExpression the id to assign the value to.
+     *
+     * @return the actual statement.
+     */
+    private static CStatement buildStatement(int pPCValue, CIdExpression pPCIdExpression) {
+      CExpression assignmentExpression = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(pPCValue));
+      return new CExpressionAssignmentStatement(FileLocation.DUMMY, pPCIdExpression, assignmentExpression);
+    }
+
   }
 
-  private static CProgramCounterValueAssignmentEdge createProgramCounterAssignmentEdge(FileLocation pLocation,
-      CFANode pPredecessor,
+  /**
+   * Creates a new program counter value assignment edge between the given
+   * predecessor and successor for the given program counter id expression and
+   * the program counter value to be assigned.
+   *
+   * @param pPredecessor the predecessor of the new edge.
+   * @param pSuccessor the successor of the new edge.
+   * @param pPCIdExpression the program counter id expression to be used.
+   * @param pPCValue the program counter value to be assigned.
+   *
+   * @return a new program counter value assignment edge.
+   */
+  private static ProgramCounterValueAssignmentEdge createProgramCounterAssignmentEdge(CFANode pPredecessor,
       CFANode pSuccessor,
       CIdExpression pPCIdExpression,
       int pPCValue) {
-    String rawStatement = String.format("%s = %d",  pPCIdExpression.getName(), pPCValue);
-    CExpression assignmentExpression = new CIntegerLiteralExpression(pLocation, CNumericTypes.INT, BigInteger.valueOf(pPCValue));
-    CStatement statement = new CExpressionAssignmentStatement(pLocation, pPCIdExpression, assignmentExpression);
-    return new CProgramCounterValueAssignmentEdge(rawStatement, statement, pPredecessor, pSuccessor, pPCValue);
+    return new CProgramCounterValueAssignmentEdge(pPredecessor, pSuccessor, pPCIdExpression, pPCValue);
   }
 
   /**
@@ -1672,13 +1723,46 @@ public class CFASingleLoopTransformation {
 
   }
 
+  /**
+   * Instances of this class are CFA edges representing constant assumptions
+   * based on program counter values. These edges are used in the program
+   * counter value decision trees succeeding the artificial loops in the single
+   * loop transformation and preceding the referenced subgraphs.
+   */
   private static class CProgramCounterValueAssumeEdge extends CAssumeEdge implements ProgramCounterValueAssumeEdge {
 
+    /**
+     * The program counter value assumed.
+     */
     private final int pcValue;
 
-    public CProgramCounterValueAssumeEdge(String pRawStatement, CFANode pPredecessor, CFANode pSuccessor,
-        CExpression pExpression, boolean pTruthAssumption, int pPCValue) {
-      super(pRawStatement, FileLocation.DUMMY, pPredecessor, pSuccessor, pExpression, pTruthAssumption);
+    /**
+     * Creates a new C program counter value assume edge between the given
+     * predecessor and successor, using the given expression builder to build
+     * the binary assumption expression of the equation between the given
+     * program counter value and the given program counter value id expression.
+     *
+     * @param pExpressionBuilder the expression builder used to create the
+     * assume expression.
+     * @param pPredecessor the predecessor node of the edge.
+     * @param pSuccessor the successor node of the edge.
+     * @param pPCIdExpression the program counter id expression.
+     * @param pPCValue the assumed program counter value.
+     * @param pTruthAssumption if {@code true} the equation is assumed to be
+     * true, if {@code false}, the equation is assumed to be false.
+     */
+    public CProgramCounterValueAssumeEdge(CBinaryExpressionBuilder pExpressionBuilder,
+        CFANode pPredecessor,
+        CFANode pSuccessor,
+        CIdExpression pPCIdExpression,
+        int pPCValue,
+        boolean pTruthAssumption) {
+      super(buildRawStatement(pPCValue, pPCIdExpression, pTruthAssumption),
+          FileLocation.DUMMY,
+          pPredecessor,
+          pSuccessor,
+          buildExpression(pPCValue, pPCIdExpression, pExpressionBuilder),
+          pTruthAssumption);
       this.pcValue = pPCValue;
     }
 
@@ -1687,24 +1771,67 @@ public class CFASingleLoopTransformation {
       return pcValue;
     }
 
+    /**
+     * Builds the raw statement of the assumption.
+     *
+     * @param pPCValue the assumed program counter value.
+     * @param pPCIdExpression the program counter id expression.
+     * @param pTruthAssumption if {@code true} the equation is assumed to be
+     *
+     * true, if {@code false}, the equation is assumed to be false.
+     * @return the raw statement of the assumption.
+     */
+    private static String buildRawStatement(int pPCValue, CIdExpression pPCIdExpression, boolean pTruthAssumption) {
+      String rawStatement = String.format("%s == %d",  pPCIdExpression.getName(), pPCValue);
+      if (!pTruthAssumption) {
+        rawStatement = String.format("!(%s)", rawStatement);
+      }
+      return rawStatement;
+    }
+
+    /**
+     * Builds the assume expression.
+     *
+     * @param pPCValue the assumed program counter value.
+     * @param pPCIdExpression the program counter id expression.
+     * @param pExpressionBuilder the expression builder used to create the
+     * assume expression.
+     *
+     * @return the assume expression.
+     */
+    private static CExpression buildExpression(int pPCValue,
+        CIdExpression pPCIdExpression,
+        CBinaryExpressionBuilder pExpressionBuilder) {
+      return pExpressionBuilder.buildBinaryExpression(
+          pPCIdExpression,
+          new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(pPCValue)),
+          BinaryOperator.EQUALS);
+    }
+
   }
 
-  private static CProgramCounterValueAssumeEdge createProgramCounterAssumeEdge(FileLocation pLocation,
-      CBinaryExpressionBuilder pExpressionBuilder,
+  /**
+   * Creates a new program counter value assume edge between the given
+   * predecessor and successor, using the given expression builder to build the
+   * binary assumption expression of the equation between the given program
+   * counter value and the given program counter value id expression.
+   *
+   * @param pExpressionBuilder the expression builder used to create the
+   * assume expression.
+   * @param pPredecessor the predecessor node of the edge.
+   * @param pSuccessor the successor node of the edge.
+   * @param pPCIdExpression the program counter id expression.
+   * @param pPCValue the assumed program counter value.
+   * @param pTruthAssumption if {@code true} the equation is assumed to be
+   * true, if {@code false}, the equation is assumed to be false.
+   */
+  private static ProgramCounterValueAssumeEdge createProgramCounterAssumeEdge(CBinaryExpressionBuilder pExpressionBuilder,
       CFANode pPredecessor,
       CFANode pSuccessor,
       CIdExpression pPCIdExpression,
       int pPCValue,
       boolean pTruthAssumption) {
-    CExpression assumePCExpression = pExpressionBuilder.buildBinaryExpression(
-        pPCIdExpression,
-        new CIntegerLiteralExpression(pLocation, CNumericTypes.INT, BigInteger.valueOf(pPCValue)),
-        BinaryOperator.EQUALS);
-    String rawStatement = String.format("%s == %d",  pPCIdExpression.getName(), pPCValue);
-    if (!pTruthAssumption) {
-      rawStatement = String.format("!(%s)", rawStatement);
-    }
-    return new CProgramCounterValueAssumeEdge(rawStatement, pPredecessor, pSuccessor, assumePCExpression, pTruthAssumption, pPCValue);
+    return new CProgramCounterValueAssumeEdge(pExpressionBuilder, pPredecessor, pSuccessor, pPCIdExpression, pPCValue, pTruthAssumption);
   }
 
   /**
@@ -1881,6 +2008,13 @@ public class CFASingleLoopTransformation {
       return existsPath(pEdge.getSuccessor(), pEdge.getPredecessor(), getLeavingEdges);
     }
 
+    /**
+     * Gets the edges leaving the given node.
+     *
+     * @param pNode the node.
+     *
+     * @return the edges leaving the node.
+     */
     private FluentIterable<CFAEdge> getLeavingEdges(CFANode pNode) {
       return FluentIterable.from(Iterables.concat(this.edges.get(pNode), this.uncommittedEdges.get(pNode)));
     }
@@ -1969,43 +2103,102 @@ public class CFASingleLoopTransformation {
 
   }
 
-  private static interface SimpleMap<S, T> {
+  /**
+   * Instances of implementing classes provide a smaller, more light weight
+   * interface of common map operations than the Map interface.
+   *
+   * @param <K> the key type.
+   * @param <V> the value type.
+   */
+  private static interface SimpleMap<K, V> {
 
-    T get(Object pKey);
+    /**
+     * Gets the value mapped to the given key.
+     *
+     * @param pKey the key.
+     *
+     * @return the value mapped to the given key.
+     */
+    V get(Object pKey);
 
+    /**
+     * Checks if the map is empty.
+     *
+     * @return {@code true} if the map is empty, {@code false} otherwise.
+     */
     boolean isEmpty();
 
-    T put(S pKey, T pValue);
+    /**
+     * Maps the given value to the given key.
+     *
+     * @param pKey the key.
+     * @param pValue the value.
+     *
+     * @return the value previously mapped to the key, if any, otherwise
+     * {@code null}.
+     */
+    V put(K pKey, V pValue);
 
-    boolean containsKey(S pKey);
+    /**
+     * Checks if the given key is contained in the map.
+     *
+     * @param pKey the key.
+     *
+     * @return @return {@code true} if the key is contained, {@code false}
+     * otherwise.
+     */
+    boolean containsKey(K pKey);
 
+    /**
+     * Removes all entries from the map.
+     */
     void clear();
 
-    public void putAllInto(SimpleMap<S, T> pTarget);
+    /**
+     * Puts all entries of the map into the given map.
+     *
+     * @param pTarget the target map.
+     */
+    public void putAllInto(SimpleMap<K, V> pTarget);
 
   }
 
-  private static class SimpleMapAdapter<S, T> implements SimpleMap<S, T> {
+  /**
+   * Instances of this class are used to adapt a given Map implementation to
+   * the simple map interface.
+   *
+   * @param <K> the key type.
+   * @param <V> the value type.
+   */
+  private static class SimpleMapAdapter<K, V> implements SimpleMap<K, V> {
 
-    private final Map<S, T> adaptee;
+    /**
+     * The backing map implementation.
+     */
+    private final Map<K, V> adaptee;
 
-    private SimpleMapAdapter(Map<S, T> pAdaptee) {
+    /**
+     * Adapts the given map implementation.
+     *
+     * @param pAdaptee the map to adapt.
+     */
+    private SimpleMapAdapter(Map<K, V> pAdaptee) {
       Preconditions.checkNotNull(pAdaptee);
       adaptee = pAdaptee;
     }
 
     @Override
-    public T get(Object pKey) {
+    public V get(Object pKey) {
       return adaptee.get(pKey);
     }
 
     @Override
-    public T put(S pKey, T pValue) {
+    public V put(K pKey, V pValue) {
       return adaptee.put(pKey, pValue);
     }
 
     @Override
-    public boolean containsKey(S pKey) {
+    public boolean containsKey(K pKey) {
       return adaptee.containsKey(pKey);
     }
 
@@ -2015,16 +2208,28 @@ public class CFASingleLoopTransformation {
     }
 
     @Override
-    public void putAllInto(SimpleMap<S, T> pTarget) {
-      for (Map.Entry<S, T> entry : adaptee.entrySet()) {
+    public void putAllInto(SimpleMap<K, V> pTarget) {
+      for (Map.Entry<K, V> entry : adaptee.entrySet()) {
         pTarget.put(entry.getKey(), entry.getValue());
       }
     }
 
+    /**
+     * Adapts the given map as a simple map.
+     *
+     * @param pAdaptee the map to adapt.
+     *
+     * @return the adapter.
+     */
     public static <S, T> SimpleMap<S, T> adapt(Map<S, T> pAdaptee) {
       return new SimpleMapAdapter<>(pAdaptee);
     }
 
+    /**
+     * Creates a new simple hash map.
+     *
+     * @return a new simple hash map.
+     */
     public static <S, T> SimpleMap<S, T> createSimpleHashMap() {
       return adapt(new HashMap<S, T>());
     }
@@ -2041,24 +2246,53 @@ public class CFASingleLoopTransformation {
 
   }
 
-  private static class SimpleTransactionMap<S, T> implements SimpleMap<S, T> {
+  /**
+   * Instances of this class support transactions, i.e. all modifications to
+   * the map are either uncommitted or committed, and operations to commit or
+   * abort uncommitted changes are provided.
+   *
+   * This map does not support the {@code null} key or {@code null} values.
+   *
+   * @param <K> the key type.
+   * @param <V> the value type.
+   */
+  private static class SimpleTransactionMap<K, V> implements SimpleMap<K, V> {
 
-    private final SimpleMap<S, T> persistentWrappee;
+    /**
+     * The committed map.
+     */
+    private final SimpleMap<K, V> persistentWrappee;
 
-    private final SimpleMap<S, T> transactionalWrappee;
+    /**
+     * The uncommitted changes.
+     */
+    private final SimpleMap<K, V> transactionalWrappee;
 
-    public SimpleTransactionMap(SimpleMap<S, T> pPersistentWrappee, SimpleMap<S, T> pTransactionalWrappee) {
+    /**
+     * Creates a new transaction map with the given backing maps for committed
+     * and uncommitted changes.
+     *
+     * @param pPersistentWrappee the map holding the committed data.
+     * @param pTransactionalWrappee the map holding the uncommitted changes.
+     */
+    public SimpleTransactionMap(SimpleMap<K, V> pPersistentWrappee, SimpleMap<K, V> pTransactionalWrappee) {
       persistentWrappee = pPersistentWrappee;
       transactionalWrappee = pTransactionalWrappee;
     }
 
-    public SimpleTransactionMap(SimpleMap<S, T> pPersistentWrappee) {
-      this(pPersistentWrappee, SimpleMapAdapter.<S, T>createSimpleHashMap());
+    /**
+     * Creates a new transaction map with the given backing map for committed
+     * changes.
+     *
+     * @param pPersistentWrappee the map holding the committed data.
+     */
+    public SimpleTransactionMap(SimpleMap<K, V> pPersistentWrappee) {
+      this(pPersistentWrappee, SimpleMapAdapter.<K, V>createSimpleHashMap());
     }
 
     @Override
-    public T get(Object pKey) {
-      T result = persistentWrappee.get(pKey);
+    public V get(Object pKey) {
+      V result = persistentWrappee.get(pKey);
       if (result != null) {
         return result;
       }
@@ -2066,28 +2300,39 @@ public class CFASingleLoopTransformation {
     }
 
     @Override
-    public T put(S pKey, T pValue) {
-      T previous = get(pKey);
-      if (previous == null) {
+    public V put(@Nonnull K pKey, @Nonnull V pValue) {
+      Preconditions.checkNotNull(pKey);
+      Preconditions.checkNotNull(pValue);
+      V previous = get(pKey);
+      if (previous == null || !previous.equals(pValue)) {
         transactionalWrappee.put(pKey, pValue);
       }
       return previous;
     }
 
     @Override
-    public boolean containsKey(S pKey) {
+    public boolean containsKey(K pKey) {
       return persistentWrappee.containsKey(pKey) || transactionalWrappee.containsKey(pKey);
     }
 
+    /**
+     * Commits all uncommitted changes.
+     */
     public void commit() {
       transactionalWrappee.putAllInto(persistentWrappee);
       abort();
     }
 
+    /**
+     * Discards all uncommitted changes.
+     */
     public void abort() {
       transactionalWrappee.clear();
     }
 
+    /**
+     * Removes all entries from the map and commits the modification.
+     */
     @Override
     public void clear() {
       persistentWrappee.clear();
@@ -2100,7 +2345,7 @@ public class CFASingleLoopTransformation {
     }
 
     @Override
-    public void putAllInto(SimpleMap<S, T> pTarget) {
+    public void putAllInto(SimpleMap<K, V> pTarget) {
       persistentWrappee.putAllInto(pTarget);
       transactionalWrappee.putAllInto(pTarget);
     }
@@ -2108,6 +2353,109 @@ public class CFASingleLoopTransformation {
     @Override
     public String toString() {
       return String.format("%s; (%s)", persistentWrappee, transactionalWrappee);
+    }
+
+  }
+
+  /**
+   * Instances of this class are predicates for CFA edges based on edge types.
+   */
+  private static class EdgeTypePredicate implements Predicate<CFAEdge> {
+
+    /**
+     * The edge type matched on.
+     */
+    private final CFAEdgeType edgeType;
+
+    /**
+     * Creates a new predicate for CFA edges with the given edge type.
+     *
+     * @param pEdgeType the edge type matched on.
+     */
+    public EdgeTypePredicate(CFAEdgeType pEdgeType) {
+      Preconditions.checkNotNull(pEdgeType);
+      this.edgeType = pEdgeType;
+    }
+
+    @Override
+    public boolean apply(@Nullable CFAEdge pArg0) {
+      return pArg0 != null && pArg0.getEdgeType() == edgeType;
+    }
+
+  }
+
+  /**
+   * Instances of this class are the heads of the loops produced by the single
+   * loop transformation. They provide additional information relevant to the
+   * transformation and to handling its consequences.
+   */
+  public static class SingleLoopHead extends CFANode {
+
+    /**
+     * The program counter value assignment edges leading to the loop head.
+     */
+    private final Map<Integer, ProgramCounterValueAssignmentEdge> enteringPCValueAssignmentEdges = new HashMap<>();
+
+    /**
+     * Creates a new loop head with line number 0 and an artificial function name.
+     */
+    public SingleLoopHead() {
+      super(0, ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+    }
+
+    @Override
+    public void addEnteringEdge(CFAEdge pEnteringEdge) {
+      if (pEnteringEdge instanceof ProgramCounterValueAssignmentEdge) {
+        ProgramCounterValueAssignmentEdge edge = (ProgramCounterValueAssignmentEdge) pEnteringEdge;
+        int pcValue = edge.getProgramCounterValue();
+        Preconditions.checkArgument(!enteringPCValueAssignmentEdges.containsKey(pcValue), "All entering program counter value assignment edges must be unique.");
+        enteringPCValueAssignmentEdges.put(pcValue, edge);
+      }
+      super.addEnteringEdge(pEnteringEdge);
+    }
+
+    @Override
+    public void removeEnteringEdge(CFAEdge pEnteringEdge) {
+      if (pEnteringEdge instanceof ProgramCounterValueAssignmentEdge
+          && CFAUtils.enteringEdges(this).contains(pEnteringEdge)) {
+        ProgramCounterValueAssignmentEdge edge = (ProgramCounterValueAssignmentEdge) pEnteringEdge;
+        enteringPCValueAssignmentEdges.remove(edge.getProgramCounterValue());
+      }
+      super.removeEnteringEdge(pEnteringEdge);
+    }
+
+    /**
+     * Gets the entering assignment edge with the given program counter value.
+     *
+     * @param pPCValue the value assigned to the program counter.
+     * @return the entering assignment edge with the given program counter
+     * value or {@code null} if no such edge exists.
+     */
+    public @Nullable ProgramCounterValueAssignmentEdge getEnteringAssignmentEdge(int pPCValue) {
+      return enteringPCValueAssignmentEdges.get(pPCValue);
+    }
+
+    /**
+     * Gets the names of functions the loop head is entered from.
+     *
+     * @return the names of functions the loop head is entered from.
+     */
+    public Set<String> getEnteringFunctionNames() {
+      Set<String> results = new HashSet<>();
+      Set<CFANode> visited = new HashSet<>();
+      Queue<CFANode> waitlist = new ArrayDeque<>();
+      waitlist.offer(this);
+      while (!waitlist.isEmpty()) {
+        CFANode current = waitlist.poll();
+        if (visited.add(current)) {
+          if (current.getFunctionName().equals(ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)) {
+            waitlist.addAll(CFAUtils.allPredecessorsOf(current).toList());
+          } else {
+            results.add(current.getFunctionName());
+          }
+        }
+      }
+      return results;
     }
 
   }

@@ -25,9 +25,11 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -79,12 +81,30 @@ public class CallstackTransferRelation implements TransferRelation {
   public Collection<? extends AbstractState> getAbstractSuccessors(
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
+    CallstackState element = (CallstackState) pElement;
+
+    /*
+     * If the current function is the artificial function introduced by single
+     * loop transformation, the actual function is unknown: It could be any of
+     * the functions preceding the artificial loop head, so a successor is
+     * computed for each of them:
+     */
+    if (element.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)
+        && element.getCallNode() instanceof CFASingleLoopTransformation.SingleLoopHead) {
+      CFASingleLoopTransformation.SingleLoopHead loopHead = (CFASingleLoopTransformation.SingleLoopHead) element.getCallNode();
+      Set<String> enteringFunctionNames = loopHead.getEnteringFunctionNames();
+      List<AbstractState> results = new ArrayList<>(enteringFunctionNames.size());
+      for (String enteringFunctionName : enteringFunctionNames) {
+        element = new CallstackState(element.getPreviousState(), enteringFunctionName, element.getCallNode());
+        results.addAll(getAbstractSuccessors(element, pPrecision, pCfaEdge));
+      }
+      return results;
+    }
 
     switch (pCfaEdge.getEdgeType()) {
     case StatementEdge: {
       if (pCfaEdge instanceof CFunctionSummaryStatementEdge) {
         CFunctionSummaryStatementEdge summary = (CFunctionSummaryStatementEdge)pCfaEdge;
-        CallstackState element = (CallstackState)pElement;
         if (!shouldGoByFunctionSummaryStatement(element, summary)) {
           // should go by function call and skip the current edge
           return Collections.emptySet();
@@ -94,7 +114,6 @@ public class CallstackTransferRelation implements TransferRelation {
       break;
     }
     case AssumeEdge: {
-      CallstackState element = (CallstackState) pElement;
       String predecessorFunctionName = pCfaEdge.getPredecessor().getFunctionName();
       String successorFunctionName = pCfaEdge.getSuccessor().getFunctionName();
       boolean successorIsInCallstackContext = successorFunctionName.equals(element.getCurrentFunction());
@@ -117,7 +136,6 @@ public class CallstackTransferRelation implements TransferRelation {
       break;
     }
     case FunctionCallEdge: {
-        CallstackState element = (CallstackState)pElement;
         String functionName = pCfaEdge.getSuccessor().getFunctionName();
 
         if (hasRecursion(element, functionName)) {
@@ -139,8 +157,6 @@ public class CallstackTransferRelation implements TransferRelation {
       }
     case FunctionReturnEdge: {
         FunctionReturnEdge cfaEdge = (FunctionReturnEdge)pCfaEdge;
-
-        CallstackState element = (CallstackState)pElement;
 
         String calledFunction = cfaEdge.getPredecessor().getFunctionName();
         String callerFunction = cfaEdge.getSuccessor().getFunctionName();
