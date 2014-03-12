@@ -153,7 +153,11 @@ public class CParserWithLocationMapper implements CParser {
 
               includeStartedWithAbsoluteLine = absoluteLineNumber;
               relativeLineNumber = Integer.parseInt(firstTokenImage);
-              rangeLinesOriginFilename = directiveTokens.get(1).getImage();
+              String file = directiveTokens.get(1).getImage();
+              if (file.charAt(0) == '"' && file.charAt(file.length()-1) == '"') {
+                file = file.substring(1, file.length()-1);
+              }
+              rangeLinesOriginFilename = file;
             }
           }
         } else if (!token.getImage().trim().isEmpty()) {
