@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 
@@ -71,6 +73,7 @@ public interface Value {
 
     @Override
     public Long asLong(CType type) {
+      checkNotNull(type);
       return null;
     }
 

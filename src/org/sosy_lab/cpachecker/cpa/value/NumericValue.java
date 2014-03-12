@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.math.BigDecimal;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -125,6 +127,7 @@ public class NumericValue implements Value {
 
   @Override
   public Long asLong(CType type) {
+    checkNotNull(type);
     if(!(type instanceof CSimpleType)) {
       return null;
     }
