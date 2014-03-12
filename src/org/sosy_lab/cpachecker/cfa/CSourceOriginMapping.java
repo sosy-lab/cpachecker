@@ -32,22 +32,6 @@ import com.google.common.collect.TreeRangeMap;
 
 public class CSourceOriginMapping {
 
-  public static class NoOriginMappingAvailableException extends Exception {
-    private static final long serialVersionUID = -2094250312246030679L;
-
-    public NoOriginMappingAvailableException(String message) {
-      super(message);
-    }
-  }
-
-  public static class NoTokenizingAvailableException extends RuntimeException {
-    private static final long serialVersionUID = 2376782857133795915L;
-
-    public NoTokenizingAvailableException(String message) {
-      super(message);
-    }
-  }
-
   private final RangeMap<Integer, String> lineToFilenameMapping = TreeRangeMap.create();
   private final RangeMap<Integer, Integer> lineDeltaMapping = TreeRangeMap.create();
 
@@ -57,12 +41,13 @@ public class CSourceOriginMapping {
     lineDeltaMapping.put(lineRange, deltaLinesToOrigin);
   }
 
-  public Pair<String, Integer> getOriginLineFromAnalysisCodeLine(int analysisCodeLine) throws NoOriginMappingAvailableException {
+  public Pair<String, Integer> getOriginLineFromAnalysisCodeLine(
+      String analysisFile, int analysisCodeLine) {
     Integer lineDelta = lineDeltaMapping.get(analysisCodeLine);
     String originFileName = lineToFilenameMapping.get(analysisCodeLine);
 
     if (lineDelta == null || originFileName == null) {
-      throw new NoOriginMappingAvailableException("Mapping failed! Delta or origin unknown!");
+      return Pair.of(analysisFile, analysisCodeLine);
     }
 
     return Pair.of(originFileName, analysisCodeLine + lineDelta);

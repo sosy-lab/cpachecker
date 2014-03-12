@@ -93,7 +93,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
-import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping.NoOriginMappingAvailableException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
@@ -1820,23 +1819,18 @@ class ASTConverter {
       return null;
     }
 
-    String originFileName;
-    int startingLineInOrigin;
+    String fileName = l.getFileName();
     int startingLineInInput = l.getStartingLineNumber();
+    int startingLineInOrigin = startingLineInInput;
 
-    Pair<String, Integer> startingInOrigin;
-    try {
-      startingInOrigin = sourceOriginMapping.getOriginLineFromAnalysisCodeLine(startingLineInInput);
+    Pair<String, Integer> startingInOrigin = sourceOriginMapping.getOriginLineFromAnalysisCodeLine(
+        fileName, startingLineInInput);
 
-      originFileName = startingInOrigin.getFirst();
-      startingLineInOrigin = startingInOrigin.getSecond();
-    } catch (NoOriginMappingAvailableException e) {
-      originFileName = l.getFileName();
-      startingLineInOrigin = l.getStartingLineNumber();
-    }
+    fileName = startingInOrigin.getFirst();
+    startingLineInOrigin = startingInOrigin.getSecond();
 
-    return new FileLocation(l.getEndingLineNumber(), originFileName,
-        niceFileNameFunction.apply(originFileName),
+    return new FileLocation(l.getEndingLineNumber(), fileName,
+        niceFileNameFunction.apply(fileName),
         l.getNodeLength(), l.getNodeOffset(),
         startingLineInInput, startingLineInOrigin);
   }

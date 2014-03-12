@@ -43,7 +43,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping.NoOriginMappingAvailableException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -309,12 +308,7 @@ public class ARGPathExport {
         final String to, final CFAEdge edge, final ARGState fromState,
         final Map<ARGState, CFAEdgeWithAssignments> valueMap) throws IOException {
 
-      TransitionCondition desc;
-      try {
-        desc = constructTransitionCondition(from, to, edge, fromState, valueMap);
-      } catch (NoOriginMappingAvailableException e) {
-        throw new RuntimeException(e);
-      }
+      TransitionCondition desc = constructTransitionCondition(from, to, edge, fromState, valueMap);
 
       if (aggregateToPrevEdge(from, to, desc)) {
         return;
@@ -376,7 +370,7 @@ public class ARGPathExport {
     }
 
     private TransitionCondition constructTransitionCondition(String from, String to, CFAEdge edge, ARGState fromState,
-        Map<ARGState, CFAEdgeWithAssignments> valueMap) throws NoOriginMappingAvailableException {
+        Map<ARGState, CFAEdgeWithAssignments> valueMap) {
       TransitionCondition desc = new TransitionCondition();
 
       if (exportFunctionCallsAndReturns) {
