@@ -93,11 +93,13 @@ public class FunctionCloner implements CFAVisitor {
 
   private final String oldFunctionname;
   private final String newFunctionname;
+  private final boolean replaceFunctionOnly; // needed to replace functioncalls, where args stay equal, but functionname changes
 
   /** FunctionCloner clones a function of the cfa and uses a new functionName. */
-  public FunctionCloner(final String oldFunctionname, final String newFunctionname) {
+  public FunctionCloner(final String oldFunctionname, final String newFunctionname, final boolean replaceFunctionOnly) {
     this.oldFunctionname = oldFunctionname;
     this.newFunctionname = newFunctionname;
+    this.replaceFunctionOnly = replaceFunctionOnly;
   }
 
   /** clones a complete function and returns the new functionstart and the nodes of the new function. */
@@ -106,7 +108,7 @@ public class FunctionCloner implements CFAVisitor {
 
     final String oldFunctionName = pFunctionstart.getFunctionName();
     assert !oldFunctionName.equals(newFunctionName);
-    final FunctionCloner visitor = new FunctionCloner(oldFunctionName, newFunctionName);
+    final FunctionCloner visitor = new FunctionCloner(oldFunctionName, newFunctionName, false);
 
     CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(pFunctionstart, visitor);
 
@@ -631,7 +633,7 @@ public class FunctionCloner implements CFAVisitor {
 
   /** if qualifiedName ist in current scope, replace old functionname with new one. */
   private String changeQualifiedName(final String qualifiedName) {
-    if (qualifiedName.startsWith(oldFunctionname + "::")) {
+    if (!replaceFunctionOnly && qualifiedName.startsWith(oldFunctionname + "::")) {
       return newFunctionname + qualifiedName.substring(oldFunctionname.length());
     }
     return qualifiedName;

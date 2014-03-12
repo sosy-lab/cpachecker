@@ -160,7 +160,7 @@ public class FunctionCallUnwinder {
       final String oldFunctionName = declaration.getQualifiedName();
 
       // build new edge
-      final FunctionCloner fc = new FunctionCloner(oldFunctionName, newFunctionName);
+      final FunctionCloner fc = new FunctionCloner(oldFunctionName, newFunctionName, true);
       newEdge = fc.cloneEdge(functionCallEdge, pred, succ);
     } else {
       // TODO support JAVA
