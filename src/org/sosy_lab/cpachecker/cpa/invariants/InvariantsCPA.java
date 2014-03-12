@@ -384,6 +384,7 @@ public class InvariantsCPA extends AbstractCPA implements AdjustableConditionCPA
       return false;
     }
     ++options.interestingVariableLimit;
+    logManager.log(Level.INFO, "Adjusting interestingVariableLimit to " + options.interestingVariableLimit);
     return true;
   }
 
