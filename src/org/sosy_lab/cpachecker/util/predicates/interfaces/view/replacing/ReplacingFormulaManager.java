@@ -46,28 +46,32 @@ import com.google.common.base.Functions;
 
 public class ReplacingFormulaManager implements FormulaManager {
 
-  private FormulaManager rawFormulaManager;
-  private BitvectorFormulaManager bitvectorTheory;
-  private boolean replacedBitvectorTheory = false;
-  private boolean replacedRationalTheory = false;
-  private boolean replacedBooleanTheory = false;
-  private FunctionFormulaManager functionTheory;
-  private BooleanFormulaManager booleanTheory;
-  private UnsafeFormulaManager unsafeManager;
+  private final FormulaManager rawFormulaManager;
+  private final BitvectorFormulaManager bitvectorTheory;
+  private final boolean replacedBitvectorTheory;
+  private final boolean replacedRationalTheory;
+  private final boolean replacedBooleanTheory;
+  private final FunctionFormulaManager functionTheory;
+  private final BooleanFormulaManager booleanTheory;
+  private final UnsafeFormulaManager unsafeManager;
 
   public ReplacingFormulaManager(
       FormulaManager rawFormulaManager,
       final Theory bitvectorReplacement,
       final boolean ignoreExtractConcat) {
     this.rawFormulaManager = rawFormulaManager;
+    replacedRationalTheory = false;
+    replacedBooleanTheory = false;
 
     final Function<FormulaType<?>, FormulaType<?>> unwrapTypes;
 
     if (bitvectorReplacement == Theory.BITVECTOR) {
+      replacedBitvectorTheory = false;
       bitvectorTheory = rawFormulaManager.getBitvectorFormulaManager();
       unwrapTypes = Functions.identity();
 
     } else {
+      replacedBitvectorTheory = true;
       final FormulaType<?> replacementType;
       switch (bitvectorReplacement) {
       case INTEGER:

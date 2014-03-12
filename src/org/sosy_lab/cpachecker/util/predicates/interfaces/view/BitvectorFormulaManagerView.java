@@ -34,14 +34,14 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorT
 
 public class BitvectorFormulaManagerView extends BaseManagerView<BitvectorFormula, BitvectorFormula> implements BitvectorFormulaManager {
 
-  private BitvectorFormulaManager manager;
-  private BooleanFormulaManagerView bmgr;
+  private final BitvectorFormulaManager manager;
+
   public BitvectorFormulaManagerView(BitvectorFormulaManager pManager) {
     this.manager = pManager;
   }
 
   public BooleanFormula notEqual(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
-    bmgr = getViewManager().getBooleanFormulaManager();
+    BooleanFormulaManagerView bmgr = getViewManager().getBooleanFormulaManager();
     return bmgr.not(equal(pNumber1, pNumber2));
   }
   public BitvectorFormula makeBitvector(FormulaType<BitvectorFormula> pType, long pI) {

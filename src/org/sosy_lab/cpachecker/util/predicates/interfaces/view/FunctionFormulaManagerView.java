@@ -38,7 +38,7 @@ import com.google.common.base.Function;
 
 public class FunctionFormulaManagerView extends AbstractBaseManagerView implements FunctionFormulaManager {
 
-  private FunctionFormulaManager manager;
+  private final FunctionFormulaManager manager;
 
   public FunctionFormulaManagerView(FunctionFormulaManager pManager) {
     this.manager = pManager;

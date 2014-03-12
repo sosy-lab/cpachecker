@@ -29,13 +29,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 
 import com.google.common.base.Function;
 
+class ReplaceUnsafeFormulaManager implements UnsafeFormulaManager {
 
-public class ReplaceUnsafeFormulaManager implements UnsafeFormulaManager {
-
-
-  private Function<FormulaType<?>, FormulaType<?>> unwrapTypes;
-  private UnsafeFormulaManager rawUnsafeManager;
-  private ReplacingFormulaManager replaceManager;
+  private final Function<FormulaType<?>, FormulaType<?>> unwrapTypes;
+  private final UnsafeFormulaManager rawUnsafeManager;
+  private final ReplacingFormulaManager replaceManager;
 
   public ReplaceUnsafeFormulaManager(
       ReplacingFormulaManager pReplacingFormulaManager,

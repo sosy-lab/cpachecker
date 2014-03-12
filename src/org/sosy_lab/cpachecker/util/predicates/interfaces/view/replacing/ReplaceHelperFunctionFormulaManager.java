@@ -36,13 +36,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 
+class ReplaceHelperFunctionFormulaManager implements FunctionFormulaManager {
 
-public class ReplaceHelperFunctionFormulaManager implements FunctionFormulaManager {
-
-
-  private Function<FormulaType<?>, FormulaType<?>> unwrapTypes;
-  private FunctionFormulaManager rawFunctionFormulaManager;
-  private ReplacingFormulaManager replaceManager;
+  private final Function<FormulaType<?>, FormulaType<?>> unwrapTypes;
+  private final FunctionFormulaManager rawFunctionFormulaManager;
+  private final ReplacingFormulaManager replaceManager;
 
   public ReplaceHelperFunctionFormulaManager(
       ReplacingFormulaManager replaceFormulaManager,

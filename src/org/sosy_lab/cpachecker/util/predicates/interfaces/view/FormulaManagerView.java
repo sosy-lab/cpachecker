@@ -114,14 +114,15 @@ public class FormulaManagerView {
     ;
   }
 
-  private BitvectorFormulaManagerView bitvectorFormulaManager;
-  private NumeralFormulaManagerView<IntegerFormula, IntegerFormula> integerFormulaManager;
-  private NumeralFormulaManagerView<NumeralFormula, RationalFormula> rationalFormulaManager;
-  private BooleanFormulaManagerView booleanFormulaManager;
+  private final LogManager logger;
 
-  private FormulaManager manager;
+  private final FormulaManager manager;
 
-  private FunctionFormulaManagerView functionFormulaManager;
+  private final BooleanFormulaManagerView booleanFormulaManager;
+  private final BitvectorFormulaManagerView bitvectorFormulaManager;
+  private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> integerFormulaManager;
+  private final NumeralFormulaManagerView<NumeralFormula, RationalFormula> rationalFormulaManager;
+  private final FunctionFormulaManagerView functionFormulaManager;
 
   @Option(name = "formulaDumpFilePattern", description = "where to dump interpolation and abstraction problems (format string)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -142,35 +143,24 @@ public class FormulaManagerView {
   @Option(description="Allows to ignore Concat and Extract Calls when Bitvector theory was replaced with Integer or Rational.")
   private boolean ignoreExtractConcat = true;
 
-  private LogManager logger;
-
-  public FormulaManagerView(LoadManagers loadManagers, FormulaManager baseManager) {
-    init(loadManagers, baseManager);
-  }
-
-  private void init(LoadManagers loadManagers, FormulaManager baseManager) {
-    manager = baseManager;
-    bitvectorFormulaManager = loadManagers.wrapManager(baseManager.getBitvectorFormulaManager());
-    bitvectorFormulaManager.couple(this);
-    integerFormulaManager = loadManagers.wrapIntegerManager(baseManager.getIntegerFormulaManager());
-    integerFormulaManager.couple(this);
-    rationalFormulaManager = loadManagers.wrapRationalManager(baseManager.getRationalFormulaManager());
-    rationalFormulaManager.couple(this);
-    booleanFormulaManager = loadManagers.wrapManager(baseManager.getBooleanFormulaManager());
-    booleanFormulaManager.couple(this);
-    functionFormulaManager = loadManagers.wrapManager(baseManager.getFunctionFormulaManager());
-    functionFormulaManager.couple(this);
-  }
-
-
-  public FormulaManagerView(LoadManagers loadManagers, FormulaManager baseManager, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
-    config.inject(this);
+  protected FormulaManagerView(LoadManagers loadManagers, FormulaManager pBaseManager, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+    config.inject(this, FormulaManagerView.class);
     if (encodeBitvectorAs != Theory.BITVECTOR) {
-      baseManager =
-          new ReplacingFormulaManager(baseManager, encodeBitvectorAs, ignoreExtractConcat);
+      manager = new ReplacingFormulaManager(pBaseManager, encodeBitvectorAs, ignoreExtractConcat);
+    } else {
+      manager = pBaseManager;
     }
 
-    init(loadManagers, baseManager);
+    bitvectorFormulaManager = loadManagers.wrapManager(manager.getBitvectorFormulaManager());
+    bitvectorFormulaManager.couple(this);
+    integerFormulaManager = loadManagers.wrapIntegerManager(manager.getIntegerFormulaManager());
+    integerFormulaManager.couple(this);
+    rationalFormulaManager = loadManagers.wrapRationalManager(manager.getRationalFormulaManager());
+    rationalFormulaManager.couple(this);
+    booleanFormulaManager = loadManagers.wrapManager(manager.getBooleanFormulaManager());
+    booleanFormulaManager.couple(this);
+    functionFormulaManager = loadManagers.wrapManager(manager.getFunctionFormulaManager());
+    functionFormulaManager.couple(this);
     logger = pLogger;
 
     if (formulaDumpFile != null) {
@@ -182,10 +172,6 @@ public class FormulaManagerView {
 
   public FormulaManagerView(FormulaManager wrapped, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     this(DEFAULTMANAGERS, wrapped, config, pLogger);
-  }
-
-  public FormulaManagerView(FormulaManager wrapped) {
-    this(DEFAULTMANAGERS, wrapped);
   }
 
   public Path formatFormulaOutputFile(String function, int call, String formula, int index) {

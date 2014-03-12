@@ -36,7 +36,7 @@ public class NumeralFormulaManagerView
         extends BaseManagerView<ParamFormulaType, ResultFormulaType>
         implements NumeralFormulaManager<ParamFormulaType, ResultFormulaType> {
 
-  private NumeralFormulaManager<ParamFormulaType, ResultFormulaType> manager;
+  private final NumeralFormulaManager<ParamFormulaType, ResultFormulaType> manager;
 
   public NumeralFormulaManagerView(NumeralFormulaManager<ParamFormulaType, ResultFormulaType> pManager) {
     this.manager = pManager;

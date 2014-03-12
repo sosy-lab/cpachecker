@@ -40,7 +40,7 @@ import com.google.common.collect.Lists;
 
 public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula, BooleanFormula> implements BooleanFormulaManager {
 
-  private BooleanFormulaManager manager;
+  private final BooleanFormulaManager manager;
 
   public BooleanFormulaManagerView(BooleanFormulaManager pManager) {
     this.manager = pManager;

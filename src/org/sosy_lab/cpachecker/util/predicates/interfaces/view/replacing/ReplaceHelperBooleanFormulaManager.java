@@ -30,12 +30,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
+class ReplaceHelperBooleanFormulaManager implements BooleanFormulaManager {
 
-public class ReplaceHelperBooleanFormulaManager implements BooleanFormulaManager {
-
-
-  private ReplacingFormulaManager replaceManager;
-  private BooleanFormulaManager rawBooleanManager;
+  private final ReplacingFormulaManager replaceManager;
+  private final BooleanFormulaManager rawBooleanManager;
 
   public ReplaceHelperBooleanFormulaManager(
       ReplacingFormulaManager pReplacingFormulaManager,
