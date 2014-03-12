@@ -35,6 +35,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -454,7 +455,7 @@ public class OctInterpolationBasedRefiner implements Statistics {
         return false;
       }
 
-      else if (!assignment.equals(other.assignment)) {
+      else if (!Objects.equals(assignment, other.assignment)) {
         return false;
       }
 
