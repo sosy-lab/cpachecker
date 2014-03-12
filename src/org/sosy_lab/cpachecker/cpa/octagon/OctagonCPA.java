@@ -28,11 +28,12 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -63,8 +64,14 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
   private final StopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
   private final LogManager logger;
+  private final Precision precision;
+  private final Configuration config;
+  private final ShutdownNotifier shutdownNotifier;
+  private final CFA cfa;
 
-  private OctagonCPA(Configuration config, LogManager log) throws InvalidConfigurationException {
+  private OctagonCPA(Configuration config, LogManager log,
+                     ShutdownNotifier shutdownNotifier, CFA cfa)
+                     throws InvalidConfigurationException {
     config.inject(this);
     logger = log;
     OctDomain octagonDomain = new OctDomain(logger, config);
@@ -87,6 +94,10 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
     this.mergeOperator = octagonMergeOp;
     this.stopOperator = octagonStopOp;
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+    this.config = config;
+    this.shutdownNotifier = shutdownNotifier;
+    this.cfa = cfa;
+    precision = new OctPrecision(config);
 
     assert OctagonManager.init();
   }
@@ -123,6 +134,22 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public Precision getInitialPrecision(CFANode pNode) {
-    return SingletonPrecision.getInstance();
+    return precision;
+  }
+
+  public Configuration getConfiguration() {
+    return config;
+  }
+
+  public LogManager getLogger() {
+    return logger;
+  }
+
+  public ShutdownNotifier getShutdownNotifier() {
+    return shutdownNotifier;
+  }
+
+  public CFA getCFA() {
+    return cfa;
   }
 }

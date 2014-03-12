@@ -104,7 +104,7 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import com.google.common.collect.ImmutableMap;
 
 
-public class OctTransferRelation extends ForwardingTransferRelation<OctState, Precision> {
+public class OctTransferRelation extends ForwardingTransferRelation<OctState, OctPrecision> {
 
   private static final String FUNCTION_RETURN_VAR = "___cpa_temp_result_var_";
   private static final String TEMP_VAR_PREFIX = "___cpa_temp_var_";
@@ -883,6 +883,10 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
         variableName = buildVarName(functionName, variableName);
       }
 
+      if (!precision.isTracked(variableName)) {
+        return state;
+      }
+
       // for global declarations, there may be forwards declarations, so we do
       // not need to declarate them a second time, but if there is an initializer
       // we assign it to the before declared variable
@@ -1240,7 +1244,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
     public Set<IOctCoefficients> visit(CIdExpression e) throws CPATransferException {
       String varName = buildVarName(e, functionName);
       Integer varIndex = state.getVariableIndexFor(varName);
-      if (varIndex == null) { return Collections.singleton((IOctCoefficients)OctEmptyCoefficients.INSTANCE); }
+      if (varIndex == -1) { return Collections.singleton((IOctCoefficients)OctEmptyCoefficients.INSTANCE); }
       return Collections.singleton((IOctCoefficients)new OctSimpleCoefficients(state.sizeOfVariables(), varIndex, 1, state));
     }
 

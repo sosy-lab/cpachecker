@@ -24,7 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.octagon;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Level;
 
@@ -229,17 +231,26 @@ public class OctState implements AbstractState {
    * This method sets the coefficients/ the value of a variable to undefined.
    */
   public OctState forget(String pVariableName) {
-    return new OctState(OctagonManager.forget(octagon, getVariableIndexFor(pVariableName)),
+    int varIdx = getVariableIndexFor(pVariableName);
+
+    if (varIdx == -1) {
+      return this;
+    }
+
+    return new OctState(OctagonManager.forget(octagon, varIdx),
                         HashBiMap.create(variableToIndexMap),
                         logger);
   }
 
   /**
-   * Returns the index of the variable, if the variable is not already in the map
-   * a new variable is declarated and this is index gets returned then.
+   * Returns the index of the variable, if the variable is not in the map -1 is returned.
    */
-  protected Integer getVariableIndexFor(String pVariableName) {
-    return variableToIndexMap.get(pVariableName);
+  protected int getVariableIndexFor(String pVariableName) {
+    Integer result = variableToIndexMap.get(pVariableName);
+    if (result == null) {
+      return -1;
+    }
+    return result;
   }
 
   protected boolean existsVariable(String variableName) {
@@ -255,7 +266,30 @@ public class OctState implements AbstractState {
     return newState;
   }
 
+  public OctState declareVariable(String varName, Pair<Long, Long> bounds) {
+    return declareVariable(varName, bounds.getFirst().intValue(), bounds.getSecond().intValue());
+  }
+
+  public OctState declareVariable(String varName, int lowerBound, int upperBound) {
+    assert !variableToIndexMap.containsKey(varName);
+    OctState newState = new OctState(OctagonManager.addDimensionAndEmbed(octagon, 1),
+                                     HashBiMap.create(variableToIndexMap),
+                                     logger);
+    newState.variableToIndexMap.put(varName, sizeOfVariables());
+    NumArray lower = OctagonManager.init_num_t(1);
+    NumArray upper = OctagonManager.init_num_t(1);
+    OctagonManager.num_set_int(lower, 0, lowerBound);
+    OctagonManager.num_set_int(upper, 0, upperBound);
+    newState.octagon = OctagonManager.set_bounds(newState.octagon, newState.getVariableIndexFor(varName), lower, upper);
+    OctagonManager.num_clear_n(lower, 1);
+    OctagonManager.num_clear_n(upper, 1);
+    return newState;
+  }
+
   public OctState makeAssignment(String leftVarName, IOctCoefficients oct) {
+    if (getVariableIndexFor(leftVarName) == -1) {
+      return this;
+    }
     if (oct instanceof OctSimpleCoefficients) {
       return makeAssignment(leftVarName, (OctSimpleCoefficients)oct);
     } else if (oct instanceof OctIntervalCoefficients) {
@@ -271,8 +305,19 @@ public class OctState implements AbstractState {
    */
   private OctState makeAssignment(String leftVarName, OctSimpleCoefficients oct) {
     assert sizeOfVariables() == oct.size() : "coefficients do not have the right size";
+
+    if (getVariableIndexFor(leftVarName) == -1) {
+      return this;
+    }
+
     NumArray arr = oct.getNumArray();
-    OctState newState = new OctState(OctagonManager.assingVar(octagon, getVariableIndexFor(leftVarName), arr),
+    int varIdx = getVariableIndexFor(leftVarName);
+
+    if (varIdx == -1) {
+      return this;
+    }
+
+    OctState newState = new OctState(OctagonManager.assingVar(octagon, varIdx, arr),
                                      HashBiMap.create(variableToIndexMap),
                                      logger);
     OctagonManager.num_clear_n(arr, oct.size());
@@ -285,8 +330,19 @@ public class OctState implements AbstractState {
    */
   private OctState makeAssignment(String leftVarName, OctIntervalCoefficients oct) {
     assert sizeOfVariables() == oct.size() : "coefficients do not have the right size";
+
+    if (getVariableIndexFor(leftVarName) == -1) {
+      return this;
+    }
+
     NumArray arr = oct.getNumArray();
-    OctState newState = new OctState(OctagonManager.intervAssingVar(octagon, getVariableIndexFor(leftVarName), arr),
+    int varIdx = getVariableIndexFor(leftVarName);
+
+    if (varIdx == -1) {
+      return this;
+    }
+
+    OctState newState = new OctState(OctagonManager.intervAssingVar(octagon, varIdx, arr),
                                      HashBiMap.create(variableToIndexMap),
                                      logger);
     OctagonManager.num_clear_n(arr, oct.size());
@@ -317,6 +373,10 @@ public class OctState implements AbstractState {
     int rVarIdx = getVariableIndexFor(pRightVariableName);
     int lVarIdx = getVariableIndexFor(pLeftVariableName);
 
+    if (rVarIdx == -1 || lVarIdx == -1) {
+      return this;
+    }
+
     // use 0 as constant value, we don't need it
     return addConstraint(BinaryConstraints.PXMY, lVarIdx, rVarIdx, 0);
   }
@@ -327,6 +387,11 @@ public class OctState implements AbstractState {
    */
   public OctState addSmallerEqConstraint(String pVariableName, long pValueOfLiteral) {
     int varIdx = getVariableIndexFor(pVariableName);
+
+    if (varIdx == -1) {
+      return this;
+    }
+
     return addConstraint(BinaryConstraints.PX, varIdx, -1, (int)pValueOfLiteral);
   }
 
@@ -350,6 +415,10 @@ public class OctState implements AbstractState {
     int rVarIdx = getVariableIndexFor(pRightVariableName);
     int lVarIdx = getVariableIndexFor(pLeftVariableName);
 
+    if (rVarIdx == -1 || lVarIdx == -1) {
+      return this;
+    }
+
     // we want the lefthandside to be really smaller than the righthandside
     // so we use -1 as a constant value
     return addConstraint(BinaryConstraints.PXMY, lVarIdx, rVarIdx, -1);
@@ -361,6 +430,11 @@ public class OctState implements AbstractState {
    */
   public OctState addSmallerConstraint(String pVariableName, long pValueOfLiteral) {
     int varIdx = getVariableIndexFor(pVariableName);
+
+    if (varIdx == -1) {
+      return this;
+    }
+
     // set right index to -1 as it is not used
     return addConstraint(BinaryConstraints.PX, varIdx, -1, (int)pValueOfLiteral-1);
   }
@@ -384,6 +458,10 @@ public class OctState implements AbstractState {
     int rVarIdx = getVariableIndexFor(pRightVariableName);
     int lVarIdx = getVariableIndexFor(pLeftVariableName);
 
+    if (rVarIdx == -1 || lVarIdx == -1) {
+      return this;
+    }
+
     // use 0 as constant value, we don't need it
     return addConstraint(BinaryConstraints.MXPY, lVarIdx, rVarIdx, 0);
   }
@@ -394,6 +472,11 @@ public class OctState implements AbstractState {
    */
   public OctState addGreaterEqConstraint(String pVariableName, long pValueOfLiteral) {
     int varIdx = getVariableIndexFor(pVariableName);
+
+    if (varIdx == -1) {
+      return this;
+    }
+
     // set right index to -1 as it is not used
     return addConstraint(BinaryConstraints.MX, varIdx, -1, (int)-pValueOfLiteral);
   }
@@ -417,6 +500,10 @@ public class OctState implements AbstractState {
     int rVarIdx = getVariableIndexFor(pRightVariableName);
     int lVarIdx = getVariableIndexFor(pLeftVariableName);
 
+    if (rVarIdx == -1 || lVarIdx == -1) {
+      return this;
+    }
+
     // we want the lefthandside to be really greater than the righthandside
     // so we use -1 as a constant value
     return addConstraint(BinaryConstraints.MXPY, lVarIdx, rVarIdx, -1);
@@ -428,6 +515,11 @@ public class OctState implements AbstractState {
    */
   public OctState addGreaterConstraint(String pVariableName, long pValueOfLiteral) {
     int varIdx = getVariableIndexFor(pVariableName);
+
+    if (varIdx == -1) {
+      return this;
+    }
+
     // set right index to -1 as it is not used
     return addConstraint(BinaryConstraints.MX, varIdx, -1, (-1 - (int)pValueOfLiteral));
   }
@@ -513,6 +605,14 @@ public class OctState implements AbstractState {
 
   public OctState removeLocalVars(String functionName) {
     return removeVars(functionName, "");
+  }
+
+  public Map<String, Pair<Long, Long>> getVariablesWithBounds() {
+    Map<String, Pair<Long, Long>> vars = new HashMap<>();
+    for (String varName : variableToIndexMap.keySet()) {
+      vars.put(varName, OctagonManager.getVariableBounds(octagon, getVariableIndexFor(varName)));
+    }
+    return vars;
   }
 
   private OctState removeVars(String functionName, String varPrefix) {
