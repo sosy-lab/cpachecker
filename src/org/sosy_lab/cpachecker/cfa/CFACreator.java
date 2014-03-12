@@ -51,6 +51,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CParser.FileToParse;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
@@ -487,7 +488,7 @@ public class CFACreator {
       // example: a=1+2; --> a=3;
       // TODO support for constant propagation like "define MAGIC_NUMBER 1234".
       for (final CFANode function : cfa.getAllFunctionHeads()) {
-        final ExpressionSimplifier es = new ExpressionSimplifier(machineModel, logger);
+        final ExpressionSimplifier es = new ExpressionSimplifier(machineModel, new LogManagerWithoutDuplicates(logger));
         CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(function, es);
         es.replaceEdges();
       }

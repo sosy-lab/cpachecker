@@ -24,15 +24,15 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import java.math.BigDecimal;
-import java.util.Set;
 import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.eclipse.cdt.internal.core.dom.parser.c.CArrayType;
 import org.eclipse.cdt.internal.core.dom.parser.c.CPointerType;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -79,7 +79,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
@@ -89,7 +88,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
-import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedLongs;
 
 
@@ -123,10 +121,7 @@ public abstract class AbstractExpressionValueVisitor
 
 
   // for logging
-  private final LogManager logger;
-  private final CFAEdge edge;
-  // we log for each edge only once, that avoids much output. the user knows all critical lines.
-  private final static Set<CFAEdge> loggedEdges = Sets.newHashSet();
+  private final LogManagerWithoutDuplicates logger;
 
   private boolean missingFieldAccessInformation = false;
   private boolean missingEnumComparisonInformation = false;
@@ -136,15 +131,14 @@ public abstract class AbstractExpressionValueVisitor
    * @param pFunctionName current scope, used only for variable-names
    * @param pMachineModel where to get info about types, for casting and overflows
    * @param pLogger logging
-   * @param pEdge only for logging, not needed */
+   */
   public AbstractExpressionValueVisitor(String pFunctionName,
-      MachineModel pMachineModel, LogManager pLogger, @Nullable CFAEdge pEdge) {
+      MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
 
     //this.state = pState;
     this.functionName = pFunctionName;
     this.machineModel = pMachineModel;
     this.logger = pLogger;
-    this.edge = pEdge;
   }
 
   public boolean hasMissingFieldAccessInformation() {
@@ -172,7 +166,7 @@ public abstract class AbstractExpressionValueVisitor
     if (lVal.isUnknown()) { return lVal; }
     final Value rVal = pE.getOperand2().accept(this);
     if (rVal.isUnknown()) { return rVal; }
-    Value result = calculateBinaryOperation(lVal, rVal, pE, machineModel, logger, edge);
+    Value result = calculateBinaryOperation(lVal, rVal, pE, machineModel, logger);
     return result;
   }
 
@@ -189,12 +183,12 @@ public abstract class AbstractExpressionValueVisitor
    */
   public static Value calculateBinaryOperation(Value lVal, Value rVal,
       final CBinaryExpression binaryExpr,
-      final MachineModel machineModel, final LogManager logger, @Nullable CFAEdge edge) {
+      final MachineModel machineModel, final LogManagerWithoutDuplicates logger) {
 
     final BinaryOperator binaryOperator = binaryExpr.getOperator();
     final CType calculationType = binaryExpr.getCalculationType();
 
-    lVal = castCValue(lVal, binaryExpr.getOperand1().getExpressionType(), calculationType, machineModel, logger, edge);
+    lVal = castCValue(lVal, binaryExpr.getOperand1().getExpressionType(), calculationType, machineModel, logger, binaryExpr.getFileLocation());
     if (binaryOperator != BinaryOperator.SHIFT_LEFT && binaryOperator != BinaryOperator.SHIFT_RIGHT) {
       /* For SHIFT-operations we do not cast the second operator.
        * We even do not need integer-promotion,
@@ -208,11 +202,11 @@ public abstract class AbstractExpressionValueVisitor
        * the behavior is undefined.
        */
       rVal =
-          castCValue(rVal, binaryExpr.getOperand2().getExpressionType(), calculationType, machineModel, logger, edge);
+          castCValue(rVal, binaryExpr.getOperand2().getExpressionType(), calculationType, machineModel, logger, binaryExpr.getFileLocation());
     }
 
     if (lVal instanceof SymbolicValueFormula || rVal instanceof SymbolicValueFormula) {
-      return calculateSymbolicBinaryExpression(lVal, rVal, binaryExpr, logger, edge);
+      return calculateSymbolicBinaryExpression(lVal, rVal, binaryExpr);
     }
 
     Value result;
@@ -229,7 +223,7 @@ public abstract class AbstractExpressionValueVisitor
     case BINARY_OR:
     case BINARY_XOR: {
       result = arithmeticOperation(lVal, rVal, binaryOperator, calculationType, machineModel, logger);
-      result = castCValue(result, calculationType, binaryExpr.getExpressionType(), machineModel, logger, edge);
+      result = castCValue(result, calculationType, binaryExpr.getExpressionType(), machineModel, logger, binaryExpr.getFileLocation());
 
       break;
     }
@@ -270,7 +264,7 @@ public abstract class AbstractExpressionValueVisitor
    * e.g. joining `a` and `5` with `+` will produce `a + 5`
    */
   public static Value calculateSymbolicBinaryExpression(Value lVal, Value rVal,
-      final CBinaryExpression binaryExpr, final LogManager logger, @Nullable CFAEdge edge) {
+      final CBinaryExpression binaryExpr) {
 
     // Convert the CBinaryOperator to an operator suitable for our symbolic value formulas
     SymbolicValueFormula.BinaryExpression.BinaryOperator op =
@@ -511,7 +505,7 @@ public abstract class AbstractExpressionValueVisitor
   @Override
   public Value visit(CCastExpression pE) throws UnrecognizedCCodeException {
     return castCValue(pE.getOperand().accept(this), pE.getOperand().getExpressionType(), pE.getExpressionType(),
-        machineModel, logger, edge);
+        machineModel, logger, pE.getFileLocation());
   }
 
   @Override
@@ -916,7 +910,7 @@ public abstract class AbstractExpressionValueVisitor
    */
   public Value evaluate(final CExpression pExp, final CType pTargetType)
       throws UnrecognizedCCodeException {
-    return castCValue(pExp.accept(this), pExp.getExpressionType(), pTargetType, machineModel, logger, edge);
+    return castCValue(pExp.accept(this), pExp.getExpressionType(), pTargetType, machineModel, logger, pExp.getFileLocation());
   }
 
   /**
@@ -930,7 +924,7 @@ public abstract class AbstractExpressionValueVisitor
    */
   public Value evaluate(final CRightHandSide pExp, final CType pTargetType)
       throws UnrecognizedCCodeException {
-    return castCValue(pExp.accept(this), pExp.getExpressionType(), pTargetType, machineModel, logger, edge);
+    return castCValue(pExp.accept(this), pExp.getExpressionType(), pTargetType, machineModel, logger, pExp.getFileLocation());
   }
 
 
@@ -950,7 +944,7 @@ public abstract class AbstractExpressionValueVisitor
    */
   public static Value castCValue(@Nonnull final Value value, final CType sourceType,
       final CType targetType,
-      final MachineModel machineModel, final LogManager logger, @Nullable final CFAEdge edge) {
+      final MachineModel machineModel, final LogManagerWithoutDuplicates logger, final FileLocation fileLocation) {
     if (value.isUnknown()) { return Value.UnknownValue.getInstance(); }
 
     // For now can only cast numeric value's
@@ -994,10 +988,10 @@ public abstract class AbstractExpressionValueVisitor
             }
           }
 
-          if (result != longValue && loggedEdges.add(edge)) {
-            logger.logf(Level.INFO,
-                "overflow in line %d: value %d is to big for type '%s', casting to %d.",
-                edge == null ? null : edge.getLineNumber(),
+          if (result != longValue) {
+            logger.logfOnce(Level.INFO,
+                "%s: overflow, value %d is to big for type '%s', casting to %d.",
+                fileLocation,
                 longValue, targetType, result);
           }
 
@@ -1007,22 +1001,18 @@ public abstract class AbstractExpressionValueVisitor
               // value is negative, so adding maxValue makes it positive
               result = maxValue + result;
 
-              if (loggedEdges.add(edge)) {
-                logger.logf(Level.INFO,
-                    "overflow in line %d: target-type is '%s', value %d is changed to %d.",
-                    edge == null ? null : edge.getLineNumber(),
-                    targetType, value.asLong(sourceType), result);
-              }
+              logger.logfOnce(Level.INFO,
+                  "%s: overflow, target-type is '%s', value %d is changed to %d.",
+                  fileLocation,
+                  targetType, value.asLong(sourceType), result);
 
             } else {
               // java-type "long" is too small for big types like UNSIGNED_LONGLONG,
               // so we do nothing here and trust the analysis, that handles it later
-              if (loggedEdges.add(edge)) {
-                logger.logf(Level.INFO,
-                    "overflow in line %d: value %s of c-type '%s' may be too big for java-type 'long'.",
-                    edge == null ? null : edge.getLineNumber(),
-                    value.asLong(sourceType), targetType);
-              }
+              logger.logfOnce(Level.INFO,
+                  "%s: overflow, value %s of c-type '%s' may be too big for java-type 'long'.",
+                  fileLocation,
+                  value.asLong(sourceType), targetType);
             }
           }
 
@@ -1031,12 +1021,10 @@ public abstract class AbstractExpressionValueVisitor
         } else {
           // java-type "long" is too small for big types like UNSIGNED_LONGLONG,
           // so we do nothing here and trust the analysis, that handles it later
-          if (loggedEdges.add(edge)) {
-            logger.logf(Level.INFO,
-                "overflow in line %d: value %s of c-type '%s' may be too big for java-type 'long'.",
-                edge == null ? null : edge.getLineNumber(),
-                value, targetType);
-          }
+          logger.logfOnce(Level.INFO,
+              "%s: overflow, value %s of c-type '%s' may be too big for java-type 'long'.",
+              fileLocation,
+              value, targetType);
 
           return value;
         }
@@ -1115,9 +1103,5 @@ public abstract class AbstractExpressionValueVisitor
     } else {
       return null;
     }
-  }
-
-  public CFAEdge getEdge() {
-    return edge;
   }
 }

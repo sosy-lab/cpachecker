@@ -53,6 +53,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
@@ -186,7 +187,7 @@ abstract class AbstractEclipseCParser<T> implements CParser {
 
     Sideassignments sa = new Sideassignments();
     sa.enterBlock();
-    return new ASTConverter(config, new FunctionScope(), logger, Functions.<String>identity(), new CSourceOriginMapping(), machine, "", false, sa)
+    return new ASTConverter(config, new FunctionScope(), new LogManagerWithoutDuplicates(logger), Functions.<String>identity(), new CSourceOriginMapping(), machine, "", false, sa)
         .convert(statements[0]);
   }
 
@@ -217,7 +218,7 @@ abstract class AbstractEclipseCParser<T> implements CParser {
     Sideassignments sa = new Sideassignments();
     sa.enterBlock();
 
-    ASTConverter converter = new ASTConverter(config, new FunctionScope(), logger,
+    ASTConverter converter = new ASTConverter(config, new FunctionScope(), new LogManagerWithoutDuplicates(logger),
         Functions.<String>identity(), new CSourceOriginMapping(), machine, "", false, sa);
 
     List<CAstNode> nodeList = new ArrayList<>(statements.length);

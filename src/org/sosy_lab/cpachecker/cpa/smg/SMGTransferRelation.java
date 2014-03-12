@@ -46,6 +46,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -134,7 +135,7 @@ public class SMGTransferRelation implements TransferRelation {
   @Option(name = "handleUnknownFunctions", description = "Sets how unknown functions are handled. One of: {strict, assume_safe}")
   private String handleUnknownFunctions = "strict";
 
-  final private LogManager logger;
+  final private LogManagerWithoutDuplicates logger;
   final private MachineModel machineModel;
 
   private final SMGRightHandSideEvaluator expressionEvaluator;
@@ -389,7 +390,7 @@ public class SMGTransferRelation implements TransferRelation {
   public SMGTransferRelation(Configuration config, LogManager pLogger,
       MachineModel pMachineModel) throws InvalidConfigurationException {
     config.inject(this);
-    logger = pLogger;
+    logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
     expressionEvaluator = new SMGRightHandSideEvaluator(logger, machineModel);
   }
@@ -1155,7 +1156,7 @@ public class SMGTransferRelation implements TransferRelation {
     private boolean missingExplicitInformation;
     private boolean isRequiered;
 
-    public SMGRightHandSideEvaluator(LogManager pLogger, MachineModel pMachineModel) {
+    public SMGRightHandSideEvaluator(LogManagerWithoutDuplicates pLogger, MachineModel pMachineModel) {
       super(pLogger, pMachineModel);
     }
 

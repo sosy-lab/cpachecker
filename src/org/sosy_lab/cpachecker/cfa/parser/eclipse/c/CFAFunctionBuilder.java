@@ -80,6 +80,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -183,7 +184,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       + "or leave them uninitialized.")
   private boolean initializeAllVariables = false;
 
-  public CFAFunctionBuilder(Configuration config, LogManager pLogger, FunctionScope pScope,
+  public CFAFunctionBuilder(Configuration config, LogManagerWithoutDuplicates pLogger, FunctionScope pScope,
       Function<String, String> pNiceFileNameFunction,
       CSourceOriginMapping pSourceOriginMapping,
       MachineModel pMachine, String staticVariablePrefix,

@@ -92,6 +92,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
@@ -213,7 +214,7 @@ class ASTConverter {
 
   private static final ContainsProblemTypeVisitor containsProblemTypeVisitor = new ContainsProblemTypeVisitor();
 
-  public ASTConverter(Configuration pConfig, Scope pScope, LogManager pLogger,
+  public ASTConverter(Configuration pConfig, Scope pScope, LogManagerWithoutDuplicates pLogger,
       Function<String, String> pNiceFileNameFunction,
       CSourceOriginMapping pSourceOriginMapping,
       MachineModel pMachineModel, String pStaticVariablePrefix,

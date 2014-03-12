@@ -27,7 +27,7 @@ import java.math.BigInteger;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -62,9 +62,9 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
     <Pair<CExpression, Number>, RuntimeException> {
 
   private final MachineModel machineModel;
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
 
-  public ExpressionSimplificationVisitor(MachineModel mm, LogManager pLogger) {
+  public ExpressionSimplificationVisitor(MachineModel mm, LogManagerWithoutDuplicates pLogger) {
     this.machineModel = mm;
     this.logger = pLogger;
   }
@@ -138,7 +138,7 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
     Value rVal = new NumericValue(pair2.getSecond());
     Value result = ExpressionValueVisitor.calculateBinaryOperation(
         lVal, rVal,
-        expr, machineModel, logger, null);
+        expr, machineModel, logger);
 
     return convertExplicitValueToPair(expr, result);
   }
@@ -164,7 +164,7 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
     // TODO: handle the case that the result is not a numeric value
     CSimpleType type = (CSimpleType) pair.getFirst().getExpressionType().getCanonicalType();
     final Value castedValue = ExpressionValueVisitor.castCValue(
-        new NumericValue(pair.getSecond()), expr.getOperand().getExpressionType(), expr.getExpressionType(), machineModel, logger, null);
+        new NumericValue(pair.getSecond()), expr.getOperand().getExpressionType(), expr.getExpressionType(), machineModel, logger, expr.getFileLocation());
 
 
     return convertExplicitValueToPair(expr, castedValue);

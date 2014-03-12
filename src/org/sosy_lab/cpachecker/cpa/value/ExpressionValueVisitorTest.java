@@ -28,7 +28,7 @@ import java.math.BigInteger;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -80,7 +80,7 @@ public class ExpressionValueVisitorTest {
   }
 
 
-  private LogManager logger;
+  private LogManagerWithoutDuplicates logger;
 
   private ExpressionValueVisitor evv32;
   private ExpressionValueVisitor evv64;
@@ -88,12 +88,12 @@ public class ExpressionValueVisitorTest {
 
   @Before
   public void init() {
-    logger = TestLogManager.getInstance();
+    logger = new LogManagerWithoutDuplicates(TestLogManager.getInstance());
 
     evv32 = new ExpressionValueVisitor(
-        state, functionName, MachineModel.LINUX32, logger, null);
+        state, functionName, MachineModel.LINUX32, logger);
     evv64 = new ExpressionValueVisitor(
-        state, functionName, MachineModel.LINUX64, logger, null);
+        state, functionName, MachineModel.LINUX64, logger);
 
   }
 

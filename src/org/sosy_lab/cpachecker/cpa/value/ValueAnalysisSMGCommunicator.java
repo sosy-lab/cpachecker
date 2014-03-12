@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -57,14 +57,14 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 public class ValueAnalysisSMGCommunicator {
 
   private final CFAEdge cfaEdge;
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
   private final MachineModel machineModel;
   private final SMGState smgState;
   private final ValueAnalysisState valueAnalysisState;
   private final String functionName;
 
   public ValueAnalysisSMGCommunicator(ValueAnalysisState pValueAnalysisState, String pFunctionName,
-      SMGState pSmgState, MachineModel pMachineModel, LogManager pLogger, CFAEdge pCfaEdge) {
+      SMGState pSmgState, MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger, CFAEdge pCfaEdge) {
     valueAnalysisState = pValueAnalysisState;
     smgState = pSmgState;
     machineModel = pMachineModel;
@@ -116,12 +116,12 @@ public class ValueAnalysisSMGCommunicator {
     private final SMGExplicitExpressionEvaluator smgEvaluator;
 
     public ExplicitExpressionValueVisitor() {
-      super(valueAnalysisState, functionName, machineModel, logger, cfaEdge);
+      super(valueAnalysisState, functionName, machineModel, logger);
       smgEvaluator = new SMGExplicitExpressionEvaluator(this);
     }
 
     public ExplicitExpressionValueVisitor(SMGExplicitExpressionEvaluator pSmgEvaluator) {
-      super(valueAnalysisState, functionName, machineModel, logger, cfaEdge);
+      super(valueAnalysisState, functionName, machineModel, logger);
       smgEvaluator = pSmgEvaluator;
     }
 
@@ -288,11 +288,6 @@ public class ValueAnalysisSMGCommunicator {
     public SMGExplicitExpressionEvaluator(ExplicitExpressionValueVisitor pEvv) {
       super(logger, machineModel);
       evv = pEvv;
-    }
-
-    @Override
-    public MachineModel getMachineModel() {
-      return super.getMachineModel();
     }
 
     public SMGExplicitExpressionEvaluator() {

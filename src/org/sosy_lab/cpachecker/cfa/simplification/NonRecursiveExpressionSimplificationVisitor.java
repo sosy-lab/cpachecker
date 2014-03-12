@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cfa.simplification;
 
 import java.math.BigInteger;
 
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -59,9 +59,9 @@ public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpress
   // TODO explicitfloat: improve this entire class to use ExplicitValueBase instead of Long
 
   private final MachineModel machineModel;
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
 
-  public NonRecursiveExpressionSimplificationVisitor(MachineModel mm, LogManager pLogger) {
+  public NonRecursiveExpressionSimplificationVisitor(MachineModel mm, LogManagerWithoutDuplicates pLogger) {
     this.machineModel = mm;
     this.logger = pLogger;
   }
@@ -124,7 +124,7 @@ public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpress
 
     // Just assume result to be an integer regardless of expression type.
     long result = ExpressionValueVisitor.calculateBinaryOperation(
-        new NumericValue(v1), new NumericValue(v2), expr, machineModel, logger, null).asLong(CNumericTypes.INT);
+        new NumericValue(v1), new NumericValue(v2), expr, machineModel, logger).asLong(CNumericTypes.INT);
 
     return new CIntegerLiteralExpression(expr.getFileLocation(),
             expr.getExpressionType(), BigInteger.valueOf(result));
@@ -140,7 +140,7 @@ public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpress
 
     // Just assume the cast value to be an integer type regardless of expression type
     final long castedValue = ExpressionValueVisitor.castCValue(
-        new NumericValue(v), expr.getOperand().getExpressionType(), expr.getExpressionType(), machineModel, logger, null).asLong(CNumericTypes.INT);
+        new NumericValue(v), expr.getOperand().getExpressionType(), expr.getExpressionType(), machineModel, logger, expr.getFileLocation()).asLong(CNumericTypes.INT);
 
     return new CIntegerLiteralExpression(expr.getFileLocation(),
             expr.getExpressionType(), BigInteger.valueOf(castedValue));

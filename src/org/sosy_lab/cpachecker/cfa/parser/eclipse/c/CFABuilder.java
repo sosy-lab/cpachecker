@@ -46,6 +46,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
@@ -100,7 +101,7 @@ class CFABuilder extends ASTVisitor {
   private final CSourceOriginMapping sourceOriginMapping;
 
   private final MachineModel machine;
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
   private final CheckBindingVisitor checkBinding;
 
   private final Configuration config;
@@ -113,7 +114,7 @@ class CFABuilder extends ASTVisitor {
       CSourceOriginMapping pSourceOriginMapping,
       MachineModel pMachine) throws InvalidConfigurationException {
 
-    logger = pLogger;
+    logger = new LogManagerWithoutDuplicates(pLogger);
     niceFileNameFunction = pNiceFileNameFunction;
     sourceOriginMapping = pSourceOriginMapping;
     machine = pMachine;

@@ -28,7 +28,7 @@ import java.math.BigInteger;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -92,10 +92,10 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
  */
 public class SMGExpressionEvaluator {
 
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
   private final MachineModel machineModel;
 
-  public SMGExpressionEvaluator(LogManager pLogger, MachineModel pMachineModel) {
+  public SMGExpressionEvaluator(LogManagerWithoutDuplicates pLogger, MachineModel pMachineModel) {
     logger = pLogger;
     machineModel = pMachineModel;
   }
@@ -1472,13 +1472,15 @@ public class SMGExpressionEvaluator {
 
   class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
 
+    private final CFAEdge edge;
     private final WritableSMG smg;
 
     public ExplicitValueVisitor(WritableSMG pSmg,
         String pFunctionName, MachineModel pMachineModel,
-        LogManager pLogger, CFAEdge pEdge) {
-      super(pFunctionName, pMachineModel, pLogger, pEdge);
+        LogManagerWithoutDuplicates pLogger, CFAEdge pEdge) {
+      super(pFunctionName, pMachineModel, pLogger);
       smg = pSmg;
+      edge = pEdge;
     }
 
     private SMGExplicitValue getExplicitValue(SMGSymbolicValue pValue) {
@@ -1504,10 +1506,10 @@ public class SMGExpressionEvaluator {
       SMGSymbolicValue value = SMGUnknownValue.getInstance();
 
       try {
-        value = evaluateExpressionValue(smg, getEdge(), leftHandSide);
+        value = evaluateExpressionValue(smg, edge, leftHandSide);
       } catch (CPATransferException e) {
         UnrecognizedCCodeException e2 =
-            new UnrecognizedCCodeException("SMG cannot be evaluated", getEdge(), leftHandSide);
+            new UnrecognizedCCodeException("SMG cannot be evaluated", leftHandSide);
         e2.initCause(e);
         throw e2;
       }
@@ -1578,13 +1580,5 @@ public class SMGExpressionEvaluator {
 
   public LValueAssignmentVisitor getLValueAssignmentVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
     return new LValueAssignmentVisitor(pCfaEdge, pNewState);
-  }
-
-  public LogManager getLogger() {
-    return logger;
-  }
-
-  public MachineModel getMachineModel() {
-    return machineModel;
   }
 }
