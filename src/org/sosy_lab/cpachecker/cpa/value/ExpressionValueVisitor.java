@@ -61,16 +61,25 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
   private final ValueAnalysisState state;
 
+  private boolean symbolicValues = false;
+
   /** This Visitor returns the numeral value for an expression.
+   *
    * @param pState where to get the values for variables (identifiers)
    * @param pFunctionName current scope, used only for variable-names
    * @param pMachineModel where to get info about types, for casting and overflows
    * @param pLogger logging
-   * @param pEdge only for logging, not needed */
+   * @param pEdge only for logging, not needed
+   * @param pSymbolicValues flag for symbolic value analysis. <code>true</code>
+   *        if a symbolic analysis should be performed, <code>false</code> if a
+   *        concrete value analysis should be performed
+   */
   public ExpressionValueVisitor(ValueAnalysisState pState, String pFunctionName,
-      MachineModel pMachineModel, LogManager pLogger, @Nullable CFAEdge pEdge) {
+      MachineModel pMachineModel, LogManager pLogger, @Nullable CFAEdge pEdge,
+      boolean pSymbolicValues) {
     super(pFunctionName, pMachineModel, pLogger, pEdge);
     this.state = pState;
+    this.symbolicValues = pSymbolicValues;
   }
 
   /* additional methods */
@@ -82,8 +91,11 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
    * a formula containing just that IdExpression.
    */
   private Value getUnknownIdExpressionValue(MemoryLocation memLoc) {
-    // TODO: switch to enable/disable symbolic value analysis
-    return new SymbolicValueFormula(new SymbolicValueFormula.SymbolicValue(memLoc));
+    if (symbolicValues) {
+      return new SymbolicValueFormula(new SymbolicValueFormula.SymbolicValue(memLoc));
+    } else {
+      return Value.UnknownValue.getInstance();
+    }
   }
 
   @Override

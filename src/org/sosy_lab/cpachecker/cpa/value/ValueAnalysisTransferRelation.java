@@ -120,6 +120,9 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   private static final Map<String, String> UNSUPPORTED_FUNCTIONS
       = ImmutableMap.of("pthread_create", "threads");
 
+  @Option(name="symbolicValues", description="enables generation of symbolic values")
+  private boolean symbolicValues = false;
+
   @Option(description = "if there is an assumption like (x!=0), "
       + "this option sets unknown (uninitialized) variables to 1L, "
       + "when the true-branch is handled.")
@@ -298,7 +301,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
         ExpressionValueVisitor v =
             new ExpressionValueVisitor(state, callerFunctionName,
-                machineModel, logger, edge);
+                machineModel, logger, edge, symbolicValues);
 
         MemoryLocation assignedVarName = v.evaluateMemoryLocation((CLeftHandSide) op1);
 
@@ -689,7 +692,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     protected boolean truthValue = false;
 
     public AssigningValueVisitor(ValueAnalysisState assignableState, boolean truthValue) {
-      super(state, functionName, machineModel, logger, edge);
+      super(state, functionName, machineModel, logger, edge, symbolicValues);
       this.assignableState = assignableState;
       this.truthValue = truthValue;
     }
@@ -884,7 +887,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     private final RTTState jortState;
 
     public FieldAccessExpressionValueVisitor(RTTState pJortState) {
-      super(state, functionName, machineModel, logger, edge);
+      super(state, functionName, machineModel, logger, edge, symbolicValues);
       jortState = pJortState;
     }
 
@@ -1626,6 +1629,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   /** returns an initialized, empty visitor */
   private ExpressionValueVisitor getVisitor() {
-    return new ExpressionValueVisitor(state, functionName, machineModel, logger, edge);
+    return new ExpressionValueVisitor(state, functionName, machineModel, logger, edge, symbolicValues);
   }
 }

@@ -31,6 +31,7 @@ import org.junit.Test;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.StringBuildingLogHandler;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -46,6 +47,9 @@ import com.google.common.collect.Lists;
 
 
 public class ExpressionValueVisitorTest {
+
+  @Option(name="cpa.value.symbolicValues", description="enables generation of symbolic values")
+  private boolean symbolicValues = false;
 
 
   // we need some dummy-values.
@@ -98,9 +102,9 @@ public class ExpressionValueVisitorTest {
     logger = new BasicLogManager(config, stringLogHandler);
 
     evv32 = new ExpressionValueVisitor(
-        state, functionName, MachineModel.LINUX32, logger, null);
+        state, functionName, MachineModel.LINUX32, logger, null, symbolicValues);
     evv64 = new ExpressionValueVisitor(
-        state, functionName, MachineModel.LINUX64, logger, null);
+        state, functionName, MachineModel.LINUX64, logger, null, symbolicValues);
 
   }
 
