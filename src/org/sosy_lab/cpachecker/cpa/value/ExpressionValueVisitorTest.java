@@ -293,9 +293,8 @@ public class ExpressionValueVisitorTest {
   private void checkCast(ExpressionValueVisitor evv, long in, long expectedOut, CType outType)
       throws UnrecognizedCCodeException {
 
-    // we use NULL as inputType, because it is not needed
     final Value value = evv.evaluate(
-        new CIntegerLiteralExpression(loc, null, BigInteger.valueOf(in)),
+        new CIntegerLiteralExpression(loc, CNumericTypes.INT, BigInteger.valueOf(in)),
         outType);
 
     System.out.println(String.format("(%s) %d == %d == %s", outType, in, expectedOut, value.toString()));
