@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
 import org.eclipse.jdt.core.dom.ITypeBinding;
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.util.NameConverter;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
@@ -36,8 +35,7 @@ public class ASTTypeConverter extends TypeConverter {
 
   private final Scope scope;
 
-  public ASTTypeConverter(LogManager pLogger, Scope pScope) {
-    super(pLogger);
+  public ASTTypeConverter(Scope pScope) {
     scope = pScope;
   }
 

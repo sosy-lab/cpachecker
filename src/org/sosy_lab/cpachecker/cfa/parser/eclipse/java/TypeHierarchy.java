@@ -34,7 +34,7 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import org.eclipse.jdt.core.dom.ITypeBinding;
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.EclipseJavaParser.JavaFileAST;
@@ -48,8 +48,6 @@ import com.google.common.collect.ImmutableSet;
 
 
 public final class TypeHierarchy {
-
-  private final LogManager logger;
 
   private Map<String, JClassOrInterfaceType> types;
 
@@ -68,12 +66,10 @@ public final class TypeHierarchy {
    */
   private final THTypeTable typeTable;
 
-  private TypeHierarchy(THTypeTable pTypeTable, LogManager pLogger) {
+  private TypeHierarchy(THTypeTable pTypeTable) {
 
     checkNotNull(pTypeTable);
-    checkNotNull(pLogger);
 
-    logger = pLogger;
     typeTable = pTypeTable;
     types = pTypeTable.getTypes();
     fileOfTypes = pTypeTable.getTypeOfFiles();
@@ -141,7 +137,7 @@ public final class TypeHierarchy {
 
     creator.createTypeHierachy(pJavaProgram);
 
-    return new TypeHierarchy(creator.getTypeTable(), pLogger);
+    return new TypeHierarchy(creator.getTypeTable());
   }
 
   public boolean containsType(JClassOrInterfaceType pType) {
@@ -206,7 +202,7 @@ public final class TypeHierarchy {
     checkArgument(classOrInterfaceBinding.isClass() || classOrInterfaceBinding.isEnum()
         || classOrInterfaceBinding.isInterface());
 
-    THTypeConverter converter = new THTypeConverter(logger, typeTable);
+    THTypeConverter converter = new THTypeConverter(typeTable);
 
     converter.convertClassOrInterfaceType(classOrInterfaceBinding);
 
