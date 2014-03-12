@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -143,16 +142,6 @@ public class CPABuilder {
           cpas.add(factory.createInstance());
           logger.log(Level.FINER, "Loaded Automaton\"" + automaton.getName() + "\"");
         }
-      }
-    }
-    for(ConfigurableProgramAnalysis cpa : cpas) {
-      try {
-        Field declaredField = cpa.getClass().getDeclaredField("automaton");
-        declaredField.setAccessible(true);
-        System.out.println(((Automaton)declaredField.get(cpa)).getName());
-      } catch (IllegalArgumentException | IllegalAccessException | NoSuchFieldException | SecurityException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
       }
     }
 
