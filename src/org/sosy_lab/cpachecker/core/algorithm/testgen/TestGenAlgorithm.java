@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.testgen;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -34,6 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.BasicTestGenPathA
 import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.TestGenPathAnalysisStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.model.AutomatonControlledIterationStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.model.PredicatePathAnalysisResult;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.model.SameAlgorithmRestartAtDecisionIterationStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.model.TestGenIterationStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.model.TestGenIterationStrategy.IterationModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -63,6 +65,15 @@ public class TestGenAlgorithm implements Algorithm {
   private LogManager logger;
 
 //  private Algorithm explicitAlg;
+
+  private enum IterationStrategySelector {
+    AUTOMATON_CONTROLLED,
+    SAME_ALGORITHM_RESTART
+  }
+
+  @Option(name="iterationStrategy", description="Selects the iteration Strategy for TestGenAlgorithm")
+  private IterationStrategySelector iterationStrategySelector = IterationStrategySelector.AUTOMATON_CONTROLLED;
+
   private CFA cfa;
   private ConfigurableProgramAnalysis cpa;
 
@@ -98,8 +109,16 @@ public class TestGenAlgorithm implements Algorithm {
 
     IterationModel model = new IterationModel(pAlgorithm, null, null);
 
-    iterationStrategy = new AutomatonControlledIterationStrategy(startupConfig, pCfa, model, reachedSetFactory);
-    //    iterationStrategy = new SameAlgorithmRestartAtDecisionIterationStrategy(startupConfig, reachedSetFactory, model);
+    switch (iterationStrategySelector) {
+    case AUTOMATON_CONTROLLED:
+      iterationStrategy = new AutomatonControlledIterationStrategy(startupConfig, pCfa, model, reachedSetFactory);
+      break;
+    case SAME_ALGORITHM_RESTART:
+      iterationStrategy = new SameAlgorithmRestartAtDecisionIterationStrategy(startupConfig, reachedSetFactory, model);
+      break;
+    default:
+      throw new InvalidConfigurationException("Invald iteration strategy selected");
+    }
 
     analysisStrategy = new BasicTestGenPathAnalysisStrategy(pathChecker);
 
