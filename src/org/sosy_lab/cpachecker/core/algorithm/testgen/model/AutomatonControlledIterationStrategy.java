@@ -23,14 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.testgen.model;
 
-import static java.lang.String.format;
-
 import java.io.IOException;
 import java.io.Writer;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Files.DeleteOnCloseFile;
@@ -47,6 +44,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
+import com.google.common.collect.Lists;
 
 public class AutomatonControlledIterationStrategy implements TestGenIterationStrategy {
 
@@ -56,11 +54,15 @@ public class AutomatonControlledIterationStrategy implements TestGenIterationStr
   private CFA cfa;
   private final TestGenIterationStrategy.IterationModel model;
   private ReachedSetFactory reachedSetFactory;
+  private CPABuilder cpaBuilder;
+
+
 
   public AutomatonControlledIterationStrategy(StartupConfig startupConfig, CFA pCfa, IterationModel model,
-      ReachedSetFactory pReachedSetFactory) {
+      ReachedSetFactory pReachedSetFactory, CPABuilder pCpaBuilder) {
     super();
     this.reachedSetFactory = pReachedSetFactory;
+    cpaBuilder = pCpaBuilder;
     config = startupConfig.getConfig();
     logger = startupConfig.getLog();
     shutdownNotifier = startupConfig.getNotifier();
@@ -90,24 +92,14 @@ public class AutomatonControlledIterationStrategy implements TestGenIterationStr
     // This temp file will be automatically deleted when the try block terminates.
     try (DeleteOnCloseFile automatonFile = Files.createTempFile("next_automaton", ".txt")) {
 
-      ConfigurationBuilder builder = Configuration.builder().copyFrom(config);
-      // TODO: check if we really can use multiple specification files this way
-      String automatonAbsPath = automatonFile.toPath().toAbsolutePath().toString();
-      String originalSpec = config.getProperty("specification");
-      builder = builder.setOption("specification", format("%s,%s", automatonAbsPath, originalSpec));
-      Configuration nextConfig = builder.build();
-
-
       try (Writer w = Files.openOutputFile(automatonFile.toPath())) {
         ARGUtils.producePathAutomaton(w, "nextPathAutomaton", pNewPath);
       }
 
-
-      CPABuilder cbuilder = new CPABuilder(nextConfig, logger, shutdownNotifier, reachedSetFactory);
-      ConfigurableProgramAnalysis nextCpa = cbuilder.buildCPAs(cfa);
+      ConfigurableProgramAnalysis nextCpa = cpaBuilder.buildCPAs(cfa, Lists.newArrayList(automatonFile.toPath()));
 
       if (model.getAlgorithm() instanceof CPAAlgorithm) {
-        return CPAAlgorithm.create(nextCpa, logger, nextConfig, shutdownNotifier);
+        return CPAAlgorithm.create(nextCpa, logger, config, shutdownNotifier);
       } else {
         throw new InvalidConfigurationException("Generating a new Algorithm here only Works if the "
             + "Algorithm is a CPAAlgorithm");

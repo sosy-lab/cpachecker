@@ -185,8 +185,8 @@ public class CoreComponentsFactory {
         algorithm = new RestartWithConditionsAlgorithm(algorithm, cpa, config, logger);
       }
 
-      if(useTestGenAlgorithm) {
-        algorithm = new TestGenAlgorithm(algorithm, cpa, shutdownNotifier, cfa, config, logger);
+      if (useTestGenAlgorithm) {
+        algorithm = new TestGenAlgorithm(algorithm, cpa, shutdownNotifier, cfa, config, logger, cpaFactory);
       }
 
       if (usePropertyCheckingAlgorithm) {
