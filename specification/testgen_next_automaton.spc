@@ -1,0 +1,73 @@
+CONTROL AUTOMATON nextPathAutomaton
+
+INITIAL STATE ARG1;
+
+STATE USEFIRST ARG1 :
+    MATCH "" -> GOTO ARG2;
+    TRUE -> STOP;
+
+STATE USEFIRST ARG2 :
+    MATCH "extern int __VERIFIER_nondet_int();" -> GOTO ARG3;
+    TRUE -> STOP;
+
+STATE USEFIRST ARG3 :
+    MATCH "int a;" -> ASSUME {a = 0;}GOTO ARG4;
+    TRUE -> STOP;
+
+STATE USEFIRST ARG4 :
+    MATCH "int b;" -> ASSUME {b = 0;}GOTO ARG5;
+    TRUE -> STOP;
+
+STATE USEFIRST ARG5 :
+    MATCH "int main()" -> GOTO ARG6;
+    TRUE -> STOP;
+
+STATE USEFIRST ARG6 :
+    MATCH "" -> GOTO ARG7;
+    TRUE -> STOP;
+
+STATE USEFIRST ARG7 :
+    MATCH "[!(a > 6)]" -> GOTO ARG8;
+    TRUE -> STOP;
+
+STATE USEFIRST ARG8 :
+    MATCH "b = 4;" -> ASSUME {b = 4;}GOTO ARG9;
+    TRUE -> STOP;
+
+STATE USEFIRST ARG9 :
+    MATCH "" -> GOTO ARG10;
+    TRUE -> STOP;
+
+STATE USEFIRST ARG10 :
+    MATCH "[a < 6]" -> GOTO ARG11;
+    TRUE -> STOP;
+
+STATE USEFIRST ARG11 :
+    MATCH "b = 4;" -> ASSUME {b = 4;}GOTO ARG12;
+    TRUE -> STOP;
+
+STATE USEFIRST ARG12 :
+    MATCH "" -> GOTO ARG13;
+    TRUE -> STOP;
+
+STATE USEFIRST ARG13 :
+    MATCH "[!(a == 99)]" -> GOTO ARG14;
+    TRUE -> STOP;
+
+STATE USEFIRST ARG14 :
+    MATCH "b == __VERIFIER_nondet_int()" -> GOTO ARG15;
+    TRUE -> STOP;
+
+STATE USEFIRST ARG15 :
+    MATCH "b == __VERIFIER_nondet_int()" -> ASSUME {__CPAchecker_TMP_0 = 4;}GOTO ARG16;
+    TRUE -> STOP;
+
+STATE USEFIRST ARG16 :
+    MATCH "[b == __CPAchecker_TMP_0]" -> GOTO EndLoop;
+    TRUE -> STOP;
+
+STATE USEFIRST EndLoop :
+    MATCH EXIT  -> ERROR; 
+    TRUE -> GOTO EndLoop;
+
+END AUTOMATON
