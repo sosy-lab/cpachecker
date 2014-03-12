@@ -38,6 +38,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -208,13 +209,15 @@ public class InvariantsCPA extends AbstractCPA implements AdjustableConditionCPA
     if (determineTargetLocations) {
       try {
         // Create new configuration based on existing config but with default set of CPAs
-        Configuration configuration = Configuration.builder()
-                                             .copyFrom(config)
-                                             .setOption("output.disable", "true")
-                                             .clearOption("cpa")
-                                             .clearOption("cpas")
-                                             .clearOption("CompositeCPA.cpas")
-                                             .build();
+        ConfigurationBuilder configurationBuilder = Configuration.builder();
+        configurationBuilder.setOption("output.disable", "true");
+        configurationBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPA");
+        String specification = config.getProperty("specification");
+        if (specification == null) {
+          specification = "config/specification/default.spc";
+        }
+        configurationBuilder.setOption("specification", specification);
+        Configuration configuration = configurationBuilder.build();
         ConfigurableProgramAnalysis cpa = new CPABuilder(configuration, logManager, shutdownNotifier, reachedSetFactory).buildCPAs(cfa);
         ReachedSet reached = reachedSetFactory.create();
         reached.add(cpa.getInitialState(pNode), cpa.getInitialPrecision(pNode));
