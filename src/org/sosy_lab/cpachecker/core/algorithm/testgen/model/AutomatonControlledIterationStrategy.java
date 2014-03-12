@@ -111,7 +111,7 @@ public class AutomatonControlledIterationStrategy implements TestGenIterationStr
       //      ARGUtils.producePathAutomaton(w, "nextPathAutomaton", pNewPath);
       //      ARGUtils.producePathAutomaton(w, pResult.getPath().getFirst().getFirst(), pResult.getPath().getStateSet(), "nextPathAutomaton", ci);
       ARGUtils.produceTestGenPathAutomaton(w, pResult.getPath().getFirst().getFirst(), pResult.getPath().getStateSet(),
-          "nextPathAutomaton", ci);
+          "nextPathAutomaton", ci,true);
       //      }
 
     } catch (IOException e) {
@@ -151,7 +151,7 @@ public class AutomatonControlledIterationStrategy implements TestGenIterationStr
       //      ARGUtils.producePathAutomaton(w, "nextPathAutomaton", pNewPath);
       //      ARGUtils.producePathAutomaton(w, pResult.getPath().getFirst().getFirst(), pResult.getPath().getStateSet(), "nextPathAutomaton", ci);
       ARGUtils.produceTestGenPathAutomaton(w, pResult.getPath().getFirst().getFirst(), pResult.getPath().getStateSet(),
-          "nextPathAutomaton", ci);
+          "nextPathAutomaton", ci,true);
       //      }
 
     } catch (IOException e) {

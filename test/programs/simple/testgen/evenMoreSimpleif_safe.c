@@ -2,7 +2,7 @@ extern int __VERIFIER_nondet_int();
 int a;
 int b;
 int main() {
-
+	a = __VERIFIER_nondet_int();
 	if(a > 6) {
 		b = 5;
 	} else {

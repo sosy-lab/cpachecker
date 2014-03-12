@@ -144,7 +144,7 @@ public class TestGenAlgorithm implements Algorithm {
     AbstractState initialState = globalReached.getFirstState();
     currentReached.add(initialState, globalReached.getPrecision(initialState));
 
-    while (globalReached.hasWaitingState()) {
+    while (true /*globalReached.hasWaitingState()*/) {
 
       //explicit, DFS, PRECISION=TRACK_ALL; with automaton of new path created in previous iteration OR custom CPA
       boolean sound = iterationStrategy.runAlgorithm();
@@ -189,7 +189,7 @@ public class TestGenAlgorithm implements Algorithm {
 
       lastResult = result;
     }
-    return false;
+//    return false;
   }
 
 
@@ -210,7 +210,7 @@ public class TestGenAlgorithm implements Algorithm {
       FluentIterable<AutomatonState> wrapped = AbstractStates.projectToType(w, AutomatonState.class);
       //check if any automaton except the TestGenAutomaton "EvalOnlyOnePathAutomaton" reached a target state.
       for (AutomatonState autoState : wrapped) {//TODO extract into method that is resistant to String-changes
-        if (!autoState.getOwningAutomatonName().equals("EvalOnlyOnePathAutomaton")) {
+        if (!autoState.getOwningAutomatonName().equals("EvalOnlyOnePathAutomaton") && !autoState.getOwningAutomatonName().equals("nextPathAutomaton")) {
           /*
            * target state means error state.
            * we found an error path and leave the analysis to the surrounding alg.

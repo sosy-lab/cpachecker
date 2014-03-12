@@ -479,6 +479,9 @@ public class ARGUtils {
     sb.append("END AUTOMATON\n");
   }
 
+
+
+
   /**
    * Produce an automaton in the format for the AutomatonCPA from
    * a given path. The automaton matches exactly the edges along the path.
@@ -491,7 +494,7 @@ public class ARGUtils {
    * @throws IOException
    */
   public static void produceTestGenPathAutomaton(Appendable sb, ARGState pRootState,
-      Set<ARGState> pPathStates, String name, CounterexampleInfo pCounterExample) throws IOException {
+      Set<ARGState> pPathStates, String name, CounterexampleInfo pCounterExample, boolean generateAssumes) throws IOException {
 
     Map<ARGState, CFAEdgeWithAssignments> valueMap = null;
 
@@ -566,7 +569,11 @@ public class ARGUtils {
           if (child.isTarget()) {
             sb.append("ERROR");
           } else {
-            String assumption = getAssumption(valueMap, s);
+            String assumption ="";
+            if(generateAssumes)
+            {
+              assumption = getAssumption(valueMap, s);
+            }
             sb.append(assumption + "GOTO ARG" + child.getStateId());
           }
           sb.append(";\n");
