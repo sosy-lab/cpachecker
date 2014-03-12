@@ -144,7 +144,7 @@ public class FunctionCallUnwinder {
       }
     }
 
-    return new MutableCFA(cfa.getMachineModel(), functions, nodes, cfa.getMainFunction(), cfa.getLanguage(), cfa.getSourceOriginMapping());
+    return new MutableCFA(cfa.getMachineModel(), functions, nodes, cfa.getMainFunction(), cfa.getLanguage());
   }
 
   private void replaceFunctionCall(final AStatementEdge functionCallEdge, final String newFunctionName) {

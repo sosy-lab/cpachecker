@@ -43,8 +43,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping.NoOriginMappingAvailableException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -108,13 +106,9 @@ public class ARGPathExport {
   @Option(description="Verification witness: Include the sourcecode of the operations?")
   boolean exportSourcecode = true;
 
-  private final CSourceOriginMapping sourceOriginMapping;
-
-  public ARGPathExport(Configuration config, CFA pCfa) throws InvalidConfigurationException {
+  public ARGPathExport(Configuration config) throws InvalidConfigurationException {
     Preconditions.checkNotNull(config);
     config.inject(this);
-
-    sourceOriginMapping = pCfa.getSourceOriginMapping();
   }
 
   private String tokensToText(Set<Integer> tokens) {
@@ -416,13 +410,8 @@ public class ARGPathExport {
         }
 
         if (exportTokenNumbers) {
-          if (sourceOriginMapping.getHasOneInputLinePerToken()) {
-            Set<Integer> absoluteTokens = SourceLocationMapper.getAbsoluteTokensFromCFAEdge(edge, false);
-            desc.put(KeyDef.TOKENS, tokensToText(absoluteTokens));
-
-            Pair<String, Set<Integer>> relativeTokens = sourceOriginMapping.getRelativeTokensFromAbsolute(absoluteTokens);
-            desc.put(KeyDef.ORIGINTOKENS, tokensToText(relativeTokens.getSecond()));
-          }
+          Set<Integer> absoluteTokens = SourceLocationMapper.getAbsoluteTokensFromCFAEdge(edge, false);
+          desc.put(KeyDef.TOKENS, tokensToText(absoluteTokens));
         }
 
         if (exportLineNumbers) {

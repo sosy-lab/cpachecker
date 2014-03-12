@@ -52,7 +52,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
@@ -150,12 +149,12 @@ public class ARGStatistics implements Statistics {
   private ARGToDotWriter refinementGraphWriter = null;
   private ARGPathExport witnessExporter = null;
 
-  public ARGStatistics(Configuration config, ARGCPA cpa, CFA pCfa) throws InvalidConfigurationException {
+  public ARGStatistics(Configuration config, ARGCPA cpa) throws InvalidConfigurationException {
     this.cpa = cpa;
 
     config.inject(this);
 
-    witnessExporter = new ARGPathExport(config, pCfa);
+    witnessExporter = new ARGPathExport(config);
 
     if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null) {
       exportARG = false;

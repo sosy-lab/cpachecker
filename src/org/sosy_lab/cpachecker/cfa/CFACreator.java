@@ -300,13 +300,10 @@ public class CFACreator {
 
     stats.totalTime.start();
     try {
-
       // FIRST, parse file(s) and create CFAs for each function
       logger.log(Level.FINE, "Starting parsing of file(s)");
 
-      final CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping(transformTokensToLines);
-
-      final ParseResult c = parseToCFAs(sourceFiles, sourceOriginMapping);
+      final ParseResult c = parseToCFAs(sourceFiles);
 
       logger.log(Level.FINE, "Parser Finished");
 
@@ -325,7 +322,7 @@ public class CFACreator {
       assert mainFunction != null;
 
 
-      MutableCFA cfa = new MutableCFA(machineModel, c.getFunctions(), c.getCFANodes(), mainFunction, language, sourceOriginMapping);
+      MutableCFA cfa = new MutableCFA(machineModel, c.getFunctions(), c.getCFANodes(), mainFunction, language);
 
       stats.checkTime.start();
 
@@ -424,14 +421,15 @@ public class CFACreator {
 
   /** This method parses the sourceFiles and builds a CFA for each function.
    * The ParseResult is only a Wrapper for the CFAs of the functions and global declarations. */
-  private ParseResult parseToCFAs(final List<String> sourceFiles,
-      CSourceOriginMapping sourceOriginMapping)
+  private ParseResult parseToCFAs(final List<String> sourceFiles)
           throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
     final ParseResult parseResult;
 
     if (language == Language.C) {
       checkIfValidFiles(sourceFiles);
     }
+
+    final CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
 
     if (sourceFiles.size() == 1) {
       parseResult = parser.parseFile(sourceFiles.get(0), sourceOriginMapping);

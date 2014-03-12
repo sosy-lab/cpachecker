@@ -23,14 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import java.util.Set;
-
 import org.sosy_lab.common.Pair;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
-import com.google.common.collect.Sets;
 import com.google.common.collect.TreeRangeMap;
 
 
@@ -52,30 +48,8 @@ public class CSourceOriginMapping {
     }
   }
 
-  private final boolean oneInputLinePerToken;
-
   private final RangeMap<Integer, String> lineToFilenameMapping = TreeRangeMap.create();
-  private final RangeMap<Integer, String> tokenToFilenameMapping = TreeRangeMap.create();
   private final RangeMap<Integer, Integer> lineDeltaMapping = TreeRangeMap.create();
-  private final RangeMap<Integer, Integer> tokenDeltaMapping = TreeRangeMap.create();
-  private final RangeMap<Integer, Integer> tokenToLineMapping = TreeRangeMap.create();
-
-  public CSourceOriginMapping() {
-    this(false);
-  }
-
-  CSourceOriginMapping(boolean pOneInputLinePerToken) {
-    oneInputLinePerToken = pOneInputLinePerToken;
-  }
-
-  public boolean getHasOneInputLinePerToken() {
-    return oneInputLinePerToken;
-  }
-
-  void mapAbsoluteTokenRangeToInputLine(int fromTokenNumber, int toTokenNumber, int inputLineNumber) {
-    Range<Integer> tokenRange = Range.openClosed(fromTokenNumber-1, toTokenNumber);
-    tokenToLineMapping.put(tokenRange, inputLineNumber);
-  }
 
   void mapInputLineRangeToDelta(String originFilename, int fromInputLineNumber, int toInputLineNumber, int deltaLinesToOrigin) {
     Range<Integer> lineRange = Range.openClosed(fromInputLineNumber-1, toInputLineNumber);
@@ -83,58 +57,14 @@ public class CSourceOriginMapping {
     lineDeltaMapping.put(lineRange, deltaLinesToOrigin);
   }
 
-  void mapInputTokenRangeToDelta(String originFilename, int fromInputTokenNumber, int toInputTokenNumber, int deltaTokensToOrigin) {
-    Range<Integer> tokenRange = Range.openClosed(fromInputTokenNumber-1, toInputTokenNumber);
-    tokenToFilenameMapping.put(tokenRange, originFilename);
-    tokenDeltaMapping.put(tokenRange, deltaTokensToOrigin);
-  }
-
   public Pair<String, Integer> getOriginLineFromAnalysisCodeLine(int analysisCodeLine) throws NoOriginMappingAvailableException {
-    Integer inputLine = analysisCodeLine;
-    if (oneInputLinePerToken) {
-      inputLine = tokenToLineMapping.get(analysisCodeLine);
-
-      if (inputLine == null) {
-        throw new NoOriginMappingAvailableException("Mapping from token to line failed!");
-      }
-    }
-
-    Integer lineDelta = lineDeltaMapping.get(inputLine);
-    String originFileName = lineToFilenameMapping.get(inputLine);
+    Integer lineDelta = lineDeltaMapping.get(analysisCodeLine);
+    String originFileName = lineToFilenameMapping.get(analysisCodeLine);
 
     if (lineDelta == null || originFileName == null) {
       throw new NoOriginMappingAvailableException("Mapping failed! Delta or origin unknown!");
     }
 
-    return Pair.of(originFileName, inputLine + lineDelta);
-  }
-
-  private Pair<String, Integer> getOriginTokenNumberFromAbsoluteTokenNumber(int absoluteTokenNumber) throws NoOriginMappingAvailableException {
-    if (!oneInputLinePerToken) {
-      throw new NoTokenizingAvailableException("Tokenizing was not performed on the input program! Please enable the tokenizer!");
-    }
-
-    Integer tokenDelta = tokenDeltaMapping.get(absoluteTokenNumber);
-    String originFileName = tokenToFilenameMapping.get(absoluteTokenNumber);
-
-    if (tokenDelta == null || originFileName == null) {
-      throw new NoOriginMappingAvailableException("Mapping source code line to its origin is not possible due to missing mappings!");
-    }
-
-    return Pair.of(originFileName, absoluteTokenNumber + tokenDelta);
-  }
-
-  public Pair<String, Set<Integer>> getRelativeTokensFromAbsolute(Set<Integer> absoluteTokens) throws NoOriginMappingAvailableException {
-    Set<Integer> relative = Sets.newTreeSet();
-    String originFilename = null;
-    for (Integer abs: absoluteTokens) {
-      Pair<String, Integer> rel = getOriginTokenNumberFromAbsoluteTokenNumber(abs);
-      if (originFilename == null) {
-        originFilename = rel.getFirst();
-      }
-      Preconditions.checkArgument(originFilename.equals(rel.getFirst()));
-      relative.add(rel.getSecond());
-    }
-    return Pair.of(originFilename, relative);
+    return Pair.of(originFileName, analysisCodeLine + lineDelta);
   }
 }

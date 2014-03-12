@@ -47,22 +47,19 @@ public class MutableCFA implements CFA {
   private final SortedSetMultimap<String, CFANode> allNodes;
   private final FunctionEntryNode mainFunction;
   private final Language language;
-  private final CSourceOriginMapping sourceOriginMapping;
 
   public MutableCFA(
       MachineModel pMachineModel,
       Map<String, FunctionEntryNode> pFunctions,
       SortedSetMultimap<String, CFANode> pAllNodes,
       FunctionEntryNode pMainFunction,
-      Language pLanguage,
-      CSourceOriginMapping pSourceOriginMapping) {
+      Language pLanguage) {
 
     machineModel = pMachineModel;
     functions = pFunctions;
     allNodes = pAllNodes;
     mainFunction = pMainFunction;
     language = pLanguage;
-    sourceOriginMapping = pSourceOriginMapping;
 
     assert functions.keySet().equals(allNodes.keySet());
     assert functions.get(mainFunction.getFunctionName()) == mainFunction;
@@ -149,7 +146,7 @@ public class MutableCFA implements CFA {
 
   public ImmutableCFA makeImmutableCFA(Optional<ImmutableMultimap<String,
       Loop>> pLoopStructure, Optional<VariableClassification> pVarClassification) {
-    return new ImmutableCFA(machineModel, functions, allNodes, mainFunction, pLoopStructure, pVarClassification, language, sourceOriginMapping);
+    return new ImmutableCFA(machineModel, functions, allNodes, mainFunction, pLoopStructure, pVarClassification, language);
   }
 
   @Override
@@ -160,10 +157,5 @@ public class MutableCFA implements CFA {
   @Override
   public Language getLanguage() {
       return language;
-  }
-
-  @Override
-  public CSourceOriginMapping getSourceOriginMapping() {
-    return sourceOriginMapping;
   }
 }
