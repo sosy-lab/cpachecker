@@ -48,16 +48,16 @@ class CParserWithPreprocessor implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(String pFilename) throws ParserException, IOException, InvalidConfigurationException, InterruptedException {
+  public ParseResult parseFile(String pFilename, CSourceOriginMapping sourceOriginMapping) throws ParserException, IOException, InvalidConfigurationException, InterruptedException {
     String programCode = preprocessor.preprocess(pFilename);
     if (programCode.isEmpty()) {
       throw new CParserException("Preprocessor returned empty program");
     }
-    return realParser.parseString(pFilename, programCode);
+    return realParser.parseString(pFilename, programCode, sourceOriginMapping);
   }
 
   @Override
-  public ParseResult parseString(String pFilename, String pCode) throws ParserException, InvalidConfigurationException {
+  public ParseResult parseString(String pFilename, String pCode, CSourceOriginMapping sourceOriginMapping) throws ParserException, InvalidConfigurationException {
     // TODO
     throw new UnsupportedOperationException();
   }
@@ -73,7 +73,7 @@ class CParserWithPreprocessor implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(List<FileToParse> pFilenames) throws CParserException, IOException,
+  public ParseResult parseFile(List<FileToParse> pFilenames, CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException,
       InvalidConfigurationException, InterruptedException {
 
     List<FileContentToParse> programs = new ArrayList<>(pFilenames.size());
@@ -84,11 +84,11 @@ class CParserWithPreprocessor implements CParser {
       }
       programs.add(new FileContentToParse(p.getFileName(), programCode, p.getStaticVariablePrefix()));
     }
-    return realParser.parseString(programs);
+    return realParser.parseString(programs, sourceOriginMapping);
   }
 
   @Override
-  public ParseResult parseString(List<FileContentToParse> pCode)
+  public ParseResult parseString(List<FileContentToParse> pCode, CSourceOriginMapping sourceOriginMapping)
       throws CParserException, InvalidConfigurationException {
     // TODO
     throw new UnsupportedOperationException();

@@ -258,7 +258,6 @@ public class CFACreator {
       CParser outerParser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machineModel);
 
       outerParser = new CParserWithLocationMapper(config, logger, outerParser, transformTokensToLines);
-      CSourceOriginMapping.INSTANCE.setHasOneInputLinePerToken(transformTokensToLines);
 
       if (usePreprocessor) {
         CPreprocessor preprocessor = new CPreprocessor(config, logger);
@@ -305,7 +304,10 @@ public class CFACreator {
       // FIRST, parse file(s) and create CFAs for each function
       logger.log(Level.FINE, "Starting parsing of file(s)");
 
-      final ParseResult c = parseToCFAs(sourceFiles);
+      final CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
+      sourceOriginMapping.setHasOneInputLinePerToken(transformTokensToLines);
+
+      final ParseResult c = parseToCFAs(sourceFiles, sourceOriginMapping);
 
       logger.log(Level.FINE, "Parser Finished");
 
@@ -324,7 +326,7 @@ public class CFACreator {
       assert mainFunction != null;
 
 
-      MutableCFA cfa = new MutableCFA(machineModel, c.getFunctions(), c.getCFANodes(), mainFunction, language);
+      MutableCFA cfa = new MutableCFA(machineModel, c.getFunctions(), c.getCFANodes(), mainFunction, language, sourceOriginMapping);
 
       stats.checkTime.start();
 
@@ -423,7 +425,8 @@ public class CFACreator {
 
   /** This method parses the sourceFiles and builds a CFA for each function.
    * The ParseResult is only a Wrapper for the CFAs of the functions and global declarations. */
-  private ParseResult parseToCFAs(final List<String> sourceFiles)
+  private ParseResult parseToCFAs(final List<String> sourceFiles,
+      CSourceOriginMapping sourceOriginMapping)
           throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
     final ParseResult parseResult;
 
@@ -432,7 +435,7 @@ public class CFACreator {
     }
 
     if (sourceFiles.size() == 1) {
-      parseResult = parser.parseFile(sourceFiles.get(0));
+      parseResult = parser.parseFile(sourceFiles.get(0), sourceOriginMapping);
     } else {
       // when there is more than one file which should be evaluated, the
       // programdenotations are separated from each other and a prefix for
@@ -450,7 +453,7 @@ public class CFACreator {
         programFragments.add(new FileToParse(fileName, staticVarPrefix));
       }
 
-      parseResult = ((CParser)parser).parseFile(programFragments);
+      parseResult = ((CParser)parser).parseFile(programFragments, sourceOriginMapping);
     }
 
     if (parseResult.isEmpty()) {

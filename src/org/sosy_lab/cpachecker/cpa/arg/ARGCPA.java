@@ -36,6 +36,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
@@ -87,7 +88,8 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
 
   private final Map<ARGState, CounterexampleInfo> counterexamples = new WeakHashMap<>();
 
-  private ARGCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger) throws InvalidConfigurationException {
+  private ARGCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger,
+      CFA cfa) throws InvalidConfigurationException {
     super(cpa);
     config.inject(this);
     this.logger = logger;
@@ -129,7 +131,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
       }
     }
     stopOperator = new ARGStopSep(getWrappedCpa().getStopOperator(), logger, config);
-    stats = new ARGStatistics(config, this);
+    stats = new ARGStatistics(config, this, cfa);
   }
 
   @Override

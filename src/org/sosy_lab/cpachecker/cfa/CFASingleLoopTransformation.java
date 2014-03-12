@@ -299,7 +299,8 @@ public class CFASingleLoopTransformation {
     fixSummaryEdges(start, newSuccessorsToPC, globalNewToOld);
 
     // Build the CFA from the syntactically reachable nodes
-    return buildCFA(start, loopHead, pInputCFA.getMachineModel(), pInputCFA.getLanguage());
+    return buildCFA(start, loopHead, pInputCFA.getMachineModel(),
+        pInputCFA.getLanguage(), pInputCFA.getSourceOriginMapping());
   }
 
   /**
@@ -727,12 +728,14 @@ public class CFASingleLoopTransformation {
    * @throws InvalidConfigurationException if the configuration is invalid.
    * @throws InterruptedException if a shutdown has been requested by the registered shutdown notifier.
    */
-  private ImmutableCFA buildCFA(FunctionEntryNode pStartNode, CFANode pLoopHead, MachineModel pMachineModel, Language pLanguage) throws InvalidConfigurationException, InterruptedException {
+  private ImmutableCFA buildCFA(FunctionEntryNode pStartNode, CFANode pLoopHead,
+      MachineModel pMachineModel, Language pLanguage,
+      CSourceOriginMapping pSourceOriginMapping) throws InvalidConfigurationException, InterruptedException {
     Map<String, FunctionEntryNode> functions = new HashMap<>();
     SortedSetMultimap<String, CFANode> allNodes = mapNodesToFunctions(pStartNode, functions);
 
     // Instantiate the transformed graph in a preliminary form
-    MutableCFA cfa = new MutableCFA(pMachineModel, functions, allNodes, pStartNode, pLanguage);
+    MutableCFA cfa = new MutableCFA(pMachineModel, functions, allNodes, pStartNode, pLanguage, pSourceOriginMapping);
 
     // Get information about the loop structure
     Optional<ImmutableMultimap<String, Loop>> loopStructure =
@@ -817,7 +820,8 @@ public class CFASingleLoopTransformation {
     } else {
       Map<String, FunctionEntryNode> functions = new HashMap<>();
       SortedSetMultimap<String, CFANode> allNodes = mapNodesToFunctions(pCFA.getMainFunction(), functions);
-      mutableCFA = new MutableCFA(pCFA.getMachineModel(), functions, allNodes, pCFA.getMainFunction(), pCFA.getLanguage());
+      mutableCFA = new MutableCFA(pCFA.getMachineModel(), functions, allNodes,
+          pCFA.getMainFunction(), pCFA.getLanguage(), pCFA.getSourceOriginMapping());
     }
     return mutableCFA.makeImmutableCFA(pLoopStructure, pVarClassification);
   }

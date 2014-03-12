@@ -84,12 +84,13 @@ public interface CParser extends Parser {
    * @param fileNames  The List of files to parse. The first part of the pair
    *                   should be the filename, the second part should be the
    *                   prefix which will be appended to static variables
+   * @param sourceOriginMapping A mapping from real input file locations to original file locations (before pre-processing).
    * @return The CFA.
    * @throws IOException If file cannot be read.
    * @throws InterruptedException
    * @throws ParserException If parser or CFA builder cannot handle the C code.
    */
-  ParseResult parseFile(List<FileToParse> filenames) throws CParserException, IOException, InvalidConfigurationException, InterruptedException;
+  ParseResult parseFile(List<FileToParse> filenames, CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException, InvalidConfigurationException, InterruptedException;
 
   /**
    * Parse the content of Strings into a single CFA.
@@ -97,10 +98,11 @@ public interface CParser extends Parser {
    * @param code  The List of code fragments to parse. The first part of the pair
    *                   should be the code, the second part should be the
    *                   prefix which will be appended to static variables
+   * @param sourceOriginMapping A mapping from real input file locations to original file locations (before pre-processing).
    * @return The CFA.
    * @throws ParserException If parser or CFA builder cannot handle the C code.
    */
-  ParseResult parseString(List<FileContentToParse> code) throws CParserException, InvalidConfigurationException;
+  ParseResult parseString(List<FileContentToParse> code, CSourceOriginMapping sourceOriginMapping) throws CParserException, InvalidConfigurationException;
 
   /**
    * Method for parsing a string that contains exactly one function with exactly
@@ -115,7 +117,6 @@ public interface CParser extends Parser {
    * This method guarantees that the AST does not contain CProblem nodes.
    *
    * @param code The code snippet as described above.
-   * @param dialect The parser dialect to use.
    * @return The AST for the statement.
    * @throws ParserException If parsing fails.
    */
@@ -134,7 +135,6 @@ public interface CParser extends Parser {
    * This method guarantees that the AST does not contain CProblem nodes.
    *
    * @param code The code snippet as described above.
-   * @param dialect The parser dialect to use.
    * @return The list of ASTs for the statement.
    * @throws ParserException If parsing fails.
    */

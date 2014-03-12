@@ -85,13 +85,13 @@ import org.eclipse.cdt.core.dom.ast.c.ICASTFieldDesignator;
 import org.eclipse.cdt.core.dom.ast.gnu.IGNUASTCompoundStatementExpression;
 import org.eclipse.cdt.core.dom.ast.gnu.c.IGCCASTArrayRangeDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTFunctionCallExpression;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping.NoOriginMappingAvailableException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -198,6 +198,8 @@ class ASTConverter {
    */
   private final Function<String, String> niceFileNameFunction;
 
+  private final CSourceOriginMapping sourceOriginMapping;
+
   private final Scope scope;
 
   // this counter is static to make the replacing names for anonymous types, in
@@ -214,6 +216,7 @@ class ASTConverter {
 
   public ASTConverter(Configuration pConfig, Scope pScope, LogManager pLogger,
       Function<String, String> pNiceFileNameFunction,
+      CSourceOriginMapping pSourceOriginMapping,
       MachineModel pMachineModel, String pStaticVariablePrefix,
       boolean pSimplifyConstExpressions, Sideassignments pSideAssignmentStack) throws InvalidConfigurationException {
 
@@ -224,6 +227,7 @@ class ASTConverter {
     this.typeConverter = new ASTTypeConverter(scope, this, pStaticVariablePrefix);
     this.literalConverter = new ASTLiteralConverter(typeConverter, pMachineModel);
     this.niceFileNameFunction = pNiceFileNameFunction;
+    this.sourceOriginMapping = pSourceOriginMapping;
     this.staticVariablePrefix = pStaticVariablePrefix;
     this.sideAssignmentStack = pSideAssignmentStack;
     this.simplifyConstExpressions = pSimplifyConstExpressions;
@@ -1822,7 +1826,7 @@ class ASTConverter {
 
     Pair<String, Integer> startingInOrigin;
     try {
-      startingInOrigin = CSourceOriginMapping.INSTANCE.getOriginLineFromAnalysisCodeLine(startingLineInInput);
+      startingInOrigin = sourceOriginMapping.getOriginLineFromAnalysisCodeLine(startingLineInInput);
 
       originFileName = startingInOrigin.getFirst();
       startingLineInOrigin = startingInOrigin.getSecond();

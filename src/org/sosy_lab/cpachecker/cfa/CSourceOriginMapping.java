@@ -34,10 +34,9 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.TreeRangeMap;
 
 
-public enum CSourceOriginMapping {
-  INSTANCE;
+public class CSourceOriginMapping {
 
-  public class NoOriginMappingAvailableException extends Exception {
+  public static class NoOriginMappingAvailableException extends Exception {
     private static final long serialVersionUID = -2094250312246030679L;
 
     public NoOriginMappingAvailableException(String message) {
@@ -45,7 +44,7 @@ public enum CSourceOriginMapping {
     }
   }
 
-  public class NoTokenizingAvailableException extends RuntimeException {
+  public static class NoTokenizingAvailableException extends RuntimeException {
     private static final long serialVersionUID = 2376782857133795915L;
 
     public NoTokenizingAvailableException(String message) {

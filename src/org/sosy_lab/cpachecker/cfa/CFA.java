@@ -65,4 +65,5 @@ public interface CFA {
 
   Language getLanguage();
 
+  CSourceOriginMapping getSourceOriginMapping();
 }

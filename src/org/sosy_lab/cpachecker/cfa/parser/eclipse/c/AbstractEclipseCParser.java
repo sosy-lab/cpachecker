@@ -55,6 +55,7 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -114,49 +115,49 @@ abstract class AbstractEclipseCParser<T> implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(List<FileToParse> pFilenames) throws CParserException, IOException, InvalidConfigurationException {
+  public ParseResult parseFile(List<FileToParse> pFilenames, CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException, InvalidConfigurationException {
 
     List<Pair<IASTTranslationUnit, String>> astUnits = new ArrayList<>();
     for(FileToParse f: pFilenames) {
       astUnits.add(Pair.of(parse(wrapFile(f.getFileName())), f.getStaticVariablePrefix()));
     }
-    return buildCFA(astUnits);
+    return buildCFA(astUnits, sourceOriginMapping);
   }
 
   @Override
-  public ParseResult parseString(List<FileContentToParse> codeFragments) throws CParserException, InvalidConfigurationException {
+  public ParseResult parseString(List<FileContentToParse> codeFragments, CSourceOriginMapping sourceOriginMapping) throws CParserException, InvalidConfigurationException {
 
     List<Pair<IASTTranslationUnit, String>> astUnits = new ArrayList<>();
     for(FileContentToParse f : codeFragments) {
       astUnits.add(Pair.of(parse(wrapCode(f)), f.getStaticVariablePrefix()));
     }
-    return buildCFA(astUnits);
+    return buildCFA(astUnits, sourceOriginMapping);
   }
 
   /**
    * This method parses a single file where no prefix for static variables is needed.
    */
   @Override
-  public ParseResult parseFile(String pFilename) throws CParserException, IOException, InvalidConfigurationException {
+  public ParseResult parseFile(String pFilename, CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException, InvalidConfigurationException {
 
     IASTTranslationUnit unit = parse(wrapFile(pFilename));
     String prefix = "";
     List<Pair<IASTTranslationUnit, String>> returnParam = new ArrayList<>();
     returnParam.add(Pair.of(unit, prefix));
-    return buildCFA(returnParam);
+    return buildCFA(returnParam, sourceOriginMapping);
   }
 
   /**
    * This method parses a single string, where no prefix for static variables is needed.
    */
   @Override
-  public ParseResult parseString(String pFilename, String pCode) throws CParserException, InvalidConfigurationException {
+  public ParseResult parseString(String pFilename, String pCode, CSourceOriginMapping sourceOriginMapping) throws CParserException, InvalidConfigurationException {
 
     IASTTranslationUnit unit = parse(wrapCode(pFilename, pCode));
     String prefix = "";
     List<Pair<IASTTranslationUnit, String>> returnParam = new ArrayList<>();
     returnParam.add(Pair.of(unit, prefix));
-    return buildCFA(returnParam);
+    return buildCFA(returnParam, sourceOriginMapping);
   }
 
   @Override
@@ -185,7 +186,7 @@ abstract class AbstractEclipseCParser<T> implements CParser {
 
     Sideassignments sa = new Sideassignments();
     sa.enterBlock();
-    return new ASTConverter(config, new FunctionScope(), logger, Functions.<String>identity(), machine, "", false, sa)
+    return new ASTConverter(config, new FunctionScope(), logger, Functions.<String>identity(), new CSourceOriginMapping(), machine, "", false, sa)
         .convert(statements[0]);
   }
 
@@ -217,7 +218,7 @@ abstract class AbstractEclipseCParser<T> implements CParser {
     sa.enterBlock();
 
     ASTConverter converter = new ASTConverter(config, new FunctionScope(), logger,
-        Functions.<String>identity(), machine, "", false, sa);
+        Functions.<String>identity(), new CSourceOriginMapping(), machine, "", false, sa);
 
     List<CAstNode> nodeList = new ArrayList<>(statements.length);
 
@@ -277,13 +278,14 @@ abstract class AbstractEclipseCParser<T> implements CParser {
    * @throws CParserException
    * @throws InvalidConfigurationException
    */
-  private ParseResult buildCFA(List<Pair<IASTTranslationUnit, String>> asts) throws CParserException, InvalidConfigurationException {
+  private ParseResult buildCFA(List<Pair<IASTTranslationUnit, String>> asts,
+      CSourceOriginMapping sourceOriginMapping) throws CParserException, InvalidConfigurationException {
     checkArgument(!asts.isEmpty());
     cfaTimer.start();
 
     Function<String, String> niceFileNameFunction = createNiceFileNameFunction(asts);
     try {
-      CFABuilder builder = new CFABuilder(config, logger, niceFileNameFunction, machine);
+      CFABuilder builder = new CFABuilder(config, logger, niceFileNameFunction, sourceOriginMapping, machine);
       for(Pair<IASTTranslationUnit, String> ast : asts) {
         builder.analyzeTranslationUnit(ast.getFirst(), ast.getSecond());
       }

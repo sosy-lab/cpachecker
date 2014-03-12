@@ -47,6 +47,7 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.Parser;
@@ -168,7 +169,7 @@ public class EclipseJavaParser implements Parser {
    * @throws ParserException If parser or CFA builder cannot handle the  code.
    */
   @Override
-  public ParseResult parseFile(String mainClassName) throws JParserException {
+  public ParseResult parseFile(String mainClassName, CSourceOriginMapping sourceOriginMapping) throws JParserException {
     Path mainClassFile = getMainClassFile(mainClassName);
     Scope scope = prepareScope(mainClassName);
     ParseResult result = buildCFA(parse(mainClassFile), scope);
@@ -295,7 +296,7 @@ public class EclipseJavaParser implements Parser {
   }
 
   @Override
-  public ParseResult parseString(String pFilename, String pCode) throws JParserException {
+  public ParseResult parseString(String pFilename, String pCode, CSourceOriginMapping sourceOriginMapping) throws JParserException {
 
     throw new JParserException("Function not yet implemented");
   }

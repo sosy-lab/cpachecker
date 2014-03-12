@@ -46,6 +46,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
@@ -96,6 +97,7 @@ class CFABuilder extends ASTVisitor {
   private GlobalScope globalScope = new GlobalScope();
   private ASTConverter astCreator;
   private final Function<String, String> niceFileNameFunction;
+  private final CSourceOriginMapping sourceOriginMapping;
 
   private final MachineModel machine;
   private final LogManager logger;
@@ -108,10 +110,12 @@ class CFABuilder extends ASTVisitor {
 
   public CFABuilder(Configuration pConfig, LogManager pLogger,
       Function<String, String> pNiceFileNameFunction,
+      CSourceOriginMapping pSourceOriginMapping,
       MachineModel pMachine) throws InvalidConfigurationException {
 
     logger = pLogger;
     niceFileNameFunction = pNiceFileNameFunction;
+    sourceOriginMapping = pSourceOriginMapping;
     machine = pMachine;
     config = pConfig;
 
@@ -131,7 +135,7 @@ class CFABuilder extends ASTVisitor {
                                 new HashMap<String, CTypeDefDeclaration>(),
                                 globalScope.getTypes(),
                                 staticVariablePrefix);
-    astCreator = new ASTConverter(config, fileScope, logger, niceFileNameFunction, machine, staticVariablePrefix, true, sideAssignmentStack);
+    astCreator = new ASTConverter(config, fileScope, logger, niceFileNameFunction, sourceOriginMapping, machine, staticVariablePrefix, true, sideAssignmentStack);
     functionDeclarations.add(Pair.of((List<IASTFunctionDefinition>)new ArrayList<IASTFunctionDefinition>(), Pair.of(staticVariablePrefix, fileScope)));
 
     ast.accept(this);
@@ -307,6 +311,7 @@ class CFABuilder extends ASTVisitor {
 
     try {
       functionBuilder = new CFAFunctionBuilder(config, logger, localScope, niceFileNameFunction,
+          sourceOriginMapping,
           machine, fileName, sideAssignmentStack, checkBinding);
     } catch (InvalidConfigurationException e) {
       throw new CFAGenerationRuntimeException("Invalid configuration");

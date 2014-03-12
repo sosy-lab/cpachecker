@@ -81,6 +81,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
+import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -184,6 +185,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   public CFAFunctionBuilder(Configuration config, LogManager pLogger, FunctionScope pScope,
       Function<String, String> pNiceFileNameFunction,
+      CSourceOriginMapping pSourceOriginMapping,
       MachineModel pMachine, String staticVariablePrefix,
       Sideassignments pSideAssignmentStack,
       CheckBindingVisitor pCheckBinding) throws InvalidConfigurationException {
@@ -191,7 +193,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     logger = pLogger;
     scope = pScope;
-    astCreator = new ASTConverter(config, pScope, pLogger, pNiceFileNameFunction, pMachine, staticVariablePrefix, false, pSideAssignmentStack);
+    astCreator = new ASTConverter(config, pScope, pLogger, pNiceFileNameFunction, pSourceOriginMapping, pMachine, staticVariablePrefix, false, pSideAssignmentStack);
     checkBinding = pCheckBinding;
     expressionSimplificator = new ExpressionSimplificationVisitor(pMachine, pLogger);
     binExprBuilder = new CBinaryExpressionBuilder(pMachine, pLogger);
