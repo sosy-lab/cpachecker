@@ -43,9 +43,12 @@ import com.google.common.collect.Lists;
 public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula, BooleanFormula> implements BooleanFormulaManager {
 
   private final BooleanFormulaManager manager;
+  private final UnsafeFormulaManager unsafe;
 
-  public BooleanFormulaManagerView(BooleanFormulaManager pManager) {
+  public BooleanFormulaManagerView(BooleanFormulaManager pManager,
+      UnsafeFormulaManager pUnsafe) {
     this.manager = pManager;
+    this.unsafe = pUnsafe;
   }
 
   public BooleanFormula makeVariable(String pVar, int pI) {
@@ -154,7 +157,6 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula, B
     checkArgument(isIfThenElse(pF));
 
     FormulaManagerView fmgr = getViewManager();
-    UnsafeFormulaManager unsafe = fmgr.getUnsafeFormulaManager();
     assert unsafe.getArity(pF) == 3;
 
     BooleanFormula cond = wrapInView(unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, 0)));
@@ -192,7 +194,7 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula, B
     protected BooleanFormulaVisitor(FormulaManagerView pFmgr) {
       fmgr = pFmgr;
       bfmgr = fmgr.getBooleanFormulaManager();
-      unsafe = fmgr.getUnsafeFormulaManager();
+      unsafe = bfmgr.unsafe;
     }
 
     public final R visit(BooleanFormula f) {

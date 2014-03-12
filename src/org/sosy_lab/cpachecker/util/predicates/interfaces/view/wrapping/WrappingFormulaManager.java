@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -69,8 +70,8 @@ public class WrappingFormulaManager extends FormulaManagerView {
       }
 
       @Override
-      public BooleanFormulaManagerView wrapManager(BooleanFormulaManager pManager) {
-        return new WrappingBooleanFormulaManagerView(pManager);
+      public BooleanFormulaManagerView wrapManager(BooleanFormulaManager pManager, UnsafeFormulaManager pUnsafe) {
+        return new WrappingBooleanFormulaManagerView(pManager, pUnsafe);
       }
       @Override
       public FunctionFormulaManagerView wrapManager(FunctionFormulaManager pManager) {

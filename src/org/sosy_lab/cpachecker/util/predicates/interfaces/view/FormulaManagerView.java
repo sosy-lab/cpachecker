@@ -72,7 +72,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 public class FormulaManagerView {
 
   public interface LoadManagers {
-    public BooleanFormulaManagerView wrapManager(BooleanFormulaManager manager);
+    public BooleanFormulaManagerView wrapManager(BooleanFormulaManager manager, UnsafeFormulaManager unsafe);
     public NumeralFormulaManagerView<IntegerFormula, IntegerFormula> wrapIntegerManager(NumeralFormulaManager<IntegerFormula, IntegerFormula> manager);
     public NumeralFormulaManagerView<NumeralFormula, RationalFormula> wrapRationalManager(NumeralFormulaManager<NumeralFormula, RationalFormula> manager);
     public BitvectorFormulaManagerView wrapManager(BitvectorFormulaManager manager);
@@ -97,8 +97,8 @@ public class FormulaManagerView {
         }
 
         @Override
-        public BooleanFormulaManagerView wrapManager(BooleanFormulaManager pManager) {
-          return new BooleanFormulaManagerView(pManager);
+        public BooleanFormulaManagerView wrapManager(BooleanFormulaManager pManager, UnsafeFormulaManager pUnsafe) {
+          return new BooleanFormulaManagerView(pManager, pUnsafe);
         }
 
         @Override
@@ -157,7 +157,7 @@ public class FormulaManagerView {
     integerFormulaManager.couple(this);
     rationalFormulaManager = loadManagers.wrapRationalManager(manager.getRationalFormulaManager());
     rationalFormulaManager.couple(this);
-    booleanFormulaManager = loadManagers.wrapManager(manager.getBooleanFormulaManager());
+    booleanFormulaManager = loadManagers.wrapManager(manager.getBooleanFormulaManager(), manager.getUnsafeFormulaManager());
     booleanFormulaManager.couple(this);
     functionFormulaManager = loadManagers.wrapManager(manager.getFunctionFormulaManager());
     functionFormulaManager.couple(this);
@@ -692,10 +692,6 @@ public class FormulaManagerView {
 
   public FunctionFormulaManagerView getFunctionFormulaManager() {
     return functionFormulaManager;
-  }
-
-  public UnsafeFormulaManager getUnsafeFormulaManager() {
-    return manager.getUnsafeFormulaManager(); // Unsafe
   }
 
   public <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {

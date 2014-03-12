@@ -25,13 +25,14 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view.wrapping;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 
 
 public class WrappingBooleanFormulaManagerView extends BooleanFormulaManagerView {
 
-  public WrappingBooleanFormulaManagerView(BooleanFormulaManager pManager) {
-    super(pManager);
+  public WrappingBooleanFormulaManagerView(BooleanFormulaManager pManager, UnsafeFormulaManager pUnsafe) {
+    super(pManager, pUnsafe);
   }
 
   @Override
