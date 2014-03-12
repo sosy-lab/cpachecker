@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.invariants;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateBoolean;
 import org.sosy_lab.cpachecker.util.invariants.templates.manager.TemplateFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -35,11 +38,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaMan
 
 public class TFtester {
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws InvalidConfigurationException {
 
     TemplateFormulaManager tfm = new TemplateFormulaManager();
 
-    FormulaManagerView view = new FormulaManagerView(tfm);
+    FormulaManagerView view = new FormulaManagerView(tfm, Configuration.defaultConfiguration(), TestLogManager.getInstance());
     NumeralFormulaManagerView<NumeralFormula, RationalFormula> nfmgr = view.getRationalFormulaManager();
     BooleanFormulaManagerView bfmgr = view.getBooleanFormulaManager();
     FormulaType<RationalFormula> type = FormulaType.RationalType;

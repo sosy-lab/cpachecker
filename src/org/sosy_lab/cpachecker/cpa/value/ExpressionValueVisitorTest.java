@@ -28,11 +28,8 @@ import java.math.BigInteger;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.BasicLogManager;
-import org.sosy_lab.common.log.StringBuildingLogHandler;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -83,8 +80,6 @@ public class ExpressionValueVisitorTest {
   }
 
 
-  private Configuration config;
-  private StringBuildingLogHandler stringLogHandler;
   private LogManager logger;
 
   private ExpressionValueVisitor evv32;
@@ -92,10 +87,8 @@ public class ExpressionValueVisitorTest {
 
 
   @Before
-  public void init() throws InvalidConfigurationException {
-    config = Configuration.builder().build();
-    stringLogHandler = new StringBuildingLogHandler();
-    logger = new BasicLogManager(config, stringLogHandler);
+  public void init() {
+    logger = TestLogManager.getInstance();
 
     evv32 = new ExpressionValueVisitor(
         state, functionName, MachineModel.LINUX32, logger, null);

@@ -35,14 +35,14 @@ import java_cup.runtime.Symbol;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.common.log.BasicLogManager;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -68,7 +68,7 @@ public class AutomatonInternalTest {
     config = Configuration.builder()
         .addConverter(FileOption.class, new FileTypeConverter(Configuration.defaultConfiguration()))
         .build();
-    logger = new BasicLogManager(config);
+    logger = TestLogManager.getInstance();
 
     ParserOptions options = CParser.Factory.getDefaultOptions();
     parser = CParser.Factory.getParser(config, logger, options, MachineModel.LINUX32);

@@ -31,7 +31,8 @@ import java.util.Set;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -54,7 +55,7 @@ public class CLangSMGTest {
   static private final CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
   private CLangStackFrame sf;
 
-  static private final LogManager logger = mock(LogManager.class);
+  static private final LogManager logger = TestLogManager.getInstance();
   static private final CIdExpression id_expression = new CIdExpression(FileLocation.DUMMY, null, "label", null);
 
   private static CLangSMG getNewCLangSMG64() {

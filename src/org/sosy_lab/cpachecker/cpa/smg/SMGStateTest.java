@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import static org.mockito.Mockito.mock;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
@@ -39,7 +38,7 @@ import com.google.common.collect.Iterables;
 
 
 public class SMGStateTest {
-  static private final  LogManager logger = mock(LogManager.class);
+  static private final  LogManager logger = TestLogManager.getInstance();
   private SMGState consistent_state;
   private SMGState inconsistent_state;
 

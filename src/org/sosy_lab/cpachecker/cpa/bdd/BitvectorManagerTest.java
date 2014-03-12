@@ -23,24 +23,22 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
-import com.google.common.collect.Lists;
+import java.math.BigInteger;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.BasicLogManager;
-import org.sosy_lab.common.log.StringBuildingLogHandler;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
-import java.math.BigInteger;
+import com.google.common.collect.Lists;
 
 public class BitvectorManagerTest {
 
-  private Configuration config;
-  private StringBuildingLogHandler stringLogHandler;
   private LogManager logger;
 
   private BDDRegionManager rmgr;
@@ -53,9 +51,8 @@ public class BitvectorManagerTest {
 
   @Before
   public void init() throws InvalidConfigurationException {
-    config = Configuration.builder().build();
-    stringLogHandler = new StringBuildingLogHandler();
-    logger = new BasicLogManager(config, stringLogHandler);
+    Configuration config = Configuration.defaultConfiguration();
+    logger = TestLogManager.getInstance();
 
     rmgr = BDDRegionManager.getInstance(config, logger);
     bvmgr = new BitvectorManager(config, rmgr);
