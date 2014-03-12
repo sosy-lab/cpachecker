@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.sosy_lab.common.Pair;
 
 import com.google.common.collect.Range;
@@ -32,24 +35,35 @@ import com.google.common.collect.TreeRangeMap;
 
 public class CSourceOriginMapping {
 
-  private final RangeMap<Integer, String> lineToFilenameMapping = TreeRangeMap.create();
-  private final RangeMap<Integer, Integer> lineDeltaMapping = TreeRangeMap.create();
+  // Each RangeMap in this map contains the mapping for one input file,
+  // from its lines to the tuple of (originalFile, lineDelta).
+  // The full mapping is a map with those RangeMaps as values,
+  // one for each input file.
+  private final Map<String, RangeMap<Integer, Pair<String, Integer>>> mapping = new HashMap<>();
 
-  void mapInputLineRangeToDelta(String originFilename, int fromInputLineNumber, int toInputLineNumber, int deltaLinesToOrigin) {
+  void mapInputLineRangeToDelta(String inputFilename, String originFilename, int fromInputLineNumber, int toInputLineNumber, int deltaLinesToOrigin) {
+    RangeMap<Integer, Pair<String, Integer>> fileMapping = mapping.get(inputFilename);
+    if (fileMapping == null) {
+      fileMapping = TreeRangeMap.create();
+      mapping.put(inputFilename, fileMapping);
+    }
+
     Range<Integer> lineRange = Range.openClosed(fromInputLineNumber-1, toInputLineNumber);
-    lineToFilenameMapping.put(lineRange, originFilename);
-    lineDeltaMapping.put(lineRange, deltaLinesToOrigin);
+    fileMapping.put(lineRange, Pair.of(originFilename, deltaLinesToOrigin));
   }
 
   public Pair<String, Integer> getOriginLineFromAnalysisCodeLine(
       String analysisFile, int analysisCodeLine) {
-    Integer lineDelta = lineDeltaMapping.get(analysisCodeLine);
-    String originFileName = lineToFilenameMapping.get(analysisCodeLine);
+    RangeMap<Integer, Pair<String, Integer>> fileMapping = mapping.get(analysisFile);
 
-    if (lineDelta == null || originFileName == null) {
-      return Pair.of(analysisFile, analysisCodeLine);
+    if (fileMapping != null) {
+      Pair<String, Integer> originFileAndLineDelta = fileMapping.get(analysisCodeLine);
+
+      if (originFileAndLineDelta != null) {
+        return Pair.of(originFileAndLineDelta.getFirst(),
+            analysisCodeLine + originFileAndLineDelta.getSecond());
+      }
     }
-
-    return Pair.of(originFileName, analysisCodeLine + lineDelta);
+    return Pair.of(analysisFile, analysisCodeLine);
   }
 }

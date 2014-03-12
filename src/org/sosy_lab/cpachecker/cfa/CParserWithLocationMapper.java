@@ -100,7 +100,7 @@ public class CParserWithLocationMapper implements CParser {
     return processCode(pFilename, code, sourceOriginMapping);
   }
 
-  private String processCode(String fileName, String pCode,
+  private String processCode(final String fileName, String pCode,
       CSourceOriginMapping sourceOriginMapping) throws CParserException {
     StringBuilder tokenizedCode = new StringBuilder();
 
@@ -140,7 +140,7 @@ public class CParserWithLocationMapper implements CParser {
             if (firstTokenImage.equals("line")) {
 
             } else if (firstTokenImage.matches("[0-9]+")) {
-              sourceOriginMapping.mapInputLineRangeToDelta(rangeLinesOriginFilename, includeStartedWithAbsoluteLine, absoluteLineNumber, relativeLineNumber - absoluteLineNumber);
+              sourceOriginMapping.mapInputLineRangeToDelta(fileName, rangeLinesOriginFilename, includeStartedWithAbsoluteLine, absoluteLineNumber, relativeLineNumber - absoluteLineNumber);
 
               includeStartedWithAbsoluteLine = absoluteLineNumber;
               relativeLineNumber = Integer.parseInt(firstTokenImage);
@@ -155,7 +155,7 @@ public class CParserWithLocationMapper implements CParser {
         }
       }
 
-      sourceOriginMapping.mapInputLineRangeToDelta(rangeLinesOriginFilename, includeStartedWithAbsoluteLine + 1, absoluteLineNumber, relativeLineNumber - absoluteLineNumber);
+      sourceOriginMapping.mapInputLineRangeToDelta(fileName, rangeLinesOriginFilename, includeStartedWithAbsoluteLine + 1, absoluteLineNumber, relativeLineNumber - absoluteLineNumber);
     } catch (OffsetLimitReachedException e) {
       throw new CParserException("Tokenizing failed", e);
     }
