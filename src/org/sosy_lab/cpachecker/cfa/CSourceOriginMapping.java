@@ -52,55 +52,38 @@ public class CSourceOriginMapping {
     }
   }
 
-  private Boolean oneInputLinePerToken = null;
-  private boolean frozen = false;
+  private final boolean oneInputLinePerToken;
 
-  public final RangeMap<Integer, String> lineToFilenameMapping = TreeRangeMap.create();
-  public final RangeMap<Integer, String> tokenToFilenameMapping = TreeRangeMap.create();
-  public final RangeMap<Integer, Integer> lineDeltaMapping = TreeRangeMap.create();
-  public final RangeMap<Integer, Integer> tokenDeltaMapping = TreeRangeMap.create();
-  public final RangeMap<Integer, Integer> tokenToLineMapping = TreeRangeMap.create();
+  private final RangeMap<Integer, String> lineToFilenameMapping = TreeRangeMap.create();
+  private final RangeMap<Integer, String> tokenToFilenameMapping = TreeRangeMap.create();
+  private final RangeMap<Integer, Integer> lineDeltaMapping = TreeRangeMap.create();
+  private final RangeMap<Integer, Integer> tokenDeltaMapping = TreeRangeMap.create();
+  private final RangeMap<Integer, Integer> tokenToLineMapping = TreeRangeMap.create();
 
-  public boolean getHasOneInputLinePerToken() {
-    Preconditions.checkNotNull(oneInputLinePerToken);
-    return oneInputLinePerToken;
+  public CSourceOriginMapping() {
+    this(false);
   }
 
-  public void setHasOneInputLinePerToken(boolean pOneInputLinePerToken) {
-    if (frozen) {
-      return;
-    }
-
+  CSourceOriginMapping(boolean pOneInputLinePerToken) {
     oneInputLinePerToken = pOneInputLinePerToken;
   }
 
-  public void mapAbsoluteTokenRangeToInputLine(int fromTokenNumber, int toTokenNumber, int inputLineNumber) {
-    Preconditions.checkNotNull(oneInputLinePerToken);
-    if (frozen) {
-      return;
-    }
+  public boolean getHasOneInputLinePerToken() {
+    return oneInputLinePerToken;
+  }
 
+  void mapAbsoluteTokenRangeToInputLine(int fromTokenNumber, int toTokenNumber, int inputLineNumber) {
     Range<Integer> tokenRange = Range.openClosed(fromTokenNumber-1, toTokenNumber);
     tokenToLineMapping.put(tokenRange, inputLineNumber);
   }
 
-  public void mapInputLineRangeToDelta(String originFilename, int fromInputLineNumber, int toInputLineNumber, int deltaLinesToOrigin) {
-    Preconditions.checkNotNull(oneInputLinePerToken);
-    if (frozen) {
-      return;
-    }
-
+  void mapInputLineRangeToDelta(String originFilename, int fromInputLineNumber, int toInputLineNumber, int deltaLinesToOrigin) {
     Range<Integer> lineRange = Range.openClosed(fromInputLineNumber-1, toInputLineNumber);
     lineToFilenameMapping.put(lineRange, originFilename);
     lineDeltaMapping.put(lineRange, deltaLinesToOrigin);
   }
 
-  public void mapInputTokenRangeToDelta(String originFilename, int fromInputTokenNumber, int toInputTokenNumber, int deltaTokensToOrigin) {
-    Preconditions.checkNotNull(oneInputLinePerToken);
-    if (frozen) {
-      return;
-    }
-
+  void mapInputTokenRangeToDelta(String originFilename, int fromInputTokenNumber, int toInputTokenNumber, int deltaTokensToOrigin) {
     Range<Integer> tokenRange = Range.openClosed(fromInputTokenNumber-1, toInputTokenNumber);
     tokenToFilenameMapping.put(tokenRange, originFilename);
     tokenDeltaMapping.put(tokenRange, deltaTokensToOrigin);
@@ -108,7 +91,7 @@ public class CSourceOriginMapping {
 
   public Pair<String, Integer> getOriginLineFromAnalysisCodeLine(int analysisCodeLine) throws NoOriginMappingAvailableException {
     Integer inputLine = analysisCodeLine;
-    if ((oneInputLinePerToken != null) && oneInputLinePerToken) {
+    if (oneInputLinePerToken) {
       inputLine = tokenToLineMapping.get(analysisCodeLine);
 
       if (inputLine == null) {
@@ -126,8 +109,8 @@ public class CSourceOriginMapping {
     return Pair.of(originFileName, inputLine + lineDelta);
   }
 
-  public Pair<String, Integer> getOriginTokenNumberFromAbsoluteTokenNumber(int absoluteTokenNumber) throws NoOriginMappingAvailableException {
-    if ((oneInputLinePerToken == null) || !oneInputLinePerToken) {
+  private Pair<String, Integer> getOriginTokenNumberFromAbsoluteTokenNumber(int absoluteTokenNumber) throws NoOriginMappingAvailableException {
+    if (!oneInputLinePerToken) {
       throw new NoTokenizingAvailableException("Tokenizing was not performed on the input program! Please enable the tokenizer!");
     }
 
@@ -153,10 +136,5 @@ public class CSourceOriginMapping {
       relative.add(rel.getSecond());
     }
     return Pair.of(originFilename, relative);
-  }
-
-
-  public synchronized void freeze() {
-    frozen = true;
   }
 }

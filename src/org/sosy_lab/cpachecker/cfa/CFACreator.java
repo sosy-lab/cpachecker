@@ -304,8 +304,7 @@ public class CFACreator {
       // FIRST, parse file(s) and create CFAs for each function
       logger.log(Level.FINE, "Starting parsing of file(s)");
 
-      final CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
-      sourceOriginMapping.setHasOneInputLinePerToken(transformTokensToLines);
+      final CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping(transformTokensToLines);
 
       final ParseResult c = parseToCFAs(sourceFiles, sourceOriginMapping);
 
