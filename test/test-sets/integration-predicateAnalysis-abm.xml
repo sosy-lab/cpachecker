@@ -13,6 +13,7 @@
     <sourcefiles>
       <includesfile>../programs/benchmarks/Simple.set</includesfile>
       <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+      <exclude>../programs/benchmarks/ssh/s3_srvr.blast.10_true-unreach-label.i.cil.c</exclude>
     </sourcefiles>
     <sourcefiles>
       <includesfile>../programs/simple/simple.set</includesfile>
@@ -22,8 +23,13 @@
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
       <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
+      <exclude>../programs/benchmarks/eca/Problem11_10_false-unreach-label.c</exclude>
+      <exclude>../programs/benchmarks/eca/Problem11_30_false-unreach-label.c</exclude>
+      <exclude>../programs/benchmarks/eca/Problem11_50_false-unreach-label.c</exclude>
+      <exclude>../programs/benchmarks/eca/Problem12_60_false-unreach-label.c</exclude>
       <exclude>../programs/benchmarks/eca/Problem13_60_false-unreach-label.c</exclude>
       <exclude>../programs/benchmarks/systemc/token_ring.10_false-unreach-label_false-termination.cil.c</exclude>
+      <exclude>../programs/benchmarks/systemc/toy1_false-unreach-label_false-termination.cil.c</exclude>
     </sourcefiles>
     <sourcefiles>
       <includesfile>integration-DeviceDrivers64.set</includesfile>
