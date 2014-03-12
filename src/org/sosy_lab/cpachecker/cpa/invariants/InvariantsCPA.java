@@ -67,7 +67,6 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
@@ -221,12 +220,8 @@ public class InvariantsCPA extends AbstractCPA implements AdjustableConditionCPA
 
         boolean changed = true;
         while (changed) {
-          changed = false;
           targetFindingAlgorithm.run(reached);
-          for (AbstractState state : FluentIterable.from(reached).filter(AbstractStates.IS_TARGET_STATE)) {
-            CFANode location = AbstractStates.extractLocation(state);
-            changed |= targetLocations.add(location);
-          }
+          changed = targetLocations.addAll(FluentIterable.from(reached).filter(AbstractStates.IS_TARGET_STATE).transform(AbstractStates.EXTRACT_LOCATION).toList());
         }
       } catch (InvalidConfigurationException | CPAException | InterruptedException e) {
         if (!shutdownNotifier.shouldShutdown()) {
