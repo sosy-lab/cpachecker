@@ -185,8 +185,9 @@ public class SMGExpressionEvaluator {
 
     if (doesNotFitIntoObject) {
       // Field does not fit size of declared Memory
-      logger.log(Level.WARNING, "Field " + "(" + fieldOffset + ", " + pType.toASTString("") + ")" +
-          " does not fit object " + pObject.toString() + ".\n Line: " + pEdge.getLineNumber());
+      logger.log(Level.WARNING, pEdge.getFileLocation() + ":",
+          "Field " + "(" + fieldOffset + ", " + pType.toASTString("") + ")" +
+          " does not fit object " + pObject.toString() + ".");
 
       return SMGUnknownValue.getInstance();
     }

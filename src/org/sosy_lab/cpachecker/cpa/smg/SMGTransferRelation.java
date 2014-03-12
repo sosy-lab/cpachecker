@@ -232,6 +232,7 @@ public class SMGTransferRelation implements TransferRelation {
         return null;
       }
 
+      // TODO line numbers are not unique when we have multiple input files!
       String allocation_label = "malloc_ID" + SMGValueFactory.getNewValue() + "_Line:" + pCall.getFileLocation().getStartingLineNumber();
       SMGEdgePointsTo new_pointer = pSmg.addNewHeapAllocation(value.getAsInt(), allocation_label);
 
@@ -327,6 +328,7 @@ public class SMGTransferRelation implements TransferRelation {
       int num = numValue.getAsInt();
       int size = sizeValue.getAsInt();
 
+      // TODO line numbers are not unique when we have multiple input files!
       String allocation_label = "Calloc_ID" + SMGValueFactory.getNewValue() + "_Line:" + functionCall.getFileLocation().getStartingLineNumber();
       SMGEdgePointsTo new_pointer = pSmg.addNewHeapAllocation(num * size, allocation_label);
 
@@ -350,9 +352,8 @@ public class SMGTransferRelation implements TransferRelation {
       }
 
       if (address.getAsInt() == 0) {
-        logger.log(Level.WARNING, "The argument of a free invocation: "
-            + cfaEdge.getRawStatement() + ", in Line "
-            + pFunctionCall.getFileLocation().getStartingLineNumber() + " is 0");
+        logger.log(Level.WARNING, pFunctionCall.getFileLocation() + ":",
+            "The argument of a free invocation:", cfaEdge.getRawStatement(), "is 0");
 
       } else {
         if (pointer.getObject().isAbstract()) {
@@ -749,14 +750,14 @@ public class SMGTransferRelation implements TransferRelation {
           builtins.evaluateFree(cFCExpression, newState.getWritableSMG(), pCfaEdge);
           break;
         case "malloc":
-          logger.log(Level.WARNING, "Calling malloc and not using the result, resulting in memory leak at line "
-              + pCfaEdge.getLineNumber());
+          logger.log(Level.WARNING, pCfaEdge.getFileLocation() + ":",
+              "Calling malloc and not using the result, resulting in memory leak.");
           newState.setMemLeak();
           isRequiered = true;
           break;
         case "calloc":
-          logger.log(Level.WARNING, "Calling calloc and not using the result, resulting in memory leak at line "
-              + pCfaEdge.getLineNumber());
+          logger.log(Level.WARNING, pCfaEdge.getFileLocation() + ":",
+              "Calling calloc and not using the result, resulting in memory leak.");
           newState.setMemLeak();
           isRequiered = true;
           break;
@@ -889,9 +890,10 @@ public class SMGTransferRelation implements TransferRelation {
       throws UnrecognizedCCodeException, SMGInconsistentException {
 
     if (memoryOfField.getSize() < expressionEvaluator.getSizeof(cfaEdge, rValueType)) {
-      logger.log(Level.WARNING, "Attempting to write " + expressionEvaluator.getSizeof(cfaEdge, rValueType) +
-          " bytes into a field with size " + memoryOfField.getSize() + "bytes.\n" +
-          "Line " + cfaEdge.getLineNumber() + ": " + cfaEdge.getRawStatement());
+      logger.log(Level.WARNING, cfaEdge.getFileLocation() + ":",
+          "Attempting to write " + expressionEvaluator.getSizeof(cfaEdge, rValueType) +
+          " bytes into a field with size " + memoryOfField.getSize() + "bytes:",
+          cfaEdge.getRawStatement());
     }
 
     if (expressionEvaluator.isStructOrUnionType(rValueType)) {
@@ -932,8 +934,9 @@ public class SMGTransferRelation implements TransferRelation {
 
     if (doesNotFitIntoObject) {
       // Field does not fit size of declared Memory
-      logger.log(Level.WARNING, "Field " + "(" + pFieldOffset + ", " + pRValueType.toASTString("") + ")" +
-          " does not fit object " + pMemoryOfField.toString() + ".\n Line: " + pEdge.getLineNumber());
+      logger.log(Level.WARNING, pEdge.getFileLocation() + ":",
+          "Field " + "(" + pFieldOffset + ", " + pRValueType.toASTString("") + ")" +
+          " does not fit object " + pMemoryOfField.toString() + ".");
 
       return false;
     }
@@ -1532,8 +1535,9 @@ public class SMGTransferRelation implements TransferRelation {
 
       if (doesNotFitIntoObject) {
         // Field does not fit size of declared Memory
-        logger.log(Level.WARNING, "Field " + "(" + fieldOffset + ", " + pType.toASTString("") + ")" +
-            " does not fit object " + pObject.toString() + ".\n Line: " + pEdge.getLineNumber());
+        logger.log(Level.WARNING, pEdge.getFileLocation() + ":",
+            "Field " + "(" + fieldOffset + ", " + pType.toASTString("") + ")" +
+            " does not fit object " + pObject.toString() + ".");
 
         return null;
       }
