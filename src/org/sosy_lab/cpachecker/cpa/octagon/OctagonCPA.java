@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -82,7 +81,7 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
     if (mergeType.equals("SEP")) {
       octagonMergeOp = MergeSepOperator.getInstance();
     } else if (mergeType.equals("JOIN")) {
-      octagonMergeOp = new MergeJoinOperator(octagonDomain);
+      octagonMergeOp = new OctMergeJoinOperator(octagonDomain, config);
     } else {
       // default is sep
       octagonMergeOp = MergeSepOperator.getInstance();
