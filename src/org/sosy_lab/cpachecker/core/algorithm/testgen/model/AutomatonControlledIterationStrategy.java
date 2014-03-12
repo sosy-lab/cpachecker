@@ -25,24 +25,27 @@ package org.sosy_lab.cpachecker.core.algorithm.testgen.model;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.charset.Charset;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Files.DeleteOnCloseFile;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPABuilder;
+import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.StartupConfig;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.collect.Lists;
 
@@ -55,6 +58,8 @@ public class AutomatonControlledIterationStrategy implements TestGenIterationStr
   private final TestGenIterationStrategy.IterationModel model;
   private ReachedSetFactory reachedSetFactory;
   private CPABuilder cpaBuilder;
+
+  private int automatonCounter = 0;
 
 
 
@@ -73,8 +78,11 @@ public class AutomatonControlledIterationStrategy implements TestGenIterationStr
   @Override
   public void updateIterationModelForNextIteration(PredicatePathAnalysisResult pResult) {
     // TODO might have to reinit the reached-sets
-    model.setAlgorithm(createAlgorithmForNextIteration(pResult.getTrace()));
-
+    model.setAlgorithm(createAlgorithmForNextIteration(pResult));
+    ReachedSet newReached = reachedSetFactory.create();
+    AbstractState initialState = model.getGlobalReached().getFirstState();
+    newReached.add(initialState, model.getGlobalReached().getPrecision(initialState));
+    model.setLocalReached(newReached);
   }
 
   @Override
@@ -87,19 +95,26 @@ public class AutomatonControlledIterationStrategy implements TestGenIterationStr
     return model.getAlgorithm().run(model.getLocalReached());
   }
 
-  private Algorithm createAlgorithmForNextIteration(CounterexampleTraceInfo pNewPath) {
-
+  private Algorithm createAlgorithmForNextIteration(PredicatePathAnalysisResult pResult) {
     // This temp file will be automatically deleted when the try block terminates.
-    try (DeleteOnCloseFile automatonFile = Files.createTempFile("next_automaton", ".txt")) {
+    Path path = org.sosy_lab.common.io.Paths.get("output/automaton/next_automaton" +automatonCounter++ + ".spc");
+    try(Writer w = Files.openOutputFile(path,Charset.forName("UTF8"))){
+//    try (DeleteOnCloseFile automatonFile = Files.createTempFile("next_automaton", ".txt")) {
 
-      try (Writer w = Files.openOutputFile(automatonFile.toPath())) {
-        ARGUtils.producePathAutomaton(w, "nextPathAutomaton", pNewPath);
-      }
-
-      ConfigurableProgramAnalysis nextCpa = cpaBuilder.buildCPAs(cfa, Lists.newArrayList(automatonFile.toPath()));
+//      try (Writer w = Files.openOutputFile(automatonFile.toPath())) {
+      CounterexampleInfo ci = CounterexampleInfo.feasible(pResult.getPath(), pResult.getTrace().getModel());
+//      ARGUtils.producePathAutomaton(w, "nextPathAutomaton", pNewPath);
+//      ARGUtils.producePathAutomaton(w, pResult.getPath().getFirst().getFirst(), pResult.getPath().getStateSet(), "nextPathAutomaton", ci);
+      ARGUtils.produceTestGenPathAutomaton(w, pResult.getPath().getFirst().getFirst(), pResult.getPath().getStateSet(), "nextPathAutomaton", ci);
+//      }
+      Configuration lConfig = Configuration.builder().copyFrom(config).clearOption("analysis.algorithm.testGen").build();
+      CPABuilder localBuilder = new CPABuilder(lConfig, logger, ShutdownNotifier.createWithParent(shutdownNotifier), reachedSetFactory);
+      ConfigurableProgramAnalysis nextCpa = localBuilder.buildCPAs(cfa, Lists.newArrayList(path));
+//      CoreComponentsFactory factory = new CoreComponentsFactory(lConfig, logger, ShutdownNotifier.createWithParent(shutdownNotifier));
+//      return factory.createAlgorithm(nextCpa, "", cfa, null);
 
       if (model.getAlgorithm() instanceof CPAAlgorithm) {
-        return CPAAlgorithm.create(nextCpa, logger, config, shutdownNotifier);
+        return CPAAlgorithm.create(nextCpa, logger, lConfig, shutdownNotifier);
       } else {
         throw new InvalidConfigurationException("Generating a new Algorithm here only Works if the "
             + "Algorithm is a CPAAlgorithm");

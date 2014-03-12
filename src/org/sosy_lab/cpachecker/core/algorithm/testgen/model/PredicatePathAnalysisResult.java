@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.testgen.model;
 
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
@@ -12,19 +11,22 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
  */
 public class PredicatePathAnalysisResult {
 
-  public static final PredicatePathAnalysisResult INVALID = new PredicatePathAnalysisResult(null, null, null);
+  public static final PredicatePathAnalysisResult INVALID = new PredicatePathAnalysisResult(null, null, null,null);
 
-  public PredicatePathAnalysisResult(CounterexampleTraceInfo pTrace, Pair<ARGState, CFAEdge> pDecidingElement,
-      Pair<ARGState, CFAEdge> pWrongElement) {
+  public PredicatePathAnalysisResult(CounterexampleTraceInfo pTrace, ARGState pDecidingState,
+      ARGState pWrongState, ARGPath pArgPath) {
     super();
     trace = pTrace;
-    decidingElement = pDecidingElement;
-    wrongElement = pWrongElement;
+    decidingState = pDecidingState;
+    wrongState = pWrongState;
+    this.argPath = pArgPath;
+
   }
 
   private CounterexampleTraceInfo trace;
-  private Pair<ARGState, CFAEdge> decidingElement;
-  private Pair<ARGState, CFAEdge> wrongElement;
+  private ARGState decidingState;
+  private ARGState wrongState;
+  private ARGPath argPath;
 
   public CounterexampleTraceInfo getTrace() {
     checkValid();
@@ -33,12 +35,17 @@ public class PredicatePathAnalysisResult {
 
   public ARGState getDecidingState() {
     checkValid();
-    return decidingElement.getFirst();
+    return decidingState;
   }
 
   public ARGState getWrongState() {
     checkValid();
-    return wrongElement.getFirst();
+    return wrongState;
+  }
+
+  public ARGPath getPath() {
+    checkValid();
+    return argPath;
   }
 
   /**
@@ -59,7 +66,8 @@ public class PredicatePathAnalysisResult {
 
   private void checkValid() {
     if (!isValid()) { throw new IllegalStateException(
-        "this is not a valid result. It is not allowed to access data of an invalid result"); }
+        "this is not a valid result. It is not allowed to access data of an invalid result");
+    }
   }
-
 }
+

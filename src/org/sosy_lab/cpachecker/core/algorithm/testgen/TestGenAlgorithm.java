@@ -151,7 +151,7 @@ public class TestGenAlgorithm implements Algorithm {
       //sound should normally be unsound for us.
 
       //maybe remove marker node from currentReached. might depend on iterationStrategy and should be part of the runAlg()
-      if(lastResult.isValid())
+      if(false && lastResult.isValid())
       {
         currentReached.remove(lastResult.getWrongState());
       }

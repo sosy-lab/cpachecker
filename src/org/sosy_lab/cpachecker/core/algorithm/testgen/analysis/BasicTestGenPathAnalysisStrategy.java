@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
@@ -53,37 +52,66 @@ public class BasicTestGenPathAnalysisStrategy implements TestGenPathAnalysisStra
 
 
   @Override
-  public PredicatePathAnalysisResult findNewFeasiblePathUsingPredicates(ARGPath pExecutedPath)
+  public PredicatePathAnalysisResult findNewFeasiblePathUsingPredicates(final ARGPath pExecutedPath)
       throws CPATransferException, InterruptedException {
-    List<CFAEdge> newPath = Lists.newArrayList(pExecutedPath.asEdgesList());
-    ARGPath p = new ARGPath();
-    Pair<ARGState,CFAEdge> decidingElement;
-    Pair<ARGState,CFAEdge> wrongElement;
-    Iterator<Pair<ARGState, CFAEdge>> branchingEdges =
-        Iterators.filter(Iterators.consumingIterator(pExecutedPath.descendingIterator()),
-            new Predicate<Pair<ARGState, CFAEdge>>() {
-
-              @Override
-              public boolean apply(Pair<ARGState, CFAEdge> pInput) {
-                CFAEdge lastEdge = pInput.getSecond();
-                if (lastEdge == null) {
-                return false;
-                }
-                CFANode decidingNode = lastEdge.getPredecessor();
-                //num of leaving edges does not include a summary edge, so the check is valid.
-                if (decidingNode.getNumLeavingEdges() == 2) {
-                return true;
-                }
-                return false;
-              }
-            });
+    /*
+     * create copy of the given path, because it will be modified with this algorithm.
+     * represents the current new valid path.
+     */
+    ARGPath newARGPath = new ARGPath();
+    for (Pair<ARGState, CFAEdge> pair : pExecutedPath) {
+      newARGPath.add(pair);
+    }
+    /*
+     * only by edge representation of the new path.
+     */
+    List<CFAEdge> newPath = Lists.newArrayList(newARGPath.asEdgesList());
+    /*
+     * element removed from the path in the previous iteration
+     */
+    Pair<ARGState,CFAEdge> lastElement = null;
+    Pair<ARGState,CFAEdge> currentElement;
+    /*
+     * create a descending consuming iterator to iterate through the path from last to first, while consuming elements.
+     * Elements are consumed because the new path is a subpath of the original.
+     */
+    Iterator<Pair<ARGState, CFAEdge>> branchingEdges = Iterators.consumingIterator(newARGPath.descendingIterator());
+        //filter does not work if because we need the "wrong" ARGState later that would be consumed already when a branch is identified
+//    Iterator<Pair<ARGState, CFAEdge>> branchingEdges =
+//        Iterators.filter(Iterators.consumingIterator(newARGPath.descendingIterator()),
+//            new Predicate<Pair<ARGState, CFAEdge>>() {
+//
+//              @Override
+//              public boolean apply(Pair<ARGState, CFAEdge> pInput) {
+//                CFAEdge lastEdge = pInput.getSecond();
+//                if (lastEdge == null) {
+//                return false;
+//                }
+//                CFANode decidingNode = lastEdge.getPredecessor();
+//                //num of leaving edges does not include a summary edge, so the check is valid.
+//                if (decidingNode.getNumLeavingEdges() == 2) {
+//                return true;
+//                }
+//                return false;
+//              }
+//            });
     while (branchingEdges.hasNext())
     {
-      Pair<ARGState, CFAEdge> wrongPair = branchingEdges.next();
-      wrongElement = wrongPair;
-      decidingElement = pExecutedPath.getLast();
-      CFAEdge wrongEdge = wrongPair.getSecond();
-      CFANode decidingNode = wrongEdge.getPredecessor();
+      currentElement = branchingEdges.next();
+      CFAEdge edge = currentElement.getSecond();
+      if (edge == null) {
+        lastElement = currentElement;
+        continue;
+      }
+      CFANode node = edge.getPredecessor();
+    //num of leaving edges does not include a summary edge, so the check is valid.
+      if (node.getNumLeavingEdges() != 2) {
+        lastElement = currentElement;
+        continue;
+      }
+      //current node is a branching / deciding node. select the edge that isn't represented with the current path.
+      CFANode decidingNode = node;
+      CFAEdge wrongEdge = edge;
       CFAEdge otherEdge = null;
       for (CFAEdge cfaEdge : CFAUtils.leavingEdges(decidingNode)) {
         if (cfaEdge.equals(wrongEdge)) {
@@ -93,13 +121,31 @@ public class BasicTestGenPathAnalysisStrategy implements TestGenPathAnalysisStra
           break;
         }
       }
-      //should not happen; If it does make it visible.
+      //no edge found should not happen; If it does make it visible.
       assert otherEdge != null;
-      newPath = Lists.newArrayList(pExecutedPath.asEdgesList());
+      /*
+       * identified a decision node and selected a new edge.
+       * extract the edge-list of the path and add the new edge to it.
+       * Don't modify the ARGPath yet, because it is possible that the current decision is infeasible
+       */
+      newPath = Lists.newArrayList(newARGPath.asEdgesList());
       newPath.add(otherEdge);
+      /*
+       * check if path is feasible. If it's not continue to identify another decision node
+       * If path is feasible, add the ARGState belonging to the decision node and the new edge to the ARGPath. Exit and Return result.
+       */
       CounterexampleTraceInfo traceInfo = pathChecker.checkPath(newPath);
-      //      traceInfo.
-      if (!traceInfo.isSpurious()) { return new PredicatePathAnalysisResult(traceInfo,decidingElement , wrongElement); }
+      if (!traceInfo.isSpurious())
+      {
+        newARGPath.add(Pair.of(currentElement.getFirst(), otherEdge));
+        if(lastElement == null) {
+          throw new IllegalStateException("");
+        }
+        return new PredicatePathAnalysisResult(traceInfo,currentElement.getFirst() , lastElement.getFirst(),newARGPath); }
+      else{
+        lastElement = currentElement;
+        continue;
+      }
 
     }
     return PredicatePathAnalysisResult.INVALID;
