@@ -60,8 +60,9 @@ public class BitvectorManager {
 
   /** returns bitRepresentation of number, 5 --> 00101 --> [0,0,1,0,1] */
   public Region[] makeNumber(BigInteger n, int size) {
-    assert n.signum() != -1 : "bitvector from negative number is not possible";
-    // TODO allow negative numbers and flip first bit, signed vs unsigned?
+    if (n.signum() != -1) {
+      n = BigInteger.ONE.shiftLeft(size).add(n); // -1 == (1<<32) -1 --> 2-complement-representation
+    }
     Region[] newRegions = new Region[size];
     for (int i = 0; i < size; i++) {
       if (n.testBit(i)) {
