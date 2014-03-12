@@ -25,11 +25,9 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -83,24 +81,6 @@ public class CallstackTransferRelation implements TransferRelation {
       throws CPATransferException {
     CallstackState element = (CallstackState) pElement;
 
-    /*
-     * If the current function is the artificial function introduced by single
-     * loop transformation, the actual function is unknown: It could be any of
-     * the functions preceding the artificial loop head, so a successor is
-     * computed for each of them:
-     */
-    if (element.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)
-        && element.getCallNode() instanceof CFASingleLoopTransformation.SingleLoopHead) {
-      CFASingleLoopTransformation.SingleLoopHead loopHead = (CFASingleLoopTransformation.SingleLoopHead) element.getCallNode();
-      Set<String> enteringFunctionNames = loopHead.getEnteringFunctionNames();
-      List<AbstractState> results = new ArrayList<>(enteringFunctionNames.size());
-      for (String enteringFunctionName : enteringFunctionNames) {
-        element = new CallstackState(element.getPreviousState(), enteringFunctionName, element.getCallNode());
-        results.addAll(getAbstractSuccessors(element, pPrecision, pCfaEdge));
-      }
-      return results;
-    }
-
     switch (pCfaEdge.getEdgeType()) {
     case StatementEdge: {
       if (pCfaEdge instanceof CFunctionSummaryStatementEdge) {
@@ -122,6 +102,7 @@ public class CallstackTransferRelation implements TransferRelation {
       boolean isPredecessorAritificialPCNode = predecessorFunctionName.equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
       boolean isFunctionTransition = !successorFunctionName.equals(predecessorFunctionName);
       if (!successorIsInCallstackContext
+          && !element.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)
           && ((!isSuccessorAritificialPCNode && isArtificialPCVEdge)
               || isPredecessorAritificialPCNode && isFunctionTransition)) {
         /*
@@ -164,16 +145,22 @@ public class CallstackTransferRelation implements TransferRelation {
         CFANode returnNode = cfaEdge.getSuccessor();
         CFANode callNode = returnNode.getEnteringSummaryEdge().getPredecessor();
 
-        assert calledFunction.equals(element.getCurrentFunction());
+        final CallstackState returnElement;
 
-        if (!callNode.equals(element.getCallNode())) {
-          // this is not the right return edge
-          return Collections.emptySet();
+        if (!element.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)) {
+          assert calledFunction.equals(element.getCurrentFunction());
+
+          if (!callNode.equals(element.getCallNode())) {
+            // this is not the right return edge
+            return Collections.emptySet();
+          }
+          returnElement = element.getPreviousState();
+
+          assert callerFunction.equals(returnElement.getCurrentFunction())
+          || returnElement.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+        } else {
+          returnElement = new CallstackState(null, callerFunction, element.getCallNode());
         }
-
-        CallstackState returnElement = element.getPreviousState();
-
-        assert callerFunction.equals(returnElement.getCurrentFunction());
 
         return Collections.singleton(returnElement);
       }
