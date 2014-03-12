@@ -60,7 +60,7 @@ public class BitvectorManager {
 
   /** returns bitRepresentation of number, 5 --> 00101 --> [0,0,1,0,1] */
   public Region[] makeNumber(BigInteger n, int size) {
-    if (n.signum() != -1) {
+    if (n.signum() == -1) {
       n = BigInteger.ONE.shiftLeft(size).add(n); // -1 == (1<<32) -1 --> 2-complement-representation
     }
     Region[] newRegions = new Region[size];
