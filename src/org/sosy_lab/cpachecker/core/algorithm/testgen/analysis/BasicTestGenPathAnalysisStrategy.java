@@ -44,10 +44,12 @@ import com.google.common.collect.Lists;
 public class BasicTestGenPathAnalysisStrategy implements TestGenPathAnalysisStrategy {
 
   private PathChecker pathChecker;
+  private List<CFANode> handledDecisions;
 
   public BasicTestGenPathAnalysisStrategy(PathChecker pPathChecker) {
     super();
     pathChecker = pPathChecker;
+    handledDecisions = Lists.newLinkedList();
   }
 
 
@@ -111,6 +113,11 @@ public class BasicTestGenPathAnalysisStrategy implements TestGenPathAnalysisStra
       }
       //current node is a branching / deciding node. select the edge that isn't represented with the current path.
       CFANode decidingNode = node;
+      if(handledDecisions.contains(decidingNode))
+      {
+        lastElement = currentElement;
+        continue;
+      }
       CFAEdge wrongEdge = edge;
       CFAEdge otherEdge = null;
       for (CFAEdge cfaEdge : CFAUtils.leavingEdges(decidingNode)) {
@@ -141,6 +148,7 @@ public class BasicTestGenPathAnalysisStrategy implements TestGenPathAnalysisStra
         if(lastElement == null) {
           throw new IllegalStateException("");
         }
+        handledDecisions.add(decidingNode);
         return new PredicatePathAnalysisResult(traceInfo,currentElement.getFirst() , lastElement.getFirst(),newARGPath); }
       else{
         lastElement = currentElement;
