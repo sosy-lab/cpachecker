@@ -225,10 +225,9 @@ public class CtoFormulaConverter {
   protected final boolean isRelevantVariable(final CSimpleDeclaration var) {
     if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
       final Pair<String, String> parsedName = parseQualifiedName(var.getQualifiedName());
-      final String function = parsedName.getFirst();
       final String name = parsedName.getSecond();
       return name.equals(RETURN_VARIABLE_NAME) ||
-           variableClassification.get().getRelevantVariables().containsEntry(function, name);
+           variableClassification.get().getRelevantVariables().contains(var.getQualifiedName());
     }
     return true;
   }

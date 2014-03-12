@@ -441,7 +441,7 @@ public class SourceLocationMapper {
     }
 
     for (CIdExpression e: idExs) {
-      result.add(VariableClassification.getScopedName(subject, e));
+      result.add(VariableClassification.scopeVar(e));
     }
 
     return result;

@@ -105,7 +105,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
   private final Solver solver;
   private final CFA cfa;
 
-  private Multimap<Pair<String, String>, AStatementEdge> directlyAffectingStatements;
+  private Multimap<String, AStatementEdge> directlyAffectingStatements;
 
   public PredicateStaticRefiner(
       Configuration pConfig,
@@ -135,13 +135,11 @@ public class PredicateStaticRefiner extends StaticRefiner {
   }
 
   private boolean isAssumeOnLoopVariable(AssumeEdge e) {
-    Multimap<String, String> referenced = varClasses.getVariablesOfExpression(e, (CExpression) e.getExpression());
+    Collection<String> referenced = varClasses.getVariablesOfExpression((CExpression) e.getExpression());
 
-    for (String function: referenced.keySet()) {
-      for (String var: referenced.get(function)) {
-        if (varClasses.getLoopExitConditionVariables().containsEntry(function, var)) {
-          return true;
-        }
+    for (String var: referenced) {
+      if (varClasses.getLoopExitConditionVariables().contains(var)) {
+        return true;
       }
     }
 
@@ -167,7 +165,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
             CAssignment assign = (CAssignment) stmtEdge.getStatement();
 
             if (assign.getLeftHandSide() instanceof CIdExpression) {
-              Pair<String, String> variable = varClasses.idExpressionToVarPair(e, (CIdExpression)assign.getLeftHandSide());
+              String variable = varClasses.scopeVar((CIdExpression) assign.getLeftHandSide());
               directlyAffectingStatements.put(variable, stmtEdge);
             }
           }
@@ -209,15 +207,12 @@ public class PredicateStaticRefiner extends StaticRefiner {
   private boolean hasContradictingOperationInFlow(AssumeEdge e) throws CPATransferException, InterruptedException {
     buildDirectlyAffectingStatements();
 
-    Multimap<String, String> referenced = varClasses.getVariablesOfExpression(e, (CExpression) e.getExpression());
-    for (String function: referenced.keySet()) {
-      for (String varName: referenced.get(function)) {
-        Pair<String, String> varFullQualified = Pair.of(function, varName);
-        Collection<AStatementEdge> affectedByStmts = directlyAffectingStatements.get(varFullQualified);
-        for (AStatementEdge stmtEdge: affectedByStmts) {
-          if (isContradicting(e, stmtEdge)) {
-            return true;
-          }
+    Collection<String> referenced = varClasses.getVariablesOfExpression((CExpression) e.getExpression());
+    for (String varName: referenced) {
+      Collection<AStatementEdge> affectedByStmts = directlyAffectingStatements.get(varName);
+      for (AStatementEdge stmtEdge: affectedByStmts) {
+        if (isContradicting(e, stmtEdge)) {
+          return true;
         }
       }
     }

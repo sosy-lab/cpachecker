@@ -112,6 +112,7 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
 @Options(prefix="cpa.value")
 public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<ValueAnalysisState, ValueAnalysisPrecision> {
@@ -160,7 +161,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   private final MachineModel machineModel;
   private final LogManager logger;
-  private final Multimap<String, String> addressedVariables;
+  private final Collection<String> addressedVariables;
 
   public ValueAnalysisTransferRelation(Configuration config, LogManager pLogger, CFA pCfa) throws InvalidConfigurationException {
     config.inject(this);
@@ -170,7 +171,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     if (pCfa.getVarClassification().isPresent()) {
       addressedVariables = pCfa.getVarClassification().get().getAddressedVariables();
     } else {
-      addressedVariables = ImmutableMultimap.of();
+      addressedVariables = Collections.EMPTY_SET;
     }
   }
 
@@ -436,8 +437,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       memoryLocation = MemoryLocation.valueOf(functionName, varName, 0);
     }
 
-    if (addressedVariables.containsEntry(decl.isGlobal() ? null : functionName,
-                                         varName)
+    if (addressedVariables.contains(VariableClassification.scopeVar(decl.isGlobal() ? null : functionName, varName))
         && decl.getType() instanceof CType
         && ((CType)decl.getType()).getCanonicalType() instanceof CPointerType) {
       ValueAnalysisState.addToBlacklist(memoryLocation);

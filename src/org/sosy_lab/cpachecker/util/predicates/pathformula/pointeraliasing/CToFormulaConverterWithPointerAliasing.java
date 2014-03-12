@@ -236,15 +236,13 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         || getSizeof(compositeType) <= options.maxPreFilledAllocationSize();
   }
 
-  boolean isAddressedVariable(final String function, final String name) {
+  boolean isAddressedVariable(final String qualifiedName) {
     return !variableClassification.isPresent() ||
-           variableClassification.get().getAddressedVariables().containsEntry(function, name);
+           variableClassification.get().getAddressedVariables().contains(qualifiedName);
   }
 
   boolean isAddressedVariable(CDeclaration var) {
-    final String qualifiedName = var.getQualifiedName();
-    final Pair<String, String> parsedName = parseQualifiedName(qualifiedName);
-    return isAddressedVariable(parsedName.getFirst(), parsedName.getSecond());
+    return isAddressedVariable(var.getQualifiedName());
   }
 
   private void addAllFields(final CType type, final PointerTargetSetBuilder pts) {
