@@ -756,14 +756,35 @@ cpa.monitor.limit = 0
 # or specify a unit; 0 for infinite)
 cpa.monitor.pathcomputationlimit = 0
 
-# of which type should the merge be? normal, for usual join, widening for a
-# widening instead of a join
-cpa.octagon.domain.joinType = "NORMAL"
-  allowed values: [NORMAL, WIDENING]
+# whether or not to use use-definition information from the error pathsto
+# optimize the interpolation process
+cpa.octagon.interpolation.applyUseDefInformation = true
+
+# whether or not to ignore the semantics of loop-leaving-assume-edges during
+# interpolation - this avoids to have loop-counters in the interpolant
+cpa.octagon.interpolation.ignoreLoopsExitAssumes = true
 
 # which merge operator to use for OctagonCPA?
 cpa.octagon.merge = "SEP"
   allowed values: [SEP, JOIN]
+
+# of which type should the merge be? normal, for usual join, widening for a
+# widening instead of a join
+cpa.octagon.mergeop.type = "NORMAL"
+  allowed values: [NORMAL, WIDENING]
+
+# turn the refiner on or off, default is off
+cpa.octagon.refiner = false
+
+# whether or not to avoid restarting at assume edges after a refinement
+cpa.octagon.refiner.avoidAssumes = false
+
+# whether or not to check for repeated refinements, to then reset the
+# refinement root
+cpa.octagon.refiner.checkForRepeatedRefinements = true
+
+# whether or not to do lazy-abstraction
+cpa.octagon.refiner.doLazyAbstraction = true
 
 # which merge operator to use for InvariantCPA
 cpa.pointer2.merge = "JOIN"
@@ -1425,6 +1446,10 @@ parser.dialect = GNUC
 # appended to this string. The preprocessor needs to print the output to
 # stdout.
 parser.preprocessor = "cpp"
+
+# For C files, read #line preprocessor directives and use their information
+# for outputting line numbers. (Always enabled when pre-processing is used.)
+parser.readLineDirectives = false
 
 # Preprocess the given C files before parsing: Put every single token onto a
 # new line. Then the line number corresponds to the token number.

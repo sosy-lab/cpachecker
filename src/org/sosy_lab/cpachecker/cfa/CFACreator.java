@@ -108,10 +108,10 @@ public class CFACreator {
                   "Note that all file numbers printed by CPAchecker will refer to the pre-processed file, not the original input file.")
   private boolean usePreprocessor = false;
 
-  @Option(name="parser.transformTokensToLines",
-      description="Preprocess the given C files before parsing: Put every single token onto a new line. "
-      + "Then the line number corresponds to the token number.")
-  private boolean transformTokensToLines = false;
+  @Option(name="parser.readLineDirectives",
+      description="For C files, read #line preprocessor directives and use their information for outputting line numbers."
+          + " (Always enabled when pre-processing is used.)")
+  private boolean readLineDirectives = false;
 
   @Option(name="analysis.entryFunction", regexp="^" + VALID_C_FUNCTION_NAME_PATTERN + "$",
       description="entry function")
@@ -257,7 +257,8 @@ public class CFACreator {
     case C:
       CParser outerParser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machineModel);
 
-      outerParser = new CParserWithLocationMapper(config, logger, outerParser, transformTokensToLines);
+      outerParser = new CParserWithLocationMapper(config, logger, outerParser,
+          readLineDirectives || usePreprocessor);
 
       if (usePreprocessor) {
         CPreprocessor preprocessor = new CPreprocessor(config, logger);

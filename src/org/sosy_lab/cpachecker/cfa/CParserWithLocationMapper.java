@@ -56,29 +56,36 @@ import com.google.common.collect.Lists;
  * Encapsulates a {@link CParser} instance and tokenizes all files first.
  */
 
-@Options(prefix="locmapper")
+@Options
 public class CParserWithLocationMapper implements CParser {
 
   private final CParser realParser;
-  private final boolean tokenizeCode;
 
   private final LogManager logger;
 
-  @Option(description="Write the tokenized version of the input program to this file.")
+  private final boolean readLineDirectives;
+
+  @Option(name="locmapper.dumpTokenizedProgramToFile",
+      description="Write the tokenized version of the input program to this file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path dumpTokenizedProgramToFile = null;
+
+  @Option(name="parser.transformTokensToLines",
+      description="Preprocess the given C files before parsing: Put every single token onto a new line. "
+      + "Then the line number corresponds to the token number.")
+  private boolean tokenizeCode = false;
 
   public CParserWithLocationMapper(
       Configuration pConfig,
       LogManager pLogger,
       CParser pRealParser,
-      boolean pTokenizeCode) throws InvalidConfigurationException {
+      boolean pReadLineDirectives) throws InvalidConfigurationException {
 
     pConfig.inject(this);
 
     this.logger = pLogger;
     this.realParser = pRealParser;
-    this.tokenizeCode = pTokenizeCode;
+    readLineDirectives = pReadLineDirectives;
   }
 
 //  public static void main(String[] args) throws CParserException {
@@ -140,7 +147,9 @@ public class CParserWithLocationMapper implements CParser {
             if (firstTokenImage.equals("line")) {
 
             } else if (firstTokenImage.matches("[0-9]+")) {
-              sourceOriginMapping.mapInputLineRangeToDelta(fileName, rangeLinesOriginFilename, includeStartedWithAbsoluteLine, absoluteLineNumber, relativeLineNumber - absoluteLineNumber);
+              if (readLineDirectives) {
+                sourceOriginMapping.mapInputLineRangeToDelta(fileName, rangeLinesOriginFilename, includeStartedWithAbsoluteLine, absoluteLineNumber, relativeLineNumber - absoluteLineNumber);
+              }
 
               includeStartedWithAbsoluteLine = absoluteLineNumber;
               relativeLineNumber = Integer.parseInt(firstTokenImage);
@@ -155,7 +164,9 @@ public class CParserWithLocationMapper implements CParser {
         }
       }
 
-      sourceOriginMapping.mapInputLineRangeToDelta(fileName, rangeLinesOriginFilename, includeStartedWithAbsoluteLine + 1, absoluteLineNumber, relativeLineNumber - absoluteLineNumber);
+      if (readLineDirectives) {
+        sourceOriginMapping.mapInputLineRangeToDelta(fileName, rangeLinesOriginFilename, includeStartedWithAbsoluteLine + 1, absoluteLineNumber, relativeLineNumber - absoluteLineNumber);
+      }
     } catch (OffsetLimitReachedException e) {
       throw new CParserException("Tokenizing failed", e);
     }
