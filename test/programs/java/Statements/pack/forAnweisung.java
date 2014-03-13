@@ -2,7 +2,7 @@ package pack;
 
 public class forAnweisung {
 
-  public static void main() {
+  public static void main(String[] args) {
 
   int condition = 5;
   int update = 0;

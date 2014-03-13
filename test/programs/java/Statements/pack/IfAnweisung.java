@@ -2,7 +2,7 @@ package pack;
 
 public class IfAnweisung {
 
-  public static void main() {
+  public static void main(String[] args) {
 
     boolean condition = true;
     int startIf;
