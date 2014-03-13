@@ -40,6 +40,7 @@ public class FunctionExitNode extends CFANode {
   }
 
   public FunctionEntryNode getEntryNode() {
+    checkState(entryNode != null);
     return entryNode;
   }
 }
