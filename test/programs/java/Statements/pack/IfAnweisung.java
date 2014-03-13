@@ -6,7 +6,7 @@ public class IfAnweisung {
 
     boolean condition = true;
     int startIf;
-		
+
     if (condition) {
       int startThenBlock;
       int endEndThenBlock;
@@ -14,7 +14,7 @@ public class IfAnweisung {
       int startElseBlock;
       int endEndElseBlock;
     }
-		
+
     int endIf;
   }
 }

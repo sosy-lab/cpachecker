@@ -6,10 +6,10 @@ public class Declaration {
   private Declaration fieldVariable = null;
 
   public Declaration() {
-	boolean localVariable = false;
+  boolean localVariable = false;
   }
 
   public static void main(String args[]) {
-	Declaration localVariable = new Declaration();
+  Declaration localVariable = new Declaration();
   }
 }

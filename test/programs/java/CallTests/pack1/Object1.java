@@ -1,5 +1,5 @@
-package pack1; 
-  
+package pack1;
+
 import pack3.Object3;
 import pack1.pack2.Object2;
 
@@ -13,25 +13,25 @@ public class Object1 {
   String name;
   int id;
 
-  
+
 public Object1(int pnum1 , int pnum2 , int pnum3 , int pname , Object2 object2){
 
   num1 = pnum1;
   num2 = pnum2;
-  num3 = pnum3; 
+  num3 = pnum3;
   name = pname;
   id = object2.getId();
-  
+
 }
 
 public Object1(Object2 object2, Object3 object3){
 
   num1 = object3.getNum1();
   num2 = object3.getNum2();
-  num3 = object3.getNum3(); 
+  num3 = object3.getNum3();
   name = object3.getName();
   id = object2.getId();
-  
+
 }
 
 public int getNum1(){
