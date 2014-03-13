@@ -281,6 +281,8 @@ Bool      ::= TRUE  {: RESULT = AutomatonBoolExpr.TRUE; :}
               {: RESULT = new AutomatonBoolExpr.MatchCFAEdgeRegEx(expr.toString()); :}
             | MATCH LABEL SQUAREEXPR:expr
               {: RESULT = new AutomatonBoolExpr.MatchLabelRegEx(expr.toString()); :}
+            | MATCH ASSERT
+              {: RESULT = new AutomatonBoolExpr.MatchJavaAssert(); :}
             | MATCH EXIT
               {: RESULT = new AutomatonBoolExpr.MatchProgramExit(); :}
 /*next statement is deprecated*/ 
