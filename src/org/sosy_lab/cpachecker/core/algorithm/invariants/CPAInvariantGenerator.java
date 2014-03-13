@@ -287,12 +287,11 @@ public class CPAInvariantGenerator implements InvariantGenerator {
       // Set the wrapping future as value of the reference
       ref.set(future);
       // From here on it is safe to call the task, so it is submit to a scheduler
-      executorService.submit(new Callable<Void>() {
+      executorService.submit(new Callable<UnmodifiableReachedSet>() {
 
         @Override
-        public Void call() throws Exception {
-          future.get();
-          return null;
+        public UnmodifiableReachedSet call() throws Exception {
+          return future.get();
         }
 
       });
