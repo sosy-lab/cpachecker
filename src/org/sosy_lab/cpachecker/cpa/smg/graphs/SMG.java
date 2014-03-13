@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -35,6 +36,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
@@ -46,6 +52,7 @@ class SMG {
   final private HashSet<SMGEdgeHasValue> hv_edges = new HashSet<>();
   final private HashMap<Integer, SMGEdgePointsTo> pt_edges = new HashMap<>();
   final private HashMap<SMGObject, Boolean> object_validity = new HashMap<>();
+  private final Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues = new HashMap<>();
 
   final private MachineModel machine_model;
 
@@ -93,6 +100,8 @@ class SMG {
     pt_edges.putAll(pHeap.pt_edges);
 
     object_validity.putAll(pHeap.object_validity);
+
+    explicitValues.putAll(pHeap.explicitValues);
 
     machine_model = pHeap.machine_model;
   }
@@ -446,12 +455,16 @@ class SMG {
    * Returns the {@link SMGEdgePointsTo} edge with the
    * given value as source.
    *
-   * @param value the source of the {@link SMGEdgePointsTo} edge.
+   * @param pValue the source of the {@link SMGEdgePointsTo} edge.
    * @return the {@link SMGEdgePointsTo} edge with the
    * {@link value} as source.
+   * @throws SMGInconsistentException
    */
-  public final SMGEdgePointsTo getPointer(Integer value) {
-    return pt_edges.get(value);
+  public final SMGEdgePointsTo getPointer(Integer pValue) throws SMGInconsistentException {
+    if (pt_edges.containsKey(pValue)) {
+      return pt_edges.get(pValue);
+    }
+    throw new SMGInconsistentException("Not a pointer: " + pValue);
   }
 
   public final boolean isCoveredByNullifiedBlocks(SMGEdgeHasValue pEdge) {
@@ -469,7 +482,7 @@ class SMG {
     return (objectNullBytes.nextClearBit(pOffset) >= expectedMinClear);
   }
 
-  void mergeValues(int pV1, int pV2) {
+  void mergeValues(int pV1, int pV2) throws SMGInconsistentException {
     if (pV1 == pV2) {
       return;
     }
@@ -491,5 +504,20 @@ class SMG {
     hv_edges.clear();
     hv_edges.addAll(new_hv_edges);
     // TODO: Handle PT Edges: I'm not entirely sure how they should be handled
+  }
+
+  public SMGExplicitValue getExplicit(SMGKnownSymValue pKey) {
+    if (explicitValues.containsKey(pKey)) {
+      return explicitValues.get(pKey);
+    }
+    return SMGUnknownValue.getInstance();
+  }
+
+  public void clearExplicit(SMGKnownSymValue pKey) {
+    explicitValues.remove(pKey);
+  }
+
+  public void putExplicit(SMGKnownSymValue pKey, SMGKnownExpValue pValue) {
+    explicitValues.put(pKey, pValue);
   }
 }

@@ -127,7 +127,7 @@ class SmtInterpolEnvironment {
 
   /** The Constructor creates the wrapped Element, sets some options
    * and initializes the logger. */
-  public SmtInterpolEnvironment(Configuration config, Logics pLogic,
+  public SmtInterpolEnvironment(Configuration config,
       final LogManager pLogger, final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
@@ -155,7 +155,7 @@ class SmtInterpolEnvironment {
         script.setOption(":unsat-core-check-mode", true);
         script.setOption(":model-check-mode", true);
       }
-      script.setLogic(pLogic);
+      script.setLogic(Logics.QF_UFLIRA);
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
     }
@@ -477,6 +477,7 @@ class SmtInterpolEnvironment {
     }
   }
 
+  /** returns a number of type INT or REAL */
   public Term numeral(BigInteger num) {
     try {
       return script.numeral(num);
@@ -485,6 +486,7 @@ class SmtInterpolEnvironment {
     }
   }
 
+  /** returns a number of type INT or REAL */
   public Term numeral(String num) {
     try {
       return script.numeral(num);
@@ -493,6 +495,7 @@ class SmtInterpolEnvironment {
     }
   }
 
+  /** returns a number of type REAL */
   public Term decimal(String num) {
     try {
       return script.decimal(num);
@@ -501,6 +504,7 @@ class SmtInterpolEnvironment {
     }
   }
 
+  /** returns a number of type REAL */
   public Term decimal(BigDecimal num) {
     try {
       return script.decimal(num);

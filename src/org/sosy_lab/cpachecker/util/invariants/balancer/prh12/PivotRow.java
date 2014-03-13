@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Vector;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 
 
 public class PivotRow {

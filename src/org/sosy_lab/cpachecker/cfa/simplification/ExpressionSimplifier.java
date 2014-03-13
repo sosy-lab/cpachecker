@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -66,7 +66,7 @@ public class ExpressionSimplifier implements CFAVisitor {
       "only simplification of C-code is supported"; // TODO support Java
 
   private final MachineModel machineModel;
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
 
 
   // Map of oldEdge to newEdge,
@@ -75,7 +75,7 @@ public class ExpressionSimplifier implements CFAVisitor {
 
 
 
-  public ExpressionSimplifier(final MachineModel mm, final LogManager pLogger) {
+  public ExpressionSimplifier(final MachineModel mm, final LogManagerWithoutDuplicates pLogger) {
     this.machineModel = mm;
     this.logger = pLogger;
   }

@@ -49,21 +49,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-enum SMGRuntimeCheck {
-  FORCED(-1),
-  NONE(0),
-  HALF(1),
-  FULL(2);
-
-  private final int id;
-  SMGRuntimeCheck(int pId) { id = pId; }
-  public int getValue() { return id; }
-
-  public boolean isFinerOrEqualThan(SMGRuntimeCheck other) {
-    return id >= other.id;
-  }
-}
-
 @Options(prefix="cpa.smg")
 public class SMGCPA implements ConfigurableProgramAnalysis {
 
@@ -100,6 +85,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis {
     transferRelation = new SMGTransferRelation(config, logger, machineModel);
 
     SMGState.setRuntimeCheck(runtimeCheck);
+    SMGStateBuilder.setRuntimeCheck(runtimeCheck);
 
     SMGState.setTargetMemoryErrors(memoryErrors);
     SMGState.setUnknownOnUndefined(unknownOnUndefined);
@@ -136,28 +122,26 @@ public class SMGCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractState getInitialState(CFANode pNode) {
-    SMGState initState = new SMGState(logger, machineModel);
+    SMGStateBuilder initStateBuilder = new SMGStateBuilder(logger, machineModel);
+
+    CFunctionEntryNode functionNode = null;
+    if (pNode instanceof CFunctionEntryNode) {
+      functionNode = (CFunctionEntryNode)pNode;
+    } else {
+      throw new IllegalStateException("Initial node is not a CFunctionEntryNode");
+    }
 
     try {
-      initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
+      initStateBuilder.addStackFrame(functionNode.getFunctionDefinition());
+      return initStateBuilder.build();
     } catch(SMGInconsistentException exc) {
       logger.log(Level.SEVERE, exc.getMessage());
     }
-
-    CFunctionEntryNode functionNode = (CFunctionEntryNode)pNode;
-    try {
-      initState.addStackFrame(functionNode.getFunctionDefinition());
-      initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
-    } catch(SMGInconsistentException exc) {
-      logger.log(Level.SEVERE, exc.getMessage());
-    }
-
-    return initState;
+    return null;
   }
 
   @Override
   public Precision getInitialPrecision(CFANode pNode) {
     return SingletonPrecision.getInstance();
   }
-
 }

@@ -39,6 +39,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
@@ -85,6 +86,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -108,10 +110,9 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.value")
 public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<ValueAnalysisState, ValueAnalysisPrecision> {
@@ -162,18 +163,18 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   private ValueAnalysisState oldState;
 
   private final MachineModel machineModel;
-  private final LogManager logger;
-  private final Multimap<String, String> addressedVariables;
+  private final LogManagerWithoutDuplicates logger;
+  private final Collection<String> addressedVariables;
 
   public ValueAnalysisTransferRelation(Configuration config, LogManager pLogger, CFA pCfa) throws InvalidConfigurationException {
     config.inject(this);
     machineModel = pCfa.getMachineModel();
-    logger = pLogger;
+    logger = new LogManagerWithoutDuplicates(pLogger);
 
     if (pCfa.getVarClassification().isPresent()) {
       addressedVariables = pCfa.getVarClassification().get().getAddressedVariables();
     } else {
-      addressedVariables = ImmutableMultimap.of();
+      addressedVariables = Collections.EMPTY_SET;
     }
   }
 
@@ -263,17 +264,20 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   protected ValueAnalysisState handleReturnStatementEdge(AReturnStatementEdge returnEdge, IAExpression expression)
           throws UnrecognizedCCodeException {
 
-    if (expression == null) {
+    if (expression == null && returnEdge instanceof CReturnStatementEdge) {
       expression = CNumericTypes.ZERO; // this is the default in C
     }
 
+    if (expression!= null) {
+      MemoryLocation functionReturnVar = MemoryLocation.valueOf(functionName, FUNCTION_RETURN_VAR, 0);
 
-    MemoryLocation functionReturnVar = MemoryLocation.valueOf(functionName, FUNCTION_RETURN_VAR, 0);
-
-    return handleAssignmentToVariable(functionReturnVar,
-        returnEdge.getSuccessor().getEntryNode().getFunctionDefinition().getType().getReturnType(), // TODO easier way to get type?
-        expression,
-        getVisitor());
+      return handleAssignmentToVariable(functionReturnVar,
+          returnEdge.getSuccessor().getEntryNode().getFunctionDefinition().getType().getReturnType(), // TODO easier way to get type?
+          expression,
+          getVisitor());
+    } else {
+      return state;
+    }
   }
 
   /**
@@ -301,8 +305,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
         ExpressionValueVisitor v =
             new ExpressionValueVisitor(state, callerFunctionName,
-                machineModel, logger, edge, symbolicValues);
-
+                machineModel, logger, symbolicValues);
         MemoryLocation assignedVarName = v.evaluateMemoryLocation((CLeftHandSide) op1);
 
         boolean valueExists = state.contains(returnVarName);
@@ -439,8 +442,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       memoryLocation = MemoryLocation.valueOf(functionName, varName, 0);
     }
 
-    if (addressedVariables.containsEntry(decl.isGlobal() ? null : functionName,
-                                         varName)
+    if (addressedVariables.contains(VariableClassification.scopeVar(decl.isGlobal() ? null : functionName, varName))
         && decl.getType() instanceof CType
         && ((CType)decl.getType()).getCanonicalType() instanceof CPointerType) {
       ValueAnalysisState.addToBlacklist(memoryLocation);
@@ -692,7 +694,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     protected boolean truthValue = false;
 
     public AssigningValueVisitor(ValueAnalysisState assignableState, boolean truthValue) {
-      super(state, functionName, machineModel, logger, edge, symbolicValues);
+      super(state, functionName, machineModel, logger, symbolicValues);
       this.assignableState = assignableState;
       this.truthValue = truthValue;
     }
@@ -887,7 +889,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     private final RTTState jortState;
 
     public FieldAccessExpressionValueVisitor(RTTState pJortState) {
-      super(state, functionName, machineModel, logger, edge, symbolicValues);
+      super(state, functionName, machineModel, logger, symbolicValues);
       jortState = pJortState;
     }
 
@@ -1629,6 +1631,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   /** returns an initialized, empty visitor */
   private ExpressionValueVisitor getVisitor() {
-    return new ExpressionValueVisitor(state, functionName, machineModel, logger, edge, symbolicValues);
+    return new ExpressionValueVisitor(state, functionName, machineModel, logger, symbolicValues);
   }
 }

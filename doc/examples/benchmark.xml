@@ -78,7 +78,8 @@
     <requiredfiles> can be used to specify additional files that are needed
     for executing the benchmark. The tag may contain a path to a file or directory
     that is transmitted to the worker. Wildcards, environment variables etc. are resolved.
-    The tag may appear several times.
+    The tag may appear several times, and can be placed inside the <benchmark>,
+    <rundefinition>, and <sourcefiles> tags.
 
     <require> can be used to select a specific set of worker machines. The attributes
     "cpuModel" (giving a string that needs to be contained in the worker's CPU name),

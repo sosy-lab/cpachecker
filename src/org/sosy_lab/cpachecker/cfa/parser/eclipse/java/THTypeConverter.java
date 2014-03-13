@@ -30,7 +30,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.eclipse.jdt.core.dom.ITypeBinding;
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.ASTConverter.ModifierBean;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.TypeHierarchy.THTypeTable;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.util.NameConverter;
@@ -42,8 +41,7 @@ public class THTypeConverter extends TypeConverter {
 
   private final THTypeTable typeTable;
 
-  public THTypeConverter(LogManager pLogger, THTypeTable pTypeTable) {
-    super(pLogger);
+  public THTypeConverter(THTypeTable pTypeTable) {
     typeTable = pTypeTable;
   }
 

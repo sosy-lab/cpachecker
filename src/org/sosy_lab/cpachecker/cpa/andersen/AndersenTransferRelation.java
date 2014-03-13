@@ -242,6 +242,7 @@ public class AndersenTransferRelation implements TransferRelation {
     } else if (pOp2 instanceof CFunctionCallExpression
         && "malloc".equals(((CFunctionCallExpression) pOp2).getFunctionNameExpression().toASTString())) {
 
+      // TODO line numbers are not unique when we have multiple input files!
       return pElement.addConstraint(new BaseConstraint("malloc-" + pCfaEdge.getLineNumber(), pOp1));
 
     }
@@ -281,7 +282,7 @@ public class AndersenTransferRelation implements TransferRelation {
    * <code>cfaEdge</code> was not handled.
    */
   private void printWarning(CFAEdge pCfaEdge) {
-    logger.log(Level.WARNING, "Warning! CFA Edge \"" + pCfaEdge.getRawStatement() + "\" (line: " + pCfaEdge.getLineNumber()
-        + ") not handled.");
+    logger.log(Level.WARNING, pCfaEdge.getFileLocation() + ":",
+        "Warning! CFA Edge \"" + pCfaEdge.getRawStatement() + "\" not handled.");
   }
 }

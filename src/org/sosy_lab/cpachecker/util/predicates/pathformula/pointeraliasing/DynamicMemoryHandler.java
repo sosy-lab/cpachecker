@@ -139,7 +139,7 @@ class DynamicMemoryHandler {
       if (value0 != null && value1 != null) {
         long result = ExpressionValueVisitor.calculateBinaryOperation(
             new NumericValue(value0.longValue()), new NumericValue(value1.longValue()), multiplication,
-            conv.machineModel, conv.logger, edge).asLong(multiplication.getExpressionType());
+            conv.machineModel, conv.logger).asLong(multiplication.getExpressionType());
 
         CExpression newParam = new CIntegerLiteralExpression(param0.getFileLocation(),
                                                  multiplication.getExpressionType(),

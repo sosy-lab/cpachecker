@@ -28,7 +28,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -197,6 +197,24 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     @Override
     public String toString() {
       return "MATCH \"" + pattern + "\"";
+    }
+  }
+
+  static class MatchJavaAssert implements AutomatonBoolExpr {
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
+      CFAEdge edge = pArgs.getCfaEdge();
+      if (edge instanceof BlankEdge && edge.getDescription().equals("assert fail")) {
+        return CONST_TRUE;
+      } else {
+        return CONST_FALSE;
+      }
+    }
+
+    @Override
+    public String toString() {
+      return "MATCH ASSERT";
     }
   }
 

@@ -27,16 +27,14 @@ import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
 
-class Mathsat5BooleanFormulaManager extends AbstractBooleanFormulaManager<Long> {
+class Mathsat5BooleanFormulaManager extends AbstractBooleanFormulaManager<Long, Long, Long> {
 
-  private final Mathsat5FormulaCreator creator;
   private final long mathsatEnv;
 
   protected Mathsat5BooleanFormulaManager(
       Mathsat5FormulaCreator pCreator) {
     super(pCreator);
-    this.creator = pCreator;
-    this.mathsatEnv = creator.getEnv();
+    this.mathsatEnv = pCreator.getEnv();
   }
 
 
@@ -46,8 +44,8 @@ class Mathsat5BooleanFormulaManager extends AbstractBooleanFormulaManager<Long> 
 
   @Override
   public Long makeVariableImpl(String pVar) {
-    long boolType = creator.getBoolType();
-    return creator.makeVariable(boolType, pVar);
+    long boolType = getFormulaCreator().getBoolType();
+    return getFormulaCreator().makeVariable(boolType, pVar);
   }
 
   @Override

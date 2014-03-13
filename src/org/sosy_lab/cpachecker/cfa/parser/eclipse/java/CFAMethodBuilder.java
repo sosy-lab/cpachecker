@@ -65,8 +65,8 @@ import org.eclipse.jdt.core.dom.SwitchCase;
 import org.eclipse.jdt.core.dom.SwitchStatement;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.eclipse.jdt.core.dom.WhileStatement;
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -99,6 +99,7 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.java.JAssumeEdge;
@@ -262,6 +263,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
     final JMethodEntryNode startNode =
         new JMethodEntryNode(fileLocStart, fdef, returnNode, parameterNames);
+    returnNode.setEntryNode(startNode);
     cfaNodes.add(startNode);
     cfa = startNode;
 
@@ -713,8 +715,8 @@ class CFAMethodBuilder extends ASTVisitor {
     CFANode unsuccessfulNode = new CFANode(fileLocStart, methodName);
     cfaNodes.add(unsuccessfulNode);
 
-    CLabelNode errorLabelNode = new CLabelNode(fileLocStart, methodName, "ERROR");
-    cfaNodes.add(errorLabelNode);
+    CFANode endNode = new CFATerminationNode(fileLocStart, methodName);
+    cfaNodes.add(endNode);
 
     CONDITION kind = getConditionKind(condition);
 
@@ -752,7 +754,7 @@ class CFAMethodBuilder extends ASTVisitor {
       if (!hasMessage) {
         blankEdge = new BlankEdge(rawSignature,
             fileloc,
-            unsuccessfulNode, errorLabelNode, "asssert fail");
+            unsuccessfulNode, endNode, "assert fail");
         addToCFA(blankEdge);
 
       } else {
@@ -763,7 +765,7 @@ class CFAMethodBuilder extends ASTVisitor {
             handleSideassignments(unsuccessfulNode, rawSignature, fileloc);
 
         blankEdge = new BlankEdge(rawSignature, fileloc,
-            unsuccessfulNode, errorLabelNode, "asssert fail");
+            unsuccessfulNode, endNode, "assert fail");
         addToCFA(blankEdge);
       }
     }
@@ -1731,7 +1733,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     // postSwitchNode is Node after the switch-statement
     final CFANode postSwitchNode =
-        new CLabelNode(fileLocEnd, cfa.getFunctionName(), "");
+        new CFANode(fileLocEnd, cfa.getFunctionName());
 
     cfaNodes.add(postSwitchNode);
     loopNextStack.push(postSwitchNode);
@@ -1879,8 +1881,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     final CFANode firstLoopNode = new CFANode(fileLocStart, cfa.getFunctionName());
     cfaNodes.add(firstLoopNode);
 
-    final CFANode postLoopNode = new CLabelNode(fileLocEnd,
-                                                   cfa.getFunctionName(), "");
+    final CFANode postLoopNode = new CFANode(fileLocEnd, cfa.getFunctionName());
     cfaNodes.add(postLoopNode);
     loopNextStack.push(postLoopNode);
 
@@ -1924,7 +1925,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     cfaNodes.add(firstLoopNode);
 
     final CFANode postLoopNode =
-        new CLabelNode(fileLocEnd, cfa.getFunctionName(), "");
+        new CFANode(fileLocEnd, cfa.getFunctionName());
 
     cfaNodes.add(postLoopNode);
     loopNextStack.push(postLoopNode);
@@ -2009,7 +2010,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     // postLoopNode is Node after "!(it.hasNext())"
     final CFANode postLoopNode =
-        new CLabelNode(fileLocEnd, cfa.getFunctionName(), "");
+        new CFANode(fileLocEnd, cfa.getFunctionName());
     cfaNodes.add(postLoopNode);
     loopNextStack.push(postLoopNode);
 
@@ -2121,7 +2122,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     // postLoopNode is Node after "!(counter < 5)"
     final CFANode postLoopNode =
-        new CLabelNode(fileLocEnd, cfa.getFunctionName(), "");
+        new CFANode(fileLocEnd, cfa.getFunctionName());
     cfaNodes.add(postLoopNode);
     loopNextStack.push(postLoopNode);
 

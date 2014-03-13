@@ -56,8 +56,7 @@ class CFAGenerationRuntimeException extends RuntimeException {
 
   public CFAGenerationRuntimeException(String msg, CAstNode astNode) {
     this(astNode == null ? msg :
-      (msg + " in line " + astNode.getFileLocation().getStartingLineNumber()
-          + ": " + astNode.toASTString()));
+      (astNode.getFileLocation() + ": " + msg + ": " + astNode.toASTString()));
   }
 
   public CFAGenerationRuntimeException(IASTProblem problem) {

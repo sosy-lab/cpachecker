@@ -31,9 +31,6 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.eclipse.cdt.internal.core.parser.scanner.Token;
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
-import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping.NoOriginMappingAvailable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -272,11 +269,6 @@ public class SourceLocationMapper {
     return result;
   }
 
-  public static synchronized Pair<String, Set<Integer>> getRelativeTokensFromCFAEdge(CFAEdge pEdge, boolean overApproximateTokens) throws NoOriginMappingAvailable {
-    Set<Integer> absolute = getAbsoluteTokensFromCFAEdge(pEdge, overApproximateTokens);
-    return CSourceOriginMapping.INSTANCE.getRelativeTokensFromAbsolute(absolute);
-  }
-
   public static synchronized Set<Integer> getAbsoluteTokensFromCFAEdge(CFAEdge pEdge, boolean overApproximateTokens) {
     final TreeSet<Integer> result = Sets.newTreeSet();
     final Deque<CFAEdge> edges = Queues.newArrayDeque();
@@ -441,7 +433,7 @@ public class SourceLocationMapper {
     }
 
     for (CIdExpression e: idExs) {
-      result.add(VariableClassification.getScopedName(subject, e));
+      result.add(VariableClassification.scopeVar(e));
     }
 
     return result;

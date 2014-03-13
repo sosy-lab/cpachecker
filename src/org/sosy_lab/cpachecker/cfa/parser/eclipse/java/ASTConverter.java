@@ -82,7 +82,7 @@ import org.eclipse.jdt.core.dom.TypeLiteral;
 import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
@@ -179,7 +179,7 @@ public class ASTConverter {
   public ASTConverter(Scope pScope, LogManager pLogger) {
     scope = pScope;
     logger = pLogger;
-    typeConverter = new ASTTypeConverter(logger, scope);
+    typeConverter = new ASTTypeConverter(scope);
   }
 
   /**

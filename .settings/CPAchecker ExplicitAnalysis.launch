@@ -7,11 +7,11 @@
 <listEntry value="1"/>
 </listAttribute>
 <listAttribute key="org.eclipse.debug.ui.favoriteGroups">
-<listEntry value="org.eclipse.debug.ui.launchGroup.run"/>
 <listEntry value="org.eclipse.debug.ui.launchGroup.debug"/>
+<listEntry value="org.eclipse.debug.ui.launchGroup.run"/>
 </listAttribute>
 <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="org.sosy_lab.cpachecker.cmdline.CPAMain"/>
-<stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-explicitAnalysis&#13;&#10;${file_prompt:the C program to verify:${workspace_loc}}"/>
+<stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-explicitAnalysis-symbolicValues&#13;&#10;${file_prompt:the C program to verify:${workspace_loc}}"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="CPAchecker"/>
 <stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-ea&#13;&#10;-Xmx1000m"/>
 </launchConfiguration>

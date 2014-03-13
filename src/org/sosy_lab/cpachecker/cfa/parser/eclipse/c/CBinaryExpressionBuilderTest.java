@@ -30,11 +30,8 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.StringBuildingLogHandler;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -77,8 +74,6 @@ public class CBinaryExpressionBuilderTest {
   }
 
 
-  private Configuration config;
-  private StringBuildingLogHandler stringLogHandler;
   private LogManager logger;
 
   private CBinaryExpressionBuilder c32;
@@ -86,10 +81,8 @@ public class CBinaryExpressionBuilderTest {
 
 
   @Before
-  public void init() throws InvalidConfigurationException {
-    config = Configuration.builder().build();
-    stringLogHandler = new StringBuildingLogHandler();
-    logger = new BasicLogManager(config, stringLogHandler);
+  public void init() {
+    logger = TestLogManager.getInstance();
 
     c32 = new CBinaryExpressionBuilder(MachineModel.LINUX32, logger);
     c64 = new CBinaryExpressionBuilder(MachineModel.LINUX64, logger);

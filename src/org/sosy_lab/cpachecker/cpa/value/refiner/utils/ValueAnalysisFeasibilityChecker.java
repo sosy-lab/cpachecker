@@ -76,25 +76,13 @@ public class ValueAnalysisFeasibilityChecker {
    */
   public boolean isFeasible(final ARGPath path) throws CPAException, InterruptedException {
     try {
-      return isFeasible(path, new ValueAnalysisPrecision("", config, Optional.<VariableClassification>absent()));
+      return isFeasible(path,
+          new ValueAnalysisPrecision("", config, Optional.<VariableClassification>absent()),
+          new ValueAnalysisState());
     }
     catch (InvalidConfigurationException e) {
       throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
     }
-  }
-
-  /**
-   * This method checks if the given path is feasible, when not tracking the given set of variables.
-   *
-   * @param path the path to check
-   * @param pPrecision the precision to use
-   * @return true, if the path is feasible, else false
-   * @throws CPAException
-   * @throws InterruptedException
-   */
-  public boolean isFeasible(final ARGPath path, final ValueAnalysisPrecision pPrecision)
-      throws CPAException, InterruptedException {
-    return isFeasible(path, pPrecision, new ValueAnalysisState());
   }
 
   /**
@@ -108,10 +96,30 @@ public class ValueAnalysisFeasibilityChecker {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public boolean isFeasible(final ARGPath path, final ValueAnalysisPrecision pPrecision, ValueAnalysisState pInitial)
+  public boolean isFeasible(final ARGPath path, final ValueAnalysisPrecision pPrecision, final ValueAnalysisState pInitial)
+      throws CPAException, InterruptedException {
+
+    return path.size() == getInfeasilbePrefix(path, pPrecision, pInitial).size();
+  }
+
+  /**
+   * This method obtains the prefix of the path, that is infeasible by itself. If the path is feasible, the whole path
+   * is returned
+   *
+   * @param path the path to check
+   * @param pPrecision the precision to use
+   * @param pInitial the initial state
+   * @return the prefix of the path that is feasible by itself
+   * @throws CPAException
+   * @throws InterruptedException
+   */
+  public ARGPath getInfeasilbePrefix(final ARGPath path, final ValueAnalysisPrecision pPrecision, final ValueAnalysisState pInitial)
       throws CPAException, InterruptedException {
     try {
       ValueAnalysisState next = pInitial;
+
+      ARGPath prefix = new ARGPath();
+
 
       for (Pair<ARGState, CFAEdge> pathElement : path) {
         Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessors(
@@ -119,18 +127,18 @@ public class ValueAnalysisFeasibilityChecker {
             pPrecision,
             pathElement.getSecond());
 
+        prefix.addLast(pathElement);
+
         // no successors => path is infeasible
         if(successors.isEmpty()) {
-          return false;
+          break;
         }
 
         // get successor state and apply precision
         next = pPrecision.computeAbstraction(successors.iterator().next(),
             AbstractStates.extractLocation(pathElement.getFirst()));
       }
-
-      // path is feasible
-      return true;
+      return prefix;
     } catch (CPATransferException e) {
       throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
     }

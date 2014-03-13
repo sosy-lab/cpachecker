@@ -51,6 +51,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CParser.FileToParse;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
@@ -60,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
+import org.sosy_lab.cpachecker.cfa.manipulation.FunctionCallUnwinder;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -107,10 +109,10 @@ public class CFACreator {
                   "Note that all file numbers printed by CPAchecker will refer to the pre-processed file, not the original input file.")
   private boolean usePreprocessor = false;
 
-  @Option(name="parser.transformTokensToLines",
-      description="Preprocess the given C files before parsing: Put every single token onto a new line. "
-      + "Then the line number corresponds to the token number.")
-  private boolean transformTokensToLines = false;
+  @Option(name="parser.readLineDirectives",
+      description="For C files, read #line preprocessor directives and use their information for outputting line numbers."
+          + " (Always enabled when pre-processing is used.)")
+  private boolean readLineDirectives = false;
 
   @Option(name="analysis.entryFunction", regexp="^" + VALID_C_FUNCTION_NAME_PATTERN + "$",
       description="entry function")
@@ -192,6 +194,10 @@ public class CFACreator {
           + "to the beginning of each function.")
   private boolean moveDeclarationsToFunctionStart = false;
 
+  @Option(name="cfa.useFunctionCallUnwinding",
+      description="unwind recursive functioncalls (bounded to max call stack size)")
+  private boolean useFunctionCallUnwinding = false;
+
   @Option(description="C or Java?")
   private Language language = Language.C;
 
@@ -252,8 +258,8 @@ public class CFACreator {
     case C:
       CParser outerParser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machineModel);
 
-      outerParser = new CParserWithLocationMapper(config, logger, outerParser, transformTokensToLines);
-      CSourceOriginMapping.INSTANCE.setHasOneInputLinePerToken(transformTokensToLines);
+      outerParser = new CParserWithLocationMapper(config, logger, outerParser,
+          readLineDirectives || usePreprocessor);
 
       if (usePreprocessor) {
         CPreprocessor preprocessor = new CPreprocessor(config, logger);
@@ -296,7 +302,6 @@ public class CFACreator {
 
     stats.totalTime.start();
     try {
-
       // FIRST, parse file(s) and create CFAs for each function
       logger.log(Level.FINE, "Starting parsing of file(s)");
 
@@ -332,7 +337,7 @@ public class CFACreator {
       // SECOND, do those post-processings that change the CFA by adding/removing nodes/edges
       stats.processingTime.start();
 
-      postProcessingOnMutableCFAs(cfa, c.getGlobalDeclarations());
+      cfa = postProcessingOnMutableCFAs(cfa, c.getGlobalDeclarations());
 
       // THIRD, do read-only post-processings on each single function CFA
 
@@ -377,7 +382,7 @@ public class CFACreator {
 
       // Get information about variables, needed for some analysis.
       final Optional<VariableClassification> varClassification
-          = loopStructure.isPresent()
+          = loopStructure.isPresent() && (language == Language.C)
           ? Optional.of(new VariableClassification(cfa, config, logger, loopStructure.get()))
           : Optional.<VariableClassification>absent();
 
@@ -389,7 +394,7 @@ public class CFACreator {
         // special part of code, returns a transformed copy of the CFA.
         // TODO SLTransformation contains some code copied from the lines above. Is this necessary?
         stats.processingTime.start();
-        immutableCFA = CFASingleLoopTransformation.getSingleLoopTransformation(logger, config).apply(cfa);
+        immutableCFA = CFASingleLoopTransformation.getSingleLoopTransformation(logger, config).apply(cfa, loopStructure, varClassification);
         mainFunction = immutableCFA.getMainFunction();
         assert mainFunction != null;
         stats.processingTime.stop();
@@ -426,8 +431,10 @@ public class CFACreator {
       checkIfValidFiles(sourceFiles);
     }
 
+    final CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
+
     if (sourceFiles.size() == 1) {
-      parseResult = parser.parseFile(sourceFiles.get(0));
+      parseResult = parser.parseFile(sourceFiles.get(0), sourceOriginMapping);
     } else {
       // when there is more than one file which should be evaluated, the
       // programdenotations are separated from each other and a prefix for
@@ -445,7 +452,7 @@ public class CFACreator {
         programFragments.add(new FileToParse(fileName, staticVarPrefix));
       }
 
-      parseResult = ((CParser)parser).parseFile(programFragments);
+      parseResult = ((CParser)parser).parseFile(programFragments, sourceOriginMapping);
     }
 
     if (parseResult.isEmpty()) {
@@ -463,8 +470,11 @@ public class CFACreator {
   }
 
   /** This method changes the CFAs of the functions with adding, removing, replacing or moving CFAEdges.
-   * The CFAs are independent, i.e. there are no super-edges (functioncall- and return-edges) between them. */
-  private void postProcessingOnMutableCFAs(final MutableCFA cfa, final List<Pair<IADeclaration, String>> globalDeclarations)
+   * The CFAs are independent, i.e. there are no super-edges (functioncall- and return-edges) between them.
+   *
+   * @return either a modified old CFA or a complete new CFA
+   */
+  private MutableCFA postProcessingOnMutableCFAs(MutableCFA cfa, final List<Pair<IADeclaration, String>> globalDeclarations)
           throws InvalidConfigurationException, CParserException {
 
     // remove all edges which don't have any effect on the program
@@ -478,7 +488,7 @@ public class CFACreator {
       // example: a=1+2; --> a=3;
       // TODO support for constant propagation like "define MAGIC_NUMBER 1234".
       for (final CFANode function : cfa.getAllFunctionHeads()) {
-        final ExpressionSimplifier es = new ExpressionSimplifier(machineModel, logger);
+        final ExpressionSimplifier es = new ExpressionSimplifier(machineModel, new LogManagerWithoutDuplicates(logger));
         CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(function, es);
         es.replaceEdges();
       }
@@ -540,6 +550,12 @@ public class CFACreator {
       cfa.addNode(nodeToAdd);
     }
 
+    if (useFunctionCallUnwinding) {
+      // must be done before adding global vars
+      final FunctionCallUnwinder fca = new FunctionCallUnwinder(cfa, config, logger);
+      cfa = fca.unwindRecursion();
+    }
+
     if (useGlobalVars) {
       // add global variables at the beginning of main
       insertGlobalDeclarations(cfa, globalDeclarations);
@@ -548,6 +564,8 @@ public class CFACreator {
     if (useMultiEdges) {
       MultiEdgeCreator.createMultiEdges(cfa);
     }
+
+    return cfa;
   }
 
   private FunctionEntryNode getJavaMainMethod(List<String> sourceFiles, Map<String, FunctionEntryNode> cfas)

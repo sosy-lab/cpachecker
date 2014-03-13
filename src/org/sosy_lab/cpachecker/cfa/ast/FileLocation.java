@@ -168,9 +168,10 @@ public class FileLocation {
         ? ""
         : niceFileName + ", ";
     if (startingLine == endineLine) {
-      return prefix + "line " + startingLine;
+      return prefix + "line " + startingLineInOrigin;
     } else {
-      return prefix + "lines " + startingLine + "-" + endineLine;
+      // TODO ending line number could be wrong
+      return prefix + "lines " + startingLineInOrigin + "-" + (endineLine-startingLine+startingLineInOrigin);
     }
   }
 }

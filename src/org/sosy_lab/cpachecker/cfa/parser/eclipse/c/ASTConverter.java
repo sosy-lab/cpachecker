@@ -85,15 +85,15 @@ import org.eclipse.cdt.core.dom.ast.c.ICASTFieldDesignator;
 import org.eclipse.cdt.core.dom.ast.gnu.IGNUASTCompoundStatementExpression;
 import org.eclipse.cdt.core.dom.ast.gnu.c.IGCCASTArrayRangeDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTFunctionCallExpression;
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
-import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping.NoOriginMappingAvailable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
@@ -198,6 +198,8 @@ class ASTConverter {
    */
   private final Function<String, String> niceFileNameFunction;
 
+  private final CSourceOriginMapping sourceOriginMapping;
+
   private final Scope scope;
 
   // this counter is static to make the replacing names for anonymous types, in
@@ -212,8 +214,9 @@ class ASTConverter {
 
   private static final ContainsProblemTypeVisitor containsProblemTypeVisitor = new ContainsProblemTypeVisitor();
 
-  public ASTConverter(Configuration pConfig, Scope pScope, LogManager pLogger,
+  public ASTConverter(Configuration pConfig, Scope pScope, LogManagerWithoutDuplicates pLogger,
       Function<String, String> pNiceFileNameFunction,
+      CSourceOriginMapping pSourceOriginMapping,
       MachineModel pMachineModel, String pStaticVariablePrefix,
       boolean pSimplifyConstExpressions, Sideassignments pSideAssignmentStack) throws InvalidConfigurationException {
 
@@ -224,6 +227,7 @@ class ASTConverter {
     this.typeConverter = new ASTTypeConverter(scope, this, pStaticVariablePrefix);
     this.literalConverter = new ASTLiteralConverter(typeConverter, pMachineModel);
     this.niceFileNameFunction = pNiceFileNameFunction;
+    this.sourceOriginMapping = pSourceOriginMapping;
     this.staticVariablePrefix = pStaticVariablePrefix;
     this.sideAssignmentStack = pSideAssignmentStack;
     this.simplifyConstExpressions = pSimplifyConstExpressions;
@@ -1816,23 +1820,18 @@ class ASTConverter {
       return null;
     }
 
-    String originFileName;
-    int startingLineInOrigin;
+    String fileName = l.getFileName();
     int startingLineInInput = l.getStartingLineNumber();
+    int startingLineInOrigin = startingLineInInput;
 
-    Pair<String, Integer> startingInOrigin;
-    try {
-      startingInOrigin = CSourceOriginMapping.INSTANCE.getOriginLineFromAnalysisCodeLine(startingLineInInput);
+    Pair<String, Integer> startingInOrigin = sourceOriginMapping.getOriginLineFromAnalysisCodeLine(
+        fileName, startingLineInInput);
 
-      originFileName = startingInOrigin.getFirst();
-      startingLineInOrigin = startingInOrigin.getSecond();
-    } catch (NoOriginMappingAvailable e) {
-      originFileName = l.getFileName();
-      startingLineInOrigin = l.getStartingLineNumber();
-    }
+    fileName = startingInOrigin.getFirst();
+    startingLineInOrigin = startingInOrigin.getSecond();
 
-    return new FileLocation(l.getEndingLineNumber(), originFileName,
-        niceFileNameFunction.apply(originFileName),
+    return new FileLocation(l.getEndingLineNumber(), fileName,
+        niceFileNameFunction.apply(fileName),
         l.getNodeLength(), l.getNodeOffset(),
         startingLineInInput, startingLineInOrigin);
   }

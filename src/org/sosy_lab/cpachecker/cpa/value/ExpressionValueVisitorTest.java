@@ -28,12 +28,10 @@ import java.math.BigInteger;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
+
 import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.log.BasicLogManager;
-import org.sosy_lab.common.log.StringBuildingLogHandler;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -87,25 +85,20 @@ public class ExpressionValueVisitorTest {
   }
 
 
-  private Configuration config;
-  private StringBuildingLogHandler stringLogHandler;
-  private LogManager logger;
+  private LogManagerWithoutDuplicates logger;
 
   private ExpressionValueVisitor evv32;
   private ExpressionValueVisitor evv64;
 
 
   @Before
-  public void init() throws InvalidConfigurationException {
-    config = Configuration.builder().build();
-    stringLogHandler = new StringBuildingLogHandler();
-    logger = new BasicLogManager(config, stringLogHandler);
+  public void init() {
+    logger = new LogManagerWithoutDuplicates(TestLogManager.getInstance());
 
     evv32 = new ExpressionValueVisitor(
-        state, functionName, MachineModel.LINUX32, logger, null, symbolicValues);
+        state, functionName, MachineModel.LINUX32, logger, symbolicValues);
     evv64 = new ExpressionValueVisitor(
-        state, functionName, MachineModel.LINUX64, logger, null, symbolicValues);
-
+        state, functionName, MachineModel.LINUX64, logger, symbolicValues);
   }
 
   @Test
@@ -304,9 +297,8 @@ public class ExpressionValueVisitorTest {
   private void checkCast(ExpressionValueVisitor evv, long in, long expectedOut, CType outType)
       throws UnrecognizedCCodeException {
 
-    // we use NULL as inputType, because it is not needed
     final Value value = evv.evaluate(
-        new CIntegerLiteralExpression(loc, null, BigInteger.valueOf(in)),
+        new CIntegerLiteralExpression(loc, CNumericTypes.INT, BigInteger.valueOf(in)),
         outType);
 
     System.out.println(String.format("(%s) %d == %d == %s", outType, in, expectedOut, value.toString()));

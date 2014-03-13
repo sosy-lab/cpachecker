@@ -43,7 +43,7 @@ import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JConstructorDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
@@ -69,7 +69,7 @@ public class TypeHierachyConverter {
 
   public TypeHierachyConverter(LogManager pLogger, THTypeTable pTypeTable) {
     logger = pLogger;
-    typeConverter = new THTypeConverter(logger, pTypeTable);
+    typeConverter = new THTypeConverter(pTypeTable);
   }
 
   /**

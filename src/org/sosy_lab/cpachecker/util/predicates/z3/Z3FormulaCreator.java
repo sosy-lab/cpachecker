@@ -29,7 +29,8 @@ import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator;
 
 public class Z3FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
@@ -39,9 +40,10 @@ public class Z3FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
   public Z3FormulaCreator(
       long pEnv,
       long pBoolType,
-      long pNumberType,
+      long pIntegerType,
+      long pRealType,
       Z3SmtLogger smtLogger) {
-    super(pEnv, pBoolType, pNumberType);
+    super(pEnv, pBoolType, pIntegerType, pRealType);
 
     this.smtLogger = smtLogger;
   }
@@ -62,16 +64,14 @@ public class Z3FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
     return Z3FormulaManager.getZ3Expr(pT);
   }
 
-  public Formula encapsulateUnsafe(Long pTerm) {
-    return new Z3Formula(getEnv(), pTerm);
-  }
-
   @SuppressWarnings("unchecked")
   @Override
   public <T extends Formula> T encapsulate(Class<T> pClazz, Long pTerm) {
     Z3Formula f;
     if (pClazz == BitvectorFormula.class) {
       f = new Z3BitvectorFormula(getEnv(), pTerm);
+    } else if (pClazz == IntegerFormula.class) {
+      f = new Z3IntegerFormula(getEnv(), pTerm);
     } else if (pClazz == RationalFormula.class) {
       f = new Z3RationalFormula(getEnv(), pTerm);
     } else if (pClazz == BooleanFormula.class) {

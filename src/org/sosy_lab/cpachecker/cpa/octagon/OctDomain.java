@@ -32,7 +32,6 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -44,11 +43,6 @@ class OctDomain implements AbstractDomain {
 
   private static long totaltime = 0;
   private LogManager logger;
-
-  @Option(name="joinType", toUppercase=true, values={"NORMAL", "WIDENING"},
-      description="of which type should the merge be? normal, for usual join, widening for"
-                + " a widening instead of a join")
-  private String joinType = "NORMAL";
 
   public OctDomain(LogManager log, Configuration config) throws InvalidConfigurationException {
     config.inject(this);
@@ -95,46 +89,23 @@ class OctDomain implements AbstractDomain {
 
   @Override
   public AbstractState join(AbstractState successor, AbstractState reached) {
-    OctState octEl1 = (OctState) successor;
-    OctState octEl2 = (OctState) reached;
+    Pair<OctState, OctState> shrinkedStates = getShrinkedStates((OctState)successor, (OctState)reached);
+    Octagon newOctagon = OctagonManager.union(shrinkedStates.getFirst().getOctagon(), shrinkedStates.getSecond().getOctagon());
 
-    if (octEl1.sizeOfVariables() > octEl2.sizeOfVariables()) {
-      Pair<OctState, OctState> tmp = octEl1.shrinkToFittingSize(octEl2);
-      octEl1 = tmp.getFirst();
-      octEl2 = tmp.getSecond();
-    } else {
-      Pair<OctState, OctState> tmp = octEl2.shrinkToFittingSize(octEl1);
-      octEl1 = tmp.getSecond();
-      octEl2 = tmp.getFirst();
-    }
-    if (joinType.equals("NORMAL")) {
-      return joinNormal(octEl1, octEl2, successor, reached);
-    } else if (joinType.equals("WIDENING")) {
-      return joinWidening(octEl1, octEl2);
-
-      // default should be normal
-    } else {
-      return joinNormal(octEl1, octEl2, successor, reached);
-    }
-  }
-
-  private AbstractState joinNormal(OctState successorOct, OctState reachedOct, AbstractState successorAbs, AbstractState reachedAbs) {
-    assert (successorOct.sizeOfVariables() == reachedOct.sizeOfVariables());
-
-    Octagon newOctagon = OctagonManager.union(successorOct.getOctagon(), reachedOct.getOctagon());
-
-    OctState newState = new OctState(newOctagon, successorOct.getVariableToIndexMap(), logger);
-    if (newState.equals(reachedAbs)) {
-      return reachedAbs;
-    } else if (newState.equals(successorAbs)) {
-      return successorAbs;
+    OctState newState = new OctState(newOctagon, shrinkedStates.getFirst().getVariableToIndexMap(), logger);
+    if (newState.equals(reached)) {
+      return reached;
+    } else if (newState.equals(successor)) {
+      return successor;
     } else {
       return newState;
     }
   }
 
-  private AbstractState joinWidening(OctState successorOct, OctState reachedOct) {
-    assert (successorOct.sizeOfVariables() == reachedOct.sizeOfVariables());
+  public AbstractState joinWidening(OctState successorOct, OctState reachedOct) {
+    Pair<OctState, OctState> shrinkedStates = getShrinkedStates(successorOct, reachedOct);
+    successorOct = shrinkedStates.getFirst();
+    reachedOct = shrinkedStates.getSecond();
 
     Octagon newOctagon = OctagonManager.widening(reachedOct.getOctagon(), successorOct.getOctagon());
 
@@ -146,5 +117,18 @@ class OctDomain implements AbstractDomain {
     } else {
       return newState;
     }
+  }
+
+  private Pair<OctState, OctState> getShrinkedStates(OctState succ, OctState reached) {
+    if (succ.sizeOfVariables() > reached.sizeOfVariables()) {
+      Pair<OctState, OctState> tmp = succ.shrinkToFittingSize(reached);
+      succ = tmp.getFirst();
+      reached = tmp.getSecond();
+    } else {
+      Pair<OctState, OctState> tmp = reached.shrinkToFittingSize(succ);
+      succ = tmp.getSecond();
+      reached = tmp.getFirst();
+    }
+    return Pair.of(succ, reached);
   }
 }

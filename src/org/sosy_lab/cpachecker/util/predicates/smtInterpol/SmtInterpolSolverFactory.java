@@ -46,8 +46,8 @@ public class SmtInterpolSolverFactory implements SolverFactory {
 
   @Override
   public FormulaManager create(Configuration pConfig, LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier, boolean pUseIntegers) throws InvalidConfigurationException {
-    return SmtInterpolFormulaManager.create(pConfig, pLogger, pShutdownNotifier, pUseIntegers);
+      ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+    return SmtInterpolFormulaManager.create(pConfig, pLogger, pShutdownNotifier);
   }
 
   @Override

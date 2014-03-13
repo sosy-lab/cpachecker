@@ -304,8 +304,6 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     BooleanFormula interpolant = pInterpolant;
 
-    FormulaMeasures itpBeforeSimple = formulaMeasuring.measure(interpolant);
-
     if (bfmgr.isTrue(interpolant)) {
       return Collections.<AbstractionPredicate>emptySet();
     }
@@ -314,6 +312,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     int allPredsCount = 0;
     if (useBddInterpolantSimplification) {
+      FormulaMeasures itpBeforeSimple = formulaMeasuring.measure(interpolant);
+
       itpSimplification.start();
       // need to call extractPredicates() for registering all predicates
       allPredsCount = predAbsMgr.extractPredicates(interpolant).size();

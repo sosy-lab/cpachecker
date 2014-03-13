@@ -297,8 +297,17 @@ class RunSet:
         self.options = benchmark.options + Util.getListFromXML(rundefinitionTag)
         self.propertyFiles = benchmark.propertyFiles + Util.getListFromXML(rundefinitionTag, tag=PROPERTY_TAG, attributes=[])
 
+        # get run-set specific required files
+        requiredFiles = set()
+        for requiredFilesTag in rundefinitionTag.findall('requiredfiles'):
+            thisRequiredFiles = Util.expandFileNamePattern(requiredFilesTag.text, benchmark.baseDir)
+            if not thisRequiredFiles:
+                logging.warning('Pattern {0} in requiredfiles tag did not match any file.'.format(requiredFilesTag.text))
+            requiredFiles = requiredFiles.union(thisRequiredFiles)
+
         # get all runs, a run contains one sourcefile with options
-        self.blocks = self.extractRunsFromXML(globalSourcefilesTags + rundefinitionTag.findall("sourcefiles"))
+        self.blocks = self.extractRunsFromXML(globalSourcefilesTags + rundefinitionTag.findall("sourcefiles"),
+                                              requiredFiles)
         self.runs = [run for block in self.blocks for run in block.runs]
 
         names = [self.realName]
@@ -331,7 +340,7 @@ class RunSet:
             or self.realName in self.benchmark.config.selectedRunDefinitions
 
 
-    def extractRunsFromXML(self, sourcefilesTagList):
+    def extractRunsFromXML(self, sourcefilesTagList, globalRequiredFiles):
         '''
         This function builds a list of SourcefileSets (containing filename with options).
         The files and their options are taken from the list of sourcefilesTags.
@@ -346,6 +355,13 @@ class RunSet:
                 and matchName not in self.benchmark.config.selectedSourcefileSets:
                     continue
 
+            requiredFiles = set()
+            for requiredFilesTag in sourcefilesTag.findall('requiredfiles'):
+                thisRequiredFiles = Util.expandFileNamePattern(requiredFilesTag.text, self.benchmark.baseDir)
+                if not thisRequiredFiles:
+                    logging.warning('Pattern {0} in requiredfiles tag did not match any file.'.format(requiredFilesTag.text))
+                requiredFiles = requiredFiles.union(thisRequiredFiles)
+
             # get list of filenames
             sourcefiles = self.getSourcefilesFromXML(sourcefilesTag, self.benchmark.baseDir)
 
@@ -355,7 +371,8 @@ class RunSet:
 
             currentRuns = []
             for sourcefile in sourcefiles:
-                currentRuns.append(Run(sourcefile, fileOptions, self, propertyFiles))
+                currentRuns.append(Run(sourcefile, fileOptions, self, propertyFiles,
+                                       list(globalRequiredFiles.union(requiredFiles))))
 
             blocks.append(SourcefileSet(sourcefileSetName, index, currentRuns))
         return blocks
@@ -415,6 +432,10 @@ class RunSet:
 
                 fileWithList.close()
 
+        # add runs for cases without source files
+        for run in sourcefilesTag.findall("withoutfile"):
+            sourcefiles.append(run.text)
+
         return sourcefiles
 
 
@@ -468,11 +489,12 @@ class Run():
     A Run contains one sourcefile and options.
     """
 
-    def __init__(self, sourcefile, fileOptions, runSet, propertyFiles=[]):
+    def __init__(self, sourcefile, fileOptions, runSet, propertyFiles=[], requiredFiles=[]):
         self.sourcefile = sourcefile
         self.runSet = runSet
         self.specificOptions = fileOptions # options that are specific for this run
         self.logFile = runSet.logFolder + os.path.basename(sourcefile) + ".log"
+        self.requiredFiles = requiredFiles
 
         # lets reduce memory-consumption: if 2 lists are equal, do not use the second one
         self.options = runSet.options + fileOptions if fileOptions else runSet.options # all options to be used when executing this run

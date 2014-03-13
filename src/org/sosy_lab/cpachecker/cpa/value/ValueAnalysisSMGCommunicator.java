@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -60,14 +61,14 @@ public class ValueAnalysisSMGCommunicator {
   private boolean symbolicValues = false;
 
   private final CFAEdge cfaEdge;
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
   private final MachineModel machineModel;
   private final SMGState smgState;
   private final ValueAnalysisState valueAnalysisState;
   private final String functionName;
 
   public ValueAnalysisSMGCommunicator(ValueAnalysisState pValueAnalysisState, String pFunctionName,
-      SMGState pSmgState, MachineModel pMachineModel, LogManager pLogger, CFAEdge pCfaEdge) {
+      SMGState pSmgState, MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger, CFAEdge pCfaEdge) {
     valueAnalysisState = pValueAnalysisState;
     smgState = pSmgState;
     machineModel = pMachineModel;
@@ -88,7 +89,7 @@ public class ValueAnalysisSMGCommunicator {
 
     SMGExplicitExpressionEvaluator eee =
         new SMGExplicitExpressionEvaluator();
-    return eee.evaluateExpressionValue(smgState, cfaEdge, rValue);
+    return eee.evaluateExpressionValue(smgState.getWritableSMG(), cfaEdge, rValue);
   }
 
   public SMGAddressValue evaluateSMGAddressExpression(CRightHandSide rValue)
@@ -96,7 +97,7 @@ public class ValueAnalysisSMGCommunicator {
 
     SMGExplicitExpressionEvaluator eee =
         new SMGExplicitExpressionEvaluator();
-    return eee.evaluateAddress(smgState, cfaEdge, rValue);
+    return eee.evaluateAddress(smgState.getWritableSMG(), cfaEdge, rValue);
   }
 
   public MemoryLocation evaluateLeftHandSide(CExpression lValue)
@@ -119,12 +120,12 @@ public class ValueAnalysisSMGCommunicator {
     private final SMGExplicitExpressionEvaluator smgEvaluator;
 
     public ExplicitExpressionValueVisitor() {
-      super(valueAnalysisState, functionName, machineModel, logger, cfaEdge, symbolicValues);
+      super(valueAnalysisState, functionName, machineModel, logger, symbolicValues);
       smgEvaluator = new SMGExplicitExpressionEvaluator(this);
     }
 
     public ExplicitExpressionValueVisitor(SMGExplicitExpressionEvaluator pSmgEvaluator) {
-      super(valueAnalysisState, functionName, machineModel, logger, cfaEdge, symbolicValues);
+      super(valueAnalysisState, functionName, machineModel, logger,symbolicValues);
       smgEvaluator = pSmgEvaluator;
     }
 
@@ -258,7 +259,7 @@ public class ValueAnalysisSMGCommunicator {
         SMGSymbolicValue value;
 
         try {
-          value = smgEvaluator.evaluateExpressionValue(smgState, cfaEdge, rValue);
+          value = smgEvaluator.evaluateExpressionValue(smgState.getWritableSMG(), cfaEdge, rValue);
         } catch (CPATransferException e) {
           logger.logDebugException(e);
           throw new UnrecognizedCCodeException("Rvalue Could not be evaluated by smgEvaluator", cfaEdge,rValue);
@@ -293,18 +294,13 @@ public class ValueAnalysisSMGCommunicator {
       evv = pEvv;
     }
 
-    @Override
-    public MachineModel getMachineModel() {
-      return super.getMachineModel();
-    }
-
     public SMGExplicitExpressionEvaluator() {
       super(logger, machineModel);
       evv = new ExplicitExpressionValueVisitor(this);
     }
 
     @Override
-    public SMGExplicitValue evaluateExplicitValue(SMGState pSmgState, CFAEdge pCfaEdge, CRightHandSide pRValue)
+    public SMGExplicitValue evaluateExplicitValue(WritableSMG pSmg, CFAEdge pCfaEdge, CRightHandSide pRValue)
         throws CPATransferException {
       Long value = pRValue.accept(evv).asLong(pRValue.getExpressionType());
 

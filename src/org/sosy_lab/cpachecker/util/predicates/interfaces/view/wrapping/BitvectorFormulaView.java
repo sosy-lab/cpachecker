@@ -33,7 +33,7 @@ public class BitvectorFormulaView extends FormulaView<BitvectorFormula> implemen
   private BitvectorFormulaManagerView manager;
 
   public BitvectorFormulaView(BitvectorFormula pWrapped, BitvectorFormulaManagerView manager) {
-    super(pWrapped, manager.getViewManager());
+    super(pWrapped);
     this.manager = manager;
   }
 

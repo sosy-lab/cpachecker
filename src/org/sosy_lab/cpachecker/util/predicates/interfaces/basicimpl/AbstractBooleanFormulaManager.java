@@ -34,13 +34,13 @@ import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 
-public abstract class AbstractBooleanFormulaManager<TFormulaInfo>
-  extends AbstractBaseFormulaManager<TFormulaInfo>
+public abstract class AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv>
+  extends AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv>
   implements
     BooleanFormulaManager {
 
   protected AbstractBooleanFormulaManager(
-      FormulaCreator<TFormulaInfo> pCreator) {
+      AbstractFormulaCreator<TFormulaInfo, TType, TEnv> pCreator) {
     super(pCreator);
   }
 

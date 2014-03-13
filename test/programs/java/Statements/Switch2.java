@@ -1,18 +1,18 @@
 
 public class Switch2 {
-	
 
-	
 
-	public static void main(
-			String[] args) {
-		
+
+
+  public static void main(
+      String[] args) {
+
 
         int n1;
-        
+
         n1 = 2;
-	
-      
+
+
         switch(n1){
          case 1: //assert(false);
              int n6;
@@ -20,11 +20,11 @@ public class Switch2 {
             int n7;
          case 3: //assert (false);
            int n8;
-        
+
         }
-      	
+
         n1 = 2;
 
 }
-		
+
 }

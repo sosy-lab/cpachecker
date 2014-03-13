@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-public class TemplateNumber extends TemplateNumericValue {
+public class TemplateNumber extends TemplateNumeralValue {
 
   private Rational rat;
 

@@ -340,7 +340,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
 
   @Override
   public Formula visit(CImaginaryLiteralExpression exp) throws UnrecognizedCCodeException {
-    return exp.getValue().accept(this);
+    return toFormula(exp.getValue());
   }
 
   @Override
@@ -530,7 +530,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
         CExpression parameter = parametersIt.next();
         parameter = conv.makeCastFromArrayToPointerIfNecessary(parameter, formalParameterType);
 
-        Formula argument = parameter.accept(this);
+        Formula argument = toFormula(parameter);
         arguments.add(conv.makeCast(parameter.getExpressionType(), formalParameterType, argument, edge));
       }
       assert !formalParameterTypesIt.hasNext() && !parametersIt.hasNext();

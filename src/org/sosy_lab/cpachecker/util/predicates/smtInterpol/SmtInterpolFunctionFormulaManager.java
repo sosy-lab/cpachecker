@@ -37,18 +37,14 @@ import com.google.common.collect.Lists;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
-class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaManager<Term> {
+class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaManager<Term, Sort, SmtInterpolEnvironment> {
 
-  private final SmtInterpolFormulaCreator creator;
   private final SmtInterpolUnsafeFormulaManager unsafeManager;
-  private final SmtInterpolEnvironment env;
 
   SmtInterpolFunctionFormulaManager(
       SmtInterpolFormulaCreator creator,
       SmtInterpolUnsafeFormulaManager unsafeManager) {
     super(creator, unsafeManager);
-    this.creator = creator;
-    this.env = creator.getEnv();
     this.unsafeManager = unsafeManager;
   }
 
@@ -59,21 +55,6 @@ class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaManager<T
     Term[] args = SmtInterpolUtil.toTermArray(pArgs);
     String funcDecl = interpolType.getFuncDecl();
     return unsafeManager.createUIFCallImpl(funcDecl, args);
-  }
-
-  public Sort toSmtInterpolType(FormulaType<?> formulaType) {
-    Sort t;
-    if (formulaType.isBooleanType()) {
-      t = creator.getBoolType();
-    } else if (formulaType.isRationalType()) {
-      t = creator.getNumberType();
-    } else if (formulaType.isBitvectorType()) {
-      FormulaType.BitvectorType bitPreciseType = (FormulaType.BitvectorType) formulaType;
-      t = creator.getBittype(bitPreciseType.getSize());
-    } else {
-      throw new IllegalArgumentException("Not supported interface");
-    }
-    return t;
   }
 
   @Override
@@ -90,13 +71,13 @@ class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaManager<T
       new Function<FormulaType<?>, Sort>() {
         @Override
         public Sort apply(FormulaType<?> pArg0) {
-          return toSmtInterpolType(pArg0);
+          return toSolverType(pArg0);
         }
       });
     Sort[] msatTypes = types.toArray(new Sort[types.size()]);
 
-    Sort returnType = toSmtInterpolType(pReturnType);
-    env.declareFun(pName, msatTypes, returnType);
+    Sort returnType = toSolverType(pReturnType);
+    getFormulaCreator().getEnv().declareFun(pName, msatTypes, returnType);
 
     return new SmtInterpolFunctionType<>(formulaType.getReturnType(), formulaType.getArgumentTypes(), pName);
   }

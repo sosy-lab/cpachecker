@@ -32,18 +32,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBitv
 /**
  * Mathsat Bitvector Theory, build out of Bitvector*Operations.
  */
-class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long> {
+class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long, Long, Long> {
 
   private final long mathsatEnv;
-  private final Mathsat5FormulaCreator creator;
 
-  protected Mathsat5BitvectorFormulaManager(
-      Mathsat5FormulaCreator creator
-      ) {
-    super(
-        creator);
-    this.creator = creator;
-    this.mathsatEnv = creator.getEnv();
+  protected Mathsat5BitvectorFormulaManager(Mathsat5FormulaCreator pCreator) {
+    super(pCreator);
+    this.mathsatEnv = pCreator.getEnv();
   }
 
   public static Mathsat5BitvectorFormulaManager create(Mathsat5FormulaCreator creator) {
@@ -95,8 +90,8 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
 
   @Override
   public Long makeVariableImpl(int length, String var) {
-    long bvType = creator.getBittype(length);
-    return creator.makeVariable(bvType, var);
+    long bvType = getFormulaCreator().getBittype(length);
+    return getFormulaCreator().makeVariable(bvType, var);
   }
 
   /**

@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cfa;
 
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;

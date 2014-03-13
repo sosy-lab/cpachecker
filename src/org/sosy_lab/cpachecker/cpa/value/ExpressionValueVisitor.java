@@ -25,9 +25,7 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import java.util.List;
 
-import javax.annotation.Nullable;
-
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -38,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -69,15 +66,13 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
    * @param pFunctionName current scope, used only for variable-names
    * @param pMachineModel where to get info about types, for casting and overflows
    * @param pLogger logging
-   * @param pEdge only for logging, not needed
    * @param pSymbolicValues flag for symbolic value analysis. <code>true</code>
    *        if a symbolic analysis should be performed, <code>false</code> if a
    *        concrete value analysis should be performed
    */
   public ExpressionValueVisitor(ValueAnalysisState pState, String pFunctionName,
-      MachineModel pMachineModel, LogManager pLogger, @Nullable CFAEdge pEdge,
-      boolean pSymbolicValues) {
-    super(pFunctionName, pMachineModel, pLogger, pEdge);
+      MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger, boolean pSymbolicValues) {
+    super(pFunctionName, pMachineModel, pLogger);
     this.state = pState;
     this.symbolicValues = pSymbolicValues;
   }

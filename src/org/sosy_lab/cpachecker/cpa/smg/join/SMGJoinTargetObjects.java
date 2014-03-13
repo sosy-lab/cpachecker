@@ -51,7 +51,7 @@ final class SMGJoinTargetObjects {
   }
 
   private static boolean checkAlreadyJoined(SMGJoinTargetObjects pJto, SMGObject pObj1, SMGObject pObj2,
-                                            Integer pAddress1, Integer pAddress2) {
+                                            Integer pAddress1, Integer pAddress2) throws SMGInconsistentException {
     if ((! pObj1.notNull()) && (! pObj2.notNull()) ||
         (pJto.mapping1.containsKey(pObj1) && pJto.mapping2.containsKey(pObj2) && pJto.mapping1.get(pObj1) == pJto.mapping2.get(pObj2))) {
       SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(pJto.inputSMG1, pJto.inputSMG2, pJto.destSMG,

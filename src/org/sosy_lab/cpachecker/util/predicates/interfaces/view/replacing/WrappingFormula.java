@@ -25,11 +25,9 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
 
 abstract class WrappingFormula<TWrap extends Formula, TOut extends Formula> {
@@ -80,6 +78,15 @@ final class WrappingBitvectorFormula<TWrap extends Formula>
     implements BitvectorFormula {
 
   WrappingBitvectorFormula(FormulaType<BitvectorFormula> type, TWrap pToWrap) {
+    super(type, pToWrap);
+  }
+}
+
+final class WrappingIntegerFormula<TWrap extends Formula>
+    extends WrappingFormula<TWrap, IntegerFormula>
+    implements IntegerFormula {
+
+  WrappingIntegerFormula(FormulaType<IntegerFormula> type, TWrap pToWrap) {
     super(type, pToWrap);
   }
 }

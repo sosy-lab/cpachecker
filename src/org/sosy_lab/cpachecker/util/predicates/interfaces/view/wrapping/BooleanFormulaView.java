@@ -32,7 +32,7 @@ public class BooleanFormulaView extends FormulaView<BooleanFormula> implements B
   private BooleanFormulaManagerView manager;
 
   public BooleanFormulaView(BooleanFormula pWrapped, BooleanFormulaManagerView pView) {
-    super(pWrapped, pView.getViewManager());
+    super(pWrapped);
     this.manager = pView;
   }
 

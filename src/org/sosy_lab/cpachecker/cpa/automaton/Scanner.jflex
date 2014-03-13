@@ -6,7 +6,7 @@ import java_cup.runtime.ComplexSymbolFactory.Location;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import java.io.FileNotFoundException;
 import java.util.ArrayDeque;

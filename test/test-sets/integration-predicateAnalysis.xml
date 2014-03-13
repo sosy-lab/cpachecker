@@ -27,6 +27,7 @@
       <exclude>../programs/benchmarks/eca/Problem18_00_false-unreach-label.c</exclude>
       <exclude>../programs/benchmarks/eca/Problem18_10_false-unreach-label.c</exclude>
       <exclude>../programs/benchmarks/eca/Problem19_38_false-unreach-label.c</exclude>
+      <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_11_false-unreach-label.cil.c</exclude>
     </sourcefiles>
     <sourcefiles>
       <includesfile>integration-DeviceDrivers64.set</includesfile>

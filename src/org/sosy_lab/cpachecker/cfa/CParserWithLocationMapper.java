@@ -56,29 +56,36 @@ import com.google.common.collect.Lists;
  * Encapsulates a {@link CParser} instance and tokenizes all files first.
  */
 
-@Options(prefix="locmapper")
+@Options
 public class CParserWithLocationMapper implements CParser {
 
   private final CParser realParser;
-  private final boolean tokenizeCode;
 
   private final LogManager logger;
 
-  @Option(description="Write the tokenized version of the input program to this file.")
+  private final boolean readLineDirectives;
+
+  @Option(name="locmapper.dumpTokenizedProgramToFile",
+      description="Write the tokenized version of the input program to this file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path dumpTokenizedProgramToFile = null;
+
+  @Option(name="parser.transformTokensToLines",
+      description="Preprocess the given C files before parsing: Put every single token onto a new line. "
+      + "Then the line number corresponds to the token number.")
+  private boolean tokenizeCode = false;
 
   public CParserWithLocationMapper(
       Configuration pConfig,
       LogManager pLogger,
       CParser pRealParser,
-      boolean pTokenizeCode) throws InvalidConfigurationException {
+      boolean pReadLineDirectives) throws InvalidConfigurationException {
 
     pConfig.inject(this);
 
     this.logger = pLogger;
     this.realParser = pRealParser;
-    this.tokenizeCode = pTokenizeCode;
+    readLineDirectives = pReadLineDirectives;
   }
 
 //  public static void main(String[] args) throws CParserException {
@@ -89,17 +96,19 @@ public class CParserWithLocationMapper implements CParser {
 //  }
 
   @Override
-  public ParseResult parseFile(String pFilename) throws ParserException, IOException, InvalidConfigurationException, InterruptedException {
-    String tokenizedCode = tokenizeSourcefile(pFilename);
-    return realParser.parseString(pFilename, tokenizedCode);
+  public ParseResult parseFile(String pFilename, CSourceOriginMapping sourceOriginMapping) throws ParserException, IOException, InvalidConfigurationException, InterruptedException {
+    String tokenizedCode = tokenizeSourcefile(pFilename, sourceOriginMapping);
+    return realParser.parseString(pFilename, tokenizedCode, sourceOriginMapping);
   }
 
-  private String tokenizeSourcefile(String pFilename) throws CParserException, IOException {
+  private String tokenizeSourcefile(String pFilename,
+      CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException {
     String code = Paths.get(pFilename).asCharSource(Charset.defaultCharset()).read();
-    return processCode(pFilename, code);
+    return processCode(pFilename, code, sourceOriginMapping);
   }
 
-  private String processCode(String fileName, String pCode) throws CParserException {
+  private String processCode(final String fileName, String pCode,
+      CSourceOriginMapping sourceOriginMapping) throws CParserException {
     StringBuilder tokenizedCode = new StringBuilder();
 
     LexerOptions options = new LexerOptions();
@@ -108,23 +117,17 @@ public class CParserWithLocationMapper implements CParser {
     Lexer lx = new Lexer(pCode.toCharArray(), options, log, source);
 
     try {
-      int absoluteTokenNumber = 0;
-      int relativeTokenNumber = absoluteTokenNumber;
       int absoluteLineNumber = 1;
       int relativeLineNumber = absoluteLineNumber;
 
       String rangeLinesOriginFilename = fileName;
       int includeStartedWithAbsoluteLine = 0;
-      int includeStartedWithAbsoluteToken = 0;
-      int newLineStartedWithAbsoluteToken = absoluteTokenNumber;
 
       Token token;
       while ((token = lx.nextToken()).getType() != Token.tEND_OF_INPUT) {
         if (token.getType() == Lexer.tNEWLINE) {
-          CSourceOriginMapping.INSTANCE.mapAbsoluteTokenRangeToInputLine(newLineStartedWithAbsoluteToken, absoluteTokenNumber, absoluteLineNumber);
           absoluteLineNumber += 1;
           relativeLineNumber += 1;
-          newLineStartedWithAbsoluteToken = absoluteTokenNumber;
         }
 
         if (token.getType() == Token.tPOUND) { // match #
@@ -144,30 +147,30 @@ public class CParserWithLocationMapper implements CParser {
             if (firstTokenImage.equals("line")) {
 
             } else if (firstTokenImage.matches("[0-9]+")) {
-              putLineRangeMapping(rangeLinesOriginFilename, includeStartedWithAbsoluteLine, absoluteLineNumber, relativeLineNumber - absoluteLineNumber);
-              putTokenRangeMapping(rangeLinesOriginFilename, includeStartedWithAbsoluteToken, absoluteTokenNumber, relativeTokenNumber - absoluteTokenNumber);
+              if (readLineDirectives) {
+                sourceOriginMapping.mapInputLineRangeToDelta(fileName, rangeLinesOriginFilename, includeStartedWithAbsoluteLine, absoluteLineNumber, relativeLineNumber - absoluteLineNumber);
+              }
 
               includeStartedWithAbsoluteLine = absoluteLineNumber;
-              includeStartedWithAbsoluteToken = absoluteTokenNumber;
               relativeLineNumber = Integer.parseInt(firstTokenImage);
-              rangeLinesOriginFilename = directiveTokens.get(1).getImage();
-              relativeTokenNumber = 0;
+              String file = directiveTokens.get(1).getImage();
+              if (file.charAt(0) == '"' && file.charAt(file.length()-1) == '"') {
+                file = file.substring(1, file.length()-1);
+              }
+              rangeLinesOriginFilename = file;
             }
           }
         } else if (!token.getImage().trim().isEmpty()) {
           if (tokenizeCode) {
-            absoluteTokenNumber += 1;
-            relativeTokenNumber += 1;
-
             tokenizedCode.append(token.toString());
             tokenizedCode.append(System.lineSeparator());
           }
         }
       }
 
-      putLineRangeMapping(rangeLinesOriginFilename, includeStartedWithAbsoluteLine + 1, absoluteLineNumber, relativeLineNumber - absoluteLineNumber);
-      putTokenRangeMapping(rangeLinesOriginFilename, includeStartedWithAbsoluteToken + 1, absoluteTokenNumber, relativeTokenNumber - absoluteTokenNumber);
-      CSourceOriginMapping.INSTANCE.mapAbsoluteTokenRangeToInputLine(newLineStartedWithAbsoluteToken, absoluteTokenNumber, absoluteLineNumber);
+      if (readLineDirectives) {
+        sourceOriginMapping.mapInputLineRangeToDelta(fileName, rangeLinesOriginFilename, includeStartedWithAbsoluteLine + 1, absoluteLineNumber, relativeLineNumber - absoluteLineNumber);
+      }
     } catch (OffsetLimitReachedException e) {
       throw new CParserException("Tokenizing failed", e);
     }
@@ -183,19 +186,11 @@ public class CParserWithLocationMapper implements CParser {
     return code;
   }
 
-  private void putLineRangeMapping(String originFilename, int fromLine, int toLine, int deltaToOrigin) {
-    CSourceOriginMapping.INSTANCE.mapInputLineRangeToDelta(originFilename, fromLine, toLine, deltaToOrigin);
-  }
-
-  private void putTokenRangeMapping(String originFilename, int fromToken, int toToken, int deltaToOrigin) {
-    CSourceOriginMapping.INSTANCE.mapInputTokenRangeToDelta(originFilename, fromToken, toToken, deltaToOrigin);
-  }
-
   @Override
-  public ParseResult parseString(String pFilename, String pCode) throws ParserException, InvalidConfigurationException {
-    String tokenizedCode = processCode(pFilename, pCode);
+  public ParseResult parseString(String pFilename, String pCode, CSourceOriginMapping sourceOriginMapping) throws ParserException, InvalidConfigurationException {
+    String tokenizedCode = processCode(pFilename, pCode, sourceOriginMapping);
 
-    return realParser.parseString(pFilename, tokenizedCode);
+    return realParser.parseString(pFilename, tokenizedCode, sourceOriginMapping);
   }
 
   @Override
@@ -209,34 +204,34 @@ public class CParserWithLocationMapper implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(List<FileToParse> pFilenames) throws CParserException, IOException,
+  public ParseResult parseFile(List<FileToParse> pFilenames, CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException,
       InvalidConfigurationException, InterruptedException {
 
     List<FileContentToParse> programFragments = new ArrayList<>(pFilenames.size());
     for (FileToParse f : pFilenames) {
-      String programCode = tokenizeSourcefile(f.getFileName());
+      String programCode = tokenizeSourcefile(f.getFileName(), sourceOriginMapping);
       if (programCode.isEmpty()) {
         throw new CParserException("Tokenizer returned empty program");
       }
       programFragments.add(new FileContentToParse(f.getFileName(), programCode, f.getStaticVariablePrefix()));
     }
-    return realParser.parseString(programFragments);
+    return realParser.parseString(programFragments, sourceOriginMapping);
   }
 
   @Override
-  public ParseResult parseString(List<FileContentToParse> pCode) throws CParserException,
+  public ParseResult parseString(List<FileContentToParse> pCode, CSourceOriginMapping sourceOriginMapping) throws CParserException,
       InvalidConfigurationException {
 
     List<FileContentToParse> tokenizedFragments = new ArrayList<>(pCode.size());
     for (FileContentToParse f : pCode) {
-      String programCode = processCode(f.getFileName(), f.getFileContent());
+      String programCode = processCode(f.getFileName(), f.getFileContent(), sourceOriginMapping);
       if (programCode.isEmpty()) {
         throw new CParserException("Tokenizer returned empty program");
       }
       tokenizedFragments.add(new FileContentToParse(f.getFileName(), programCode, f.getStaticVariablePrefix()));
     }
 
-    return realParser.parseString(tokenizedFragments);
+    return realParser.parseString(tokenizedFragments, sourceOriginMapping);
   }
 
   @Override
