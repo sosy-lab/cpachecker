@@ -1733,7 +1733,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     // postSwitchNode is Node after the switch-statement
     final CFANode postSwitchNode =
-        new CLabelNode(fileLocEnd, cfa.getFunctionName(), "");
+        new CFANode(fileLocEnd, cfa.getFunctionName());
 
     cfaNodes.add(postSwitchNode);
     loopNextStack.push(postSwitchNode);
@@ -1881,8 +1881,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     final CFANode firstLoopNode = new CFANode(fileLocStart, cfa.getFunctionName());
     cfaNodes.add(firstLoopNode);
 
-    final CFANode postLoopNode = new CLabelNode(fileLocEnd,
-                                                   cfa.getFunctionName(), "");
+    final CFANode postLoopNode = new CFANode(fileLocEnd, cfa.getFunctionName());
     cfaNodes.add(postLoopNode);
     loopNextStack.push(postLoopNode);
 
@@ -1926,7 +1925,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     cfaNodes.add(firstLoopNode);
 
     final CFANode postLoopNode =
-        new CLabelNode(fileLocEnd, cfa.getFunctionName(), "");
+        new CFANode(fileLocEnd, cfa.getFunctionName());
 
     cfaNodes.add(postLoopNode);
     loopNextStack.push(postLoopNode);
@@ -2011,7 +2010,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     // postLoopNode is Node after "!(it.hasNext())"
     final CFANode postLoopNode =
-        new CLabelNode(fileLocEnd, cfa.getFunctionName(), "");
+        new CFANode(fileLocEnd, cfa.getFunctionName());
     cfaNodes.add(postLoopNode);
     loopNextStack.push(postLoopNode);
 
@@ -2123,7 +2122,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     // postLoopNode is Node after "!(counter < 5)"
     final CFANode postLoopNode =
-        new CLabelNode(fileLocEnd, cfa.getFunctionName(), "");
+        new CFANode(fileLocEnd, cfa.getFunctionName());
     cfaNodes.add(postLoopNode);
     loopNextStack.push(postLoopNode);
 
