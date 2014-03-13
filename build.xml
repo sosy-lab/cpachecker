@@ -34,7 +34,6 @@
     <path id="CPAchecker.classpath">
         <pathelement location="${class.dir}"/>
         <fileset dir="lib" includes="*.jar" excludes="appengine-*/**,gae/**"/>
-        <fileset dir="lib/JavaParser" includes="*.jar"/>
         <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar"/>
     </path>
     <condition property="architecture" value="x86_64" else="x86">

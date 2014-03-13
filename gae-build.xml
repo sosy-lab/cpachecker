@@ -27,7 +27,6 @@
 		<pathelement path="${class.dir}" />
 		<fileset dir="${lib.dir}">
 			<include name="*.jar" />
-			<include name="JavaParser/*.jar" />
 		</fileset>
 		<fileset dir="${ivy.lib.dir}">
 			<include name="**/*.jar" />
@@ -87,7 +86,6 @@
 		<copy todir="${war.dir}/WEB-INF/lib" flatten="true">
 			<fileset dir="${lib.dir}">
 				<include name="*.jar" />
-				<include name="JavaParser/*.jar" />
 			</fileset>
 			<fileset dir="${ivy.lib.dir}">
 				<include name="runtime/*.jar" />

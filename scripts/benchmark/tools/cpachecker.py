@@ -45,7 +45,6 @@ import benchmark.tools.template
 
 REQUIRED_PATHS = [
                   "lib/java/runtime",
-                  "lib/JavaParser",
                   "lib/*.jar",
                   "lib/native",
                   "scripts",

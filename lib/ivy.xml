@@ -65,9 +65,10 @@
              Mocking framework for tests. -->
         <dependency org="org.mockito" name="mockito-core" rev="1.9.5" conf="test->default"/>
 
-        <!-- Eclipse CDT
-             Used for parsing C code. -->
-        <dependency org="org.eclipse.cdt" name="core" rev="5.5.0.201306112328" conf="runtime->default; contrib->sources"/>
+        <!-- Eclipse CDT and JDT
+             Used for parsing C and Java code. -->
+        <dependency org="org.eclipse.cdt" name="core" rev="5.6.0.201402142303" conf="runtime->default; contrib->sources"/>
+        <dependency org="org.eclipse.jdt" name="core" rev="3.9.2.v20140114-1555" conf="runtime->default; contrib->sources"/>
 
         <!-- SmtInterpol -->
         <dependency org="de.uni-freiburg.informatik.ultimate" name="smtinterpol" rev="2.1_2013-12-11_68b2ae3e" conf="runtime->runtime; contrib->sources">
