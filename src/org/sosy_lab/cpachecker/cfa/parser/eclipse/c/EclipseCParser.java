@@ -44,8 +44,10 @@ import org.eclipse.cdt.core.dom.ast.gnu.c.GCCLanguage;
 import org.eclipse.cdt.core.dom.parser.c.ANSICParserExtensionConfiguration;
 import org.eclipse.cdt.core.dom.parser.c.ICParserExtensionConfiguration;
 import org.eclipse.cdt.core.model.ILanguage;
+import org.eclipse.cdt.core.parser.FileContent;
 import org.eclipse.cdt.core.parser.IParserLogService;
 import org.eclipse.cdt.core.parser.IScannerInfo;
+import org.eclipse.cdt.core.parser.IncludeFileContentProvider;
 import org.eclipse.cdt.core.parser.ParserFactory;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.Pair;
@@ -69,11 +71,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
 /**
- * Base implementation that should work with all CDT versions we support.
- *
- * @param <T> The type that the CDT version uses to encapsulate the source code access.
+ * Wrapper for Eclipse CDT 7.0 and 8.* (internal version number since 5.2.*)
  */
-abstract class AbstractEclipseCParser<T> implements CParser {
+public class EclipseCParser implements CParser {
 
   protected final ILanguage language;
 
@@ -87,7 +87,7 @@ abstract class AbstractEclipseCParser<T> implements CParser {
   private final Timer parseTimer = new Timer();
   private final Timer cfaTimer = new Timer();
 
-  protected AbstractEclipseCParser(Configuration pConfig, LogManager pLogger,
+  public EclipseCParser(Configuration pConfig, LogManager pLogger,
       Dialect dialect, MachineModel pMachine) {
 
     this.logger = pLogger;
@@ -106,11 +106,15 @@ abstract class AbstractEclipseCParser<T> implements CParser {
     }
   }
 
-  protected abstract T wrapCode(FileContentToParse pCode);
+  private FileContent wrapCode(FileContentToParse pContent) {
+    return FileContent.create(pContent.getFileName(), pContent.getFileContent().toCharArray());
+  }
 
-  protected abstract T wrapCode(String pFilename, String pCode);
+  private FileContent wrapCode(String pFileName, String pCode) {
+    return FileContent.create(pFileName, pCode.toCharArray());
+  }
 
-  private final T wrapFile(String pFileName) throws IOException {
+  private final FileContent wrapFile(String pFileName) throws IOException {
     String code = Paths.get(pFileName).asCharSource(Charset.defaultCharset()).read();
     return wrapCode(pFileName, code);
   }
@@ -241,7 +245,7 @@ abstract class AbstractEclipseCParser<T> implements CParser {
           | ILanguage.OPTION_NO_IMAGE_LOCATIONS // we don't use IASTName#getImageLocation(), so the parse doesn't need to create them
           ;
 
-  private IASTTranslationUnit parse(T codeReader) throws CParserException {
+  private IASTTranslationUnit parse(FileContent codeReader) throws CParserException {
     parseTimer.start();
     try {
       IASTTranslationUnit result = getASTTranslationUnit(codeReader);
@@ -269,7 +273,14 @@ abstract class AbstractEclipseCParser<T> implements CParser {
     }
   }
 
-  protected abstract IASTTranslationUnit getASTTranslationUnit(T code) throws CParserException, CFAGenerationRuntimeException, CoreException;
+  private IASTTranslationUnit getASTTranslationUnit(FileContent pCode) throws CParserException, CFAGenerationRuntimeException, CoreException {
+    return language.getASTTranslationUnit(pCode,
+                                          StubScannerInfo.instance,
+                                          IncludeFileContentProvider.getEmptyFilesProvider(),
+                                          null,
+                                          PARSER_OPTIONS,
+                                          parserLog);
+  }
 
   /**
    * Builds the cfa out of a list of pairs of translation units and their appropriate prefixes for static variables
