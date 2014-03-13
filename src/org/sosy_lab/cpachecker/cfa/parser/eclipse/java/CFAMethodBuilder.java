@@ -99,6 +99,7 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.java.JAssumeEdge;
@@ -713,8 +714,8 @@ class CFAMethodBuilder extends ASTVisitor {
     CFANode unsuccessfulNode = new CFANode(fileLocStart, methodName);
     cfaNodes.add(unsuccessfulNode);
 
-    CLabelNode errorLabelNode = new CLabelNode(fileLocStart, methodName, "ERROR");
-    cfaNodes.add(errorLabelNode);
+    CFANode endNode = new CFATerminationNode(fileLocStart, methodName);
+    cfaNodes.add(endNode);
 
     CONDITION kind = getConditionKind(condition);
 
@@ -752,7 +753,7 @@ class CFAMethodBuilder extends ASTVisitor {
       if (!hasMessage) {
         blankEdge = new BlankEdge(rawSignature,
             fileloc,
-            unsuccessfulNode, errorLabelNode, "asssert fail");
+            unsuccessfulNode, endNode, "assert fail");
         addToCFA(blankEdge);
 
       } else {
@@ -763,7 +764,7 @@ class CFAMethodBuilder extends ASTVisitor {
             handleSideassignments(unsuccessfulNode, rawSignature, fileloc);
 
         blankEdge = new BlankEdge(rawSignature, fileloc,
-            unsuccessfulNode, errorLabelNode, "asssert fail");
+            unsuccessfulNode, endNode, "assert fail");
         addToCFA(blankEdge);
       }
     }
