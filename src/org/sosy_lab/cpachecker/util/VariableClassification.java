@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import java.io.IOException;
@@ -57,6 +58,7 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -197,6 +199,7 @@ public class VariableClassification {
 
   public VariableClassification(CFA cfa, Configuration config, LogManager pLogger,
       ImmutableMultimap<String, Loop> pLoopStructure) throws InvalidConfigurationException {
+    checkArgument(cfa.getLanguage() == Language.C, "VariableClassification currently only supports C");
     config.inject(this);
     this.cfa = cfa;
     this.loopStructure = pLoopStructure;
