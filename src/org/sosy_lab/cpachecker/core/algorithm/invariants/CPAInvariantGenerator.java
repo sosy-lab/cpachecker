@@ -172,7 +172,10 @@ public class CPAInvariantGenerator implements InvariantGenerator {
 
     public InvariantGenerationTask(ReachedSetFactory pReachedSetFactory, CFANode pInitialLocation) {
       taskReached = pReachedSetFactory.create();
-      taskReached.add(invariantCPAs.getInitialState(pInitialLocation), invariantCPAs.getInitialPrecision(pInitialLocation));
+      synchronized (invariantCPAs) {
+        taskReached.add(invariantCPAs.getInitialState(pInitialLocation),
+            invariantCPAs.getInitialPrecision(pInitialLocation));
+      }
     }
 
     @Override
@@ -262,11 +265,14 @@ public class CPAInvariantGenerator implements InvariantGenerator {
 
     private Future<UnmodifiableReachedSet> scheduleTask(final ReachedSetFactory pReachedSetFactory, final CFANode pInitialLocation) {
       final AtomicReference<Future<UnmodifiableReachedSet>> ref = new AtomicReference<>();
-      Future<UnmodifiableReachedSet> future = executorService.submit(new InvariantGenerationTask(pReachedSetFactory, pInitialLocation) {
+      final Future<UnmodifiableReachedSet> future = new LazyFutureTask<>(new InvariantGenerationTask(pReachedSetFactory, pInitialLocation) {
 
         @Override
         public UnmodifiableReachedSet call() throws CPAException, InterruptedException {
           UnmodifiableReachedSet result = super.call();
+          // This accesses the future referenced by ref, which is a future
+          // wrapping this call itself, so this function must not be called
+          // before ref is set to the wrapping future
           currentFuture.set(ref.get());
           if (adjustConditions()) {
             scheduleTask(pReachedSetFactory, pInitialLocation);
@@ -278,7 +284,18 @@ public class CPAInvariantGenerator implements InvariantGenerator {
         }
 
       });
+      // Set the wrapping future as value of the reference
       ref.set(future);
+      // From here on it is safe to call the task, so it is submit to a scheduler
+      executorService.submit(new Callable<Void>() {
+
+        @Override
+        public Void call() throws Exception {
+          future.get();
+          return null;
+        }
+
+      });
       return future;
     }
 
@@ -299,10 +316,12 @@ public class CPAInvariantGenerator implements InvariantGenerator {
         logger.log(Level.INFO, "Cannot adjust invariant generation: No adjustable CPAs.");
         return false;
       }
-      for (AdjustableConditionCPA cpa : conditionCPAs) {
-        if (!cpa.adjustPrecision()) {
-          logger.log(Level.INFO, "Further invariant generation adjustments denied by", cpa.getClass().getSimpleName());
-          return false;
+      synchronized (invariantCPAs) {
+        for (AdjustableConditionCPA cpa : conditionCPAs) {
+          if (!cpa.adjustPrecision()) {
+            logger.log(Level.INFO, "Further invariant generation adjustments denied by", cpa.getClass().getSimpleName());
+            return false;
+          }
         }
       }
       return true;
