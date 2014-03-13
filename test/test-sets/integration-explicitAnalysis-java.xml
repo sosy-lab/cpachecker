@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="10" hardtimelimit="30" memlimit="250" cpuCores="2">
+
+  <option name="-noout"/>
+  <option name="-heap">150M</option>
+  <option name="-explicitAnalysis-java-with-RTT"/>
+  <option name="-timelimit">10s</option>
+
+  <rundefinition/>
+
+  <sourcefiles>
+    <requiredfiles>../programs/java/CallTests</requiredfiles>
+    <option name="-cp">test/programs/java/CallTests</option>
+    <withoutfile>pack1.BooleanOperators</withoutfile>
+    <withoutfile>pack1.CreateObjects</withoutfile>
+    <withoutfile>pack1.Arrays1</withoutfile>
+    <withoutfile>pack1.DynamicBindingCall</withoutfile>
+    <withoutfile>pack1.FunctionCall</withoutfile>
+    <withoutfile>pack3.SimplestRTTTest</withoutfile>
+    <withoutfile>pack3.RTTBaExample1</withoutfile>
+    <withoutfile>pack3.RTTTest1</withoutfile>
+    <withoutfile>pack5.switchTest</withoutfile>
+    <withoutfile>pack5.CallTests</withoutfile>
+  </sourcefiles>
+
+  <sourcefiles>
+    <requiredfiles>../programs/java/Misc</requiredfiles>
+    <option name="-cp">test/programs/java/Misc</option>
+    <withoutfile>pack4.CastTest</withoutfile>
+    <withoutfile>pack4.class1</withoutfile>
+    <withoutfile>pack4.class2</withoutfile>
+    <withoutfile>pack4.SubType1</withoutfile>
+    <withoutfile>pack4.testContin</withoutfile>
+  </sourcefiles>
+
+  <sourcefiles>
+    <requiredfiles>../programs/java/Statements</requiredfiles>
+    <option name="-cp">test/programs/java/Statements</option>
+    <withoutfile>Assert1</withoutfile>
+    <withoutfile>Assert2</withoutfile>
+    <withoutfile>ConditionalExpression1</withoutfile>
+    <withoutfile>FunctionCall2</withoutfile>
+    <withoutfile>FunctionCall3</withoutfile>
+    <withoutfile>FunctionCall4</withoutfile>
+    <withoutfile>FunctionCall5</withoutfile>
+    <withoutfile>FunctionCall</withoutfile>
+    <withoutfile>IfStatement2</withoutfile>
+    <withoutfile>IfStatement3</withoutfile>
+    <withoutfile>IfStatement4</withoutfile>
+    <withoutfile>IfStatement5</withoutfile>
+    <withoutfile>IfStatement</withoutfile>
+    <withoutfile>Label2</withoutfile>
+    <withoutfile>Label</withoutfile>
+    <withoutfile>Loop3</withoutfile>
+    <withoutfile>Loop4</withoutfile>
+    <withoutfile>Loop5</withoutfile>
+    <withoutfile>Loop6</withoutfile>
+    <withoutfile>Loop7</withoutfile>
+    <withoutfile>Loop8</withoutfile>
+    <withoutfile>RTTBA1</withoutfile>
+    <withoutfile>Readable</withoutfile>
+    <withoutfile>SuperClass</withoutfile>
+    <withoutfile>Switch2</withoutfile>
+    <withoutfile>Switch</withoutfile>
+    <withoutfile>SyntaxError</withoutfile>
+    <withoutfile>Type</withoutfile>
+    <withoutfile>WhileLoop2</withoutfile>
+    <withoutfile>Whileloop1</withoutfile>
+    <withoutfile>pack.AssertCondition</withoutfile>
+    <withoutfile>pack.Const</withoutfile>
+    <withoutfile>pack.Declaration</withoutfile>
+    <withoutfile>pack.DoWhileAnweisung</withoutfile>
+    <withoutfile>pack.Expression2</withoutfile>
+    <withoutfile>pack.Expression</withoutfile>
+    <withoutfile>pack.IFE</withoutfile>
+    <withoutfile>pack.IfAnweisung</withoutfile>
+    <withoutfile>pack.IfStatement2</withoutfile>
+    <withoutfile>pack.LabeledAnweisung</withoutfile>
+    <withoutfile>pack.MethodCall</withoutfile>
+    <withoutfile>pack.RTTBA1</withoutfile>
+    <withoutfile>pack.SimpleExample</withoutfile>
+    <withoutfile>pack.SubType</withoutfile>
+    <withoutfile>pack.SwitchAnweisung</withoutfile>
+    <withoutfile>pack.Type1</withoutfile>
+    <withoutfile>pack.Type</withoutfile>
+    <withoutfile>pack.WhileAnweisung</withoutfile>
+    <withoutfile>pack.forAnweisung</withoutfile>
+  </sourcefiles>
+</benchmark>
