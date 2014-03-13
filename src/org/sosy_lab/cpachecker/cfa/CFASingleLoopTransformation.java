@@ -1201,33 +1201,79 @@ public class CFASingleLoopTransformation {
     if (pNewToOldMapping == null) {
       return pNode;
     }
+
     CFANode result = pNewToOldMapping.get(pNode);
     if (result != null) {
       return result;
     }
+
     int lineNumber = pNode.getLineNumber();
     String functionName = pNode.getFunctionName();
+
     if (pNode instanceof CLabelNode) {
+
       result = new CLabelNode(lineNumber, functionName, ((CLabelNode) pNode).getLabel());
+
     } else if (pNode instanceof CFunctionEntryNode) {
+
       CFunctionEntryNode functionEntryNode = (CFunctionEntryNode) pNode;
       FunctionExitNode functionExitNode = (FunctionExitNode) getOrCreateNewFromOld(functionEntryNode.getExitNode(), pNewToOldMapping);
-      result = new CFunctionEntryNode(lineNumber, functionEntryNode.getFunctionDefinition(),
-          functionExitNode, functionEntryNode.getFunctionParameterNames());
+      result = functionExitNode.getEntryNode();
+
     } else if (pNode instanceof JMethodEntryNode) {
+
       JMethodEntryNode methodEntryNode = (JMethodEntryNode) pNode;
       FunctionExitNode functionExitNode = (FunctionExitNode) getOrCreateNewFromOld(methodEntryNode.getExitNode(), pNewToOldMapping);
-      result = new JMethodEntryNode(lineNumber, methodEntryNode.getFunctionDefinition(),
-          functionExitNode, methodEntryNode.getFunctionParameterNames());
+      result = functionExitNode.getEntryNode();
+
     } else if (pNode instanceof FunctionExitNode) {
+
+      FunctionExitNode oldFunctionNode = (FunctionExitNode) pNode;
+      FunctionEntryNode precomputedEntryNode = (FunctionEntryNode) pNewToOldMapping.get(oldFunctionNode.getEntryNode());
+
+      if (precomputedEntryNode != null) {
+        return precomputedEntryNode.getExitNode();
+      }
+
       FunctionExitNode functionExitNode = new FunctionExitNode(lineNumber, functionName);
-      pNewToOldMapping.put(pNode, functionExitNode);
-      FunctionEntryNode functionEntryNode = (FunctionEntryNode) getOrCreateNewFromOld(((FunctionExitNode) pNode).getEntryNode(), pNewToOldMapping);
+
+      FunctionEntryNode oldEntryNode = oldFunctionNode.getEntryNode();
+      int entryLineNumber = oldEntryNode.getLineNumber();
+      String entryFunctionName = oldEntryNode.getFunctionName();
+      final FunctionEntryNode functionEntryNode;
+      if (oldEntryNode instanceof CFunctionEntryNode) {
+        functionEntryNode = new CFunctionEntryNode(
+            entryLineNumber,
+            ((CFunctionEntryNode) oldEntryNode).getFunctionDefinition(),
+            functionExitNode,
+            oldEntryNode.getFunctionParameterNames());
+      } else if (oldEntryNode instanceof JMethodEntryNode) {
+        functionEntryNode = new JMethodEntryNode(
+            entryLineNumber,
+            ((JMethodEntryNode) oldEntryNode).getFunctionDefinition(),
+            functionExitNode,
+            oldEntryNode.getFunctionParameterNames());
+      } else {
+        functionEntryNode = new FunctionEntryNode(
+            entryLineNumber,
+            entryFunctionName,
+            functionExitNode,
+            oldEntryNode.getFunctionDefinition(),
+            oldEntryNode.getFunctionParameterNames());
+      }
       functionExitNode.setEntryNode(functionEntryNode);
+
+      pNewToOldMapping.put(pNode, functionExitNode);
+      pNewToOldMapping.put(oldFunctionNode, functionEntryNode);
+
       result = functionExitNode;
+
     } else if (pNode instanceof CFATerminationNode) {
+
       result = new CFATerminationNode(lineNumber, functionName);
+
     } else if (pNode.getClass() != CFANode.class) {
+
       Class<? extends CFANode> clazz = pNode.getClass();
       Class<?>[] requiredParameterTypes = new Class<?>[] { int.class, String.class };
       for (Constructor<?> cons : clazz.getConstructors()) {
@@ -1241,12 +1287,14 @@ public class CFASingleLoopTransformation {
           }
         }
       }
+
       if (result == null) {
         result = new CFANode(lineNumber, functionName);
         this.logger.log(Level.WARNING, "Unknown node type " + clazz + "; created copy as instance of base type CFANode.");
       } else {
         this.logger.log(Level.WARNING, "Unknown node type " + clazz + "; created copy by reflection.");
       }
+
     } else {
       result = new CFANode(lineNumber, functionName);
     }
