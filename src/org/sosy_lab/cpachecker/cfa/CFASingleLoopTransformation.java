@@ -1212,30 +1212,18 @@ public class CFASingleLoopTransformation {
     } else if (pNode instanceof CFunctionEntryNode) {
       CFunctionEntryNode functionEntryNode = (CFunctionEntryNode) pNode;
       FunctionExitNode functionExitNode = (FunctionExitNode) getOrCreateNewFromOld(functionEntryNode.getExitNode(), pNewToOldMapping);
-      if (functionExitNode.getEntryNode() == null) {
-        result = new CFunctionEntryNode(lineNumber, functionEntryNode.getFunctionDefinition(),
-            functionExitNode, functionEntryNode.getFunctionParameterNames());
-        functionExitNode.setEntryNode((FunctionEntryNode) result);
-      } else {
-        result = functionExitNode.getEntryNode();
-      }
+      result = new CFunctionEntryNode(lineNumber, functionEntryNode.getFunctionDefinition(),
+          functionExitNode, functionEntryNode.getFunctionParameterNames());
     } else if (pNode instanceof JMethodEntryNode) {
       JMethodEntryNode methodEntryNode = (JMethodEntryNode) pNode;
       FunctionExitNode functionExitNode = (FunctionExitNode) getOrCreateNewFromOld(methodEntryNode.getExitNode(), pNewToOldMapping);
-      if (functionExitNode.getEntryNode() == null) {
-        functionExitNode.setEntryNode(methodEntryNode);
-      }
       result = new JMethodEntryNode(lineNumber, methodEntryNode.getFunctionDefinition(),
           functionExitNode, methodEntryNode.getFunctionParameterNames());
     } else if (pNode instanceof FunctionExitNode) {
       FunctionExitNode functionExitNode = new FunctionExitNode(lineNumber, functionName);
       pNewToOldMapping.put(pNode, functionExitNode);
-      if (functionExitNode.getEntryNode() == null) {
-        FunctionEntryNode functionEntryNode = (FunctionEntryNode) getOrCreateNewFromOld(((FunctionExitNode) pNode).getEntryNode(), pNewToOldMapping);
-        if (functionExitNode.getEntryNode() == null) {
-          functionExitNode.setEntryNode(functionEntryNode);
-        }
-      }
+      FunctionEntryNode functionEntryNode = (FunctionEntryNode) getOrCreateNewFromOld(((FunctionExitNode) pNode).getEntryNode(), pNewToOldMapping);
+      functionExitNode.setEntryNode(functionEntryNode);
       result = functionExitNode;
     } else if (pNode instanceof CFATerminationNode) {
       result = new CFATerminationNode(lineNumber, functionName);
