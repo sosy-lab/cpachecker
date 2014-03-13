@@ -443,7 +443,7 @@ public class ARGUtils {
     }
 
 
-  public static void producePathAutomaton(Appendable sb, String name, CounterexampleTraceInfo pCounterExampleTrace)
+  public static void produceTestGenPathAutomaton(Appendable sb, String name, CounterexampleTraceInfo pCounterExampleTrace)
       throws IOException {
 
     Model model = pCounterExampleTrace.getModel();
@@ -452,12 +452,12 @@ public class ARGUtils {
     int stateCounter = 1;
 
     sb.append("CONTROL AUTOMATON " + name + "\n\n");
-    sb.append("INITIAL STATE ARG" + stateCounter + ";\n\n");
+    sb.append("INITIAL STATE STATE" + stateCounter + ";\n\n");
 
     for (Iterator<CFAEdgeWithAssignments> it = assignmentCFAPath.iterator(); it.hasNext();) {
       CFAEdgeWithAssignments edge = it.next();
 
-      sb.append("STATE USEFIRST ARG" + stateCounter + " :\n");
+      sb.append("STATE USEFIRST STATE" + stateCounter + " :\n");
 
       sb.append("    MATCH \"");
       escape(edge.getCFAEdge().getRawStatement(), sb);
@@ -466,15 +466,21 @@ public class ARGUtils {
       if (it.hasNext()) {
         String code = edge.getAsCode();
         String assumption = code == null ? "" : "ASSUME {" + code + "}";
-        sb.append(assumption + "GOTO ARG" + ++stateCounter);
+        sb.append(assumption + "GOTO STATE" + ++stateCounter);
       } else {
-        sb.append("ERROR");
+        sb.append("GOTO EndLoop");
       }
 
       sb.append(";\n");
-
       sb.append("    TRUE -> STOP;\n\n");
+
     }
+
+    //sb.append("    TRUE -> STOP;\n\n");
+    sb.append("STATE USEFIRST EndLoop" + " :\n");
+    sb.append("    MATCH EXIT ");
+    sb.append(" -> ERROR; \n");
+    sb.append("    TRUE -> GOTO EndLoop;\n\n");
 
     sb.append("END AUTOMATON\n");
   }
