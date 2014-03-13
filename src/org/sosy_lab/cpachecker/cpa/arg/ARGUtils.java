@@ -479,7 +479,7 @@ public class ARGUtils {
     //sb.append("    TRUE -> STOP;\n\n");
     sb.append("STATE USEFIRST EndLoop" + " :\n");
     sb.append("    MATCH EXIT ");
-    sb.append(" -> ERROR; \n");
+    sb.append(" -> BREAK; \n");
     sb.append("    TRUE -> GOTO EndLoop;\n\n");
 
     sb.append("END AUTOMATON\n");
@@ -603,7 +603,7 @@ public class ARGUtils {
       sb.append("STATE USEFIRST EndLoop" + " :\n");
 
       sb.append("    MATCH EXIT ");
-      sb.append(" -> ERROR; \n");
+      sb.append(" -> BREAK; \n");
       sb.append("    TRUE -> GOTO EndLoop;\n\n");
 
     }

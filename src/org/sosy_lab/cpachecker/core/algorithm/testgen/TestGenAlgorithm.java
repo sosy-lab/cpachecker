@@ -46,18 +46,14 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
-
-import com.google.common.collect.FluentIterable;
 
 @Options(prefix = "testgen")
 public class TestGenAlgorithm implements Algorithm {
@@ -159,13 +155,9 @@ public class TestGenAlgorithm implements Algorithm {
           "wrong configuration of explicit cpa, because concolicAlg needs ARGState"); }
       /*
        * check if reachedSet contains a target state.
-       * A target state is either an ERROR (declared by at least one Automaton) or TestGenTarget.
-       * TestGenTarget signals that the current DFS-searched path has no more successors.
-       * If TargetState is only a TestGenTarget, we continue with the TestGenAlgorithm.
-       * If ERROR we can exit because we found a real error.
        */
       ARGState pseudoTarget = (ARGState) currentReached.getLastState();
-      if (isRealTargetError(pseudoTarget)) { return true; }
+      if (pseudoTarget.isTarget()) { return true; }
       /*
        * not an error path. selecting new path to traverse.
        */
@@ -191,37 +183,5 @@ public class TestGenAlgorithm implements Algorithm {
     }
 //    return false;
   }
-
-
-  /**
-   * checks if the given state is a error-target-state in the sense of a program error.
-   * Since the concolic algorithm uses control-automaton target states to leave CPAAlgorithm early,
-   * a target state can be signalled without a program error.
-   * If another automaton signalled target state, the given state is handled as an error,
-   * even if the concolic control automaton signalled an error as well.
-   * @param pseudoTarget
-   * @return true if 'real' program error, false if target state only from concolic automaton.
-   */
-  private boolean isRealTargetError(ARGState pseudoTarget) {
-    if (AbstractStates.isTargetState(pseudoTarget))
-    {
-      FluentIterable<AbstractState> w = AbstractStates.asIterable(pseudoTarget);
-      //get all wrapped automaton states.
-      FluentIterable<AutomatonState> wrapped = AbstractStates.projectToType(w, AutomatonState.class);
-      //check if any automaton except the TestGenAutomaton "EvalOnlyOnePathAutomaton" reached a target state.
-      for (AutomatonState autoState : wrapped) {//TODO extract into method that is resistant to String-changes
-        if (!autoState.getOwningAutomatonName().equals("EvalOnlyOnePathAutomaton") && !autoState.getOwningAutomatonName().equals("nextPathAutomaton")) {
-          /*
-           * target state means error state.
-           * we found an error path and leave the analysis to the surrounding alg.
-           */
-          if (autoState.isTarget()) { return true; }
-        }
-      }
-    }
-    return false;
-  }
-
-
 
 }
