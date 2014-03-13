@@ -1399,7 +1399,7 @@ invariantGeneration.config = no default value
 java.classpath = ""
 
 # use the following encoding for java files
-java.encoding = "utf8"
+java.encoding = Charsets.UTF_8
 
 # export TypeHierarchy as .dot file
 java.exportTypeHierarchy = true
