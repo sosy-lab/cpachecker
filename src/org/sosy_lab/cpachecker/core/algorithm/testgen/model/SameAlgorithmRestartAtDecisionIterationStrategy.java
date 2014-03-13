@@ -46,10 +46,9 @@ public class SameAlgorithmRestartAtDecisionIterationStrategy implements TestGenI
 
   @Override
   public void updateIterationModelForNextIteration(PredicatePathAnalysisResult pResult) {
-//    initialState = globalReached.getFirstState();
     addReachedStatesToOtherReached(model.getLocalReached(), model.getGlobalReached());
     ReachedSet newReached = reachedSetFactory.create();
-    newReached.add(pResult.getDecidingState(), model.getGlobalReached().getPrecision(pResult.getDecidingState()));
+    newReached.add(model.getGlobalReached().getFirstState(), model.getGlobalReached().getPrecision(model.getGlobalReached().getFirstState()));
     newReached.add(pResult.getWrongState(), model.getGlobalReached().getPrecision(pResult.getWrongState()));
     newReached.removeOnlyFromWaitlist(pResult.getWrongState());
     model.setLocalReached(newReached);
@@ -67,13 +66,6 @@ public class SameAlgorithmRestartAtDecisionIterationStrategy implements TestGenI
   }
 
   private void addReachedStatesToOtherReached(ReachedSet pCurrentReached, ReachedSet pGlobalReached) {
-//  Iterable<Pair<AbstractState, Precision>> transform = Iterables.transform(pCurrentReached, new Function<AbstractState, Pair<AbstractState,Precision>>() {
-//
-//    @Override
-//    public Pair<AbstractState, Precision> apply(AbstractState pInput) {
-//      // TODO Auto-generated method stub
-//      return null;
-//    }});
   for (AbstractState state : pCurrentReached) {
     pGlobalReached.add(state,pCurrentReached.getPrecision(state));
     pGlobalReached.removeOnlyFromWaitlist(state);

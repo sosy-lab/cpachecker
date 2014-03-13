@@ -149,15 +149,18 @@ public class TestGenAlgorithm implements Algorithm {
       //maybe remove marker node from currentReached. might depend on iterationStrategy and should be part of the runAlg()
       if(false && lastResult.isValid())
       {
-        currentReached.remove(lastResult.getWrongState());
+        iterationStrategy.getModel().getLocalReached().remove(lastResult.getWrongState());
       }
-      if (!(currentReached.getLastState() instanceof ARGState)) { throw new IllegalStateException(
+      if (!(iterationStrategy.getModel().getLocalReached().getLastState() instanceof ARGState)) { throw new IllegalStateException(
           "wrong configuration of explicit cpa, because concolicAlg needs ARGState"); }
       /*
-       * check if reachedSet contains a target state.
+       * check if reachedSet contains a target (error) state.
        */
-      ARGState pseudoTarget = (ARGState) currentReached.getLastState();
-      if (pseudoTarget.isTarget()) { return true; }
+      ARGState pseudoTarget = (ARGState) iterationStrategy.getModel().getLocalReached().getLastState();
+      if (pseudoTarget.isTarget()) {
+        updateGlobalReached();
+        return true;
+        }
       /*
        * not an error path. selecting new path to traverse.
        */
@@ -170,6 +173,7 @@ public class TestGenAlgorithm implements Algorithm {
          * If we didn't find an error, the program is safe and sound, in the sense of a concolic test.
          * TODO: Identify the problems with soundness in context on concolic testing
          */
+        updateGlobalReached();
         return true; //true = sound or false = unsound. Which case is it here??
       }
       /*
@@ -181,7 +185,17 @@ public class TestGenAlgorithm implements Algorithm {
 
       lastResult = result;
     }
-//    return false;
+  }
+
+
+  private void updateGlobalReached() {
+    IterationModel model = iterationStrategy.getModel();
+    model.getGlobalReached().clear();
+      for (AbstractState state : model.getLocalReached()) {
+        model.getGlobalReached().add(state,model.getLocalReached().getPrecision(state));
+        model.getGlobalReached().removeOnlyFromWaitlist(state);
+      }
+
   }
 
 }
