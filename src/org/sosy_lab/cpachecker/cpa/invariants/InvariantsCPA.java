@@ -118,7 +118,7 @@ public class InvariantsCPA extends AbstractCPA implements AdjustableConditionCPA
     private int interestingPredicatesLimit = 0;
 
     @Option(description="the maximum number of variables to consider as interesting. -1 one disables the limit, but this is not recommended. 0 means that guessing interesting variables is disabled.")
-    private int interestingVariableLimit = 2;
+    private volatile int interestingVariableLimit = 2;
 
     @Option(description="the maximum tree depth of a formula recorded in the environment.")
     private int maximumFormulaDepth = 4;
@@ -204,6 +204,8 @@ public class InvariantsCPA extends AbstractCPA implements AdjustableConditionCPA
     Set<CFANode> relevantLocations = new LinkedHashSet<>();
     Set<CFANode> targetLocations = new LinkedHashSet<>();
 
+    int interestingVariableLimit = options.interestingVariableLimit;
+
     // Determine the target locations
     boolean determineTargetLocations = options.analyzeTargetPathsOnly || options.interestingPredicatesLimit != 0 || options.interestingVariableLimit != 0;
     if (determineTargetLocations) {
@@ -273,8 +275,8 @@ public class InvariantsCPA extends AbstractCPA implements AdjustableConditionCPA
               if (guessInterestingInformation) {
                 try {
                   InvariantsFormula<CompoundInterval> formula = ((CAssumeEdge) edge).getExpression().accept(InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(edge));
-                  if (options.interestingVariableLimit != 0) {
-                    addAll(interestingVariables, formula.accept(COLLECT_VARS_VISITOR), options.interestingVariableLimit);
+                  if (interestingVariableLimit != 0) {
+                    addAll(interestingVariables, formula.accept(COLLECT_VARS_VISITOR), interestingVariableLimit);
                   }
                   if (options.interestingPredicatesLimit != 0) {
                     if (formula instanceof LogicalNot<?>) { // We don't care about negations here
@@ -341,11 +343,11 @@ public class InvariantsCPA extends AbstractCPA implements AdjustableConditionCPA
       }
     }
 
-    relevantVariableLimitReached = options.interestingVariableLimit > interestingVariables.size();
+    relevantVariableLimitReached = interestingVariableLimit > interestingVariables.size();
 
     InvariantsPrecision precision = new InvariantsPrecision(relevantEdges,
         ImmutableSet.copyOf(limit(interestingPredicates, options.interestingPredicatesLimit)),
-        ImmutableSet.copyOf(limit(interestingVariables, options.interestingVariableLimit)),
+        ImmutableSet.copyOf(limit(interestingVariables, interestingVariableLimit)),
         options.maximumFormulaDepth,
         options.useBinaryVariableInterrelations,
         options.edgeBasedAbstractionStrategyFactory);
@@ -385,6 +387,7 @@ public class InvariantsCPA extends AbstractCPA implements AdjustableConditionCPA
     if (relevantVariableLimitReached) {
       return false;
     }
+    initialPrecisionMap.clear();
     ++options.interestingVariableLimit;
     logManager.log(Level.INFO, "Adjusting interestingVariableLimit to " + options.interestingVariableLimit);
     return true;
