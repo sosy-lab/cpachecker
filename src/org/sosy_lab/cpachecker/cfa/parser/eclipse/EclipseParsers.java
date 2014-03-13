@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URLClassLoader;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -33,6 +34,7 @@ import java.util.regex.Pattern;
 import org.sosy_lab.common.ChildFirstPatternClassLoader;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.Dialect;
@@ -102,7 +104,7 @@ public class EclipseParsers {
     }
   }
 
-  public static Parser getJavaParser(LogManager logger, Configuration config) {
+  public static Parser getJavaParser(LogManager logger, Configuration config) throws InvalidConfigurationException {
 
     try {
       Constructor<? extends Parser> parserConstructor = loadedJavaParser.get();
@@ -116,7 +118,14 @@ public class EclipseParsers {
         loadedJavaParser = new WeakReference<Constructor<? extends Parser>>(parserConstructor);
       }
 
-      return parserConstructor.newInstance(logger, config);
+      try {
+        return parserConstructor.newInstance(logger, config);
+      } catch (InvocationTargetException e) {
+        if (e.getCause() instanceof InvalidConfigurationException) {
+          throw (InvalidConfigurationException)e.getCause();
+        }
+        throw e;
+      }
     } catch (ReflectiveOperationException e) {
       throw new Classes.UnexpectedCheckedException("Failed to create Eclipse Java parser", e);
     }
