@@ -386,15 +386,17 @@ public class CFASingleLoopTransformation {
    * assume edges mapped to their respective program counter value.
    * @param pGlobalNewToOld the mapping of new control flow nodes to old control
    * flow nodes.
+   *
+   * @throws InterruptedException if a shutdown has been requested by the registered shutdown notifier.
    */
   private void fixSummaryEdges(FunctionEntryNode pStartNode,
       BiMap<Integer, CFANode> pNewSuccessorsToPC,
-      SimpleMap<CFANode, CFANode> pGlobalNewToOld) {
+      SimpleMap<CFANode, CFANode> pGlobalNewToOld) throws InterruptedException {
     for (FunctionCallEdge fce : findEdges(FunctionCallEdge.class, pStartNode)) {
       FunctionEntryNode entryNode = fce.getSuccessor();
       FunctionExitNode exitNode = entryNode.getExitNode();
       FunctionSummaryEdge oldSummaryEdge = fce.getSummaryEdge();
-      if (!existsPath(entryNode, exitNode)) {
+      if (!existsPath(entryNode, exitNode, shutdownNotifier)) {
         for (CFunctionSummaryStatementEdge edge : CFAUtils.leavingEdges(oldSummaryEdge.getPredecessor()).filter(CFunctionSummaryStatementEdge.class).toList()) {
           removeFromNodes(edge);
         }
@@ -553,7 +555,7 @@ public class CFASingleLoopTransformation {
               && (edge.getEdgeType() == CFAEdgeType.ReturnStatementEdge
                 || next instanceof CFATerminationNode
                 || subgraph.isFurtherGrowthDesired())
-              && subgraph.offerEdge(edge)) {
+              && subgraph.offerEdge(edge, shutdownNotifier)) {
             if (visited.add(next)) {
               newWaitlistNodes.add(next);
             }
@@ -610,7 +612,7 @@ public class CFASingleLoopTransformation {
               CFAEdge replacementEdge = copyCFAEdgeWithNewNodes(edge, tmpMap);
               // The replacement edge is added in place of the old edge
               edgesToAdd.add(replacementEdge);
-              subgraph.addEdge(replacementEdge);
+              subgraph.addEdge(replacementEdge, shutdownNotifier);
 
               CFANode dummy = replacementEdge.getSuccessor();
 
@@ -1448,11 +1450,15 @@ public class CFASingleLoopTransformation {
    *
    * @param pSource the search start node.
    * @param pTarget the target.
+   * @param pShutdownNotifier the shutdown notifier to be checked.
    *
    * @return {@code true} if a path from the source to the target exists,
    * {@code false} otherwise.
+   *
+   * @throws InterruptedException if a shutdown has been requested by the given
+   * shutdown notifier.
    */
-  private static boolean existsPath(CFANode pSource, CFANode pTarget) {
+  private static boolean existsPath(CFANode pSource, CFANode pTarget, OptionalShutdownNotifier pShutdownNotifier) throws InterruptedException {
     return existsPath(pSource, pTarget, new Function<CFANode, Iterable<? extends CFAEdge>>() {
 
       @Override
@@ -1464,7 +1470,7 @@ public class CFASingleLoopTransformation {
         return CFAUtils.leavingEdges(pArg0);
       }
 
-    });
+    }, pShutdownNotifier);
   }
 
   /**
@@ -1475,17 +1481,24 @@ public class CFASingleLoopTransformation {
    * @param pTarget the target.
    * @param pGetLeavingEdges the function used to obtain leaving edges and thus
    * the successors of a node.
+   * @param pShutdownNotifier the shutdown notifier to be checked.
    *
    * @return {@code true} if a path from the source to the target exists,
    * {@code false} otherwise.
+   *
+   * @throws InterruptedException if a shutdown has been requested by the given
+   * shutdown notifier.
    */
-  private static boolean existsPath(CFANode pSource, CFANode pTarget, Function<? super CFANode, Iterable<? extends CFAEdge>> pGetLeavingEdges) {
+  private static boolean existsPath(CFANode pSource,
+      CFANode pTarget, Function<? super CFANode, Iterable<? extends CFAEdge>> pGetLeavingEdges,
+      OptionalShutdownNotifier pShutdownNotifier) throws InterruptedException {
     Set<Pair<CFANode, FunctionSummaryEdge>> visited = new HashSet<>();
     Queue<CFANode> waitlist = new ArrayDeque<>();
     Queue<Deque<FunctionSummaryEdge>> callstacks = new ArrayDeque<>();
     callstacks.offer(new ArrayDeque<FunctionSummaryEdge>());
     waitlist.offer(pSource);
     while (!waitlist.isEmpty()) {
+      pShutdownNotifier.shutdownIfNecessary();
       CFANode current = waitlist.poll();
       if (current.equals(pTarget)) {
         return true;
@@ -1973,12 +1986,15 @@ public class CFASingleLoopTransformation {
      * Adds the given edge to the graph but does not commit the change.
      *
      * @param pEdge the edge to be added.
+     * @param pShutdownNotifier the shutdown notifier to be checked.
      *
+     * @throws InterruptedException if a shutdown has been requested by the given
+     * shutdown notifier.
      * @throws IllegalArgumentException if the edge cannot be added according
      * to the employed growth strategy.
      */
-    public void addEdge(CFAEdge pEdge) {
-      Preconditions.checkArgument(offerEdge(pEdge));
+    public void addEdge(CFAEdge pEdge, OptionalShutdownNotifier pShutdownNotifier) throws InterruptedException {
+      Preconditions.checkArgument(offerEdge(pEdge, pShutdownNotifier));
     }
 
     /**
@@ -1986,11 +2002,15 @@ public class CFASingleLoopTransformation {
      * strategy, it is added but not committed.
      *
      * @param pEdge the candidate edge.
+     * @param pShutdownNotifier the shutdown notifier to be checked.
      *
      * @return {@code true} if the edge was added, {@code false} otherwise.
+     *
+     * @throws InterruptedException if a shutdown has been requested by the given
+     * shutdown notifier.
      */
-    public boolean offerEdge(CFAEdge pEdge) {
-      if (!containsNode(pEdge.getPredecessor()) || introducesLoop(pEdge)) {
+    public boolean offerEdge(CFAEdge pEdge, OptionalShutdownNotifier pShutdownNotifier) throws InterruptedException {
+      if (!containsNode(pEdge.getPredecessor()) || introducesLoop(pEdge, pShutdownNotifier)) {
         return false;
       }
       this.uncommittedEdges.put(pEdge.getPredecessor(), pEdge);
@@ -2035,10 +2055,15 @@ public class CFASingleLoopTransformation {
      * graph if it was added.
      *
      * @param pEdge the edge to check.
+     * @param pShutdownNotifier the shutdown notifier to be checked.
+     *
      * @return {@code true} if adding the edge would introduce a loop to the
      * graph, {@code false} otherwise.
+     *
+     * @throws InterruptedException if a shutdown has been requested by the given
+     * shutdown notifier.
      */
-    public boolean introducesLoop(CFAEdge pEdge) {
+    public boolean introducesLoop(CFAEdge pEdge, OptionalShutdownNotifier pShutdownNotifier) throws InterruptedException {
       Function<? super CFANode, Iterable<? extends CFAEdge>> getLeavingEdges = new Function<CFANode, Iterable<? extends CFAEdge>>() {
 
         @Override
@@ -2058,7 +2083,7 @@ public class CFASingleLoopTransformation {
         }
 
       };
-      return existsPath(pEdge.getSuccessor(), pEdge.getPredecessor(), getLeavingEdges);
+      return existsPath(pEdge.getSuccessor(), pEdge.getPredecessor(), getLeavingEdges, pShutdownNotifier);
     }
 
     /**
