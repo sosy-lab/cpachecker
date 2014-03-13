@@ -11,7 +11,7 @@ int main(void) {
   unsigned int a = __VERIFIER_nondet_int(); //interval from -infinity to infinity
 
   if (a < 0) {
-    return;
+    return a;
   }
 
   __VERIFIER_assert(a >= 0);
