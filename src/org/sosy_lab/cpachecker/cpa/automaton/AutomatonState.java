@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -185,20 +186,20 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   }
 
   public List<CStatementEdge> getAsStatementEdges(CIdExpression name_of_return_Var, String cFunctionName) {
-    if (assumptions.isEmpty()) {
-      return ImmutableList.of();
-    }
+    if (assumptions.isEmpty()) { return ImmutableList.of(); }
 
     List<CStatementEdge> result = new ArrayList<>(assumptions.size());
-    for(CStatement statement : assumptions) {
+    for (IAStatement statement : assumptions) {
 
-      if(statement instanceof CAssignment) {
+      if (statement instanceof CAssignment) {
         CAssignment assignment = (CAssignment) statement;
 
         if (assignment.getRightHandSide() instanceof CExpression) {
-          result.add(new CStatementEdge(assignment.toASTString(), statement, assignment.getFileLocation().getStartingLineNumber(),
+
+
+          result.add(new CStatementEdge(assignment.toASTString(), assignment, assignment.getFileLocation(),
               new CFANode(0, cFunctionName), new CFANode(0, cFunctionName)));
-        } else if(assignment.getRightHandSide() instanceof CFunctionCall) {
+        } else if (assignment.getRightHandSide() instanceof CFunctionCall) {
           //TODO FunctionCalls, ExpressionStatements etc
         }
       }
