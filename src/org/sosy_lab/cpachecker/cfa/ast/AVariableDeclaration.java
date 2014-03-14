@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 
-import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Preconditions.*;
 
 import java.util.Objects;
 
@@ -33,13 +33,20 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public abstract class AVariableDeclaration extends ADeclaration {
 
-
+  private final String qualifiedName;
   private IAInitializer initializer;
 
-  public AVariableDeclaration(FileLocation pFileLocation, boolean pIsGlobal, Type pType, String pName, String pOrigName, IAInitializer pInitializer) {
+  public AVariableDeclaration(FileLocation pFileLocation, boolean pIsGlobal,
+      Type pType, String pName, String pOrigName, String pQualifiedName,
+      IAInitializer pInitializer) {
     super(pFileLocation, pIsGlobal, pType, pName, pOrigName);
+    qualifiedName = checkNotNull(pQualifiedName);
     initializer = pInitializer;
+  }
 
+  @Override
+  public String getQualifiedName() {
+    return qualifiedName;
   }
 
   /**

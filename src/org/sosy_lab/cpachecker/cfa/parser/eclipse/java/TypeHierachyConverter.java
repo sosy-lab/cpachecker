@@ -98,7 +98,7 @@ public class TypeHierachyConverter {
 
     @SuppressWarnings({ "cast", "unchecked" })
     List<JParameterDeclaration> param =
-        convertParameterList(md.parameters(), pFileOfDeclaration);
+        convertParameterList(md.parameters(), pFileOfDeclaration, methodName);
 
     List<JType> parameterTypes = FluentIterable.from(param).transform(
         new Function<JParameterDeclaration, JType>() {
@@ -230,17 +230,19 @@ public class TypeHierachyConverter {
   }
 
   private List<JParameterDeclaration> convertParameterList(
-      List<SingleVariableDeclaration> ps, String fileOfDeclaration) {
+      List<SingleVariableDeclaration> ps, String fileOfDeclaration,
+      String methodName) {
     List<JParameterDeclaration> paramsList = new ArrayList<>(ps.size());
 
     for (org.eclipse.jdt.core.dom.SingleVariableDeclaration c : ps) {
-      paramsList.add(convertParameter(c, fileOfDeclaration));
+      paramsList.add(convertParameter(c, fileOfDeclaration, methodName));
     }
 
     return paramsList;
   }
 
-  private JParameterDeclaration convertParameter(SingleVariableDeclaration p, String fileOfDeclaration) {
+  private JParameterDeclaration convertParameter(SingleVariableDeclaration p,
+      String fileOfDeclaration, String methodName) {
 
     JType type = convert(p.getType());
 
@@ -248,8 +250,8 @@ public class TypeHierachyConverter {
 
     String qualifiedName = p.getName().getFullyQualifiedName();
 
-    return new JParameterDeclaration(convertFileLocation(p, fileOfDeclaration), type, qualifiedName,
-        mb.isFinal());
+    return new JParameterDeclaration(convertFileLocation(p, fileOfDeclaration),
+        type, qualifiedName, methodName + "::" + qualifiedName, mb.isFinal());
   }
 
   private JType convert(Type pType) {

@@ -37,12 +37,14 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  */
 public interface IASimpleDeclaration extends IAstNode {
 
-
-
   public String getName();
 
   public String getOrigName();
 
   Type getType();
 
+  /**
+   * Get globally unique name of this declaration, qualified with the function name.
+   */
+  public String getQualifiedName();
 }
