@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
@@ -180,6 +181,28 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     // Important: we cannot use vars.hashCode(), because the hash code of a map
     // depends on the hash code of its values, and those may change.
     return internalState.hashCode();
+  }
+
+  public List<CStatementEdge> getAsStatementEdges(CIdExpression name_of_return_Var, String cFunctionName) {
+    if (assumptions.isEmpty()) {
+      return ImmutableList.of();
+    }
+
+    List<CStatementEdge> result = new ArrayList<>(assumptions.size());
+    for(CStatement statement : assumptions) {
+
+      if(statement instanceof CAssignment) {
+        CAssignment assignment = (CAssignment) statement;
+
+        if (assignment.getRightHandSide() instanceof CExpression) {
+          result.add(new CStatementEdge(assignment.toASTString(), statement, assignment.getFileLocation().getStartingLineNumber(),
+              new CFANode(0, cFunctionName), new CFANode(0, cFunctionName)));
+        } else if(assignment.getRightHandSide() instanceof CFunctionCall) {
+          //TODO FunctionCalls, ExpressionStatements etc
+        }
+      }
+    }
+    return result;
   }
 
   public List<CAssumeEdge> getAsAssumeEdges(CIdExpression name_of_return_Var, String cFunctionName) {
