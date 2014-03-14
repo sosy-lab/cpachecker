@@ -96,10 +96,10 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
       ShutdownNotifier pShutdownNotifier, CFA pCfa,
       Configuration pConfig, LogManager pLogger, CPABuilder pCpaBuilder) throws InvalidConfigurationException, CPAException {
 
-    stats = new TestGenStatistics();
-
     startupConfig = new StartupConfig(pConfig, pLogger, pShutdownNotifier);
     startupConfig.getConfig().inject(this);
+    stats = new TestGenStatistics(iterationStrategySelector == IterationStrategySelector.AUTOMATON_CONTROLLED);
+
     cfa = pCfa;
     cpa = pCpa;
     this.logger = pLogger;

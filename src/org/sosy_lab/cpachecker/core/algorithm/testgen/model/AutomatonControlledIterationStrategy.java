@@ -120,8 +120,10 @@ public class AutomatonControlledIterationStrategy implements TestGenIterationStr
       CounterexampleInfo ci = CounterexampleInfo.feasible(pResult.getPath(), pResult.getTrace().getModel());
       //      ARGUtils.producePathAutomaton(w, "nextPathAutomaton", pNewPath);
       //      ARGUtils.producePathAutomaton(w, pResult.getPath().getFirst().getFirst(), pResult.getPath().getStateSet(), "nextPathAutomaton", ci);
+      stats.beforePathGeneration();
       ARGUtils.produceTestGenPathAutomaton(w, pResult.getPath().getFirst().getFirst(), pResult.getPath().getStateSet(),
           "nextPathAutomaton", ci,true);
+      stats.afterPathGeneration();
       //      }
 
     } catch (IOException e) {
