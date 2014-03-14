@@ -126,6 +126,10 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       + "when the true-branch is handled.")
   private boolean initAssumptionVars = false;
 
+  @Option(description = "Process the Automaton ASSUMEs as if they were statements, not as if they were"
+      + " assumtions.")
+  private boolean automatonAssumesAsStatements = false;
+
   private final Set<String> globalVariables = new HashSet<>();
 
   private final Set<String> javaNonStaticVariables = new HashSet<>();
@@ -1026,8 +1030,9 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
   }
 
   @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState element, List<AbstractState> elements, CFAEdge cfaEdge, Precision precision)
-    throws CPATransferException {
+  public Collection<? extends AbstractState> strengthen(AbstractState element, List<AbstractState> elements,
+      CFAEdge cfaEdge, Precision precision)
+      throws CPATransferException {
     assert element instanceof ExplicitState;
 
     super.setInfo(element, precision, cfaEdge);
@@ -1036,12 +1041,14 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
     for (AbstractState ae : elements) {
       if (ae instanceof RTTState) {
-        retVal =  strengthen((RTTState)ae);
+        retVal = strengthen((RTTState) ae);
         break;
-      } else if(ae instanceof SMGState) {
+      } else if (ae instanceof SMGState) {
         retVal = strengthen((SMGState) ae);
-      } else if(ae instanceof AutomatonState) {
-        retVal = strengthenAutomatonStatement((AutomatonState) ae, cfaEdge);
+      } else if (ae instanceof AutomatonState) {
+        AutomatonState autoState = (AutomatonState) ae;
+        retVal = automatonAssumesAsStatements ?
+            strengthenAutomatonStatement(autoState, cfaEdge) : strengthenAutomatonAssume(autoState, cfaEdge);
       }
     }
 
