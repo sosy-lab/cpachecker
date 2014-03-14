@@ -947,7 +947,19 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   }
 
-  public boolean unroll(ReachedSet pReachedSet) throws PredicatedAnalysisPropertyViolationException, CPAException, InterruptedException {
+  /**
+   * Unrolls the given reached set using the algorithm provided to this
+   * instance of the bounded model checking algorithm.
+   *
+   * @param pReachedSet the reached set to unroll.
+   *
+   * @return {@code true} if the unrolling was sound, {@code false} otherwise.
+   *
+   * @throws PredicatedAnalysisPropertyViolationException
+   * @throws CPAException
+   * @throws InterruptedException
+   */
+  private boolean unroll(ReachedSet pReachedSet) throws PredicatedAnalysisPropertyViolationException, CPAException, InterruptedException {
     adjustReachedSet(pReachedSet);
     return algorithm.run(pReachedSet);
   }
