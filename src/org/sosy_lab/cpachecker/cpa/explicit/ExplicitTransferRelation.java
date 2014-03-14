@@ -85,6 +85,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -1040,7 +1041,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       } else if(ae instanceof SMGState) {
         retVal = strengthen((SMGState) ae);
       } else if(ae instanceof AutomatonState) {
-        retVal = strengthen((AutomatonState) ae, cfaEdge);
+        retVal = strengthenAutomatonStatement((AutomatonState) ae, cfaEdge);
       }
     }
 
@@ -1050,7 +1051,32 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     return retVal;
   }
 
-  private Collection<? extends AbstractState> strengthen(AutomatonState pAutomatonState, CFAEdge pCfaEdge) throws CPATransferException {
+  private Collection<? extends AbstractState> strengthenAutomatonStatement(AutomatonState pAutomatonState, CFAEdge pCfaEdge) throws CPATransferException {
+
+    CIdExpression retVarName = new CIdExpression(null, new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false), "___cpa_temp_result_var_", null);
+
+    List<CStatementEdge> statementEdges = pAutomatonState.getAsStatementEdges(retVarName, pCfaEdge.getPredecessor().getFunctionName());
+
+    ExplicitState state = this.state;
+
+    for(CStatementEdge stmtEdge : statementEdges) {
+      state = handleStatementEdge((AStatementEdge)stmtEdge, (IAStatement)stmtEdge.getStatement());
+
+      if(state == null) {
+        break;
+      } else {
+        setInfo(state, precision, pCfaEdge);
+      }
+    }
+
+    if (state == null) {
+      return Collections.emptyList();
+    } else {
+      return Collections.singleton(state);
+    }
+  }
+
+  private Collection<? extends AbstractState> strengthenAutomatonAssume(AutomatonState pAutomatonState, CFAEdge pCfaEdge) throws CPATransferException {
 
     CIdExpression retVarName = new CIdExpression(null, new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false), "___cpa_temp_result_var_", null);
 
