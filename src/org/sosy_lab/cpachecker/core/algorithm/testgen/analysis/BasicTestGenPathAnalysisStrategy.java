@@ -29,6 +29,7 @@ import java.util.List;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.model.PredicatePathAnalysisResult;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -45,10 +46,12 @@ public class BasicTestGenPathAnalysisStrategy implements TestGenPathAnalysisStra
 
   private PathChecker pathChecker;
   private List<CFANode> handledDecisions;
+  private TestGenStatistics stats;
 
-  public BasicTestGenPathAnalysisStrategy(PathChecker pPathChecker) {
+  public BasicTestGenPathAnalysisStrategy(PathChecker pPathChecker, TestGenStatistics pStats) {
     super();
     pathChecker = pPathChecker;
+    stats = pStats;
     handledDecisions = Lists.newLinkedList();
   }
 
@@ -141,7 +144,10 @@ public class BasicTestGenPathAnalysisStrategy implements TestGenPathAnalysisStra
        * check if path is feasible. If it's not continue to identify another decision node
        * If path is feasible, add the ARGState belonging to the decision node and the new edge to the ARGPath. Exit and Return result.
        */
+      stats.beforePathCheck();
       CounterexampleTraceInfo traceInfo = pathChecker.checkPath(newPath);
+      stats.afterPathCheck();
+
       if (!traceInfo.isSpurious())
       {
         newARGPath.add(Pair.of(currentElement.getFirst(), otherEdge));

@@ -26,6 +26,9 @@ package org.sosy_lab.cpachecker.core.algorithm.testgen.model;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -40,8 +43,11 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.StartupConfig;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -63,14 +69,15 @@ public class AutomatonControlledIterationStrategy implements TestGenIterationStr
   private CPABuilder cpaBuilder;
 
   private int automatonCounter = 0;
-
-
+  private TestGenStatistics stats;
+  private final List<Statistics> subAlgorithmStats = new ArrayList<>();
 
   public AutomatonControlledIterationStrategy(StartupConfig startupConfig, CFA pCfa, IterationModel model,
-      ReachedSetFactory pReachedSetFactory, CPABuilder pCpaBuilder) {
+      ReachedSetFactory pReachedSetFactory, CPABuilder pCpaBuilder, TestGenStatistics pStats) {
     super();
     this.reachedSetFactory = pReachedSetFactory;
     cpaBuilder = pCpaBuilder;
+    stats = pStats;
     config = startupConfig.getConfig();
     logger = startupConfig.getLog();
     shutdownNotifier = startupConfig.getNotifier();
@@ -81,6 +88,7 @@ public class AutomatonControlledIterationStrategy implements TestGenIterationStr
   @Override
   public void updateIterationModelForNextIteration(PredicatePathAnalysisResult pResult) {
     // TODO might have to reinit the reached-sets
+    fetchSubAlgorithmStats();
     model.setAlgorithm(createAlgorithmForNextIteration(pResult));
     ReachedSet newReached = reachedSetFactory.create();
     AbstractState initialState = model.getGlobalReached().getFirstState();
@@ -97,11 +105,13 @@ public class AutomatonControlledIterationStrategy implements TestGenIterationStr
 
   @Override
   public boolean runAlgorithm() throws PredicatedAnalysisPropertyViolationException, CPAException, InterruptedException {
-    return model.getAlgorithm().run(model.getLocalReached());
+    stats.beforeCpaAlgortihm();
+    boolean ret = model.getAlgorithm().run(model.getLocalReached());
+    stats.afterCpaAlgortihm();
+    return ret;
   }
 
   private Algorithm createAlgorithmForNextIteration(PredicatePathAnalysisResult pResult) {
-    // This temp file will be automatically deleted when the try block terminates.
     Path path = org.sosy_lab.common.io.Paths.get("output/automaton/next_automaton" + automatonCounter++ + ".spc");
     try (Writer w = Files.openOutputFile(path, Charset.forName("UTF8"))) {
       //    try (DeleteOnCloseFile automatonFile = Files.createTempFile("next_automaton", ".txt")) {
@@ -178,6 +188,23 @@ public class AutomatonControlledIterationStrategy implements TestGenIterationStr
       // TODO: use another exception?
       throw new IllegalStateException("Unable to create the Algorithm for next Iteration", e);
     }
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    // Fetch statistics for last used algorithm instance
+    fetchSubAlgorithmStats();
+    pStatsCollection.addAll(subAlgorithmStats);
+
+  }
+
+
+  private void fetchSubAlgorithmStats() {
+    if(getModel().getAlgorithm() instanceof StatisticsProvider) {
+      StatisticsProvider sProvider = (StatisticsProvider) getModel().getAlgorithm();
+      sProvider.collectStatistics(subAlgorithmStats);
+    }
+
   }
 
 }

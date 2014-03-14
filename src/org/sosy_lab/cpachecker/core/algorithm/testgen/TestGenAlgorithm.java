@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.testgen;
 
+import java.util.Collection;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -41,6 +43,8 @@ import org.sosy_lab.cpachecker.core.algorithm.testgen.model.TestGenIterationStra
 import org.sosy_lab.cpachecker.core.algorithm.testgen.model.TestGenIterationStrategy.IterationModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -56,7 +60,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
 @Options(prefix = "testgen")
-public class TestGenAlgorithm implements Algorithm {
+public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
 
   StartupConfig startupConfig;
   private LogManager logger;
@@ -79,6 +83,8 @@ public class TestGenAlgorithm implements Algorithm {
   private TestGenIterationStrategy iterationStrategy;
   private TestGenPathAnalysisStrategy analysisStrategy;
 
+  private TestGenStatistics stats;
+
 
   //  ConfigurationBuilder singleConfigBuilder = Configuration.builder();
   //  singleConfigBuilder.copyFrom(globalConfig);
@@ -89,6 +95,9 @@ public class TestGenAlgorithm implements Algorithm {
   public TestGenAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
       ShutdownNotifier pShutdownNotifier, CFA pCfa,
       Configuration pConfig, LogManager pLogger, CPABuilder pCpaBuilder) throws InvalidConfigurationException, CPAException {
+
+    stats = new TestGenStatistics();
+
     startupConfig = new StartupConfig(pConfig, pLogger, pShutdownNotifier);
     startupConfig.getConfig().inject(this);
     cfa = pCfa;
@@ -108,16 +117,16 @@ public class TestGenAlgorithm implements Algorithm {
 
     switch (iterationStrategySelector) {
     case AUTOMATON_CONTROLLED:
-      iterationStrategy = new AutomatonControlledIterationStrategy(startupConfig, pCfa, model, reachedSetFactory, pCpaBuilder);
+      iterationStrategy = new AutomatonControlledIterationStrategy(startupConfig, pCfa, model, reachedSetFactory, pCpaBuilder,stats);
       break;
     case SAME_ALGORITHM_RESTART:
-      iterationStrategy = new SameAlgorithmRestartAtDecisionIterationStrategy(startupConfig, reachedSetFactory, model);
+      iterationStrategy = new SameAlgorithmRestartAtDecisionIterationStrategy(startupConfig, reachedSetFactory, model,stats);
       break;
     default:
       throw new InvalidConfigurationException("Invald iteration strategy selected");
     }
 
-    analysisStrategy = new BasicTestGenPathAnalysisStrategy(pathChecker);
+    analysisStrategy = new BasicTestGenPathAnalysisStrategy(pathChecker,stats);
 
 
 
@@ -130,6 +139,9 @@ public class TestGenAlgorithm implements Algorithm {
   @Override
   public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
       PredicatedAnalysisPropertyViolationException {
+
+    stats.getTotalTimer().start();
+
 //    List<ReachedSet> reachedSetHistory = Lists.newLinkedList();
     PredicatePathAnalysisResult lastResult = PredicatePathAnalysisResult.INVALID;
     ReachedSet globalReached = pReachedSet;
@@ -159,6 +171,7 @@ public class TestGenAlgorithm implements Algorithm {
       ARGState pseudoTarget = (ARGState) iterationStrategy.getModel().getLocalReached().getLastState();
       if (pseudoTarget.isTarget()) {
         updateGlobalReached();
+        stats.getTotalTimer().stop();
         return true;
         }
       /*
@@ -174,6 +187,7 @@ public class TestGenAlgorithm implements Algorithm {
          * TODO: Identify the problems with soundness in context on concolic testing
          */
         updateGlobalReached();
+        stats.getTotalTimer().stop();
         return true; //true = sound or false = unsound. Which case is it here??
       }
       /*
@@ -187,7 +201,6 @@ public class TestGenAlgorithm implements Algorithm {
     }
   }
 
-
   private void updateGlobalReached() {
     IterationModel model = iterationStrategy.getModel();
     model.getGlobalReached().clear();
@@ -196,6 +209,13 @@ public class TestGenAlgorithm implements Algorithm {
         model.getGlobalReached().removeOnlyFromWaitlist(state);
       }
 
+  }
+
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    iterationStrategy.collectStatistics(pStatsCollection);
+    pStatsCollection.add(stats);
   }
 
 }
