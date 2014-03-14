@@ -131,9 +131,6 @@ analysis.reachedSet = PARTITIONED
 # restart the analysis using a different configuration after unknown result
 analysis.restartAfterUnknown = false
 
-# simplify pure numeral expressions like '1+2' to '3'
-analysis.simplifyExpressions = false
-
 # stop after the first error has been found
 analysis.stopAfterError = true
 
