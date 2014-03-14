@@ -1004,7 +1004,7 @@ public abstract class AbstractExpressionValueVisitor
               logger.logfOnce(Level.INFO,
                   "%s: overflow, target-type is '%s', value %d is changed to %d.",
                   fileLocation,
-                  targetType, value.asLong(sourceType), result);
+                  targetType, longValue, result);
 
             } else {
               // java-type "long" is too small for big types like UNSIGNED_LONGLONG,
@@ -1012,7 +1012,7 @@ public abstract class AbstractExpressionValueVisitor
               logger.logfOnce(Level.INFO,
                   "%s: overflow, value %s of c-type '%s' may be too big for java-type 'long'.",
                   fileLocation,
-                  value.asLong(sourceType), targetType);
+                  longValue, targetType);
             }
           }
 
