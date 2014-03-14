@@ -176,7 +176,7 @@ class ASTConverter {
 
   @Option(
       description="simplify simple const expressions like 1+2")
-  private boolean simplifyConstExpressions = false;
+  private boolean simplifyConstExpressions = true;
 
   private final ExpressionSimplificationVisitor expressionSimplificator;
   private final NonRecursiveExpressionSimplificationVisitor nonRecursiveExpressionSimplificator;

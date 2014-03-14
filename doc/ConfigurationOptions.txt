@@ -317,7 +317,7 @@ cfa.moveDeclarationsToFunctionStart = false
 cfa.removeIrrelevantForSpecification = false
 
 # simplify simple const expressions like 1+2
-cfa.simplifyConstExpressions = false
+cfa.simplifyConstExpressions = true
 
 # simplify pointer expressions like s->f to (*s).f with this option the cfa
 # is simplified until at maximum one pointer is allowed for left- and
