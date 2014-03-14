@@ -47,6 +47,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import com.google.common.base.Function;
 import com.google.common.primitives.Ints;
 
+import javax.annotation.Nonnull;
+
 public class ARGState extends AbstractSingleWrapperState implements Comparable<ARGState>, TargetableWithPredicatedAnalysis {
 
   private static final long serialVersionUID = 2608287648397165040L;
@@ -142,7 +144,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
 
   // coverage
 
-  public void setCovered(ARGState pCoveredBy) {
+  public void setCovered(@Nonnull ARGState pCoveredBy) {
     checkState(!isCovered(), "Cannot cover already covered element %s", this);
     checkNotNull(pCoveredBy);
     checkArgument(pCoveredBy.mayCover, "Trying to cover with non-covering element %s", pCoveredBy);
@@ -155,7 +157,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     pCoveredBy.mCoveredByThis.add(this);
   }
 
-  void uncover() {
+  public void uncover() {
     assert isCovered();
     assert mCoveredBy.mCoveredByThis.contains(this);
 
@@ -354,7 +356,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
    *
    * @param replacement
    */
-  void replaceInARGWith(ARGState replacement) {
+  public void replaceInARGWith(ARGState replacement) {
     assert !destroyed : "Don't use destroyed ARGState " + this;
     assert !replacement.destroyed : "Don't use destroyed ARGState " + replacement;
     assert !isCovered() : "Not implemented: Replacement of covered element " + this;
