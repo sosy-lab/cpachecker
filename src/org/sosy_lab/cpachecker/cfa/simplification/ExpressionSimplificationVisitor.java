@@ -26,24 +26,16 @@ package org.sosy_lab.cpachecker.cfa.simplification;
 import java.math.BigInteger;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
@@ -51,7 +43,7 @@ import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
+import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.Value;
 
@@ -59,7 +51,7 @@ import org.sosy_lab.cpachecker.cpa.value.Value;
  * The returnvalue of the visit consists of the simplified expression and
  * - if possible - a numeral value for the expression. */
 public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
-    <Pair<CExpression, Number>, RuntimeException> {
+    <CExpression, RuntimeException> {
 
   private final MachineModel machineModel;
   private final LogManagerWithoutDuplicates logger;
@@ -69,12 +61,23 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
     this.logger = pLogger;
   }
 
+  private NumericValue getValue(CExpression expr) {
+    if (expr instanceof CIntegerLiteralExpression) {
+      return new NumericValue(((CIntegerLiteralExpression)expr).getValue());
+    } else if (expr instanceof CCharLiteralExpression) {
+      return new NumericValue((int)((CCharLiteralExpression)expr).getCharacter());
+    } else if (expr instanceof CFloatLiteralExpression) {
+      return new NumericValue(((CFloatLiteralExpression)expr).getValue());
+    }
+    return null;
+  }
+
   /**
    * Takes an explicit value as returned by various ExplicitCPA functions and
    * converts it to a <code>Pair<CExpression, Number></code> as required by
    * this class.
    */
-  private Pair<CExpression, Number> convertExplicitValueToPair(final CExpression expr, Value value) {
+  private CExpression convertExplicitValueToExpression(final CExpression expr, Value value) {
     // TODO: handle cases other than numeric values
     NumericValue numericResult = value.asNumericValue();
     if(numericResult != null && expr.getExpressionType() instanceof CSimpleType) {
@@ -82,17 +85,13 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
       switch(type.getType()) {
         case INT:
         case CHAR: {
-          return Pair.<CExpression, Number> of(
-              new CIntegerLiteralExpression(expr.getFileLocation(),
-                  expr.getExpressionType(), BigInteger.valueOf(numericResult.longValue())),
-                  numericResult.longValue());
+          return new CIntegerLiteralExpression(expr.getFileLocation(),
+                  expr.getExpressionType(), BigInteger.valueOf(numericResult.longValue()));
         }
         case FLOAT:
         case DOUBLE: {
-          return Pair.<CExpression, Number> of(
-              new CFloatLiteralExpression(expr.getFileLocation(),
-                  expr.getExpressionType(), numericResult.bigDecimalValue()),
-                  numericResult.doubleValue());
+          return new CFloatLiteralExpression(expr.getFileLocation(),
+                  expr.getExpressionType(), numericResult.bigDecimalValue());
         }
       }
     }
@@ -101,124 +100,83 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
     } else {
       logger.logf(Level.FINE, "Can not handle result of expression, numericResult is null.");
     }
-    return Pair.<CExpression, Number> of(expr, null);
+    return expr;
   }
 
   @Override
-  protected Pair<CExpression, Number> visitDefault(final CExpression expr) {
-    return Pair.of(expr, null);
+  protected CExpression visitDefault(final CExpression expr) {
+    return expr;
   }
 
   @Override
-  public Pair<CExpression, Number> visit(final CBinaryExpression expr) {
+  public CExpression visit(final CBinaryExpression expr) {
     final BinaryOperator binaryOperator = expr.getOperator();
 
-    final CExpression op1 = expr.getOperand1();
-    final Pair<CExpression, Number> pair1 = op1.accept(this);
+    final CExpression op1 = expr.getOperand1().accept(this);
+    final NumericValue value1 = getValue(op1);
 
-    final CExpression op2 = expr.getOperand2();
-    final Pair<CExpression, Number> pair2 = op2.accept(this);
+    final CExpression op2 = expr.getOperand2().accept(this);
+    final NumericValue value2 = getValue(op2);
 
     // if one side can not be evaluated, build new expression
-    if (pair1.getSecond() == null || pair2.getSecond() == null) {
+    if (value1 == null || value2 == null) {
       final CBinaryExpression newExpr;
-      if (pair1.getFirst() == op1 && pair2.getFirst() == op2) {
+      if (op1 == expr.getOperand1() && op2 == expr.getOperand2()) {
         // shortcut: if nothing has changed, use the original expression
         newExpr = expr;
       } else {
         final CBinaryExpressionBuilder binExprBuilder = new CBinaryExpressionBuilder(machineModel, logger);
         newExpr = binExprBuilder.buildBinaryExpression(
-            pair1.getFirst(), pair2.getFirst(), binaryOperator);
+            op1, op2, binaryOperator);
       }
-      return Pair.of((CExpression) newExpr, null);
+      return newExpr;
     }
 
     // TODO: handle the case that it's not a CSimpleType or that it's not a number
-    Value lVal = new NumericValue(pair1.getSecond());
-    Value rVal = new NumericValue(pair2.getSecond());
-    Value result = ExpressionValueVisitor.calculateBinaryOperation(
-        lVal, rVal,
+    Value result = AbstractExpressionValueVisitor.calculateBinaryOperation(
+        value1, value2,
         expr, machineModel, logger);
 
-    return convertExplicitValueToPair(expr, result);
+    return convertExplicitValueToExpression(expr, result);
   }
 
   @Override
-  public Pair<CExpression, Number> visit(CCastExpression expr) {
-    final CExpression op = expr.getOperand();
-    final Pair<CExpression, Number> pair = op.accept(this);
+  public CExpression visit(CCastExpression expr) {
+    final CExpression op = expr.getOperand().accept(this);
+    final NumericValue value = getValue(op);
 
     // if expr can not be evaluated, build new expression
-    if (pair.getSecond() == null) {
+    if (value == null) {
       final CCastExpression newExpr;
-      if (pair.getFirst() == op) {
+      if (op == expr.getOperand()) {
         // shortcut: if nothing has changed, use the original expression
         newExpr = expr;
       } else {
         newExpr = new CCastExpression(
-            expr.getFileLocation(), expr.getExpressionType(), pair.getFirst());
+            expr.getFileLocation(), expr.getExpressionType(), op);
       }
-      return Pair.of((CExpression) newExpr, null);
+      return newExpr;
     }
 
     // TODO: handle the case that the result is not a numeric value
-    CSimpleType type = (CSimpleType) pair.getFirst().getExpressionType().getCanonicalType();
-    final Value castedValue = ExpressionValueVisitor.castCValue(
-        new NumericValue(pair.getSecond()), expr.getOperand().getExpressionType(), expr.getExpressionType(), machineModel, logger, expr.getFileLocation());
+    CSimpleType type = (CSimpleType) op.getExpressionType().getCanonicalType();
+    final Value castedValue = AbstractExpressionValueVisitor.castCValue(
+        value, expr.getOperand().getExpressionType(), expr.getExpressionType(), machineModel, logger, expr.getFileLocation());
 
 
-    return convertExplicitValueToPair(expr, castedValue);
+    return convertExplicitValueToExpression(expr, castedValue);
   }
 
   @Override
-  public Pair<CExpression, Number> visit(CComplexCastExpression expr) {
-    // evaluation of complex numbers is not supported by now
-    return visitDefault(expr);
-  }
-
-  @Override
-  public Pair<CExpression, Number> visit(CCharLiteralExpression expr) {
-    // TODO machinemodel
-    return Pair.<CExpression, Number> of(expr, (int) expr.getCharacter());
-  }
-
-  @Override
-  public Pair<CExpression, Number> visit(CFloatLiteralExpression expr) {
-    return visitDefault(expr);
-  }
-
-  @Override
-  public Pair<CExpression, Number> visit(CIntegerLiteralExpression expr) {
-    return Pair.<CExpression, Number> of(expr, expr.asLong());
-  }
-
-  @Override
-  public Pair<CExpression, Number> visit(CImaginaryLiteralExpression expr) {
-    return visitDefault(expr);
-  }
-
-  @Override
-  public Pair<CExpression, Number> visit(CStringLiteralExpression expr) {
-    return visitDefault(expr);
-  }
-
-  @Override
-  public Pair<CExpression, Number> visit(final CIdExpression expr) {
-    return visitDefault(expr);
-  }
-
-  @Override
-  public Pair<CExpression, Number> visit(final CTypeIdExpression expr) {
+  public CExpression visit(final CTypeIdExpression expr) {
     final TypeIdOperator idOperator = expr.getOperator();
     final CType innerType = expr.getType();
 
     switch (idOperator) {
     case SIZEOF:
       int size = machineModel.getSizeof(innerType);
-      return Pair.<CExpression, Number> of(
-          new CIntegerLiteralExpression(expr.getFileLocation(),
-              expr.getExpressionType(), BigInteger.valueOf(size)),
-          size);
+      return new CIntegerLiteralExpression(expr.getFileLocation(),
+              expr.getExpressionType(), BigInteger.valueOf(size));
 
     default: // TODO support more operators
       return visitDefault(expr);
@@ -226,55 +184,35 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
   }
 
   @Override
-  public Pair<CExpression, Number> visit(final CTypeIdInitializerExpression expr) {
-    return visitDefault(expr);
-  }
-
-  @Override
-  public Pair<CExpression, Number> visit(final CUnaryExpression expr) {
+  public CExpression visit(final CUnaryExpression expr) {
     final UnaryOperator unaryOperator = expr.getOperator();
-    final CExpression op = expr.getOperand();
-
     // in case of a SIZEOF we do not need to know the explicit value of the variable,
     // it is enough to know its type
     if (unaryOperator == UnaryOperator.SIZEOF) {
-      final int result = machineModel.getSizeof(op.getExpressionType());
-      return Pair.<CExpression, Number> of(
-          new CIntegerLiteralExpression(expr.getFileLocation(),
-              expr.getExpressionType(), BigInteger.valueOf(result)),
-              result);
+      final int result = machineModel.getSizeof(expr.getOperand().getExpressionType());
+      return new CIntegerLiteralExpression(expr.getFileLocation(),
+              expr.getExpressionType(), BigInteger.valueOf(result));
     }
 
-    final Pair<CExpression, Number> pair = op.accept(this);
+    final CExpression op = expr.getOperand().accept(this);
+    final NumericValue value = getValue(op);
 
-    if (unaryOperator == UnaryOperator.MINUS && pair.getSecond() != null) {
-      final long negatedValue = -pair.getSecond().longValue();
-      return Pair.<CExpression, Number> of(
-              new CIntegerLiteralExpression(expr.getFileLocation(),
-                      expr.getExpressionType(), BigInteger.valueOf(negatedValue)),
-              negatedValue);
+    if (unaryOperator == UnaryOperator.MINUS && value != null) {
+      final long negatedValue = -value.longValue();
+      return new CIntegerLiteralExpression(expr.getFileLocation(),
+                      expr.getExpressionType(), BigInteger.valueOf(negatedValue));
 
     }
 
     final CUnaryExpression newExpr;
-    if (pair.getFirst() == op) {
+    if (op == expr.getOperand()) {
       // shortcut: if nothing has changed, use the original expression
       newExpr = expr;
     } else {
       newExpr = new CUnaryExpression(
           expr.getFileLocation(), expr.getExpressionType(),
-          pair.getFirst(), unaryOperator);
+          op, unaryOperator);
     }
-    return Pair.of((CExpression) newExpr, null);
-  }
-
-  @Override
-  public Pair<CExpression, Number> visit(final CPointerExpression expr) {
-    return visitDefault(expr);
-  }
-
-  @Override
-  public Pair<CExpression, Number> visit(final CFieldReference expr) {
-    return visitDefault(expr);
+    return newExpr;
   }
 }

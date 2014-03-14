@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -103,6 +104,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -262,7 +264,7 @@ class ASTConverter {
     }
   }
 
-  Pair<? extends CExpression, ? extends Number> simplifyAndEvaluateExpression(CExpression exp) {
+  CExpression simplifyExpression(CExpression exp) {
     return exp.accept(expressionSimplificator);
   }
 
@@ -378,23 +380,51 @@ class ASTConverter {
     }
   }
 
+  static enum CONDITION { NORMAL, ALWAYS_FALSE, ALWAYS_TRUE }
+
+  CONDITION getConditionKind(final CExpression condition) {
+    CExpression simplifiedCondition = simplifyExpression(condition);
+
+    if (simplifiedCondition instanceof CIntegerLiteralExpression
+        || simplifiedCondition instanceof CCharLiteralExpression) {
+      // constant int value
+      if (isZero(simplifiedCondition)) {
+        return CONDITION.ALWAYS_FALSE;
+      } else {
+        return CONDITION.ALWAYS_TRUE;
+      }
+    }
+    return CONDITION.NORMAL;
+  }
+
   private CAstNode convert(IASTConditionalExpression e) {
     if (simplifyConstExpressions) {
       CExpression condition = convertExpressionWithoutSideEffects(e.getLogicalConditionExpression());
-      Number value = simplifyAndEvaluateExpression(condition).getSecond();
 
-      if (value != null) {
-        if (value.longValue() == 0) {
-          return convertExpressionWithSideEffects(e.getNegativeResultExpression());
-        } else {
-          return convertExpressionWithSideEffects(e.getPositiveResultExpression());
-        }
+      switch (getConditionKind(condition)) {
+      case ALWAYS_TRUE:
+        return convertExpressionWithSideEffects(e.getPositiveResultExpression());
+      case ALWAYS_FALSE:
+        return convertExpressionWithSideEffects(e.getNegativeResultExpression());
+      default:
       }
     }
 
     CIdExpression tmp = createTemporaryVariable(e);
     sideAssignmentStack.addConditionalExpression(e, tmp);
     return tmp;
+  }
+
+  private boolean isZero(CExpression exp) {
+    if (exp instanceof CIntegerLiteralExpression) {
+      BigInteger value = ((CIntegerLiteralExpression)exp).getValue();
+      return value.equals(BigInteger.ZERO);
+    }
+    if (exp instanceof CCharLiteralExpression) {
+      char value = ((CCharLiteralExpression)exp).getCharacter();
+      return value == 0;
+    }
+    return false;
   }
 
   private CAstNode convert(IGNUASTCompoundStatementExpression e) {
@@ -1462,7 +1492,7 @@ class ASTConverter {
       org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier a = (org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier)am;
       CExpression lengthExp = convertExpressionWithoutSideEffects(a.getConstantExpression());
       if (lengthExp != null) {
-        lengthExp = simplifyAndEvaluateExpression(lengthExp).getFirst();
+        lengthExp = simplifyExpression(lengthExp);
       }
       return new CArrayType(a.isConst(), a.isVolatile(), type, lengthExp);
 

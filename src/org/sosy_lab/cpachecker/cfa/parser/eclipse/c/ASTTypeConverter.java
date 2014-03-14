@@ -365,7 +365,7 @@ class ASTTypeConverter {
       try {
         length = converter.convertExpressionWithoutSideEffects(t.getArraySizeExpression());
         if (length != null) {
-          length = converter.simplifyAndEvaluateExpression(length).getFirst();
+          length = converter.simplifyExpression(length);
         }
       } catch (DOMException e) {
         throw new CFAGenerationRuntimeException(e);

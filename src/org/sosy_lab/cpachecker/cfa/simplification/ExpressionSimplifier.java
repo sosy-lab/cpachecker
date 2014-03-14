@@ -344,7 +344,6 @@ public class ExpressionSimplifier implements CFAVisitor {
    * If no simplification is possible, the original expression-object is returned.*/
   private CExpression simplify(final CExpression expr) {
     final ExpressionSimplificationVisitor v = new ExpressionSimplificationVisitor(machineModel, logger);
-    final Pair<CExpression, Number> eval = expr.accept(v);
-    return eval.getFirst();
+    return expr.accept(v);
   }
 }

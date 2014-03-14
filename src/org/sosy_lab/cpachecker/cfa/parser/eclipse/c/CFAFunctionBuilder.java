@@ -89,6 +89,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -101,6 +102,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -117,6 +119,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter.CONDITION;
 import org.sosy_lab.cpachecker.cfa.simplification.ExpressionSimplificationVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
@@ -1040,23 +1043,6 @@ class CFAFunctionBuilder extends ASTVisitor {
   /**
    * @category conditions
    */
-  private static enum CONDITION { NORMAL, ALWAYS_FALSE, ALWAYS_TRUE }
-
-  /**
-   * @category conditions
-   */
-  private CONDITION getConditionKind(final CExpression cond) {
-    Number value = cond.accept(expressionSimplificator).getSecond();
-    if (value != null) {
-      return value.longValue() == 0 ? CONDITION.ALWAYS_FALSE : CONDITION.ALWAYS_TRUE;
-    }
-
-    return CONDITION.NORMAL;
-  }
-
-  /**
-   * @category conditions
-   */
   private void buildConditionTree(IASTExpression condition, final FileLocation fileLocation,
                                   CFANode rootNode, CFANode thenNode, final CFANode elseNode,
                                   CFANode thenNodeForLastThen, CFANode elseNodeForLastElse,
@@ -1100,7 +1086,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       rootNode = handleAllSideEffects(rootNode, fileLocation, rawSignature, true);
       exp.accept(checkBinding);
 
-      final CONDITION kind = getConditionKind(exp);
+      final CONDITION kind = astCreator.getConditionKind(exp);
 
       switch (kind) {
       case ALWAYS_FALSE:
@@ -1427,17 +1413,19 @@ class CFAFunctionBuilder extends ASTVisitor {
     addToCFA(new BlankEdge(rawSignature, fileloc,
         prevNode, firstSwitchNode, description));
 
-    switchExprStack.push(switchExpression);
 
     // check if the switch expression is a constant value, when it is constant
     // we can eliminate the switch statement
-    Number value = switchExpression.accept(expressionSimplificator).getSecond();
-    boolean isConstSwitchExpr = value != null;
+    CExpression simplifiedSwitchExp = switchExpression.accept(expressionSimplificator);
+    boolean isConstSwitchExpr = simplifiedSwitchExp instanceof CIntegerLiteralExpression
+        || simplifiedSwitchExp instanceof CCharLiteralExpression;
     isConstantSwitchExpression.push(isConstSwitchExpr);
     if (isConstSwitchExpr) {
-      return handleConstSwitchStatement(statement, switchExpression, fileloc, firstSwitchNode);
+      switchExprStack.push(simplifiedSwitchExp);
+      return handleConstSwitchStatement(statement, fileloc, firstSwitchNode);
     }
 
+    switchExprStack.push(switchExpression);
     switchCaseStack.push(firstSwitchNode);
 
     // postSwitchNode is Node after the switch-statement
@@ -1491,7 +1479,8 @@ class CFAFunctionBuilder extends ASTVisitor {
   }
 
 
-  private int handleConstSwitchStatement(IASTSwitchStatement statement, CExpression switchExpression, FileLocation fileloc, CFANode firstSwitchNode) {
+  private int handleConstSwitchStatement(IASTSwitchStatement statement,
+      FileLocation fileloc, CFANode firstSwitchNode) {
 
 
     locStack.push(firstSwitchNode);
@@ -1551,6 +1540,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // build condition, left part, "a"
     final CExpression switchExpr = switchExprStack.peek();
+    assert switchExpr instanceof CLiteralExpression;
 
     // build condition, right part, "2" or 'a' or 'a'...'c'
     IASTExpression right = statement.getExpression();
@@ -1559,30 +1549,30 @@ class CFAFunctionBuilder extends ASTVisitor {
       CExpression smallEnd = astCreator.convertExpressionWithoutSideEffects(((IASTBinaryExpression)right).getOperand1());
       CExpression bigEnd = astCreator.convertExpressionWithoutSideEffects(((IASTBinaryExpression)right).getOperand2());
 
-      CBinaryExpression firstPart = binExprBuilder.buildBinaryExpression(
-          switchExpr, smallEnd, CBinaryExpression.BinaryOperator.GREATER_EQUAL);
-      CBinaryExpression secondPart = binExprBuilder.buildBinaryExpression(
-          switchExpr, bigEnd, CBinaryExpression.BinaryOperator.LESS_EQUAL);
+      CExpression firstPart = binExprBuilder.buildBinaryExpression(switchExpr, smallEnd, CBinaryExpression.BinaryOperator.GREATER_EQUAL)
+          .accept(expressionSimplificator);
+      CExpression secondPart = binExprBuilder.buildBinaryExpression(switchExpr, bigEnd, CBinaryExpression.BinaryOperator.LESS_EQUAL)
+          .accept(expressionSimplificator);
 
-      Number value1 = firstPart.accept(expressionSimplificator).getSecond();
-      Number value2 = secondPart.accept(expressionSimplificator).getSecond();
+      // Guaranteed to be CIntegerLiteralExpressions after simplification
 
-      assert value1 != null;
-      assert value2 != null;
+      long value1 = ((CIntegerLiteralExpression)firstPart).asLong();
+      long value2 = ((CIntegerLiteralExpression)secondPart).asLong();
 
-      ignoreStatementsUntilNextCase = value1.longValue() + value2.longValue() != 2;
+      // not the correct case if one of the bounds does not match
+      ignoreStatementsUntilNextCase = (value1 == 0) || (value2 == 0);
 
     } else {
       final CExpression caseExpr = astCreator.convertExpressionWithoutSideEffects(statement.getExpression());
-      // build condition, "a==2", TODO correct type?
-      CBinaryExpression binExp = binExprBuilder.buildBinaryExpression(
-          switchExpr, caseExpr, CBinaryExpression.BinaryOperator.EQUALS);
+      // build condition
+      CExpression exp = binExprBuilder.buildBinaryExpression(switchExpr, caseExpr, CBinaryExpression.BinaryOperator.EQUALS)
+          .accept(expressionSimplificator);
 
-      Number value = binExp.accept(expressionSimplificator).getSecond();
+      // Guaranteed to be CIntegerLiteralExpressions after simplification
 
-      assert value != null;
+      long value = ((CIntegerLiteralExpression)exp).asLong();
 
-      ignoreStatementsUntilNextCase = value.longValue() != 1;
+      ignoreStatementsUntilNextCase = (value == 0);
     }
 
     // get node where the case statement starts
