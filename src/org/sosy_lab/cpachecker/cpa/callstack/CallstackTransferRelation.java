@@ -70,9 +70,12 @@ public class CallstackTransferRelation implements TransferRelation {
 
   private final LogManagerWithoutDuplicates logger;
 
-  public CallstackTransferRelation(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+  private final CFANode mainFunctionEntryNode;
+
+  public CallstackTransferRelation(Configuration config, LogManager pLogger, CFANode pMainFunctionEntryNode) throws InvalidConfigurationException {
     config.inject(this);
     logger = new LogManagerWithoutDuplicates(pLogger);
+    mainFunctionEntryNode = pMainFunctionEntryNode;
   }
 
   @Override
@@ -147,7 +150,7 @@ public class CallstackTransferRelation implements TransferRelation {
 
         final CallstackState returnElement;
 
-        if (!element.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)) {
+        if (!isWildcardState(element)) {
           assert calledFunction.equals(element.getCurrentFunction());
 
           if (!callNode.equals(element.getCallNode())) {
@@ -156,8 +159,7 @@ public class CallstackTransferRelation implements TransferRelation {
           }
           returnElement = element.getPreviousState();
 
-          assert callerFunction.equals(returnElement.getCurrentFunction())
-          || returnElement.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+          assert callerFunction.equals(returnElement.getCurrentFunction()) || isWildcardState(returnElement);
         } else {
           returnElement = new CallstackState(null, callerFunction, element.getCallNode());
         }
@@ -169,6 +171,19 @@ public class CallstackTransferRelation implements TransferRelation {
     }
 
     return Collections.singleton(pElement);
+  }
+
+  /**
+   * Checks if the given callstack state should be treated as a wildcard state.
+   *
+   * @param pState the state to check.
+   *
+   * @return {@code true} if the given state should be treated as a wildcard,
+   * {@code false} otherwise.
+   */
+  private boolean isWildcardState(CallstackState pState) {
+    return pState.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)
+        || pState.getCallNode().getLeavingSummaryEdge() == null && !pState.getCallNode().equals(mainFunctionEntryNode);
   }
 
   @Override
