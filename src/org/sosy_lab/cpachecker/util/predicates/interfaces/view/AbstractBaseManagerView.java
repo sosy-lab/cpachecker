@@ -23,24 +23,20 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
-
+import static com.google.common.base.Preconditions.checkState;
 
 class AbstractBaseManagerView {
 
   private FormulaManagerView baseManager = null;
 
   void couple(FormulaManagerView pFormulaManagerView) {
-    if (baseManager != null) {
-      throw new IllegalAccessError("Can't set manager twice!");
-    }
+    checkState(baseManager == null, "Can't set manager twice!");
 
     this.baseManager = pFormulaManagerView;
   }
 
   public FormulaManagerView getViewManager() {
-    if (baseManager == null) {
-      throw new IllegalAccessError("baseManager not set!");
-    }
+    checkState(baseManager != null, "baseManager not set!");
 
     return baseManager;
   }

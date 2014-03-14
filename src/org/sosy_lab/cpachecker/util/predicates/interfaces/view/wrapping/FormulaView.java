@@ -24,20 +24,13 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view.wrapping;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 
 public class FormulaView <T extends Formula> implements Formula {
   private T wrapped;
-  private FormulaManagerView view;
 
-  public FormulaView(T wrapped, FormulaManagerView view) {
+  public FormulaView(T wrapped) {
     this.wrapped = wrapped;
-    this.view = view;
-  }
-
-  FormulaManagerView getView() {
-    return view;
   }
 
    public T getWrapped() {

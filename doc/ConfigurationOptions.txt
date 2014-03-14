@@ -131,9 +131,6 @@ analysis.reachedSet = PARTITIONED
 # restart the analysis using a different configuration after unknown result
 analysis.restartAfterUnknown = false
 
-# simplify pure numeral expressions like '1+2' to '3'
-analysis.simplifyExpressions = false
-
 # stop after the first error has been found
 analysis.stopAfterError = true
 
@@ -168,6 +165,10 @@ analysis.traversal.useTopsort = false
 
 # Do not report unknown if analysis terminated, report true (UNSOUND!).
 analysis.unknownAsTrue = false
+
+# stop the analysis with the result unknown if the program does not satisfies
+# certain restrictions.
+analysis.unknownIfUnrestrictedProgram = false
 
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
@@ -300,6 +301,10 @@ cfa.exportPerFunction = true
 # export CFA as .dot file
 cfa.file = "cfa.dot"
 
+# how often can a function appear in the callstack as a clone of the original
+# function?
+cfa.functionCalls.recursionDepth = 5
+
 # Also initialize local variables with default values, or leave them
 # uninitialized.
 cfa.initializeAllVariables = false
@@ -312,22 +317,20 @@ cfa.moveDeclarationsToFunctionStart = false
 cfa.removeIrrelevantForSpecification = false
 
 # simplify simple const expressions like 1+2
-cfa.simplifyConstExpressions = false
+cfa.simplifyConstExpressions = true
 
 # simplify pointer expressions like s->f to (*s).f with this option the cfa
 # is simplified until at maximum one pointer is allowed for left- and
 # rightHandSide
 cfa.simplifyPointerExpressions = false
 
+# Remove all edges which don't have any effect on the program
+cfa.simplyfyCfa = true
+
 # This option causes the control flow automaton to be transformed into the
 # automaton of an equivalent program with one single loop and an artificial
 # program counter.
 cfa.transformIntoSingleLoop = false
-
-# Setting this option prefixes the loop with the initialsubgraph instead of
-# treating it like the other subgraphs as a leaf of the program counter value
-# decision tree.
-cfa.transformIntoSingleLoop.initialSubgraphAsPrefix = true
 
 # Single loop transformation builds a decision tree based on the program
 # counter values. This option causes the last program counter value not to be
@@ -351,8 +354,14 @@ cfa.transformIntoSingleLoop.programCounterValueProviderFactory = INCREMENTAL
 cfa.transformIntoSingleLoop.subgraphGrowthStrategy = no default value
   enum:     [MULTIPLE_PATHS, SINGLE_PATH, SINGLE_EDGE]
 
+# unwind recursive functioncalls (bounded to max call stack size)
+cfa.useFunctionCallUnwinding = false
+
 # combine sequences of simple edges into a single edge
 cfa.useMultiEdges = false
+
+# Dump domain type statistics to a CSV file.
+cfa.variableClassification.domainTypeStatisticsFile = no default value
 
 # Dump variable classification to a file.
 cfa.variableClassification.logfile = "VariableClassification.log"
@@ -411,7 +420,7 @@ cpa.arg.errorPath.file = "ErrorPath.%d.txt"
 cpa.arg.errorPath.graph = "ErrorPath.%d.dot"
 
 # export error path to file as an automaton to a graphml file
-cpa.arg.errorPath.graphml = "ErrorPath.%d.graphml"
+cpa.arg.errorPath.graphml = no default value
 
 # export error path to file, if one is found
 cpa.arg.errorPath.json = "ErrorPath.%d.json"
@@ -613,10 +622,18 @@ cpa.conditions.global.time.wall = -1
 # When using adjustable conditions, analysis will end after this threshold
 cpa.conditions.global.time.wall.hardlimit = -1
 
-# (hard) threshold for assignments (-1 for infinite)
+# This option sets the hard threshold for assignments (-1 for infinite). A
+# variable reaching this assignment threshold is not tracked anymore, even if
+# it is contained in the precision.
 cpa.conditions.path.assignments.hardThreshold = -1
 
-# (soft) threshold for assignments (-1 for infinite)
+# This option sets the soft threshold for assignments (-1 for infinite). The
+# semantics are that variables are tracked up to this threshold, even if not
+# being contained in the precison yet, and are removed once there are more
+# assignments for a variable then defined by this threshold. Once the
+# variable is found to be relevant, e.g., through refinement and
+# interpolation, the variable is tracked again, until reaching the  hard
+# threshold.
 cpa.conditions.path.assignments.softThreshold = -1
 
 # maximum number of assume edges length (-1 for infinite)
@@ -634,114 +651,6 @@ cpa.conditions.path.repetitions.limit = -1
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
   allowed values: [sep, join]
-
-# Value which is allowed for the variable which is checked
-cpa.explicit.allowedValue = 0
-
-# restrict abstractions to assume edges
-cpa.explicit.blk.alwaysAtAssumes = false
-
-# restrict abstractions to function calls/returns
-cpa.explicit.blk.alwaysAtFunctions = false
-
-# restrict abstractions to join points
-cpa.explicit.blk.alwaysAtJoins = false
-
-# restrict abstractions to loop heads
-cpa.explicit.blk.alwaysAtLoops = false
-
-# enables target checking for explicit anlaysis, needed for predicated
-# analysis
-cpa.explicit.doTargetCheck = false
-
-# enable if will be used in predicated analysis but all variables should be
-# tracked, no refinement
-cpa.explicit.inPredicatedAnalysis = false
-
-# if there is an assumption like (x!=0), this option sets unknown
-# (uninitialized) variables to 1L, when the true-branch is handled.
-cpa.explicit.initAssumptionVars = false
-
-# get an initial precison from file
-cpa.explicit.initialPrecisionFile = no default value
-
-# whether or not to use use-definition information from the error pathsto
-# optimize the interpolation process
-cpa.explicit.interpolation.applyUseDefInformation = true
-
-# whether or not to ignore the semantics of loop-leaving-assume-edges during
-# interpolation - this avoids to have loop-counters in the interpolant
-cpa.explicit.interpolation.ignoreLoopsExitAssumes = true
-
-# which merge operator to use for ExplicitCPA
-cpa.explicit.merge = "SEP"
-  allowed values: [SEP, JOIN]
-
-# ignore boolean variables. if this option is used, booleans from the cfa
-# should tracked with another CPA, i.e. with BDDCPA.
-cpa.explicit.precision.ignoreBoolean = false
-
-# ignore variables, that are only used in simple calculations (add, sub, lt,
-# gt, eq). if this option is used, these variables from the cfa should
-# tracked with another CPA, i.e. with BDDCPA.
-cpa.explicit.precision.ignoreIntAdd = false
-
-# ignore variables, that are only compared for equality. if this option is
-# used, these variables from the cfa should tracked with another CPA, i.e.
-# with BDDCPA.
-cpa.explicit.precision.ignoreIntEqual = false
-
-# the threshold which controls whether or not variable valuations ought to be
-# abstracted once the specified number of valuations per variable is reached
-# in the set of reached states
-cpa.explicit.precision.reachedSetThreshold = -1
-
-# whether to track relevant variables only at the exact program location
-# (sharing=location), or within their respective (function-/global-) scope
-# (sharing=scoped).
-cpa.explicit.precision.sharing = "scope"
-  allowed values: [location, scope]
-
-# target file to hold the exported precision
-cpa.explicit.precisionFile = no default value
-
-# whether or not to avoid restarting at assume edges after a refinement
-cpa.explicit.refiner.avoidAssumes = false
-
-# checkForRepeatedRefinements
-# whether or not to check for repeated refinements, to then reset the
-# refinement root
-cpa.explicit.refiner.checkForRepeatedRefinements = true
-
-# whether or not to do lazy-abstraction
-cpa.explicit.refiner.doLazyAbstraction = true
-
-# when to export the interpolation tree
-# NEVER:   never export the interpolation tree
-# FINAL:   export the interpolation tree once after each refinement
-# ALWAYD:  export the interpolation tree once after each interpolation, i.e.
-# multiple times per refinmenet
-cpa.explicit.refiner.exportInterpolationTree = "NEVER"
-  allowed values: [NEVER, FINAL, ALWAYS]
-
-# use heuristic to extract a precision from the CFA statically on first
-# refinement
-cpa.explicit.refiner.performInitialStaticRefinement = false
-
-# whether to use the top-down interpolation strategy or the bottom-up
-# interpolation strategy
-cpa.explicit.refiner.useTopDownInterpolationStrategy = true
-
-# which stop operator to use for ExplicitCPA
-cpa.explicit.stop = "SEP"
-  allowed values: [SEP, JOIN, NEVER]
-
-# Variable name of the variable for which should be checked that its value is
-# globally a certain value 
-cpa.explicit.varName = ""
-
-# blacklist regex for variables that won't be tracked by ExplicitCPA
-cpa.explicit.variableBlacklist = ""
 
 # Which strategy to use for forced coverings (empty for none)
 cpa.forcedCovering = no default value
@@ -844,14 +753,35 @@ cpa.monitor.limit = 0
 # or specify a unit; 0 for infinite)
 cpa.monitor.pathcomputationlimit = 0
 
-# of which type should the merge be? normal, for usual join, widening for a
-# widening instead of a join
-cpa.octagon.domain.joinType = "NORMAL"
-  allowed values: [NORMAL, WIDENING]
+# whether or not to use use-definition information from the error pathsto
+# optimize the interpolation process
+cpa.octagon.interpolation.applyUseDefInformation = true
+
+# whether or not to ignore the semantics of loop-leaving-assume-edges during
+# interpolation - this avoids to have loop-counters in the interpolant
+cpa.octagon.interpolation.ignoreLoopsExitAssumes = true
 
 # which merge operator to use for OctagonCPA?
 cpa.octagon.merge = "SEP"
   allowed values: [SEP, JOIN]
+
+# of which type should the merge be? normal, for usual join, widening for a
+# widening instead of a join
+cpa.octagon.mergeop.type = "NORMAL"
+  allowed values: [NORMAL, WIDENING]
+
+# turn the refiner on or off, default is off
+cpa.octagon.refiner = false
+
+# whether or not to avoid restarting at assume edges after a refinement
+cpa.octagon.refiner.avoidAssumes = false
+
+# whether or not to check for repeated refinements, to then reset the
+# refinement root
+cpa.octagon.refiner.checkForRepeatedRefinements = true
+
+# whether or not to do lazy-abstraction
+cpa.octagon.refiner.doLazyAbstraction = true
 
 # which merge operator to use for InvariantCPA
 cpa.pointer2.merge = "JOIN"
@@ -965,6 +895,12 @@ cpa.predicate.deferUntypedAllocations = true
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
 
+# Theory to use as backend for bitvectors. If different from BITVECTOR, the
+# specified theory is used to approximate bitvectors. This can be used for
+# solvers that do not support bitvectors, or for increased performance.
+cpa.predicate.encodeBitvectorAs = RATIONAL
+  enum:     [INTEGER, RATIONAL, BITVECTOR]
+
 # Name of an external function that will be interpreted as if the function
 # call would be replaced by an externally defined expression over the program
 # variables. This will only work when all variables referenced by the dimacs
@@ -981,11 +917,6 @@ cpa.predicate.handleFieldAccess = false
 # non-dets
 cpa.predicate.handleImplicitInitialization = true
 
-# Handle pointer aliasing for pointers with unknown values (coming from
-# uninitialized variables or external function calls). This is slow and
-# provides little benefit.
-cpa.predicate.handleNondetPointerAliasing = false
-
 # Handle aliasing of pointers. This adds disjunctions to the formulas, so be
 # careful when using cartesian abstraction.
 cpa.predicate.handlePointerAliasing = true
@@ -996,7 +927,7 @@ cpa.predicate.handlePointerAliasing = true
 cpa.predicate.handleStringLiteralInitializers = false
 
 # Allows to ignore Concat and Extract Calls when Bitvector theory was
-# replaced.
+# replaced with Integer or Rational.
 cpa.predicate.ignoreExtractConcat = true
 
 # Ignore variables that are not relevant for reachability properties.
@@ -1176,9 +1107,6 @@ cpa.predicate.refinement.useBddInterpolantSimplification = false
 # verify if the interpolants fulfill the interpolant properties
 cpa.predicate.refinement.verifyInterpolants = false
 
-# replace the Bitvector with the Rational- and FunctionTheory
-cpa.predicate.replaceBitvectorWithRationalAndFunctionTheory = true
-
 # Enable the option to allow detecting the allocation type by type of the LHS
 # of the assignment, e.g. char *arr = malloc(size) is detected as char[size]
 cpa.predicate.revealAllocationTypeFromLhs = true
@@ -1205,10 +1133,6 @@ cpa.predicate.smtinterpol.logfile = "smtinterpol.%03d.smt2"
 # FOCI library from http://www.kenmcmil.com/foci2/).
 cpa.predicate.solver = MATHSAT5
   enum:     [MATHSAT5, SMTINTERPOL, Z3]
-
-# Encode program variables as INTEGER variables, instead of using REALs. Not
-# all solvers might support this.
-cpa.predicate.solver.useIntegers = false
 
 # log some solver actions, this may be slow!
 cpa.predicate.solver.useLogger = false
@@ -1341,8 +1265,125 @@ cpa.uninitvars.printWarnings = "true"
 cpa.uninitvars.stop = "sep"
   allowed values: [sep, join]
 
+# Value which is allowed for the variable which is checked
+cpa.value.allowedValue = 0
+
+# restrict abstractions to assume edges
+cpa.value.blk.alwaysAtAssumes = false
+
+# restrict abstractions to function calls/returns
+cpa.value.blk.alwaysAtFunctions = false
+
+# restrict abstractions to join points
+cpa.value.blk.alwaysAtJoins = false
+
+# restrict abstractions to loop heads
+cpa.value.blk.alwaysAtLoops = false
+
+# enables target checking for value-analysis, needed for predicate-analysis
+cpa.value.doTargetCheck = false
+
+# enable if will be used in predicated analysis but all variables should be
+# tracked, no refinement
+cpa.value.inPredicatedAnalysis = false
+
+# if there is an assumption like (x!=0), this option sets unknown
+# (uninitialized) variables to 1L, when the true-branch is handled.
+cpa.value.initAssumptionVars = false
+
+# get an initial precison from file
+cpa.value.initialPrecisionFile = no default value
+
+# whether or not to use use-definition information from the error pathsto
+# optimize the interpolation process
+cpa.value.interpolation.applyUseDefInformation = true
+
+# whether or not to ignore the semantics of loop-leaving-assume-edges during
+# interpolation - this avoids to have loop-counters in the interpolant
+cpa.value.interpolation.ignoreLoopsExitAssumes = true
+
+# which merge operator to use for ValueAnalysisCPA
+cpa.value.merge = "SEP"
+  allowed values: [SEP, JOIN]
+
+# ignore boolean variables. if this option is used, booleans from the cfa
+# should tracked with another CPA, i.e. with BDDCPA.
+cpa.value.precision.ignoreBoolean = false
+
+# ignore variables, that are only used in simple calculations (add, sub, lt,
+# gt, eq). if this option is used, these variables from the cfa should
+# tracked with another CPA, i.e. with BDDCPA.
+cpa.value.precision.ignoreIntAdd = false
+
+# ignore variables, that are only compared for equality. if this option is
+# used, these variables from the cfa should tracked with another CPA, i.e.
+# with BDDCPA.
+cpa.value.precision.ignoreIntEqual = false
+
+# the threshold which controls whether or not variable valuations ought to be
+# abstracted once the specified number of valuations per variable is reached
+# in the set of reached states
+cpa.value.precision.reachedSetThreshold = -1
+
+# whether to track relevant variables only at the exact program location
+# (sharing=location), or within their respective (function-/global-) scope
+# (sharing=scoped).
+cpa.value.precision.sharing = "scope"
+  allowed values: [location, scope]
+
+# target file to hold the exported precision
+cpa.value.precisionFile = no default value
+
+# when to export the interpolation tree
+# NEVER:   never export the interpolation tree
+# FINAL:   export the interpolation tree once after each refinement
+# ALWAYD:  export the interpolation tree once after each interpolation, i.e.
+# multiple times per refinmenet
+cpa.value.refinement.exportInterpolationTree = "NEVER"
+  allowed values: [NEVER, FINAL, ALWAYS]
+
+# whether or not to do lazy-abstraction
+cpa.value.refinement.restart = TOP
+  enum:     [TOP, BOTTOM, COMMON]
+
+# whether to use the top-down interpolation strategy or the bottom-up
+# interpolation strategy
+cpa.value.refinement.useTopDownInterpolationStrategy = true
+
+# whether or not to avoid restarting at assume edges after a refinement
+cpa.value.refiner.avoidAssumes = false
+
+# whether or not to check for repeated refinements, to then reset the
+# refinement root
+cpa.value.refiner.checkForRepeatedRefinements = true
+
+# whether or not to do lazy-abstraction
+cpa.value.refiner.doLazyAbstraction = true
+
+# whether or not to interpolate the shortest infeasible prefix rather than
+# the whole error path
+cpa.value.refiner.interpolateInfeasiblePrefix = false
+
+# use heuristic to extract a precision from the CFA statically on first
+# refinement
+cpa.value.refiner.performInitialStaticRefinement = false
+
+# which stop operator to use for ValueAnalysisCPA
+cpa.value.stop = "SEP"
+  allowed values: [SEP, JOIN, NEVER]
+
+# Variable name of the variable for which should be checked that its value is
+# globally a certain value 
+cpa.value.varName = ""
+
+# blacklist regex for variables that won't be tracked by ValueAnalysisCPA
+cpa.value.variableBlacklist = ""
+
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
+
+# adjust invariant generation conditions if supported by the analysis
+invariantGeneration.adjustConditions = false
 
 # generate invariants in parallel to the normal analysis
 invariantGeneration.async = false
@@ -1355,7 +1396,7 @@ invariantGeneration.config = no default value
 java.classpath = ""
 
 # use the following encoding for java files
-java.encoding = "utf8"
+java.encoding = Charsets.UTF_8
 
 # export TypeHierarchy as .dot file
 java.exportTypeHierarchy = true
@@ -1402,6 +1443,10 @@ parser.dialect = GNUC
 # appended to this string. The preprocessor needs to print the output to
 # stdout.
 parser.preprocessor = "cpp"
+
+# For C files, read #line preprocessor directives and use their information
+# for outputting line numbers. (Always enabled when pre-processing is used.)
+parser.readLineDirectives = false
 
 # Preprocess the given C files before parsing: Put every single token onto a
 # new line. Then the line number corresponds to the token number.

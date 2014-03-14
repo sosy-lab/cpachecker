@@ -38,10 +38,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.seplogic.SeplogicState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Function;
@@ -228,7 +228,7 @@ class ARGToDotWriter {
       builder.append(abstraction.getAbstractionFormula());
     }
 
-    ExplicitState explicit = AbstractStates.extractStateByType(currentElement, ExplicitState.class);
+    ValueAnalysisState explicit = AbstractStates.extractStateByType(currentElement, ValueAnalysisState.class);
     if (explicit != null) {
       builder.append("\\n");
       builder.append(explicit.toCompactString());

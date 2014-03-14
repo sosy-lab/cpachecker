@@ -48,6 +48,9 @@ public final class CElaboratedType implements CComplexType {
 
   @Override
   public String getName() {
+    if (realType != null) {
+      return realType.getName();
+    }
     return name;
   }
 

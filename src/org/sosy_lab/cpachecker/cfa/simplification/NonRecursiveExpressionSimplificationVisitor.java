@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cfa.simplification;
 
 import java.math.BigInteger;
 
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -42,9 +42,10 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitExpressionValueVisitor;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitNumericValue;
+import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
+import org.sosy_lab.cpachecker.cpa.value.NumericValue;
 
 /**
  * This visitor visits an expression and evaluates it.
@@ -59,9 +60,9 @@ public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpress
   // TODO explicitfloat: improve this entire class to use ExplicitValueBase instead of Long
 
   private final MachineModel machineModel;
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
 
-  public NonRecursiveExpressionSimplificationVisitor(MachineModel mm, LogManager pLogger) {
+  public NonRecursiveExpressionSimplificationVisitor(MachineModel mm, LogManagerWithoutDuplicates pLogger) {
     this.machineModel = mm;
     this.logger = pLogger;
   }
@@ -76,6 +77,15 @@ public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpress
       return ((CIntegerLiteralExpression)expr).asLong();
     }
     // TODO CharLiteralExpression
+    if (expr instanceof CCastExpression) {
+      // We are not always able to remove cast expressions up front,
+      // but we can look into them here to optimize cases like this:
+      // 0 == (void*)0
+      CExpression simplifiedExpr = handleCast((CCastExpression)expr);
+      if (!(simplifiedExpr instanceof CCastExpression)) {
+        return getValue(simplifiedExpr);
+      }
+    }
     return null;
   }
 
@@ -123,8 +133,8 @@ public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpress
     }
 
     // Just assume result to be an integer regardless of expression type.
-    long result = ExplicitExpressionValueVisitor.calculateBinaryOperation(
-        new ExplicitNumericValue(v1), new ExplicitNumericValue(v2), expr, machineModel, logger, null).asLong(CNumericTypes.INT);
+    long result = ExpressionValueVisitor.calculateBinaryOperation(
+        new NumericValue(v1), new NumericValue(v2), expr, machineModel, logger).asLong(CNumericTypes.INT);
 
     return new CIntegerLiteralExpression(expr.getFileLocation(),
             expr.getExpressionType(), BigInteger.valueOf(result));
@@ -132,6 +142,18 @@ public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpress
 
   @Override
   public CExpression visit(CCastExpression expr) {
+    CType targetType = expr.getExpressionType().getCanonicalType();
+    if (!(targetType instanceof CSimpleType)) {
+      // TODO maybe some simplifications can still be done?
+      // Note that we can't eliminate all casts, for example in this code:
+      // ((struct s*)0)->f
+      return expr;
+    }
+
+    return handleCast(expr);
+  }
+
+  private CExpression handleCast(CCastExpression expr) {
     final CExpression op = expr.getOperand();
     final Long v = getValue(op);
     if (v == null) {
@@ -139,8 +161,8 @@ public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpress
     }
 
     // Just assume the cast value to be an integer type regardless of expression type
-    final long castedValue = ExplicitExpressionValueVisitor.castCValue(
-        new ExplicitNumericValue(v), expr.getOperand().getExpressionType(), expr.getExpressionType(), machineModel, logger, null).asLong(CNumericTypes.INT);
+    final long castedValue = ExpressionValueVisitor.castCValue(
+        new NumericValue(v), expr.getOperand().getExpressionType(), expr.getExpressionType(), machineModel, logger, expr.getFileLocation()).asLong(CNumericTypes.INT);
 
     return new CIntegerLiteralExpression(expr.getFileLocation(),
             expr.getExpressionType(), BigInteger.valueOf(castedValue));

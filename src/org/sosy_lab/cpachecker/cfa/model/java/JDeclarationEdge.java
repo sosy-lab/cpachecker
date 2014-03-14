@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.model.java;
 
 
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -35,10 +36,10 @@ public class JDeclarationEdge extends ADeclarationEdge {
 
 
 
-  public JDeclarationEdge(final String pRawSignature, final int pLineNumber,
+  public JDeclarationEdge(final String pRawSignature, final FileLocation pFileLocation,
       final CFANode pPredecessor, final CFANode pSuccessor, final JDeclaration pDeclaration) {
 
-    super(pRawSignature, pLineNumber, pPredecessor, pSuccessor, pDeclaration);
+    super(pRawSignature, pFileLocation, pPredecessor, pSuccessor, pDeclaration);
 
   }
 

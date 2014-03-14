@@ -38,10 +38,10 @@ import java_cup.runtime.Scanner;
 import java_cup.runtime.Symbol;
 import java_cup.runtime.SymbolFactory;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -283,6 +283,8 @@ Bool      ::= TRUE  {: RESULT = AutomatonBoolExpr.TRUE; :}
               {: RESULT = new AutomatonBoolExpr.MatchCFAEdgeRegEx(expr.toString()); :}
             | MATCH LABEL SQUAREEXPR:expr
               {: RESULT = new AutomatonBoolExpr.MatchLabelRegEx(expr.toString()); :}
+            | MATCH ASSERT
+              {: RESULT = new AutomatonBoolExpr.MatchJavaAssert(); :}
             | MATCH EXIT
               {: RESULT = new AutomatonBoolExpr.MatchProgramExit(); :}
 /*next statement is deprecated*/ 

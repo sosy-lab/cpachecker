@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-public class TemplateSum extends TemplateNumericValue {
+public class TemplateSum extends TemplateNumeralValue {
 
   private Vector<TemplateTerm> terms;
 

@@ -65,7 +65,10 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
     }
 
     public LocationState getState(CFANode node) {
-      return Preconditions.checkNotNull(states[node.getNodeNumber()]);
+      return Preconditions.checkNotNull(states[checkNotNull(node).getNodeNumber()],
+          "LocationState for CFANode %s in function %s requested,"
+          + " but this node is not part of the current CFA.",
+          node, node.getFunctionName());
     }
   }
 

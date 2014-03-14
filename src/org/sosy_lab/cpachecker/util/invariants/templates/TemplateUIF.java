@@ -31,7 +31,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
-public class TemplateUIF extends TemplateNumericValue {
+public class TemplateUIF extends TemplateNumeralValue {
 
   private String name = null;
   private TemplateSumList args = null;

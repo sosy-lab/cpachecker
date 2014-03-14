@@ -23,23 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-
-import javax.annotation.Nullable;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-
-import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Multimap;
 
 /** This class guarantees a fixed order of variables in the BDD,
  * that should be good for the operations in the BitvectorManager. */
@@ -59,34 +57,34 @@ public class PredicateManager {
   private boolean initPartitions = true;
 
   protected static final String TMP_VARIABLE = "__CPAchecker_tmp_var";
-  private final Map<Multimap<String, String>, String> varsToTmpVar = new HashMap<>();
+  private final Map<Collection<String>, String> varsToTmpVar = new HashMap<>();
 
   /** Contains the varNames of all really tracked vars.
    * This set may differ from the union of all partitions,
    * because not every variable, that appears in the sourcecode,
    * is analyzed or even reachable. */
-  private final Multimap<String, String> trackedVars = LinkedHashMultimap.create();
+  private final Collection<String> trackedVars = new HashSet<>();
 
   private final NamedRegionManager rmgr;
 
   public PredicateManager(final Configuration config, final NamedRegionManager pRmgr,
                           final BDDPrecision pPrecision, final CFA pCfa,
-                          final BDDTransferRelation pTransferRelation
+                          final MachineModel pMachineModel
                           ) throws InvalidConfigurationException {
     config.inject(this);
     this.rmgr = pRmgr;
 
     if (initPartitions) {
-      initVars(pPrecision, pCfa, pTransferRelation);
+      initVars(pPrecision, pCfa, pMachineModel);
     }
   }
 
-  public Multimap<String, String> getTrackedVars() {
+  public Collection<String> getTrackedVars() {
     return trackedVars;
   }
 
   /** return a specific temp-variable, that should be at correct positions in the BDD. */
-  public String getTmpVariableForVars(final Multimap<String, String> vars) {
+  public String getTmpVariableForVars(final Collection<String> vars) {
     if (initPartitions) {
       return varsToTmpVar.get(vars);
     } else {
@@ -99,7 +97,7 @@ public class PredicateManager {
    *  (later vars are deeper in the BDD).
    *  This function declares those vars in the beginning of the analysis,
    *  so that we can choose between some orders. */
-  protected void initVars(BDDPrecision precision, CFA cfa, BDDTransferRelation transferRelation) {
+  protected void initVars(BDDPrecision precision, CFA cfa, MachineModel pMachineModel) {
     List<VariableClassification.Partition> partitions;
     if (initPartitionsOrdered) {
       BDDPartitionOrderer d = new BDDPartitionOrderer(cfa);
@@ -111,7 +109,8 @@ public class PredicateManager {
 
     for (VariableClassification.Partition partition : partitions) {
       // maxBitSize is too much for most variables. we only create an order here, so this should not matter.
-      createPredicates(partition.getVars(), precision, transferRelation.getMaxBitsize());
+      createPredicates(partition.getVars(), precision,
+              pMachineModel.getSizeofLongLongInt() * pMachineModel.getSizeofCharInBits());
     }
   }
 
@@ -119,7 +118,7 @@ public class PredicateManager {
    *
    * The value 'bitsize' chooses how much bits are used for each var.
    * The varname is build as "varname@pos". */
-  public void createPredicates(final Multimap<String, String> vars, final BDDPrecision precision, final int bitsize) {
+  public void createPredicates(final Collection<String> vars, final BDDPrecision precision, final int bitsize) {
 
     assert bitsize >= 1 : "you need at least one bit for a variable.";
 
@@ -135,33 +134,29 @@ public class PredicateManager {
       boolean isTrackingSomething = false;
       for (int i = 0; i < bitsize; i++) {
         int index = initBitsIncreasing ? i : (bitsize - i - 1);
-        for (Map.Entry<String, String> entry : vars.entries()) {
-          if (precision.isTracking(entry.getKey(), entry.getValue())) {
-            createPredicateDirectly(entry.getKey(), entry.getValue(), index);
-            isTrackingSomething = true;
-          }
+        for (String var : vars) {
+          createPredicateDirectly(var, index);
+          isTrackingSomething = true;
         }
         if (isTrackingSomething) {
-          createPredicateDirectly(null, tmpVar, index);
+          createPredicateDirectly(tmpVar, index);
         }
       }
 
     } else {
       // [a2, a1, a0, b2, b1, b0, c2, c1, c0]
       boolean isTrackingSomething = false;
-      for (Map.Entry<String, String> entry : vars.entries()) { // different loop order!
-        if (precision.isTracking(entry.getKey(), entry.getValue())) {
-          for (int i = 0; i < bitsize; i++) {
-            int index = initBitsIncreasing ? i : (bitsize - i - 1);
-            createPredicateDirectly(entry.getKey(), entry.getValue(), index);
-          }
+      for (String var : vars) { // different loop order!
+        for (int i = 0; i < bitsize; i++) {
+          int index = initBitsIncreasing ? i : (bitsize - i - 1);
+          createPredicateDirectly(var, index);
           isTrackingSomething = true;
         }
       }
       if (isTrackingSomething) {
         for (int i = 0; i < bitsize; i++) {
           int index = initBitsIncreasing ? i : (bitsize - i - 1);
-          createPredicateDirectly(null, tmpVar, index);
+          createPredicateDirectly(tmpVar, index);
         }
       }
     }
@@ -169,20 +164,19 @@ public class PredicateManager {
 
   /** This function returns a region for a variable.
    * This function does not track any statistics. */
-  private Region createPredicateDirectly(@Nullable final String functionName, final String varName, final int index) {
-    System.out.println(((functionName == null) ? varName : functionName + "::" + varName) + "@" + index);
-    return rmgr.createPredicate(((functionName == null) ? varName : functionName + "::" + varName) + "@" + index);
+  private Region createPredicateDirectly(final String varName, final int index) {
+    return rmgr.createPredicate(varName + "@" + index);
   }
 
   /** This function returns regions containing bits of a variable.
    * returns regions for positions of a variable, s --> [s@2, s@1, s@0].
    * There is no check, if the variable is tracked by the the precision. */
-  public Region[] createPredicates(@Nullable final String functionName, final String varName, final int size) {
-    trackedVars.put(functionName, varName);
+  public Region[] createPredicates(final String varName, final int size) {
+    trackedVars.add(varName);
     final Region[] newRegions = new Region[size];
     for (int i = size - 1; i >= 0; i--) {
       // inverse order should be faster, because 'most changing bits' are at bottom position in BDDs.
-      newRegions[i] = createPredicateDirectly(functionName, varName, i);
+      newRegions[i] = createPredicateDirectly(varName, i);
     }
     return newRegions;
   }

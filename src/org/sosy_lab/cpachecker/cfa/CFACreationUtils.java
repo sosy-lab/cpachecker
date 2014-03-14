@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cfa;
 
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -84,7 +84,7 @@ public class CFACreationUtils {
           level = Level.FINER;
         }
 
-        logger.log(level, "Dead code detected at line", edge.getLineNumber() + ":", edge.getRawStatement());
+        logger.logf(level, "%s: Dead code detected: %s", edge.getFileLocation(), edge.getRawStatement());
       }
 
       lastDetectedDeadCode = edge.getSuccessor().getNodeNumber();

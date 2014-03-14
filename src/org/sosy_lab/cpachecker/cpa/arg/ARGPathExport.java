@@ -43,8 +43,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
-import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping.NoOriginMappingAvailable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -310,12 +308,7 @@ public class ARGPathExport {
         final String to, final CFAEdge edge, final ARGState fromState,
         final Map<ARGState, CFAEdgeWithAssignments> valueMap) throws IOException {
 
-      TransitionCondition desc;
-      try {
-        desc = constructTransitionCondition(from, to, edge, fromState, valueMap);
-      } catch (NoOriginMappingAvailable e) {
-        throw new RuntimeException(e);
-      }
+      TransitionCondition desc = constructTransitionCondition(from, to, edge, fromState, valueMap);
 
       if (aggregateToPrevEdge(from, to, desc)) {
         return;
@@ -377,7 +370,7 @@ public class ARGPathExport {
     }
 
     private TransitionCondition constructTransitionCondition(String from, String to, CFAEdge edge, ARGState fromState,
-        Map<ARGState, CFAEdgeWithAssignments> valueMap) throws NoOriginMappingAvailable {
+        Map<ARGState, CFAEdgeWithAssignments> valueMap) {
       TransitionCondition desc = new TransitionCondition();
 
       if (exportFunctionCallsAndReturns) {
@@ -411,13 +404,8 @@ public class ARGPathExport {
         }
 
         if (exportTokenNumbers) {
-          if (CSourceOriginMapping.INSTANCE.getHasOneInputLinePerToken()) {
-            Set<Integer> absoluteTokens = SourceLocationMapper.getAbsoluteTokensFromCFAEdge(edge, false);
-            desc.put(KeyDef.TOKENS, tokensToText(absoluteTokens));
-
-            Pair<String, Set<Integer>> relativeTokens = CSourceOriginMapping.INSTANCE.getRelativeTokensFromAbsolute(absoluteTokens);
-            desc.put(KeyDef.ORIGINTOKENS, tokensToText(relativeTokens.getSecond()));
-          }
+          Set<Integer> absoluteTokens = SourceLocationMapper.getAbsoluteTokensFromCFAEdge(edge, false);
+          desc.put(KeyDef.TOKENS, tokensToText(absoluteTokens));
         }
 
         if (exportLineNumbers) {

@@ -4,17 +4,17 @@ public class MethodCall {
 
   public static void main(String[] args) {
 
-	int n = 0;
+  int n = 0;
 
-	int startMethodInvocation;
-	n = teileDurch2(n);
-	int endMethodInvocation;
+  int startMethodInvocation;
+  n = teileDurch2(n);
+  int endMethodInvocation;
 
   }
 
   public static int teileDurch2(int op) {
-	int startMethod;
-	return op / 2;
+  int startMethod;
+  return op / 2;
   }
 
 }

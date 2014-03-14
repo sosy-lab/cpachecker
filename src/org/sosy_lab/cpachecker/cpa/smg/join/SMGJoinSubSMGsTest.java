@@ -27,8 +27,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.smg.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGFactory;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
@@ -39,15 +40,15 @@ public class SMGJoinSubSMGsTest {
 
   @Before
   public void setUp() throws SMGInconsistentException {
-    SMG smg1 = new SMG(MachineModel.LINUX64);
-    SMG smg2 = new SMG(MachineModel.LINUX64);
-    SMG destSmg = new SMG(MachineModel.LINUX64);
+    WritableSMG smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    WritableSMG smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    WritableSMG destSmg = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
     SMGObject obj1 = new SMGRegion(8, "Test object 1");
     SMGObject obj2 = new SMGRegion(8, "Test object 2");
 
-    smg1.addObject(obj1);
-    smg2.addObject(obj2);
+    smg1.addHeapObject(obj1);
+    smg2.addHeapObject(obj2);
 
     SMGNodeMapping mapping1 = new SMGNodeMapping();
     SMGNodeMapping mapping2 = new SMGNodeMapping();

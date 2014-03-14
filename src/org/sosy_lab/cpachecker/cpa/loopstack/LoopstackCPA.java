@@ -29,7 +29,9 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
@@ -41,6 +43,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -60,6 +63,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableCollection;
 
 @Options(prefix="cpa.loopstack")
 public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA {
@@ -107,10 +111,21 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA 
     }
 
     Loop loop = null;
-    for (Loop l : cfa.getLoopStructure().get().get(pNode.getFunctionName())) {
-      if (l.getLoopNodes().contains(pNode)) {
-        Preconditions.checkState(loop == null, "Cannot create initial nodes for locations in nested loops");
-        loop = l;
+    Set<String> functionNames = new HashSet<>();
+    functionNames.add(pNode.getFunctionName());
+    functionNames.add(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+    for (String functionName : functionNames) {
+      ImmutableCollection<Loop> loops = cfa.getLoopStructure().get().get(functionName);
+      if (loops != null) {
+        for (Loop l : loops) {
+          if (l.getLoopNodes().contains(pNode)) {
+            Preconditions.checkState(loop == null, "Cannot create initial nodes for locations in nested loops");
+            loop = l;
+          }
+        }
+        if (loop != null) {
+          break;
+        }
       }
     }
 
@@ -136,6 +151,7 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA 
     MaxLoopIterationAdjuster maxLoopIterationAdjuster = this.maxLoopIterationAdjusterFactory.getMaxLoopIterationAdjuster(this);
     if (maxLoopIterationAdjuster.canAdjust(maxLoopIterations)) {
       maxLoopIterations = maxLoopIterationAdjuster.adjust(maxLoopIterations);
+      logger.log(Level.INFO, "Adjusting maxLoopIterations to " + maxLoopIterations);
       try {
         this.transferRelation.setDelegate(new LoopstackTransferRelation(maxLoopIterations, this.cfa));
       } catch (InvalidCFAException e) {

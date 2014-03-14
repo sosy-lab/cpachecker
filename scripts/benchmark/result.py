@@ -64,6 +64,7 @@ assert all('_false-' in k for k in FALSE_SUBSTRINGS.keys())
 
 # this map contains substring of property-files with their status
 PROPERTY_MATCHER = {'LTL(G ! label(':         STR_FALSE_LABEL,
+                    'LTL(G ! call(__VERIFIER_error()))': STR_FALSE_LABEL,
                     'LTL(F end)':             STR_FALSE_TERMINATION,
                     'LTL(G valid-free)':      STR_FALSE_FREE,
                     'LTL(G valid-deref)' :    STR_FALSE_DEREF,
@@ -96,14 +97,14 @@ def _statusesOfPropertyFile(propertyFile):
     statuses = []
     with open(propertyFile) as f:
         content = f.read()
-        assert 'CHECK' in content
+        assert 'CHECK' in content, "Invalid property {0}".format(content)
 
         # TODO: should we switch to regex or line-based reading?
         for substring, status in PROPERTY_MATCHER.items():
             if substring in content:
                 statuses.append(status)
 
-        assert len(statuses) > 0
+        assert statuses, "Unkown property {0}".format(content)
     return statuses
 
 

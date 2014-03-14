@@ -82,7 +82,7 @@ import org.eclipse.jdt.core.dom.TypeLiteral;
 import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
@@ -149,8 +149,6 @@ public class ASTConverter {
 
   private static final boolean NOT_FINAL = false;
 
-  private static final int NO_LINE = 0;
-
   private static final int FIRST = 0;
 
   private static final int SECOND = 1;
@@ -181,7 +179,7 @@ public class ASTConverter {
   public ASTConverter(Scope pScope, LogManager pLogger) {
     scope = pScope;
     logger = pLogger;
-    typeConverter = new ASTTypeConverter(logger, scope);
+    typeConverter = new ASTTypeConverter(scope);
   }
 
   /**
@@ -303,6 +301,12 @@ public class ASTConverter {
     return forInitDeclarations.size();
   }
 
+  private String getQualifiedName(String var) {
+    return scope.getCurrentClassType().getName()
+        + "_" + scope.getCurrentMethodName()
+        + "::" + var;
+  }
+
   private JType convert(ITypeBinding pTypeBinding) {
     return typeConverter.convert(pTypeBinding);
   }
@@ -377,11 +381,11 @@ public class ASTConverter {
    */
   public FileLocation getFileLocation(ASTNode l) {
     if (l == null) {
-      return new FileLocation(0, "", 0, 0, 0);
+      return FileLocation.DUMMY;
     } else if (l.getRoot().getNodeType() != ASTNode.COMPILATION_UNIT) {
       logger.log(Level.WARNING, "Can't find Placement Information for :"
           + l.toString());
-      return new FileLocation(0, "", 0, 0, 0);
+      return FileLocation.DUMMY;
     }
 
     CompilationUnit co = (CompilationUnit) l.getRoot();
@@ -518,7 +522,9 @@ public class ASTConverter {
 
       JVariableDeclaration newD = new JVariableDeclaration(fileLoc,
           convert(type), nameAndInitializer.getName(),
-          nameAndInitializer.getName(), nameAndInitializer.getInitializer(),
+          nameAndInitializer.getName(),
+          getQualifiedName(nameAndInitializer.getName()),
+          nameAndInitializer.getInitializer(),
           mB.isFinal());
 
       variableDeclarations.add(newD);
@@ -565,6 +571,7 @@ public class ASTConverter {
     return new JVariableDeclaration(getFileLocation(d),
         convert(type), d.getName().getFullyQualifiedName(),
         d.getName().getFullyQualifiedName(),
+        getQualifiedName(d.getName().getFullyQualifiedName()),
         initializerExpression, mB.isFinal());
   }
 
@@ -658,6 +665,7 @@ public class ASTConverter {
         convert(e.resolveTypeBinding()),
         name,
         name,
+        getQualifiedName(name),
         null, NOT_FINAL);
 
     scope.registerDeclarationOfThisClass(decl);
@@ -1034,7 +1042,9 @@ public class ASTConverter {
 
       JVariableDeclaration newD = new JVariableDeclaration(fileLoc,
           convert(type), nameAndInitializer.getName(),
-          nameAndInitializer.getName(), nameAndInitializer.getInitializer(),
+          nameAndInitializer.getName(),
+          getQualifiedName(nameAndInitializer.getName()),
+          nameAndInitializer.getInitializer(),
           mB.isFinal());
 
       variableDeclarations.add(newD);
@@ -1987,6 +1997,7 @@ public class ASTConverter {
         iteratorTyp,
         varName,
         varName,
+        getQualifiedName(varName),
         null, NOT_FINAL);
 
     scope.registerDeclarationOfThisClass(decl);
@@ -2136,19 +2147,13 @@ public class ASTConverter {
     }
   }
 
-  JObjectReferenceReturn getConstructorObjectReturn(ITypeBinding declaringClass, FileLocation constructorFileLoc) {
+  JObjectReferenceReturn getConstructorObjectReturn(ITypeBinding declaringClass) {
 
     assert declaringClass.isClass() || declaringClass.isEnum() : declaringClass.getName() + " is not a Class";
 
-    FileLocation fileloc =
-        new FileLocation(constructorFileLoc.getEndingLineNumber(),
-            constructorFileLoc.getFileName(), NO_LINE,
-            constructorFileLoc.getEndingLineNumber(),
-            constructorFileLoc.getEndingLineNumber());
-
     JClassType objectReturnType = (JClassType) convert(declaringClass);
 
-    return new JObjectReferenceReturn(fileloc, objectReturnType);
+    return new JObjectReferenceReturn(FileLocation.DUMMY, objectReturnType);
   }
 
 
@@ -2191,14 +2196,12 @@ public class ASTConverter {
     List<JType> paramTypes = new LinkedList<>();
     List<JParameterDeclaration> param = new LinkedList<>();
 
-    FileLocation fileLoc = new FileLocation(0, "", 0, 0, 0);
-
     JConstructorType type = new JConstructorType((JClassType)
         convert(classBinding), paramTypes, false);
 
     String simpleName = classBinding.getName();
 
-    return new JConstructorDeclaration(fileLoc, type,
+    return new JConstructorDeclaration(FileLocation.DUMMY, type,
         NameConverter.convertDefaultConstructorName(classBinding),
         simpleName, param, VisibilityModifier.PUBLIC, false, type.getReturnType());
   }

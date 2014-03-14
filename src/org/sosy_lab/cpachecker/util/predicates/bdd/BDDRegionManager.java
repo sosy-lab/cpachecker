@@ -41,12 +41,12 @@ import java.util.logging.Level;
 import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDFactory;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;

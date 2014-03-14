@@ -29,6 +29,7 @@ import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
@@ -49,8 +50,8 @@ public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnal
     return AutomaticCPAFactory.forType(CallstackCPA.class);
   }
 
-  public CallstackCPA(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
-    super("sep", "sep", new CallstackTransferRelation(config, pLogger));
+  public CallstackCPA(Configuration config, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
+    super("sep", "sep", new CallstackTransferRelation(config, pLogger, pCFA.getMainFunction()));
   }
 
   @Override

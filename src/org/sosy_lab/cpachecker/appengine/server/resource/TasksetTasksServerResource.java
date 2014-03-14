@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.appengine.entity.Taskset;
 import org.sosy_lab.cpachecker.appengine.json.TaskFileMixinAnnotations;
 import org.sosy_lab.cpachecker.appengine.json.TaskMixinAnnotations;
 import org.sosy_lab.cpachecker.appengine.json.TaskStatisticMixinAnnotations;
-import org.sosy_lab.cpachecker.appengine.server.TaskQueueTaskRunner;
+import org.sosy_lab.cpachecker.appengine.server.GAETaskQueueTaskExecutor;
 import org.sosy_lab.cpachecker.appengine.server.common.TasksetTasksResource;
 import org.sosy_lab.cpachecker.appengine.util.TaskBuilder;
 
@@ -93,7 +93,7 @@ public class TasksetTasksServerResource extends WadlServerResource implements Ta
         try {
           Configuration config = Configuration.builder()
               .setOptions(task.getOptions()).build();
-          new TaskQueueTaskRunner(config).run(task);
+          new GAETaskQueueTaskExecutor(config).execute(task);
 
           taskKeys.put(task.getKey(), taskPair.getValue());
           taskset.addTask(task);

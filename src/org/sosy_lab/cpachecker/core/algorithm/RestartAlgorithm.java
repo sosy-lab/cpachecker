@@ -74,7 +74,7 @@ import com.google.common.collect.PeekingIterator;
 @Options(prefix="restartAlgorithm")
 public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
-  private static final Splitter CONFIG_FILE_CONDITION_SPLITTER = Splitter.on(':').trimResults().limit(2);
+  private static final Splitter CONFIG_FILE_CONDITION_SPLITTER = Splitter.on("::").trimResults().limit(2);
 
   private static class RestartAlgorithmStatistics implements Statistics {
 
@@ -205,10 +205,10 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
           currentCpa = currentAlg.getSecond();
           currentReached = currentAlg.getThird();
         } catch (InvalidConfigurationException e) {
-          logger.logUserException(Level.WARNING, e, "Skipping one analysis because its configuration is invalid");
+          logger.logUserException(Level.WARNING, e, "Skipping one analysis because the configuration file " + singleConfigFileName.toString() + " is invalid");
           continue;
         } catch (IOException e) {
-          logger.logUserException(Level.WARNING, e, "Skipping one analysis due to unreadable configuration file");
+          logger.logUserException(Level.WARNING, e, "Skipping one analysis because the configuration file " + singleConfigFileName.toString() + " could not be read");
           continue;
         }
 
@@ -341,6 +341,11 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
         description="use CBMC as an external tool from CPAchecker")
         boolean runCBMCasExternalTool = false;
 
+    @Option(name="analysis.unknownIfUnrestrictedProgram",
+        description="stop the analysis with the result unknown if the program does not satisfies certain restrictions.")
+    private boolean unknownIfUnrestrictedProgram = false;
+
+
   }
 
   private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createNextAlgorithm(Path singleConfigFileName, CFANode mainFunction, ShutdownNotifier singleShutdownNotifier) throws InvalidConfigurationException, CPAException, InterruptedException, IOException {
@@ -428,6 +433,10 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     if (pOptions.collectAssumptions) {
       algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, pConfig, logger);
+    }
+
+    if (pOptions.unknownIfUnrestrictedProgram) {
+      algorithm = new RestrictedProgramDomainAlgorithm(algorithm, cpa, cfa, logger, pConfig, shutdownNotifier);
     }
 
     return algorithm;

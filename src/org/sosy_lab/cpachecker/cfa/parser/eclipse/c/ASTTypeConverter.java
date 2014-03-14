@@ -53,6 +53,7 @@ import org.eclipse.cdt.core.dom.ast.IType;
 import org.eclipse.cdt.core.dom.ast.ITypedef;
 import org.eclipse.cdt.core.dom.ast.IValue;
 import org.eclipse.cdt.core.dom.ast.c.ICArrayType;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -107,18 +108,48 @@ class ASTTypeConverter {
    */
   void registerType(IType cdtType, CType ourType) {
     CType oldType = typeConversions.get(filePrefix).put(cdtType, ourType);
-    assert oldType == null || oldType.getCanonicalType().equals(ourType.getCanonicalType()): "Overwriting type conversion";
+    if (oldType instanceof CComplexType && ourType instanceof CComplexType) {
+      CComplexType t1 = (CComplexType) oldType;
+      CComplexType t2 = (CComplexType) ourType;
+      boolean equalWithoutName = t1.isConst() == t2.isConst() && t1.isVolatile() == t2.isVolatile() && t1.getKind() == t1.getKind();
+      t1 = (CComplexType) t1.getCanonicalType();
+      t2 = (CComplexType) t1.getCanonicalType();
+      if (t1 instanceof CElaboratedType) {
+        t1 = ((CElaboratedType) t1).getRealType();
+      }
+      if (t2 instanceof CElaboratedType) {
+        t2 = ((CElaboratedType) t2).getRealType();
+      }
+      if (equalWithoutName) {
+        switch(t1.getKind()) {
+        case STRUCT:
+        case UNION:
+          List<CCompositeTypeMemberDeclaration> m1 =  ((CCompositeType)t1).getMembers();
+          List<CCompositeTypeMemberDeclaration> m2 =  ((CCompositeType)t2).getMembers();
+          for (int i = 0;  i < m1.size() && equalWithoutName; i++) {
+            equalWithoutName = m1.get(i).equals(m2.get(i));
+          }
+          break;
+        default:
+          equalWithoutName = false;
+          break;
+        }
+      }
+      assert equalWithoutName : "Overwriting type conversion";
+    } else {
+      assert oldType == null || oldType.getCanonicalType().equals(ourType.getCanonicalType()) : "Overwriting type conversion";
+    }
   }
 
   /**
    * This can be used to rename a CType in case of Types with equal names but
    * different fields, from different files.
    */
-  void overwriteType(IType cdtType, CType ourType) {
+  static void overwriteType(IType cdtType, CType ourType, String filePrefix) {
     typeConversions.get(filePrefix).put(cdtType, ourType);
   }
 
-  IType getTypeFromTypeConversion(CType ourCType) {
+  static IType getTypeFromTypeConversion(CType ourCType, String filePrefix) {
     for(Entry<IType, CType> entry : typeConversions.get(filePrefix).entrySet()) {
       if (ourCType.equals(entry.getValue())) {
         return entry.getKey();
@@ -168,18 +199,11 @@ class ASTTypeConverter {
       String qualifiedName = kind.toASTString() + " " + name;
 
       CComplexType oldType = scope.lookupType(qualifiedName);
-      int counter = 0;
-      while (oldType == null && counter < typeConversions.size() && typeConversions.size() > 1) {
-        oldType = scope.lookupType(qualifiedName + "__" + counter);
-        counter++;
-      }
 
       // We have seen this type already.
       // Replace it with a CElaboratedType.
-      if (oldType != null && counter == 0) {
-        return new CElaboratedType(false, false, kind, name, oldType);
-      } else if (oldType != null) {
-        return new CElaboratedType(false, false, kind, name + "__" + counter, oldType);
+      if (oldType != null) {
+        return new CElaboratedType(false, false, kind, oldType.getName(), oldType);
       }
 
       // empty linkedList for the Fields of the struct, they are created afterwards
@@ -314,17 +338,10 @@ class ASTTypeConverter {
     final String name = t.getName();
 
     CType oldType = scope.lookupTypedef(name);
-    int counter = 0;
-    while (oldType == null && counter < typeConversions.size() && typeConversions.size() > 1) {
-      oldType = scope.lookupType(name + "__" + counter);
-      counter++;
-    }
 
     // We have seen this type already.
-    if (oldType != null && counter == 0) {
+    if (oldType != null) {
       return new CTypedefType(false, false, t.getName(), oldType);
-    } else if (oldType != null) {
-      return new CTypedefType(false, false, name + "__" + counter, oldType);
     } else { // New typedef type (somehow recognized by CDT, but not found in declared types)
       return new CTypedefType(false, false, t.getName(), convert(t.getType()));
     }
@@ -343,12 +360,12 @@ class ASTTypeConverter {
     CExpression length = null;
     IValue v = t.getSize();
     if (v != null && v.numericalValue() != null) {
-      length = new CIntegerLiteralExpression(null, CNumericTypes.INT, BigInteger.valueOf(v.numericalValue()));
+      length = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(v.numericalValue()));
     } else {
       try {
         length = converter.convertExpressionWithoutSideEffects(t.getArraySizeExpression());
         if (length != null) {
-          length = converter.simplifyAndEvaluateExpression(length).getFirst();
+          length = converter.simplifyExpressionRecursively(length);
         }
       } catch (DOMException e) {
         throw new CFAGenerationRuntimeException(e);
@@ -398,7 +415,11 @@ class ASTTypeConverter {
   private CType conv(final IEnumeration e) {
     // TODO we ignore the enumerators here
     CComplexType realType = scope.lookupType("enum " + e.getName());
-    return new CElaboratedType(false, false, ComplexTypeKind.ENUM, e.getName(), realType);
+    String name = e.getName();
+    if (realType != null) {
+      name = realType.getName();
+    }
+    return new CElaboratedType(false, false, ComplexTypeKind.ENUM, name, realType);
   }
 
   /** converts types BOOL, INT,..., PointerTypes, ComplexTypes */
@@ -504,14 +525,8 @@ class ASTTypeConverter {
 
     String name = ASTConverter.convert(d.getName());
     CComplexType realType = scope.lookupType(type.toASTString() + " " + name);
-
-    int counter = -1;
-    while (realType == null && counter < (typeConversions.size() - 1) && typeConversions.size() > 1) {
-      counter++;
-      realType = scope.lookupType(type.toASTString() + " " + name + "__" + counter);
-    }
-    if (counter >= 0) {
-      name = name + "__" + counter;
+    if (realType != null) {
+      name = realType.getName();
     }
 
     return new CElaboratedType(d.isConst(), d.isVolatile(), type, name, realType);

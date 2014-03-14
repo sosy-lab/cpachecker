@@ -23,16 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cfa.model;
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+
 
 public class FunctionReturnEdge extends AbstractCFAEdge {
 
   protected final FunctionSummaryEdge summaryEdge;
 
-  protected FunctionReturnEdge(int pLineNumber,
+  protected FunctionReturnEdge(FileLocation pFileLocation,
       FunctionExitNode pPredecessor, CFANode pSuccessor,
       FunctionSummaryEdge pSummaryEdge) {
 
-    super("", pLineNumber, pPredecessor, pSuccessor);
+    super("", pFileLocation, pPredecessor, pSuccessor);
     summaryEdge = pSummaryEdge;
   }
 

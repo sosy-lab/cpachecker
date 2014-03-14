@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.cfa.model;
 import java.util.Iterator;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -44,7 +46,14 @@ public class MultiEdge extends AbstractCFAEdge implements Iterable<CFAEdge> {
   private final ImmutableList<CFAEdge> edges;
 
   public MultiEdge(CFANode pPredecessor, CFANode pSuccessor, List<CFAEdge> pEdges) {
-    super("", pEdges.get(0).getLineNumber(), pPredecessor, pSuccessor);
+    super("",
+      FileLocation.merge(
+          Lists.transform(pEdges, new Function<CFAEdge, FileLocation>() {
+            @Override
+            public FileLocation apply(CFAEdge pInput) {
+              return pInput.getFileLocation();
+            }})),
+      pPredecessor, pSuccessor);
     edges = ImmutableList.copyOf(pEdges);
   }
 

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
@@ -50,8 +51,8 @@ import com.google.common.collect.Iterables;
 
 public class CompositeTransferRelation implements TransferRelation {
 
-  protected final ImmutableList<TransferRelation> transferRelations;
-  protected final int size;
+  private final ImmutableList<TransferRelation> transferRelations;
+  private final int size;
   private int assumptionIndex = -1;
   private int predicatesIndex = -1;
 
@@ -103,10 +104,10 @@ public class CompositeTransferRelation implements TransferRelation {
       Collection<CompositeState> compositeSuccessors) throws CPATransferException, InterruptedException {
     assert cfaEdge != null;
 
-
     // first, call all the post operators
     int resultCount = 1;
     List<AbstractState> componentElements = compositeState.getWrappedStates();
+    checkArgument(componentElements.size() == size, "State with wrong number of component states given");
     List<Collection<? extends AbstractState>> allComponentsSuccessors = new ArrayList<>(size);
 
     for (int i = 0; i < size; i++) {

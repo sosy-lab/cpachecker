@@ -64,5 +64,4 @@ public interface CFA {
   Optional<VariableClassification> getVarClassification();
 
   Language getLanguage();
-
 }

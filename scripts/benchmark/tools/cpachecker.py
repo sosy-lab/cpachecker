@@ -1,3 +1,29 @@
+#!/usr/bin/env python
+
+"""
+CPAchecker is a tool for configurable software verification.
+This file is part of CPAchecker.
+
+Copyright (C) 2007-2014  Dirk Beyer
+All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+
+CPAchecker web page:
+  http://cpachecker.sosy-lab.org
+"""
+
 # prepare for Python 3
 from __future__ import absolute_import, print_function, unicode_literals
 
@@ -7,19 +33,18 @@ import sys
 import string
 import os
 import re
-import benchmark.result as result
 
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
 if __name__ == "__main__":
     sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir))
 
+import benchmark.result as result
 import benchmark.util as Util
 import benchmark.tools.template
 
 REQUIRED_PATHS = [
                   "lib/java/runtime",
-                  "lib/JavaParser",
                   "lib/*.jar",
                   "lib/native",
                   "scripts",
@@ -64,48 +89,10 @@ class Tool(benchmark.tools.template.BaseTool):
         if process.returncode:
             sys.exit('CPAchecker returned exit code {0}'.format(process.returncode))
         stdout = Util.decodeToString(stdout)
-        version = stdout.splitlines()[0].split()[1]  # first word is 'CPAchecker'
-
-        # CPAchecker might be within a SVN repository
-        # Determine the revision and add it to the version.
-        cpaShDir = os.path.dirname(os.path.realpath(executable))
-        cpacheckerDir = os.path.join(cpaShDir, os.path.pardir)
-        try:
-            svnProcess = subprocess.Popen(['svnversion', cpacheckerDir], env={'LANG': 'C'}, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            (stdout, stderr) = svnProcess.communicate()
-            stdout = Util.decodeToString(stdout).strip()
-            if not (svnProcess.returncode or stderr or (stdout == 'exported')):
-                return version + ' ' + stdout
-        except OSError:
-            pass
-
-        # CPAchecker might be within a git-svn repository
-        try:
-            gitProcess = subprocess.Popen(['git', 'svn', 'find-rev', 'HEAD'], env={'LANG': 'C'}, cwd=cpacheckerDir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            (stdout, stderr) = gitProcess.communicate()
-            stdout = Util.decodeToString(stdout).strip()
-            if not (gitProcess.returncode or stderr) and stdout:
-                return version + ' ' + stdout + ('M' if self._isGitRepositoryDirty(cpacheckerDir) else '')
-    
-            # CPAchecker might be within a git repository
-            gitProcess = subprocess.Popen(['git', 'log', '-1', '--pretty=format:%h', '--abbrev-commit'], env={'LANG': 'C'}, cwd=cpacheckerDir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            (stdout, stderr) = gitProcess.communicate()
-            stdout = Util.decodeToString(stdout).strip()
-            if not (gitProcess.returncode or stderr) and stdout:
-                return version + ' ' + stdout + ('+' if self._isGitRepositoryDirty(cpacheckerDir) else '')
-        except OSError:
-            pass
-
-        return version
-
-
-    def _isGitRepositoryDirty(self, dir):
-        gitProcess = subprocess.Popen(['git', 'status', '--porcelain'], env={'LANG': 'C'}, cwd=dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (stdout, stderr) = gitProcess.communicate()
-        if not (gitProcess.returncode or stderr):
-            return True if stdout else False  # True if stdout is non-empty
-        return None
-
+        line = stdout.splitlines()[0]
+        line = line.replace('CPAchecker' , '')
+        line = line.split('(')[0]
+        return line.strip()
 
     def getName(self):
         return 'CPAchecker'

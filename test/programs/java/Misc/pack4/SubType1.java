@@ -8,58 +8,58 @@ public class SubType1 extends SuperType1 {
 
   public SubType1() {
 
-	super();
+  super();
 
-	sup = new SuperSuper();
-	sub = new SuperSuperSuper();
+  sup = new SuperSuper();
+  sub = new SuperSuperSuper();
 
   }
 
   public static void main(String[] args) {
 
-	SubType1 s = new SubType1();
+  SubType1 s = new SubType1();
 
-	s.method();
+  s.method();
 
   }
-  
+
   public void method2() {
-	num = 3;
+  num = 3;
   }
 
   public void method() {
 
-	super.method();
+  super.method();
 
-	int num = 1;
+  int num = 1;
 
-	SuperSuper sup = new SuperSuper();
+  SuperSuper sup = new SuperSuper();
 
-	this.num = 2;
+  this.num = 2;
 
-	sup.num = 3;
+  sup.num = 3;
 
-	this.sup.num = 4;
+  this.sup.num = 4;
 
-	super.sup.num = 5;
+  super.sup.num = 5;
 
-	sup.sub.method2();
+  sup.sub.method2();
 
-	super.sup.sub.method2();
+  super.sup.sub.method2();
 
-	super.sup.sub.num = 6;
-	
-	assert num == 1;
-	
-	assert this.num == 2;
-	
-	assert sup.num == 3;
-	
-	assert this.sup.num == 4;
-	
-	assert super.sup.num == 5;
-	
-	assert super.sup.sub.num == 6;
-	
+  super.sup.sub.num = 6;
+
+  assert num == 1;
+
+  assert this.num == 2;
+
+  assert sup.num == 3;
+
+  assert this.sup.num == 4;
+
+  assert super.sup.num == 5;
+
+  assert super.sup.sub.num == 6;
+
   }
 }

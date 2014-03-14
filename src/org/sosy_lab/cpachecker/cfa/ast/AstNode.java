@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 
 
 public abstract class AstNode implements IAstNode {
@@ -30,7 +32,7 @@ public abstract class AstNode implements IAstNode {
   private final FileLocation fileLocation;
 
   public AstNode(final FileLocation pFileLocation) {
-    fileLocation = pFileLocation;
+    fileLocation = checkNotNull(pFileLocation);
   }
 
   @Override

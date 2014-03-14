@@ -42,9 +42,10 @@ import org.sosy_lab.cpachecker.appengine.dao.TasksetDAO;
 import org.sosy_lab.cpachecker.appengine.entity.Task;
 import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 import org.sosy_lab.cpachecker.appengine.io.GAEPath;
-import org.sosy_lab.cpachecker.cmdline.PropertyFileParser;
-import org.sosy_lab.cpachecker.cmdline.PropertyFileParser.PropertyType;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.util.PropertyFileParser;
+import org.sosy_lab.cpachecker.util.PropertyFileParser.InvalidPropertyFileException;
+import org.sosy_lab.cpachecker.util.PropertyFileParser.PropertyType;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
@@ -248,7 +249,7 @@ public class TaskBuilder {
     PropertyFileParser parser = new PropertyFileParser(propertyFile);
     try {
       parser.parse();
-    } catch (IllegalArgumentException e) {
+    } catch (InvalidPropertyFileException e) {
       errors.add("task.properties.ParseError");
     }
     if (input.options != null && !input.options.containsKey("analysis.entryFunction")) {

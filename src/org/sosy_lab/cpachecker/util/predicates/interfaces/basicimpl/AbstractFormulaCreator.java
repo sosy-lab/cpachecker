@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
-
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
 
 /**
@@ -40,7 +40,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 public abstract class AbstractFormulaCreator<TFormulaInfo, TType, TEnv> implements FormulaCreator<TFormulaInfo> {
 
   private final TType boolType;
-  private final TType numberType;
+  private final TType integerType;
+  private final TType realType;
   private final TEnv environment;
 
   public TEnv getEnv() {
@@ -50,10 +51,12 @@ public abstract class AbstractFormulaCreator<TFormulaInfo, TType, TEnv> implemen
   protected AbstractFormulaCreator(
       TEnv env,
       TType boolType,
-      TType numberType
+      TType pIntegerType,
+      TType pRealType
       ) {
     this.boolType = boolType;
-    this.numberType = numberType;
+    this.integerType = pIntegerType;
+    this.realType = pRealType;
     this.environment = env;
   }
 
@@ -69,6 +72,8 @@ public abstract class AbstractFormulaCreator<TFormulaInfo, TType, TEnv> implemen
     AbstractFormula<TFormulaInfo> f;
     if (pClazz == BitvectorFormula.class) {
       f = new BitvectorFormulaImpl<>(pTerm);
+    } else if (pClazz == IntegerFormula.class) {
+      f = new IntegerFormulaImpl<>(pTerm);
     } else if (pClazz == RationalFormula.class) {
       f = new RationalFormulaImpl<>(pTerm);
     } else if (pClazz == BooleanFormula.class) {
@@ -86,9 +91,13 @@ public abstract class AbstractFormulaCreator<TFormulaInfo, TType, TEnv> implemen
     return boolType;
   }
 
-  public TType getNumberType() {
-    return numberType;
+  public TType getIntegerType() {
+    return integerType;
   }
 
-  protected abstract TFormulaInfo makeVariable(TType type, String varName) ;
+  public TType getRealType() {
+    return realType;
+  }
+
+  public abstract TFormulaInfo makeVariable(TType type, String varName) ;
 }

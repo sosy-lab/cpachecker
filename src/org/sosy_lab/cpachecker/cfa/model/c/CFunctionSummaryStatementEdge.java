@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.model.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -34,9 +35,9 @@ public class CFunctionSummaryStatementEdge extends CStatementEdge {
   private final CFunctionCall fcall;
 
   public CFunctionSummaryStatementEdge(String pRawStatement,
-      CStatement pStatement, int pLineNumber, CFANode pPredecessor,
+      CStatement pStatement, FileLocation pFileLocation, CFANode pPredecessor,
       CFANode pSuccessor, CFunctionCall fcall, String functionName) {
-    super(pRawStatement, pStatement, pLineNumber, pPredecessor, pSuccessor);
+    super(pRawStatement, pStatement, pFileLocation, pPredecessor, pSuccessor);
     this.functionName = checkNotNull(functionName);
     this.fcall = checkNotNull(fcall);
   }

@@ -1,18 +1,18 @@
 
 public class Switch {
-	
 
-	
 
-	public static void main(
-			String[] args) {
-		
+
+
+  public static void main(
+      String[] args) {
+
 
         int n1;
-        
+
         n1 = 10;
-	
-      
+
+
         switch(n1){
         case 1: assert (false);
                     break;
@@ -23,9 +23,9 @@ public class Switch {
         default: assert (false);
           n1 = 1;
         }
-        
+
         n1 = 6;
-      
-      	}
-		
+
+        }
+
 }

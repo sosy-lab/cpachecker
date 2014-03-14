@@ -56,7 +56,7 @@ public class Mathsat5InterpolatingProver extends Mathsat5AbstractProver implemen
     long t = Mathsat5FormulaManager.getMsatTerm(f);
     //long t = ((Mathsat5Formula)f).getTerm();
     if (!useSharedEnv) {
-      t = msat_make_copy_from(curEnv, t, mgr.getMsatEnv());
+      t = msat_make_copy_from(curEnv, t, mgr.getEnvironment());
     }
     int group = msat_create_itp_group(curEnv);
     msat_push_backtrack_point(curEnv);
@@ -77,7 +77,7 @@ public class Mathsat5InterpolatingProver extends Mathsat5AbstractProver implemen
     long itp = msat_get_interpolant(curEnv, groupsOfA);
 
     if (!useSharedEnv) {
-      itp = msat_make_copy_from(mgr.getMsatEnv(), itp, curEnv);
+      itp = msat_make_copy_from(mgr.getEnvironment(), itp, curEnv);
     }
     return mgr.encapsulateBooleanFormula(itp);
   }

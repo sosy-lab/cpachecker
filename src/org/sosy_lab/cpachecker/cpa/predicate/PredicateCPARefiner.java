@@ -36,8 +36,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -279,7 +277,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
     assert from(result).allMatch(new Predicate<ARGState>() {
       @Override
-      public boolean apply(@Nullable ARGState pInput) {
+      public boolean apply(ARGState pInput) {
         boolean correct = pInput.getParents().size() <= 1;
         assert correct : "PredicateCPARefiner expects abstraction states to have only one parent, but this state has more:" + pInput;
         return correct;

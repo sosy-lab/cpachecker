@@ -30,6 +30,7 @@ import java.util.Set;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -42,7 +43,7 @@ import com.google.common.collect.ImmutableList;
 
 public class CLangStackFrameTest {
   static private final CFunctionType functionType = AnonymousTypes.createSimpleFunctionType(AnonymousTypes.dummyInt);
-  static private final CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(null, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
+  static private final CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
   static private final MachineModel usedMachineModel = MachineModel.LINUX64;
   private CLangStackFrame sf;
 

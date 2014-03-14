@@ -23,12 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.CFAGenerationRuntimeException;
 
 
@@ -182,8 +190,10 @@ public class CFASimplifier {
       // and a new blankedge is introduced
       if (left == right && left != null) {
         CFANode endNode = left;
-        removeNodesBetween(root, root, left, cfa);
-        CFAEdge blankEdge = new BlankEdge("skipped uneccesary edges", root.getLineNumber(), root, endNode, "skipped uneccesary edges");
+        List<FileLocation> removedFileLocations = new ArrayList<>();
+        removeNodesBetween(root, root, left, cfa, removedFileLocations);
+        CFAEdge blankEdge = new BlankEdge("skipped uneccesary edges",
+            FileLocation.merge(removedFileLocations), root, endNode, "skipped uneccesary edges");
         root.addLeavingEdge(blankEdge);
         endNode.addEnteringEdge(blankEdge);
 
@@ -213,7 +223,8 @@ public class CFASimplifier {
    * @param to the CFANode where the deletion should stop
    * @param cfa The cfa where the nodes have to be deleted, too
    */
-  private static void removeNodesBetween(CFANode from, CFANode actualFrom, CFANode to, MutableCFA cfa) {
+  private static void removeNodesBetween(CFANode from, CFANode actualFrom, CFANode to,
+      MutableCFA cfa, List<FileLocation> removedFileLocations) {
 
     // if actualFrom and From are the same, this is the first call of removeNodesBetween
     // so we know that the from node has two leaving (Assume)Edges
@@ -223,19 +234,31 @@ public class CFASimplifier {
 
       actualFrom.removeLeavingEdge(left);
       actualFrom.removeLeavingEdge(right);
+      removedFileLocations.add(left.getFileLocation());
+      removedFileLocations.add(right.getFileLocation());
 
       actualFrom = left.getSuccessor();
       actualFrom.removeEnteringEdge(left);
       if (actualFrom != to) {
+        if (actualFrom.getNumEnteringEdges() > 0) {
+          for (int i = 0;  i < actualFrom.getNumEnteringEdges(); i++) {
+            moveEdgeToOtherSuccessor(actualFrom.getEnteringEdge(i), to);
+          }
+        }
         cfa.removeNode(actualFrom);
-        removeNodesBetween(from, actualFrom, to, cfa);
+        removeNodesBetween(from, actualFrom, to, cfa, removedFileLocations);
       }
 
       actualFrom = right.getSuccessor();
       actualFrom.removeEnteringEdge(right);
-      if (actualFrom != to) {
+      if (actualFrom != to && actualFrom.getNumEnteringEdges() == 0) {
+        if (actualFrom.getNumEnteringEdges() > 0) {
+          for (int i = 0;  i < actualFrom.getNumEnteringEdges(); i++) {
+            moveEdgeToOtherSuccessor(actualFrom.getEnteringEdge(i), to);
+          }
+        }
         cfa.removeNode(actualFrom);
-        removeNodesBetween(from, actualFrom, to, cfa);
+        removeNodesBetween(from, actualFrom, to, cfa, removedFileLocations);
       }
 
     // if actualFrom and from are not equal, there should actually be exactly
@@ -245,10 +268,11 @@ public class CFASimplifier {
       actualFrom.removeLeavingEdge(edge);
       actualFrom = edge.getSuccessor();
       actualFrom.removeEnteringEdge(edge);
+      removedFileLocations.add(edge.getFileLocation());
 
       if (actualFrom != to) {
         cfa.removeNode(actualFrom);
-        removeNodesBetween(from, actualFrom, to, cfa);
+        removeNodesBetween(from, actualFrom, to, cfa, removedFileLocations);
       }
 
     // more or less than one leaving edge, this should never happen (if the method
@@ -260,4 +284,61 @@ public class CFASimplifier {
     }
   }
 
+  private static CFAEdge moveEdgeToOtherSuccessor(CFAEdge edge, CFANode succ) {
+    CFANode pred = edge.getPredecessor();
+    pred.removeLeavingEdge(edge);
+    switch (edge.getEdgeType()) {
+    case AssumeEdge:
+      edge = new CAssumeEdge(((CAssumeEdge)edge).getRawStatement(),
+                             edge.getFileLocation(),
+                             pred,
+                             succ,
+                             ((CAssumeEdge)edge).getExpression(),
+                             ((CAssumeEdge)edge).getTruthAssumption());
+      pred.addLeavingEdge(edge);
+      succ.addEnteringEdge(edge);
+      return edge;
+    case BlankEdge:
+      edge = new BlankEdge(((BlankEdge)edge).getRawStatement(),
+                            edge.getFileLocation(),
+                            pred,
+                            succ,
+                            ((BlankEdge)edge).getDescription());
+      pred.addLeavingEdge(edge);
+      succ.addEnteringEdge(edge);
+      return edge;
+    case DeclarationEdge:
+      edge = new CDeclarationEdge(((CDeclarationEdge)edge).getRawStatement(),
+                                  edge.getFileLocation(),
+                                  pred,
+                                  succ,
+                                  ((CDeclarationEdge)edge).getDeclaration());
+      pred.addLeavingEdge(edge);
+      succ.addEnteringEdge(edge);
+      return edge;
+    case ReturnStatementEdge:
+      edge = new CReturnStatementEdge(((CReturnStatementEdge)edge).getRawStatement(),
+                                      ((CReturnStatementEdge)edge).getRawAST().orNull(),
+                                      edge.getFileLocation(),
+                                      pred,
+                                      (FunctionExitNode) succ);
+      pred.addLeavingEdge(edge);
+      succ.addEnteringEdge(edge);
+      return edge;
+    case StatementEdge:
+      edge = new CStatementEdge(((CStatementEdge)edge).getRawStatement(),
+                                ((CStatementEdge)edge).getStatement(),
+                                edge.getFileLocation(),
+                                pred,
+                                succ);
+      pred.addLeavingEdge(edge);
+      succ.addEnteringEdge(edge);
+      return edge;
+    case CallToReturnEdge:
+    case FunctionReturnEdge:
+    case MultiEdge:
+    default:
+      throw new AssertionError("should never happen");
+    }
+  }
 }

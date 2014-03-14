@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.model.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
@@ -30,11 +31,11 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 public class CFunctionReturnEdge extends FunctionReturnEdge {
 
 
-  public CFunctionReturnEdge(int pLineNumber,
+  public CFunctionReturnEdge(FileLocation pFileLocation,
       FunctionExitNode pPredecessor, CFANode pSuccessor,
       CFunctionSummaryEdge pSummaryEdge) {
 
-    super(pLineNumber, pPredecessor, pSuccessor, pSummaryEdge);
+    super(pFileLocation, pPredecessor, pSuccessor, pSummaryEdge);
 
   }
 

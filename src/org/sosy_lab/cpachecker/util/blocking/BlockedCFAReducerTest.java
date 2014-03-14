@@ -171,9 +171,6 @@ public class BlockedCFAReducerTest {
     ReducedNode exitNode = new ReducedNode(new CFANode(100, "test"), false);
     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 
-    ReducedNode n1 = new ReducedNode(new CFANode(1, "test"), false);
-    ReducedNode n2 = new ReducedNode(new CFANode(2, "test"), false);
-    ReducedNode n3 = new ReducedNode(new CFANode(3, "test"), false);
     ReducedNode n4 = new ReducedNode(new CFANode(4, "loophead"), false);
     n4.getWrapped().setLoopStart();
 
@@ -190,7 +187,6 @@ public class BlockedCFAReducerTest {
     ReducedNode n23 = new ReducedNode(new CFANode(23, "test"), false);
     ReducedNode n24 = new ReducedNode(new CFANode(24, "test"), false);
     ReducedNode n25 = new ReducedNode(new CFANode(25, "test"), false);
-    ReducedNode n26 = new ReducedNode(new CFANode(26, "test"), false);
 
     funct.addEdge(entryNode, n4);
 

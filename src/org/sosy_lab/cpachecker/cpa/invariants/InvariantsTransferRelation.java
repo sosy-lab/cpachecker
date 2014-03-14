@@ -273,19 +273,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
       return handleAssignment(pElement, pEdge.getPredecessor().getFunctionName(), pEdge, leftHandSide, value, pPrecision);
     }
 
-    InvariantsState result = pElement;
-    if (pEdge.getStatement() instanceof CFunctionCall) {
-      CFunctionCall functionCall = (CFunctionCall) pEdge.getStatement();
-      CFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
-      if (functionCallExpression.getFunctionNameExpression().toString().equals("__CPROVER_assume")) {
-        ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
-        for (CExpression expression : functionCallExpression.getParameterExpressions()) {
-          result = result.assume(expression.accept(etfv), pEdge);
-        }
-      }
-    }
-
-    return result;
+    return pElement;
   }
 
   private InvariantsState handleAssignment(InvariantsState pElement, String pFunctionName, CFAEdge pEdge, CExpression pLeftHandSide, InvariantsFormula<CompoundInterval> pValue, InvariantsPrecision pPrecision) throws UnrecognizedCCodeException {

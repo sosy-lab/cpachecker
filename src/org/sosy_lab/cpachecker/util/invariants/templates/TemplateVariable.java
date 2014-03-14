@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-public class TemplateVariable extends TemplateNumericValue implements BooleanFormula, GeneralVariable {
+public class TemplateVariable extends TemplateNumeralValue implements BooleanFormula, GeneralVariable {
 
   private String name = null;
   private Integer index = null;

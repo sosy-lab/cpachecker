@@ -30,18 +30,19 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
-import org.sosy_lab.cpachecker.cpa.smg.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionFinder;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.ReadableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
 import com.google.common.collect.Iterables;
 
 public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
-  private CLangSMG smg;
+  private ReadableSMG smg;
   private Map<SMGObject, Map<Integer, SMGSingleLinkedListCandidate>> candidates = new HashMap<>();
   private Map<Integer, Integer> inboundPointers = new HashMap<>();
 
@@ -56,7 +57,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
   }
 
   @Override
-  public Set<SMGAbstractionCandidate> traverse(CLangSMG pSmg) {
+  public Set<SMGAbstractionCandidate> traverse(ReadableSMG pSmg) throws SMGInconsistentException {
     smg = pSmg;
 
     buildInboundPointers();
@@ -77,12 +78,13 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
   }
 
   private void buildInboundPointers() {
-    for (Integer pointer : smg.getPTEdges().keySet()) {
+    for (SMGEdgePointsTo pt : smg.getPTEdges()) {
+      int pointer = pt.getValue();
       inboundPointers.put(pointer, Iterables.size(smg.getHVEdges(new SMGEdgeHasValueFilter().filterHavingValue(pointer))));
     }
   }
 
-  private void startTraversal(SMGObject pObject) {
+  private void startTraversal(SMGObject pObject) throws SMGInconsistentException {
     if (candidates.containsKey(pObject)) {
       // Processed already in continueTraversal
       return;
@@ -97,7 +99,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     }
   }
 
-  private void continueTraversal(int pValue, SMGSingleLinkedListCandidate pCandidate) {
+  private void continueTraversal(int pValue, SMGSingleLinkedListCandidate pCandidate) throws SMGInconsistentException {
     SMGEdgePointsTo pt = smg.getPointer(pValue);
     SMGObject object = pt.getObject();
     if (! candidates.containsKey(object)) {

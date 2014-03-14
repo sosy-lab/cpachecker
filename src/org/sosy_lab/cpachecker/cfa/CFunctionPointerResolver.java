@@ -39,6 +39,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -282,10 +283,9 @@ public class CFunctionPointerResolver {
 
     if (funcs.isEmpty()) {
       // no possible targets, we leave the CFA unchanged and print a warning
-      logger.log(Level.WARNING, "Function pointer", nameExp.toASTString(),
-          "with type", nameExp.getExpressionType().toASTString("*"),
-          "is called in line", statement.getLineNumber() + ",",
-          "but no possible target functions were found.");
+      logger.logf(Level.WARNING, "%s: Function pointer %s with type %s is called,"
+          + " but no possible target functions were found.",
+          statement.getFileLocation(), nameExp.toASTString(), nameExp.getExpressionType().toASTString("*"));
       return;
     }
 
@@ -298,6 +298,7 @@ public class CFunctionPointerResolver {
             }
           }));
 
+    FileLocation fileLocation = statement.getFileLocation();
     CFANode start = statement.getPredecessor();
     CFANode end = statement.getSuccessor();
     // delete old edge
@@ -328,7 +329,7 @@ public class CFunctionPointerResolver {
       final CBinaryExpressionBuilder binExprBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
       CBinaryExpression condition = binExprBuilder.buildBinaryExpression(nameExp, amper, BinaryOperator.EQUALS);
 
-      addConditionEdges(condition, rootNode, thenNode, elseNode, start.getLineNumber());
+      addConditionEdges(condition, rootNode, thenNode, elseNode, fileLocation);
 
 
       CFANode retNode = newCFANode(start.getLineNumber(), start.getFunctionName());
@@ -339,11 +340,11 @@ public class CFunctionPointerResolver {
       //replace function call by pointer expression with regular call by name (in functionCall and edge.getStatement())
       CFunctionCall regularCall = createRegularCall(functionCall, fNode);
 
-      createCallEdge(statement.getLineNumber(), pRawStatement,
+      createCallEdge(fileLocation, pRawStatement,
           thenNode, retNode, regularCall);
 
       //retNode-->end
-      BlankEdge be = new BlankEdge("skip", statement.getLineNumber(), retNode, end, "skip");
+      BlankEdge be = new BlankEdge("skip", statement.getFileLocation(), retNode, end, "skip");
       CFACreationUtils.addEdgeUnconditionallyToCFA(be);
 
       rootNode = elseNode;
@@ -353,7 +354,7 @@ public class CFunctionPointerResolver {
     if (createUndefinedFunctionCall) {
       CStatementEdge summaryStatementEdge = new CStatementEdge(
           statement.getRawStatement(), statement.getStatement(),
-          statement.getLineNumber(), rootNode, end);
+          statement.getFileLocation(), rootNode, end);
 
       rootNode.addLeavingEdge(summaryStatementEdge);
       end.addEnteringEdge(summaryStatementEdge);
@@ -402,10 +403,10 @@ public class CFunctionPointerResolver {
     return nextNode;
   }
 
-  private void createCallEdge(int lineNumber, String pRawStatement,
+  private void createCallEdge(FileLocation fileLocation, String pRawStatement,
       CFANode predecessorNode, CFANode successorNode, CFunctionCall functionCall) {
     CStatementEdge callEdge = new CStatementEdge(pRawStatement,
-        functionCall, lineNumber,
+        functionCall, fileLocation,
         predecessorNode, successorNode);
     CFACreationUtils.addEdgeUnconditionallyToCFA(callEdge);
   }
@@ -416,15 +417,15 @@ public class CFunctionPointerResolver {
    * @category conditions
    */
   private void addConditionEdges(CExpression condition, CFANode rootNode,
-      CFANode thenNode, CFANode elseNode, int filelocStart) {
+      CFANode thenNode, CFANode elseNode, FileLocation fileLocation) {
     // edge connecting condition with thenNode
     final CAssumeEdge trueEdge = new CAssumeEdge(condition.toASTString(),
-        filelocStart, rootNode, thenNode, condition, true);
+        fileLocation, rootNode, thenNode, condition, true);
     CFACreationUtils.addEdgeToCFA(trueEdge, logger);
 
     // edge connecting condition with elseNode
     final CAssumeEdge falseEdge = new CAssumeEdge("!(" + condition.toASTString() + ")",
-        filelocStart, rootNode, elseNode, condition, false);
+        fileLocation, rootNode, elseNode, condition, false);
     CFACreationUtils.addEdgeToCFA(falseEdge, logger);
   }
 

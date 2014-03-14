@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -60,6 +62,7 @@ public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOp
 
   private boolean stop(CompositeState compositeState, CompositeState compositeReachedState, CompositePrecision compositePrecision) throws CPAException, InterruptedException {
     List<AbstractState> compositeElements = compositeState.getWrappedStates();
+    checkArgument(compositeElements.size() == stopOperators.size(), "State with wrong number of component states given");
     List<AbstractState> compositeReachedStates = compositeReachedState.getWrappedStates();
 
     List<Precision> compositePrecisions = compositePrecision.getPrecisions();

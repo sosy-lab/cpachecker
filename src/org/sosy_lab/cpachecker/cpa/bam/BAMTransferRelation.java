@@ -67,7 +67,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -618,35 +617,19 @@ public class BAMTransferRelation implements TransferRelation {
   }
 
   private void replaceInARG(ARGState toReplace, ARGState replaceWith) {
-    for (ARGState p : toReplace.getParents()) {
-      replaceWith.addParent(p);
-    }
-    for (ARGState c : toReplace.getChildren()) {
-      c.addParent(replaceWith);
-    }
     if (toReplace.isCovered()) {
       replaceWith.setCovered(toReplace.getCoveringState());
     }
-    List<ARGState> willCover = new ArrayList<>(toReplace.getCoveredByThis().size());
-    for (ARGState cov : toReplace.getCoveredByThis()) {
-      willCover.add(cov);
-    }
-    toReplace.removeFromARG();
-    for (ARGState cov : willCover) {
-      cov.setCovered(replaceWith);
-    }
+    toReplace.uncover();
+
+    toReplace.replaceInARGWith(replaceWith);
   }
 
   private void addBlockAnalysisInfo(AbstractState pElement) throws CPATransferException {
     if (PCCInformation.isPCCEnabled()) {
       if (argCache.getLastAnalyzedBlock() == null || !(pElement instanceof BAMARGBlockStartState)) { throw new CPATransferException(
           "Cannot build proof, ARG, for BAM analysis."); }
-      PredicateAbstractState pred = extractStateByType(pElement, PredicateAbstractState.class);
-      if (pred == null) {
-        ((BAMARGBlockStartState) pElement).setAnalyzedBlock(argCache.getLastAnalyzedBlock());
-      } else {
-        ((BAMARGBlockStartState) pElement).setAnalyzedBlock(argCache.getLastAnalyzedBlock());
-      }
+      ((BAMARGBlockStartState) pElement).setAnalyzedBlock(argCache.getLastAnalyzedBlock());
     }
   }
 

@@ -26,11 +26,11 @@ package org.sosy_lab.cpachecker.cfa;
 import java.io.IOException;
 import java.util.List;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -48,21 +48,33 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 public interface CParser extends Parser {
 
   public static class FileToParse {
-    public final String fileName;
-    public final String staticVariablePrefix;
+    private final String fileName;
+    private final String staticVariablePrefix;
 
     public FileToParse(String pFileName, String pStaticVariablePrefix) {
       this.fileName = pFileName;
       this.staticVariablePrefix = pStaticVariablePrefix;
     }
+
+    public String getFileName() {
+      return fileName;
+    }
+
+    public String getStaticVariablePrefix() {
+      return staticVariablePrefix;
+    }
   }
 
   public static class FileContentToParse extends FileToParse {
-    public final char[] fileContent;
+    private final String fileContent;
 
-    public FileContentToParse(String pFileName, char[] pFileContent, String pStaticVariablePrefix) {
+    public FileContentToParse(String pFileName, String pFileContent, String pStaticVariablePrefix) {
       super(pFileName, pStaticVariablePrefix);
       this.fileContent = pFileContent;
+    }
+
+    public String getFileContent() {
+      return fileContent;
     }
   }
 
@@ -72,12 +84,13 @@ public interface CParser extends Parser {
    * @param fileNames  The List of files to parse. The first part of the pair
    *                   should be the filename, the second part should be the
    *                   prefix which will be appended to static variables
+   * @param sourceOriginMapping A mapping from real input file locations to original file locations (before pre-processing).
    * @return The CFA.
    * @throws IOException If file cannot be read.
    * @throws InterruptedException
    * @throws ParserException If parser or CFA builder cannot handle the C code.
    */
-  ParseResult parseFile(List<FileToParse> filenames) throws CParserException, IOException, InvalidConfigurationException, InterruptedException;
+  ParseResult parseFile(List<FileToParse> filenames, CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException, InvalidConfigurationException, InterruptedException;
 
   /**
    * Parse the content of Strings into a single CFA.
@@ -85,10 +98,11 @@ public interface CParser extends Parser {
    * @param code  The List of code fragments to parse. The first part of the pair
    *                   should be the code, the second part should be the
    *                   prefix which will be appended to static variables
+   * @param sourceOriginMapping A mapping from real input file locations to original file locations (before pre-processing).
    * @return The CFA.
    * @throws ParserException If parser or CFA builder cannot handle the C code.
    */
-  ParseResult parseString(List<FileContentToParse> code) throws CParserException, InvalidConfigurationException;
+  ParseResult parseString(List<FileContentToParse> code, CSourceOriginMapping sourceOriginMapping) throws CParserException, InvalidConfigurationException;
 
   /**
    * Method for parsing a string that contains exactly one function with exactly
@@ -103,11 +117,10 @@ public interface CParser extends Parser {
    * This method guarantees that the AST does not contain CProblem nodes.
    *
    * @param code The code snippet as described above.
-   * @param dialect The parser dialect to use.
    * @return The AST for the statement.
    * @throws ParserException If parsing fails.
    */
-  CAstNode parseSingleStatement(char[] code) throws CParserException, InvalidConfigurationException;
+  CAstNode parseSingleStatement(String code) throws CParserException, InvalidConfigurationException;
 
   /**
    * Method for parsing a block of statements that contains exactly one function with exactly
@@ -122,11 +135,10 @@ public interface CParser extends Parser {
    * This method guarantees that the AST does not contain CProblem nodes.
    *
    * @param code The code snippet as described above.
-   * @param dialect The parser dialect to use.
    * @return The list of ASTs for the statement.
    * @throws ParserException If parsing fails.
    */
-  List<CAstNode> parseStatements(char[] code) throws CParserException, InvalidConfigurationException;
+  List<CAstNode> parseStatements(String code) throws CParserException, InvalidConfigurationException;
 
   /**
    * Enum for clients of this class to choose the C dialect the parser uses.

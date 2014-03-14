@@ -27,19 +27,19 @@ import java.util.Collections;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cpa.smg.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.ReadableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
 
 final public class SMGJoinSubSMGsForAbstraction {
   private SMGJoinStatus status = null;
-  final private SMG resultSMG = null;
+  final private ReadableSMG resultSMG = null;
   final private SMGObject newAbstractObject = null;
   final private Pair<Set<SMGObject>, Set<Integer>> nonSharedFromSMG1 = null;
   final private Pair<Set<SMGObject>, Set<Integer>> nonSharedFromSMG2= null;
   private boolean defined = false;
 
-  public SMGJoinSubSMGsForAbstraction(SMG pSMG, SMGObject pObj1, SMGObject pObj2) {
+  public SMGJoinSubSMGsForAbstraction(ReadableSMG pSMG, SMGObject pObj1, SMGObject pObj2) {
 
   }
 
@@ -51,7 +51,7 @@ final public class SMGJoinSubSMGsForAbstraction {
     return status;
   }
 
-  public SMG getResultSMG() {
+  public ReadableSMG getResultSMG() {
     return resultSMG;
   }
 

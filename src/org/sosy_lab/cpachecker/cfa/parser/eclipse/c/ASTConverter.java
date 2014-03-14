@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -85,15 +86,15 @@ import org.eclipse.cdt.core.dom.ast.c.ICASTFieldDesignator;
 import org.eclipse.cdt.core.dom.ast.gnu.IGNUASTCompoundStatementExpression;
 import org.eclipse.cdt.core.dom.ast.gnu.c.IGCCASTArrayRangeDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTFunctionCallExpression;
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
-import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping.NoOriginMappingAvailable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
@@ -103,6 +104,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -160,6 +162,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 
+import com.google.common.base.Function;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 
@@ -171,14 +174,9 @@ class ASTConverter {
         "the cfa is simplified until at maximum one pointer is allowed for left- and rightHandSide")
   private boolean simplifyPointerExpressions = false;
 
-  @Option(name="simplifyConstExpressions",
+  @Option(
       description="simplify simple const expressions like 1+2")
-  private boolean alwaysSimplifyConstExpressions = false;
-
-  // This is neccessary because in certain situations we always need to simplify
-  // expressions, regardless of the configuration above.
-  // Probably the configuration option can go away and we always simplify expressions.
-  private boolean simplifyConstExpressions = false;
+  private boolean simplifyConstExpressions = true;
 
   private final ExpressionSimplificationVisitor expressionSimplificator;
   private final NonRecursiveExpressionSimplificationVisitor nonRecursiveExpressionSimplificator;
@@ -187,6 +185,17 @@ class ASTConverter {
   private final LogManager logger;
   private final ASTLiteralConverter literalConverter;
   private final ASTTypeConverter typeConverter;
+
+  /**
+   * Given a file name, returns a "nice" representation of it.
+   * This should be used for situations where the name is going
+   * to be presented to the user.
+   * The result may be the empty string, if for example CPAchecker only uses
+   * one file (we expect the user to know its name in this case).
+   */
+  private final Function<String, String> niceFileNameFunction;
+
+  private final CSourceOriginMapping sourceOriginMapping;
 
   private final Scope scope;
 
@@ -202,9 +211,11 @@ class ASTConverter {
 
   private static final ContainsProblemTypeVisitor containsProblemTypeVisitor = new ContainsProblemTypeVisitor();
 
-  public ASTConverter(Configuration pConfig, Scope pScope, LogManager pLogger,
+  public ASTConverter(Configuration pConfig, Scope pScope, LogManagerWithoutDuplicates pLogger,
+      Function<String, String> pNiceFileNameFunction,
+      CSourceOriginMapping pSourceOriginMapping,
       MachineModel pMachineModel, String pStaticVariablePrefix,
-      boolean pSimplifyConstExpressions, Sideassignments pSideAssignmentStack) throws InvalidConfigurationException {
+      Sideassignments pSideAssignmentStack) throws InvalidConfigurationException {
 
     pConfig.inject(this);
 
@@ -212,9 +223,10 @@ class ASTConverter {
     this.logger = pLogger;
     this.typeConverter = new ASTTypeConverter(scope, this, pStaticVariablePrefix);
     this.literalConverter = new ASTLiteralConverter(typeConverter, pMachineModel);
+    this.niceFileNameFunction = pNiceFileNameFunction;
+    this.sourceOriginMapping = pSourceOriginMapping;
     this.staticVariablePrefix = pStaticVariablePrefix;
     this.sideAssignmentStack = pSideAssignmentStack;
-    this.simplifyConstExpressions = pSimplifyConstExpressions;
 
     this.expressionSimplificator = new ExpressionSimplificationVisitor(pMachineModel, pLogger);
     this.nonRecursiveExpressionSimplificator = new NonRecursiveExpressionSimplificationVisitor(pMachineModel, pLogger);
@@ -246,8 +258,22 @@ class ASTConverter {
     }
   }
 
-  Pair<? extends CExpression, ? extends Number> simplifyAndEvaluateExpression(CExpression exp) {
+  /**
+   * Simplify an expression as much as possible.
+   * Use this when you always want to evaluate a specific expression if possible,
+   * e.g. array lengths (which should be constant if possible).
+   */
+  CExpression simplifyExpressionRecursively(CExpression exp) {
     return exp.accept(expressionSimplificator);
+  }
+
+  /**
+   * Do a single step of expression simplification (not recursively).
+   * Use this when you do not care about full evaluation,
+   * or you know the operands are already evaluated if possible.
+   */
+  CExpression simplifyExpressionOneStep(CExpression exp) {
+    return exp.accept(nonRecursiveExpressionSimplificator);
   }
 
   private CExpression addSideassignmentsForExpressionsWithoutSideEffects(CAstNode node,
@@ -288,11 +314,11 @@ class ASTConverter {
 
   protected CAstNode convertExpressionWithSideEffects(IASTExpression e) {
     CAstNode converted = convertExpressionWithSideEffectsNotSimplified(e);
-    if (!alwaysSimplifyConstExpressions || !(converted instanceof CExpression)) {
+    if (!simplifyConstExpressions || !(converted instanceof CExpression)) {
       return converted;
     }
 
-    return ((CExpression)converted).accept(nonRecursiveExpressionSimplificator);
+    return simplifyExpressionOneStep((CExpression)converted);
   }
 
   private CAstNode convertExpressionWithSideEffectsNotSimplified(IASTExpression e) {
@@ -337,7 +363,7 @@ class ASTConverter {
       return exp;
 
     } else if (e instanceof IASTLiteralExpression) {
-      return literalConverter.convert((IASTLiteralExpression)e);
+      return literalConverter.convert((IASTLiteralExpression)e, getLocation(e));
 
     } else if (e instanceof IASTUnaryExpression) {
       return convert((IASTUnaryExpression)e);
@@ -362,23 +388,53 @@ class ASTConverter {
     }
   }
 
-  private CAstNode convert(IASTConditionalExpression e) {
-    if (simplifyConstExpressions) {
-      CExpression condition = convertExpressionWithoutSideEffects(e.getLogicalConditionExpression());
-      Number value = simplifyAndEvaluateExpression(condition).getSecond();
+  static enum CONDITION { NORMAL, ALWAYS_FALSE, ALWAYS_TRUE }
 
-      if (value != null) {
-        if (value.longValue() == 0) {
-          return convertExpressionWithSideEffects(e.getNegativeResultExpression());
-        } else {
-          return convertExpressionWithSideEffects(e.getPositiveResultExpression());
-        }
+  CONDITION getConditionKind(final CExpression condition) {
+
+    if (condition instanceof CIntegerLiteralExpression
+        || condition instanceof CCharLiteralExpression) {
+      // constant int value
+      if (isZero(condition)) {
+        return CONDITION.ALWAYS_FALSE;
+      } else {
+        return CONDITION.ALWAYS_TRUE;
       }
+    }
+    return CONDITION.NORMAL;
+  }
+
+  private CAstNode convert(IASTConditionalExpression e) {
+    CExpression condition = convertExpressionWithoutSideEffects(e.getLogicalConditionExpression());
+    // Here we call simplify manually, because for conditional expressions
+    // we always want a full evaluation because we might be able to prevent
+    // a branch in the CFA.
+    // In global scope, this is even required because there cannot be any branches.
+    CExpression simplifiedCondition = simplifyExpressionRecursively(condition);
+
+    switch (getConditionKind(simplifiedCondition)) {
+    case ALWAYS_TRUE:
+      return convertExpressionWithSideEffects(e.getPositiveResultExpression());
+    case ALWAYS_FALSE:
+      return convertExpressionWithSideEffects(e.getNegativeResultExpression());
+    default:
     }
 
     CIdExpression tmp = createTemporaryVariable(e);
     sideAssignmentStack.addConditionalExpression(e, tmp);
     return tmp;
+  }
+
+  private boolean isZero(CExpression exp) {
+    if (exp instanceof CIntegerLiteralExpression) {
+      BigInteger value = ((CIntegerLiteralExpression)exp).getValue();
+      return value.equals(BigInteger.ZERO);
+    }
+    if (exp instanceof CCharLiteralExpression) {
+      char value = ((CCharLiteralExpression)exp).getCharacter();
+      return value == 0;
+    }
+    return false;
   }
 
   private CAstNode convert(IGNUASTCompoundStatementExpression e) {
@@ -731,14 +787,36 @@ class ASTConverter {
 
   private CRightHandSide convert(IASTFunctionCallExpression e) {
 
+    CExpression functionName = convertExpressionWithoutSideEffects(e.getFunctionNameExpression());
+    CFunctionDeclaration declaration = null;
+
+    if (functionName instanceof CIdExpression) {
+      if (((CIdExpression) functionName).getName().equals("__builtin_types_compatible_p")) {
+        sideAssignmentStack.enterBlock();
+        List<CExpression> params = new ArrayList<>();
+        for (IASTInitializerClause i : e.getArguments()) {
+          params.add(convertExpressionWithoutSideEffects(toExpression(i)));
+        }
+        sideAssignmentStack.getAndResetConditionalExpressions();
+        sideAssignmentStack.getAndResetPostSideAssignments();
+        sideAssignmentStack.getAndResetPreSideAssignments();
+        sideAssignmentStack.leaveBlock();
+        if (params.size() == 2) {
+          // TODO this is not completly right considering arrays and perhaps structs
+          // http://www.ocf.berkeley.edu/~pad/tigcc/doc/tigcclib/gnuexts_SEC104___builtin_types_compatible_p.html
+          if (areCompatibleTypes(params.get(0).getExpressionType(), params.get(1).getExpressionType())) {
+            return CNumericTypes.ONE;
+          } else {
+            return CNumericTypes.ZERO;
+          }
+        }
+      }
+    }
+
     List<CExpression> params = new ArrayList<>();
     for (IASTInitializerClause i : e.getArguments()) {
       params.add(convertExpressionWithoutSideEffects(toExpression(i)));
     }
-
-    CExpression functionName = convertExpressionWithoutSideEffects(e.getFunctionNameExpression());
-    CFunctionDeclaration declaration = null;
-
 
     if (functionName instanceof CIdExpression) {
       // this function is a gcc extension which checks if the given parameter is
@@ -792,6 +870,18 @@ class ASTConverter {
     }
 
     return new CFunctionCallExpression(getLocation(e), returnType, functionName, params, declaration);
+  }
+
+  // TODO this is not completly right considering arrays and perhaps structs
+  // http://www.ocf.berkeley.edu/~pad/tigcc/doc/tigcclib/gnuexts_SEC104___builtin_types_compatible_p.html
+  private boolean areCompatibleTypes(CType a, CType b) {
+    a = a.getCanonicalType(false, false);
+    b = b.getCanonicalType(false, false);
+    if (a.equals(b) ||
+        a instanceof CEnumType && b instanceof CEnumType) {
+      return true;
+    }
+    return false;
   }
 
   private CIdExpression convert(IASTIdExpression e) {
@@ -1268,7 +1358,7 @@ class ASTConverter {
     if (type instanceof CCompositeType) {
       // Nested struct declaration
       CCompositeType compositeType = (CCompositeType)type;
-      addSideEffectDeclarationForType(compositeType, convert(d.getFileLocation()));
+      addSideEffectDeclarationForType(compositeType, getLocation(d));
       type = new CElaboratedType(compositeType.isConst(), compositeType.isVolatile(),
           compositeType.getKind(), compositeType.getName(), compositeType);
     }
@@ -1412,7 +1502,7 @@ class ASTConverter {
       org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier a = (org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier)am;
       CExpression lengthExp = convertExpressionWithoutSideEffects(a.getConstantExpression());
       if (lengthExp != null) {
-        lengthExp = simplifyAndEvaluateExpression(lengthExp).getFirst();
+        lengthExp = simplifyExpressionRecursively(lengthExp);
       }
       return new CArrayType(a.isConst(), a.isVolatile(), type, lengthExp);
 
@@ -1761,31 +1851,27 @@ class ASTConverter {
 
 
   /** This function returns the converted file-location of an IASTNode. */
-  static FileLocation getLocation(final IASTNode n) {
-    return convert(n.getFileLocation());
+  FileLocation getLocation(final IASTNode n) {
+    return getLocation(n.getFileLocation());
   }
 
-  static FileLocation convert(IASTFileLocation l) {
+  FileLocation getLocation(IASTFileLocation l) {
     if (l == null) {
       return null;
     }
 
-    String originFileName;
-    int startingLineInOrigin;
+    String fileName = l.getFileName();
     int startingLineInInput = l.getStartingLineNumber();
+    int startingLineInOrigin = startingLineInInput;
 
-    Pair<String, Integer> startingInOrigin;
-    try {
-      startingInOrigin = CSourceOriginMapping.INSTANCE.getOriginLineFromAnalysisCodeLine(startingLineInInput);
+    Pair<String, Integer> startingInOrigin = sourceOriginMapping.getOriginLineFromAnalysisCodeLine(
+        fileName, startingLineInInput);
 
-      originFileName = startingInOrigin.getFirst();
-      startingLineInOrigin = startingInOrigin.getSecond();
-    } catch (NoOriginMappingAvailable e) {
-      originFileName = l.getFileName();
-      startingLineInOrigin = l.getStartingLineNumber();
-    }
+    fileName = startingInOrigin.getFirst();
+    startingLineInOrigin = startingInOrigin.getSecond();
 
-    return new FileLocation(l.getEndingLineNumber(), originFileName,
+    return new FileLocation(l.getEndingLineNumber(), fileName,
+        niceFileNameFunction.apply(fileName),
         l.getNodeLength(), l.getNodeOffset(),
         startingLineInInput, startingLineInOrigin);
   }

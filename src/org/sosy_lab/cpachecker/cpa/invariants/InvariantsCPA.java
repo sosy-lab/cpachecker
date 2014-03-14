@@ -67,9 +67,9 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState.EdgeBasedAbstractionStrategyFactories;
@@ -86,6 +86,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelectio
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
@@ -93,7 +94,7 @@ import com.google.common.collect.ImmutableSet;
 /**
  * This is a CPA for collecting simple invariants about integer variables.
  */
-public class InvariantsCPA extends AbstractCPA {
+public class InvariantsCPA extends AbstractCPA implements AdjustableConditionCPA {
 
   /**
    * A formula visitor for collecting the variables contained in a formula.
@@ -117,7 +118,7 @@ public class InvariantsCPA extends AbstractCPA {
     private int interestingPredicatesLimit = 0;
 
     @Option(description="the maximum number of variables to consider as interesting. -1 one disables the limit, but this is not recommended. 0 means that guessing interesting variables is disabled.")
-    private int interestingVariableLimit = 2;
+    private volatile int interestingVariableLimit = 2;
 
     @Option(description="the maximum tree depth of a formula recorded in the environment.")
     private int maximumFormulaDepth = 4;
@@ -165,6 +166,8 @@ public class InvariantsCPA extends AbstractCPA {
 
   private final WeakHashMap<CFANode, InvariantsPrecision> initialPrecisionMap = new WeakHashMap<>();
 
+  private boolean relevantVariableLimitReached = false;
+
   /**
    * Gets a factory for creating InvariantCPAs.
    *
@@ -177,22 +180,23 @@ public class InvariantsCPA extends AbstractCPA {
   /**
    * Creates an InvariantCPA.
    *
-   * @param config the configuration used.
-   * @param logger the log manager used.
-   * @param options the configured options.
+   * @param pConfig the configuration used.
+   * @param pLogManager the log manager used.
+   * @param pOptions the configured options.
+   * @param pShutdownNotifier the shutdown notifier used.
    * @param pReachedSetFactory the reached set factory used.
    * @param pCfa the control flow automaton to analyze.
    * @throws InvalidConfigurationException if the configuration is invalid.
    */
-  public InvariantsCPA(Configuration config, LogManager logger, InvariantsOptions options,
+  public InvariantsCPA(Configuration pConfig, LogManager pLogManager, InvariantsOptions pOptions,
       ShutdownNotifier pShutdownNotifier, ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException {
-    super(options.merge, "sep", InvariantsDomain.INSTANCE, InvariantsTransferRelation.INSTANCE);
-    this.config = config;
-    this.logManager = logger;
+    super(pOptions.merge, "sep", InvariantsDomain.INSTANCE, InvariantsTransferRelation.INSTANCE);
+    this.config = pConfig;
+    this.logManager = pLogManager;
     this.shutdownNotifier = pShutdownNotifier;
     this.reachedSetFactory = pReachedSetFactory;
     this.cfa = pCfa;
-    this.options = options;
+    this.options = pOptions;
   }
 
   @Override
@@ -200,35 +204,43 @@ public class InvariantsCPA extends AbstractCPA {
     Set<CFANode> relevantLocations = new LinkedHashSet<>();
     Set<CFANode> targetLocations = new LinkedHashSet<>();
 
+    int interestingVariableLimit = options.interestingVariableLimit;
+
     // Determine the target locations
     boolean determineTargetLocations = options.analyzeTargetPathsOnly || options.interestingPredicatesLimit != 0 || options.interestingVariableLimit != 0;
     if (determineTargetLocations) {
       try {
+        // Create new configuration based on existing config but with default set of CPAs
         ConfigurationBuilder configurationBuilder = Configuration.builder();
         configurationBuilder.setOption("output.disable", "true");
         configurationBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPA");
         String specification = config.getProperty("specification");
-        specification = "config/specification/default.spc";
+        if (specification == null) {
+          specification = "config/specification/default.spc";
+        }
         configurationBuilder.setOption("specification", specification);
-
-        ConfigurableProgramAnalysis cpa = new CPABuilder(configurationBuilder.build(), logManager, shutdownNotifier, reachedSetFactory).buildCPAs(cfa);
+        Configuration configuration = configurationBuilder.build();
+        ConfigurableProgramAnalysis cpa = new CPABuilder(configuration, logManager, shutdownNotifier, reachedSetFactory).buildCPAs(cfa);
         ReachedSet reached = reachedSetFactory.create();
         reached.add(cpa.getInitialState(pNode), cpa.getInitialPrecision(pNode));
         CPAAlgorithm targetFindingAlgorithm = CPAAlgorithm.create(cpa, logManager, config, shutdownNotifier);
 
         boolean changed = true;
         while (changed) {
-          changed = false;
           targetFindingAlgorithm.run(reached);
-          for (AbstractState state : FluentIterable.from(reached).filter(AbstractStates.IS_TARGET_STATE)) {
-            CFANode location = AbstractStates.extractLocation(state);
-            changed |= targetLocations.add(location);
-          }
+          changed = targetLocations.addAll(FluentIterable.from(reached).filter(AbstractStates.IS_TARGET_STATE).transform(AbstractStates.EXTRACT_LOCATION).toList());
         }
+        CPAs.closeCpaIfPossible(cpa, logManager);
+        CPAs.closeIfPossible(targetFindingAlgorithm, logManager);
       } catch (InvalidConfigurationException | CPAException | InterruptedException e) {
-        this.logManager.logException(Level.SEVERE, e, "Unable to find target locations. Defaulting to selecting all locations.");
+        if (!shutdownNotifier.shouldShutdown()) {
+          logManager.logException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations.");
+        }
         determineTargetLocations = false;
       }
+    }
+    if (shutdownNotifier.shouldShutdown()) {
+      return new InvariantsState(options.useBitvectors, new AcceptAllVariableSelection<CompoundInterval>(), InvariantsPrecision.NONE);
     }
     if (options.analyzeTargetPathsOnly && determineTargetLocations) {
       relevantLocations.addAll(targetLocations);
@@ -243,7 +255,7 @@ public class InvariantsCPA extends AbstractCPA {
 
     boolean guessInterestingInformation = options.interestingPredicatesLimit != 0 || options.interestingVariableLimit != 0;
     if (guessInterestingInformation && !determineTargetLocations) {
-      this.logManager.log(Level.WARNING, "Target states were not determined. Guessing interesting information is arbitrary.");
+      logManager.log(Level.WARNING, "Target states were not determined. Guessing interesting information is arbitrary.");
     }
 
     // Iterate backwards from all relevant locations to find the relevant edges
@@ -263,8 +275,8 @@ public class InvariantsCPA extends AbstractCPA {
               if (guessInterestingInformation) {
                 try {
                   InvariantsFormula<CompoundInterval> formula = ((CAssumeEdge) edge).getExpression().accept(InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(edge));
-                  if (options.interestingVariableLimit != 0) {
-                    addAll(interestingVariables, formula.accept(COLLECT_VARS_VISITOR), options.interestingVariableLimit);
+                  if (interestingVariableLimit != 0) {
+                    addAll(interestingVariables, formula.accept(COLLECT_VARS_VISITOR), interestingVariableLimit);
                   }
                   if (options.interestingPredicatesLimit != 0) {
                     if (formula instanceof LogicalNot<?>) { // We don't care about negations here
@@ -278,7 +290,7 @@ public class InvariantsCPA extends AbstractCPA {
                     }
                   }
                 } catch (UnrecognizedCCodeException e) {
-                  this.logManager.logException(Level.SEVERE, e, "Found unrecognized C code on an edge. Cannot guess interesting information.");
+                  logManager.logException(Level.SEVERE, e, "Found unrecognized C code on an edge. Cannot guess interesting information.");
                   guessInterestingInformation = false;
                 }
               }
@@ -290,6 +302,11 @@ public class InvariantsCPA extends AbstractCPA {
         }
       }
     }
+
+    if (shutdownNotifier.shouldShutdown()) {
+      return new InvariantsState(options.useBitvectors, new AcceptAllVariableSelection<CompoundInterval>(), InvariantsPrecision.NONE);
+    }
+
     // Try to specify all relevant variables
     Set<String> relevantVariables = new HashSet<>();
     boolean specifyRelevantVariables = options.analyzeRelevantVariablesOnly;
@@ -301,7 +318,7 @@ public class InvariantsCPA extends AbstractCPA {
           InvariantsFormula<CompoundInterval> assumption = ((CAssumeEdge) edge).getExpression().accept(etfv);
           relevantVariables.addAll(assumption.accept(COLLECT_VARS_VISITOR));
         } catch (UnrecognizedCCodeException e) {
-          this.logManager.logException(Level.WARNING, e, "Found unrecognized C code on an edge. Cannot specify relevant variables explicitly. Considering all variables as relevant.");
+          logManager.logException(Level.WARNING, e, "Found unrecognized C code on an edge. Cannot specify relevant variables explicitly. Considering all variables as relevant.");
           specifyRelevantVariables = false;
         }
       }
@@ -326,9 +343,11 @@ public class InvariantsCPA extends AbstractCPA {
       }
     }
 
+    relevantVariableLimitReached = interestingVariableLimit > interestingVariables.size();
+
     InvariantsPrecision precision = new InvariantsPrecision(relevantEdges,
         ImmutableSet.copyOf(limit(interestingPredicates, options.interestingPredicatesLimit)),
-        ImmutableSet.copyOf(limit(interestingVariables, options.interestingVariableLimit)),
+        ImmutableSet.copyOf(limit(interestingVariables, interestingVariableLimit)),
         options.maximumFormulaDepth,
         options.useBinaryVariableInterrelations,
         options.edgeBasedAbstractionStrategyFactory);
@@ -361,6 +380,17 @@ public class InvariantsCPA extends AbstractCPA {
       return FluentIterable.from(pIterable).limit(pLimit);
     }
     return pIterable;
+  }
+
+  @Override
+  public boolean adjustPrecision() {
+    if (relevantVariableLimitReached) {
+      return false;
+    }
+    initialPrecisionMap.clear();
+    ++options.interestingVariableLimit;
+    logManager.log(Level.INFO, "Adjusting interestingVariableLimit to " + options.interestingVariableLimit);
+    return true;
   }
 
   private static void expand(Set<String> pRelevantVariables, Collection<CFAEdge> pCfaEdges, int pLimit) {

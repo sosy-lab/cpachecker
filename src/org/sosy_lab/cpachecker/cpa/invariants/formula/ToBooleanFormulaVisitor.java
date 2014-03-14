@@ -73,7 +73,7 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
     } else {
       result = new ToBooleanFormulaVisitor<>(
           pFmgr,
-          new ToRationalFormulaVisitor(pFmgr, wrapper, pEvaluationVisitor),
+          new ToNumeralFormulaVisitor<>(pFmgr, pFmgr.getRationalFormulaManager(), wrapper, pEvaluationVisitor),
           pEvaluationVisitor);
       wrapper.setInner(result);
     }

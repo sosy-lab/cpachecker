@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.model.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -33,10 +34,10 @@ public class CDeclarationEdge extends ADeclarationEdge {
 
 
 
-  public CDeclarationEdge(final String pRawSignature, final int pLineNumber,
+  public CDeclarationEdge(final String pRawSignature, final FileLocation pFileLocation,
       final CFANode pPredecessor, final CFANode pSuccessor, final CDeclaration pDeclaration) {
 
-    super(pRawSignature, pLineNumber, pPredecessor, pSuccessor, pDeclaration);
+    super(pRawSignature, pFileLocation, pPredecessor, pSuccessor, pDeclaration);
 
   }
 

@@ -36,9 +36,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import com.google.common.base.Function;
 
 
-public abstract class AbstractUnsafeFormulaManager<TFormulaInfo> extends AbstractBaseFormulaManager<TFormulaInfo> implements UnsafeFormulaManager {
+public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> extends AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv> implements UnsafeFormulaManager {
 
-  protected AbstractUnsafeFormulaManager(FormulaCreator<TFormulaInfo> creator) {
+  protected AbstractUnsafeFormulaManager(AbstractFormulaCreator<TFormulaInfo, TType, TEnv> creator) {
     super(creator);
   }
 

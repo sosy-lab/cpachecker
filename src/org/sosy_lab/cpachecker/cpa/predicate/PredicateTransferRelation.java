@@ -43,14 +43,15 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable.ViolatedProperty;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.assume.ConstrainedAssumeState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.ComputeAbstractionState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -283,9 +284,20 @@ public class PredicateTransferRelation implements TransferRelation {
           element = strengthen(element, (AssumptionStorageState) lElement);
         }
 
-        if (lElement instanceof ConstrainedAssumeState) {
-          element = strengthen(edge.getSuccessor(), element, (ConstrainedAssumeState) lElement);
+        /*
+         * Temporarily disabled.
+         * The AssumeEdges produced by automata with assumptions
+         * are not parsed within the correct scope,
+         * and thus the types and declarations that are referenced
+         * within the AST are not valid.
+         * For example, all CIdExpressions in these AssumeEdges have CProblemTypes.
+         * The CtoFormulaConverter with pointer-alias handling cannot handle them.
+         * Probably the best would be to parse the automaton statements
+         * with the scope of the CFA.
+        if (lElement instanceof AbstractStateWithAssumptions) {
+          element = strengthen(edge.getSuccessor(), element, (AbstractStateWithAssumptions) lElement);
         }
+        */
 
         if (AbstractStates.isTargetState(lElement)) {
           errorFound = true;
@@ -309,15 +321,26 @@ public class PredicateTransferRelation implements TransferRelation {
     }
   }
 
+  @SuppressWarnings("unused")
   private PredicateAbstractState strengthen(CFANode pNode, PredicateAbstractState pElement,
-      ConstrainedAssumeState pAssumeElement) throws CPATransferException {
-    CAssumeEdge lEdge =
-        new CAssumeEdge(pAssumeElement.getExpression().toASTString(), pNode.getLineNumber(), pNode, pNode,
-            pAssumeElement.getExpression(), true);
+      AbstractStateWithAssumptions pAssumeElement) throws CPATransferException {
 
-    PathFormula pf = convertEdgeToPathFormula(pElement.getPathFormula(), lEdge);
+    PathFormula pf = pElement.getPathFormula();
 
-    return replacePathFormula(pElement, pf);
+    // TODO how to get a pseudo variable for the current function with the correct type here?
+    // We would need to have access to the current function's declaration.
+    CIdExpression retVar = null;
+
+    for (AssumeEdge assumption : pAssumeElement.getAsAssumeEdges(retVar, pNode.getFunctionName())) {
+
+        pf = convertEdgeToPathFormula(pf, assumption);
+    }
+
+    if (pf != pElement.getPathFormula()) {
+      return replacePathFormula(pElement, pf);
+    } else {
+      return pElement;
+    }
   }
 
   private PredicateAbstractState strengthen(PredicateAbstractState pElement,

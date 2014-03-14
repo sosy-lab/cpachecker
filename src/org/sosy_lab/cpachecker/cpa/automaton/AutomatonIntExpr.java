@@ -28,7 +28,7 @@ import java.util.regex.Pattern;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitNumericValue;
+import org.sosy_lab.cpachecker.cpa.value.NumericValue;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 /**
@@ -131,8 +131,8 @@ interface AutomatonIntExpr extends AutomatonExpression {
           if (aqe.getCPAName().equals(cpaName)) {
             try {
               Object result = aqe.evaluateProperty(modifiedQueryString);
-              if (result instanceof ExplicitNumericValue) {
-                result = ((ExplicitNumericValue) result).getNumber();
+              if (result instanceof NumericValue) {
+                result = ((NumericValue) result).getNumber();
               }
               if (result instanceof Integer) {
                   String message = "CPA-Check succeeded: ModifiedCheckString: \"" +

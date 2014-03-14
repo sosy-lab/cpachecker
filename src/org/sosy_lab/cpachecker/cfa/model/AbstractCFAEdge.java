@@ -24,6 +24,9 @@
 package org.sosy_lab.cpachecker.cfa.model;
 
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
 
 import com.google.common.base.Optional;
@@ -34,9 +37,9 @@ public abstract class AbstractCFAEdge implements CFAEdge {
   private final CFANode predecessor;
   private final CFANode successor;
   private final String rawStatement;
-  private final int lineNumber;
+  private final FileLocation fileLocation;
 
-  public AbstractCFAEdge(String pRawStatement, int pLineNumber,
+  public AbstractCFAEdge(String pRawStatement, FileLocation pFileLocation,
       CFANode pPredecessor, CFANode pSuccessor) {
 
     Preconditions.checkNotNull(pRawStatement);
@@ -46,7 +49,7 @@ public abstract class AbstractCFAEdge implements CFAEdge {
     predecessor = pPredecessor;
     successor = pSuccessor;
     rawStatement = pRawStatement;
-    lineNumber = pLineNumber;
+    fileLocation = checkNotNull(pFileLocation);
   }
 
   @Override
@@ -76,7 +79,12 @@ public abstract class AbstractCFAEdge implements CFAEdge {
 
   @Override
   public int getLineNumber() {
-    return lineNumber;
+    return fileLocation.getStartingLineNumber();
+  }
+
+  @Override
+  public FileLocation getFileLocation() {
+    return fileLocation;
   }
 
   @Override
@@ -102,7 +110,7 @@ public abstract class AbstractCFAEdge implements CFAEdge {
 
   @Override
   public String toString() {
-    return "Line " + getLineNumber() + ":\t" + getPredecessor() + " -{" +
+    return getFileLocation() + ":\t" + getPredecessor() + " -{" +
         getDescription().replaceAll("\n", " ") +
         "}-> " + getSuccessor();
   }

@@ -29,7 +29,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
-import java.nio.charset.Charset;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -53,22 +52,24 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.CParser.FileContentToParse;
+import org.sosy_lab.cpachecker.cfa.CParser.FileToParse;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
+import org.sosy_lab.cpachecker.cfa.manipulation.FunctionCallUnwinder;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers;
-import org.sosy_lab.cpachecker.cfa.simplification.ExpressionSimplifier;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -79,7 +80,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -106,10 +106,10 @@ public class CFACreator {
                   "Note that all file numbers printed by CPAchecker will refer to the pre-processed file, not the original input file.")
   private boolean usePreprocessor = false;
 
-  @Option(name="parser.transformTokensToLines",
-      description="Preprocess the given C files before parsing: Put every single token onto a new line. "
-      + "Then the line number corresponds to the token number.")
-  private boolean transformTokensToLines = false;
+  @Option(name="parser.readLineDirectives",
+      description="For C files, read #line preprocessor directives and use their information for outputting line numbers."
+          + " (Always enabled when pre-processing is used.)")
+  private boolean readLineDirectives = false;
 
   @Option(name="analysis.entryFunction", regexp="^" + VALID_C_FUNCTION_NAME_PATTERN + "$",
       description="entry function")
@@ -130,10 +130,6 @@ public class CFACreator {
   @Option(name="analysis.useGlobalVars",
       description="add declarations for global variables before entry function")
   private boolean useGlobalVars = true;
-
-  @Option(name="analysis.simplifyExpressions",
-      description="simplify pure numeral expressions like '1+2' to '3'")
-  private boolean simplifyExpressions = false;
 
   @Option(name="cfa.useMultiEdges",
       description="combine sequences of simple edges into a single edge")
@@ -182,10 +178,18 @@ public class CFACreator {
         + "single loop and an artificial program counter.")
   private boolean transformIntoSingleLoop = false;
 
+  @Option(name="cfa.simplyfyCfa",
+        description="Remove all edges which don't have any effect on the program")
+  private boolean simplyfyCfa = true;
+
   @Option(name="cfa.moveDeclarationsToFunctionStart",
       description="With this option, all declarations in each function will be moved"
           + "to the beginning of each function.")
   private boolean moveDeclarationsToFunctionStart = false;
+
+  @Option(name="cfa.useFunctionCallUnwinding",
+      description="unwind recursive functioncalls (bounded to max call stack size)")
+  private boolean useFunctionCallUnwinding = false;
 
   @Option(description="C or Java?")
   private Language language = Language.C;
@@ -247,8 +251,8 @@ public class CFACreator {
     case C:
       CParser outerParser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machineModel);
 
-      outerParser = new CParserWithLocationMapper(config, logger, outerParser, transformTokensToLines);
-      CSourceOriginMapping.INSTANCE.setHasOneInputLinePerToken(transformTokensToLines);
+      outerParser = new CParserWithLocationMapper(config, logger, outerParser,
+          readLineDirectives || usePreprocessor);
 
       if (usePreprocessor) {
         CPreprocessor preprocessor = new CPreprocessor(config, logger);
@@ -291,7 +295,6 @@ public class CFACreator {
 
     stats.totalTime.start();
     try {
-
       // FIRST, parse file(s) and create CFAs for each function
       logger.log(Level.FINE, "Starting parsing of file(s)");
 
@@ -327,7 +330,7 @@ public class CFACreator {
       // SECOND, do those post-processings that change the CFA by adding/removing nodes/edges
       stats.processingTime.start();
 
-      postProcessingOnMutableCFAs(cfa, c.getGlobalDeclarations());
+      cfa = postProcessingOnMutableCFAs(cfa, c.getGlobalDeclarations());
 
       // THIRD, do read-only post-processings on each single function CFA
 
@@ -348,18 +351,9 @@ public class CFACreator {
         spbuilder.insertCallEdgesRecursively();
       }
 
-      if (useGlobalVars) {
-        // add global variables at the beginning of main
-        insertGlobalDeclarations(cfa, c.getGlobalDeclarations());
-      }
-
       // FIFTH, do post-processings on the supergraph
       // Mutating post-processings should be checked carefully for their effect
       // on the information collected above (such as loops and post-order ids).
-
-      if (useMultiEdges) {
-        MultiEdgeCreator.createMultiEdges(cfa);
-      }
 
       // remove irrelevant locations
       if (cfaReduction != null) {
@@ -381,7 +375,7 @@ public class CFACreator {
 
       // Get information about variables, needed for some analysis.
       final Optional<VariableClassification> varClassification
-          = loopStructure.isPresent()
+          = loopStructure.isPresent() && (language == Language.C)
           ? Optional.of(new VariableClassification(cfa, config, logger, loopStructure.get()))
           : Optional.<VariableClassification>absent();
 
@@ -393,7 +387,7 @@ public class CFACreator {
         // special part of code, returns a transformed copy of the CFA.
         // TODO SLTransformation contains some code copied from the lines above. Is this necessary?
         stats.processingTime.start();
-        immutableCFA = CFASingleLoopTransformation.getSingleLoopTransformation(logger, config).apply(cfa);
+        immutableCFA = CFASingleLoopTransformation.getSingleLoopTransformation(logger, config).apply(cfa, loopStructure, varClassification);
         mainFunction = immutableCFA.getMainFunction();
         assert mainFunction != null;
         stats.processingTime.stop();
@@ -430,18 +424,10 @@ public class CFACreator {
       checkIfValidFiles(sourceFiles);
     }
 
+    final CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
+
     if (sourceFiles.size() == 1) {
-        /*
-         * The program file has to parsed as String since Google App Engine does not allow
-         * writes to the file system and therefore the input file is stored elsewhere.
-         */
-      final String sourceFileName = sourceFiles.get(0);
-      if (usePreprocessor) {
-        parseResult = parser.parseFile(sourceFileName);
-      } else {
-        char[] code = Paths.get(sourceFileName).asCharSource(Charset.defaultCharset()).read().toCharArray();
-        parseResult = parser.parseString(sourceFileName, code);
-      }
+      parseResult = parser.parseFile(sourceFiles.get(0), sourceOriginMapping);
     } else {
       // when there is more than one file which should be evaluated, the
       // programdenotations are separated from each other and a prefix for
@@ -450,22 +436,16 @@ public class CFACreator {
         throw new InvalidConfigurationException("Multiple program files not supported for languages other than C.");
       }
 
-      final List<FileContentToParse> programFragments = new ArrayList<>();
+      final List<FileToParse> programFragments = new ArrayList<>();
       int counter = 0;
       String staticVarPrefix;
       for (final String fileName : sourceFiles) {
         final String[] tmp = fileName.split("/");
         staticVarPrefix = tmp[tmp.length-1].replaceAll("\\W", "_") + "__" + counter + "__";
-
-          /*
-           * The program file has to parsed as String since Google App Engine does not allow
-           * writes to the file system and therefore the input file is stored elsewhere.
-           */
-        char[] code = Paths.get(fileName).asCharSource(Charset.defaultCharset()).read().toCharArray();
-        programFragments.add(new FileContentToParse(fileName, code, staticVarPrefix));
+        programFragments.add(new FileToParse(fileName, staticVarPrefix));
       }
 
-      parseResult = ((CParser)parser).parseString(programFragments);
+      parseResult = ((CParser)parser).parseFile(programFragments, sourceOriginMapping);
     }
 
     if (parseResult.isEmpty()) {
@@ -483,23 +463,16 @@ public class CFACreator {
   }
 
   /** This method changes the CFAs of the functions with adding, removing, replacing or moving CFAEdges.
-   * The CFAs are independent, i.e. there are no super-edges (functioncall- and return-edges) between them. */
-  private void postProcessingOnMutableCFAs(final MutableCFA cfa, final List<Pair<IADeclaration, String>> globalDeclarations)
+   * The CFAs are independent, i.e. there are no super-edges (functioncall- and return-edges) between them.
+   *
+   * @return either a modified old CFA or a complete new CFA
+   */
+  private MutableCFA postProcessingOnMutableCFAs(MutableCFA cfa, final List<Pair<IADeclaration, String>> globalDeclarations)
           throws InvalidConfigurationException, CParserException {
 
     // remove all edges which don't have any effect on the program
-    CFASimplifier.simplifyCFA(cfa);
-
-    if (simplifyExpressions) {
-      // this replaces some edges in the CFA with new edges.
-      // all expressions, that can be evaluated, will be replaced with their result.
-      // example: a=1+2; --> a=3;
-      // TODO support for constant propagation like "define MAGIC_NUMBER 1234".
-      for (final CFANode function : cfa.getAllFunctionHeads()) {
-        final ExpressionSimplifier es = new ExpressionSimplifier(machineModel, logger);
-        CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(function, es);
-        es.replaceEdges();
-      }
+    if (simplyfyCfa) {
+      CFASimplifier.simplifyCFA(cfa);
     }
 
     if (moveDeclarationsToFunctionStart) {
@@ -540,7 +513,7 @@ public class CFACreator {
             CFANode terminationNode = new CFATerminationNode(node.getLineNumber(), node.getFunctionName());
             BlankEdge terminationEdge =
                     new BlankEdge(leavingBlankEdge.getRawStatement(),
-                            leavingBlankEdge.getLineNumber(),
+                            leavingBlankEdge.getFileLocation(),
                             leavingBlankEdge.getPredecessor(),
                             terminationNode,
                             leavingBlankEdge.getDescription());
@@ -557,6 +530,23 @@ public class CFACreator {
     for (CFANode nodeToAdd : toAdd) {
       cfa.addNode(nodeToAdd);
     }
+
+    if (useFunctionCallUnwinding) {
+      // must be done before adding global vars
+      final FunctionCallUnwinder fca = new FunctionCallUnwinder(cfa, config, logger);
+      cfa = fca.unwindRecursion();
+    }
+
+    if (useGlobalVars) {
+      // add global variables at the beginning of main
+      insertGlobalDeclarations(cfa, globalDeclarations);
+    }
+
+    if (useMultiEdges) {
+      MultiEdgeCreator.createMultiEdges(cfa);
+    }
+
+    return cfa;
   }
 
   private FunctionEntryNode getJavaMainMethod(List<String> sourceFiles, Map<String, FunctionEntryNode> cfas)
@@ -665,9 +655,9 @@ public class CFACreator {
   }
 
   /**
-   * Insert nodes for global declarations after first node of CFA.
+   * Insert nodes for global declarations after first node of the CFA of the main-function.
    */
-  public static void insertGlobalDeclarations(final MutableCFA cfa, List<Pair<IADeclaration, String>> globalVars) {
+  private void insertGlobalDeclarations(final MutableCFA cfa, final List<Pair<IADeclaration, String>> globalVars) {
     if (globalVars.isEmpty()) {
       return;
     }
@@ -679,19 +669,22 @@ public class CFACreator {
     }
 
     // split off first node of CFA
-    FunctionEntryNode firstNode = cfa.getMainFunction();
+    final FunctionEntryNode firstNode = cfa.getMainFunction();
     assert firstNode.getNumLeavingEdges() == 1;
-    CFAEdge firstEdge = firstNode.getLeavingEdge(0);
-    assert firstEdge instanceof BlankEdge;
-    CFANode secondNode = firstEdge.getSuccessor();
+    final CFAEdge firstEdge = firstNode.getLeavingEdge(0);
+    assert firstEdge.getEdgeType() == CFAEdgeType.BlankEdge;
+    final CFANode secondNode = firstEdge.getSuccessor();
 
     CFACreationUtils.removeEdgeFromNodes(firstEdge);
+
+    // now the first node is not connected to the second node,
+    // we can add new edges between them and then reconnect the nodes
 
     // insert one node to start the series of declarations
     CFANode cur = new CFANode(0, firstNode.getFunctionName());
     cfa.addNode(cur);
-    BlankEdge be = new BlankEdge("", 0, firstNode, cur, "INIT GLOBAL VARS");
-    addToCFA(be);
+    final CFAEdge newFirstEdge = new BlankEdge("", FileLocation.DUMMY, firstNode, cur, "INIT GLOBAL VARS");
+    CFACreationUtils.addEdgeUnconditionallyToCFA(newFirstEdge);
 
     // create a series of GlobalDeclarationEdges, one for each declaration
     for (Pair<? extends IADeclaration, String> p : globalVars) {
@@ -702,22 +695,26 @@ public class CFACreator {
       CFANode n = new CFANode(d.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
       cfa.addNode(n);
 
-      if (cfa.getLanguage() == Language.C) {
-        CDeclarationEdge e = new CDeclarationEdge(rawSignature,
-            d.getFileLocation().getStartingLineNumber(), cur, n, (CDeclaration) d);
-        addToCFA(e);
-        cur = n;
-      } else if (cfa.getLanguage() == Language.JAVA) {
-        JDeclarationEdge e = new JDeclarationEdge(rawSignature,
-            d.getFileLocation().getStartingLineNumber(), cur, n, (JDeclaration) d);
-        addToCFA(e);
-        cur = n;
+      final CFAEdge newEdge;
+      switch (cfa.getLanguage()) {
+        case C:
+          newEdge = new CDeclarationEdge(rawSignature, d.getFileLocation(), cur, n, (CDeclaration) d);
+          break;
+        case JAVA :
+          newEdge = new JDeclarationEdge(rawSignature, d.getFileLocation(), cur, n, (JDeclaration) d);
+          break;
+        default:
+          throw new AssertionError("unknown language");
       }
+
+      CFACreationUtils.addEdgeUnconditionallyToCFA(newEdge);
+      cur = n;
     }
 
-    // and a blank edge connecting the declarations with the second node of CFA
-    be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode, firstEdge.getDescription());
-    addToCFA(be);
+    // add a blank edge connecting the declarations with the (old) second node of CFA
+    final CFAEdge newLastEdge = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getFileLocation(),
+            cur, secondNode, firstEdge.getDescription());
+    CFACreationUtils.addEdgeUnconditionallyToCFA(newLastEdge);
   }
 
   /**
@@ -832,11 +829,6 @@ public class CFACreator {
     }
 
     stats.exportTime.stop();
-  }
-
-  private static void addToCFA(CFAEdge edge) {
-    edge.getPredecessor().addLeavingEdge(edge);
-    edge.getSuccessor().addEnteringEdge(edge);
   }
 
   public CFACreatorStatistics getStatistics() {
