@@ -159,9 +159,8 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
     }
 
     // TODO: handle the case that the result is not a numeric value
-    CSimpleType type = (CSimpleType) op.getExpressionType().getCanonicalType();
     final Value castedValue = AbstractExpressionValueVisitor.castCValue(
-        value, expr.getOperand().getExpressionType(), expr.getExpressionType(), machineModel, logger, expr.getFileLocation());
+        value, op.getExpressionType(), expr.getExpressionType(), machineModel, logger, expr.getFileLocation());
 
 
     return convertExplicitValueToExpression(expr, castedValue);

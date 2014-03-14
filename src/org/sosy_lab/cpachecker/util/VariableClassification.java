@@ -1078,7 +1078,7 @@ public class VariableClassification {
   }
 
   /** Returns a scoped name for a given IdExpression. */
-  public static String scopeVar(final CExpression exp) {
+  private static String scopeVar(final CExpression exp) {
     if(exp instanceof CIdExpression) {
       return ((CIdExpression) exp).getDeclaration().getQualifiedName();
     } else {

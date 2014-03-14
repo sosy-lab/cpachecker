@@ -116,7 +116,6 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
   private final CFA cfa;
   private final LogManager logger;
-  private final Configuration config;
   private final ShutdownNotifier shutdownNotifier;
 
   private final ValueAnalysisInterpolator interpolator;
@@ -128,7 +127,6 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
     pConfig.inject(this);
 
     logger           = pLogger;
-    config           = pConfig;
     cfa              = pCfa;
     shutdownNotifier = pShutdownNotifier;
     interpolator     = new ValueAnalysisInterpolator(pConfig, logger, shutdownNotifier, cfa);

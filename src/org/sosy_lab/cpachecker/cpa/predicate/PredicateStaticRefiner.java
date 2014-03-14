@@ -165,7 +165,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
             CAssignment assign = (CAssignment) stmtEdge.getStatement();
 
             if (assign.getLeftHandSide() instanceof CIdExpression) {
-              String variable = varClasses.scopeVar((CIdExpression) assign.getLeftHandSide());
+              String variable = ((CIdExpression)assign.getLeftHandSide()).getDeclaration().getQualifiedName();
               directlyAffectingStatements.put(variable, stmtEdge);
             }
           }

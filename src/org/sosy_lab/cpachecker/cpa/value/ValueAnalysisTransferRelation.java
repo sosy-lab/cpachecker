@@ -113,6 +113,7 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 @Options(prefix="cpa.value")
 public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<ValueAnalysisState, ValueAnalysisPrecision> {
@@ -171,7 +172,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     if (pCfa.getVarClassification().isPresent()) {
       addressedVariables = pCfa.getVarClassification().get().getAddressedVariables();
     } else {
-      addressedVariables = Collections.EMPTY_SET;
+      addressedVariables = ImmutableSet.of();
     }
   }
 
