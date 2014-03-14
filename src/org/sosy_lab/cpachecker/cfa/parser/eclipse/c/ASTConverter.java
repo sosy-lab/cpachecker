@@ -174,13 +174,8 @@ class ASTConverter {
         "the cfa is simplified until at maximum one pointer is allowed for left- and rightHandSide")
   private boolean simplifyPointerExpressions = false;
 
-  @Option(name="simplifyConstExpressions",
+  @Option(
       description="simplify simple const expressions like 1+2")
-  private boolean alwaysSimplifyConstExpressions = false;
-
-  // This is neccessary because in certain situations we always need to simplify
-  // expressions, regardless of the configuration above.
-  // Probably the configuration option can go away and we always simplify expressions.
   private boolean simplifyConstExpressions = false;
 
   private final ExpressionSimplificationVisitor expressionSimplificator;
@@ -220,7 +215,7 @@ class ASTConverter {
       Function<String, String> pNiceFileNameFunction,
       CSourceOriginMapping pSourceOriginMapping,
       MachineModel pMachineModel, String pStaticVariablePrefix,
-      boolean pSimplifyConstExpressions, Sideassignments pSideAssignmentStack) throws InvalidConfigurationException {
+      Sideassignments pSideAssignmentStack) throws InvalidConfigurationException {
 
     pConfig.inject(this);
 
@@ -232,7 +227,6 @@ class ASTConverter {
     this.sourceOriginMapping = pSourceOriginMapping;
     this.staticVariablePrefix = pStaticVariablePrefix;
     this.sideAssignmentStack = pSideAssignmentStack;
-    this.simplifyConstExpressions = pSimplifyConstExpressions;
 
     this.expressionSimplificator = new ExpressionSimplificationVisitor(pMachineModel, pLogger);
     this.nonRecursiveExpressionSimplificator = new NonRecursiveExpressionSimplificationVisitor(pMachineModel, pLogger);
@@ -264,8 +258,22 @@ class ASTConverter {
     }
   }
 
-  CExpression simplifyExpression(CExpression exp) {
+  /**
+   * Simplify an expression as much as possible.
+   * Use this when you always want to evaluate a specific expression if possible,
+   * e.g. array lengths (which should be constant if possible).
+   */
+  CExpression simplifyExpressionRecursively(CExpression exp) {
     return exp.accept(expressionSimplificator);
+  }
+
+  /**
+   * Do a single step of expression simplification (not recursively).
+   * Use this when you do not care about full evaluation,
+   * or you know the operands are already evaluated if possible.
+   */
+  CExpression simplifyExpressionOneStep(CExpression exp) {
+    return exp.accept(nonRecursiveExpressionSimplificator);
   }
 
   private CExpression addSideassignmentsForExpressionsWithoutSideEffects(CAstNode node,
@@ -306,11 +314,11 @@ class ASTConverter {
 
   protected CAstNode convertExpressionWithSideEffects(IASTExpression e) {
     CAstNode converted = convertExpressionWithSideEffectsNotSimplified(e);
-    if (!alwaysSimplifyConstExpressions || !(converted instanceof CExpression)) {
+    if (!simplifyConstExpressions || !(converted instanceof CExpression)) {
       return converted;
     }
 
-    return ((CExpression)converted).accept(nonRecursiveExpressionSimplificator);
+    return simplifyExpressionOneStep((CExpression)converted);
   }
 
   private CAstNode convertExpressionWithSideEffectsNotSimplified(IASTExpression e) {
@@ -383,12 +391,11 @@ class ASTConverter {
   static enum CONDITION { NORMAL, ALWAYS_FALSE, ALWAYS_TRUE }
 
   CONDITION getConditionKind(final CExpression condition) {
-    CExpression simplifiedCondition = simplifyExpression(condition);
 
-    if (simplifiedCondition instanceof CIntegerLiteralExpression
-        || simplifiedCondition instanceof CCharLiteralExpression) {
+    if (condition instanceof CIntegerLiteralExpression
+        || condition instanceof CCharLiteralExpression) {
       // constant int value
-      if (isZero(simplifiedCondition)) {
+      if (isZero(condition)) {
         return CONDITION.ALWAYS_FALSE;
       } else {
         return CONDITION.ALWAYS_TRUE;
@@ -398,16 +405,19 @@ class ASTConverter {
   }
 
   private CAstNode convert(IASTConditionalExpression e) {
-    if (simplifyConstExpressions) {
-      CExpression condition = convertExpressionWithoutSideEffects(e.getLogicalConditionExpression());
+    CExpression condition = convertExpressionWithoutSideEffects(e.getLogicalConditionExpression());
+    // Here we call simplify manually, because for conditional expressions
+    // we always want a full evaluation because we might be able to prevent
+    // a branch in the CFA.
+    // In global scope, this is even required because there cannot be any branches.
+    CExpression simplifiedCondition = simplifyExpressionRecursively(condition);
 
-      switch (getConditionKind(condition)) {
-      case ALWAYS_TRUE:
-        return convertExpressionWithSideEffects(e.getPositiveResultExpression());
-      case ALWAYS_FALSE:
-        return convertExpressionWithSideEffects(e.getNegativeResultExpression());
-      default:
-      }
+    switch (getConditionKind(simplifiedCondition)) {
+    case ALWAYS_TRUE:
+      return convertExpressionWithSideEffects(e.getPositiveResultExpression());
+    case ALWAYS_FALSE:
+      return convertExpressionWithSideEffects(e.getNegativeResultExpression());
+    default:
     }
 
     CIdExpression tmp = createTemporaryVariable(e);
@@ -1492,7 +1502,7 @@ class ASTConverter {
       org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier a = (org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier)am;
       CExpression lengthExp = convertExpressionWithoutSideEffects(a.getConstantExpression());
       if (lengthExp != null) {
-        lengthExp = simplifyExpression(lengthExp);
+        lengthExp = simplifyExpressionRecursively(lengthExp);
       }
       return new CArrayType(a.isConst(), a.isVolatile(), type, lengthExp);
 

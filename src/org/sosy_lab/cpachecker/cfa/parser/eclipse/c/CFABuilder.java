@@ -136,7 +136,7 @@ class CFABuilder extends ASTVisitor {
                                 new HashMap<String, CTypeDefDeclaration>(),
                                 globalScope.getTypes(),
                                 staticVariablePrefix);
-    astCreator = new ASTConverter(config, fileScope, logger, niceFileNameFunction, sourceOriginMapping, machine, staticVariablePrefix, true, sideAssignmentStack);
+    astCreator = new ASTConverter(config, fileScope, logger, niceFileNameFunction, sourceOriginMapping, machine, staticVariablePrefix, sideAssignmentStack);
     functionDeclarations.add(Pair.of((List<IASTFunctionDefinition>)new ArrayList<IASTFunctionDefinition>(), Pair.of(staticVariablePrefix, fileScope)));
 
     ast.accept(this);

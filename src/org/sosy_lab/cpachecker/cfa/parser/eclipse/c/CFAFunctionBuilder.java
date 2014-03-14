@@ -120,7 +120,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter.CONDITION;
-import org.sosy_lab.cpachecker.cfa.simplification.ExpressionSimplificationVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -159,7 +158,6 @@ class CFAFunctionBuilder extends ASTVisitor {
   private boolean wasLastEdgeBreakStatement = false;
 
 
-  private final ExpressionSimplificationVisitor expressionSimplificator;
   private final CBinaryExpressionBuilder binExprBuilder;
 
   // Data structures for handling goto
@@ -197,9 +195,8 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     logger = pLogger;
     scope = pScope;
-    astCreator = new ASTConverter(config, pScope, pLogger, pNiceFileNameFunction, pSourceOriginMapping, pMachine, staticVariablePrefix, false, pSideAssignmentStack);
+    astCreator = new ASTConverter(config, pScope, pLogger, pNiceFileNameFunction, pSourceOriginMapping, pMachine, staticVariablePrefix, pSideAssignmentStack);
     checkBinding = pCheckBinding;
-    expressionSimplificator = new ExpressionSimplificationVisitor(pMachine, pLogger);
     binExprBuilder = new CBinaryExpressionBuilder(pMachine, pLogger);
 
     shouldVisitDeclarations = true;
@@ -1413,19 +1410,17 @@ class CFAFunctionBuilder extends ASTVisitor {
     addToCFA(new BlankEdge(rawSignature, fileloc,
         prevNode, firstSwitchNode, description));
 
+    switchExprStack.push(switchExpression);
 
     // check if the switch expression is a constant value, when it is constant
     // we can eliminate the switch statement
-    CExpression simplifiedSwitchExp = switchExpression.accept(expressionSimplificator);
-    boolean isConstSwitchExpr = simplifiedSwitchExp instanceof CIntegerLiteralExpression
-        || simplifiedSwitchExp instanceof CCharLiteralExpression;
+    boolean isConstSwitchExpr = switchExpression instanceof CIntegerLiteralExpression
+        || switchExpression instanceof CCharLiteralExpression;
     isConstantSwitchExpression.push(isConstSwitchExpr);
     if (isConstSwitchExpr) {
-      switchExprStack.push(simplifiedSwitchExp);
       return handleConstSwitchStatement(statement, fileloc, firstSwitchNode);
     }
 
-    switchExprStack.push(switchExpression);
     switchCaseStack.push(firstSwitchNode);
 
     // postSwitchNode is Node after the switch-statement
@@ -1549,10 +1544,12 @@ class CFAFunctionBuilder extends ASTVisitor {
       CExpression smallEnd = astCreator.convertExpressionWithoutSideEffects(((IASTBinaryExpression)right).getOperand1());
       CExpression bigEnd = astCreator.convertExpressionWithoutSideEffects(((IASTBinaryExpression)right).getOperand2());
 
-      CExpression firstPart = binExprBuilder.buildBinaryExpression(switchExpr, smallEnd, CBinaryExpression.BinaryOperator.GREATER_EQUAL)
-          .accept(expressionSimplificator);
-      CExpression secondPart = binExprBuilder.buildBinaryExpression(switchExpr, bigEnd, CBinaryExpression.BinaryOperator.LESS_EQUAL)
-          .accept(expressionSimplificator);
+      CExpression firstPart = astCreator.simplifyExpressionOneStep(
+          binExprBuilder.buildBinaryExpression(switchExpr, smallEnd,
+              CBinaryExpression.BinaryOperator.GREATER_EQUAL));
+      CExpression secondPart = astCreator.simplifyExpressionOneStep(
+          binExprBuilder.buildBinaryExpression(switchExpr, bigEnd,
+              CBinaryExpression.BinaryOperator.LESS_EQUAL));
 
       // Guaranteed to be CIntegerLiteralExpressions after simplification
 
@@ -1565,8 +1562,9 @@ class CFAFunctionBuilder extends ASTVisitor {
     } else {
       final CExpression caseExpr = astCreator.convertExpressionWithoutSideEffects(statement.getExpression());
       // build condition
-      CExpression exp = binExprBuilder.buildBinaryExpression(switchExpr, caseExpr, CBinaryExpression.BinaryOperator.EQUALS)
-          .accept(expressionSimplificator);
+      CExpression exp = astCreator.simplifyExpressionOneStep(
+          binExprBuilder.buildBinaryExpression(switchExpr, caseExpr,
+              CBinaryExpression.BinaryOperator.EQUALS));
 
       // Guaranteed to be CIntegerLiteralExpressions after simplification
 

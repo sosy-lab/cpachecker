@@ -191,7 +191,7 @@ public class EclipseCParser implements CParser {
 
     Sideassignments sa = new Sideassignments();
     sa.enterBlock();
-    return new ASTConverter(config, new FunctionScope(), new LogManagerWithoutDuplicates(logger), Functions.<String>identity(), new CSourceOriginMapping(), machine, "", false, sa)
+    return new ASTConverter(config, new FunctionScope(), new LogManagerWithoutDuplicates(logger), Functions.<String>identity(), new CSourceOriginMapping(), machine, "", sa)
         .convert(statements[0]);
   }
 
@@ -223,7 +223,7 @@ public class EclipseCParser implements CParser {
     sa.enterBlock();
 
     ASTConverter converter = new ASTConverter(config, new FunctionScope(), new LogManagerWithoutDuplicates(logger),
-        Functions.<String>identity(), new CSourceOriginMapping(), machine, "", false, sa);
+        Functions.<String>identity(), new CSourceOriginMapping(), machine, "", sa);
 
     List<CAstNode> nodeList = new ArrayList<>(statements.length);
 
