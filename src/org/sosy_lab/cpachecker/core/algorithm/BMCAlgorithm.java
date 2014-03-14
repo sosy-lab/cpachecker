@@ -75,7 +75,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.edgeexclusion.EdgeExclusionPrecision;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -738,22 +737,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         @Override
         public boolean apply(AbstractState pArg0) {
           LoopstackState loopState = extractStateByType(pArg0, LoopstackState.class);
-          if (loop.equals(loopState.getLoop())) {
-            CallstackState callstackState = extractStateByType(pArg0, CallstackState.class);
-            /*
-             * If there is callstack information and the state is contained in
-             * any exit function, the state is no loop state.
-             */
-            while (callstackState.getPreviousState() != null
-                && !callstackState.getCurrentFunction().equals(loopHead.getFunctionName())) {
-              if (cfa.getAllFunctions().get(callstackState.getCurrentFunction()).getExitNode().getNumLeavingEdges() <= 0) {
-                return false;
-              }
-              callstackState = callstackState.getPreviousState();
-            }
-            return true;
-          }
-          return false;
+          return loop.equals(loopState.getLoop());
         }
       });
 
