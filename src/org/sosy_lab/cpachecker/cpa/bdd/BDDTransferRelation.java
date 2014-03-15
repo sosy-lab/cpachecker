@@ -416,11 +416,13 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
   /** This function returns a bitvector, that represents the expression.
    * The partition chooses the compression of the bitvector. */
-  private Region[] evaluateVectorExpression(final Partition partition, final CExpression exp, final CType targetType) {
+  private @Nullable Region[] evaluateVectorExpression(
+          final Partition partition, final CExpression exp, final CType targetType) {
     final boolean compress = (partition != null) && compressIntEqual
             && varClass.getIntEqualPartitions().contains(partition);
     if (varClass.getIntBoolPartitions().contains(partition)) {
-      return new Region[]{exp.accept(new BDDBooleanExpressionVisitor(this, rmgr))};
+      Region booleanResult = exp.accept(new BDDBooleanExpressionVisitor(this, rmgr));
+      return (booleanResult == null) ? null : new Region[]{booleanResult};
     } else if (compress) {
       return exp.accept(new BDDCompressExpressionVisitor(this, bvmgr, partition));
     } else {
