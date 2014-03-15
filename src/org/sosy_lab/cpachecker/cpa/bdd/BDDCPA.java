@@ -58,6 +58,7 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
   }
 
   private final NamedRegionManager manager;
+  private final BitvectorManager bvmgr;
   private final BDDDomain abstractDomain;
   private final BDDPrecision precision;
   private final MergeOperator mergeOperator;
@@ -68,11 +69,12 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
       throws InvalidConfigurationException {
     BDDRegionManager rmgr = BDDRegionManager.getInstance(config, logger);
     manager = new NamedRegionManager(rmgr);
+    bvmgr = new BitvectorManager(config, rmgr);
     abstractDomain = new BDDDomain();
     precision = new BDDPrecision(config, cfa.getVarClassification());
     mergeOperator = new MergeJoinOperator(abstractDomain);
     stopOperator = new StopSepOperator(abstractDomain);
-    transferRelation = new BDDTransferRelation(manager, logger, config, rmgr, cfa, precision);
+    transferRelation = new BDDTransferRelation(manager, bvmgr, logger, config, cfa, precision);
   }
 
   @Override
@@ -97,7 +99,7 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   @Override
   public AbstractState getInitialState(CFANode node) {
-    return new BDDState(manager, manager.makeTrue());
+    return new BDDState(manager, bvmgr, manager.makeTrue());
   }
 
   @Override
