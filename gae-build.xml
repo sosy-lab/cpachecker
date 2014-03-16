@@ -142,6 +142,26 @@
 		<dev_appserver war="${war.dir}" port="${gae-dev.port}" address="${gae-dev.host}" />
 	</target>
 
+	<!--
+		make sure to set up OAuth2 before deploying
+		https://developers.google.com/appengine/docs/java/tools/uploadinganapp#Passwordless_Login_with_OAuth2
+	-->
+	<target name="deploy" depends="build" description="Deploys the application.">
+		<appcfg action="update" war="${war.dir}">
+			<options>
+        <arg value="--oauth2"/>
+      </options>
+		</appcfg>
+	</target>
+
+	<target name="deploy-queues" description="Deploys the queue configuration.">
+		<appcfg action="update_queues" war="${war.dir}">
+			<options>
+        <arg value="--oauth2"/>
+      </options>
+		</appcfg>
+	</target>
+
 	<target name="create-version-files" depends="cpachecker-create-version-file" description="Creates files containing the respective versions of CPAchecker and CPAchecker on GAE.">
 		<exec executable="svnversion" outputproperty="gae.version" failonerror="false" failifexecutionfails="false" logError="false" error="/dev/null">
 			<env key="LANG" value="C" />
