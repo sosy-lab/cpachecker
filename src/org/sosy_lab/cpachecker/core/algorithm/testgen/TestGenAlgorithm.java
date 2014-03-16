@@ -23,13 +23,19 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.testgen;
 
+import java.io.IOException;
+import java.io.Writer;
 import java.util.Collection;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -59,6 +65,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
+import com.google.common.base.Joiner;
+
 @Options(prefix = "testgen")
 public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
 
@@ -84,6 +92,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
   private TestGenPathAnalysisStrategy analysisStrategy;
 
   private TestGenStatistics stats;
+  private int reachedSetCounter = 0;
 
 
   //  ConfigurationBuilder singleConfigBuilder = Configuration.builder();
@@ -180,6 +189,9 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
 
       ARGPath executedPath = ARGUtils.getOnePathTo(pseudoTarget);
       PredicatePathAnalysisResult result = analysisStrategy.findNewFeasiblePathUsingPredicates(executedPath);
+
+      dumpReachedSet(iterationStrategy.getModel().getLocalReached());
+
       if (result.isEmpty()) {
         /*
          * we reached all variations (identified by predicates) of the program path.
@@ -209,6 +221,19 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
         model.getGlobalReached().removeOnlyFromWaitlist(state);
       }
 
+  }
+
+  private void dumpReachedSet(ReachedSet pReached) {
+    Path file = Paths.get("output/reachedsets/reached" + reachedSetCounter++ + ".txt");
+
+      try (Writer w = Files.openOutputFile(file)) {
+        Joiner.on('\n').appendTo(w, pReached);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write reached set to file");
+      } catch (OutOfMemoryError e) {
+        logger.logUserException(Level.WARNING, e,
+            "Could not write reached set to file due to memory problems");
+      }
   }
 
 
