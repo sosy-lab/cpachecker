@@ -226,14 +226,14 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
   private void dumpReachedSet(ReachedSet pReached) {
     Path file = Paths.get("output/reachedsets/reached" + reachedSetCounter++ + ".txt");
 
-      try (Writer w = Files.openOutputFile(file)) {
-        Joiner.on('\n').appendTo(w, pReached);
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Could not write reached set to file");
-      } catch (OutOfMemoryError e) {
-        logger.logUserException(Level.WARNING, e,
-            "Could not write reached set to file due to memory problems");
-      }
+    try (Writer w = Files.openOutputFile(file)) {
+      Joiner.on('\n').appendTo(w, pReached);
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not write reached set to file");
+    } catch (OutOfMemoryError e) {
+      logger.logUserException(Level.WARNING, e,
+          "Could not write reached set to file due to memory problems");
+    }
   }
 
 
