@@ -69,6 +69,9 @@ import com.google.common.collect.UnmodifiableIterator;
 /**
  * Helper class with collection of ARG related utility methods.
  */
+/**
+ *
+ */
 public class ARGUtils {
 
   private ARGUtils() { }
@@ -211,6 +214,18 @@ public class ARGUtils {
       Predicate<? super ARGState> isRelevant) {
 
     return GraphUtils.projectARG(root, successorFunction, isRelevant);
+  }
+
+
+  /**
+   * Writes the ARG with the root state pRootState to pSb as a graphviz dot file
+   *
+   */
+  public static void writeARGAsDot(Appendable pSb, ARGState pRootState) throws IOException {
+    ARGToDotWriter.write(pSb, pRootState,
+        ARGUtils.CHILDREN_OF_STATE,
+        Predicates.alwaysTrue(),
+        Predicates.alwaysFalse());
   }
 
   /**
