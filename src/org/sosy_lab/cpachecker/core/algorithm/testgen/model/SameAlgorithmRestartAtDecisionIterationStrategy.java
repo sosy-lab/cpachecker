@@ -23,13 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.testgen.model;
 
-import java.util.Collection;
-
 import org.sosy_lab.cpachecker.core.algorithm.testgen.StartupConfig;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -71,24 +67,14 @@ public class SameAlgorithmRestartAtDecisionIterationStrategy implements TestGenI
   public boolean runAlgorithm() throws PredicatedAnalysisPropertyViolationException, CPAException, InterruptedException {
     stats.beforeCpaAlgortihm();
     boolean ret = model.getAlgorithm().run(model.getLocalReached());
-    stats.afterCpaAlgortihm();
+    stats.afterCpaAlgortihm(model.getAlgorithm());
     return ret;
   }
 
   private void addReachedStatesToOtherReached(ReachedSet pCurrentReached, ReachedSet pGlobalReached) {
-  for (AbstractState state : pCurrentReached) {
-    pGlobalReached.add(state,pCurrentReached.getPrecision(state));
-    pGlobalReached.removeOnlyFromWaitlist(state);
-  }
-
-}
-
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (getModel().getAlgorithm() instanceof StatisticsProvider) {
-      StatisticsProvider sProvider = (StatisticsProvider) getModel().getAlgorithm();
-      sProvider.collectStatistics(pStatsCollection);
+    for (AbstractState state : pCurrentReached) {
+      pGlobalReached.add(state, pCurrentReached.getPrecision(state));
+      pGlobalReached.removeOnlyFromWaitlist(state);
     }
   }
-
 }

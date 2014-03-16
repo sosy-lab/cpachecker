@@ -26,9 +26,6 @@ package org.sosy_lab.cpachecker.core.algorithm.testgen.model;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -46,8 +43,6 @@ import org.sosy_lab.cpachecker.core.algorithm.testgen.StartupConfig;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -70,7 +65,6 @@ public class AutomatonControlledIterationStrategy implements TestGenIterationStr
 
   private int automatonCounter = 0;
   private TestGenStatistics stats;
-  private final List<Statistics> subAlgorithmStats = new ArrayList<>();
 
   public AutomatonControlledIterationStrategy(StartupConfig startupConfig, CFA pCfa, IterationModel model,
       ReachedSetFactory pReachedSetFactory, CPABuilder pCpaBuilder, TestGenStatistics pStats) {
@@ -88,7 +82,6 @@ public class AutomatonControlledIterationStrategy implements TestGenIterationStr
   @Override
   public void updateIterationModelForNextIteration(PredicatePathAnalysisResult pResult) {
     // TODO might have to reinit the reached-sets
-    fetchSubAlgorithmStats();
     model.setAlgorithm(createAlgorithmForNextIteration(pResult));
     ReachedSet newReached = reachedSetFactory.create();
     AbstractState initialState = model.getGlobalReached().getFirstState();
@@ -107,7 +100,7 @@ public class AutomatonControlledIterationStrategy implements TestGenIterationStr
   public boolean runAlgorithm() throws PredicatedAnalysisPropertyViolationException, CPAException, InterruptedException {
     stats.beforeCpaAlgortihm();
     boolean ret = model.getAlgorithm().run(model.getLocalReached());
-    stats.afterCpaAlgortihm();
+    stats.afterCpaAlgortihm(model.getAlgorithm());
     return ret;
   }
 
@@ -192,23 +185,6 @@ public class AutomatonControlledIterationStrategy implements TestGenIterationStr
       // TODO: use another exception?
       throw new IllegalStateException("Unable to create the Algorithm for next Iteration", e);
     }
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    // Fetch statistics for last used algorithm instance
-    fetchSubAlgorithmStats();
-    pStatsCollection.addAll(subAlgorithmStats);
-
-  }
-
-
-  private void fetchSubAlgorithmStats() {
-    if(getModel().getAlgorithm() instanceof StatisticsProvider) {
-      StatisticsProvider sProvider = (StatisticsProvider) getModel().getAlgorithm();
-      sProvider.collectStatistics(subAlgorithmStats);
-    }
-
   }
 
 }

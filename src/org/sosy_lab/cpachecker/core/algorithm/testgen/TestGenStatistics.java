@@ -24,11 +24,14 @@
 package org.sosy_lab.cpachecker.core.algorithm.testgen;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 public class TestGenStatistics implements Statistics {
@@ -40,8 +43,9 @@ public class TestGenStatistics implements Statistics {
 
 
   private volatile int cpaAlgorithmCount = 0;
-  private int countPathChecks = 0;
-  private boolean printAutomatonFileGenerationStats;
+  private volatile int countPathChecks = 0;
+  private final boolean printAutomatonFileGenerationStats;
+  private final ArrayList<Statistics> cpaAlgorithmStatistics = new ArrayList<>();
 
 
   public TestGenStatistics(boolean pPrintAutomatonFileGenerationStats) {
@@ -75,6 +79,23 @@ public class TestGenStatistics implements Statistics {
       if (printAutomatonFileGenerationStats) {
         out.println("Time next automaton file generation:  " + automatonFileGenerationTimer);
       }
+
+      out.println();
+
+      for (int i = 0; i < cpaAlgorithmStatistics.size(); i++) {
+        out.println("-> Statistics for CPA algorithm run #" + i + ":");
+        out.println();
+        cpaAlgorithmStatistics.get(i).printStatistics(out, pResult, pReached);
+        out.println();
+      }
+
+    }
+  }
+
+  private void collectStatisticsForAlgorithm(Algorithm pAlgorithm) {
+    if(pAlgorithm instanceof StatisticsProvider) {
+      StatisticsProvider sProvider = (StatisticsProvider) pAlgorithm;
+      sProvider.collectStatistics(cpaAlgorithmStatistics);
     }
   }
 
@@ -102,9 +123,9 @@ public class TestGenStatistics implements Statistics {
     cpaAlogorithmTimer.start();
   }
 
-
-  public void afterCpaAlgortihm() {
+  public void afterCpaAlgortihm(Algorithm pAlgorithm) {
     cpaAlogorithmTimer.stop();
+    collectStatisticsForAlgorithm(pAlgorithm);
   }
 
   Timer getTotalTimer() {

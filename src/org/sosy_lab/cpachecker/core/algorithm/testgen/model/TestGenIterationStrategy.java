@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.testgen.model;
 
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
@@ -32,7 +31,7 @@ import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationExc
 /**
  *
  */
-public interface TestGenIterationStrategy extends StatisticsProvider {
+public interface TestGenIterationStrategy {
 
   /**
    *

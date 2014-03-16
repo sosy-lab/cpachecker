@@ -214,7 +214,6 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    iterationStrategy.collectStatistics(pStatsCollection);
     pStatsCollection.add(stats);
   }
 
