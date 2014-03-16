@@ -9,6 +9,29 @@
         <div class="panel-title">${msg["allTasks"]}</div>
       </div>
       <div class="panel-body">
+
+        <p>
+        <form role="form" method="get" action="/tasks" class="form-inline">
+          <input type="hidden" name="offset" value="${offset}" />
+          <div class="form-group">
+          <select name="limit" class="form-control input-sm">
+            <option value="0">${msg["limit.noLimit"]}</option>
+            <#list 10..50 as l>
+              <#if l % 10 == 0>
+              <#if l == limit>
+                <option value="${l}" selected>${l}</option>
+              <#else>
+                <option value="${l}">${l}</option>
+              </#if>
+              </#if>
+            </#list>
+          </select>
+          </div>
+          <button type="submit" class="btn btn-default btn-sm">${msg["limit.setLimit"]}</button>
+        </form>
+        </p>
+        <#include "tasks-pagination.ftl">
+
         <table class="table table-bordered table-condensed table-hover table-tasks">
             <tr>
               <th>${msg["task.creationDate"]}</th>
@@ -18,7 +41,7 @@
             </tr>
           </thead>
           <tbody>
-          <#list tasks?sort_by("creationDate")?reverse as task>
+          <#list tasks as task>
 
           <#if task.status == "PENDING">
             <#assign statusLabel = "default">
@@ -73,6 +96,8 @@
           </#list>
         </tbody>
       </table>
+
+      <#include "tasks-pagination.ftl">
     </div>
   </div>
 </div>

@@ -46,10 +46,11 @@ import com.google.appengine.api.log.LogServiceFactory;
 import com.google.appengine.api.log.RequestLogs;
 import com.google.appengine.api.taskqueue.Queue;
 import com.google.appengine.api.taskqueue.QueueFactory;
-import com.google.appengine.labs.repackaged.com.google.common.collect.Lists;
+import com.google.common.collect.Lists;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
 import com.googlecode.objectify.VoidWork;
+import com.googlecode.objectify.cmd.Query;
 
 
 /**
@@ -129,10 +130,44 @@ public class TaskDAO {
 
   /**
    * Returns a list containing all available {@link Task}s.
-   * @return
+   *
+   * @return A list of all tasks.
    */
   public static List<Task> tasks() {
     return sanitizeStateAndSetStatistics(ofy().load().type(Task.class).list());
+  }
+
+  /**
+   * Returns a list of all available {@link Task}s
+   * ordered by creationDate (newest first).
+   *
+   * @param offset The number of tasks to skip
+   * @param limit The maximum number of tasks to return. If negative or zero, no limit will be applied
+   *
+   * @return A list of all tasks limited in size and offset.
+   */
+  public static List<Task> tasks(int offset, int limit) {
+
+    Query<Task> query = ofy()
+        .load()
+        .type(Task.class)
+        .offset(offset)
+        .order("-creationDate");
+
+    if (limit > 0) {
+      query = query.limit(limit);
+    }
+
+    return sanitizeStateAndSetStatistics(query.list());
+  }
+
+  /**
+   * Returns the number of all available tasks.
+   *
+   * @return The number of all available tasks.
+   */
+  public static int countTotalTasks() {
+    return ofy().load().type(Task.class).count();
   }
 
   /**
@@ -280,6 +315,11 @@ public class TaskDAO {
    */
   public static void delete(Key<Task> key) {
     delete(load(key));
+  }
+
+  public static void delete(String key) {
+    Key<Task> taskKey = Key.create(key);
+    delete(taskKey);
   }
 
   /**

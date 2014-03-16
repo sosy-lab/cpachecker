@@ -70,6 +70,7 @@ public class Task {
   @Id
   private Long id;
   private String requestID;
+  @Index
   private Date creationDate;
   private Date executionDate;
   private Date terminationDate;
