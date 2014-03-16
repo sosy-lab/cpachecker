@@ -190,7 +190,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
       ARGPath executedPath = ARGUtils.getOnePathTo(pseudoTarget);
       PredicatePathAnalysisResult result = analysisStrategy.findNewFeasiblePathUsingPredicates(executedPath);
 
-      dumpReachedSet(iterationStrategy.getModel().getLocalReached());
+      dumpReachedAndARG(iterationStrategy.getModel().getLocalReached());
 
       if (result.isEmpty()) {
         /*
@@ -223,10 +223,10 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
 
   }
 
-  private void dumpReachedSet(ReachedSet pReached) {
-    Path file = Paths.get("output/reachedsets/reached" + reachedSetCounter++ + ".txt");
+  private void dumpReachedAndARG(ReachedSet pReached) {
+    Path reachedFile = Paths.get("output/reachedsets/reached" + reachedSetCounter + ".txt");
 
-    try (Writer w = Files.openOutputFile(file)) {
+    try (Writer w = Files.openOutputFile(reachedFile)) {
       Joiner.on('\n').appendTo(w, pReached);
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write reached set to file");
@@ -234,6 +234,16 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
       logger.logUserException(Level.WARNING, e,
           "Could not write reached set to file due to memory problems");
     }
+
+    Path argFile = Paths.get("output/args/arg" + reachedSetCounter + ".dot");
+
+    try (Writer w = Files.openOutputFile(argFile)) {
+      ARGUtils.writeARGAsDot(w, (ARGState) pReached.getFirstState());
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+    }
+
+    reachedSetCounter++;
   }
 
 
