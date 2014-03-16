@@ -113,6 +113,7 @@ public class AutomatonControlledIterationStrategy implements TestGenIterationStr
 
   private Algorithm createAlgorithmForNextIteration(PredicatePathAnalysisResult pResult) {
     Path path = org.sosy_lab.common.io.Paths.get("output/automaton/next_automaton" + automatonCounter++ + ".spc");
+    stats.beforeAutomationFileGeneration();
     try (Writer w = Files.openOutputFile(path, Charset.forName("UTF8"))) {
       //    try (DeleteOnCloseFile automatonFile = Files.createTempFile("next_automaton", ".txt")) {
 
@@ -120,15 +121,16 @@ public class AutomatonControlledIterationStrategy implements TestGenIterationStr
       CounterexampleInfo ci = CounterexampleInfo.feasible(pResult.getPath(), pResult.getTrace().getModel());
       //      ARGUtils.producePathAutomaton(w, "nextPathAutomaton", pNewPath);
       //      ARGUtils.producePathAutomaton(w, pResult.getPath().getFirst().getFirst(), pResult.getPath().getStateSet(), "nextPathAutomaton", ci);
-      stats.beforePathGeneration();
       ARGUtils.produceTestGenPathAutomaton(w, pResult.getPath().getFirst().getFirst(), pResult.getPath().getStateSet(),
           "nextPathAutomaton", ci,true);
-      stats.afterPathGeneration();
       //      }
 
     } catch (IOException e) {
       throw new IllegalStateException("Unable to create the Algorithm for next Iteration", e);
+    } finally {
+      stats.afterAutomatonFileGeneration();
     }
+
     try {
       Configuration lConfig =
           Configuration.builder().copyFrom(config).clearOption("analysis.algorithm.testGen").build();

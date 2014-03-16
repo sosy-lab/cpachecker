@@ -36,17 +36,16 @@ public class TestGenStatistics implements Statistics {
   private final Timer totalTimer = new Timer();
   private final Timer cpaAlogorithmTimer = new Timer();
   private final Timer pathCheckTimer = new Timer();
-  private final Timer pathGenerationTimer = new Timer();
+  private final Timer automatonFileGenerationTimer = new Timer();
 
 
   private volatile int cpaAlgorithmCount = 0;
   private int countPathChecks = 0;
-  private boolean printPathGenerationStats;
+  private boolean printAutomatonFileGenerationStats;
 
 
-  public TestGenStatistics(boolean pPrintPathGenerationStats) {
-    printPathGenerationStats = pPrintPathGenerationStats;
-
+  public TestGenStatistics(boolean pPrintAutomatonFileGenerationStats) {
+    printAutomatonFileGenerationStats = pPrintAutomatonFileGenerationStats;
   }
 
   @Override
@@ -73,21 +72,18 @@ public class TestGenStatistics implements Statistics {
       out.println("Time for CPA Algorithm runs:          " + cpaAlogorithmTimer);
       out.println("Time for PathChecker querys:          " + pathCheckTimer);
       out.println("Total time for TestGen algorithm:     " + totalTimer);
-      if (printPathGenerationStats) {
-        out.println("Total time for path generation:       " + pathGenerationTimer);
-        out.println("Avg.time for Path generation:         " + pathGenerationTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
-        out.println("Max. time for Path generation:        " + pathGenerationTimer.getMaxTime().formatAs(TimeUnit.SECONDS));
+      if (printAutomatonFileGenerationStats) {
+        out.println("Time next automaton file generation:  " + automatonFileGenerationTimer);
       }
     }
   }
 
-
-  public void beforePathGeneration() {
-    pathGenerationTimer.start();
+  public void beforeAutomationFileGeneration() {
+    automatonFileGenerationTimer.start();
   }
 
-  public void afterPathGeneration() {
-    pathGenerationTimer.stop();
+  public void afterAutomatonFileGeneration() {
+    automatonFileGenerationTimer.stop();
   }
 
   public void beforePathCheck() {
