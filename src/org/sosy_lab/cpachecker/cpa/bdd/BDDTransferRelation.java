@@ -429,9 +429,10 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       Region[] value = exp.accept(new BDDVectorCExpressionVisitor(this, bvmgr, machineModel));
       if (value != null) {
         // cast to correct length
+        final CType sourceType = exp.getExpressionType().getCanonicalType();
         value = bvmgr.toBitsize(
                 machineModel.getSizeof(targetType) * machineModel.getSizeofCharInBits(),
-                targetType instanceof CSimpleType && ((CSimpleType) targetType).isSigned(),
+                sourceType instanceof CSimpleType && ((CSimpleType) sourceType).isSigned(),
                 value);
       }
       return value;
