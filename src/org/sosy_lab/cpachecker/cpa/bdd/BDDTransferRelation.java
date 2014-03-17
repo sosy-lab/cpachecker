@@ -427,7 +427,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
         final CType sourceType = exp.getExpressionType().getCanonicalType();
         value = bvmgr.toBitsize(
                 machineModel.getSizeof(targetType) * machineModel.getSizeofCharInBits(),
-                sourceType instanceof CSimpleType && ((CSimpleType) sourceType).isSigned(),
+                sourceType instanceof CSimpleType && machineModel.isSigned((CSimpleType) sourceType),
                 value);
       }
       return value;
