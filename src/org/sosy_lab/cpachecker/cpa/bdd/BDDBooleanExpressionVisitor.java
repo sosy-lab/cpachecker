@@ -35,13 +35,15 @@ public class BDDBooleanExpressionVisitor
         extends DefaultCExpressionVisitor<Region, RuntimeException> {
 
   private final static int BOOLEAN_SIZE = 1;
-  private final BDDTransferRelation transferRelation;
+  private final PredicateManager predMgr;
+  private final BDDPrecision precision;
   protected final RegionManager rmgr;
 
   /** This Visitor returns the boolean value for an expression. */
-  protected BDDBooleanExpressionVisitor(final BDDTransferRelation pTransferRelation, final RegionManager pRmgr) {
-    this.transferRelation = pTransferRelation;
+  protected BDDBooleanExpressionVisitor(final PredicateManager pPredMgr, final RegionManager pRmgr, final BDDPrecision pPrecision) {
+    this.predMgr = pPredMgr;
     this.rmgr = pRmgr;
+    this.precision = pPrecision;
   }
 
   @Override
@@ -104,7 +106,7 @@ public class BDDBooleanExpressionVisitor
       }
     }
 
-    return transferRelation.createPredicate(idExp, BOOLEAN_SIZE)[0];
+    return predMgr.createPredicate(idExp.getDeclaration().getQualifiedName(), BOOLEAN_SIZE, precision)[0];
   }
 
   private Region getNum(long num) {

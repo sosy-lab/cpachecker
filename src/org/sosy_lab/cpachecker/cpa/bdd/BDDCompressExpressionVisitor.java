@@ -47,21 +47,24 @@ public class BDDCompressExpressionVisitor
   /** This map contains tuples (int, region[]) for each intEqual-partition. */
   private static final Map<Partition, Map<BigInteger, Region[]>> INT_REGIONS_MAP = new HashMap<>();
 
-  private final BDDTransferRelation transferRelation;
+  private final PredicateManager predMgr;
+  private final BDDPrecision precision;
   private final BitvectorManager bvmgr;
   private final Map<BigInteger, Region[]> intToRegions;
   private final int size;
 
   /** This Visitor returns a representation for an expression.
-   * @param pTransferRelation needed for variableNames
+   * @param size length of compressed bitvector
    * @param pPartition info about variables and numbers
    */
-  public BDDCompressExpressionVisitor(final BDDTransferRelation pTransferRelation,
+  public BDDCompressExpressionVisitor(final PredicateManager pPredMgr, final BDDPrecision pPrecision,
+                                      final int size,
                                       final BitvectorManager pBVmgr, final Partition pPartition) {
     Preconditions.checkNotNull(pPartition);
-    this.transferRelation = pTransferRelation;
+    this.predMgr = pPredMgr;
+    this.precision = pPrecision;
     this.bvmgr = pBVmgr;
-    this.size = transferRelation.getBitsize(pPartition, null);
+    this.size = size;
     this.intToRegions = initMappingIntToRegions(pPartition);
   }
 
@@ -159,6 +162,6 @@ public class BDDCompressExpressionVisitor
         return null;
       }
     }
-    return transferRelation.createPredicate(idExp, size);
+    return predMgr.createPredicate(idExp.getDeclaration().getQualifiedName(), size, precision);
   }
 }
