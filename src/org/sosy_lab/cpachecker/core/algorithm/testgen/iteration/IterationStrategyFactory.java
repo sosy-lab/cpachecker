@@ -1,0 +1,85 @@
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2014  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
+package org.sosy_lab.cpachecker.core.algorithm.testgen.iteration;
+
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.CPABuilder;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.StartupConfig;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenAlgorithm.IterationStrategySelector;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.model.AutomatonControlledIterationStrategy;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.model.RestartAtDecisionIterationStrategy;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.model.RestartAtRootIterationStrategy;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.model.TestGenIterationStrategy;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.model.TestGenIterationStrategy.IterationModel;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+
+
+public class IterationStrategyFactory {
+
+
+  private StartupConfig startupConfig;
+  private CFA cfa;
+  private CPABuilder cpaBuilder;
+  private ReachedSetFactory reachedSetFactory;
+  private TestGenStatistics stats;
+
+
+  public IterationStrategyFactory(StartupConfig pStartupConfig, CFA pCfa, ReachedSetFactory pReachedSetFactory,
+      CPABuilder pCpaBuilder,
+      TestGenStatistics pStats) {
+    super();
+    startupConfig = pStartupConfig;
+    cfa = pCfa;
+    cpaBuilder = pCpaBuilder;
+    reachedSetFactory = pReachedSetFactory;
+    stats = pStats;
+  }
+
+  public TestGenIterationStrategy createStrategy(IterationStrategySelector pIterationStrategySelector,
+      Algorithm pAlgorithm) throws InvalidConfigurationException {
+    TestGenIterationStrategy iterationStrategy;
+    IterationModel model = new IterationModel(pAlgorithm, null, null);
+    switch (pIterationStrategySelector) {
+    case AUTOMATON_CONTROLLED:
+      iterationStrategy =
+          new AutomatonControlledIterationStrategy(startupConfig, cfa, model, reachedSetFactory, cpaBuilder, stats);
+      break;
+    case SAME_ALGORITHM_RESTART:
+      iterationStrategy =
+          new RestartAtRootIterationStrategy(startupConfig, reachedSetFactory, model, stats);
+      break;
+    case SAME_ALGORITHM_FILTER_WAITLIST:
+      iterationStrategy =
+          new RestartAtDecisionIterationStrategy(startupConfig, reachedSetFactory, model, stats);
+      break;
+    default:
+      throw new InvalidConfigurationException("Invald iteration strategy selected");
+    }
+    return iterationStrategy;
+  }
+
+}

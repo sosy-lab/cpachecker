@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.testgen.model;
 
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.StartupConfig;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -32,35 +35,37 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
 
 
-public class SameAlgorithmRestartAtDecisionIterationStrategy implements TestGenIterationStrategy {
+public abstract class AbstractIterationStrategy implements TestGenIterationStrategy {
 
-  protected IterationModel model;
-  private ReachedSetFactory reachedSetFactory;
-  private TestGenStatistics stats;
+  protected final Configuration config;
+  protected final LogManager logger;
+  protected final ShutdownNotifier shutdownNotifier;
+  protected final ReachedSetFactory reachedSetFactory;
+
+  private final IterationModel model;
 
 
-  public SameAlgorithmRestartAtDecisionIterationStrategy(StartupConfig pStartupConfig,
-      ReachedSetFactory pReachedSetFactory, IterationModel pModel, TestGenStatistics pStats) {
-    this.model = pModel;
+  protected TestGenStatistics stats;
+
+  public AbstractIterationStrategy(StartupConfig pConfig, IterationModel pModel, ReachedSetFactory pReachedSetFactory, TestGenStatistics pStats) {
+    super();
+    config = pConfig.getConfig();
+    logger = pConfig.getLog();
+    shutdownNotifier = pConfig.getNotifier();
+    model = pModel;
     this.reachedSetFactory = pReachedSetFactory;
     stats = pStats;
-
   }
 
   @Override
-  public void updateIterationModelForNextIteration(PredicatePathAnalysisResult pResult) {
-    addReachedStatesToOtherReached(model.getLocalReached(), model.getGlobalReached());
-    ReachedSet newReached = reachedSetFactory.create();
-    newReached.add(model.getGlobalReached().getFirstState(), model.getGlobalReached().getPrecision(model.getGlobalReached().getFirstState()));
-    newReached.add(pResult.getWrongState(), model.getGlobalReached().getPrecision(pResult.getWrongState()));
-    newReached.removeOnlyFromWaitlist(pResult.getWrongState());
-    model.setLocalReached(newReached);
+  public void initializeModel(ReachedSet pReachedSet) {
+    getModel().setGlobalReached(pReachedSet);
+    ReachedSet currentReached = reachedSetFactory.create();
+    getModel().setLocalReached(currentReached);
+    AbstractState initialState = getGlobalReached().getFirstState();
+    currentReached.add(initialState, getGlobalReached().getPrecision(initialState));
 
-  }
 
-  @Override
-  public IterationModel getModel() {
-    return model;
   }
 
   @Override
@@ -71,10 +76,21 @@ public class SameAlgorithmRestartAtDecisionIterationStrategy implements TestGenI
     return ret;
   }
 
-  private void addReachedStatesToOtherReached(ReachedSet pCurrentReached, ReachedSet pGlobalReached) {
-    for (AbstractState state : pCurrentReached) {
-      pGlobalReached.add(state, pCurrentReached.getPrecision(state));
-      pGlobalReached.removeOnlyFromWaitlist(state);
-    }
+  @Override
+  public AbstractState getLastState() {
+    return model.getLocalReached().getLastState();
   }
+
+  @Override
+  public IterationModel getModel() {
+    return model;
+  }
+
+  protected ReachedSet getGlobalReached(){
+    return getModel().getGlobalReached();
+  }
+  protected ReachedSet getLocalReached(){
+    return getModel().getLocalReached();
+  }
+
 }

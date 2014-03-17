@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.Files;
@@ -47,61 +46,35 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.Lists;
 
-public class AutomatonControlledIterationStrategy implements TestGenIterationStrategy {
+public class AutomatonControlledIterationStrategy extends AbstractIterationStrategy {
 
-  private Configuration config;
-  private LogManager logger;
-  private ShutdownNotifier shutdownNotifier;
   private CFA cfa;
   private ConfigurableProgramAnalysis currentCPA;
-  private final TestGenIterationStrategy.IterationModel model;
-  private ReachedSetFactory reachedSetFactory;
   private CPABuilder cpaBuilder;
 
   private int automatonCounter = 0;
-  private TestGenStatistics stats;
 
   public AutomatonControlledIterationStrategy(StartupConfig startupConfig, CFA pCfa, IterationModel model,
       ReachedSetFactory pReachedSetFactory, CPABuilder pCpaBuilder, TestGenStatistics pStats) {
-    super();
-    this.reachedSetFactory = pReachedSetFactory;
+    super(startupConfig, model, pReachedSetFactory, pStats);
     cpaBuilder = pCpaBuilder;
-    stats = pStats;
-    config = startupConfig.getConfig();
-    logger = startupConfig.getLog();
-    shutdownNotifier = startupConfig.getNotifier();
     cfa = pCfa;
-    this.model = model;
   }
 
   @Override
   public void updateIterationModelForNextIteration(PredicatePathAnalysisResult pResult) {
     // TODO might have to reinit the reached-sets
-    model.setAlgorithm(createAlgorithmForNextIteration(pResult));
+    getModel().setAlgorithm(createAlgorithmForNextIteration(pResult));
     ReachedSet newReached = reachedSetFactory.create();
-    AbstractState initialState = model.getGlobalReached().getFirstState();
+    AbstractState initialState = getModel().getGlobalReached().getFirstState();
     CFANode initialLoc = AbstractStates.extractLocation(initialState);
     initialState = currentCPA.getInitialState(initialLoc);
     newReached.add(initialState, currentCPA.getInitialPrecision(initialLoc));
-    model.setLocalReached(newReached);
-  }
-
-  @Override
-  public IterationModel getModel() {
-    return model;
-  }
-
-  @Override
-  public boolean runAlgorithm() throws PredicatedAnalysisPropertyViolationException, CPAException, InterruptedException {
-    stats.beforeCpaAlgortihm();
-    boolean ret = model.getAlgorithm().run(model.getLocalReached());
-    stats.afterCpaAlgortihm(model.getAlgorithm());
-    return ret;
+    getModel().setLocalReached(newReached);
   }
 
   private Algorithm createAlgorithmForNextIteration(PredicatePathAnalysisResult pResult) {
@@ -133,7 +106,7 @@ public class AutomatonControlledIterationStrategy implements TestGenIterationStr
       //      CoreComponentsFactory factory = new CoreComponentsFactory(lConfig, logger, ShutdownNotifier.createWithParent(shutdownNotifier));
       //      return factory.createAlgorithm(nextCpa, "", cfa, null);
 
-      if (model.getAlgorithm() instanceof CPAAlgorithm) {
+      if (getModel().getAlgorithm() instanceof CPAAlgorithm) {
         return CPAAlgorithm.create(currentCPA, logger, lConfig, shutdownNotifier);
       } else {
         throw new InvalidConfigurationException("Generating a new Algorithm here only Works if the "
@@ -174,7 +147,7 @@ public class AutomatonControlledIterationStrategy implements TestGenIterationStr
       //      CoreComponentsFactory factory = new CoreComponentsFactory(lConfig, logger, ShutdownNotifier.createWithParent(shutdownNotifier));
       //      return factory.createAlgorithm(nextCpa, "", cfa, null);
 
-      if (model.getAlgorithm() instanceof CPAAlgorithm) {
+      if (getModel().getAlgorithm() instanceof CPAAlgorithm) {
         return CPAAlgorithm.create(currentCPA, logger, lConfig, shutdownNotifier);
       } else {
         throw new InvalidConfigurationException("Generating a new Algorithm here only Works if the "

@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.testgen.model;
 
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
@@ -36,7 +37,6 @@ public interface TestGenIterationStrategy {
   /**
    *
    * @param result
-   * @return
    */
   public void updateIterationModelForNextIteration(PredicatePathAnalysisResult result);
 
@@ -84,5 +84,9 @@ public interface TestGenIterationStrategy {
     }
 
   }
+
+  public AbstractState getLastState();
+
+  public void initializeModel(ReachedSet pReachedSet);
 
 }

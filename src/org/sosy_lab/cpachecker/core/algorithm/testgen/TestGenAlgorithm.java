@@ -42,9 +42,8 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.BasicTestGenPathAnalysisStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.TestGenPathAnalysisStrategy;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.model.AutomatonControlledIterationStrategy;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.IterationStrategyFactory;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.model.PredicatePathAnalysisResult;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.model.SameAlgorithmRestartAtDecisionIterationStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.model.TestGenIterationStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.model.TestGenIterationStrategy.IterationModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -73,23 +72,27 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
   StartupConfig startupConfig;
   private LogManager logger;
 
-//  private Algorithm explicitAlg;
-
-  private enum IterationStrategySelector {
+  public enum IterationStrategySelector {
     AUTOMATON_CONTROLLED,
-    SAME_ALGORITHM_RESTART
+    SAME_ALGORITHM_RESTART,
+    SAME_ALGORITHM_FILTER_WAITLIST
   }
 
-  @Option(name="iterationStrategy", description="Selects the iteration Strategy for TestGenAlgorithm")
+  @Option(name = "iterationStrategy", description = "Selects the iteration Strategy for TestGenAlgorithm")
   private IterationStrategySelector iterationStrategySelector = IterationStrategySelector.AUTOMATON_CONTROLLED;
+
+  @Option(
+      name = "stopOnError",
+      description = "algorithm stops on first found error path. Otherwise the algorithms tries to reach 100% coverage")
+  private boolean stopOnError = false;
 
   private CFA cfa;
   private ConfigurableProgramAnalysis cpa;
 
-  private ReachedSetFactory reachedSetFactory;
 
   private TestGenIterationStrategy iterationStrategy;
   private TestGenPathAnalysisStrategy analysisStrategy;
+  private TestCaseSet testCaseSet;
 
   private TestGenStatistics stats;
   private int reachedSetCounter = 0;
@@ -103,7 +106,8 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
 
   public TestGenAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
       ShutdownNotifier pShutdownNotifier, CFA pCfa,
-      Configuration pConfig, LogManager pLogger, CPABuilder pCpaBuilder) throws InvalidConfigurationException, CPAException {
+      Configuration pConfig, LogManager pLogger, CPABuilder pCpaBuilder) throws InvalidConfigurationException,
+      CPAException {
 
     startupConfig = new StartupConfig(pConfig, pLogger, pShutdownNotifier);
     startupConfig.getConfig().inject(this);
@@ -112,36 +116,17 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
     cfa = pCfa;
     cpa = pCpa;
     this.logger = pLogger;
-
+    testCaseSet = new TestCaseSet();
     FormulaManagerFactory formulaManagerFactory =
-        new FormulaManagerFactory(startupConfig.getConfig(), pLogger, ShutdownNotifier.createWithParent(pShutdownNotifier));
+        new FormulaManagerFactory(startupConfig.getConfig(), pLogger,
+            ShutdownNotifier.createWithParent(pShutdownNotifier));
     FormulaManagerView formulaManager =
         new FormulaManagerView(formulaManagerFactory.getFormulaManager(), startupConfig.getConfig(), logger);
     PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, startupConfig.getConfig(), logger, cfa);
     Solver solver = new Solver(formulaManager, formulaManagerFactory);
     PathChecker pathChecker = new PathChecker(pLogger, pfMgr, solver);
-    reachedSetFactory = new ReachedSetFactory(startupConfig.getConfig(), logger);
-
-    IterationModel model = new IterationModel(pAlgorithm, null, null);
-
-    switch (iterationStrategySelector) {
-    case AUTOMATON_CONTROLLED:
-      iterationStrategy = new AutomatonControlledIterationStrategy(startupConfig, pCfa, model, reachedSetFactory, pCpaBuilder,stats);
-      break;
-    case SAME_ALGORITHM_RESTART:
-      iterationStrategy = new SameAlgorithmRestartAtDecisionIterationStrategy(startupConfig, reachedSetFactory, model,stats);
-      break;
-    default:
-      throw new InvalidConfigurationException("Invald iteration strategy selected");
-    }
-
-    analysisStrategy = new BasicTestGenPathAnalysisStrategy(pathChecker,stats);
-
-
-
-    /*TODO change the config file, so we can configure 'dfs'*/
-    //    Configuration testCaseConfig = Configuration.copyWithNewPrefix(config, "testgen.");
-    //    explicitAlg = new ExplicitTestcaseGenerator(config, logger, pShutdownNotifier, cfa, filename);
+    iterationStrategy = new IterationStrategyFactory(startupConfig, cfa, new ReachedSetFactory(startupConfig.getConfig(), logger), pCpaBuilder, stats).createStrategy(iterationStrategySelector, pAlgorithm);
+    analysisStrategy = new BasicTestGenPathAnalysisStrategy(pathChecker, stats);
   }
 
 
@@ -150,44 +135,38 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
       PredicatedAnalysisPropertyViolationException {
 
     stats.getTotalTimer().start();
-
-//    List<ReachedSet> reachedSetHistory = Lists.newLinkedList();
     PredicatePathAnalysisResult lastResult = PredicatePathAnalysisResult.INVALID;
-    ReachedSet globalReached = pReachedSet;
-    ReachedSet currentReached = reachedSetFactory.create();
-    iterationStrategy.getModel().setGlobalReached(globalReached);
-    iterationStrategy.getModel().setLocalReached(currentReached);
+    iterationStrategy.initializeModel(pReachedSet);
 
-    AbstractState initialState = globalReached.getFirstState();
-    currentReached.add(initialState, globalReached.getPrecision(initialState));
 
     while (true /*globalReached.hasWaitingState()*/) {
 
-      //explicit, DFS, PRECISION=TRACK_ALL; with automaton of new path created in previous iteration OR custom CPA
+      //explicit, DFS or DFSRAND, PRECISION=TRACK_ALL; with automaton of new path created in previous iteration OR custom CPA
       boolean sound = iterationStrategy.runAlgorithm();
       //sound should normally be unsound for us.
 
-      //maybe remove marker node from currentReached. might depend on iterationStrategy and should be part of the runAlg()
-      if(false && lastResult.isValid())
-      {
-        iterationStrategy.getModel().getLocalReached().remove(lastResult.getWrongState());
-      }
-      if (!(iterationStrategy.getModel().getLocalReached().getLastState() instanceof ARGState)) { throw new IllegalStateException(
+      if (!(iterationStrategy.getLastState() instanceof ARGState)) { throw new IllegalStateException(
           "wrong configuration of explicit cpa, because concolicAlg needs ARGState"); }
       /*
        * check if reachedSet contains a target (error) state.
        */
-      ARGState pseudoTarget = (ARGState) iterationStrategy.getModel().getLocalReached().getLastState();
+      ARGState pseudoTarget = (ARGState) iterationStrategy.getLastState();
       if (pseudoTarget.isTarget()) {
-        updateGlobalReached();
-        stats.getTotalTimer().stop();
-        return true;
+        if (stopOnError) {
+          updateGlobalReached();
+          stats.getTotalTimer().stop();
+          return true;
+        }else{
+          testCaseSet.addTarget(pseudoTarget);
+        //TODO add error to errorpathlist
         }
+      }
       /*
        * not an error path. selecting new path to traverse.
        */
 
       ARGPath executedPath = ARGUtils.getOnePathTo(pseudoTarget);
+      testCaseSet.addExecutedPath(executedPath);
       PredicatePathAnalysisResult result = analysisStrategy.findNewFeasiblePathUsingPredicates(executedPath);
 
       dumpReachedAndARG(iterationStrategy.getModel().getLocalReached());
@@ -207,7 +186,6 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
        * the next iteration. Creating automaton to guide next iteration.
        */
       iterationStrategy.updateIterationModelForNextIteration(result);
-//      CounterexampleTraceInfo newPath = result.getTrace();
 
       lastResult = result;
     }
@@ -216,11 +194,17 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
   private void updateGlobalReached() {
     IterationModel model = iterationStrategy.getModel();
     model.getGlobalReached().clear();
-      for (AbstractState state : model.getLocalReached()) {
-        model.getGlobalReached().add(state,model.getLocalReached().getPrecision(state));
-        model.getGlobalReached().removeOnlyFromWaitlist(state);
-      }
+    for (AbstractState state : model.getLocalReached()) {
+      model.getGlobalReached().add(state, model.getLocalReached().getPrecision(state));
+      model.getGlobalReached().removeOnlyFromWaitlist(state);
+    }
 
+  }
+
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
   }
 
   private void dumpReachedAndARG(ReachedSet pReached) {
@@ -246,10 +230,12 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
     reachedSetCounter++;
   }
 
-
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(stats);
+  protected class TestCaseSet{
+    public void addTarget(AbstractState target){
+      //FIXME
+    }
+    public void addExecutedPath(ARGPath path){
+      //FIXME
+    }
   }
-
 }
