@@ -39,10 +39,11 @@ import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -51,7 +52,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 
-public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
+public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(BDDCPA.class);
@@ -59,11 +60,13 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   private final NamedRegionManager manager;
   private final BitvectorManager bvmgr;
+  private final PredicateManager predmgr;
   private final BDDDomain abstractDomain;
   private final BDDPrecision precision;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final BDDTransferRelation transferRelation;
+  private final BDDReducer reducer;
 
   private BDDCPA(CFA cfa, Configuration config, LogManager logger)
       throws InvalidConfigurationException {
@@ -74,7 +77,9 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
     precision = new BDDPrecision(config, cfa.getVarClassification());
     mergeOperator = new MergeJoinOperator(abstractDomain);
     stopOperator = new StopSepOperator(abstractDomain);
-    transferRelation = new BDDTransferRelation(manager, bvmgr, logger, config, cfa, precision);
+    predmgr = new PredicateManager(config, manager, precision, cfa);
+    transferRelation = new BDDTransferRelation(manager, bvmgr, predmgr, logger, config, cfa);
+    reducer = new BDDReducer(predmgr);
   }
 
   @Override
@@ -126,5 +131,10 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
         return "BDDCPA";
       }
     });
+  }
+
+  @Override
+  public Reducer getReducer() {
+    return reducer;
   }
 }

@@ -96,8 +96,9 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   /** The Constructor of BDDVectorTransferRelation sets the NamedRegionManager
    * and the BitVectorManager. Both are used to build and manipulate BDDs,
    * that represent the regions. */
-  public BDDTransferRelation(NamedRegionManager manager, BitvectorManager bvmgr, LogManager pLogger,
-                             Configuration config, CFA cfa, BDDPrecision precision)
+  public BDDTransferRelation(NamedRegionManager manager, BitvectorManager bvmgr,
+                             PredicateManager pPredmgr, LogManager pLogger,
+                             Configuration config, CFA cfa)
           throws InvalidConfigurationException {
     config.inject(this);
 
@@ -105,7 +106,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     this.machineModel = cfa.getMachineModel();
     this.rmgr = manager;
     this.bvmgr = bvmgr;
-    this.predmgr = new PredicateManager(config, manager, precision, cfa, machineModel);
+    this.predmgr = pPredmgr;
 
     assert cfa.getVarClassification().isPresent();
     this.varClass = cfa.getVarClassification().get();

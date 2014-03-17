@@ -68,14 +68,13 @@ public class PredicateManager {
   private final NamedRegionManager rmgr;
 
   public PredicateManager(final Configuration config, final NamedRegionManager pRmgr,
-                          final BDDPrecision pPrecision, final CFA pCfa,
-                          final MachineModel pMachineModel
+                          final BDDPrecision pPrecision, final CFA pCfa
                           ) throws InvalidConfigurationException {
     config.inject(this);
     this.rmgr = pRmgr;
 
     if (initPartitions) {
-      initVars(pPrecision, pCfa, pMachineModel);
+      initVars(pPrecision, pCfa);
     }
   }
 
@@ -97,7 +96,7 @@ public class PredicateManager {
    *  (later vars are deeper in the BDD).
    *  This function declares those vars in the beginning of the analysis,
    *  so that we can choose between some orders. */
-  protected void initVars(BDDPrecision precision, CFA cfa, MachineModel pMachineModel) {
+  protected void initVars(BDDPrecision precision, CFA cfa) {
     List<VariableClassification.Partition> partitions;
     if (initPartitionsOrdered) {
       BDDPartitionOrderer d = new BDDPartitionOrderer(cfa);
@@ -107,10 +106,11 @@ public class PredicateManager {
       partitions = cfa.getVarClassification().get().getPartitions(); // may be unsorted
     }
 
+    MachineModel machineModel = cfa.getMachineModel();
     for (VariableClassification.Partition partition : partitions) {
       // maxBitSize is too much for most variables. we only create an order here, so this should not matter.
       createPredicates(partition.getVars(), precision,
-              pMachineModel.getSizeofLongLongInt() * pMachineModel.getSizeofCharInBits());
+              machineModel.getSizeofLongLongInt() * machineModel.getSizeofCharInBits());
     }
   }
 
