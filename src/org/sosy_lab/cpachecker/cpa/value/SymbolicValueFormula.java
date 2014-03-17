@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
@@ -75,7 +76,7 @@ public class SymbolicValueFormula implements Value {
    * Base class for elements of a symbolic expression, e.g. "X + X"
    */
   public interface ExpressionBase {
-
+    public boolean isIntegerAddMultiplyOnly();
   }
 
   public static class BinaryExpression implements ExpressionBase {
@@ -156,6 +157,15 @@ public class SymbolicValueFormula implements Value {
     public String toString() {
       return lVal.toString() + " " + op.toString() + " " + rVal.toString();
     }
+
+    @Override
+    public boolean isIntegerAddMultiplyOnly() {
+      CSimpleType arithmeticType =
+          AbstractExpressionValueVisitor.getArithmeticType(resultType);
+
+      return arithmeticType == CNumericTypes.INT &&
+          lVal.isIntegerAddMultiplyOnly() && rVal.isIntegerAddMultiplyOnly();
+    }
   }
 
   /**
@@ -194,6 +204,13 @@ public class SymbolicValueFormula implements Value {
     public String toString() {
       return location.getAsSimpleString();
     }
+
+    @Override
+    public boolean isIntegerAddMultiplyOnly() {
+      // We don't know whether this is an integer, we must let
+      // the higher level expression check.
+      return true;
+    }
   }
 
   public static class ConstantValue implements ExpressionBase {
@@ -210,6 +227,13 @@ public class SymbolicValueFormula implements Value {
     @Override
     public String toString() {
       return value.toString();
+    }
+
+    @Override
+    public boolean isIntegerAddMultiplyOnly() {
+      // We don't know whether this is an integer, we must let
+      // the higher level expression check.
+      return true;
     }
   }
 
@@ -290,6 +314,19 @@ public class SymbolicValueFormula implements Value {
   @Override
   public String toString() {
     return "SymbolicValueFormula {"+root.toString()+"}";
+  }
+
+  /**
+   * Check if this formula consists entirely of integer arithmetic
+   * with +, - and *
+   *
+   * If that's the case, shuffling around parts of the formula will
+   * not change the result, so simplification is possible.
+   *
+   * @return true if this formula fulfills the above requirements, false otherwise
+   */
+  public boolean isIntegerAddMultiplyOnly() {
+    return root.isIntegerAddMultiplyOnly();
   }
 
 }
