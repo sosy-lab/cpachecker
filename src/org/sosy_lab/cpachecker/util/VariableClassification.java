@@ -822,7 +822,7 @@ public class VariableClassification {
         String function = edge.getPredecessor().getFunctionName();
         handleExpression(edge,
                          rhs,
-                         FUNCTION_RETURN_VARIABLE,
+                         scopeVar(function, FUNCTION_RETURN_VARIABLE),
                          VariableOrField.newVariable(scopeVar(function, FUNCTION_RETURN_VARIABLE)));
       }
       break;
@@ -1078,7 +1078,7 @@ public class VariableClassification {
   }
 
   /** Returns a scoped name for a given IdExpression. */
-  private static String scopeVar(final CExpression exp) {
+  public static String scopeVar(final CExpression exp) {
     if(exp instanceof CIdExpression) {
       return ((CIdExpression) exp).getDeclaration().getQualifiedName();
     } else {
