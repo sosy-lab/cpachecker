@@ -950,6 +950,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   private void adjustReachedSet(ReachedSet pReachedSet) {
     Preconditions.checkArgument(!pReachedSet.isEmpty());
+    CFANode initialLocation = extractLocation(pReachedSet.getFirstState());
     for (AdjustableConditionCPA conditionCPA : conditionCPAs) {
       if (conditionCPA instanceof ReachedSetAdjustingCPA) {
         ((ReachedSetAdjustingCPA) conditionCPA).adjustReachedSet(pReachedSet);
@@ -961,7 +962,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
     if (pReachedSet.isEmpty()) {
-      CFANode initialLocation = extractLocation(pReachedSet.getFirstState());
       pReachedSet.add(cpa.getInitialState(initialLocation), cpa.getInitialPrecision(initialLocation));
     }
   }
