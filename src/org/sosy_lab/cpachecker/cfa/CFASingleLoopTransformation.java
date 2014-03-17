@@ -396,7 +396,7 @@ public class CFASingleLoopTransformation {
       FunctionEntryNode entryNode = fce.getSuccessor();
       FunctionExitNode exitNode = entryNode.getExitNode();
       FunctionSummaryEdge oldSummaryEdge = fce.getSummaryEdge();
-      if (!existsPath(entryNode, exitNode, shutdownNotifier, true)) {
+      if (!existsPath(entryNode, exitNode, shutdownNotifier)) {
         for (CFunctionSummaryStatementEdge edge : CFAUtils.leavingEdges(oldSummaryEdge.getPredecessor()).filter(CFunctionSummaryStatementEdge.class).toList()) {
           removeFromNodes(edge);
         }
@@ -1487,8 +1487,6 @@ public class CFASingleLoopTransformation {
    * @param pSource the search start node.
    * @param pTarget the target.
    * @param pShutdownNotifier the shutdown notifier to be checked.
-   * @param pRequireEmptyCallstack whether or not the callstack must be empty
-   * at the target for a path to match.
    *
    * @return {@code true} if a path from the source to the target exists,
    * {@code false} otherwise.
@@ -1496,7 +1494,7 @@ public class CFASingleLoopTransformation {
    * @throws InterruptedException if a shutdown has been requested by the given
    * shutdown notifier.
    */
-  private static boolean existsPath(CFANode pSource, CFANode pTarget, OptionalShutdownNotifier pShutdownNotifier, boolean pRequireEmptyCallstack) throws InterruptedException {
+  private static boolean existsPath(CFANode pSource, CFANode pTarget, OptionalShutdownNotifier pShutdownNotifier) throws InterruptedException {
     return existsPath(pSource, pTarget, new Function<CFANode, Iterable<? extends CFAEdge>>() {
 
       @Override
@@ -1508,7 +1506,7 @@ public class CFASingleLoopTransformation {
         return CFAUtils.leavingEdges(pArg0);
       }
 
-    }, pShutdownNotifier, pRequireEmptyCallstack);
+    }, pShutdownNotifier);
   }
 
   /**
@@ -1520,8 +1518,6 @@ public class CFASingleLoopTransformation {
    * @param pGetLeavingEdges the function used to obtain leaving edges and thus
    * the successors of a node.
    * @param pShutdownNotifier the shutdown notifier to be checked.
-   * @param pRequireEmptyCallstack whether or not the callstack must be empty
-   * at the target for a path to match.
    *
    * @return {@code true} if a path from the source to the target exists,
    * {@code false} otherwise.
@@ -1531,36 +1527,20 @@ public class CFASingleLoopTransformation {
    */
   private static boolean existsPath(CFANode pSource,
       CFANode pTarget, Function<? super CFANode, Iterable<? extends CFAEdge>> pGetLeavingEdges,
-      OptionalShutdownNotifier pShutdownNotifier,
-      boolean pRequireEmptyCallstack) throws InterruptedException {
-    Set<Pair<CFANode, FunctionSummaryEdge>> visited = new HashSet<>();
+      OptionalShutdownNotifier pShutdownNotifier) throws InterruptedException {
+    Set<CFANode> visited = new HashSet<>();
     Queue<CFANode> waitlist = new ArrayDeque<>();
-    Queue<Deque<FunctionSummaryEdge>> callstacks = new ArrayDeque<>();
-    callstacks.offer(new ArrayDeque<FunctionSummaryEdge>());
     waitlist.offer(pSource);
     while (!waitlist.isEmpty()) {
       pShutdownNotifier.shutdownIfNecessary();
       CFANode current = waitlist.poll();
-      Deque<FunctionSummaryEdge> callstack = callstacks.poll();
-      if (current.equals(pTarget) && (!pRequireEmptyCallstack || callstack.isEmpty())) {
+      if (current.equals(pTarget)) {
         return true;
       }
-      if (visited.add(Pair.of(current, callstack.peek()))) {
+      if (visited.add(current)) {
         for (CFAEdge leavingEdge : pGetLeavingEdges.apply(current)) {
-          Deque<FunctionSummaryEdge> newCallstack = callstack;
-          if (leavingEdge instanceof FunctionCallEdge) {
-            newCallstack = new ArrayDeque<>(newCallstack);
-            newCallstack.push(((FunctionCallEdge) leavingEdge).getSummaryEdge());
-          } else if (!newCallstack.isEmpty() && leavingEdge instanceof FunctionReturnEdge) {
-            newCallstack = new ArrayDeque<>(newCallstack);
-            FunctionSummaryEdge summaryEdge = newCallstack.pop();
-            if (!summaryEdge.equals(((FunctionReturnEdge) leavingEdge).getSummaryEdge())) {
-              continue;
-            }
-          }
           CFANode succ = leavingEdge.getSuccessor();
           waitlist.offer(succ);
-          callstacks.offer(newCallstack);
         }
       }
     }
@@ -1993,7 +1973,19 @@ public class CFASingleLoopTransformation {
         if (pArg0 == null) {
           return Collections.emptySet();
         }
-        return getLeavingEdges(pArg0).filter(CONTAINS_EDGE);
+        return getLeavingEdges(pArg0).filter(CONTAINS_EDGE).transform(new Function<CFAEdge, CFAEdge>() {
+
+          @Override
+          @Nullable
+          public CFAEdge apply(@Nullable CFAEdge pArg0) {
+            if (pArg0 instanceof FunctionCallEdge) {
+              CFAEdge summaryEdge = ((FunctionCallEdge) pArg0).getSummaryEdge();
+              return containsNode(summaryEdge.getSuccessor()) ? summaryEdge : null;
+            }
+            return pArg0;
+          }
+
+        }).filter(Predicates.notNull());
       }
 
     };
@@ -2135,7 +2127,7 @@ public class CFASingleLoopTransformation {
      * shutdown notifier.
      */
     public boolean introducesLoop(CFAEdge pEdge, OptionalShutdownNotifier pShutdownNotifier) throws InterruptedException {
-      return existsPath(pEdge.getSuccessor(), pEdge.getPredecessor(), GET_CONTAINED_LEAVING_EDGES, pShutdownNotifier, true);
+      return existsPath(pEdge.getSuccessor(), pEdge.getPredecessor(), GET_CONTAINED_LEAVING_EDGES, pShutdownNotifier);
     }
 
     /**
