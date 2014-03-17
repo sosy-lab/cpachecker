@@ -396,7 +396,7 @@ public class CFASingleLoopTransformation {
       FunctionEntryNode entryNode = fce.getSuccessor();
       FunctionExitNode exitNode = entryNode.getExitNode();
       FunctionSummaryEdge oldSummaryEdge = fce.getSummaryEdge();
-      if (!existsPath(entryNode, exitNode, shutdownNotifier)) {
+      if (!existsPath(entryNode, exitNode, shutdownNotifier, true)) {
         for (CFunctionSummaryStatementEdge edge : CFAUtils.leavingEdges(oldSummaryEdge.getPredecessor()).filter(CFunctionSummaryStatementEdge.class).toList()) {
           removeFromNodes(edge);
         }
@@ -1399,7 +1399,7 @@ public class CFASingleLoopTransformation {
   }
 
   /**
-   * Copies the given control flow edge Predecessor, successor and any
+   * Copies the given control flow edge predecessor, successor and any
    * additionally required nodes are taken from the given mapping by using the
    * corresponding node of the old edge as a key or, if no node is mapped to
    * this key, by copying the key and recording the result in the mapping.
@@ -1487,6 +1487,8 @@ public class CFASingleLoopTransformation {
    * @param pSource the search start node.
    * @param pTarget the target.
    * @param pShutdownNotifier the shutdown notifier to be checked.
+   * @param pRequireEmptyCallstack whether or not the callstack must be empty
+   * at the target for a path to match.
    *
    * @return {@code true} if a path from the source to the target exists,
    * {@code false} otherwise.
@@ -1494,7 +1496,7 @@ public class CFASingleLoopTransformation {
    * @throws InterruptedException if a shutdown has been requested by the given
    * shutdown notifier.
    */
-  private static boolean existsPath(CFANode pSource, CFANode pTarget, OptionalShutdownNotifier pShutdownNotifier) throws InterruptedException {
+  private static boolean existsPath(CFANode pSource, CFANode pTarget, OptionalShutdownNotifier pShutdownNotifier, boolean pRequireEmptyCallstack) throws InterruptedException {
     return existsPath(pSource, pTarget, new Function<CFANode, Iterable<? extends CFAEdge>>() {
 
       @Override
@@ -1506,7 +1508,7 @@ public class CFASingleLoopTransformation {
         return CFAUtils.leavingEdges(pArg0);
       }
 
-    }, pShutdownNotifier);
+    }, pShutdownNotifier, pRequireEmptyCallstack);
   }
 
   /**
@@ -1518,6 +1520,8 @@ public class CFASingleLoopTransformation {
    * @param pGetLeavingEdges the function used to obtain leaving edges and thus
    * the successors of a node.
    * @param pShutdownNotifier the shutdown notifier to be checked.
+   * @param pRequireEmptyCallstack whether or not the callstack must be empty
+   * at the target for a path to match.
    *
    * @return {@code true} if a path from the source to the target exists,
    * {@code false} otherwise.
@@ -1527,7 +1531,8 @@ public class CFASingleLoopTransformation {
    */
   private static boolean existsPath(CFANode pSource,
       CFANode pTarget, Function<? super CFANode, Iterable<? extends CFAEdge>> pGetLeavingEdges,
-      OptionalShutdownNotifier pShutdownNotifier) throws InterruptedException {
+      OptionalShutdownNotifier pShutdownNotifier,
+      boolean pRequireEmptyCallstack) throws InterruptedException {
     Set<Pair<CFANode, FunctionSummaryEdge>> visited = new HashSet<>();
     Queue<CFANode> waitlist = new ArrayDeque<>();
     Queue<Deque<FunctionSummaryEdge>> callstacks = new ArrayDeque<>();
@@ -1536,20 +1541,17 @@ public class CFASingleLoopTransformation {
     while (!waitlist.isEmpty()) {
       pShutdownNotifier.shutdownIfNecessary();
       CFANode current = waitlist.poll();
-      if (current.equals(pTarget)) {
+      Deque<FunctionSummaryEdge> callstack = callstacks.poll();
+      if (current.equals(pTarget) && (!pRequireEmptyCallstack || callstack.isEmpty())) {
         return true;
       }
-      Deque<FunctionSummaryEdge> callstack = callstacks.poll();
       if (visited.add(Pair.of(current, callstack.peek()))) {
         for (CFAEdge leavingEdge : pGetLeavingEdges.apply(current)) {
           Deque<FunctionSummaryEdge> newCallstack = callstack;
           if (leavingEdge instanceof FunctionCallEdge) {
             newCallstack = new ArrayDeque<>(newCallstack);
             newCallstack.push(((FunctionCallEdge) leavingEdge).getSummaryEdge());
-          } else if (leavingEdge instanceof FunctionReturnEdge) {
-            if (newCallstack.isEmpty()) {
-              continue;
-            }
+          } else if (!newCallstack.isEmpty() && leavingEdge instanceof FunctionReturnEdge) {
             newCallstack = new ArrayDeque<>(newCallstack);
             FunctionSummaryEdge summaryEdge = newCallstack.pop();
             if (!summaryEdge.equals(((FunctionReturnEdge) leavingEdge).getSummaryEdge())) {
@@ -1944,7 +1946,7 @@ public class CFASingleLoopTransformation {
     /**
      * The set of nodes.
      */
-    private final Set<CFANode> nodes = new LinkedHashSet<>();
+    private final Set<CFANode> nodes = new HashSet<>();
 
     /**
      * The set of edges.
@@ -1954,7 +1956,7 @@ public class CFASingleLoopTransformation {
     /**
      * The set of uncommitted nodes.
      */
-    private final Set<CFANode> uncommittedNodes = new LinkedHashSet<>();
+    private final Set<CFANode> uncommittedNodes = new HashSet<>();
 
     /**
      * The set of uncommitted edges.
@@ -1965,6 +1967,36 @@ public class CFASingleLoopTransformation {
      * The growth strategy.
      */
     private final AcyclicGrowthStrategy growthStrategy;
+
+    /**
+     * A predicate that matches edges contained in the subgraph.
+     */
+    private final Predicate<CFAEdge> CONTAINS_EDGE = new Predicate<CFAEdge>() {
+
+      @Override
+      public boolean apply(@Nullable CFAEdge pArg0) {
+        return pArg0 != null && containsEdge(pArg0);
+      }
+
+    };
+
+    /**
+     * A function producing those edges leaving a node that are contained in
+     * this subgraph.
+     */
+    private final Function<? super CFANode, Iterable<? extends CFAEdge>> GET_CONTAINED_LEAVING_EDGES =
+        new Function<CFANode, Iterable<? extends CFAEdge>>() {
+
+      @Override
+      @Nullable
+      public Iterable<CFAEdge> apply(@Nullable CFANode pArg0) {
+        if (pArg0 == null) {
+          return Collections.emptySet();
+        }
+        return getLeavingEdges(pArg0).filter(CONTAINS_EDGE);
+      }
+
+    };
 
     /**
      * Creates a new acyclic graph with the given root node and default growth
@@ -2046,6 +2078,9 @@ public class CFASingleLoopTransformation {
      * shutdown notifier.
      */
     public boolean offerEdge(CFAEdge pEdge, OptionalShutdownNotifier pShutdownNotifier) throws InterruptedException {
+      if (containsEdge(pEdge)) {
+        return true;
+      }
       if (!containsNode(pEdge.getPredecessor()) || introducesLoop(pEdge, pShutdownNotifier)) {
         return false;
       }
@@ -2100,26 +2135,7 @@ public class CFASingleLoopTransformation {
      * shutdown notifier.
      */
     public boolean introducesLoop(CFAEdge pEdge, OptionalShutdownNotifier pShutdownNotifier) throws InterruptedException {
-      Function<? super CFANode, Iterable<? extends CFAEdge>> getLeavingEdges = new Function<CFANode, Iterable<? extends CFAEdge>>() {
-
-        @Override
-        @Nullable
-        public Iterable<CFAEdge> apply(@Nullable CFANode pArg0) {
-          if (pArg0 == null) {
-            return Collections.emptySet();
-          }
-          return getLeavingEdges(pArg0).filter(new Predicate<CFAEdge>() {
-
-            @Override
-            public boolean apply(@Nullable CFAEdge pArg0) {
-              return pArg0 != null && containsEdge(pArg0) && containsNode(pArg0.getSuccessor());
-            }
-
-          });
-        }
-
-      };
-      return existsPath(pEdge.getSuccessor(), pEdge.getPredecessor(), getLeavingEdges, pShutdownNotifier);
+      return existsPath(pEdge.getSuccessor(), pEdge.getPredecessor(), GET_CONTAINED_LEAVING_EDGES, pShutdownNotifier, true);
     }
 
     /**
