@@ -168,9 +168,11 @@
 
     <target name="jar" depends="build">
         <!-- Determine full CPAchecker version including SVN revision. -->
-        <exec executable="scripts/determine-revision.py"
+        <exec executable="python"
             outputProperty="version.revision"
+            failifexecutionfails="false"
             logError="true">
+            <arg value="scripts/determine-revision.py"/>
             <arg value="${basedir}"/>
         </exec>
         <condition property="version" value="${version.base} ${version.revision}" else="${version.base}">
