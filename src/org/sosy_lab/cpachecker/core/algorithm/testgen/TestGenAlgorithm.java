@@ -137,10 +137,11 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
     stats.getTotalTimer().start();
     PredicatePathAnalysisResult lastResult = PredicatePathAnalysisResult.INVALID;
     iterationStrategy.initializeModel(pReachedSet);
+    long loopCounter = 0;
 
 
     while (true /*globalReached.hasWaitingState()*/) {
-
+      logger.logf(Level.INFO, "TestGen iteration %d", loopCounter++);
       //explicit, DFS or DFSRAND, PRECISION=TRACK_ALL; with automaton of new path created in previous iteration OR custom CPA
       boolean sound = iterationStrategy.runAlgorithm();
       //sound should normally be unsound for us.
@@ -167,7 +168,9 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
 
       ARGPath executedPath = ARGUtils.getOnePathTo(pseudoTarget);
       testCaseSet.addExecutedPath(executedPath);
+      logger.log(Level.INFO, "Starting predicate path check...");
       PredicatePathAnalysisResult result = analysisStrategy.findNewFeasiblePathUsingPredicates(executedPath);
+      logger.log(Level.INFO, "Starting predicate path check DONE");
 
       dumpReachedAndARG(iterationStrategy.getModel().getLocalReached());
 

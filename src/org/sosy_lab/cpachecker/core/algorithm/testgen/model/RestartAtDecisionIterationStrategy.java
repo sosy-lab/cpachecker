@@ -49,8 +49,8 @@ public class RestartAtDecisionIterationStrategy extends AbstractIterationStrateg
 
 
   protected void reinitializeLocalReachedWithInitial(AbstractState wrongState, AbstractState rootState){
-    Precision wrongStatePrec = getModel().getLocalReached().getPrecision(wrongState);
-    Precision rootStatePrec = getModel().getLocalReached().getPrecision(rootState);
+    Precision wrongStatePrec = getModel().getGlobalReached().getPrecision(wrongState);
+    Precision rootStatePrec = getModel().getGlobalReached().getPrecision(rootState);
     ReachedSet newReached = reachedSetFactory.create();
     newReached.add(rootState, rootStatePrec);
     ReachedSetUtils.addToReachedOnly(newReached, wrongState, wrongStatePrec);
