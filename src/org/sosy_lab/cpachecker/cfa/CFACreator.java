@@ -71,8 +71,11 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -741,7 +744,7 @@ public class CFACreator {
     Set<String> previouslyInitializedVariables = new HashSet<>();
     ListIterator<Pair<IADeclaration, String>> iterator = globalVars.listIterator();
     while (iterator.hasNext()) {
-      Pair<IADeclaration, String> p = iterator.next();
+      final Pair<IADeclaration, String> p = iterator.next();
 
       if (p.getFirst() instanceof AVariableDeclaration) {
         CVariableDeclaration v = (CVariableDeclaration)p.getFirst();
@@ -762,19 +765,25 @@ public class CFACreator {
 
           // Add default variable initializer, because the storage class is AUTO
           // and there is no initializer later in the file.
-          CInitializer initializer = CDefaults.forType(v.getType(), v.getFileLocation());
-          v = new CVariableDeclaration(v.getFileLocation(),
-                                       v.isGlobal(),
-                                       v.getCStorageClass(),
-                                       v.getType(),
-                                       v.getName(),
-                                       v.getOrigName(),
-                                       v.getQualifiedName(),
-                                       initializer);
+          // In the case we have an incompletely defined struct
+          // (e.g., "struct s;"), we cannot produce an initializer.
+          // (Although there shouldn't be any variables of this type anyway.)
+          CType type = v.getType().getCanonicalType();
+          if (!(type instanceof CElaboratedType)
+              || (((CElaboratedType)type).getKind() == ComplexTypeKind.ENUM)) {
+            CInitializer initializer = CDefaults.forType(type, v.getFileLocation());
+            v = new CVariableDeclaration(v.getFileLocation(),
+                                         v.isGlobal(),
+                                         v.getCStorageClass(),
+                                         v.getType(),
+                                         v.getName(),
+                                         v.getOrigName(),
+                                         v.getQualifiedName(),
+                                         initializer);
 
-          previouslyInitializedVariables.add(name);
-          p = Pair.<IADeclaration, String>of(v, p.getSecond());
-          iterator.set(p); // replace declaration
+            previouslyInitializedVariables.add(name);
+            iterator.set(Pair.<IADeclaration, String>of(v, p.getSecond())); // replace declaration
+          }
         }
       }
     }
