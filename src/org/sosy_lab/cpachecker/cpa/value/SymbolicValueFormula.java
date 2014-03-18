@@ -25,6 +25,9 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -160,6 +163,16 @@ public class SymbolicValueFormula implements Value {
 
     @Override
     public boolean isIntegerAddMultiplyOnly() {
+      final List<String> allowedOps = new ArrayList<>();
+      allowedOps.add("+");
+      allowedOps.add("-");
+      allowedOps.add("*");
+
+      // If it's not +, - or * return false
+      if(!allowedOps.contains(this.op.op)) {
+        return false;
+      }
+
       CSimpleType arithmeticType =
           AbstractExpressionValueVisitor.getArithmeticType(resultType);
 
