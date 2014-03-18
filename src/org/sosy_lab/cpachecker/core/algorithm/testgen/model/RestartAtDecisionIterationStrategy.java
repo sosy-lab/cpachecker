@@ -43,7 +43,6 @@ public class RestartAtDecisionIterationStrategy extends AbstractIterationStrateg
 
   @Override
   public void updateIterationModelForNextIteration(PredicatePathAnalysisResult pResult) {
-    addReachedStatesToOtherReached(getModel().getLocalReached(), getModel().getGlobalReached());
     reinitializeLocalReachedWithInitial(pResult.getWrongState(), pResult.getDecidingState());
   }
 
@@ -52,9 +51,16 @@ public class RestartAtDecisionIterationStrategy extends AbstractIterationStrateg
     Precision wrongStatePrec = getModel().getGlobalReached().getPrecision(wrongState);
     Precision rootStatePrec = getModel().getGlobalReached().getPrecision(rootState);
     ReachedSet newReached = reachedSetFactory.create();
-    newReached.add(rootState, rootStatePrec);
-    ReachedSetUtils.addToReachedOnly(newReached, wrongState, wrongStatePrec);
+//    addReachedStatesToOtherReached(getModel().getLocalReached(), newReached);
     getModel().setLocalReached(newReached);
+//    getModel().getLocalReached().reAddToWaitlist(rootState);
+    getModel().getLocalReached().add(rootState, rootStatePrec);
+    ReachedSetUtils.addToReachedOnly(getModel().getLocalReached(), wrongState, wrongStatePrec);
+  }
+
+  @Override
+  protected void updateReached() {
+    addReachedStatesToOtherReached(getModel().getLocalReached(), getModel().getGlobalReached());
   }
 
 }

@@ -73,6 +73,7 @@ public abstract class AbstractIterationStrategy implements TestGenIterationStrat
     stats.beforeCpaAlgortihm();
     boolean ret = model.getAlgorithm().run(model.getLocalReached());
     stats.afterCpaAlgortihm(model.getAlgorithm());
+    updateReached();
     return ret;
   }
 
@@ -92,5 +93,7 @@ public abstract class AbstractIterationStrategy implements TestGenIterationStrat
   protected ReachedSet getLocalReached(){
     return getModel().getLocalReached();
   }
+
+  protected abstract void updateReached();
 
 }

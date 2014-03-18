@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.TestGenPathAnalys
 import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.IterationStrategyFactory;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.model.PredicatePathAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.model.TestGenIterationStrategy;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.model.TestGenIterationStrategy.IterationModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -207,7 +206,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
         if (pseudoTarget.isTarget()) {
           logger.log(Level.INFO, "Identified error path.");
           if (stopOnError) {
-            updateGlobalReached();
+//          TODO remove  updateGlobalReached();
             stats.getTotalTimer().stop();
             return true;
           } else {
@@ -236,7 +235,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
          * If we didn't find an error, the program is safe and sound, in the sense of a concolic test.
          * TODO: Identify the problems with soundness in context on concolic testing
          */
-        updateGlobalReached();
+//      TODO remove  updateGlobalReached();
         stats.getTotalTimer().stop();
         return true; //true = sound or false = unsound. Which case is it here??
       }
@@ -250,15 +249,15 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private void updateGlobalReached() {
-    IterationModel model = iterationStrategy.getModel();
-    model.getGlobalReached().clear();
-    for (AbstractState state : model.getLocalReached()) {
-      model.getGlobalReached().add(state, model.getLocalReached().getPrecision(state));
-      model.getGlobalReached().removeOnlyFromWaitlist(state);
-    }
-
-  }
+//  private void updateGlobalReached() {
+//    IterationModel model = iterationStrategy.getModel();
+////    model.getGlobalReached().clear();
+//    for (AbstractState state : model.getLocalReached()) {
+//      model.getGlobalReached().add(state, model.getLocalReached().getPrecision(state));
+//      model.getGlobalReached().removeOnlyFromWaitlist(state);
+//    }
+//
+//  }
 
 
   @Override

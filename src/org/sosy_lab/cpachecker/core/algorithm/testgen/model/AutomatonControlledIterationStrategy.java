@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.testgen.model;
 
+import static org.sosy_lab.cpachecker.core.algorithm.testgen.ReachedSetUtils.addReachedStatesToOtherReached;
+
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -95,6 +97,11 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
       ReachedSetUtils.addToReachedOnly(getLocalReached(), wrongState.getFirst(), wrongState.getSecond());
 
     }
+  }
+
+  @Override
+  protected void updateReached() {
+    addReachedStatesToOtherReached(getModel().getLocalReached(), getModel().getGlobalReached());
   }
 
   private Algorithm createAlgorithmForNextIteration(PredicatePathAnalysisResult pResult) {
