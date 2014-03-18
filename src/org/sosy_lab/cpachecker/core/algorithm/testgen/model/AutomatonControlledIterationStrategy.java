@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.core.algorithm.testgen.model;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.util.List;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.Files;
@@ -38,10 +40,12 @@ import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.ReachedSetUtils;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.StartupConfig;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -55,6 +59,7 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
   private CFA cfa;
   private ConfigurableProgramAnalysis currentCPA;
   private CPABuilder cpaBuilder;
+  private List<Pair<AbstractState,Precision>> wrongStates;
 
   private int automatonCounter = 0;
 
@@ -63,18 +68,26 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
     super(startupConfig, model, pReachedSetFactory, pStats);
     cpaBuilder = pCpaBuilder;
     cfa = pCfa;
+    wrongStates = Lists.newLinkedList();
   }
 
   @Override
   public void updateIterationModelForNextIteration(PredicatePathAnalysisResult pResult) {
     // TODO might have to reinit the reached-sets
     getModel().setAlgorithm(createAlgorithmForNextIteration(pResult));
+    if (automatonCounter > 1) {
+      wrongStates.add(Pair.of((AbstractState) pResult.getWrongState(), getLocalReached().getPrecision(pResult.getWrongState())));
+    }
     ReachedSet newReached = reachedSetFactory.create();
     AbstractState initialState = getModel().getGlobalReached().getFirstState();
     CFANode initialLoc = AbstractStates.extractLocation(initialState);
     initialState = currentCPA.getInitialState(initialLoc);
     newReached.add(initialState, currentCPA.getInitialPrecision(initialLoc));
     getModel().setLocalReached(newReached);
+    for (Pair<AbstractState,Precision> wrongState : wrongStates) {
+      ReachedSetUtils.addToReachedOnly(getLocalReached(), wrongState.getFirst(), wrongState.getSecond());
+
+    }
   }
 
   private Algorithm createAlgorithmForNextIteration(PredicatePathAnalysisResult pResult) {
@@ -88,7 +101,7 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
       //      ARGUtils.producePathAutomaton(w, "nextPathAutomaton", pNewPath);
       //      ARGUtils.producePathAutomaton(w, pResult.getPath().getFirst().getFirst(), pResult.getPath().getStateSet(), "nextPathAutomaton", ci);
       ARGUtils.produceTestGenPathAutomaton(w, pResult.getPath().getFirst().getFirst(), pResult.getPath().getStateSet(),
-          "nextPathAutomaton", ci,true);
+          "nextPathAutomaton", ci, true);
       //      }
 
     } catch (IOException e) {
@@ -131,7 +144,7 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
       //      ARGUtils.producePathAutomaton(w, "nextPathAutomaton", pNewPath);
       //      ARGUtils.producePathAutomaton(w, pResult.getPath().getFirst().getFirst(), pResult.getPath().getStateSet(), "nextPathAutomaton", ci);
       ARGUtils.produceTestGenPathAutomaton(w, pResult.getPath().getFirst().getFirst(), pResult.getPath().getStateSet(),
-          "nextPathAutomaton", ci,true);
+          "nextPathAutomaton", ci, true);
       //      }
 
     } catch (IOException e) {

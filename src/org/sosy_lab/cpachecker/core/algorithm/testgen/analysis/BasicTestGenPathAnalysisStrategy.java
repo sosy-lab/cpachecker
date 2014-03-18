@@ -25,12 +25,17 @@ package org.sosy_lab.cpachecker.core.algorithm.testgen.analysis;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.StartupConfig;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.model.PredicatePathAnalysisResult;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -45,12 +50,16 @@ import com.google.common.collect.Lists;
 public class BasicTestGenPathAnalysisStrategy implements TestGenPathAnalysisStrategy {
 
   private PathChecker pathChecker;
-  private List<CFANode> handledDecisions;
+  //  private List<CFANode> handledDecisions;
+  private List<AbstractState> handledDecisions;
   private TestGenStatistics stats;
+  ConfigurableProgramAnalysis cpa;
+  private LogManager logger;
 
-  public BasicTestGenPathAnalysisStrategy(PathChecker pPathChecker, TestGenStatistics pStats) {
+  public BasicTestGenPathAnalysisStrategy(PathChecker pPathChecker, StartupConfig config, TestGenStatistics pStats) {
     super();
     pathChecker = pPathChecker;
+    this.logger = config.getLog();
     stats = pStats;
     handledDecisions = Lists.newLinkedList();
   }
@@ -74,34 +83,18 @@ public class BasicTestGenPathAnalysisStrategy implements TestGenPathAnalysisStra
     /*
      * element removed from the path in the previous iteration
      */
-    Pair<ARGState,CFAEdge> lastElement = null;
-    Pair<ARGState,CFAEdge> currentElement;
+    Pair<ARGState, CFAEdge> lastElement = null;
+    Pair<ARGState, CFAEdge> currentElement;
     /*
      * create a descending consuming iterator to iterate through the path from last to first, while consuming elements.
      * Elements are consumed because the new path is a subpath of the original.
      */
+    long branchCounter = 0;
+    long nodeCounter = 0;
     Iterator<Pair<ARGState, CFAEdge>> branchingEdges = Iterators.consumingIterator(newARGPath.descendingIterator());
-        //filter does not work if because we need the "wrong" ARGState later that would be consumed already when a branch is identified
-//    Iterator<Pair<ARGState, CFAEdge>> branchingEdges =
-//        Iterators.filter(Iterators.consumingIterator(newARGPath.descendingIterator()),
-//            new Predicate<Pair<ARGState, CFAEdge>>() {
-//
-//              @Override
-//              public boolean apply(Pair<ARGState, CFAEdge> pInput) {
-//                CFAEdge lastEdge = pInput.getSecond();
-//                if (lastEdge == null) {
-//                return false;
-//                }
-//                CFANode decidingNode = lastEdge.getPredecessor();
-//                //num of leaving edges does not include a summary edge, so the check is valid.
-//                if (decidingNode.getNumLeavingEdges() == 2) {
-//                return true;
-//                }
-//                return false;
-//              }
-//            });
     while (branchingEdges.hasNext())
     {
+      nodeCounter++;
       currentElement = branchingEdges.next();
       CFAEdge edge = currentElement.getSecond();
       if (edge == null) {
@@ -109,16 +102,25 @@ public class BasicTestGenPathAnalysisStrategy implements TestGenPathAnalysisStra
         continue;
       }
       CFANode node = edge.getPredecessor();
-    //num of leaving edges does not include a summary edge, so the check is valid.
+      //num of leaving edges does not include a summary edge, so the check is valid.
       if (node.getNumLeavingEdges() != 2) {
         lastElement = currentElement;
         continue;
       }
       //current node is a branching / deciding node. select the edge that isn't represented with the current path.
       CFANode decidingNode = node;
-      if(handledDecisions.contains(decidingNode))
+      //      if(handledDecisions.contains(decidingNode))
+      if (handledDecisions.contains(currentElement.getFirst()))
       {
+        logger.log(Level.INFO, "Branch on path was handled in an earlier iteration -> skipping branching.");
         lastElement = currentElement;
+        continue;
+      }
+//      cpa.getTransferRelation().
+      if(lastElement == null)
+      {
+        //if the last element is not set, we encountered a branching node where both paths are infeasible for the current value mapping.
+        logger.log(Level.INFO, "encountered an executed path that might be spurious.");
         continue;
       }
       CFAEdge wrongEdge = edge;
@@ -131,6 +133,7 @@ public class BasicTestGenPathAnalysisStrategy implements TestGenPathAnalysisStra
           break;
         }
       }
+      logger.logf(Level.INFO, "identified valid branching (skipped branching count: %d, nodes: %d)", branchCounter++, nodeCounter);
       //no edge found should not happen; If it does make it visible.
       assert otherEdge != null;
       /*
@@ -151,18 +154,27 @@ public class BasicTestGenPathAnalysisStrategy implements TestGenPathAnalysisStra
       if (!traceInfo.isSpurious())
       {
         newARGPath.add(Pair.of(currentElement.getFirst(), otherEdge));
-        if(lastElement == null) {
-          throw new IllegalStateException("");
-        }
-        handledDecisions.add(decidingNode);
-        return new PredicatePathAnalysisResult(traceInfo,currentElement.getFirst() , lastElement.getFirst(),newARGPath); }
-      else{
+        if (lastElement == null) {
+          throw new IllegalStateException("" + newPath.toString()); }
+        //        handledDecisions.add(decidingNode);
+        logger.logf(Level.INFO, "selected new path %s", newPath.toString());
+        handledDecisions.add(currentElement.getFirst());
+        return new PredicatePathAnalysisResult(traceInfo, currentElement.getFirst(), lastElement.getFirst(), newARGPath);
+      }
+      else {
         lastElement = currentElement;
         continue;
       }
 
     }
     return PredicatePathAnalysisResult.INVALID;
+  }
+
+
+  @Override
+  public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPATransferException, InterruptedException {
+    return pathChecker.checkPath(pExecutedPath.asEdgesList()
+        );
   }
 
 }

@@ -26,10 +26,13 @@ package org.sosy_lab.cpachecker.core.algorithm.testgen.analysis;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.model.PredicatePathAnalysisResult;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 
 public interface TestGenPathAnalysisStrategy {
 
   public PredicatePathAnalysisResult findNewFeasiblePathUsingPredicates(ARGPath pExecutedPath) throws CPATransferException, InterruptedException;
+
+  public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPATransferException, InterruptedException;
 
 }

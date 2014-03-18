@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
 import com.google.common.base.Joiner;
@@ -125,8 +126,10 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
     PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, startupConfig.getConfig(), logger, cfa);
     Solver solver = new Solver(formulaManager, formulaManagerFactory);
     PathChecker pathChecker = new PathChecker(pLogger, pfMgr, solver);
-    iterationStrategy = new IterationStrategyFactory(startupConfig, cfa, new ReachedSetFactory(startupConfig.getConfig(), logger), pCpaBuilder, stats).createStrategy(iterationStrategySelector, pAlgorithm);
-    analysisStrategy = new BasicTestGenPathAnalysisStrategy(pathChecker, stats);
+    iterationStrategy =
+        new IterationStrategyFactory(startupConfig, cfa, new ReachedSetFactory(startupConfig.getConfig(), logger),
+            pCpaBuilder, stats).createStrategy(iterationStrategySelector, pAlgorithm);
+    analysisStrategy = new BasicTestGenPathAnalysisStrategy(pathChecker,startupConfig, stats);
   }
 
 
@@ -138,7 +141,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
     PredicatePathAnalysisResult lastResult = PredicatePathAnalysisResult.INVALID;
     iterationStrategy.initializeModel(pReachedSet);
     long loopCounter = 0;
-
+    boolean initialRun = true;
 
     while (true /*globalReached.hasWaitingState()*/) {
       logger.logf(Level.INFO, "TestGen iteration %d", loopCounter++);
@@ -152,22 +155,37 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
        * check if reachedSet contains a target (error) state.
        */
       ARGState pseudoTarget = (ARGState) iterationStrategy.getLastState();
-      if (pseudoTarget.isTarget()) {
-        if (stopOnError) {
-          updateGlobalReached();
-          stats.getTotalTimer().stop();
-          return true;
-        }else{
-          testCaseSet.addTarget(pseudoTarget);
-        //TODO add error to errorpathlist
+      ARGPath executedPath = ARGUtils.getOnePathTo(pseudoTarget);
+      if (initialRun)
+      {
+        initialRun = false;
+      }
+      CounterexampleTraceInfo traceInfo = analysisStrategy.computePredicateCheck(executedPath);
+      if (traceInfo.isSpurious()) {
+        logger.log(Level.INFO, "Current execution path is spurious.");
+        //path is infeasible continue to find a new one
+      }else{
+        testCaseSet.addExecutedPath(executedPath);
+        if (pseudoTarget.isTarget()) {
+          logger.log(Level.INFO, "Identified error path.");
+          if (stopOnError) {
+            updateGlobalReached();
+            stats.getTotalTimer().stop();
+            return true;
+          } else {
+            testCaseSet.addTarget(pseudoTarget);
+            //TODO add error to errorpathlist
+          }
         }
       }
       /*
-       * not an error path. selecting new path to traverse.
+       * selecting new path to traverse.
        */
+      //      if(!ARGUtils.checkARG(iterationStrategy.getModel().getLocalReached())) {
+      //        logger.log(Level.WARNING, "Current ReachedSet is invalid");
+      //      }
 
-      ARGPath executedPath = ARGUtils.getOnePathTo(pseudoTarget);
-      testCaseSet.addExecutedPath(executedPath);
+
       logger.log(Level.INFO, "Starting predicate path check...");
       PredicatePathAnalysisResult result = analysisStrategy.findNewFeasiblePathUsingPredicates(executedPath);
       logger.log(Level.INFO, "Starting predicate path check DONE");
@@ -233,11 +251,13 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
     reachedSetCounter++;
   }
 
-  protected class TestCaseSet{
-    public void addTarget(AbstractState target){
+  protected class TestCaseSet {
+
+    public void addTarget(AbstractState target) {
       //FIXME
     }
-    public void addExecutedPath(ARGPath path){
+
+    public void addExecutedPath(ARGPath path) {
       //FIXME
     }
   }
