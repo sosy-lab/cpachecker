@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.List;
+import java.util.UUID;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -65,6 +66,9 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
   private int automatonCounter = 0;
   private StartupConfig startupConfig;
 
+  //workaround to get unique filenames per cpachecker instance
+  private static String automatonSuffix = UUID.randomUUID().toString();
+
   public AutomatonControlledIterationStrategy(StartupConfig startupConfig, CFA pCfa, IterationModel model,
       ReachedSetFactory pReachedSetFactory, CPABuilder pCpaBuilder, TestGenStatistics pStats) {
     super(startupConfig, model, pReachedSetFactory, pStats);
@@ -101,7 +105,7 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
       throw new IllegalStateException("Unable to create the Algorithm for next Iteration", e1);
     }
 
-    Path path = org.sosy_lab.common.io.Paths.get(outputDir, "automaton/next_automaton" + automatonCounter++ + ".spc");
+    Path path = org.sosy_lab.common.io.Paths.get(outputDir, "automaton/next_automaton" + automatonCounter++ + "_" + automatonSuffix +".spc");
     stats.beforeAutomationFileGeneration();
     try (Writer w = Files.openOutputFile(path, Charset.forName("UTF8"))) {
       //    try (DeleteOnCloseFile automatonFile = Files.createTempFile("next_automaton", ".txt")) {
