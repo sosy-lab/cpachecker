@@ -190,8 +190,7 @@ public class VariableClassification {
   private Set<Partition> intEqualPartitions;
   private Set<Partition> intAddPartitions;
 
-  private CollectingLHSVisitor collectingLHSVisitor = null;
-  private CollectingRHSVisitor collectingRHSVisitor = null;
+  private final CollectingLHSVisitor collectingLHSVisitor = new CollectingLHSVisitor();
 
   private final CFA cfa;
   private final ImmutableMultimap<String, Loop> loopStructure;
@@ -286,9 +285,6 @@ public class VariableClassification {
       intBoolPartitions = new HashSet<>();
       intEqualPartitions = new HashSet<>();
       intAddPartitions = new HashSet<>();
-
-      collectingLHSVisitor = new CollectingLHSVisitor();
-      collectingRHSVisitor = new CollectingRHSVisitor();
 
       // fill maps
       collectVars();
@@ -774,8 +770,7 @@ public class VariableClassification {
       exp.accept(new IntEqualCollectingVisitor(pre));
       exp.accept(new IntAddCollectingVisitor(pre));
 
-      collectingRHSVisitor.setLHS(null);
-      exp.accept(collectingRHSVisitor);
+      exp.accept(new CollectingRHSVisitor(null));
       break;
     }
 
@@ -879,8 +874,7 @@ public class VariableClassification {
       final VariableOrField lhs = lhsExpression.accept(collectingLHSVisitor);
 
       final CExpression rhs = init.getRightHandSide();
-      collectingRHSVisitor.setLHS(lhs);
-      rhs.accept(collectingRHSVisitor);
+      rhs.accept(new CollectingRHSVisitor(lhs));
     }
 
     if ((initializer == null) || !(initializer instanceof CInitializerExpression)) { return; }
@@ -1066,8 +1060,7 @@ public class VariableClassification {
     Set<String> possibleIntAddVars = exp.accept(icv);
     handleResult(varName, possibleIntAddVars, nonIntAddVars);
 
-    collectingRHSVisitor.setLHS(lhs);
-    exp.accept(collectingRHSVisitor);
+    exp.accept(new CollectingRHSVisitor(lhs));
   }
 
   /** adds the variable to notPossibleVars, if possibleVars is null.  */
@@ -1604,8 +1597,7 @@ public class VariableClassification {
     @Override
     public VariableOrField visit(final CArraySubscriptExpression e) {
       final VariableOrField result = e.getArrayExpression().accept(this);
-      collectingRHSVisitor.setLHS(result);
-      e.getSubscriptExpression().accept(collectingRHSVisitor);
+      e.getSubscriptExpression().accept(new CollectingRHSVisitor(result));
       return result;
     }
 
@@ -1615,8 +1607,7 @@ public class VariableClassification {
       assignedFields.put(compositeType, e.getFieldName());
       final VariableOrField result = VariableOrField.newField(compositeType, e.getFieldName());
       if (e.isPointerDereference()) {
-        collectingRHSVisitor.setLHS(result);
-        e.getFieldOwner().accept(collectingRHSVisitor);
+        e.getFieldOwner().accept(new CollectingRHSVisitor(result));
       } else {
         e.getFieldOwner().accept(this);
       }
@@ -1625,8 +1616,7 @@ public class VariableClassification {
 
     @Override
     public VariableOrField visit(final CPointerExpression e) {
-      collectingRHSVisitor.setLHS(null);
-      e.getOperand().accept(collectingRHSVisitor);
+      e.getOperand().accept(new CollectingRHSVisitor(null));
       return null;
     }
 
@@ -1669,12 +1659,11 @@ public class VariableClassification {
 
   private class CollectingRHSVisitor extends DefaultCExpressionVisitor<Void, RuntimeException> {
 
-    public void setLHS(final VariableOrField lhs) {
-      this.lhs = lhs;
-    }
+    private final @Nullable VariableOrField lhs;
+    private boolean addressed = false;
 
-    public void setAddressed(final boolean addressed) {
-      this.addressed = addressed;
+    CollectingRHSVisitor(@Nullable VariableOrField pLhs) {
+      lhs = pLhs;
     }
 
     @Override
@@ -1701,9 +1690,9 @@ public class VariableClassification {
       if (e.getOperator() != UnaryOperator.AMPER) {
         return e.getOperand().accept(this);
       } else {
-        setAddressed(true);
+        addressed = true;
         e.getOperand().accept(this);
-        setAddressed(false);
+        addressed = false;
         return null;
       }
     }
@@ -1737,9 +1726,6 @@ public class VariableClassification {
     protected Void visitDefault(final CExpression e)  {
       return null;
     }
-
-    VariableOrField lhs = null;
-    boolean addressed = false;
   }
 
    /** A Partition is a Wrapper for a Collection of vars, values and edges.
