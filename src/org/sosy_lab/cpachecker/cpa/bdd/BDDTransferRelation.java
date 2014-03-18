@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.bdd;
 
 import static org.sosy_lab.cpachecker.util.VariableClassification.FUNCTION_RETURN_VARIABLE;
-import static org.sosy_lab.cpachecker.util.VariableClassification.isFunctionReturnVariable;
 import static org.sosy_lab.cpachecker.util.VariableClassification.scopeVar;
 
 import java.io.IOException;
@@ -312,16 +311,9 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
                                               CFunctionSummaryEdge fnkCall, CFunctionCall summaryExpr, String outerFunctionName) {
     BDDState newState = state;
 
-    // delete variables from returning function,
-    // this results in a smaller BDD and allows to call a function twice.
-    for (String var : predmgr.getTrackedVars().keySet()) {
-      if (var.startsWith(functionName + VariableClassification.SCOPE_SEPARATOR) && !isFunctionReturnVariable(var)) {
-        newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var, predmgr.getTrackedVars().get(var)));
-      }
-    }
-
     // set result of function equal to variable on left side
     final Partition partition = varClass.getPartitionForEdge(cfaEdge);
+    final String returnVar =  scopeVar(functionName, FUNCTION_RETURN_VARIABLE);
 
     // handle assignments like "y = f(x);"
     if (summaryExpr instanceof CFunctionCallAssignmentStatement) {
@@ -335,19 +327,19 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       newState = newState.forget(var);
 
       // make region (predicate) for RIGHT SIDE
-      final Region[] retVar = predmgr.createPredicate(scopeVar(functionName, FUNCTION_RETURN_VARIABLE), size, precision);
+      final Region[] retVar = predmgr.createPredicate(returnVar, size, precision);
       newState = newState.addAssignment(var, retVar);
 
-      // LAST ACTION: delete varname of right side
-      newState = newState.forget(retVar);
-
-    } else if (summaryExpr instanceof CFunctionCallStatement) {
-      // use default bitsize, there is no assignment
-      final Region[] retVar = predmgr.createPredicate(scopeVar(functionName, FUNCTION_RETURN_VARIABLE), bitsize, precision);
-      newState = newState.forget(retVar);
-
     } else {
-      assert false;
+      assert summaryExpr instanceof CFunctionCallStatement; // no assignment, nothing to do
+    }
+
+    // delete variables from returning function,
+    // this results in a smaller BDD and allows to call a function twice.
+    for (String var : predmgr.getTrackedVars().keySet()) {
+      if (var.startsWith(functionName + VariableClassification.SCOPE_SEPARATOR)) {
+        newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var, predmgr.getTrackedVars().get(var)));
+      }
     }
 
     return newState;

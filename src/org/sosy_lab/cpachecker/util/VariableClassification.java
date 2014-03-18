@@ -1098,10 +1098,6 @@ public class VariableClassification {
     return false;
   }
 
-  public static boolean isFunctionReturnVariable(final String var) {
-    return var != null && var.endsWith(FUNCTION_RETURN_VARIABLE);
-  }
-
   /** returns the value of a (nested) IntegerLiteralExpression
    * or null for everything else. */
   public static BigInteger getNumber(CExpression exp) {
