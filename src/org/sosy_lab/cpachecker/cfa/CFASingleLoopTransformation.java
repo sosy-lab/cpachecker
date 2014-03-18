@@ -237,8 +237,8 @@ public class CFASingleLoopTransformation {
     FunctionEntryNode oldMainFunctionEntryNode = pInputCFA.getMainFunction();
     AFunctionDeclaration mainFunctionDeclaration = oldMainFunctionEntryNode.getFunctionDefinition();
     FunctionEntryNode start = oldMainFunctionEntryNode instanceof CFunctionEntryNode ?
-        new CFunctionEntryNode(0, (CFunctionDeclaration) mainFunctionDeclaration, oldMainFunctionEntryNode.getExitNode(), oldMainFunctionEntryNode.getFunctionParameterNames()) :
-        new JMethodEntryNode(0, (JMethodDeclaration) mainFunctionDeclaration, oldMainFunctionEntryNode.getExitNode(), oldMainFunctionEntryNode.getFunctionParameterNames());
+        new CFunctionEntryNode(FileLocation.DUMMY, (CFunctionDeclaration) mainFunctionDeclaration, oldMainFunctionEntryNode.getExitNode(), oldMainFunctionEntryNode.getFunctionParameterNames()) :
+        new JMethodEntryNode(FileLocation.DUMMY, (JMethodDeclaration) mainFunctionDeclaration, oldMainFunctionEntryNode.getExitNode(), oldMainFunctionEntryNode.getFunctionParameterNames());
     SingleLoopHead loopHead = new SingleLoopHead();
 
     Queue<CFANode> nodes = new ArrayDeque<>(getAllNodes(oldMainFunctionEntryNode));
@@ -755,7 +755,7 @@ public class CFASingleLoopTransformation {
     SortedSetMultimap<String, CFANode> allNodes = TreeMultimap.create();
     FunctionExitNode artificialFunctionExitNode = new FunctionExitNode(0, ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
     FunctionEntryNode artificialFunctionEntryNode =
-        new FunctionEntryNode(0, ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME, artificialFunctionExitNode, null, Collections.<String>emptyList());
+        new FunctionEntryNode(FileLocation.DUMMY, ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME, artificialFunctionExitNode, null, Collections.<String>emptyList());
     Set<CFANode> nodes = getAllNodes(pStartNode);
     for (CFANode node : nodes) {
       for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(node).toList()) {
@@ -1224,24 +1224,24 @@ public class CFASingleLoopTransformation {
       FunctionExitNode functionExitNode = new FunctionExitNode(lineNumber, functionName);
 
       FunctionEntryNode oldEntryNode = oldFunctionNode.getEntryNode();
-      int entryLineNumber = oldEntryNode.getLineNumber();
+      FileLocation entryFileLocation = oldEntryNode.getFileLocation();
       String entryFunctionName = oldEntryNode.getFunctionName();
       final FunctionEntryNode functionEntryNode;
       if (oldEntryNode instanceof CFunctionEntryNode) {
         functionEntryNode = new CFunctionEntryNode(
-            entryLineNumber,
+            entryFileLocation,
             ((CFunctionEntryNode) oldEntryNode).getFunctionDefinition(),
             functionExitNode,
             oldEntryNode.getFunctionParameterNames());
       } else if (oldEntryNode instanceof JMethodEntryNode) {
         functionEntryNode = new JMethodEntryNode(
-            entryLineNumber,
+            entryFileLocation,
             ((JMethodEntryNode) oldEntryNode).getFunctionDefinition(),
             functionExitNode,
             oldEntryNode.getFunctionParameterNames());
       } else {
         functionEntryNode = new FunctionEntryNode(
-            entryLineNumber,
+            entryFileLocation,
             entryFunctionName,
             functionExitNode,
             oldEntryNode.getFunctionDefinition(),

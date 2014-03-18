@@ -30,13 +30,45 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
+import javax.annotation.Nonnull;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.c.*;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -67,7 +99,8 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
-import javax.annotation.Nonnull;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 /** This Class can be used to clone a function from the CFA.
  * You need to specify a new functionName.
@@ -293,7 +326,7 @@ public class FunctionCloner implements CFAVisitor {
       final boolean isExitNodeReachable = exitNode.getNumEnteringEdges() > 0;
 
       final FunctionExitNode newExitNode = cloneNode(exitNode, isExitNodeReachable);
-      final CFunctionEntryNode entryNode = new CFunctionEntryNode(line, cloneAst(n.getFunctionDefinition()),
+      final CFunctionEntryNode entryNode = new CFunctionEntryNode(n.getFileLocation(), cloneAst(n.getFunctionDefinition()),
               newExitNode, n.getFunctionParameterNames());
       newExitNode.setEntryNode(entryNode); // this must not change hashvalue!
       newNode = entryNode;

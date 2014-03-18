@@ -55,7 +55,6 @@ import org.eclipse.cdt.core.dom.ast.IASTDoStatement;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpressionList;
 import org.eclipse.cdt.core.dom.ast.IASTExpressionStatement;
-import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.eclipse.cdt.core.dom.ast.IASTForStatement;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTGotoStatement;
@@ -408,12 +407,12 @@ class CFAFunctionBuilder extends ASTVisitor {
       parameterNames.add(param.getName());
     }
 
-    final IASTFileLocation fileloc = declaration.getFileLocation();
+    final FileLocation fileloc = astCreator.getLocation(declaration);
     final FunctionExitNode returnNode = new FunctionExitNode(fileloc.getEndingLineNumber(), nameOfFunction);
     cfaNodes.add(returnNode);
 
     final FunctionEntryNode startNode = new CFunctionEntryNode(
-        fileloc.getStartingLineNumber(), fdef, returnNode, parameterNames);
+        fileloc, fdef, returnNode, parameterNames);
     cfaNodes.add(startNode);
     returnNode.setEntryNode(startNode);
     cfa = startNode;

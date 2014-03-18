@@ -262,7 +262,7 @@ class CFAMethodBuilder extends ASTVisitor {
     cfaNodes.add(returnNode);
 
     final JMethodEntryNode startNode =
-        new JMethodEntryNode(fileLocStart, fdef, returnNode, parameterNames);
+        new JMethodEntryNode(fdef.getFileLocation(), fdef, returnNode, parameterNames);
     returnNode.setEntryNode(startNode);
     cfaNodes.add(startNode);
     cfa = startNode;
