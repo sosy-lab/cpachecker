@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -36,6 +37,7 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -887,17 +889,17 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
         return state;
       }
 
-      // for global declarations, there may be forwards declarations, so we do
-      // not need to declarate them a second time, but if there is an initializer
-      // we assign it to the before declared variable
-      // another case where a variablename already exists, is if it is declarated
-      // inside a loop
-      boolean isDeclarationNecessary = !state.existsVariable(variableName);
-
-
       Set<IOctCoefficients> initCoeffs = new HashSet<>();
 
       CInitializer init = declaration.getInitializer();
+
+      // for global declarations, there may be forwards declarations, so we do
+      // not need to declarate them a second time, but if there is an initializer
+      // we assign it to the before declared variable
+      if (!state.existsVariable(variableName) && (init == null || init instanceof CInitializerExpression)) {
+        state = state.declareVariable(variableName);
+      }
+
       if (init != null) {
         if (init instanceof CInitializerExpression) {
           CExpression exp = ((CInitializerExpression) init).getExpression();
@@ -907,11 +909,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
           // if there is an initializerlist, the variable is either an array or a struct/union
           // we cannot handle them, so simply return the previous state
         } else if (init instanceof CInitializerList) {
-          if (isDeclarationNecessary) {
-            return state.declareVariable(variableName);
-          } else {
             return state;
-          }
 
         } else {
           throw new AssertionError("Unhandled Expression Type: " + init.getClass());
@@ -920,11 +918,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
 
         // global variables without initializer are set to 0 in C
       } else if (decl.isGlobal() && initCoeffs.isEmpty()) {
-        initCoeffs.add(new OctSimpleCoefficients(isDeclarationNecessary ? state.sizeOfVariables() + 1 : state.sizeOfVariables(), state));
-      }
-
-      if (isDeclarationNecessary) {
-        state = state.declareVariable(variableName);
+        initCoeffs.add(new OctSimpleCoefficients(state.sizeOfVariables(), state));
       }
 
       for (IOctCoefficients coeffs : initCoeffs) {
@@ -1282,6 +1276,21 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
       case MINUS:
         Set<IOctCoefficients> returnCoefficients = new HashSet<>();
         for (IOctCoefficients coeffs : operand) {
+          if (coeffs.hasOnlyConstantValue()) {
+            if (coeffs instanceof OctSimpleCoefficients) {
+              returnCoefficients.add(new OctSimpleCoefficients(coeffs.size(), ((OctSimpleCoefficients) coeffs).getConstantValue().longValue()*-1, state));
+              continue;
+            } else if (coeffs instanceof OctIntervalCoefficients) {
+              Pair<Pair<BigInteger, Boolean>, Pair<BigInteger, Boolean>> bounds = ((OctIntervalCoefficients) coeffs).getConstantValue();
+              returnCoefficients.add(new OctIntervalCoefficients(coeffs.size(),
+                                                                 bounds.getSecond().getFirst().longValue()*-1,
+                                                                 bounds.getFirst().getFirst().longValue()*-1,
+                                                                 bounds.getSecond().getSecond(),
+                                                                 bounds.getFirst().getSecond(),
+                                                                 state));
+              continue;
+            }
+          }
           String tempVar = buildVarName(functionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
           temporaryVariableCounter++;
           state = state.declareVariable(tempVar).makeAssignment(tempVar, coeffs.expandToSize(state.sizeOfVariables()+1, state));
