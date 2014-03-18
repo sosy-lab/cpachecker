@@ -79,7 +79,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
     stopOperator = new StopSepOperator(abstractDomain);
     predmgr = new PredicateManager(config, manager, precision, cfa);
     transferRelation = new BDDTransferRelation(manager, bvmgr, predmgr, logger, config, cfa);
-    reducer = new BDDReducer(predmgr);
+    reducer = new BDDReducer(manager, predmgr);
   }
 
   public NamedRegionManager getManager() {

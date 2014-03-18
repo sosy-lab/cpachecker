@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 import com.google.common.base.Joiner;
-
-import javax.annotation.Nullable;
 
 public class BDDState implements AbstractQueryableState {
 
@@ -129,13 +129,6 @@ public class BDDState implements AbstractQueryableState {
   /** This function adds the constraint to the state. */
   public BDDState addConstraint(Region constraint) {
     return new BDDState(manager, bvmgr, manager.makeAnd(currentState, constraint));
-  }
-
-  /**
-   * Returns the NamedRegionManager used by this state for storing the variables values. Do not modify!
-   */
-  public NamedRegionManager getManager() {
-    return this.manager;
   }
 
   /** This function adds the equality of left and right side to the state.

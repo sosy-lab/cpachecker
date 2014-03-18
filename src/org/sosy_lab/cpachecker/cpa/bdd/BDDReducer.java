@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
@@ -30,17 +33,17 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-
-import java.util.HashSet;
-import java.util.Set;
 
 public class BDDReducer implements Reducer {
 
-  PredicateManager predmgr;
+  private final NamedRegionManager mgr;
+  private final PredicateManager predmgr;
 
-  BDDReducer(PredicateManager pPredmgr) {
-    this.predmgr = pPredmgr;
+  BDDReducer(NamedRegionManager pMgr, PredicateManager pPredmgr) {
+    mgr = pMgr;
+    predmgr = pPredmgr;
   }
 
   private Set<String> getVarsOfBlock(Block pBlock) {
@@ -74,7 +77,7 @@ public class BDDReducer implements Reducer {
     BDDState reducedState = (BDDState)pReducedState;
 
     // remove all vars, that are used in the block
-    Set<Region> usedVars = state.getManager().extractPredicates(state.getRegion());
+    Set<Region> usedVars = mgr.extractPredicates(state.getRegion());
     state.forget(usedVars.toArray(new Region[usedVars.size()]));
 
     // add information from block to state
