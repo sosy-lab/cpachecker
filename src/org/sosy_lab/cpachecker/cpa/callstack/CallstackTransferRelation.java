@@ -160,8 +160,10 @@ public class CallstackTransferRelation implements TransferRelation {
           returnElement = element.getPreviousState();
 
           assert callerFunction.equals(returnElement.getCurrentFunction()) || isWildcardState(returnElement);
-        } else {
+        } else if (isArtificialLoopEnteringFunction(element.getCallNode(), calledFunction)) {
           returnElement = new CallstackState(null, callerFunction, element.getCallNode());
+        } else {
+          return Collections.emptySet();
         }
 
         return Collections.singleton(returnElement);
@@ -171,6 +173,14 @@ public class CallstackTransferRelation implements TransferRelation {
     }
 
     return Collections.singleton(pElement);
+  }
+
+  private boolean isArtificialLoopEnteringFunction(CFANode pCallNode, String pCalledFunction) {
+    if (pCallNode instanceof CFASingleLoopTransformation.SingleLoopHead) {
+      CFASingleLoopTransformation.SingleLoopHead head = (CFASingleLoopTransformation.SingleLoopHead) pCallNode;
+      return head.getEnteringFunctionNames().contains(pCalledFunction);
+    }
+    return false;
   }
 
   /**
