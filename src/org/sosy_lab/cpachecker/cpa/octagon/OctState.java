@@ -632,6 +632,9 @@ public class OctState implements AbstractState {
                                      logger);
     newState.variableToIndexMap.keySet().removeAll(keysToRemove);
 
+    for (int i = 0; i < newState.variableToIndexMap.size(); i++) {
+      assert newState.variableToIndexMap.inverse().get(i) != null;
+    }
     assert OctagonManager.dimension(newState.octagon) == newState.sizeOfVariables();
     return newState;
   }
