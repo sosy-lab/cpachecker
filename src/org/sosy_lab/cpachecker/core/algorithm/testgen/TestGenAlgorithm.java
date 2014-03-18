@@ -40,6 +40,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.BasicTestGenPathAnalysisStrategy;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.BasicTestGenPathAnalysisStrategyExperiment1;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.CFATrackingPathAnalysisStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.TestGenPathAnalysisStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.IterationStrategyFactory;
@@ -80,8 +82,17 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
     SAME_ALGORITHM_FILTER_WAITLIST
   }
 
+  public enum AnalysisStrategySelector {
+    BASIC,
+    BASIC_EXPERIMENT1,
+    CFA_TRACKING
+  }
+
   @Option(name = "iterationStrategy", description = "Selects the iteration Strategy for TestGenAlgorithm")
   private IterationStrategySelector iterationStrategySelector = IterationStrategySelector.AUTOMATON_CONTROLLED;
+
+  @Option(name = "analysisStrategy", description = "Selects the analysis Strategy for TestGenAlgorithm")
+  private AnalysisStrategySelector analysisStrategySelector = AnalysisStrategySelector.CFA_TRACKING;
 
   @Option(
       name = "stopOnError",
@@ -131,8 +142,25 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
     iterationStrategy =
         new IterationStrategyFactory(singleRunConfig, cfa, new ReachedSetFactory(startupConfig.getConfig(), logger),
             pCpaBuilder, stats).createStrategy(iterationStrategySelector, pAlgorithm);
-//    analysisStrategy = new BasicTestGenPathAnalysisStrategy(pathChecker,startupConfig, stats);
-    analysisStrategy = new CFATrackingPathAnalysisStrategy(pathChecker,singleRunConfig, stats);
+
+    switch (analysisStrategySelector) {
+    case BASIC:
+      analysisStrategy = new BasicTestGenPathAnalysisStrategy(pathChecker, startupConfig, stats);
+      break;
+
+    case BASIC_EXPERIMENT1:
+      analysisStrategy = new BasicTestGenPathAnalysisStrategyExperiment1(pathChecker, startupConfig, stats, cpa);
+      break;
+
+    case CFA_TRACKING:
+      analysisStrategy = new CFATrackingPathAnalysisStrategy(pathChecker, startupConfig, stats);
+      break;
+
+    default:
+      throw new IllegalStateException("Not all analysisStrategySelector cases matched");
+    }
+    //
+
   }
 
 
