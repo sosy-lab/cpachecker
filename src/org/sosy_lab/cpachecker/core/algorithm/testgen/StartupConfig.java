@@ -29,15 +29,19 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 
 public class StartupConfig {
 
-  public StartupConfig(Configuration pLConfig, LogManager pLogManager, ShutdownNotifier pLShutdownNotifier) {
-    this.config = pLConfig;
-    this.notifier = pLShutdownNotifier;
-    this.log = pLogManager;
+  public static StartupConfig createWithParent(StartupConfig pStartupConfig) {
+    return new StartupConfig(pStartupConfig.getConfig(), pStartupConfig.getLog(), ShutdownNotifier.createWithParent(pStartupConfig.getShutdownNotifier()));
   }
 
   private Configuration config;
   private ShutdownNotifier notifier;
   private LogManager log;
+
+  public StartupConfig(Configuration pLConfig, LogManager pLogManager, ShutdownNotifier pLShutdownNotifier) {
+    this.config = pLConfig;
+    this.notifier = pLShutdownNotifier;
+    this.log = pLogManager;
+  }
 
   public Configuration getConfig() {
     return config;

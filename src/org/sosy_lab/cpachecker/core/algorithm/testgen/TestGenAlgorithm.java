@@ -71,6 +71,7 @@ import com.google.common.base.Joiner;
 public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
 
   StartupConfig startupConfig;
+  StartupConfig singleRunConfig;
   private LogManager logger;
 
   public enum IterationStrategySelector {
@@ -112,6 +113,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
 
     startupConfig = new StartupConfig(pConfig, pLogger, pShutdownNotifier);
     startupConfig.getConfig().inject(this);
+    singleRunConfig = StartupConfig.createWithParent(startupConfig);
     stats = new TestGenStatistics(iterationStrategySelector == IterationStrategySelector.AUTOMATON_CONTROLLED);
 
     cfa = pCfa;
@@ -127,10 +129,10 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
     Solver solver = new Solver(formulaManager, formulaManagerFactory);
     PathChecker pathChecker = new PathChecker(pLogger, pfMgr, solver);
     iterationStrategy =
-        new IterationStrategyFactory(startupConfig, cfa, new ReachedSetFactory(startupConfig.getConfig(), logger),
+        new IterationStrategyFactory(singleRunConfig, cfa, new ReachedSetFactory(startupConfig.getConfig(), logger),
             pCpaBuilder, stats).createStrategy(iterationStrategySelector, pAlgorithm);
 //    analysisStrategy = new BasicTestGenPathAnalysisStrategy(pathChecker,startupConfig, stats);
-    analysisStrategy = new CFATrackingPathAnalysisStrategy(pathChecker,startupConfig, stats);
+    analysisStrategy = new CFATrackingPathAnalysisStrategy(pathChecker,singleRunConfig, stats);
   }
 
 
@@ -139,16 +141,22 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
       PredicatedAnalysisPropertyViolationException {
     startupConfig.getShutdownNotifier().shutdownIfNecessary();
     stats.getTotalTimer().start();
-    PredicatePathAnalysisResult lastResult = PredicatePathAnalysisResult.INVALID;
+//    PredicatePathAnalysisResult lastResult = PredicatePathAnalysisResult.INVALID;
     iterationStrategy.initializeModel(pReachedSet);
     long loopCounter = 0;
     boolean initialRun = true;
 
     while (true /*globalReached.hasWaitingState()*/) {
+      startupConfig.getShutdownNotifier().shutdownIfNecessary();
       logger.logf(Level.INFO, "TestGen iteration %d", loopCounter++);
       //explicit, DFS or DFSRAND, PRECISION=TRACK_ALL; with automaton of new path created in previous iteration OR custom CPA
-      boolean sound = iterationStrategy.runAlgorithm();
-      //sound should normally be unsound for us.
+      try {
+        //sound should normally be unsound for us. Ignore the result
+        iterationStrategy.runAlgorithm();
+      } catch (InterruptedException e) {
+        startupConfig.getShutdownNotifier().shutdownIfNecessary();
+        // TODO handle shutdown of child but not this algorithm
+      }
 
       if (!(iterationStrategy.getLastState() instanceof ARGState)) { throw new IllegalStateException(
           "wrong configuration of explicit cpa, because concolicAlg needs ARGState"); }
@@ -209,7 +217,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
        */
       iterationStrategy.updateIterationModelForNextIteration(result);
 
-      lastResult = result;
+//      lastResult = result;
     }
   }
 
