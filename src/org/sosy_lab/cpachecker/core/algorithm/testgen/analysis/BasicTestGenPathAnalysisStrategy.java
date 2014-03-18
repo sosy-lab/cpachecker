@@ -121,6 +121,7 @@ public class BasicTestGenPathAnalysisStrategy implements TestGenPathAnalysisStra
       {
         //if the last element is not set, we encountered a branching node where both paths are infeasible for the current value mapping.
         logger.log(Level.INFO, "encountered an executed path that might be spurious.");
+        lastElement = currentElement;
         continue;
       }
       CFAEdge wrongEdge = edge;
