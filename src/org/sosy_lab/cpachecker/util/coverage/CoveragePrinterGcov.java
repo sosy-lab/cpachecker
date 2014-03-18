@@ -36,7 +36,7 @@ import org.sosy_lab.common.io.Paths;
  * Generate coverage information in Gcov format
  * (http://gcc.gnu.org/onlinedocs/gcc/Gcov.html).
  */
-public class CoveragePrinterGcov implements CoveragePrinter {
+class CoveragePrinterGcov implements CoveragePrinter {
 
   private static class FunctionInfo {
     private final String name;

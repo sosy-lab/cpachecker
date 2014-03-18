@@ -29,15 +29,15 @@ import java.io.IOException;
 /**
  * Interface for printers information about coverage
  */
-public interface CoveragePrinter {
+interface CoveragePrinter {
 
-  public void addVisitedFunction(String name);
+  void addVisitedFunction(String name);
 
-  public void addExistingFunction(String name, int firstLine, int lastLine);
+  void addExistingFunction(String name, int firstLine, int lastLine);
 
-  public void addVisitedLine(int line);
+  void addVisitedLine(int line);
 
-  public void addExistingLine(int line);
+  void addExistingLine(int line);
 
-  public void print(Appendable out, String originFile) throws IOException;
+  void print(Appendable out, String originFile) throws IOException;
 }
