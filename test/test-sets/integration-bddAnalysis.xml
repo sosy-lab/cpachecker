@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="70" hardtimelimit="90" memlimit="2000" cpuCores="1">
+
+  <!-- 
+  This is a small benchmark-file to check the BDDCPA with its most-used option-combinations.
+  Some results are FALSE POSITIVES, however there should not be any FALSE NEGATIVES.
+  The each rundefinition needs a runtime of 30 minutes.
+  Excluded filesare either TIMEOUT or just too similar to existing files.
+  -->
+
+  <option name="-noout"/>
+  <option name="-heap">1800M</option>
+  <option name="-timelimit">1min</option>
+
+  <rundefinition name="ex-bdd-bool">
+    <option name="-explicit-BDD-bool"/>
+  </rundefinition>
+  
+  <rundefinition name="ex-bdd-eq">
+    <option name="-explicit-BDD-bool-intEQ"/>
+  </rundefinition>
+  
+  <rundefinition name="ex-bdd-add">
+    <option name="-explicit-BDD-bool-intEQ-intADD"/>
+  </rundefinition>
+  
+  <rundefinition name="plain-bdd">
+    <option name="-bddAnalysis"/>
+    <option name="-setprop">cpa.bdd.compressIntEqual=false</option>
+  </rundefinition>
+  
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+
+  <sourcefiles name="Simple">
+    <includesfile>../programs/benchmarks/Simple.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="ControlFlowInteger">
+    <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
+    <exclude>../programs/benchmarks/eca/*</exclude>
+    <exclude>../programs/benchmarks/ssh/s3_srvr.blast.1*</exclude>
+  </sourcefiles>
+  <sourcefiles name="Loops">
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <exclude>../programs/benchmarks/loops/matrix*</exclude>
+    <exclude>../programs/benchmarks/loops/for*</exclude>
+    <exclude>../programs/benchmarks/loops/bubble*</exclude>
+    <exclude>../programs/benchmarks/loops/n.*</exclude>
+    <exclude>../programs/benchmarks/loops/sum*</exclude>
+  </sourcefiles>
+  <sourcefiles name="ProductLines">
+    <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+    <exclude>../programs/benchmarks/product-lines/email*</exclude>
+    <exclude>../programs/benchmarks/product-lines/*product1*</exclude>
+    <exclude>../programs/benchmarks/product-lines/*product2*</exclude>
+    <exclude>../programs/benchmarks/product-lines/*product3*</exclude>
+    <exclude>../programs/benchmarks/product-lines/*product4*</exclude>
+    <exclude>../programs/benchmarks/product-lines/*product5*</exclude>
+    <exclude>../programs/benchmarks/product-lines/*product6*</exclude>
+    <exclude>../programs/benchmarks/product-lines/*spec4*</exclude>
+    <exclude>../programs/benchmarks/product-lines/*spec5*</exclude>
+  </sourcefiles>
+
+</benchmark>
