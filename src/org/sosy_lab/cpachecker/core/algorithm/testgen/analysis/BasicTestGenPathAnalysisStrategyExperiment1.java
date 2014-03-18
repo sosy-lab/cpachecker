@@ -40,15 +40,14 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -126,17 +125,14 @@ public class BasicTestGenPathAnalysisStrategyExperiment1 implements TestGenPathA
 
         @Override
         public boolean apply(AbstractState pInput) {
-          Preconditions.checkNotNull(currentElementTmp);
-          Preconditions.checkNotNull(pInput);
-          Preconditions.checkNotNull(cpa);
-          try {
-            return cpa.getAbstractDomain().isLessOrEqual(
-                AbstractStates.extractStateByType(currentElementTmp, ValueAnalysisState.class),
-                AbstractStates.extractStateByType(pInput, ValueAnalysisState.class));
-          } catch (CPAException | InterruptedException e) {
-            throw new IllegalStateException(e);
-          }
-        }}))
+          return AbstractStates.extractStateByType(currentElementTmp, ValueAnalysisState.class).equals(
+              AbstractStates.extractStateByType(pInput, ValueAnalysisState.class))
+              &&
+              AbstractStates.extractStateByType(currentElementTmp, LocationState.class).getLocationNode()
+                  .getNodeNumber() == AbstractStates.extractStateByType(pInput, LocationState.class).getLocationNode()
+                  .getNodeNumber();
+        }
+      }))
         // < ------
       {
 

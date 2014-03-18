@@ -57,12 +57,19 @@
   </rundefinition>
   -->
   
+  <rundefinition name="testgen_automaton_controlled_stop_on_error_experiment1">
+    <option name="-testGen"/>
+    <option name="-setprop">testgen.stopOnError=true</option>
+    <option name="-setprop">testgen.iterationStrategy=AUTOMATON_CONTROLLED</option>
+    <option name="-setprop">testgen.analysisStrategy=BASIC_EXPERIMENT1</option>
+  </rundefinition>
+ 
   <rundefinition name="testgen_automaton_controlled_stop_on_error">
     <option name="-testGen"/>
     <option name="-setprop">testgen.stopOnError=true</option>
     <option name="-setprop">testgen.iterationStrategy=AUTOMATON_CONTROLLED</option>
   </rundefinition>
-  <rundefinition name="testgen_filtered_waitlist_stop_on_error">
+    <rundefinition name="testgen_filtered_waitlist_stop_on_error">
     <option name="-testGen"/>
     <option name="-setprop">testgen.stopOnError=true</option>
     <option name="-setprop">testgen.iterationStrategy=SAME_ALGORITHM_FILTER_WAITLIST</option>
