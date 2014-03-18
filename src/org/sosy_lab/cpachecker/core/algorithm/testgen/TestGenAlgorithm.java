@@ -33,6 +33,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
@@ -266,26 +267,32 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private void dumpReachedAndARG(ReachedSet pReached) {
-    Path reachedFile = Paths.get("output/reachedsets/reached" + reachedSetCounter + ".txt");
+    try {
+      String outputDir = new FileTypeConverter(startupConfig.getConfig()).getOutputDirectory();
 
-    try (Writer w = Files.openOutputFile(reachedFile)) {
-      Joiner.on('\n').appendTo(w, pReached);
-    } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Could not write reached set to file");
-    } catch (OutOfMemoryError e) {
-      logger.logUserException(Level.WARNING, e,
-          "Could not write reached set to file due to memory problems");
+      Path reachedFile = Paths.get(outputDir, "reachedsets/reached" + reachedSetCounter + ".txt");
+
+      try (Writer w = Files.openOutputFile(reachedFile)) {
+        Joiner.on('\n').appendTo(w, pReached);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write reached set to file");
+      } catch (OutOfMemoryError e) {
+        logger.logUserException(Level.WARNING, e,
+            "Could not write reached set to file due to memory problems");
+      }
+
+      Path argFile = Paths.get(outputDir, "output/args/arg" + reachedSetCounter + ".dot");
+
+      try (Writer w = Files.openOutputFile(argFile)) {
+        ARGUtils.writeARGAsDot(w, (ARGState) pReached.getFirstState());
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+      }
+
+      reachedSetCounter++;
+    } catch (InvalidConfigurationException e1) {
+      throw new IllegalStateException(e1);
     }
-
-    Path argFile = Paths.get("output/args/arg" + reachedSetCounter + ".dot");
-
-    try (Writer w = Files.openOutputFile(argFile)) {
-      ARGUtils.writeARGAsDot(w, (ARGState) pReached.getFirstState());
-    } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
-    }
-
-    reachedSetCounter++;
   }
 
   protected class TestCaseSet {

@@ -31,6 +31,7 @@ import java.util.List;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -62,10 +63,12 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
   private List<Pair<AbstractState,Precision>> wrongStates;
 
   private int automatonCounter = 0;
+  private StartupConfig startupConfig;
 
   public AutomatonControlledIterationStrategy(StartupConfig startupConfig, CFA pCfa, IterationModel model,
       ReachedSetFactory pReachedSetFactory, CPABuilder pCpaBuilder, TestGenStatistics pStats) {
     super(startupConfig, model, pReachedSetFactory, pStats);
+    this.startupConfig = startupConfig;
     cpaBuilder = pCpaBuilder;
     cfa = pCfa;
     wrongStates = Lists.newLinkedList();
@@ -91,7 +94,14 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
   }
 
   private Algorithm createAlgorithmForNextIteration(PredicatePathAnalysisResult pResult) {
-    Path path = org.sosy_lab.common.io.Paths.get("output/automaton/next_automaton" + automatonCounter++ + ".spc");
+    String outputDir;
+    try {
+      outputDir = new FileTypeConverter(startupConfig.getConfig()).getOutputDirectory();
+    } catch (InvalidConfigurationException e1) {
+      throw new IllegalStateException("Unable to create the Algorithm for next Iteration", e1);
+    }
+
+    Path path = org.sosy_lab.common.io.Paths.get(outputDir, "automaton/next_automaton" + automatonCounter++ + ".spc");
     stats.beforeAutomationFileGeneration();
     try (Writer w = Files.openOutputFile(path, Charset.forName("UTF8"))) {
       //    try (DeleteOnCloseFile automatonFile = Files.createTempFile("next_automaton", ".txt")) {
