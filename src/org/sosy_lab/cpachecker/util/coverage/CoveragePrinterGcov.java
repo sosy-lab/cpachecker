@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.coverage;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.IOException;
 import java.util.BitSet;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.io.Paths;
@@ -54,7 +54,6 @@ class CoveragePrinterGcov implements CoveragePrinter {
   private final Set<Integer> allLines = new HashSet<>();
   private final Set<String> visitedFunctions = new HashSet<>();
   private final Set<FunctionInfo> allFunctions = new HashSet<>();
-  private final Map<Integer, String> functionBeginnings = new HashMap<>();
 
   //String constants from gcov format
   private final static String TEXTNAME = "TN:";
@@ -71,21 +70,18 @@ class CoveragePrinterGcov implements CoveragePrinter {
   @Override
   public void addExistingFunction(String pName, int pFirstLine, int pLastLine) {
     allFunctions.add(new FunctionInfo(pName, pFirstLine, pLastLine));
-    functionBeginnings.put(pFirstLine, pName);
   }
 
   @Override
   public void addVisitedLine(int pLine) {
-    if (pLine > 0) {
-      visitedLines.set(pLine);
-    }
+    checkArgument(pLine > 0);
+    visitedLines.set(pLine);
   }
 
   @Override
   public void addExistingLine(int pLine) {
-    if (pLine > 0) {
-      allLines.add(pLine);
-    }
+    checkArgument(pLine > 0);
+    allLines.add(pLine);
   }
 
   @Override
@@ -108,17 +104,7 @@ class CoveragePrinterGcov implements CoveragePrinter {
     /* Now save information about lines
      */
     for (Integer line : allLines) {
-      /* Some difficulties: all function beginnings are visited at the beginning of analysis
-       * without entering function.
-       * So, we should mark these lines, as visited, if the function is really visited later.
-       */
-      String functionName;
-      if ((functionName = functionBeginnings.get(line)) != null) {
-        //We should mark it, as visited, if the function is analyzed
-        out.append(LINEDATA + line + "," + (visitedFunctions.contains(functionName) ? 1 : 0) + "\n");
-      } else {
-        out.append(LINEDATA + line + "," + (visitedLines.get(line) ? 1 : 0) + "\n");
-      }
+      out.append(LINEDATA + line + "," + (visitedLines.get(line) ? 1 : 0) + "\n");
     }
     out.append("end_of_record\n");
   }

@@ -394,7 +394,7 @@ counterexample.removeInfeasibleErrors = false
 
 # print coverage info to file
 coverage.export = true
-coverage.file = "coverage.info"
+coverage.file = "coverage.%s.info"
 
 # CPA to use (see doc/Configuration.txt for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
@@ -500,9 +500,6 @@ cpa.bam.blockHeuristic = FunctionAndLoopPartitioning.class
 # if enabled, the reached set cache is analysed for each cache miss to find
 # the cause of the miss.
 cpa.bam.gatherCacheMissStatistics = false
-
-# adding a new value to the state can be done from 0 to N or from N to 0
-cpa.bdd.addIncreasing = false
 
 # max bitsize for values and vars, initial value
 cpa.bdd.bitsize = 64

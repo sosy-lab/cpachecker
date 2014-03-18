@@ -96,13 +96,12 @@ class MainCPAStatistics implements Statistics {
   @Option(name="coverage.file",
       description="print coverage info to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputCoverageFile = Paths.get("coverage.info");
+  private Path outputCoverageFile = Paths.get("coverage.%s.info");
 
   @Option(name="statistics.memory",
     description="track memory usage of JVM during runtime")
   private boolean monitorMemoryUsage = true;
 
-  private final String programNames;
   private final LogManager logger;
   private final Collection<Statistics> subStats;
   private final MemoryStatistics memStats;
@@ -119,10 +118,9 @@ class MainCPAStatistics implements Statistics {
   private Statistics cfaCreatorStatistics;
   private CFA cfa;
 
-  public MainCPAStatistics(Configuration config, LogManager pLogger, String pProgramNames) throws InvalidConfigurationException {
+  public MainCPAStatistics(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     logger = pLogger;
     config.inject(this);
-    programNames = pProgramNames;
 
     subStats = new ArrayList<>();
 
@@ -236,7 +234,7 @@ class MainCPAStatistics implements Statistics {
       printSubStatistics(out, result, reached);
 
       if (exportCoverage && outputCoverageFile != null && cfa != null) {
-        CoverageInformation.writeCoverageInfo(outputCoverageFile, reached, cfa, logger, programNames);
+        CoverageInformation.writeCoverageInfo(outputCoverageFile, reached, cfa, logger);
       }
     }
 

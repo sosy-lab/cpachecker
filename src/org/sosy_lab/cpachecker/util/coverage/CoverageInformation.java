@@ -27,23 +27,26 @@ import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -56,86 +59,99 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 public class CoverageInformation {
 
   public static void writeCoverageInfo(Path outputFile, ReachedSet reached, CFA cfa,
-      LogManager logger, String programNames) {
+      LogManager logger) {
 
-    Set<CFANode> locations = getAllLocationsFromReached(reached);
+    Set<CFANode> reachedLocations = getAllLocationsFromReached(reached);
 
-    CoveragePrinter printer = new CoveragePrinterGcov();
+    Map<String, CoveragePrinter> printers = new HashMap<>();
 
-    //Add information about visited locations and functions
-    for (CFANode node : locations) {
-      printer.addVisitedLine(node.getLineNumber());
-      printer.addVisitedFunction(node.getFunctionName());
-    }
-
+    //Add information about visited locations
     for (CFANode node : cfa.getAllNodes()) {
-      if (node.getNumLeavingEdges() == 1 && node.getLeavingEdge(0) instanceof CDeclarationEdge) {
-        //We don't mark all global definitions
-        CDeclarationEdge declEdge = (CDeclarationEdge) node.getLeavingEdge(0);
-        if (declEdge.getDeclaration().isGlobal()) {
-          continue;
+       //This part adds lines, which are only on edges, such as "return" or "goto"
+      for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
+        boolean visited = reachedLocations.contains(edge.getPredecessor())
+            && reachedLocations.contains(edge.getSuccessor());
+
+        if (edge instanceof MultiEdge) {
+          for (CFAEdge innerEdge : ((MultiEdge)edge).getEdges()) {
+            handleEdgeCoverage(innerEdge, visited, printers);
+          }
+        } else {
+          handleEdgeCoverage(edge, visited, printers);
         }
       }
+    }
 
-      //We don't mark last line - "}"
-      if (node instanceof FunctionExitNode) {
+    // Add information about visited functions
+    for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
+      final FileLocation loc = entryNode.getFileLocation();
+      if (loc.getStartingLineNumber() == 0) {
+        // dummy location
         continue;
       }
+      final String functionName = entryNode.getFunctionName();
+      final CoveragePrinter printer = getPrinter(loc, printers);
 
-      printer.addExistingLine(node.getLineNumber());
+      final int startingLine = loc.getStartingLineInOrigin();
+      final int endingLine = loc.getEndingLineNumber() - loc.getStartingLineNumber() + loc.getStartingLineInOrigin();
 
-      //This part adds lines, which are only on edges, such as "return" or "goto"
-      for (CFAEdge pEdge : CFAUtils.leavingEdges(node)) {
-        if (pEdge instanceof CDeclarationEdge) {
-          continue;
-        }
-        int line = pEdge.getLineNumber();
-        CFANode predessor = pEdge.getPredecessor();
-        CFANode successor = pEdge.getSuccessor();
+      printer.addExistingFunction(functionName, startingLine, endingLine);
 
-        if (pEdge instanceof AStatementEdge) {
-          FileLocation location = ((AStatementEdge)pEdge).getStatement().getFileLocation();
-          if (location.getStartingLineNumber() != location.getEndingLineNumber()) {
-            for (int j = location.getStartingLineNumber(); j <= location.getEndingLineNumber(); j++) {
-              printer.addExistingLine(j);
-              if (locations.contains(predessor) && locations.contains(successor)) {
-                printer.addVisitedLine(j);
-              }
-            }
-          }
-        }
-
-        printer.addExistingLine(line);
-
-        if (locations.contains(predessor) && locations.contains(successor)) {
-          printer.addVisitedLine(line);
-        }
-        if (pEdge instanceof MultiEdge) {
-          for (CFAEdge singleEdge : ((MultiEdge)pEdge).getEdges()) {
-            if (singleEdge instanceof CDeclarationEdge) {
-              continue;
-            }
-            line = singleEdge.getLineNumber();
-            printer.addExistingLine(line);
-            if (locations.contains(predessor) && locations.contains(successor)) {
-              printer.addVisitedLine(line);
-            }
-          }
-        }
+      if (reachedLocations.contains(entryNode)) {
+        printer.addVisitedFunction(functionName);
       }
     }
 
-    //Now collect information about all functions
-    for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
-      printer.addExistingFunction(entryNode.getFunctionName(), entryNode.getLineNumber()
-          , entryNode.getExitNode().getLineNumber());
+    for (Map.Entry<String, CoveragePrinter> entry : printers.entrySet()) {
+      Path p = Paths.get(String.format(outputFile.getAbsolutePath(),
+          entry.getKey().replace(File.separator, "--")));
+      try (Writer out = Files.openOutputFile(p)) {
+        entry.getValue().print(out, entry.getKey());
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write coverage information to file");
+      }
+    }
+  }
+
+  private static void handleEdgeCoverage(final CFAEdge edge, final boolean visited,
+      final Map<String, CoveragePrinter> printers) {
+    final FileLocation loc = edge.getFileLocation();
+    if (loc.getStartingLineNumber() == 0) {
+      // dummy location
+      return;
+    }
+    if (edge instanceof ADeclarationEdge
+        && (((ADeclarationEdge)edge).getDeclaration() instanceof AFunctionDeclaration)) {
+      // Function declarations span the complete body, this is not desired.
+      return;
     }
 
-    try (Writer out = Files.openOutputFile(outputFile)) {
-      printer.print(out, programNames);
-    } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Could not write coverage information to file");
+    final CoveragePrinter printer = getPrinter(loc, printers);
+
+    final int startingLine = loc.getStartingLineInOrigin();
+    final int endingLine = loc.getEndingLineNumber() - loc.getStartingLineNumber() + loc.getStartingLineInOrigin();
+
+    for (int line = startingLine; line <= endingLine; line++) {
+      printer.addExistingLine(line);
     }
+
+    if (visited) {
+      for (int line = startingLine; line <= endingLine; line++) {
+        printer.addVisitedLine(line);
+      }
+    }
+  }
+
+  private static CoveragePrinter getPrinter(FileLocation loc, Map<String, CoveragePrinter> printers) {
+    assert loc.getStartingLineNumber() != 0; // Cannot produce coverage info for dummy file location
+
+    String file = loc.getFileName();
+    CoveragePrinter printer = printers.get(file);
+    if (printer == null) {
+      printer = new CoveragePrinterGcov();
+      printers.put(file, printer);
+    }
+    return printer;
   }
 
   private static Set<CFANode> getAllLocationsFromReached(ReachedSet reached) {
