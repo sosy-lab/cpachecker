@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.BasicTestGenPathAnalysisStrategy;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.CFATrackingPathAnalysisStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.TestGenPathAnalysisStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.IterationStrategyFactory;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.model.PredicatePathAnalysisResult;
@@ -129,14 +129,15 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
     iterationStrategy =
         new IterationStrategyFactory(startupConfig, cfa, new ReachedSetFactory(startupConfig.getConfig(), logger),
             pCpaBuilder, stats).createStrategy(iterationStrategySelector, pAlgorithm);
-    analysisStrategy = new BasicTestGenPathAnalysisStrategy(pathChecker,startupConfig, stats);
+//    analysisStrategy = new BasicTestGenPathAnalysisStrategy(pathChecker,startupConfig, stats);
+    analysisStrategy = new CFATrackingPathAnalysisStrategy(pathChecker,startupConfig, stats);
   }
 
 
   @Override
   public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
       PredicatedAnalysisPropertyViolationException {
-
+    startupConfig.getShutdownNotifier().shutdownIfNecessary();
     stats.getTotalTimer().start();
     PredicatePathAnalysisResult lastResult = PredicatePathAnalysisResult.INVALID;
     iterationStrategy.initializeModel(pReachedSet);

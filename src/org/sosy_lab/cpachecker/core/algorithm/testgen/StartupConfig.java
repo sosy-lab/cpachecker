@@ -43,7 +43,7 @@ public class StartupConfig {
     return config;
   }
 
-  public ShutdownNotifier getNotifier() {
+  public ShutdownNotifier getShutdownNotifier() {
     return notifier;
   }
 

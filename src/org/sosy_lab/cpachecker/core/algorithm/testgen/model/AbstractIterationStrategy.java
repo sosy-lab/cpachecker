@@ -51,7 +51,7 @@ public abstract class AbstractIterationStrategy implements TestGenIterationStrat
     super();
     config = pConfig.getConfig();
     logger = pConfig.getLog();
-    shutdownNotifier = pConfig.getNotifier();
+    shutdownNotifier = pConfig.getShutdownNotifier();
     model = pModel;
     this.reachedSetFactory = pReachedSetFactory;
     stats = pStats;
