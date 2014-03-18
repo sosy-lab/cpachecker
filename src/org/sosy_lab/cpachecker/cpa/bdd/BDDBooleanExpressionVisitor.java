@@ -106,7 +106,13 @@ public class BDDBooleanExpressionVisitor
       }
     }
 
-    return predMgr.createPredicate(idExp.getDeclaration().getQualifiedName(), BOOLEAN_SIZE, precision)[0];
+    final Region[] result = predMgr.createPredicate(idExp.getDeclaration().getQualifiedName(), BOOLEAN_SIZE, precision);
+    if (result == null) {
+      return null;
+    } else {
+      assert result.length == BOOLEAN_SIZE;
+      return result[0];
+    }
   }
 
   private Region getNum(long num) {
