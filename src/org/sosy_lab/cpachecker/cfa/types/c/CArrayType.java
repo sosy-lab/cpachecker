@@ -133,6 +133,12 @@ public class CArrayType extends AArrayType implements CType {
 
   @Override
   public CArrayType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    return new CArrayType(isConst || pForceConst, isVolatile || pForceVolatile, getType().getCanonicalType(), length);
+    // C11 standard 6.7.2.4 (9) specifies that qualifiers like const and volatile
+    // on an array type always refer to the element type, not the array type.
+    // So we push these modifiers down to the element type here.
+    return new CArrayType(false, false,
+        getType().getCanonicalType(isConst || pForceConst,
+                                   isVolatile || pForceVolatile),
+        length);
   }
 }
