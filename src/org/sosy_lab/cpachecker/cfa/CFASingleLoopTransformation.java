@@ -152,7 +152,7 @@ public class CFASingleLoopTransformation {
   /**
    * The shutdown notifier used.
    */
-  private final OptionalShutdownNotifier shutdownNotifier;
+  private final ShutdownNotifier shutdownNotifier;
 
   @Option(name="cfa.transformIntoSingleLoop.omitExplicitLastProgramCounterAssumption",
       description="Single loop transformation builds a decision tree based on" +
@@ -189,22 +189,8 @@ public class CFASingleLoopTransformation {
   private CFASingleLoopTransformation(LogManager pLogger, Configuration pConfig, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     this.logger = pLogger;
     this.config = pConfig;
+    this.shutdownNotifier = pShutdownNotifier;
     config.inject(this);
-    this.shutdownNotifier = new OptionalShutdownNotifier(pShutdownNotifier);
-  }
-
-  /**
-   * Gets a single loop transformation strategy using the given log manager and configuration.
-   *
-   * @param pLogger the log manager used.
-   * @param pConfig the configuration used.
-   *
-   * @return a single loop transformation strategy.
-   *
-   * @throws InvalidConfigurationException if the configuration is invalid.
-   */
-  static CFASingleLoopTransformation getSingleLoopTransformation(LogManager pLogger, Configuration pConfig) throws InvalidConfigurationException {
-    return new CFASingleLoopTransformation(pLogger, pConfig, null);
   }
 
   /**
@@ -1494,7 +1480,7 @@ public class CFASingleLoopTransformation {
    * @throws InterruptedException if a shutdown has been requested by the given
    * shutdown notifier.
    */
-  private static boolean existsPath(CFANode pSource, CFANode pTarget, OptionalShutdownNotifier pShutdownNotifier) throws InterruptedException {
+  private static boolean existsPath(CFANode pSource, CFANode pTarget, ShutdownNotifier pShutdownNotifier) throws InterruptedException {
     return existsPath(pSource, pTarget, new Function<CFANode, Iterable<? extends CFAEdge>>() {
 
       @Override
@@ -1527,7 +1513,7 @@ public class CFASingleLoopTransformation {
    */
   private static boolean existsPath(CFANode pSource,
       CFANode pTarget, Function<? super CFANode, Iterable<? extends CFAEdge>> pGetLeavingEdges,
-      OptionalShutdownNotifier pShutdownNotifier) throws InterruptedException {
+      ShutdownNotifier pShutdownNotifier) throws InterruptedException {
     Set<CFANode> visited = new HashSet<>();
     Queue<CFANode> waitlist = new ArrayDeque<>();
     waitlist.offer(pSource);
@@ -1555,33 +1541,6 @@ public class CFASingleLoopTransformation {
    */
   private static boolean isDummyEdge(CFAEdge pEdge) {
     return pEdge != null && pEdge.getEdgeType() == CFAEdgeType.BlankEdge && pEdge.getDescription().equals(DUMMY_EDGE);
-  }
-
-  /**
-   * Instances of this class are proxies for ShutdownNotifier instances so that
-   * calls to {@link ShutdownNotifier#shutdownIfNecessary} are delegated to the
-   * wrapped instance or, if the wrapped instance is <code>null</code>, do
-   * nothing.
-   */
-  private static class OptionalShutdownNotifier {
-
-    private final ShutdownNotifier shutdownNotifier;
-
-    public OptionalShutdownNotifier(@Nullable ShutdownNotifier pShutdownNotifier) {
-      this.shutdownNotifier = pShutdownNotifier;
-    }
-
-    /**
-     * @see ShutdownNotifier#shutdownIfNecessary
-     *
-     * @throws InterruptedException if a shutdown was requested.
-     */
-    public void shutdownIfNecessary() throws InterruptedException {
-      if (shutdownNotifier != null) {
-        shutdownNotifier.shutdownIfNecessary();
-      }
-    }
-
   }
 
   /**
@@ -2053,7 +2012,7 @@ public class CFASingleLoopTransformation {
      * @throws IllegalArgumentException if the edge cannot be added according
      * to the employed growth strategy.
      */
-    public void addEdge(CFAEdge pEdge, OptionalShutdownNotifier pShutdownNotifier) throws InterruptedException {
+    public void addEdge(CFAEdge pEdge, ShutdownNotifier pShutdownNotifier) throws InterruptedException {
       Preconditions.checkArgument(offerEdge(pEdge, pShutdownNotifier));
     }
 
@@ -2069,7 +2028,7 @@ public class CFASingleLoopTransformation {
      * @throws InterruptedException if a shutdown has been requested by the given
      * shutdown notifier.
      */
-    public boolean offerEdge(CFAEdge pEdge, OptionalShutdownNotifier pShutdownNotifier) throws InterruptedException {
+    public boolean offerEdge(CFAEdge pEdge, ShutdownNotifier pShutdownNotifier) throws InterruptedException {
       if (containsEdge(pEdge)) {
         return true;
       }
@@ -2126,7 +2085,7 @@ public class CFASingleLoopTransformation {
      * @throws InterruptedException if a shutdown has been requested by the given
      * shutdown notifier.
      */
-    public boolean introducesLoop(CFAEdge pEdge, OptionalShutdownNotifier pShutdownNotifier) throws InterruptedException {
+    public boolean introducesLoop(CFAEdge pEdge, ShutdownNotifier pShutdownNotifier) throws InterruptedException {
       return existsPath(pEdge.getSuccessor(), pEdge.getPredecessor(), GET_CONTAINED_LEAVING_EDGES, pShutdownNotifier);
     }
 
