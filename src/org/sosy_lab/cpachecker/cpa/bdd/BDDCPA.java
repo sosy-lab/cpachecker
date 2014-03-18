@@ -82,6 +82,10 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
     reducer = new BDDReducer(predmgr);
   }
 
+  public NamedRegionManager getManager() {
+    return manager;
+  }
+
   @Override
   public AbstractDomain getAbstractDomain() {
     return abstractDomain;

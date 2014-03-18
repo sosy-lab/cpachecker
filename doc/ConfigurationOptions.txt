@@ -387,6 +387,10 @@ counterexample.checker.config = "config/explicitAnalysis-no-cbmc.properties"
 # second check
 counterexample.continueAfterInfeasibleError = true
 
+# The files where the BDDCPARestrictionAlgorithm should write the presence
+# conditions for the counterexamples to.
+counterexample.presenceConditionFile = "ErrorPath.%d.presenceCondition.txt"
+
 # If continueAfterInfeasibleError is true, remove the infeasible
 # counterexample before continuing.Setting this to false may prevent a lot of
 # similar infeasible counterexamples to get discovered, but is unsound

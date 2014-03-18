@@ -23,39 +23,50 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import java.io.PrintStream;
 import java.util.Collection;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.bdd.BDDCPA;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDState;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 @Options(prefix="counterexample")
-public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider, Statistics {
+public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider {
+
+  @Option(description="The files where the BDDCPARestrictionAlgorithm should write the presence conditions for the counterexamples to.")
+  @FileOption(Type.OUTPUT_FILE)
+  private Path presenceConditionFile = Paths.get("ErrorPath.%d.presenceCondition.txt");
 
   private final Algorithm algorithm;
   private final LogManager logger;
-  private final ARGCPA cpa;
+  private final ConfigurableProgramAnalysis cpa;
+
+  private final NamedRegionManager manager;
+  private Region errorSummary;
 
   public BDDCPARestrictionAlgorithm(Algorithm algorithm,
       ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger,
@@ -64,17 +75,16 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
     this.logger = logger;
     config.inject(this);
 
-    if (!(pCpa instanceof ARGCPA)) {
-      throw new InvalidConfigurationException("ARG CPA needed for counterexample check");
+    BDDCPA bddCpa = CPAs.retrieveCPA(pCpa, BDDCPA.class);
+    if (bddCpa == null) {
+      throw new InvalidConfigurationException("BDD CPA needed for BDDCPARestrictionAlgorithm");
     }
-    cpa = (ARGCPA)pCpa;
+    cpa = pCpa;
     logger.log(Level.INFO, "using the BDDCPA Restriction Algorithm");
-  }
 
-  //items for the BDD_extension
-  NamedRegionManager manager = null;
-  Region errorSummary = null;
-  int errorsHit =0;
+    manager = bddCpa.getManager();
+    errorSummary = manager.makeFalse();
+  }
 
   @Override
   public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
@@ -84,49 +94,39 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
       sound &= algorithm.run(reached);
       assert ARGUtils.checkARG(reached);
 
-      AbstractState lastState = reached.getLastState();
-      if (lastState != null && !(lastState instanceof ARGState)) {
-        // no analysis possible
+      final AbstractState lastState = reached.getLastState();
+      if (!(lastState instanceof Targetable)
+          || !((Targetable)lastState).isTarget()) {
+        // no target state
         break;
       }
-      ARGState errorState = (ARGState)lastState;
 
       // BDD specials
-      Region errorBDD = null;
-      for (AbstractState x : ((CompositeState)errorState.getWrappedState()).getWrappedStates()) {
-        if (x instanceof BDDState) {
-          errorBDD = ((BDDState) x).getRegion();
-          //logger.log(Level.INFO,"BDD: " + ((BDDState) x).toString());
-          if (manager==null) {
-            manager = ((BDDState)x).getManager();
-            errorSummary=manager.makeFalse();
-          }
-          logger.log(Level.INFO, "errorBDD:" + (errorBDD==null?"null":manager.dumpRegion(errorBDD)));
-          errorSummary=manager.makeOr(errorBDD, errorSummary);
-          errorsHit++;
-          CounterexampleInfo counterEx = cpa.getCounterexamples().get(errorState);
-          if (counterEx != null) {
-            counterEx.addFurtherInformation(manager.dumpRegion(errorBDD), Paths.get("output","errorPath.%d.presenceCondition.txt"));
-          }
+      final BDDState bddErrorState = AbstractStates.extractStateByType(lastState, BDDState.class);
+      final Region errorBdd = bddErrorState.getRegion();
+      final String errorBddStr = manager.dumpRegion(errorBdd);
+
+      logger.log(Level.INFO, "ErrorBDD:", errorBddStr);
+      errorSummary = manager.makeOr(errorBdd, errorSummary);
+
+      if (presenceConditionFile != null && cpa instanceof ARGCPA) {
+        CounterexampleInfo counterEx = ((ARGCPA)cpa).getCounterexamples().get(lastState);
+        if (counterEx != null) {
+          counterEx.addFurtherInformation(errorBddStr, presenceConditionFile);
         }
       }
-      logger.log(Level.INFO, "ErrorSummary:" + (errorSummary==null?"null":manager.dumpRegion(errorSummary)));
+
+      logger.log(Level.INFO, "ErrorSummary:", manager.dumpRegion(errorSummary));
 
       //TODO: would be better to delete states that should not be explored further from the waitlist
-      for (AbstractState x : reached.getWaitlist()) {
-        ARGState xart = (ARGState)x;
-        BDDState fvstate = null;
-        for (AbstractState y : ((CompositeState)xart.getWrappedState()).getWrappedStates()) {
-          if (y instanceof BDDState) {
-            fvstate = (BDDState)y;
-          }
-        }
-        if (fvstate != null) {
-          fvstate.addConstraintToState(manager.makeNot(errorBDD));
+      for (AbstractState s : reached.getWaitlist()) {
+        BDDState bddState = AbstractStates.extractStateByType(s, BDDState.class);
+        if (bddState != null) {
+          bddState.addConstraintToState(manager.makeNot(errorBdd));
         }
       }
+      // END BDD specials
     }
-    // END BDD specials
 
     return sound;
   }
@@ -136,16 +136,5 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
     if (algorithm instanceof StatisticsProvider) {
       ((StatisticsProvider)algorithm).collectStatistics(pStatsCollection);
     }
-    pStatsCollection.add(this);
-  }
-
-  @Override
-  public void printStatistics(PrintStream out, Result pResult,
-      ReachedSet pReached) {
-  }
-
-  @Override
-  public String getName() {
-    return this.getClass().getName();
   }
 }
