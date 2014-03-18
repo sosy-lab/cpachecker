@@ -141,8 +141,8 @@ public class VariableClassification {
   private boolean printStatsOnStartup = false;
 
   /** name for return-variables, it is used for function-returns. */
-  public static final String FUNCTION_RETURN_VARIABLE = "__retval__";
-  public static final String SCOPE_SEPARATOR = "::";
+  private static final String FUNCTION_RETURN_VARIABLE = "__retval__";
+  private static final String SCOPE_SEPARATOR = "::";
 
   /** normally a boolean value would be 0 or 1,
    * however there are cases, where the values are only 0 and 1,
@@ -806,7 +806,7 @@ public class VariableClassification {
     }
 
     case FunctionReturnEdge: {
-      String scopedVarName = edge.getPredecessor().getFunctionName() + SCOPE_SEPARATOR + FUNCTION_RETURN_VARIABLE;
+      String scopedVarName = createFunctionReturnVariable(edge.getPredecessor().getFunctionName());
       dependencies.addVar(scopedVarName);
       Partition partition = getPartitionForVar(scopedVarName);
       partition.addEdge(edge, 0);
@@ -823,7 +823,7 @@ public class VariableClassification {
         handleExpression(edge,
                          rhs,
                          scopeVar(function, FUNCTION_RETURN_VARIABLE),
-                         VariableOrField.newVariable(scopeVar(function, FUNCTION_RETURN_VARIABLE)));
+                         VariableOrField.newVariable(createFunctionReturnVariable(function)));
       }
       break;
     }
@@ -919,7 +919,7 @@ public class VariableClassification {
 
       if (cfa.getAllFunctionNames().contains(functionName)) {
         // TODO is this case really appearing or is it always handled as "functionCallEdge"?
-        dependencies.add(scopeVar(functionName, FUNCTION_RETURN_VARIABLE), varName);
+        dependencies.add(createFunctionReturnVariable(functionName), varName);
 
       } else {
         // external function
@@ -983,7 +983,7 @@ public class VariableClassification {
     final List<CExpression> args = edge.getArguments();
     final List<CParameterDeclaration> params = edge.getSuccessor().getFunctionParameters();
     final String innerFunctionName = edge.getSuccessor().getFunctionName();
-    final String scopedRetVal = scopeVar(innerFunctionName, FUNCTION_RETURN_VARIABLE);
+    final String scopedRetVal = createFunctionReturnVariable(innerFunctionName);
 
     // functions can have more args than params used in the call
     assert args.size() >= params.size();
@@ -1078,24 +1078,25 @@ public class VariableClassification {
   }
 
   /** Returns a scoped name for a given IdExpression. */
-  public static String scopeVar(final CExpression exp) {
-    if(exp instanceof CIdExpression) {
-      return ((CIdExpression) exp).getDeclaration().getQualifiedName();
-    } else {
-      return exp.toASTString();
-    }
+  private static String scopeVar(final CIdExpression exp) {
+    return exp.getDeclaration().getQualifiedName();
   }
 
+  @Deprecated // for uses outside of this class, use getQualifiedName() of declarations
   public static String scopeVar(@Nullable final String function, final String var) {
     return (function == null) ? (var) : (function + SCOPE_SEPARATOR + var);
   }
 
-  public static boolean isGlobal(CExpression exp) {
+  private static boolean isGlobal(CExpression exp) {
     if (exp instanceof CIdExpression) {
       CSimpleDeclaration decl = ((CIdExpression) exp).getDeclaration();
       if (decl instanceof CDeclaration) { return ((CDeclaration) decl).isGlobal(); }
     }
     return false;
+  }
+
+  public static String createFunctionReturnVariable(final String function) {
+    return function + SCOPE_SEPARATOR + FUNCTION_RETURN_VARIABLE;
   }
 
   /** returns the value of a (nested) IntegerLiteralExpression
@@ -1233,9 +1234,9 @@ public class VariableClassification {
     @Override
     public Set<String> visit(CFieldReference exp) {
       String varName = exp.toASTString(); // TODO "(*p).x" vs "p->x"
-      String function = isGlobal(exp) ? "" : predecessor.getFunctionName() + SCOPE_SEPARATOR;
+      String function = isGlobal(exp) ? "" : predecessor.getFunctionName();
       Set<String> ret = new HashSet<>(1);
-      ret.add(function + varName);
+      ret.add(scopeVar(function, varName));
       return ret;
     }
 

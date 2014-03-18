@@ -208,12 +208,6 @@ public class CtoFormulaConverter {
            variableClassification.get().getRelevantFields().containsEntry(compositeType, fieldName);
   }
 
-  protected static Pair<String, String> parseQualifiedName(final String qualifiedName) {
-    final int position = qualifiedName.indexOf(SCOPE_SEPARATOR);
-    return Pair.of(position >= 0 ? qualifiedName.substring(0, position) : null,
-                   position >= 0 ? qualifiedName.substring(position + SCOPE_SEPARATOR.length()) : qualifiedName);
-  }
-
   protected boolean isRelevantLeftHandSide(final CLeftHandSide lhs) {
     if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
       return lhs.accept(new IsRelevantLhsVisitor(this));
@@ -224,9 +218,7 @@ public class CtoFormulaConverter {
 
   protected final boolean isRelevantVariable(final CSimpleDeclaration var) {
     if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
-      final Pair<String, String> parsedName = parseQualifiedName(var.getQualifiedName());
-      final String name = parsedName.getSecond();
-      return name.equals(RETURN_VARIABLE_NAME) ||
+      return var.getName().equals(RETURN_VARIABLE_NAME) ||
            variableClassification.get().getRelevantVariables().contains(var.getQualifiedName());
     }
     return true;

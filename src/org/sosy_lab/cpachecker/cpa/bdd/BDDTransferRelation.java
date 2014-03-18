@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
-import static org.sosy_lab.cpachecker.util.VariableClassification.FUNCTION_RETURN_VARIABLE;
-import static org.sosy_lab.cpachecker.util.VariableClassification.scopeVar;
+import static org.sosy_lab.cpachecker.util.VariableClassification.createFunctionReturnVariable;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -49,8 +48,30 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.*;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -313,7 +334,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
     // set result of function equal to variable on left side
     final Partition partition = varClass.getPartitionForEdge(cfaEdge);
-    final String returnVar =  scopeVar(functionName, FUNCTION_RETURN_VARIABLE);
+    final String returnVar =  createFunctionReturnVariable(functionName);
 
     // handle assignments like "y = f(x);"
     if (summaryExpr instanceof CFunctionCallAssignmentStatement) {
@@ -337,7 +358,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     // delete variables from returning function,
     // this results in a smaller BDD and allows to call a function twice.
     for (String var : predmgr.getTrackedVars().keySet()) {
-      if (var.startsWith(functionName + VariableClassification.SCOPE_SEPARATOR)) {
+      if (isLocalVariableForFunction(var, functionName)) {
         newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var, predmgr.getTrackedVars().get(var)));
       }
     }
@@ -362,7 +383,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
       // make variable (predicate) for returnStatement,
       // delete variable, if it was used before, this is done with an existential operator
-      final Region[] retvar = predmgr.createPredicate(scopeVar(functionName, FUNCTION_RETURN_VARIABLE),
+      final Region[] retvar = predmgr.createPredicate(createFunctionReturnVariable(functionName),
               getBitsize(partition, functionReturnType), precision);
       newState = newState.forget(retvar);
       newState = newState.addAssignment(retvar, regRHS);
@@ -429,6 +450,21 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   /** This function returns, if the variable is used in the Expression. */
   private static boolean isUsedInExpression(String varName, CExpression exp) {
     return exp.accept(new VarCExpressionVisitor(varName));
+  }
+
+  private static String scopeVar(final CExpression exp) {
+    if (exp instanceof CIdExpression) {
+      return ((CIdExpression) exp).getDeclaration().getQualifiedName();
+    } else {
+      // TODO function name?
+      return exp.toASTString();
+    }
+  }
+
+  private static boolean isLocalVariableForFunction(String scopedVarName, String function) {
+    // TODO this relies on implementation details of CDeclaration.getQualifiedName()
+    // TODO this ignores variable names created from scopeVar() by calling toASTString().
+    return scopedVarName.startsWith(function + "::");
   }
 
   /** This function returns the bitsize for vars of a partition.
