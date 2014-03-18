@@ -77,7 +77,9 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Ordering;
 
 /**
  * This class represents an assignment of values to program variables
@@ -340,11 +342,13 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
     return assignments.getExactVariableValues(pPath);
   }
 
-  private static final MapJoiner joiner = Joiner.on('\n').withKeyValueSeparator(": ");
+  private static final MapJoiner joiner = Joiner.on(System.lineSeparator()).withKeyValueSeparator(": ");
 
   @Override
   public void appendTo(Appendable output) throws IOException {
-    joiner.appendTo(output, mModel);
+    Map<AssignableTerm, Object> sorted = ImmutableSortedMap.copyOf(mModel,
+        Ordering.usingToString());
+    joiner.appendTo(output, sorted);
   }
 
   @Override
