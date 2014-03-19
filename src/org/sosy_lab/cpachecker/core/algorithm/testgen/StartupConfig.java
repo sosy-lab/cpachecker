@@ -38,7 +38,8 @@ public class StartupConfig {
    * {@link ShutdownNotifier#createWithParent(ShutdownNotifier)}
    */
   public static StartupConfig createWithParent(StartupConfig pStartupConfig) {
-    return new StartupConfig(pStartupConfig.getConfig(), pStartupConfig.getLog(), ShutdownNotifier.createWithParent(pStartupConfig.getShutdownNotifier()));
+    return new StartupConfig(pStartupConfig.getConfig(), pStartupConfig.getLog(),
+        ShutdownNotifier.createWithParent(pStartupConfig.getShutdownNotifier()));
   }
 
   private final Configuration config;
