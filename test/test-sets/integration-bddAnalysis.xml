@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="70" hardtimelimit="90" memlimit="2000" cpuCores="1">
+<benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="2000" cpuCores="1">
 
   <!-- 
   This is a small benchmark-file to check the BDDCPA with its most-used option-combinations.
@@ -12,7 +12,7 @@
   <option name="-heap">1800M</option>
   <option name="-timelimit">1min</option>
 
-  <rundefinition name="bdd">
+  <rundefinition>
 
     <sourcefiles name="ex-bdd-bool">
       <option name="-explicit-BDD-bool"/>
