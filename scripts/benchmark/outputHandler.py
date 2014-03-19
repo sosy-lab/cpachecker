@@ -83,7 +83,10 @@ class OutputHandler:
         self.statistics = Statistics()
 
         # get information about computer
-        (opSystem, cpuModel, numberOfCores, maxFrequency, memory, hostname) = self.getSystemInfo()
+        sysinfo = None
+        if not self.benchmark.config.cloud and not self.benchmark.config.appengine:
+            from .systeminfo import SystemInfo
+            sysinfo = SystemInfo()
         version = self.benchmark.toolVersion
 
         memlimit = None
@@ -96,10 +99,8 @@ class OutputHandler:
         if CORELIMIT in self.benchmark.rlimits:
             corelimit = str(self.benchmark.rlimits[CORELIMIT])
 
-        self.storeHeaderInXML(version, memlimit, timelimit, corelimit, opSystem, cpuModel,
-                              numberOfCores, maxFrequency, memory, hostname)
-        self.writeHeaderToLog(version, memlimit, timelimit, corelimit, opSystem, cpuModel,
-                              numberOfCores, maxFrequency, memory, hostname)
+        self.storeHeaderInXML(version, memlimit, timelimit, corelimit, sysinfo)
+        self.writeHeaderToLog(version, memlimit, timelimit, corelimit, sysinfo)
 
         self.XMLFileNames = []
 
@@ -116,8 +117,7 @@ class OutputHandler:
         self.XMLHeader.append(systemInfo)
 
 
-    def storeHeaderInXML(self, version, memlimit, timelimit, corelimit, opSystem,
-                         cpuModel, numberOfCores, maxFrequency, memory, hostname):
+    def storeHeaderInXML(self, version, memlimit, timelimit, corelimit, sysinfo):
 
         # store benchmarkInfo in XML
         self.XMLHeader = ET.Element("result",
@@ -128,9 +128,11 @@ class OutputHandler:
         self.XMLHeader.set(TIMELIMIT, timelimit if timelimit else '-')
         self.XMLHeader.set(CORELIMIT, corelimit if corelimit else '-')
 
-        if not self.benchmark.config.cloud and not self.benchmark.config.appengine:
+        if sysinfo:
             # store systemInfo in XML
-            self.storeSystemInfo(opSystem, cpuModel, numberOfCores, maxFrequency, memory, hostname)
+            self.storeSystemInfo(sysinfo.os, sysinfo.cpuModel,
+                                 sysinfo.numberOfCores, sysinfo.maxFrequency,
+                                 sysinfo.memory, sysinfo.hostname)
 
         # store columnTitles in XML, this are the default columns, that are shown in a default html-table from table-generator
         columntitlesElem = ET.Element("columns")
@@ -152,8 +154,7 @@ class OutputHandler:
                         {"title": column.title, "value": ""}))
 
 
-    def writeHeaderToLog(self, version, memlimit, timelimit, corelimit, opSystem,
-                         cpuModel, numberOfCores, maxFrequency, memory, hostname):
+    def writeHeaderToLog(self, version, memlimit, timelimit, corelimit, sysinfo):
         """
         This method writes information about benchmark and system into TXTFile.
         """
@@ -175,16 +176,17 @@ class OutputHandler:
             header += "CPU cores used:".ljust(columnWidth) + corelimit + "\n"
         header += simpleLine
 
-        systemInfo = "   SYSTEM INFORMATION\n"\
-                + "host:".ljust(columnWidth) + hostname + "\n"\
-                + "os:".ljust(columnWidth) + opSystem + "\n"\
-                + "cpu:".ljust(columnWidth) + cpuModel + "\n"\
-                + "- cores:".ljust(columnWidth) + numberOfCores + "\n"\
-                + "- max frequency:".ljust(columnWidth) + maxFrequency + "\n"\
-                + "ram:".ljust(columnWidth) + memory + "\n"\
-                + simpleLine
+        if sysinfo:
+            header += "   SYSTEM INFORMATION\n"\
+                    + "host:".ljust(columnWidth) + sysinfo.hostname + "\n"\
+                    + "os:".ljust(columnWidth) + sysinfo.os + "\n"\
+                    + "cpu:".ljust(columnWidth) + sysinfo.cpuModel + "\n"\
+                    + "- cores:".ljust(columnWidth) + sysinfo.numberOfCores + "\n"\
+                    + "- max frequency:".ljust(columnWidth) + sysinfo.maxFrequency + "\n"\
+                    + "ram:".ljust(columnWidth) + sysinfo.memory + "\n"\
+                    + simpleLine
 
-        self.description = header + systemInfo
+        self.description = header
 
         runSetName = None
         runSets = [runSet for runSet in self.benchmark.runSets if runSet.shouldBeExecuted()]
@@ -196,61 +198,6 @@ class OutputHandler:
         TXTFileName = self.getFileName(runSetName, "txt")
         self.TXTFile = filewriter.FileWriter(TXTFileName, self.description)
         self.allCreatedFiles.append(TXTFileName)
-
-
-    def getSystemInfo(self):
-        """
-        This function returns some information about the computer.
-        """
-
-        # get info about OS
-        (sysname, name, kernel, version, machine) = os.uname()
-        opSystem = sysname + " " + kernel + " " + machine
-
-        # get info about CPU
-        cpuInfo = dict()
-        maxFrequency = 'unknown'
-        cpuInfoFilename = '/proc/cpuinfo'
-        numberOfCores = 'unknown'
-        if os.path.isfile(cpuInfoFilename) and os.access(cpuInfoFilename, os.R_OK):
-            cpuInfoFile = open(cpuInfoFilename, 'rt')
-            cpuInfoLines = [tuple(line.split(':')) for line in
-                            cpuInfoFile.read()
-                                       .replace('\n\n', '\n').replace('\t', '')
-                                       .strip('\n').split('\n')]
-            cpuInfo = dict(cpuInfoLines)
-            cpuInfoFile.close()
-            numberOfCores = str(len([line for line in cpuInfoLines if line[0] == 'processor']))
-        cpuModel = cpuInfo.get('model name', 'unknown') \
-                          .strip() \
-                          .replace("(R)", "") \
-                          .replace("(TM)", "") \
-                          .replace("(tm)", "")
-        if 'cpu MHz' in cpuInfo:
-            maxFrequency = cpuInfo['cpu MHz'].split('.')[0].strip() + ' MHz'
-
-        # modern cpus may not work with full speed the whole day
-        # read the number from cpufreq and overwrite maxFrequency from above
-        freqInfoFilename = '/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq'
-        if os.path.isfile(freqInfoFilename) and os.access(freqInfoFilename, os.R_OK):
-            frequencyInfoFile = open(freqInfoFilename, 'rt')
-            maxFrequency = frequencyInfoFile.read().strip('\n')
-            frequencyInfoFile.close()
-            maxFrequency = str(int(maxFrequency) // 1000) + ' MHz'
-
-        # get info about memory
-        memInfo = dict()
-        memInfoFilename = '/proc/meminfo'
-        if os.path.isfile(memInfoFilename) and os.access(memInfoFilename, os.R_OK):
-            memInfoFile = open(memInfoFilename, 'rt')
-            memInfo = dict(tuple(str.split(': ')) for str in
-                            memInfoFile.read()
-                            .replace('\t', '')
-                            .strip('\n').split('\n'))
-            memInfoFile.close()
-        memTotal = memInfo.get('MemTotal', 'unknown').strip()
-
-        return (opSystem, cpuModel, numberOfCores, maxFrequency, memTotal, name)
 
 
     def outputBeforeRunSet(self, runSet):
