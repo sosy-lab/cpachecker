@@ -172,8 +172,8 @@ def findExecutable(program, fallback=None, exitOnError=True):
     def isExecutable(programPath):
         return os.path.isfile(programPath) and os.access(programPath, os.X_OK)
 
-    dirs = os.environ['PATH'].split(os.pathsep)
-    dirs.append(".")
+    dirs = os.environ['PATH'].split(os.path.sep)
+    dirs.append(os.path.curdir)
 
     for dir in dirs:
         name = os.path.join(dir, program)
@@ -187,6 +187,11 @@ def findExecutable(program, fallback=None, exitOnError=True):
         sys.exit("ERROR: Could not find '{0}' executable".format(program))
     else:
         return fallback
+
+
+def commonBaseDir(l):
+    # os.path.commonprefix returns the common prefix, not the common directory
+    return os.path.dirname(os.path.commonprefix(l))
 
 
 def addFilesToGitRepository(baseDir, files, description):

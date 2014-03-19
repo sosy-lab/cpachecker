@@ -183,7 +183,7 @@ class Benchmark:
         # create folder for file-specific log-files.
         # existing files (with the same name) will be OVERWRITTEN!
         self.outputBase = OUTPUT_PATH + self.name + "." + self.date
-        self.logFolder = self.outputBase + ".logfiles/"
+        self.logFolder = self.outputBase + ".logfiles" + os.path.sep
         if not os.path.isdir(self.logFolder):
             os.makedirs(self.logFolder)
 

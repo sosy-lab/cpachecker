@@ -66,8 +66,8 @@ def executeBenchmarkInCloud(benchmark, outputHandler):
         logLevel =  "FINER"
     else:
         logLevel = "INFO"
-    libDir = os.path.abspath("./lib/java-benchmark")
-    cmdLine = ["java", "-jar", libDir + "/vcloud.jar", "benchmark", "--loglevel", logLevel]
+    libDir = os.path.abspath(os.path.join(os.path.curdir, "lib", "java-benchmark"))
+    cmdLine = ["java", "-jar", os.path.join(libDir, "vcloud.jar"), "benchmark", "--loglevel", logLevel]
     if benchmark.config.cloudMaster:
         cmdLine.extend(["--master", config.cloudMaster])
     if benchmark.config.debug:
@@ -97,11 +97,6 @@ def toTabList(l):
     return "\t".join(map(str, l))
 
 
-def commonBaseDir(l):
-    # os.path.commonprefix returns the common prefix, not the common directory
-    return os.path.dirname(os.path.commonprefix(l))
-
-
 def getCloudInput(benchmark):
 
     (requirements, numberOfRuns, limitsAndNumRuns, runDefinitions, sourceFiles) = getBenchmarkDataForCloud(benchmark)
@@ -114,7 +109,7 @@ def getCloudInput(benchmark):
     absScriptsPath = os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir))
     absToolpaths = list(map(os.path.abspath, toolpaths))
     absSourceFiles = list(map(os.path.abspath, sourceFiles))
-    absBaseDir = commonBaseDir(absSourceFiles + absToolpaths + [absScriptsPath])
+    absBaseDir = Util.commonBaseDir(absSourceFiles + absToolpaths + [absScriptsPath])
 
     if absBaseDir == "": sys.exit("No common base dir found.")
 

@@ -266,8 +266,7 @@ class OutputHandler:
         sourcefiles = [run.sourcefile for run in runSet.runs]
 
         # common prefix of file names
-        self.commonPrefix = os.path.commonprefix(sourcefiles) # maybe with parts of filename
-        self.commonPrefix = self.commonPrefix[: self.commonPrefix.rfind('/') + 1] # only foldername
+        self.commonPrefix = Util.commonBaseDir(sourcefiles) + os.path.sep
 
         # length of the first column in terminal
         self.maxLengthOfFileName = max(len(file) for file in sourcefiles) if sourcefiles else 20
