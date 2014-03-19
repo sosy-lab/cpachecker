@@ -56,7 +56,7 @@ def executeBenchmarkInCloud(benchmark, outputHandler):
     outputHandler.allCreatedFiles.append(cloudInputFile)
 
     # install cloud and dependencies
-    ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"])
+    ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"], shell=Util.isWindows())
     ant.communicate()
     ant.wait()
 
@@ -72,7 +72,7 @@ def executeBenchmarkInCloud(benchmark, outputHandler):
         cmdLine.extend(["--master", benchmark.config.cloudMaster])
     if benchmark.config.debug:
         cmdLine.extend(["--print-new-files", "true"])
-    cloud = subprocess.Popen(cmdLine, stdin=subprocess.PIPE)
+    cloud = subprocess.Popen(cmdLine, stdin=subprocess.PIPE, shell=Util.isWindows())
     try:
         (out, err) = cloud.communicate(cloudInput.encode('utf-8'))
     except KeyboardInterrupt:

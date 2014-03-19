@@ -35,6 +35,9 @@ import xml.etree.ElementTree as ET
 This module contains some useful functions for Strings, XML or Lists.
 """
 
+def isWindows():
+    return os.name == 'nt'
+
 def printOut(value, end='\n'):
     """
     This function prints the given String immediately and flushes the output.
