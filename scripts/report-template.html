@@ -146,7 +146,7 @@ html,body {
     background: white;
 }
 
-#tab_cfa .iframeWrapper, #tab_art .iframeWrapper {
+#tab_cfa .controlledContentContainer, #tab_art .controlledContentContainer {
     position: absolute;
     top: 26px;
     bottom: 0px;
@@ -155,7 +155,7 @@ html,body {
     overflow: none;
 }
 
-#tab_log,#tab_stats,#tab_conf,#tab_cil {
+#tab_log,#tab_stats,#tab_conf,#tab_source {
     position: absolute;
     top: 0px;
     bottom: 0px;
@@ -189,33 +189,33 @@ a.action:hover {
     background-color: lime;
 }
 
-#tab_cil #cil_holder td {
+#tab_source #source_content td {
     padding: 0px;
     margin: 0px;
     padding-right: 10px;
 }
 
-#tab_cil #cil_holder td:first-child {
+#tab_source #source_content td:first-child {
     background-color: #ccc;
 }
 
-#tab_cil #cil_holder td pre {
+#tab_source #source_content td pre {
     padding: 0px;
     margin: 0px;
     border: none;
 }
 
-#tab_cil #cil_holder tr:nth-child(2n+1) td pre.prettyprint {
+#tab_source #source_content tr:nth-child(2n+1) td pre.prettyprint {
     background-color: #f3f3f3;
 }
 
-.zoomSliderContainer {
+.controllerContainer {
     position: absolute;
     top: 0px;
     left: 0px;
     right: 0px;
     height: 25px;
-    z-index: 2; /* slider is over content */
+    z-index: 2; /* controller is over content */
     border-bottom: 1px solid black;
     float: right;
     background-color: #eed;
@@ -234,12 +234,12 @@ a.action:hover {
     float: right;
 }
 
-.zoomSliderContainer .zoomSliderContent { /* DO NOT CHANGE, USED FOR CALCULATION */
+.controllerContainer .zoomSliderContent { /* DO NOT CHANGE, USED FOR CALCULATION */
     width: 2300px;
     height: 18px;
 }
 
-#functionSelector {
+#selectorContainer {
     float: left;
     line-height: 25px;
 }
@@ -284,7 +284,7 @@ a.action:hover {
             <div class="toolbar">
                 <a class="action" id="show_cfa">CFA</a>
                 <a class="action" id="show_art">ARG</a>
-                <a class="action" id="show_cil">Source</a>
+                <a class="action" id="show_source">Source</a>
                 <a class="action" id="show_log">Log</a>
                 <a class="action" id="show_stats">Statistics</a>
                 <a class="action" id="show_conf">Configuration</a>
@@ -292,25 +292,25 @@ a.action:hover {
 
             <div id="tabContent">
                 <div id="tab_cfa">
-                    <div class="zoomSliderContainer">
+                    <div class="controllerContainer">
                         <div id="zoomSlider_tab_cfa"
                              onmousemove="setZoomLevel(this.id);"
                         	 onmouseup="setZoomLevel(this.id);zoom(this.id);">
                             <div class="zoomSliderContent"></div>
                         </div>
                         <div id="zoomLabel_tab_cfa">100 %</div>
-                        <div id="functionSelector">
+                        <div id="selectorContainer">
                             <span>Displayed CFA </span>
                             <select id="functionselect"></select>
                         </div>
                     </div>
-                    <div class="iframeWrapper">
+                    <div class="controlledContentContainer">
                         <iframe name="tab_cfa" src="about:blank"></iframe>
                     </div>
                 </div>
 
                 <div id="tab_art">
-                    <div class="zoomSliderContainer">
+                    <div class="controllerContainer">
                         <div id="zoomSlider_tab_art"
                         	 onmousemove="setZoomLevel(this.id);"
                         	 onmouseup="setZoomLevel(this.id);zoom(this.id);">
@@ -318,15 +318,15 @@ a.action:hover {
                         </div>
                         <div id="zoomLabel_tab_art">100 %</div>
                     </div>
-                    <div class="iframeWrapper">
+                    <div class="controlledContentContainer">
 						<iframe name="tab_art" src="ARG.svg"></iframe>
 					</div>
                 </div>
-		<div id="tab_cil">
+		<div id="tab_source">
                     {{if sourcefilecontent}}
-                    <table id="cil_holder">
+                    <table id="source_content">
 {{for loop, line in looper(sourcefilecontent.splitlines())}}
-<tr id="cil_line_{{loop.index}}"><td><pre>{{loop.index}}</pre></td><td><pre class="prettyprint lang-c">{{line}}</pre></td></tr>
+<tr id="source_line_{{loop.index}}"><td><pre>{{loop.index}}</pre></td><td><pre class="prettyprint lang-c">{{line}}</pre></td></tr>
 {{endfor}}
                     </table>
                     {{else}}
@@ -1060,18 +1060,18 @@ a.action:hover {
             });
 
 
-            var selected_cil = null;
+            var selected_source = null;
 
-            function scroll_cil(line) {
+            function scroll_source(line) {
                 if (line > 0) {
                     line--;
                 }
-                if (selected_cil) {
-                    selected_cil.children[1].children[0].style.backgroundColor = '';
+                if (selected_source) {
+                    selected_source.children[1].children[0].style.backgroundColor = '';
                 }
-                selected_cil = document.getElementById('cil_line_' + line);
-                selected_cil.children[1].children[0].style.backgroundColor = 'red';
-                selected_cil.scrollIntoView();
+                selected_source = document.getElementById('source_line_' + line);
+                selected_source.children[1].children[0].style.backgroundColor = 'red';
+                selected_source.scrollIntoView();
             }
 
             //viewer.windows.cfawin.init();
@@ -1082,8 +1082,8 @@ a.action:hover {
                     viewer.windows.argwin.focus_node(
                         '' + viewer.data.errorpath[errpathindex].argelem
                     );
-                } else if (viewer.windows.rightpane.selection == 'tab_cil') {
-                    scroll_cil(viewer.data.cfainfo.nodes[nodeid].line);
+                } else if (viewer.windows.rightpane.selection == 'tab_source') {
+                    scroll_source(viewer.data.cfainfo.nodes[nodeid].line);
                 }
             });
 
@@ -1095,14 +1095,14 @@ a.action:hover {
                     viewer.windows.argwin.focus_node(
                         '' + viewer.data.errorpath[errpathindex].argelem
                     );
-                } else if (viewer.windows.rightpane.selection == 'tab_cil') {
-                    scroll_cil(viewer.data.cfainfo.edges[edgeid[0] + '->' + edgeid[1]].line);
+                } else if (viewer.windows.rightpane.selection == 'tab_source') {
+                    scroll_source(viewer.data.cfainfo.edges[edgeid[0] + '->' + edgeid[1]].line);
                 }
             });
 
             viewer.windows.cfawin.handlers.add('edge_clicked', function(evtname, edgeid) {
-                viewer.windows.rightpane.select_tab('tab_cil');
-                scroll_cil(viewer.data.cfainfo.edges[edgeid].line);
+                viewer.windows.rightpane.select_tab('tab_source');
+                scroll_source(viewer.data.cfainfo.edges[edgeid].line);
             });
 
             viewer.windows.cfawin.init();
