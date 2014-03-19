@@ -718,8 +718,14 @@ public class CFASingleLoopTransformation {
    */
   private ImmutableCFA buildCFA(FunctionEntryNode pStartNode, CFANode pLoopHead,
       MachineModel pMachineModel, Language pLanguage) throws InvalidConfigurationException, InterruptedException {
+
     Map<String, FunctionEntryNode> functions = new HashMap<>();
+
     SortedSetMultimap<String, CFANode> allNodes = mapNodesToFunctions(pStartNode, functions);
+
+    // Give the loop head the lowest post order id to ensure that it is always
+    // traversed last
+    pLoopHead.setReversePostorderId(-1);
 
     // Instantiate the transformed graph in a preliminary form
     MutableCFA cfa = new MutableCFA(pMachineModel, functions, allNodes, pStartNode, pLanguage);
