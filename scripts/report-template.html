@@ -295,7 +295,7 @@ a.action:hover {
                     <div class="controllerContainer">
                         <div id="zoomSlider_tab_cfa"
                              onmousemove="setZoomLevel(this.id);"
-                        	 onmouseup="setZoomLevel(this.id);zoom(this.id);">
+                             onmouseup="setZoomLevel(this.id);zoom(this.id);">
                             <div class="zoomSliderContent"></div>
                         </div>
                         <div id="zoomLabel_tab_cfa">100 %</div>
@@ -312,17 +312,17 @@ a.action:hover {
                 <div id="tab_art">
                     <div class="controllerContainer">
                         <div id="zoomSlider_tab_art"
-                        	 onmousemove="setZoomLevel(this.id);"
-                        	 onmouseup="setZoomLevel(this.id);zoom(this.id);">
+                             onmousemove="setZoomLevel(this.id);"
+                             onmouseup="setZoomLevel(this.id);zoom(this.id);">
                             <div class="zoomSliderContent"></div>
                         </div>
                         <div id="zoomLabel_tab_art">100 %</div>
                     </div>
                     <div class="controlledContentContainer">
-						<iframe name="tab_art" src="ARG.svg"></iframe>
-					</div>
+                        <iframe name="tab_art" src="ARG.svg"></iframe>
+                    </div>
                 </div>
-		<div id="tab_source">
+                <div id="tab_source">
                     {{if sourcefilecontent}}
                     <table id="source_content">
 {{for loop, line in looper(sourcefilecontent.splitlines())}}
@@ -431,9 +431,9 @@ a.action:hover {
 
             /* take mousePosition and set new widths and positions */
             function changeWidthMouseMove(event) {
-            	/* leftContentWidth is at least 150px */
+                /* leftContentWidth is at least 150px */
                 leftContentWidth = Math.max(event.pageX - 2, 150);
-            	console.log('move to ' + leftContentWidth);
+                console.log('move to ' + leftContentWidth);
 
                 document.getElementById('middleLine').style.left = leftContentWidth + 'px';
                 document.getElementById('leftContent').style.width = leftContentWidth + 'px';
