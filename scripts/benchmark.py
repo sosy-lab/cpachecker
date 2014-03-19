@@ -31,37 +31,22 @@ import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
 
-try:
-  import Queue
-except ImportError: # Queue was renamed to queue in Python 3
-  import queue as Queue
-
-import time
 import logging
 import argparse
 import os
 import re
-import resource
 import signal
 import subprocess
-import threading
 
-from benchmark.benchmarkDataStructures import *
-from benchmark.runexecutor import RunExecutor
-import benchmark.runexecutor as runexecutor
+from benchmark.benchmarkDataStructures import Benchmark
 import benchmark.util as Util
 from benchmark.outputHandler import OutputHandler
 
-
-MEMLIMIT = runexecutor.MEMLIMIT
-TIMELIMIT = runexecutor.TIMELIMIT
-CORELIMIT = runexecutor.CORELIMIT
 
 DEFAULT_APPENGINE_URI = 'http://dev.ba-lab.appspot.com'
 DEFAULT_APPENGINE_POLLINTERVAL = 60 # seconds (== 10 minutes)
 
 # next lines are needed for stopping the script
-WORKER_THREADS = []
 STOPPED_BY_INTERRUPT = False
 
 """
@@ -86,134 +71,6 @@ Variables ending with "tag" contain references to XML tag objects created by the
 """
 
 
-class Worker(threading.Thread):
-    """
-    A Worker is a deamonic thread, that takes jobs from the workingQueue and runs them.
-    """
-    workingQueue = Queue.Queue()
-
-    def __init__(self, number, outputHandler):
-        threading.Thread.__init__(self) # constuctor of superclass
-        self.numberOfThread = number
-        self.outputHandler = outputHandler
-        self.runExecutor = RunExecutor()
-        self.setDaemon(True)
-        self.start()
-
-    def run(self):
-        while not Worker.workingQueue.empty() and not STOPPED_BY_INTERRUPT:
-            currentRun = Worker.workingQueue.get_nowait()
-            try:
-                self.execute(currentRun)
-            except BaseException as e:
-                print(e)
-            Worker.workingQueue.task_done()
-
-
-    def execute(self, run):
-        """
-        This function executes the tool with a sourcefile with options.
-        It also calls functions for output before and after the run.
-        """
-        self.outputHandler.outputBeforeRun(run)
-
-        benchmark = run.runSet.benchmark
-        (run.wallTime, run.cpuTime, run.memUsage, returnvalue, output, run.energy) = \
-            self.runExecutor.executeRun(
-                run.getCmdline(), benchmark.rlimits, run.logFile,
-                myCpuIndex=self.numberOfThread,
-                environments=benchmark.getEnvironments(),
-                runningDir=benchmark.workingDirectory(),
-                maxLogfileSize=config.maxLogfileSize)
-
-        if self.runExecutor.PROCESS_KILLED:
-            # If the run was interrupted, we ignore the result and cleanup.
-            run.wallTime = 0
-            run.cpuTime = 0
-            try:
-                if config.debug:
-                   os.rename(run.logFile, run.logFile + ".killed")
-                else:
-                   os.remove(run.logFile)
-            except OSError:
-                pass
-            return
-
-        run.afterExecution(returnvalue, output)
-        self.outputHandler.outputAfterRun(run)
-
-
-    def stop(self):
-        # asynchronous call to runexecutor, 
-        # the worker will stop asap, but not within this method.
-        self.runExecutor.kill()
-
-def executeBenchmarkLocaly(benchmark, outputHandler):
-    
-    runSetsExecuted = 0
-
-    logging.debug("I will use {0} threads.".format(benchmark.numOfThreads))
-
-    # iterate over run sets
-    for runSet in benchmark.runSets:
-
-        if STOPPED_BY_INTERRUPT: break
-
-        (mod, rest) = config.moduloAndRest
-
-        if not runSet.shouldBeExecuted() \
-                or (runSet.index % mod != rest):
-            outputHandler.outputForSkippingRunSet(runSet)
-
-        elif not runSet.runs:
-            outputHandler.outputForSkippingRunSet(runSet, "because it has no files")
-
-        else:
-            runSetsExecuted += 1
-            # get times before runSet
-            ruBefore = resource.getrusage(resource.RUSAGE_CHILDREN)
-            wallTimeBefore = time.time()
-            energyBefore = Util.getEnergy()
-
-            outputHandler.outputBeforeRunSet(runSet)
-
-            # put all runs into a queue
-            for run in runSet.runs:
-                Worker.workingQueue.put(run)
-
-            # create some workers
-            for i in range(benchmark.numOfThreads):
-                WORKER_THREADS.append(Worker(i, outputHandler))
-
-            # wait until all tasks are done,
-            # instead of queue.join(), we use a loop and sleep(1) to handle KeyboardInterrupt
-            finished = False
-            while not finished and not STOPPED_BY_INTERRUPT:
-                try:
-                    Worker.workingQueue.all_tasks_done.acquire()
-                    finished = (Worker.workingQueue.unfinished_tasks == 0)
-                finally:
-                    Worker.workingQueue.all_tasks_done.release()
-
-                try:
-                    time.sleep(0.1) # sleep some time
-                except KeyboardInterrupt:
-                    killScript()
-
-            # get times after runSet
-            wallTimeAfter = time.time()
-            energyAfter = Util.getEnergy()
-            energy = (energyAfter - energyBefore) if (energyAfter and energyBefore) else None
-            usedWallTime = wallTimeAfter - wallTimeBefore
-            ruAfter = resource.getrusage(resource.RUSAGE_CHILDREN)
-            usedCpuTime = (ruAfter.ru_utime + ruAfter.ru_stime) \
-                        - (ruBefore.ru_utime + ruBefore.ru_stime)
-
-            outputHandler.outputAfterRunSet(runSet, cpuTime=usedCpuTime, wallTime=usedWallTime, energy=energy)
-
-    outputHandler.outputAfterBenchmark(STOPPED_BY_INTERRUPT)
-
-
 def executeBenchmark(benchmarkFile):
     benchmark = Benchmark(benchmarkFile, config, OUTPUT_PATH)
     # settings must be retrieved here to set the correct tool version
@@ -229,7 +86,7 @@ def executeBenchmark(benchmarkFile):
     elif config.appengine:
         result = appengine.executeBenchmarkInAppengine(benchmark, outputHandler)
     else:
-        result = executeBenchmarkLocaly(benchmark, outputHandler)
+        result = localexecution.executeBenchmarkLocaly(benchmark, outputHandler)
 
     if config.commit and not STOPPED_BY_INTERRUPT:
         Util.addFilesToGitRepository(OUTPUT_PATH, outputHandler.allCreatedFiles,
@@ -405,7 +262,9 @@ def main(argv=None):
         import benchmark.appengine as appengine
         killScriptSpecific = (lambda: appengine.killScriptAppEngine(config))
     else:
-        killScriptSpecific = killScriptLocal
+        global localexecution
+        import benchmark.localexecution as localexecution
+        killScriptSpecific = localexecution.killScriptLocal
 
     returnCode = 0
     for arg in config.files:
@@ -428,16 +287,6 @@ def killScript():
 
 def killScriptSpecific():
     pass
-
-def killScriptLocal():
-    # kill running jobs
-    Util.printOut("killing subprocesses...")
-    for worker in WORKER_THREADS:
-        worker.stop()
-
-    # wait until all threads are stopped
-    for worker in WORKER_THREADS:
-        worker.join()
 
 
 def signal_handler_ignore(signum, frame):
