@@ -150,8 +150,9 @@ public class CallstackTransferRelation implements TransferRelation {
 
         final CallstackState returnElement;
 
+        assert calledFunction.equals(element.getCurrentFunction()) || element.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+
         if (!isWildcardState(element)) {
-          assert calledFunction.equals(element.getCurrentFunction());
 
           if (!callNode.equals(element.getCallNode())) {
             // this is not the right return edge
@@ -160,10 +161,8 @@ public class CallstackTransferRelation implements TransferRelation {
           returnElement = element.getPreviousState();
 
           assert callerFunction.equals(returnElement.getCurrentFunction()) || isWildcardState(returnElement);
-        } else if (isArtificialLoopEnteringFunction(element.getCallNode(), calledFunction)) {
-          returnElement = new CallstackState(null, callerFunction, element.getCallNode());
         } else {
-          return Collections.emptySet();
+          returnElement = new CallstackState(null, callerFunction, element.getCallNode());
         }
 
         return Collections.singleton(returnElement);
@@ -173,14 +172,6 @@ public class CallstackTransferRelation implements TransferRelation {
     }
 
     return Collections.singleton(pElement);
-  }
-
-  private boolean isArtificialLoopEnteringFunction(CFANode pCallNode, String pCalledFunction) {
-    if (pCallNode instanceof CFASingleLoopTransformation.SingleLoopHead) {
-      CFASingleLoopTransformation.SingleLoopHead head = (CFASingleLoopTransformation.SingleLoopHead) pCallNode;
-      return head.getEnteringFunctionNames().contains(pCalledFunction);
-    }
-    return false;
   }
 
   /**
