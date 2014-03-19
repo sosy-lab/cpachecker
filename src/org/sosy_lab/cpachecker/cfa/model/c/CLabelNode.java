@@ -31,8 +31,8 @@ public class CLabelNode extends CFANode {
 
   private final String label;
 
-  public CLabelNode(int pLineNumber, String pFunctionName, String pLabel) {
-    super(pLineNumber, pFunctionName);
+  public CLabelNode(String pFunctionName, String pLabel) {
+    super(pFunctionName);
     checkArgument(!pLabel.isEmpty());
     label = pLabel;
   }

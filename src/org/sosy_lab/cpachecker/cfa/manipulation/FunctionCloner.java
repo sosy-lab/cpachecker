@@ -308,15 +308,14 @@ public class FunctionCloner implements CFAVisitor {
 
     // clone correct type of node
     final CFANode newNode;
-    final int line = node.getLineNumber();
     if (node instanceof CLabelNode) {
-      newNode = new CLabelNode(line, newFunctionname, ((CLabelNode) node).getLabel());
+      newNode = new CLabelNode(newFunctionname, ((CLabelNode) node).getLabel());
 
     } else if (node instanceof CFATerminationNode) {
-      newNode = new CFATerminationNode(line, newFunctionname);
+      newNode = new CFATerminationNode(newFunctionname);
 
     } else if (node instanceof FunctionExitNode) {
-      newNode = new FunctionExitNode(line, newFunctionname);
+      newNode = new FunctionExitNode(newFunctionname);
 
     } else if (node instanceof CFunctionEntryNode) {
       final CFunctionEntryNode n = (CFunctionEntryNode) node;
@@ -333,7 +332,7 @@ public class FunctionCloner implements CFAVisitor {
 
     } else {
       assert node.getClass() == CFANode.class : "unhandled subclass for CFANode: " + node.getClass();
-      newNode = new CFANode(line, newFunctionname);
+      newNode = new CFANode(newFunctionname);
     }
 
     // copy information from original node

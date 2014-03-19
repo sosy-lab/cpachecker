@@ -515,7 +515,7 @@ public class CFACreator {
           if (succ == node) {
             leavingBlankEdge.getPredecessor().removeLeavingEdge(leavingBlankEdge);
             leavingBlankEdge.getSuccessor().removeEnteringEdge(leavingBlankEdge);
-            CFANode terminationNode = new CFATerminationNode(node.getLineNumber(), node.getFunctionName());
+            CFANode terminationNode = new CFATerminationNode(node.getFunctionName());
             BlankEdge terminationEdge =
                     new BlankEdge(leavingBlankEdge.getRawStatement(),
                             leavingBlankEdge.getFileLocation(),
@@ -686,7 +686,7 @@ public class CFACreator {
     // we can add new edges between them and then reconnect the nodes
 
     // insert one node to start the series of declarations
-    CFANode cur = new CFANode(0, firstNode.getFunctionName());
+    CFANode cur = new CFANode(firstNode.getFunctionName());
     cfa.addNode(cur);
     final CFAEdge newFirstEdge = new BlankEdge("", FileLocation.DUMMY, firstNode, cur, "INIT GLOBAL VARS");
     CFACreationUtils.addEdgeUnconditionallyToCFA(newFirstEdge);
@@ -697,7 +697,7 @@ public class CFACreator {
       String rawSignature = p.getSecond();
       assert d.isGlobal();
 
-      CFANode n = new CFANode(d.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
+      CFANode n = new CFANode(cur.getFunctionName());
       cfa.addNode(n);
 
       final CFAEdge newEdge;

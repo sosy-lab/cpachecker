@@ -361,7 +361,7 @@ public class BlockedCFAReducer implements BlockComputer {
         pNode.getWrapped().getFunctionName(),
         pNode.getNodeKindText(),
         pNode.getFunctionCallId(),
-        pNode.getWrapped().getLineNumber());
+        pNode.getWrapped().getNodeNumber());
   }
 
   /**

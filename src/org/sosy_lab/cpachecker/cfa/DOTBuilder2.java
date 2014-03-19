@@ -284,7 +284,6 @@ public final class DOTBuilder2 {
     public TraversalProcess visitNode(CFANode node) {
       Map<String, Object> jnode = new HashMap<>();
       jnode.put("no", node.getNodeNumber());
-      jnode.put("line", node.getLineNumber());
       jnode.put("func", node.getFunctionName());
       nodes.put(node.getNodeNumber(), jnode);
 

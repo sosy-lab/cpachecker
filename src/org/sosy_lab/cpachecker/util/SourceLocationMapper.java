@@ -305,7 +305,7 @@ public class SourceLocationMapper {
       break;
       case AssumeEdge:
         if (overApproximateTokens) {
-          result.add(endNode.getLineNumber());
+          result.add(edge.getFileLocation().getEndingLineNumber());
 
           // Assumes of a while loop should also include the while token
           for (CFAEdge e: CFAUtils.enteringEdges(startNode)) {

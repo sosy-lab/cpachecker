@@ -159,7 +159,7 @@ public class CFASecondPassBuilder {
       // Control flow merging directly after two function calls.
       // Our CFA structure currently does not support this,
       // so insert a dummy node and a blank edge.
-      CFANode tmp = new CFANode(successorNode.getLineNumber(), successorNode.getFunctionName());
+      CFANode tmp = new CFANode(successorNode.getFunctionName());
       cfa.addNode(tmp);
       CFAEdge tmpEdge = new BlankEdge("", FileLocation.DUMMY, tmp, successorNode, "");
       CFACreationUtils.addEdgeUnconditionallyToCFA(tmpEdge);
@@ -309,7 +309,7 @@ public class CFASecondPassBuilder {
     AssumeEdge trueEdge = new CAssumeEdge(edge.getRawStatement(), edge.getFileLocation(),
         edge.getPredecessor(), edge.getSuccessor(), assumeExp, true);
 
-    CFANode elseNode = new CFATerminationNode(edge.getLineNumber(), edge.getPredecessor().getFunctionName());
+    CFANode elseNode = new CFATerminationNode(edge.getPredecessor().getFunctionName());
     AssumeEdge falseEdge = new CAssumeEdge(edge.getRawStatement(), edge.getFileLocation(),
         edge.getPredecessor(), elseNode, assumeExp, false);
 

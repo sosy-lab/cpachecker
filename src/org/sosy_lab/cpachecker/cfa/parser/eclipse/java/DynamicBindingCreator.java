@@ -427,15 +427,13 @@ public class DynamicBindingCreator {
 
       // Node for successful function call
       // That is the case if Run-Time-Type equals function declaring Class Type.
-      CFANode successfulNode = new CFANode(fileloc.getStartingLineNumber(),
-         callInFunction);
+      CFANode successfulNode = new CFANode(callInFunction);
         cfaBuilder.getCFANodes().put(callInFunction, successfulNode);
         pProcessed.add(successfulNode);
 
       // unsuccessfulNode if Run-Time-Type does not equals
       // function declaring Class Type,
-      CFANode unsuccessfulNode = new CFANode(fileloc.getStartingLineNumber(),
-          callInFunction);
+      CFANode unsuccessfulNode = new CFANode(callInFunction);
       cfaBuilder.getCFANodes().put(callInFunction, unsuccessfulNode);
       pProcessed.add(unsuccessfulNode);
 
@@ -455,8 +453,7 @@ public class DynamicBindingCreator {
           newFunctionCall =  new JMethodInvocationStatement(fileloc, newFunctionCallExpression);
         }
 
-        CFANode postFunctionCallNode = new CFANode(fileloc.getStartingLineNumber(),
-            callInFunction);
+        CFANode postFunctionCallNode = new CFANode(callInFunction);
         cfaBuilder.getCFANodes().put(callInFunction, postFunctionCallNode);
         pProcessed.add(postFunctionCallNode);
 

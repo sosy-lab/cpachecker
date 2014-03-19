@@ -97,7 +97,7 @@ public class CFADeclarationMover {
     if (!declarations.isEmpty()) {
       // create declaration end edge, no need to add it as leaving edge to the actNode
       // this will be done in the end
-      CFANode tmpNode = new CFANode(0, functionName);
+      CFANode tmpNode = new CFANode(functionName);
       cfa.addNode(tmpNode);
       CFAEdge declEndEdge = new BlankEdge("End of Declarations", FileLocation.DUMMY, actNode, tmpNode, "End of Declarations");
       tmpNode.addEnteringEdge(declEndEdge);
@@ -121,7 +121,7 @@ public class CFADeclarationMover {
     // insert declarations into the desired destination
     while (it.hasNext()) {
       CFAEdge decl = it.next();
-      CFANode middleNode = new CFANode(decl.getLineNumber(), functionName);
+      CFANode middleNode = new CFANode(functionName);
       cfa.addNode(middleNode);
       moveDeclEdgeToNewLocation((CDeclarationEdge)decl, actNode, middleNode, cfa);
       actNode = middleNode;

@@ -507,7 +507,7 @@ public class CFASingleLoopTransformation {
        */
       boolean isOldMainEntryNode = subgraphRoot.equals(pOldMainFunctionEntryNode);
       if (isOldMainEntryNode) {
-        subgraphRoot = new CFANode(subgraphRoot.getLineNumber(), subgraphRoot.getFunctionName());
+        subgraphRoot = new CFANode(subgraphRoot.getFunctionName());
         replaceInStructure(pOldMainFunctionEntryNode, subgraphRoot);
         CFANode newSubgraphRoot = getOrCreateNewFromOld(subgraphRoot, pGlobalNewToOld);
         pcValueOfStart = programCounterValueProvider.getPCValueFor(newSubgraphRoot);
@@ -759,7 +759,7 @@ public class CFASingleLoopTransformation {
   private SortedSetMultimap<String, CFANode> mapNodesToFunctions(FunctionEntryNode pStartNode,
       Map<String, FunctionEntryNode> functions) throws InterruptedException {
     SortedSetMultimap<String, CFANode> allNodes = TreeMultimap.create();
-    FunctionExitNode artificialFunctionExitNode = new FunctionExitNode(0, ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+    FunctionExitNode artificialFunctionExitNode = new FunctionExitNode(ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
     FunctionEntryNode artificialFunctionEntryNode =
         new FunctionEntryNode(FileLocation.DUMMY, ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME, artificialFunctionExitNode, null, Collections.<String>emptyList());
     Set<CFANode> nodes = getAllNodes(pStartNode);
@@ -929,7 +929,7 @@ public class CFASingleLoopTransformation {
       int pcToSet = newPredecessorToPC.getKey();
       CFANode connectionNode = connectionNodes.get(pcToSet);
       if (connectionNode == null) {
-        connectionNode = new CFANode(pLoopHead.getLineNumber(), ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+        connectionNode = new CFANode(ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
         connectionNodes.put(pcToSet, connectionNode);
         connectionNodes.put(pcToSet, connectionNode);
         CFAEdge edgeToLoopHead = createProgramCounterAssignmentEdge(connectionNode, pLoopHead, pPCIdExpression, pcToSet);
@@ -983,7 +983,7 @@ public class CFASingleLoopTransformation {
       }
 
       // Connect the subgraph entry nodes to the loop header by assuming the program counter value
-      CFANode newDecisionTreeNode = new CFANode(0, ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+      CFANode newDecisionTreeNode = new CFANode(ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
       ProgramCounterValueAssumeEdge toSequence = createProgramCounterAssumeEdge(pExpressionBuilder, decisionTreeNode, newSuccessor, pPCIdExpression, pcToSet, true);
       ProgramCounterValueAssumeEdge toNewDecisionTreeNode = createProgramCounterAssumeEdge(pExpressionBuilder, decisionTreeNode, newDecisionTreeNode, pPCIdExpression, pcToSet, false);
       toAdd.add(toSequence);
@@ -1199,12 +1199,11 @@ public class CFASingleLoopTransformation {
       return result;
     }
 
-    int lineNumber = pNode.getLineNumber();
     String functionName = pNode.getFunctionName();
 
     if (pNode instanceof CLabelNode) {
 
-      result = new CLabelNode(lineNumber, functionName, ((CLabelNode) pNode).getLabel());
+      result = new CLabelNode(functionName, ((CLabelNode) pNode).getLabel());
 
     } else if (pNode instanceof CFunctionEntryNode) {
 
@@ -1227,7 +1226,7 @@ public class CFASingleLoopTransformation {
         return precomputedEntryNode.getExitNode();
       }
 
-      FunctionExitNode functionExitNode = new FunctionExitNode(lineNumber, functionName);
+      FunctionExitNode functionExitNode = new FunctionExitNode(functionName);
 
       FunctionEntryNode oldEntryNode = oldFunctionNode.getEntryNode();
       FileLocation entryFileLocation = oldEntryNode.getFileLocation();
@@ -1262,7 +1261,7 @@ public class CFASingleLoopTransformation {
 
     } else if (pNode instanceof CFATerminationNode) {
 
-      result = new CFATerminationNode(lineNumber, functionName);
+      result = new CFATerminationNode(functionName);
 
     } else if (pNode.getClass() != CFANode.class) {
 
@@ -1271,7 +1270,7 @@ public class CFASingleLoopTransformation {
       for (Constructor<?> cons : clazz.getConstructors()) {
         if (cons.isAccessible() && Arrays.equals(cons.getParameterTypes(), requiredParameterTypes)) {
           try {
-            result = (CFANode) cons.newInstance(lineNumber, functionName);
+            result = (CFANode) cons.newInstance(functionName);
             break;
           } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
               | InvocationTargetException e) {
@@ -1281,14 +1280,14 @@ public class CFASingleLoopTransformation {
       }
 
       if (result == null) {
-        result = new CFANode(lineNumber, functionName);
+        result = new CFANode(functionName);
         this.logger.log(Level.WARNING, "Unknown node type " + clazz + "; created copy as instance of base type CFANode.");
       } else {
         this.logger.log(Level.WARNING, "Unknown node type " + clazz + "; created copy by reflection.");
       }
 
     } else {
-      result = new CFANode(lineNumber, functionName);
+      result = new CFANode(functionName);
     }
     pNewToOldMapping.put(pNode, result);
     return result;
@@ -2487,7 +2486,7 @@ public class CFASingleLoopTransformation {
      * Creates a new loop head with line number 0 and an artificial function name.
      */
     public SingleLoopHead() {
-      super(0, ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+      super(ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
     }
 
     @Override

@@ -49,7 +49,7 @@ public  class FunctionEntryNode extends CFANode {
       final FunctionExitNode pExitNode,
       final List<String> pParameterNames) {
 
-    super(pFileLocation.getStartingLineNumber(), pFunctionDefinition.getName());
+    super(pFunctionDefinition.getName());
     location = checkNotNull(pFileLocation);
     functionDefinition = pFunctionDefinition;
     parameterNames = ImmutableList.copyOf(pParameterNames);
@@ -60,7 +60,7 @@ public  class FunctionEntryNode extends CFANode {
       FunctionExitNode pExitNode, final AFunctionDeclaration pFunctionDefinition,
       final List<String> pParameterNames) {
 
-    super(pFileLocation.getStartingLineNumber(), pFunctionName);
+    super(pFunctionName);
     location = checkNotNull(pFileLocation);
     functionDefinition = pFunctionDefinition;
     parameterNames = ImmutableList.copyOf(pParameterNames);

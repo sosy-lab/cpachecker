@@ -45,6 +45,8 @@ import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
+import javax.annotation.Nullable;
+
 public class CFACheck {
 
   /**
@@ -83,8 +85,15 @@ public class CFACheck {
 
   private static final Function<CFANode, String> DEBUG_FORMAT = new Function<CFANode, String>() {
     @Override
-    public String apply(CFANode arg0) {
-      return arg0.getFunctionName() + ":" + arg0.toString() + " (line " + arg0.getLineNumber() + ")";
+    public String apply(CFANode node) {
+      // try to get some information about location from node
+      String location = "not available";
+      if (node.getNumEnteringEdges() > 0) {
+        location = node.getEnteringEdge(0).getFileLocation().toString();
+      } else if (node.getNumLeavingEdges() > 0) {
+        location = node.getLeavingEdge(0).getFileLocation().toString();
+      }
+      return node.getFunctionName() + ":" + node.toString() + " (location " + location + ")";
     }
   };
 

@@ -317,8 +317,8 @@ public class CFunctionPointerResolver {
 
     CFANode rootNode = start;
     for (FunctionEntryNode fNode : funcs) {
-      CFANode thenNode = newCFANode(start.getLineNumber(), start.getFunctionName());
-      CFANode elseNode = newCFANode(start.getLineNumber(), start.getFunctionName());
+      CFANode thenNode = newCFANode(start.getFunctionName());
+      CFANode elseNode = newCFANode(start.getFunctionName());
       CIdExpression func = new CIdExpression(nameExp.getFileLocation(),
                                               (CType)fNode.getFunctionDefinition().getType(),
                                               fNode.getFunctionName(),
@@ -332,7 +332,7 @@ public class CFunctionPointerResolver {
       addConditionEdges(condition, rootNode, thenNode, elseNode, fileLocation);
 
 
-      CFANode retNode = newCFANode(start.getLineNumber(), start.getFunctionName());
+      CFANode retNode = newCFANode(start.getFunctionName());
       //create special summary edge
       //thenNode-->retNode
       String pRawStatement = "pointer call(" + fNode.getFunctionName() + ") " + statement.getRawStatement();
@@ -396,9 +396,9 @@ public class CFunctionPointerResolver {
   /**
    * @category helper
    */
-  private CFANode newCFANode(final int filelocStart, final String functionName) {
+  private CFANode newCFANode(final String functionName) {
     assert cfa != null;
-    CFANode nextNode = new CFANode(filelocStart, functionName);
+    CFANode nextNode = new CFANode(functionName);
     cfa.addNode(nextNode);
     return nextNode;
   }
