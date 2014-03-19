@@ -38,6 +38,12 @@ This module contains some useful functions for Strings, XML or Lists.
 def isWindows():
     return os.name == 'nt'
 
+def forceLinuxPath(path):
+    if isWindows():
+        return path.replace('\\', '/')
+    return path
+
+
 def printOut(value, end='\n'):
     """
     This function prints the given String immediately and flushes the output.

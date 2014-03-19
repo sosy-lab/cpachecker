@@ -121,7 +121,7 @@ def getCloudInput(benchmark):
     # see external vcloud/README.txt for details.
     cloudInput = [
                 toTabList(absToolpaths + [absScriptsPath]),
-                absScriptsPath,
+                Util.forceLinuxPath(absScriptsPath),
                 toTabList([absBaseDir, absOutputDir, absWorkingDir]),
                 toTabList(requirements)
             ]
@@ -164,12 +164,14 @@ def getBenchmarkDataForCloud(benchmark):
 
         # get runs
         for run in runSet.runs:
+            cmdline = run.getCmdline()
+            cmdline = list(map(Util.forceLinuxPath, cmdline))
 
             # we assume, that VCloud-client only splits its input at tabs,
             # so we can use all other chars for the info, that is needed to run the tool.
             # we build a string-representation of all this info (it's a map),
             # that can be parsed with python again in cloudRunexecutor.py (this is very easy with eval()) .
-            argMap = {"args":run.getCmdline(), "env":env,
+            argMap = {"args":cmdline, "env":env,
                       "debug":benchmark.config.debug, "maxLogfileSize":benchmark.config.maxLogfileSize}
             argString = repr(argMap)
             assert not "\t" in argString # cannot call toTabList(), if there is a tab
