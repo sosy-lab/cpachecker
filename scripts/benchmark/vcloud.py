@@ -69,7 +69,7 @@ def executeBenchmarkInCloud(benchmark, outputHandler):
     libDir = os.path.abspath(os.path.join(os.path.curdir, "lib", "java-benchmark"))
     cmdLine = ["java", "-jar", os.path.join(libDir, "vcloud.jar"), "benchmark", "--loglevel", logLevel]
     if benchmark.config.cloudMaster:
-        cmdLine.extend(["--master", config.cloudMaster])
+        cmdLine.extend(["--master", benchmark.config.cloudMaster])
     if benchmark.config.debug:
         cmdLine.extend(["--print-new-files", "true"])
     cloud = subprocess.Popen(cmdLine, stdin=subprocess.PIPE)
