@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
@@ -86,11 +87,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
    * a formula containing just that IdExpression.
    */
   private Value getUnknownIdExpressionValue(MemoryLocation memLoc) {
-    if (symbolicValues) {
-      return new SymbolicValueFormula(new SymbolicValueFormula.SymbolicValue(memLoc));
-    } else {
-      return Value.UnknownValue.getInstance();
-    }
+    return Value.UnknownValue.getInstance();
   }
 
   @Override
@@ -101,6 +98,17 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
   public boolean hasMissingPointer() {
     return missingPointer;
+  }
+
+  @Override
+  public Value visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
+    if(this.symbolicValues) {
+      SymbolicValueFormula formula = new SymbolicValueFormula(
+          new SymbolicValueFormula.SymbolicValue("nondet:"+pIastFunctionCallExpression.toASTString()+"()"));
+      return formula;
+     } else {
+        return Value.UnknownValue.getInstance();
+     }
   }
 
   @Override

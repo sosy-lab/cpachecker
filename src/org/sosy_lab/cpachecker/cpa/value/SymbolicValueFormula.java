@@ -31,7 +31,6 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 
 
 /**
@@ -182,40 +181,17 @@ public class SymbolicValueFormula implements Value {
   }
 
   /**
-   * Represents an undetermined value.
+   * Represents an undetermined input to our program, e.g. `nondet()`.
    */
   public static class SymbolicValue implements ExpressionBase {
-    /**
-     * The location in memory this SymbolicValue occupies.
-     *
-     * TODO: think about potentially representing values that aren't
-     *       anywhere in memory, e.g. `int x = 2 + nondet();`, now `nondet()`
-     *       has no memory location, but we'd still like to treat it as
-     *       symbolic value
-     */
-    private MemoryLocation location;
+    private String displayName;
 
-    public SymbolicValue(MemoryLocation location) {
-      this.location = location;
-    }
+    // Don't overwrite the equals method, SymbolicValue's are supposed
+    // to be unique, even values with the same display name can refer
+    // to different data.
 
-    @Override
-    public boolean equals(Object other) {
-      if(other instanceof SymbolicValue) {
-        return location.equals(((SymbolicValue) other).location);
-      } else {
-        return false;
-      }
-    }
-
-    @Override
-    public int hashCode() {
-      return location.hashCode();
-    }
-
-    @Override
-    public String toString() {
-      return location.getAsSimpleString();
+    public SymbolicValue(String name) {
+      displayName = name;
     }
 
     @Override
@@ -223,6 +199,11 @@ public class SymbolicValueFormula implements Value {
       // We don't know whether this is an integer, we must let
       // the higher level expression check.
       return true;
+    }
+
+    @Override
+    public String toString() {
+      return displayName;
     }
   }
 
