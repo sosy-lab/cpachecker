@@ -166,7 +166,7 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA 
 
   @Override
   public void adjustReachedSet(final ReachedSet pReachedSet) {
-    List<AbstractState> toRemove = from(pReachedSet).filter(new Predicate<AbstractState>() {
+    Set<AbstractState> toRemove = from(pReachedSet).filter(new Predicate<AbstractState>() {
 
       @Override
       public boolean apply(@Nullable AbstractState pArg0) {
@@ -175,7 +175,14 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA 
         }
         LoopstackState loopstackState = extractStateByType(pArg0, LoopstackState.class);
         return loopstackState != null && loopstackState.mustDumpAssumptionForAvoidance();
-      }}).toList();
+      }}).toSet();
+
+    // Never delete the first state
+    if (toRemove.contains(pReachedSet.getFirstState())) {
+      pReachedSet.clear();
+      return;
+    }
+
     List<AbstractState> waitlist = from(toRemove).transformAndConcat(new Function<AbstractState, Iterable<? extends AbstractState>>() {
 
       @Override
@@ -191,11 +198,15 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA 
       }
 
     }).toSet().asList();
+
     List<Precision> waitlistPrecisions = new ArrayList<>(waitlist.size());
     for (AbstractState s : waitlist) {
       waitlistPrecisions.add(pReachedSet.getPrecision(s));
     }
+
     pReachedSet.removeAll(waitlist);
+
+    // Add the new waitlist
     pReachedSet.addAll(Pair.zipList(waitlist, waitlistPrecisions));
     pReachedSet.removeAll(toRemove);
   }
