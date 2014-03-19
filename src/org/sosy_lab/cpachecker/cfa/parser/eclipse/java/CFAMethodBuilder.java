@@ -1429,7 +1429,6 @@ private void handleTernaryExpression(ConditionalExpression condExp,
       CFANode thenNodeForLastThen, CFANode elseNodeForLastElse,
       boolean furtherThenComputation, boolean furtherElseComputation) {
 
-    int filelocStart = fileLocation.getStartingLineNumber();
     if (condition instanceof JBinaryExpression
         && (((JBinaryExpression) condition).getOperator() == JBinaryExpression.BinaryOperator.CONDITIONAL_AND)) {
       CFANode innerNode = new CFANode(cfa.getFunctionName());

@@ -45,6 +45,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class CFACheck {
@@ -86,6 +87,10 @@ public class CFACheck {
   private static final Function<CFANode, String> DEBUG_FORMAT = new Function<CFANode, String>() {
     @Override
     public String apply(CFANode node) {
+      if (node == null) {
+        // nothing useful to do. this line only exists, because input for Function.apply might be NULL.
+        return "node == NULL";
+      }
       // try to get some information about location from node
       String location = "not available";
       if (node.getNumEnteringEdges() > 0) {
