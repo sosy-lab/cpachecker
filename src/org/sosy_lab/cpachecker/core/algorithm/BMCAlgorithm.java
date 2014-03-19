@@ -728,7 +728,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       logger.log(Level.INFO, "Running algorithm to create induction hypothesis");
       ReachedSet reached = getCurrentReachedSet();
       unroll(reached);
-      adjustReachedSet(reached);
 
       final Multimap<CFANode, AbstractState> reachedPerLocation = Multimaps.index(reached, EXTRACT_LOCATION);
 
@@ -874,13 +873,15 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         if (loopstackState == null) {
           throw new CPAException("BMC without LoopstackCPA is not supported. Please rerun with an instance of the LoopstackCPA.");
         }
-        int iteration = loopstackState.getIteration();
-        if (iteration > highestIteration || pathFormula == null) {
-          highestIteration = iteration;
-          pathFormula = extractStateByType(cutPointState, PredicateAbstractState.class).getPathFormula();
-        } else if (iteration == highestIteration) {
-          assert pathFormula != null;
-          pathFormula = pmgr.makeOr(pathFormula, extractStateByType(cutPointState, PredicateAbstractState.class).getPathFormula());
+        if (!loopstackState.mustDumpAssumptionForAvoidance()) {
+          int iteration = loopstackState.getIteration();
+          if (iteration > highestIteration || pathFormula == null) {
+            highestIteration = iteration;
+            pathFormula = extractStateByType(cutPointState, PredicateAbstractState.class).getPathFormula();
+          } else if (iteration == highestIteration) {
+            assert pathFormula != null;
+            pathFormula = pmgr.makeOr(pathFormula, extractStateByType(cutPointState, PredicateAbstractState.class).getPathFormula());
+          }
         }
       }
       Preconditions.checkArgument(pathFormula != null, "cutPointStates must not be empty.");
