@@ -153,45 +153,4 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
     }
   }
 
-
-  private Algorithm createAlgorithmForNextIteration2(PredicatePathAnalysisResult pResult) {
-    // This temp file will be automatically deleted when the try block terminates.
-    Path path = org.sosy_lab.common.io.Paths.get("config/specification/testgen_next_automaton.spc");
-    try (Writer w = Files.openOutputFile(path, Charset.forName("UTF8"))) {
-      //    try (DeleteOnCloseFile automatonFile = Files.createTempFile("next_automaton", ".txt")) {
-
-      //      try (Writer w = Files.openOutputFile(automatonFile.toPath())) {
-      CounterexampleInfo ci = CounterexampleInfo.feasible(pResult.getPath(), pResult.getTrace().getModel());
-      //      ARGUtils.producePathAutomaton(w, "nextPathAutomaton", pNewPath);
-      //      ARGUtils.producePathAutomaton(w, pResult.getPath().getFirst().getFirst(), pResult.getPath().getStateSet(), "nextPathAutomaton", ci);
-      ARGUtils.produceTestGenPathAutomaton(w, pResult.getPath().getFirst().getFirst(), pResult.getPath().getStateSet(),
-          "nextPathAutomaton", ci, true);
-      //      }
-
-    } catch (IOException e) {
-      throw new IllegalStateException("Unable to create the Algorithm for next Iteration", e);
-    }
-    try {
-      Configuration lConfig =
-          Configuration.builder().copyFrom(config).clearOption("analysis.algorithm.testGen")
-              .setOption("specification", "config/specification/defaulttestgen.spc").build();
-      CPABuilder localBuilder =
-          new CPABuilder(lConfig, logger, ShutdownNotifier.createWithParent(shutdownNotifier), reachedSetFactory);
-      currentCPA = localBuilder.buildCPAs(cfa);//, Lists.newArrayList(path));
-      //      CoreComponentsFactory factory = new CoreComponentsFactory(lConfig, logger, ShutdownNotifier.createWithParent(shutdownNotifier));
-      //      return factory.createAlgorithm(nextCpa, "", cfa, null);
-
-      if (getModel().getAlgorithm() instanceof CPAAlgorithm) {
-        return CPAAlgorithm.create(currentCPA, logger, lConfig, shutdownNotifier);
-      } else {
-        throw new InvalidConfigurationException("Generating a new Algorithm here only Works if the "
-            + "Algorithm is a CPAAlgorithm");
-      }
-
-    } catch (InvalidConfigurationException | CPAException e) {
-      // TODO: use another exception?
-      throw new IllegalStateException("Unable to create the Algorithm for next Iteration", e);
-    }
-  }
-
 }
