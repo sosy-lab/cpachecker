@@ -110,13 +110,6 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
   private TestGenStatistics stats;
   private int reachedSetCounter = 0;
 
-
-  //  ConfigurationBuilder singleConfigBuilder = Configuration.builder();
-  //  singleConfigBuilder.copyFrom(globalConfig);
-  //  singleConfigBuilder.clearOption("restartAlgorithm.configFiles");
-  //  singleConfigBuilder.clearOption("analysis.restartAfterUnknown");
-
-
   public TestGenAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
       ShutdownNotifier pShutdownNotifier, CFA pCfa,
       Configuration pConfig, LogManager pLogger, CPABuilder pCpaBuilder) throws InvalidConfigurationException,
@@ -159,7 +152,6 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
     default:
       throw new IllegalStateException("Not all analysisStrategySelector cases matched");
     }
-    //
 
   }
 
@@ -169,7 +161,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
       PredicatedAnalysisPropertyViolationException {
     startupConfig.getShutdownNotifier().shutdownIfNecessary();
     stats.getTotalTimer().start();
-//    PredicatePathAnalysisResult lastResult = PredicatePathAnalysisResult.INVALID;
+
     iterationStrategy.initializeModel(pReachedSet);
     long loopCounter = 0;
     boolean initialRun = true;
@@ -206,7 +198,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
         if (pseudoTarget.isTarget()) {
           logger.log(Level.INFO, "Identified error path.");
           if (stopOnError) {
-//          TODO remove  updateGlobalReached();
+            // TODO remove  updateGlobalReached();
             stats.getTotalTimer().stop();
             return true;
           } else {
@@ -218,11 +210,6 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
       /*
        * selecting new path to traverse.
        */
-      //      if(!ARGUtils.checkARG(iterationStrategy.getModel().getLocalReached())) {
-      //        logger.log(Level.WARNING, "Current ReachedSet is invalid");
-      //      }
-
-
       logger.log(Level.INFO, "Starting predicate path check...");
       PredicatePathAnalysisResult result = analysisStrategy.findNewFeasiblePathUsingPredicates(executedPath);
       logger.log(Level.INFO, "Starting predicate path check DONE");
@@ -245,20 +232,8 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
        */
       iterationStrategy.updateIterationModelForNextIteration(result);
 
-//      lastResult = result;
     }
   }
-
-//  private void updateGlobalReached() {
-//    IterationModel model = iterationStrategy.getModel();
-////    model.getGlobalReached().clear();
-//    for (AbstractState state : model.getLocalReached()) {
-//      model.getGlobalReached().add(state, model.getLocalReached().getPrecision(state));
-//      model.getGlobalReached().removeOnlyFromWaitlist(state);
-//    }
-//
-//  }
-
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
