@@ -37,15 +37,13 @@ import tempfile
 import threading
 import time
 
+from .benchmarkDataStructures import MEMLIMIT, TIMELIMIT, CORELIMIT
 from . import util as Util
 from . import filewriter
 
 readFile = filewriter.readFile
 writeFile = filewriter.writeFile
 
-MEMLIMIT = "memlimit"
-TIMELIMIT = "timelimit"
-CORELIMIT = "cpuCores"
 CPUACCT = 'cpuacct'
 CPUSET = 'cpuset'
 MEMORY = 'memory'

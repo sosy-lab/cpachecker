@@ -32,15 +32,11 @@ import logging
 import os
 import subprocess
 
+from .benchmarkDataStructures import MEMLIMIT, TIMELIMIT, CORELIMIT
 import cloudRunexecutor as CloudRunExecutor
 from . import filewriter as filewriter
-from . import runexecutor
 from . import util as Util
 
-
-MEMLIMIT = runexecutor.MEMLIMIT
-TIMELIMIT = runexecutor.TIMELIMIT
-CORELIMIT = runexecutor.CORELIMIT
 
 DEFAULT_CLOUD_TIMELIMIT = 300 # s
 DEFAULT_CLOUD_MEMLIMIT = None

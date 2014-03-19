@@ -31,9 +31,9 @@ import sys
 import os
 import xml.etree.ElementTree as ET
 
+from .benchmarkDataStructures import MEMLIMIT, TIMELIMIT, CORELIMIT
 from . import filewriter
 from . import result
-from . import runexecutor
 from . import util as Util
 
 # colors for column status in terminal
@@ -64,10 +64,6 @@ elif _term.startswith('screen'):
 # the number of digits after the decimal separator of the time column,
 # for the other columns it can be configured in the xml-file
 TIME_PRECISION = 2
-
-MEMLIMIT = runexecutor.MEMLIMIT
-TIMELIMIT = runexecutor.TIMELIMIT
-CORELIMIT = runexecutor.CORELIMIT
 
 
 class OutputHandler:

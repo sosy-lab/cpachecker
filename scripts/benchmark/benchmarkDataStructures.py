@@ -34,12 +34,11 @@ import sys
 from datetime import date
 
 from . import result
-from . import runexecutor
 from . import util as Util
 
-MEMLIMIT = runexecutor.MEMLIMIT
-TIMELIMIT = runexecutor.TIMELIMIT
-CORELIMIT = runexecutor.CORELIMIT
+MEMLIMIT = "memlimit"
+TIMELIMIT = "timelimit"
+CORELIMIT = "cpuCores"
 
 SOFTTIMELIMIT = 'softtimelimit'
 HARDTIMELIMIT = 'hardtimelimit'
