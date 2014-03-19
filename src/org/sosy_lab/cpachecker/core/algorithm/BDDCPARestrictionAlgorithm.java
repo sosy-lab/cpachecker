@@ -54,6 +54,8 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
+import com.google.common.collect.ImmutableList;
+
 @Options(prefix="counterexample")
 public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider {
 
@@ -118,11 +120,15 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
 
       logger.log(Level.INFO, "ErrorSummary:", manager.dumpRegion(errorSummary));
 
-      //TODO: would be better to delete states that should not be explored further from the waitlist
-      for (AbstractState s : reached.getWaitlist()) {
+      final Region negatedErrorBdd = manager.makeNot(errorBdd);
+      for (AbstractState s : ImmutableList.copyOf(reached.getWaitlist())) {
         BDDState bddState = AbstractStates.extractStateByType(s, BDDState.class);
         if (bddState != null) {
-          bddState.addConstraintToState(manager.makeNot(errorBdd));
+          bddState.addConstraintToState(negatedErrorBdd);
+
+          if (bddState.getRegion().isFalse()) {
+            reached.removeOnlyFromWaitlist(s);
+          }
         }
       }
       // END BDD specials
