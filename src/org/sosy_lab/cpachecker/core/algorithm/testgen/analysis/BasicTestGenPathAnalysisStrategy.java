@@ -50,7 +50,6 @@ import com.google.common.collect.Lists;
 public class BasicTestGenPathAnalysisStrategy implements TestGenPathAnalysisStrategy {
 
   private PathChecker pathChecker;
-  //  private List<CFANode> handledDecisions;
   private List<AbstractState> handledDecisions;
   private TestGenStatistics stats;
   ConfigurableProgramAnalysis cpa;
@@ -109,14 +108,14 @@ public class BasicTestGenPathAnalysisStrategy implements TestGenPathAnalysisStra
       }
       //current node is a branching / deciding node. select the edge that isn't represented with the current path.
       CFANode decidingNode = node;
-      //      if(handledDecisions.contains(decidingNode))
+
       if (handledDecisions.contains(currentElement.getFirst()))
       {
         logger.log(Level.INFO, "Branch on path was handled in an earlier iteration -> skipping branching.");
         lastElement = currentElement;
         continue;
       }
-//      cpa.getTransferRelation().
+
       if(lastElement == null)
       {
         //if the last element is not set, we encountered a branching node where both paths are infeasible for the current value mapping.

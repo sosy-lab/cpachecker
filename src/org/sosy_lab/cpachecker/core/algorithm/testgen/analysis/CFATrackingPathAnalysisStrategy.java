@@ -50,7 +50,6 @@ public class CFATrackingPathAnalysisStrategy implements TestGenPathAnalysisStrat
 
   private PathChecker pathChecker;
   private List<CFANode> handledDecisions;
-//  CFANode lastHandledDecision;
   private TestGenStatistics stats;
   ConfigurableProgramAnalysis cpa;
   private LogManager logger;
@@ -108,14 +107,13 @@ public class CFATrackingPathAnalysisStrategy implements TestGenPathAnalysisStrat
       }
       //current node is a branching / deciding node. select the edge that isn't represented with the current path.
       CFANode decidingNode = node;
-//      if (lastHandledDecision != null && decidingNode.compareTo(lastHandledDecision)==0)
+
       if (handledDecisions.contains(decidingNode))
       {
         logger.log(Level.INFO, "Branch on path was handled in an earlier iteration -> skipping branching.");
         lastElement = currentElement;
         continue;
       }
-      //      cpa.getTransferRelation().
       if (lastElement == null)
       {
         //if the last element is not set, we encountered a branching node where both paths are infeasible for the current value mapping.

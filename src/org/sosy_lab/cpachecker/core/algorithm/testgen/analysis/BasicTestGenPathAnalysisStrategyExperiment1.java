@@ -55,7 +55,6 @@ import com.google.common.collect.Lists;
 public class BasicTestGenPathAnalysisStrategyExperiment1 implements TestGenPathAnalysisStrategy {
 
   private PathChecker pathChecker;
-  //  private List<CFANode> handledDecisions;
   private List<AbstractState> handledDecisions;
   private TestGenStatistics stats;
   ConfigurableProgramAnalysis cpa;
