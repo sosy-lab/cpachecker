@@ -56,7 +56,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
     def getExecutable(self):
         executable = Util.findExecutable('cpa.sh', 'scripts/cpa.sh')
-        executableDir = os.path.join(os.path.dirname(executable),"../")
+        executableDir = os.path.join(os.path.dirname(executable), os.path.pardir)
         if os.path.isdir(os.path.join(executableDir, 'src')):
             self._buildCPAchecker(executableDir)
         if not os.path.isfile(os.path.join(executableDir, "cpachecker.jar")):
@@ -73,7 +73,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def getProgrammFiles(self, executable):
-        executableDir = os.path.join(os.path.dirname(executable),"../")
+        executableDir = os.path.join(os.path.dirname(executable), os.path.pardir)
         return Util.flatten(Util.expandFileNamePattern(path, executableDir) for path in REQUIRED_PATHS)
 
 
@@ -82,12 +82,18 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def getVersion(self, executable):
-        process = subprocess.Popen([executable, '-help'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (stdout, stderr) = process.communicate()
+        try:
+            process = subprocess.Popen([executable, '-help'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            (stdout, stderr) = process.communicate()
+        except OSError as e:
+            logging.warning('Cannot run CPAchecker to determine version: {0}'.format(e.strerror))
+            return ''
         if stderr:
-            sys.exit(Util.decodeToString(stderr))
+            logging.warning('Cannot determine CPAchecker version, error output: {0}'.format(Util.decodeToString(stderr)))
+            return ''
         if process.returncode:
-            sys.exit('CPAchecker returned exit code {0}'.format(process.returncode))
+            logging.warning('Cannot determine CPAchecker version, exit code {0}'.format(process.returncode))
+            return ''
         stdout = Util.decodeToString(stdout)
         line = stdout.splitlines()[0]
         line = line.replace('CPAchecker' , '')
