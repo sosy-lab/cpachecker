@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.testgen.model;
 
+import static java.lang.String.format;
 import static org.sosy_lab.cpachecker.core.algorithm.testgen.ReachedSetUtils.addReachedStatesToOtherReached;
 
 import java.io.IOException;
@@ -37,6 +38,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
@@ -52,6 +54,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -62,20 +65,18 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
 
   private CFA cfa;
   private ConfigurableProgramAnalysis currentCPA;
-  private CPABuilder cpaBuilder;
-  private List<Pair<AbstractState,Precision>> wrongStates;
+  private List<Pair<AbstractState, Precision>> wrongStates;
 
   private int automatonCounter = 0;
   private StartupConfig startupConfig;
 
-  //workaround to get unique filenames per cpachecker instance
+  // get a unique String for filenames per cpachecker instance
   private static String automatonSuffix = UUID.randomUUID().toString();
 
   public AutomatonControlledIterationStrategy(StartupConfig startupConfig, CFA pCfa, IterationModel model,
       ReachedSetFactory pReachedSetFactory, CPABuilder pCpaBuilder, TestGenStatistics pStats) {
     super(startupConfig, model, pReachedSetFactory, pStats);
     this.startupConfig = startupConfig;
-    cpaBuilder = pCpaBuilder;
     cfa = pCfa;
     wrongStates = Lists.newLinkedList();
   }
@@ -85,7 +86,8 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
     // TODO might have to reinit the reached-sets
     getModel().setAlgorithm(createAlgorithmForNextIteration(pResult));
     if (automatonCounter > 1) {
-      wrongStates.add(Pair.of((AbstractState) pResult.getWrongState(), getLocalReached().getPrecision(pResult.getWrongState())));
+      wrongStates.add(Pair.of((AbstractState) pResult.getWrongState(),
+          getLocalReached().getPrecision(pResult.getWrongState())));
     }
     ReachedSet newReached = reachedSetFactory.create();
     AbstractState initialState = getModel().getGlobalReached().getFirstState();
@@ -93,7 +95,7 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
     initialState = currentCPA.getInitialState(initialLoc);
     newReached.add(initialState, currentCPA.getInitialPrecision(initialLoc));
     getModel().setLocalReached(newReached);
-    for (Pair<AbstractState,Precision> wrongState : wrongStates) {
+    for (Pair<AbstractState, Precision> wrongState : wrongStates) {
       ReachedSetUtils.addToReachedOnly(getLocalReached(), wrongState.getFirst(), wrongState.getSecond());
 
     }
@@ -105,40 +107,18 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
   }
 
   private Algorithm createAlgorithmForNextIteration(PredicatePathAnalysisResult pResult) {
-    String outputDir;
-    try {
-      outputDir = new FileTypeConverter(startupConfig.getConfig()).getOutputDirectory();
-    } catch (InvalidConfigurationException e1) {
-      throw new IllegalStateException("Unable to create the Algorithm for next Iteration", e1);
-    }
 
-    Path path = org.sosy_lab.common.io.Paths.get(outputDir, "automaton/next_automaton" + automatonCounter++ + "_" + automatonSuffix +".spc");
-    stats.beforeAutomationFileGeneration();
-    try (Writer w = Files.openOutputFile(path, Charset.forName("UTF8"))) {
-      //    try (DeleteOnCloseFile automatonFile = Files.createTempFile("next_automaton", ".txt")) {
+    Path path = generateAutomatonFileForNextPath(pResult);
 
-      //      try (Writer w = Files.openOutputFile(automatonFile.toPath())) {
-      CounterexampleInfo ci = CounterexampleInfo.feasible(pResult.getPath(), pResult.getTrace().getModel());
-      //      ARGUtils.producePathAutomaton(w, "nextPathAutomaton", pNewPath);
-      //      ARGUtils.producePathAutomaton(w, pResult.getPath().getFirst().getFirst(), pResult.getPath().getStateSet(), "nextPathAutomaton", ci);
-      ARGUtils.produceTestGenPathAutomaton(w, pResult.getPath().getFirst().getFirst(), pResult.getPath().getStateSet(),
-          "nextPathAutomaton", ci, true);
-      //      }
-
-    } catch (IOException e) {
-      throw new IllegalStateException("Unable to create the Algorithm for next Iteration", e);
-    } finally {
-      stats.afterAutomatonFileGeneration();
-    }
-
+    // construct a new CPAAlgorithm with a new set of CPAs which includes an automaton CPA which guides
+    // the the value analysis in the next iteration of the testgen algorithm
     try {
       Configuration lConfig =
           Configuration.builder().copyFrom(config).clearOption("analysis.algorithm.testGen").build();
       CPABuilder localBuilder =
           new CPABuilder(lConfig, logger, ShutdownNotifier.createWithParent(shutdownNotifier), reachedSetFactory);
+
       currentCPA = localBuilder.buildCPAs(cfa, Lists.newArrayList(path));
-      //      CoreComponentsFactory factory = new CoreComponentsFactory(lConfig, logger, ShutdownNotifier.createWithParent(shutdownNotifier));
-      //      return factory.createAlgorithm(nextCpa, "", cfa, null);
 
       if (getModel().getAlgorithm() instanceof CPAAlgorithm) {
         return CPAAlgorithm.create(currentCPA, logger, lConfig, shutdownNotifier);
@@ -148,9 +128,37 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
       }
 
     } catch (InvalidConfigurationException | CPAException e) {
-      // TODO: use another exception?
       throw new IllegalStateException("Unable to create the Algorithm for next Iteration", e);
     }
+  }
+
+  private Path generateAutomatonFileForNextPath(PredicatePathAnalysisResult pResult) {
+    String outputDir;
+    try {
+      outputDir = new FileTypeConverter(startupConfig.getConfig()).getOutputDirectory();
+    } catch (InvalidConfigurationException e1) {
+      throw new IllegalStateException("Unable to create the Algorithm for next Iteration", e1);
+    }
+
+    //TODO: maybe use tempfile if output is disabled
+    String filename = format("next_automaton%s_%s.spc", automatonCounter++, automatonSuffix);
+    Path path = Paths.get(outputDir, "automaton", filename);
+
+    stats.beforeAutomationFileGeneration();
+    try (Writer w = Files.openOutputFile(path, Charset.forName("UTF8"))) {
+
+      ARGPath argPath = pResult.getPath();
+      CounterexampleInfo ci = CounterexampleInfo.feasible(argPath, pResult.getTrace().getModel());
+
+      ARGUtils.produceTestGenPathAutomaton(w, argPath.getFirst().getFirst(), argPath.getStateSet(),
+          "nextPathAutomaton", ci, true);
+
+    } catch (IOException e) {
+      throw new IllegalStateException("Unable to create the Algorithm for next Iteration", e);
+    } finally {
+      stats.afterAutomatonFileGeneration();
+    }
+    return path;
   }
 
 }
