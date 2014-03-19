@@ -33,9 +33,9 @@ public class StartupConfig {
     return new StartupConfig(pStartupConfig.getConfig(), pStartupConfig.getLog(), ShutdownNotifier.createWithParent(pStartupConfig.getShutdownNotifier()));
   }
 
-  private Configuration config;
-  private ShutdownNotifier notifier;
-  private LogManager log;
+  private final Configuration config;
+  private final ShutdownNotifier notifier;
+  private final LogManager log;
 
   public StartupConfig(Configuration pLConfig, LogManager pLogManager, ShutdownNotifier pLShutdownNotifier) {
     this.config = pLConfig;
