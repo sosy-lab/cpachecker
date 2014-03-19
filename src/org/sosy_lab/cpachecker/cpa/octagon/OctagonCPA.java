@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
 @Options(prefix="cpa.octagon")
@@ -70,12 +71,12 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
 
   private OctagonCPA(Configuration config, LogManager log,
                      ShutdownNotifier shutdownNotifier, CFA cfa)
-                     throws InvalidConfigurationException {
+                     throws InvalidConfigurationException, InvalidCFAException {
     config.inject(this);
     logger = log;
     OctDomain octagonDomain = new OctDomain(logger, config);
 
-    this.transferRelation = new OctTransferRelation(logger);
+    this.transferRelation = new OctTransferRelation(logger, cfa);
 
     MergeOperator octagonMergeOp = null;
     if (mergeType.equals("SEP")) {

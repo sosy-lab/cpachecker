@@ -23,10 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon;
 
+import static com.google.common.base.Predicates.*;
+import static com.google.common.collect.Iterables.filter;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -38,6 +42,7 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -100,10 +105,13 @@ import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctEmptyCoefficients;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctIntervalCoefficients;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctSimpleCoefficients;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multimap;
 
 
 public class OctTransferRelation extends ForwardingTransferRelation<OctState, OctPrecision> {
@@ -128,11 +136,32 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
 
   private final LogManager logger;
 
+  private final Map<CFAEdge, Loop> loopEntryEdges;
+
   /**
    * Class constructor.
+   * @throws InvalidCFAException
    */
-  public OctTransferRelation(LogManager log) {
+  public OctTransferRelation(LogManager log, CFA cfa) throws InvalidCFAException {
     logger = log;
+
+    if (!cfa.getLoopStructure().isPresent()) {
+      throw new InvalidCFAException("OctagonCPA does not work without loop information!");
+    }
+
+    Multimap<String, Loop> loops = cfa.getLoopStructure().get();
+    Map<CFAEdge, Loop> entryEdges = new HashMap<>();
+
+    for (Loop l : loops.values()) {
+      // function edges do not count as incoming/outgoing edges
+      Iterable<CFAEdge> incomingEdges = filter(l.getIncomingEdges(),
+                                               not(instanceOf(CFunctionReturnEdge.class)));
+
+      for (CFAEdge e : incomingEdges) {
+          entryEdges.put(e, l);
+      }
+    }
+    loopEntryEdges = Collections.unmodifiableMap(entryEdges);
   }
 
   @Override
@@ -200,6 +229,14 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
     // creating the temporary vars in the cfa, before analyzing the program
     for (OctState st : successors) {
       cleanedUpStates.add(st.removeTempVars(functionName, TEMP_VAR_PREFIX));
+    }
+
+    if (loopEntryEdges.get(cfaEdge) != null) {
+      Set<OctState> newStates = new HashSet<>();
+      for (OctState s : cleanedUpStates) {
+        newStates.add(new OctState(s.getOctagon(), s.getVariableToIndexMap(), new OctState.Block(), logger));
+      }
+      cleanedUpStates = newStates;
     }
 
     resetInfo();
