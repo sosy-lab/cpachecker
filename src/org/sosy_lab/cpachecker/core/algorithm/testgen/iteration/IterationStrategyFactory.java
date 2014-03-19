@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.testgen.iteration;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.StartupConfig;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenAlgorithm.IterationStrategySelector;
@@ -43,18 +42,15 @@ public class IterationStrategyFactory {
 
   private StartupConfig startupConfig;
   private CFA cfa;
-  private CPABuilder cpaBuilder;
   private ReachedSetFactory reachedSetFactory;
   private TestGenStatistics stats;
 
 
   public IterationStrategyFactory(StartupConfig pStartupConfig, CFA pCfa, ReachedSetFactory pReachedSetFactory,
-      CPABuilder pCpaBuilder,
       TestGenStatistics pStats) {
     super();
     startupConfig = pStartupConfig;
     cfa = pCfa;
-    cpaBuilder = pCpaBuilder;
     reachedSetFactory = pReachedSetFactory;
     stats = pStats;
   }
@@ -66,7 +62,7 @@ public class IterationStrategyFactory {
     switch (pIterationStrategySelector) {
     case AUTOMATON_CONTROLLED:
       iterationStrategy =
-          new AutomatonControlledIterationStrategy(startupConfig, cfa, model, reachedSetFactory, cpaBuilder, stats);
+          new AutomatonControlledIterationStrategy(startupConfig, cfa, model, reachedSetFactory, stats);
       break;
     case SAME_ALGORITHM_RESTART:
       iterationStrategy =

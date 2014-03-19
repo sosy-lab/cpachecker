@@ -74,7 +74,7 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
   private static String automatonSuffix = UUID.randomUUID().toString();
 
   public AutomatonControlledIterationStrategy(StartupConfig startupConfig, CFA pCfa, IterationModel model,
-      ReachedSetFactory pReachedSetFactory, CPABuilder pCpaBuilder, TestGenStatistics pStats) {
+      ReachedSetFactory pReachedSetFactory, TestGenStatistics pStats) {
     super(startupConfig, model, pReachedSetFactory, pStats);
     this.startupConfig = startupConfig;
     cfa = pCfa;

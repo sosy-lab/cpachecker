@@ -38,7 +38,6 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.BasicTestGenPathAnalysisStrategy;
@@ -112,7 +111,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
 
   public TestGenAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
       ShutdownNotifier pShutdownNotifier, CFA pCfa,
-      Configuration pConfig, LogManager pLogger, CPABuilder pCpaBuilder) throws InvalidConfigurationException,
+      Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException,
       CPAException {
 
     startupConfig = new StartupConfig(pConfig, pLogger, pShutdownNotifier);
@@ -134,7 +133,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
     PathChecker pathChecker = new PathChecker(pLogger, pfMgr, solver);
     iterationStrategy =
         new IterationStrategyFactory(singleRunConfig, cfa, new ReachedSetFactory(startupConfig.getConfig(), logger),
-            pCpaBuilder, stats).createStrategy(iterationStrategySelector, pAlgorithm);
+            stats).createStrategy(iterationStrategySelector, pAlgorithm);
 
     switch (analysisStrategySelector) {
     case BASIC:

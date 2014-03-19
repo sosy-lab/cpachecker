@@ -186,7 +186,7 @@ public class CoreComponentsFactory {
       }
 
       if (useTestGenAlgorithm) {
-        algorithm = new TestGenAlgorithm(algorithm, cpa, shutdownNotifier, cfa, config, logger, cpaFactory);
+        algorithm = new TestGenAlgorithm(algorithm, cpa, shutdownNotifier, cfa, config, logger);
       }
 
       if (usePropertyCheckingAlgorithm) {
