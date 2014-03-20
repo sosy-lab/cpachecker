@@ -641,6 +641,8 @@ a.action:hover {
 
                         svgedge.onclick = edge_clickaction(edgeid);
                         svgedge.setAttribute('cursor', 'pointer');
+                        svgedge.setAttribute('onmouseover', 'this.getElementsByTagName("text")[0].setAttribute("style", "font-weight:bold")');
+                        svgedge.setAttribute('onmouseout', 'this.getElementsByTagName("text")[0].setAttribute("style", "font-weight:normal")');
                     }
                     self.cfacache[self.active_function] = cfa;
                     self.active_cfa = cfa;
@@ -943,21 +945,34 @@ a.action:hover {
                 function edge_clickaction() {
                     console.log('edge clicked');
                     var label = this.getElementsByTagName('text')[0].textContent;
-
-                    var nodeid = label.split('}-> N')[1];
-                    nodeid = parseInt(nodeid.substring(0, nodeid.length - 1), 10);
-
+                    var line = parseInt(label.split(':')[0].substring(5)); // get 6 from "Line 6: int x;"
+                    viewer.windows.rightpane.select_tab('tab_source');
+                    viewer.windows.source.scrollTo(viewer.data.sourcefiles[0], line); // TODO get sourcefile from ARG, currently not available
+                }
+                
+                function node_clickaction() {
+                    console.log('node clicked');
+                    var label = this.getElementsByTagName('text')[0].textContent;
+                    var nodeid = parseInt(label.split('@ N')[1]); // get 5 from "12 @ N5"
                     viewer.windows.rightpane.select_tab('tab_cfa');
                     viewer.windows.cfawin.focus_node(nodeid);
                 }
-
+                
                 self.onready = function() {
                     var edges = self.svgdoc.getElementsByClassName('edge');
                     for (var i = 0; i < edges.length; i++) {
                         edges[i].onclick = edge_clickaction;
                         edges[i].setAttribute('cursor', 'pointer');
+                        edges[i].setAttribute('onmouseover', 'this.getElementsByTagName("text")[0].setAttribute("style", "font-weight:bold")');
+                        edges[i].setAttribute('onmouseout', 'this.getElementsByTagName("text")[0].setAttribute("style", "font-weight:normal")');
                     }
-
+                    var nodes = self.svgdoc.getElementsByClassName('node');
+                    for (var i = 0; i < nodes.length; i++) {
+                        nodes[i].onclick = node_clickaction;
+                        nodes[i].setAttribute('cursor', 'pointer');
+                        nodes[i].setAttribute('onmouseover', 'this.getElementsByTagName("polygon")[0].setAttribute("fill", "lime")');
+                        nodes[i].setAttribute('onmouseout', 'this.getElementsByTagName("polygon")[0].setAttribute("fill", "none")');
+                    }
                 };
 
                 //initialize ARG window - DOM must be ready
