@@ -492,6 +492,7 @@ public class ARGUtils {
 
     //sb.append("    TRUE -> STOP;\n\n");
     sb.append("STATE USEFIRST EndLoop" + " :\n");
+    sb.append("    MATCH EXIT -> BREAK;\n");
     sb.append("    TRUE -> GOTO EndLoop;\n\n");
 
     sb.append("END AUTOMATON\n");
@@ -613,7 +614,7 @@ public class ARGUtils {
       sb.append("    TRUE -> STOP;\n\n");
 //        lastElement.getSecond().getRawStatement()
       sb.append("STATE USEFIRST EndLoop" + " :\n");
-
+      sb.append("    MATCH EXIT -> BREAK;\n");
       sb.append("    TRUE -> GOTO EndLoop;\n\n");
 
     }
