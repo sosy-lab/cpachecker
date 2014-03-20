@@ -1065,7 +1065,7 @@ a.action:hover {
                 
                 self.scrollTo = function(sourcefile, line) {
 
-                    if (sourcefile == undefined) {
+                    if (sourcefile == undefined || "<none>" == sourcefile) {
                         return;
                     }
 

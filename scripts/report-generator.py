@@ -158,7 +158,7 @@ def main():
     # prepare values that may be used in template
     templatevalues = {}
     templatevalues['time_generated']    = time.strftime("%a, %d %b %Y %H:%M", time.localtime())
-    templatevalues['sourcefilenames']   = [os.path.basename(sourcefile) for sourcefile in sourcefiles]
+    templatevalues['sourcefilenames']   = sourcefiles
     templatevalues['sourcefilecontents']= [readfile(sourcefile, optional=True) for sourcefile in sourcefiles]
     templatevalues['logfile']           = readfile(logfile, optional=True)
     templatevalues['statistics']        = readfile(statsfile, optional=True)
