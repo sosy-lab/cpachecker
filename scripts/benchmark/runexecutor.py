@@ -248,7 +248,7 @@ class RunExecutor():
                              + "Assure that the directory containing the tool to be benchmarked is included "
                              + "in the PATH environment variable or an alias is set."
                              .format(e.errno, args[0], e.strerror))
-            return (0, 0, 0)
+            return (0, 0, 0, None)
 
         try:
             with self.SUB_PROCESSES_LOCK:
