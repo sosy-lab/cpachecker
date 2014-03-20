@@ -295,7 +295,8 @@ public final class DOTBuilder2 {
       Map<String, Object> jedge = new HashMap<>();
       int src = edge.getPredecessor().getNodeNumber();
       int target = edge.getSuccessor().getNodeNumber();
-      jedge.put("line", edge.getLineNumber());
+      jedge.put("line", edge.getFileLocation().getStartingLineNumber());
+      jedge.put("file", edge.getFileLocation().getFileName());
       jedge.put("source", src);
       jedge.put("target", target);
       jedge.put("stmt", getEdgeText(edge));
