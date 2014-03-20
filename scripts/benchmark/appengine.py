@@ -42,6 +42,7 @@ import time
 import urllib2
 
 from . import util as Util
+from . import filewriter as filewriter
 
 
 APPENGINE_SUBMITTER_THREAD = None
@@ -134,7 +135,6 @@ def _getBenchmarkDataForAppEngine(benchmark):
 
         for run in runSet.runs:
             if STOPPED_BY_INTERRUPT: break
-            logFile = os.path.relpath(run.logFile, benchmark.logFolder)
             args = {'commandline':' '.join(run.getCmdline()), 'programName':run.sourcefile}
             try:
                 with open(run.propertyfile, 'r') as f:
@@ -147,7 +147,7 @@ def _getBenchmarkDataForAppEngine(benchmark):
             except:
                 sys.exit("Cannot read program file {}.".format(run.sourcefile))
             runQueue.put({'payload':args,
-                          'logFile':os.path.join(benchmark.logFolder, logFile),
+                          'logFile':os.path.abspath(run.logFile),
                           'debug':benchmark.config.debug,
                           'maxLogfileSize':benchmark.config.maxLogfileSize})
             sourceFiles.append(run.sourcefile)
@@ -343,8 +343,6 @@ class _AppEngineSubmitter(threading.Thread):
             except:
                 sys.exit('Error while submitting tasks. {}'.format(sys.exc_info()[0]))
 
-#             if self.submittedTasks >= 1: break
-
         logging.debug('Submitting finished with %i submitted tasks.'%self.submittedTasks)
         self.done = True
 
@@ -362,7 +360,7 @@ class _AppEnginePoller(threading.Thread):
         while not self.done and not STOPPED_BY_INTERRUPT:
             try:
                 logging.debug('Polling tasks')
-                uri = self.benchmark.config.appengineURI+'/tasksets/'+self.tasksetKey+'/tasks?finished=true'#&limit=20
+                uri = self.benchmark.config.appengineURI+'/tasksets/'+self.tasksetKey+'/tasks?finished=true&limit=50'
                 headers = {'Accept':'application/json'}
                 request = urllib2.Request(uri, headers=headers)
                 tasks = json.loads(urllib2.urlopen(request).read())
@@ -387,7 +385,7 @@ class _AppEnginePoller(threading.Thread):
             except:
                 logging.warn('Error while polling tasks. {}'.format(sys.exc_info()[0]))
 
-            self.done = (APPENGINE_SUBMITTER_THREAD.done and self.finishedTasks == len(APPENGINE_TASKS))
+            self.done = (APPENGINE_SUBMITTER_THREAD.done and self.finishedTasks >= len(APPENGINE_TASKS))
             if not self.done: time.sleep(self.benchmark.config.appenginePollInterval)
 
     def saveResult(self, run, task):
