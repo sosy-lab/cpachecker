@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.appengine.server.resource;
 import java.util.List;
 
 import org.restlet.data.MediaType;
+import org.restlet.data.Preference;
 import org.restlet.data.Status;
 import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
@@ -79,7 +80,13 @@ public class TaskServerResource extends WadlServerResource implements TaskResour
     getResponse().setStatus(Status.SUCCESS_OK);
 
     // only send redirect if it is a browser call
-    if (variant == null || !variant.getMediaType().equals(MediaType.APPLICATION_JSON)) {
+    boolean isJsonRequest = false;
+    for (Preference<MediaType> type : getClientInfo().getAcceptedMediaTypes()) {
+      if (type.getMetadata() == MediaType.APPLICATION_JSON) {
+        isJsonRequest = true;
+      }
+    }
+    if (!isJsonRequest) {
       getResponse().redirectSeeOther("/tasks");
     }
     return getResponseEntity();
