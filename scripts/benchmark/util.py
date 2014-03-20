@@ -26,7 +26,9 @@ CPAchecker web page:
 from __future__ import absolute_import, print_function, unicode_literals
 
 import glob
+import logging
 import os
+import signal
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
@@ -43,6 +45,14 @@ def forceLinuxPath(path):
         return path.replace('\\', '/')
     return path
 
+def killProcess(pid, sig=signal.SIGTERM):
+    '''
+    This function kills the process and the children in its process group.
+    '''
+    try:
+        os.killpg(pid, sig)
+    except OSError: # process itself returned and exited before killing
+        pass
 
 def printOut(value, end='\n'):
     """
