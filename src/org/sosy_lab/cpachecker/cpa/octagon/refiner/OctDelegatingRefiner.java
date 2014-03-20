@@ -26,8 +26,7 @@ package org.sosy_lab.cpachecker.cpa.octagon.refiner;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
-
-import javax.annotation.Nullable;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -52,25 +51,14 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.bdd.BDDPrecision;
 import org.sosy_lab.cpachecker.cpa.octagon.OctPrecision;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateStaticRefiner;
-import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
-import org.sosy_lab.cpachecker.util.predicates.PathChecker;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
 import com.google.common.collect.Multimap;
 
@@ -85,11 +73,6 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
    * refiner used for value-analysis interpolation refinement
    */
   private OctInterpolationBasedRefiner interpolatingRefiner;
-
-  /**
-   * backup-refiner used for predicate refinement, when value-analysis refinement fails (due to lack of expressiveness)
-   */
-  private PredicateCPARefiner predicatingRefiner;
 
   /**
    * the hash code of the previous error path
@@ -107,7 +90,6 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
 
   // statistics
   private int numberOfValueAnalysisRefinements           = 0;
-  private int numberOfPredicateRefinements               = 0;
   private int numberOfSuccessfulValueAnalysisRefinements = 0;
 
   /**
@@ -134,67 +116,17 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
     return refiner;
   }
 
-  private static PredicateCPARefiner createBackupRefiner(final Configuration config,
-        final LogManager logger, final ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
-
-    PredicateCPA predicateCpa = ((WrapperCPA)cpa).retrieveWrappedCpa(PredicateCPA.class);
-
-    if (predicateCpa == null) {
-      return null;
-    }
-
-    else {
-        FormulaManagerFactory factory               = predicateCpa.getFormulaManagerFactory();
-        FormulaManagerView formulaManager           = predicateCpa.getFormulaManager();
-        Solver solver                               = predicateCpa.getSolver();
-        PathFormulaManager pathFormulaManager       = predicateCpa.getPathFormulaManager();
-        PredicateStaticRefiner extractor            = predicateCpa.getStaticRefiner();
-
-        InterpolationManager manager = new InterpolationManager(
-            formulaManager,
-            pathFormulaManager,
-            solver,
-            factory,
-            config,
-            predicateCpa.getShutdownNotifier(),
-            logger);
-
-        PathChecker pathChecker = new PathChecker(logger, pathFormulaManager, solver);
-
-        RefinementStrategy backupRefinementStrategy = new PredicateAbstractionRefinementStrategy(
-            config,
-            logger,
-            predicateCpa.getShutdownNotifier(),
-            formulaManager,
-            predicateCpa.getPredicateManager(),
-            extractor,
-            solver);
-
-        return new PredicateCPARefiner(
-            config,
-            logger,
-            cpa,
-            manager,
-            pathChecker,
-            formulaManager,
-            pathFormulaManager,
-            backupRefinementStrategy);
-      }
-  }
-
   private static OctDelegatingRefiner initialiseValueAnalysisRefiner(
       ConfigurableProgramAnalysis cpa, OctagonCPA pOctagonCPA)
           throws CPAException, InvalidConfigurationException {
     Configuration config              = pOctagonCPA.getConfiguration();
     LogManager logger                 = pOctagonCPA.getLogger();
-    PredicateCPARefiner backupRefiner = createBackupRefiner(config, logger, cpa);
 
     return new OctDelegatingRefiner(
         config,
         logger,
         pOctagonCPA.getShutdownNotifier(),
         cpa,
-        backupRefiner,
         pOctagonCPA.getCFA());
   }
 
@@ -203,13 +135,11 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final ConfigurableProgramAnalysis pCpa,
-      @Nullable final PredicateCPARefiner pBackupRefiner,
       final CFA pCfa) throws CPAException, InvalidConfigurationException {
     super(pCpa);
     pConfig.inject(this);
 
     interpolatingRefiner  = new OctInterpolationBasedRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
-    predicatingRefiner    = pBackupRefiner;
     cfa                   = pCfa;
     logger                = pLogger;
   }
@@ -229,6 +159,7 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
       if (restartWithoutRefinementOnFailedRefinement) {
         try {
           trackWithFullPrecision(reached, errorPath);
+          logger.log(Level.INFO, "Refinement with ValueAnalysis failed, restarting OctagonAnalysis with full precision.");
         } catch (InvalidConfigurationException e) {
           throw new CPAException("Invalid configuration for feasability check with octagon analysis");
         }
@@ -238,13 +169,7 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
       }
     }
 
-    if(predicatingRefiner != null) {
-      numberOfPredicateRefinements++;
-      return predicatingRefiner.performRefinement(reached, errorPath);
-
-    } else {
-      return CounterexampleInfo.feasible(errorPath, null);
-    }
+    return CounterexampleInfo.feasible(errorPath, null);
   }
 
   /**
@@ -262,17 +187,16 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
     UnmodifiableReachedSet reachedSet = reached.asReachedSet();
     Precision precision               = reachedSet.getPrecision(reachedSet.getLastState());
     OctPrecision octPrecision         = Precisions.extractPrecisionByType(precision, OctPrecision.class);
-    BDDPrecision bddPrecision         = Precisions.extractPrecisionByType(precision, BDDPrecision.class);
 
-    ArrayList<Precision> refinedPrecisions = new ArrayList<>(2);
-    ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(2);
+    ArrayList<Precision> refinedPrecisions = new ArrayList<>(1);
+    ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(1);
 
     OctPrecision refinedOctPrecision;
     Pair<ARGState, CFAEdge> refinementRoot;
 
 
     Multimap<CFANode, MemoryLocation> increment = interpolatingRefiner.determinePrecisionIncrement(errorPath);
-    refinementRoot                      = interpolatingRefiner.determineRefinementRoot(errorPath, increment, false);
+    refinementRoot                              = interpolatingRefiner.determineRefinementRoot(errorPath, increment, false);
 
     // no increment - value-analysis refinement was not successful
     if(increment.isEmpty()) {
@@ -287,12 +211,6 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
     refinedOctPrecision  = new OctPrecision(octPrecision, increment);
     refinedPrecisions.add(refinedOctPrecision);
     newPrecisionTypes.add(OctPrecision.class);
-
-    if (bddPrecision != null) {
-      BDDPrecision refinedBDDPrecision = new BDDPrecision(bddPrecision, increment);
-      refinedPrecisions.add(refinedBDDPrecision);
-      newPrecisionTypes.add(BDDPrecision.class);
-    }
 
     if (valueAnalysisRefinementWasSuccessful(errorPath, octPrecision.getValueAnalysisPrecision(), refinedOctPrecision.getValueAnalysisPrecision())) {
       numberOfSuccessfulValueAnalysisRefinements++;
@@ -362,21 +280,17 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(this);
     pStatsCollection.add(interpolatingRefiner);
-    if (predicatingRefiner != null) {
-      predicatingRefiner.collectStatistics(pStatsCollection);
-    }
   }
 
   @Override
   public String getName() {
-    return "ValueAnalysisDelegatingRefiner";
+    return "OctagonAnalysisDelegatingRefiner";
   }
 
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
     out.println("  number of value analysis refinements:                " + numberOfValueAnalysisRefinements);
     out.println("  number of successful valueAnalysis refinements:      " + numberOfSuccessfulValueAnalysisRefinements);
-    out.println("  number of predicate refinements:                     " + numberOfPredicateRefinements);
   }
 
   /**
@@ -400,7 +314,7 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
 
   boolean isPathFeasableOct(ARGPath path) throws CPAException {
     try {
-      // create a new ValueAnalysisPathChecker, which does check the given path at full precision
+      // create a new OctagonAnalysisPathChecker, which does check the given path at full precision
       OctagonAnalysisFeasabilityChecker checker = new OctagonAnalysisFeasabilityChecker(cfa, logger);
 
       return checker.isFeasible(path);
