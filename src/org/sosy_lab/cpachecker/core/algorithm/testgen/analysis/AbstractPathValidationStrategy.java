@@ -23,17 +23,38 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.testgen.analysis;
 
-import org.sosy_lab.cpachecker.core.algorithm.testgen.model.PredicatePathAnalysisResult;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import java.util.List;
+
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 
-public interface TestGenPathAnalysisStrategy {
+public abstract class AbstractPathValidationStrategy implements PathValidationStrategy {
 
-  public PredicatePathAnalysisResult findNewFeasiblePathUsingPredicates(ARGPath pExecutedPath, ReachedSet reachedStates) throws CPATransferException, InterruptedException;
+  @Override
+  public CounterexampleTraceInfo checkPathCandidate(Pair<ARGState, CFAEdge> pCurrentElement, List<CFAEdge> pNewPath) throws CPATransferException, InterruptedException {
+    return checkPath(pNewPath);
+  }
 
-  public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPATransferException, InterruptedException;
+  @Override
+  public void handleSpuriousPath(List<CFAEdge> pNewPath) {
+  }
+
+  @Override
+  public void handleSinglePathElement(Pair<ARGState, CFAEdge> pCurrentElement) {
+//    handleElement(pCurrentElement.getSecond());
+  }
+
+  @Override
+  public void handleNewCheck(ARGPath pExecutedPath) {
+  }
+
+  @Override
+  public void handleNext(long pNodeCounter) {
+  }
 
 }

@@ -43,6 +43,8 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.BasicTestGenPathAnalysisStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.BasicTestGenPathAnalysisStrategyExperiment1;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.CFATrackingPathAnalysisStrategy;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.CUTEBasicPathSelector;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.DARTLikeBasicPathSelector;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.TestGenPathAnalysisStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.IterationStrategyFactory;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.model.PredicatePathAnalysisResult;
@@ -84,14 +86,16 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
   public enum AnalysisStrategySelector {
     BASIC,
     BASIC_EXPERIMENT1,
-    CFA_TRACKING
+    CFA_TRACKING,
+    DART_LIKE,
+    CUTE_LIKE
   }
 
   @Option(name = "iterationStrategy", description = "Selects the iteration Strategy for TestGenAlgorithm")
   private IterationStrategySelector iterationStrategySelector = IterationStrategySelector.AUTOMATON_CONTROLLED;
 
   @Option(name = "analysisStrategy", description = "Selects the analysis Strategy for TestGenAlgorithm")
-  private AnalysisStrategySelector analysisStrategySelector = AnalysisStrategySelector.CFA_TRACKING;
+  private AnalysisStrategySelector analysisStrategySelector = AnalysisStrategySelector.CUTE_LIKE;
 
   @Option(
       name = "stopOnError",
@@ -142,6 +146,12 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
 
     case BASIC_EXPERIMENT1:
       analysisStrategy = new BasicTestGenPathAnalysisStrategyExperiment1(pathChecker, startupConfig, stats, cpa);
+      break;
+    case DART_LIKE:
+      analysisStrategy = new DARTLikeBasicPathSelector(pathChecker, startupConfig, stats, cpa);
+      break;
+    case CUTE_LIKE:
+      analysisStrategy = new CUTEBasicPathSelector(pathChecker, startupConfig, stats, cpa);
       break;
 
     case CFA_TRACKING:
@@ -210,7 +220,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
        * selecting new path to traverse.
        */
       logger.log(Level.INFO, "Starting predicate path check...");
-      PredicatePathAnalysisResult result = analysisStrategy.findNewFeasiblePathUsingPredicates(executedPath);
+      PredicatePathAnalysisResult result = analysisStrategy.findNewFeasiblePathUsingPredicates(executedPath, iterationStrategy.getModel().getLocalReached());
       logger.log(Level.INFO, "Starting predicate path check DONE");
 
       dumpReachedAndARG(iterationStrategy.getModel().getLocalReached());

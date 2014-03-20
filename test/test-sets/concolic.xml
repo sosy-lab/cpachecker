@@ -4,24 +4,24 @@
   Example file that demonstrates the use of CPAchecker.
   This file can and should be used as a base for building own benchmark definitions.
 -->
-<benchmark tool="cpachecker" timelimit="60" hardtimelimit="120">
+<benchmark tool="cpachecker" timelimit="180" hardtimelimit="220">
 
 
 <!-- benchmark tool="cpachecker" timelimit="1800" memlimit="2000"> -->
   <option name="-noout"/>
   <option name="-heap">1200M</option>
- <!-- 
   <sourcefiles name="ControlFlowInteger">
     <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
   </sourcefiles>
+ <!-- 
   <sourcefiles name="Simple">
     <includesfile>../programs/benchmarks/Simple.set</includesfile>
   </sourcefiles>
-  -->
   <sourcefiles name="Loops">
     <includesfile>../programs/benchmarks/Loops.set</includesfile>
-    <exclude>../programs/benchmarks/eureka_01_false-unreach-label.i</exclude>  
+    <exclude>../programs/benchmarks/loops/eureka_01_false-unreach-label.i</exclude>  for_infinite_loop_1_true-unreach-label_false-termination.i 
   </sourcefiles>
+  -->
  <!-- 
  <sourcefiles name="Sequentialized">
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
