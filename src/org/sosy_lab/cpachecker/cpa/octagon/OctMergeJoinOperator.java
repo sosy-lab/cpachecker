@@ -42,7 +42,9 @@ public class OctMergeJoinOperator implements MergeOperator {
                 + " a widening instead of a join")
   private String joinType = "NORMAL";
 
-  @Option(name="onlyJoinEdgesInSameBlock", description="")
+  @Option(name="onlyJoinEdgesInSameBlock", description="with this option enabled"
+      + "mergeJoin is only used on edges within the same block, i.e. each iteration"
+      + "of a loop is a different block, thus the precision of the analysis increases")
   private boolean onlyJoinEdgesInSameBlock = false;
 
   public OctMergeJoinOperator(OctDomain domain, Configuration config) throws InvalidConfigurationException {

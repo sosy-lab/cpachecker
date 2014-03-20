@@ -766,6 +766,11 @@ cpa.octagon.interpolation.ignoreLoopsExitAssumes = true
 cpa.octagon.merge = "SEP"
   allowed values: [SEP, JOIN]
 
+# with this option enabledmergeJoin is only used on edges within the same
+# block, i.e. each iterationof a loop is a different block, thus the
+# precision of the analysis increases
+cpa.octagon.mergeop.onlyJoinEdgesInSameBlock = false
+
 # of which type should the merge be? normal, for usual join, widening for a
 # widening instead of a join
 cpa.octagon.mergeop.type = "NORMAL"
