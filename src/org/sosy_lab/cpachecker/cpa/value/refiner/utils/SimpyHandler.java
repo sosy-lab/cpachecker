@@ -27,10 +27,12 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.Writer;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
+
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Files.DeleteOnCloseFile;
 
 /**
  * Utility class for handling interaction with Simpy for symbolic term
@@ -57,11 +59,11 @@ public class SimpyHandler {
    * @throws InterruptedException
    */
   public static String simplifyExpression(String exp) throws IOException, InterruptedException {
-    String pathForSimpy = "J:\\Uni\\sympy-0.7.5\\";
+    String pathForSimpy = "E:\\Uni\\eclipse-SDK-4.2-win32\\workspace1\\CPAchecker\\lib\\python\\sympy";
     StringBuilder simplifiedExpression = new StringBuilder();
     //exp = "(4 * a) + a + b + c + d";
     // Write python file with code for simplification
-    List<String> vars = new LinkedList<>();
+    List<String> vars = new ArrayList<>();
     StringBuilder pyc = new StringBuilder();
     pyc.append("from sympy import *\r\n\r\n");
     for (int i = 0; i < exp.length(); ++i) {
@@ -77,10 +79,39 @@ public class SimpyHandler {
     }
     pyc.append("\r\nz = " + exp + "\r\n\r\n");
     pyc.append("print(simplify(z))\r\n");
-    PrintWriter of = new PrintWriter(pathForSimpy + "pyfile.py");
-    of.write(pyc.toString());
-    of.close();
 
+    String result = null;
+
+    try (DeleteOnCloseFile tmp = Files.createTempFile("pyfile", ".py")) {
+
+      try (Writer w = Files.openOutputFile(tmp.toPath())) {
+        w.write(pyc.toString());
+      }
+      // start process that uses tmp file
+      result = callScript(pathForSimpy, simplifiedExpression);
+//      LogManagerWithoutDuplicates l = new LogManagerWithoutDuplicates(null);
+//      ProcessExecutor<IOException> pe = new ProcessExecutor<>(l, IOException.class, "py " + tmp);
+//      pe.join();
+//      if (pe.isFinished()) {
+//        List<String> results = pe.getOutput();
+//        return results.get(0);
+//      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+
+    return result;
+  }
+
+  /**
+   * @param pathForSimpy
+   * @param simplifiedExpression
+   * @return
+   * @throws IOException
+   * @throws InterruptedException
+   */
+  private static String callScript(String pathForSimpy, StringBuilder simplifiedExpression) throws IOException,
+      InterruptedException {
     // Execute python code in file, http://stackoverflow.com/a/1410779
     // Build command
     List<String> commands = new ArrayList<>();
