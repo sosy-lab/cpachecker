@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
     <head>
-        <title>CPAchecker Report - {{sourcefilename}}</title>
+        <title>CPAchecker Report - {{title}}</title>
         <style>
 .edge {
     cursor: pointer;
@@ -136,7 +136,7 @@ html,body {
     border: 0px;
 }
 
-#tab_cfa,#tab_art {
+#tab_cfa,#tab_art,#tab_source {
     position: absolute;
     top: 0px;
     bottom: 0px;
@@ -146,7 +146,7 @@ html,body {
     background: white;
 }
 
-#tab_cfa .controlledContentContainer, #tab_art .controlledContentContainer {
+#tab_cfa .controlledContentContainer, #tab_art .controlledContentContainer, #tab_source .controlledContentContainer {
     position: absolute;
     top: 26px;
     bottom: 0px;
@@ -155,7 +155,7 @@ html,body {
     overflow: none;
 }
 
-#tab_log,#tab_stats,#tab_conf,#tab_source {
+#tab_log,#tab_stats,#tab_conf {
     position: absolute;
     top: 0px;
     bottom: 0px;
@@ -189,23 +189,23 @@ a.action:hover {
     background-color: lime;
 }
 
-#tab_source #source_content td {
+#tab_source .source_content td {
     padding: 0px;
     margin: 0px;
     padding-right: 10px;
 }
 
-#tab_source #source_content td:first-child {
+#tab_source .source_content td:first-child {
     background-color: #ccc;
 }
 
-#tab_source #source_content td pre {
+#tab_source .source_content td pre {
     padding: 0px;
     margin: 0px;
     border: none;
 }
 
-#tab_source #source_content tr:nth-child(2n+1) td pre.prettyprint {
+#tab_source .source_content tr:nth-child(2n+1) td pre.prettyprint {
     background-color: #f3f3f3;
 }
 
@@ -264,7 +264,7 @@ a.action:hover {
         <div class="toolbar" id="header">
             <h1>CPAchecker Report</h1>
             <small>Generated: {{time_generated}}</small>
-            <h2>{{sourcefilename}}</h2>
+            <h2>{{title}}</h2>
             <h3 id="cfalabel" style="display:none;">main</h3>
         </div>
 
@@ -323,14 +323,30 @@ a.action:hover {
                     </div>
                 </div>
                 <div id="tab_source">
-                    {{if sourcefilecontent}}
-                    <table id="source_content">
-{{for loop, line in looper(sourcefilecontent.splitlines())}}
-<tr id="source_line_{{loop.index}}"><td><pre>{{loop.index}}</pre></td><td><pre class="prettyprint lang-c">{{line}}</pre></td></tr>
+                    <div class="controllerContainer">
+                        <div id="selectorContainer">
+                            <span>Displayed Sourcefile </span>
+                            <select id="sourcefileselect" onchange="viewer.windows.source.showSourcefile(this.selectedIndex);">
+                            {{for sourcefile in sourcefilenames}}
+                                <option>{{sourcefile}}</option>
+                            {{endfor}}
+                            </select>
+                        </div>
+                    </div>
+                    {{if sourcefilecontents}}
+                        {{for i, content in enumerate(sourcefilecontents)}}
+                    <div class="controlledContentContainer" style="overflow:auto; display:none" id="sourcefile_{{i}}">
+                        <table class="source_content">
+{{for loop, line in looper(content.splitlines())}}
+<tr id="source_{{i}}_line_{{loop.index}}"><td><pre>{{loop.index}}</pre></td><td><pre class="prettyprint lang-c">{{line}}</pre></td></tr>
 {{endfor}}
-                    </table>
+                        </table>
+                    </div>
+                        {{endfor}}
                     {{else}}
-                    <h3>Source code not available.</h3>
+                    <div class="controlledContentContainer">
+                        <h3>Source code not available.</h3>
+                    </div>
                     {{endif}}
                 </div>
                 <div id="tab_log">
@@ -875,7 +891,7 @@ a.action:hover {
                         var srcspan = document.createElement('span');
                         var srclink = document.createElement('a');
                         srclink.innerHTML = step['source'];
-                        srclink.onclick = node_clickaction(step['source'], 1);
+                        srclink.onclick = node_clickaction(step['source'], i);
                         srcspan.appendChild(document.createTextNode('('));
                         srcspan.appendChild(srclink);
                         srcspan.appendChild(document.createTextNode(')'));
@@ -1023,6 +1039,54 @@ a.action:hover {
             })();
 
         </script>
+        
+        <script>
+            viewer.windows.source = new (function() {
+                var self = this;
+
+                self.init = function() { self.showSourcefile(0); };
+
+                self.selectedLine = null;
+                
+                self.scrollTo = function(sourcefile, line) {
+
+                    if (sourcefile == undefined) {
+                        return;
+                    }
+
+                    var index = viewer.data.sourcefiles.indexOf(sourcefile);
+                    self.showSourcefile(index);
+                    if (line > 0) {
+                        line--;
+                    }
+                    console.log("scrolling to line: " + line);
+                    if (self.selectedLine) {
+                        self.selectedLine.children[1].children[0].style.backgroundColor = '';
+                    }
+                    self.selectedLine = document.getElementById('source_' + index + '_line_' + line);
+                    self.selectedLine.children[1].children[0].style.backgroundColor = 'red';
+                    self.selectedLine.scrollIntoView();
+                }
+
+                self.selectedSourcefile = null;
+            
+                self.showSourcefile = function(index) {
+                    // we use an index instead of the name, because the name might contains special chars 
+                    // like space, dot or underscore, that are not allowed in html.
+                    console.log("show sourcefile: " + viewer.data.sourcefiles[index] + ", index: " + index);
+                    if (self.selectedSourcefile != null) {
+                        // hide current sourcefile
+                        self.selectedSourcefile.style.display = "none";
+                    }
+
+                    // show new file
+                    self.selectedSourcefile = document.getElementById("sourcefile_" + index);
+                    self.selectedSourcefile.style.display = "block";
+                    document.getElementById("sourcefileselect").selectedIndex = index;
+                }
+            })();
+        
+        </script>
 
         <script>
             //the errorpath data
@@ -1030,6 +1094,9 @@ a.action:hover {
 
             //list of functions in the CFA
             viewer.data.functionlist = {{functionlist | html}};
+
+            //list of functions in the CFA
+            viewer.data.sourcefiles = [{{for name in sourcefilenames}}"{{name}}",{{endfor}}];
 
             //nodes that wrap multiple edges
             viewer.data.combinednodes = {{combinednodes | html}};
@@ -1059,21 +1126,6 @@ a.action:hover {
                 draw_error_path_cfa();
             });
 
-
-            var selected_source = null;
-
-            function scroll_source(line) {
-                if (line > 0) {
-                    line--;
-                }
-                if (selected_source) {
-                    selected_source.children[1].children[0].style.backgroundColor = '';
-                }
-                selected_source = document.getElementById('source_line_' + line);
-                selected_source.children[1].children[0].style.backgroundColor = 'red';
-                selected_source.scrollIntoView();
-            }
-
             //viewer.windows.cfawin.init();
             viewer.windows.errorpathwin.handlers.add('node_selected', function(evtname, nodeid, errpathindex) {
                 if (viewer.windows.rightpane.selection == 'tab_cfa') {
@@ -1083,7 +1135,8 @@ a.action:hover {
                         '' + viewer.data.errorpath[errpathindex].argelem
                     );
                 } else if (viewer.windows.rightpane.selection == 'tab_source') {
-                    scroll_source(viewer.data.cfainfo.nodes[nodeid].line);
+                    var target = viewer.data.errorpath[errpathindex];
+                    viewer.windows.source.scrollTo(target.file, target.line);
                 }
             });
 
@@ -1096,13 +1149,15 @@ a.action:hover {
                         '' + viewer.data.errorpath[errpathindex].argelem
                     );
                 } else if (viewer.windows.rightpane.selection == 'tab_source') {
-                    scroll_source(viewer.data.cfainfo.edges[edgeid[0] + '->' + edgeid[1]].line);
+                    var target = viewer.data.cfainfo.edges[edgeid[0] + '->' + edgeid[1]];
+                    viewer.windows.source.scrollTo(target.file, target.line);
                 }
             });
 
             viewer.windows.cfawin.handlers.add('edge_clicked', function(evtname, edgeid) {
                 viewer.windows.rightpane.select_tab('tab_source');
-                scroll_source(viewer.data.cfainfo.edges[edgeid].line);
+                var target = viewer.data.cfainfo.edges[edgeid];
+                viewer.windows.source.scrollTo(target.file, target.line);
             });
 
             viewer.windows.cfawin.init();
@@ -1121,6 +1176,7 @@ a.action:hover {
             }, 1000);
 
             viewer.windows.functionselector.init();
+            viewer.windows.source.init();
 
         </script>
     </body>
