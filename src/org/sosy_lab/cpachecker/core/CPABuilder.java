@@ -27,15 +27,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
@@ -97,29 +93,14 @@ public class CPABuilder {
   }
 
   public ConfigurableProgramAnalysis buildCPAs(final CFA cfa) throws InvalidConfigurationException, CPAException {
-    return buildCPAs(cfa, null);
-  }
-
-  /**
-   * @param cfa
-   * @param additionalSpecFiles Additional Automaton files
-   * @return
-   * @throws InvalidConfigurationException
-   * @throws CPAException
-   */
-  public ConfigurableProgramAnalysis buildCPAs(final CFA cfa, @Nullable final Collection<Path> additionalSpecFiles) throws InvalidConfigurationException, CPAException {
     Set<String> usedAliases = new HashSet<>();
 
     // create automata cpas for specification given in specification file
     List<ConfigurableProgramAnalysis> cpas = null;
-    if (specificationFiles != null || additionalSpecFiles != null) {
+    if (specificationFiles != null) {
       cpas = new ArrayList<>();
 
-      List<Path> lSpecFiles = new LinkedList<Path>();
-      lSpecFiles.addAll(specificationFiles == null ? Collections.<Path>emptyList(): specificationFiles);
-      lSpecFiles.addAll(additionalSpecFiles == null ? Collections.<Path>emptyList(): additionalSpecFiles);
-
-      for (Path specFile : lSpecFiles) {
+      for (Path specFile : specificationFiles) {
         List<Automaton> automata = Collections.emptyList();
         if (specFile.getPath().endsWith(".graphml")) {
           AutomatonGraphmlParser graphmlParser = new AutomatonGraphmlParser(config, logger, cfa.getMachineModel());
@@ -144,7 +125,6 @@ public class CPABuilder {
         }
       }
     }
-
     return buildCPAs(cpaName, CPA_OPTION_NAME, usedAliases, cpas, cfa);
   }
 
