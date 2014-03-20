@@ -3,8 +3,8 @@
 		<name>cpachecker</name>
 		<mode>push</mode>
 		<rate>3/m</rate> <!-- 1/s -->
-    	<bucket-size>3</bucket-size> <!-- 100 -->
-    	<max-concurrent-requests>5</max-concurrent-requests> <!-- 100 -->
+    	<bucket-size>1</bucket-size> <!-- 100 -->
+    	<max-concurrent-requests>1</max-concurrent-requests> <!-- 100 -->
 		<retry-parameters>
 			<!--
 				NOTE:
