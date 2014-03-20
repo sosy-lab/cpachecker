@@ -29,16 +29,14 @@ import logging
 import multiprocessing
 import os
 import resource
-import shutil
-import signal
 import subprocess
 import sys
-import tempfile
 import threading
 import time
 
 from .benchmarkDataStructures import MEMLIMIT, TIMELIMIT, CORELIMIT
 from . import util as Util
+from .cgroups import *
 from . import filewriter
 from . import oomhandler
 
@@ -73,15 +71,15 @@ class RunExecutor():
         self.cgroupsParents = {} # contains the roots of all cgroup-subsystems
         self.cpus = [] # list of available CPU cores
 
-        _initCgroup(self.cgroupsParents, CPUACCT)
+        initCgroup(self.cgroupsParents, CPUACCT)
         if not self.cgroupsParents[CPUACCT]:
             logging.warning('Without cpuacct cgroups, cputime measurement and limit might not work correctly if subprocesses are started.')
 
-        _initCgroup(self.cgroupsParents, MEMORY)
+        initCgroup(self.cgroupsParents, MEMORY)
         if not self.cgroupsParents[MEMORY]:
             logging.warning('Cannot measure and limit memory consumption without memory cgroups.')
 
-        _initCgroup(self.cgroupsParents, CPUSET)
+        initCgroup(self.cgroupsParents, CPUSET)
 
         cgroupCpuset = self.cgroupsParents[CPUSET]
         if not cgroupCpuset:
@@ -113,11 +111,11 @@ class RunExecutor():
         @return myCpuCount: None or the number of CPU cores to use
         """
       
-        # Setup cgroups, need a single call to _createCgroup() for all subsystems
+        # Setup cgroups, need a single call to createCgroup() for all subsystems
         subsystems = [CPUACCT, MEMORY]
         if CORELIMIT in rlimits and myCpuIndex is not None:
             subsystems.append(CPUSET)
-        cgroups = _createCgroup(self.cgroupsParents, *subsystems)
+        cgroups = createCgroup(self.cgroupsParents, *subsystems)
 
         logging.debug("Executing {0} in cgroups {1}.".format(args, cgroups.values()))
 
@@ -215,7 +213,7 @@ class RunExecutor():
                 #print('libcgroup is not available: {}'.format(e.strerror))
 
             for cgroup in cgroups.values():
-                _addTaskToCgroup(cgroup, pid)
+                addTaskToCgroup(cgroup, pid)
 
 
         # copy parent-environment and set needed values, either override or append
@@ -294,7 +292,7 @@ class RunExecutor():
 
             # kill all remaining processes if some managed to survive
             for cgroup in cgroups.values():
-                _killAllTasksInCgroup(cgroup)
+                killAllTasksInCgroup(cgroup)
 
         wallTimeAfter = time.time()
         energyAfter = Util.getEnergy()
@@ -388,7 +386,7 @@ class RunExecutor():
         logging.debug("executeRun: cleaning up CGroups.")
         for cgroup in set(cgroups.values()):
             # Need the set here to delete each cgroup only once.
-            _removeCgroup(cgroup)
+            removeCgroup(cgroup)
 
         logging.debug("executeRun: reading output.")
         outputFile = open(outputFileName, 'rt') # re-open file for reading output
@@ -522,137 +520,3 @@ def _hasSwap():
                 if int(swap) == 0:
                     return False
     return True
-
-def _findCgroupMount(subsystem=None):
-    try:
-        with open('/proc/mounts', 'rt') as mounts:
-            for mount in mounts:
-                mount = mount.split(' ')
-                if mount[2] == 'cgroup':
-                    mountpoint = mount[1]
-                    options = mount[3]
-                    logging.debug('Found cgroup mount at {0} with options {1}'.format(mountpoint, options))
-                    if subsystem:
-                        if subsystem in options.split(','):
-                            return mountpoint
-                    else:
-                        return mountpoint
-    except:
-        pass # /proc/mounts cannot be read
-    return None
-
-
-def _createCgroup(cgroupsParents, *subsystems):
-    """
-    Try to create a cgroup for each of the given subsystems.
-    If multiple subsystems are available in the same hierarchy,
-    a common cgroup for theses subsystems is used.
-    @param subsystems: a list of cgroup subsystems
-    @return a map from subsystem to cgroup for each subsystem where it was possible to create a cgroup
-    """
-    createdCgroupsPerSubsystem = {}
-    createdCgroupsPerParent = {}
-    for subsystem in subsystems:
-        _initCgroup(cgroupsParents, subsystem)
-
-        parentCgroup = cgroupsParents.get(subsystem)
-        if not parentCgroup:
-            # subsystem not enabled
-            continue
-        if parentCgroup in createdCgroupsPerParent:
-            # reuse already created cgroup
-            createdCgroupsPerSubsystem[subsystem] = createdCgroupsPerParent[parentCgroup]
-            continue
-
-        cgroup = tempfile.mkdtemp(prefix='benchmark_', dir=parentCgroup)
-        createdCgroupsPerSubsystem[subsystem] = cgroup
-        createdCgroupsPerParent[parentCgroup] = cgroup
-
-        # add allowed cpus and memory to cgroup if necessary
-        # (otherwise we can't add any tasks)
-        try:
-            shutil.copyfile(os.path.join(parentCgroup, 'cpuset.cpus'), os.path.join(cgroup, 'cpuset.cpus'))
-            shutil.copyfile(os.path.join(parentCgroup, 'cpuset.mems'), os.path.join(cgroup, 'cpuset.mems'))
-        except IOError:
-            # expected to fail if cpuset subsystem is not enabled in this hierarchy
-            pass
-
-    return createdCgroupsPerSubsystem
-
-def _findOwnCgroup(subsystem):
-    """
-    Given a cgroup subsystem,
-    find the cgroup in which this process is in.
-    (Each process is in exactly cgroup in each hierarchy.)
-    @return the path to the cgroup inside the hierarchy
-    """
-    with open('/proc/self/cgroup', 'rt') as ownCgroups:
-        for ownCgroup in ownCgroups:
-            #each line is "id:subsystem,subsystem:path"
-            ownCgroup = ownCgroup.strip().split(':')
-            if subsystem in ownCgroup[1].split(','):
-                return ownCgroup[2]
-        logging.warning('Could not identify my cgroup for subsystem {0} although it should be there'.format(subsystem))
-        return None
-
-def _addTaskToCgroup(cgroup, pid):
-    if cgroup:
-        with open(os.path.join(cgroup, 'tasks'), 'w') as tasksFile:
-            tasksFile.write(str(pid))
-
-def _killAllTasksInCgroup(cgroup):
-    tasksFile = os.path.join(cgroup, 'tasks')
-    i = 1
-    while i <= 2: # Do two triess of killing processes
-        with open(tasksFile, 'rt') as tasks:
-            task = None
-            for task in tasks:
-                logging.warning('Run has left-over process with pid {0}, killing it (try {1}).'.format(task, i))
-                Util.killProcess(int(task), signal.SIGKILL)
-
-            if task is None:
-                return # No process was hanging, exit
-            elif i == 2:
-                logging.warning('Run still has left over processes after second try of killing them, giving up.')
-            i += 1
-
-def _removeCgroup(cgroup):
-    if cgroup:
-        assert os.path.getsize(os.path.join(cgroup, 'tasks')) == 0
-        try:
-            os.rmdir(cgroup)
-        except OSError:
-            # sometimes this fails because the cgroup is still busy, we try again once
-            os.rmdir(cgroup)
-
-def _initCgroup(cgroupsParents, subsystem):
-    if not subsystem in cgroupsParents:
-        cgroup = _findCgroupMount(subsystem)
-
-        if not cgroup:
-            logging.warning(
-'''Cgroup subsystem {0} not enabled.
-Please enable it with "sudo mount -t cgroup none /sys/fs/cgroup".'''
-                .format(subsystem)
-                )
-            cgroupsParents[subsystem] = None
-            return
-        else:
-            logging.debug('Subsystem {0} is mounted at {1}'.format(subsystem, cgroup))
-
-        # find our own cgroup, we want to put processes in a child group of it
-        cgroup = os.path.join(cgroup, _findOwnCgroup(subsystem)[1:])
-        cgroupsParents[subsystem] = cgroup
-        logging.debug('My cgroup for subsystem {0} is {1}'.format(subsystem, cgroup))
-
-        try: # only for testing?
-            testCgroup = _createCgroup(cgroupsParents, subsystem)[subsystem]
-            _removeCgroup(testCgroup)
-
-            logging.debug('Found {0} subsystem for cgroups mounted at {1}'.format(subsystem, cgroup))
-        except OSError as e:
-            logging.warning(
-'''Cannot use cgroup hierarchy mounted at {0}, reason: {1}
-If permissions are wrong, please run "sudo chmod o+wt \'{0}\'".'''
-                .format(cgroup, e.strerror))
-            cgroupsParents[subsystem] = None
