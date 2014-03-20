@@ -102,6 +102,9 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
   @Option(description="whether or not to check for repeated refinements, to then reset the refinement root")
   private boolean checkForRepeatedRefinements = true;
 
+  @Option(description="whether or not to restart the analysis without refinement instead of throwing an exception")
+  private boolean restartWithoutRefinementOnFailedRefinement = true;
+
   // statistics
   private int numberOfValueAnalysisRefinements           = 0;
   private int numberOfPredicateRefinements               = 0;
@@ -222,12 +225,24 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
       }
     }
 
+    if (!isPathFeasableOct(errorPath)) {
+      if (restartWithoutRefinementOnFailedRefinement) {
+        try {
+          trackWithFullPrecision(reached, errorPath);
+        } catch (InvalidConfigurationException e) {
+          throw new CPAException("Invalid configuration for feasability check with octagon analysis");
+        }
+        return CounterexampleInfo.spurious();
+      } else {
+        throw new CPAException("Refinement failed");
+      }
+    }
+
     if(predicatingRefiner != null) {
       numberOfPredicateRefinements++;
       return predicatingRefiner.performRefinement(reached, errorPath);
-    }
 
-    else {
+    } else {
       return CounterexampleInfo.feasible(errorPath, null);
     }
   }
@@ -244,10 +259,10 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
   private boolean performValueAnalysisRefinement(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException, InterruptedException {
     numberOfValueAnalysisRefinements++;
 
-    UnmodifiableReachedSet reachedSet             = reached.asReachedSet();
-    Precision precision                           = reachedSet.getPrecision(reachedSet.getLastState());
-    OctPrecision octPrecision = Precisions.extractPrecisionByType(precision, OctPrecision.class);
-    BDDPrecision bddPrecision                     = Precisions.extractPrecisionByType(precision, BDDPrecision.class);
+    UnmodifiableReachedSet reachedSet = reached.asReachedSet();
+    Precision precision               = reachedSet.getPrecision(reachedSet.getLastState());
+    OctPrecision octPrecision         = Precisions.extractPrecisionByType(precision, OctPrecision.class);
+    BDDPrecision bddPrecision         = Precisions.extractPrecisionByType(precision, BDDPrecision.class);
 
     ArrayList<Precision> refinedPrecisions = new ArrayList<>(2);
     ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(2);
@@ -287,6 +302,22 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
     else {
       return false;
     }
+  }
+
+  private void trackWithFullPrecision(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException, InterruptedException, InvalidConfigurationException {
+    numberOfValueAnalysisRefinements++;
+
+    UnmodifiableReachedSet reachedSet = reached.asReachedSet();
+
+    ArrayList<Precision> refinedPrecisions = new ArrayList<>(1);
+    ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(1);
+
+    refinedPrecisions.add(new OctPrecision(Configuration.builder().build()));
+    newPrecisionTypes.add(OctPrecision.class);
+
+
+    numberOfSuccessfulValueAnalysisRefinements++;
+    reached.removeSubtree(((ARGState)reachedSet.getFirstState()).getChildren().iterator().next(), refinedPrecisions, newPrecisionTypes);
   }
 
   /**
@@ -359,6 +390,18 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
     try {
       // create a new ValueAnalysisPathChecker, which does check the given path at full precision
       ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
+
+      return checker.isFeasible(path);
+    }
+    catch (InterruptedException | InvalidConfigurationException e) {
+      throw new CPAException("counterexample-check failed: ", e);
+    }
+  }
+
+  boolean isPathFeasableOct(ARGPath path) throws CPAException {
+    try {
+      // create a new ValueAnalysisPathChecker, which does check the given path at full precision
+      OctagonAnalysisFeasabilityChecker checker = new OctagonAnalysisFeasabilityChecker(cfa, logger);
 
       return checker.isFeasible(path);
     }

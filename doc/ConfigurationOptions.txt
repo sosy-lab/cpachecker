@@ -789,6 +789,10 @@ cpa.octagon.refiner.checkForRepeatedRefinements = true
 # whether or not to do lazy-abstraction
 cpa.octagon.refiner.doLazyAbstraction = true
 
+# whether or not to restart the analysis without refinement instead of
+# throwing an exception
+cpa.octagon.refiner.restartWithoutRefinementOnFailedRefinement = true
+
 # which merge operator to use for InvariantCPA
 cpa.pointer2.merge = "JOIN"
   allowed values: [JOIN, SEP]
