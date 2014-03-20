@@ -42,3 +42,19 @@ You can start a development server by executing:
 ant -f gae-build.xml server
 
 It will be available at http://localhost:8888
+
+
+Deployment
+==========
+
+To deploy the application to Google App Engine use the following Ant target:
+
+ant -f gae-build.xml deploy
+
+Make sure to setup OAuth2 before:
+https://developers.google.com/appengine/docs/java/tools/uploadinganapp#Passwordless_Login_with_OAuth2
+
+For more control over the deployment process and other administrative work
+you can use the tool provided by Google:
+
+./lib/appengine-java-sdk-*/bin/appcfg.sh
