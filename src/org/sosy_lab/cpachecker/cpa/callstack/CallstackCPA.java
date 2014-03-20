@@ -51,7 +51,7 @@ public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnal
   }
 
   public CallstackCPA(Configuration config, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
-    super("sep", "sep", new CallstackTransferRelation(config, pLogger, pCFA.getMainFunction()));
+    super("sep", "sep", new CallstackTransferRelation(config, pLogger));
   }
 
   @Override
