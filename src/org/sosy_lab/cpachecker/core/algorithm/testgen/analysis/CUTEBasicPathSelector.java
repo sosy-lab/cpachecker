@@ -126,6 +126,7 @@ public class CUTEBasicPathSelector implements TestGenPathAnalysisStrategy {
       {
         branchingHistory.hasNext();
         oldElement = branchingHistory.next();
+        logger.logf(Level.INFO,"Is path candidate for predicted section");
       }
       CFANode node = edge.getPredecessor();
       //num of leaving edges does not include a summary edge, so the check is valid.

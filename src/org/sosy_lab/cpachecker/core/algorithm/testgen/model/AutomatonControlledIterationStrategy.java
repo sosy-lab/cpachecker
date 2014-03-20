@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.ReachedSetUtils;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.StartupConfig;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -95,10 +94,10 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
     initialState = currentCPA.getInitialState(initialLoc);
     newReached.add(initialState, currentCPA.getInitialPrecision(initialLoc));
     getModel().setLocalReached(newReached);
-    for (Pair<AbstractState, Precision> wrongState : wrongStates) {
-      ReachedSetUtils.addToReachedOnly(getLocalReached(), wrongState.getFirst(), wrongState.getSecond());
-
-    }
+//    for (Pair<AbstractState, Precision> wrongState : wrongStates) {
+//      ReachedSetUtils.addToReachedOnly(getLocalReached(), wrongState.getFirst(), wrongState.getSecond());
+//
+//    }
   }
 
   @Override
@@ -114,11 +113,12 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
     // the the value analysis in the next iteration of the testgen algorithm
     try {
       Configuration lConfig =
-          Configuration.builder().copyFrom(config).clearOption("analysis.algorithm.testGen").build();
+          Configuration.builder().copyFrom(config).clearOption("analysis.algorithm.testGen").setOption("EvalOnlyOnePathAutomaton.cpa.automaton.inputFile", path.getAbsolutePath()).build();
       CPABuilder localBuilder =
           new CPABuilder(lConfig, logger, ShutdownNotifier.createWithParent(shutdownNotifier), reachedSetFactory);
 
-      currentCPA = localBuilder.buildCPAs(cfa, Lists.newArrayList(path));
+      currentCPA = localBuilder.buildCPAs(cfa);//Lists.newArrayList(path));
+//      currentCPA = localBuilder.buildCPAs(cfa, Lists.newArrayList(path));
 
       if (getModel().getAlgorithm() instanceof CPAAlgorithm) {
         return CPAAlgorithm.create(currentCPA, logger, lConfig, shutdownNotifier);
