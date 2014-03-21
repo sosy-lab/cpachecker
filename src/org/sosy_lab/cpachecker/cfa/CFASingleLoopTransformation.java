@@ -490,7 +490,7 @@ public class CFASingleLoopTransformation {
     int pcValueOfStart = -1;
     ProgramCounterValueProvider programCounterValueProvider = this.programCounterValueProviderFactory.newOrImmutableProgramCounterValueProvider();
 
-    Set<CFANode> newWaitlistNodes = new HashSet<>();
+    Set<CFANode> newWaitlistNodes = new LinkedHashSet<>();
     List<Pair<CFANode, CFANode>> predecessorsAndSuccessors = new ArrayList<>();
     for (CFANode subgraphRoot : pNodes) {
       // Mark an unvisited node as visited or discard a visited node
