@@ -23,14 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
-import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Files.DeleteOnCloseFile;
 
@@ -43,25 +42,21 @@ public class SimpyHandler {
   /**
    * Private constructor in order to prevent instantiation.
    */
-  private SimpyHandler() {
-  }
+  private SimpyHandler() {}
 
-  // TODO Install Sympy in CPAchecker, set corrent path for Simpy
   // TODO Detect variables with names that have more then one letter as name
 
   /**
    * Simplifies a symbolic expression using the Pyhton lib Sympy
-   * ({@link "http://sympy.org/en/index.html"})
+   * (<code>http://sympy.org/en/index.html</code>)
    *
    * @param exp the expression to simplify
+   * @param logger the logger
    * @return the simplified expression or <code>null</code> if a problem occured
    * @throws IOException
    * @throws InterruptedException
    */
-  public static String simplifyExpression(String exp) throws IOException, InterruptedException {
-    String pathForSimpy = "E:\\Uni\\eclipse-SDK-4.2-win32\\workspace1\\CPAchecker\\lib\\python\\sympy";
-    StringBuilder simplifiedExpression = new StringBuilder();
-    //exp = "(4 * a) + a + b + c + d";
+  public static String simplifyExpression(String exp, LogManager logger) {
     // Write python file with code for simplification
     List<String> vars = new ArrayList<>();
     StringBuilder pyc = new StringBuilder();
@@ -80,7 +75,7 @@ public class SimpyHandler {
     pyc.append("\r\nz = " + exp + "\r\n\r\n");
     pyc.append("print(simplify(z))\r\n");
 
-    String result = null;
+    List<String> result = null;
 
     try (DeleteOnCloseFile tmp = Files.createTempFile("pyfile", ".py")) {
 
@@ -88,63 +83,73 @@ public class SimpyHandler {
         w.write(pyc.toString());
       }
       // start process that uses tmp file
-      result = callScript(pathForSimpy, simplifiedExpression);
-//      LogManagerWithoutDuplicates l = new LogManagerWithoutDuplicates(null);
-//      ProcessExecutor<IOException> pe = new ProcessExecutor<>(l, IOException.class, "py " + tmp);
-//      pe.join();
-//      if (pe.isFinished()) {
-//        List<String> results = pe.getOutput();
-//        return results.get(0);
-//      }
+      //result = callScript(pathForSimpy, simplifiedExpression, tmp);
+      // Script must be in Sympy folder in order to find the lib
+      String[] args = { "python", "lib/python/sympy/sympyCaller.py" };
+      ProcessExecutor<RuntimeException> pe = new ProcessExecutor<>(logger, RuntimeException.class, args);
+      // Pass temp file name to caller script
+      pe.print(tmp.toPath().toString());
+      pe.sendEOF();
+      pe.join();
+      result = pe.getOutput();
     } catch (Exception e) {
       e.printStackTrace();
     }
-
-    return result;
-  }
-
-  /**
-   * @param pathForSimpy
-   * @param simplifiedExpression
-   * @return
-   * @throws IOException
-   * @throws InterruptedException
-   */
-  private static String callScript(String pathForSimpy, StringBuilder simplifiedExpression) throws IOException,
-      InterruptedException {
-    // Execute python code in file, http://stackoverflow.com/a/1410779
-    // Build command
-    List<String> commands = new ArrayList<>();
-    commands.add("py");
-    // Add arguments
-    commands.add("pyfile.py");
-    // Run macro on target
-    ProcessBuilder pb = new ProcessBuilder(commands);
-    pb.directory(new File(pathForSimpy));
-    pb.redirectErrorStream(true);
-    Process process = pb.start();
-    // Read output
-    StringBuilder out = new StringBuilder();
-    BufferedReader br = new BufferedReader(new InputStreamReader(
-        process.getInputStream()));
-    String line = null;
-    String previous = null;
-    while ((line = br.readLine()) != null) {
-      if (!line.equals(previous)) {
-        previous = line;
-        simplifiedExpression.append(line + "\r\n");
-      }
-    }
-    // Check result
-    if (process.waitFor() == 0) {
-      return simplifiedExpression.toString();
+    if (result.size() > 0) {
+      // System.out.println(result.get(0));
+      return result.get(0);
     } else {
-      // Abnormal termination: Log command parameters and output and throw
-      // ExecutionException
-      System.err.println(commands);
-      System.err.println(out.toString());
       return null;
     }
   }
+
+  //  /**
+  //   * @param pathForSimpy
+  //   * @param simplifiedExpression
+  //   * @param tmp
+  //   * @return
+  //   * @throws IOException
+  //   * @throws InterruptedException
+  //   */
+  //  private static String callScript(String pathForSimpy,
+  //      StringBuilder simplifiedExpression, DeleteOnCloseFile tmp) throws IOException,
+  //      InterruptedException {
+  //    // Execute python code in file, http://stackoverflow.com/a/1410779
+  //    // Build command
+  //    List<String> commands = new ArrayList<>();
+  //    commands.add("py");
+  //    // Add arguments
+  //    //int t = tmp.toPath().toString().lastIndexOf("\\");
+  //    //String name = tmp.toPath().toString().substring(t+1);
+  //    //System.out.println(name);
+  //    commands.add(tmp.toPath().toString());
+  //    // Run macro on target
+  //    ProcessBuilder pb = new ProcessBuilder(commands);
+  //    pb.directory(new File(pathForSimpy));
+  //    pb.redirectErrorStream(true);
+  //    Process process = pb.start();
+  //    // Read output
+  //    StringBuilder out = new StringBuilder();
+  //    BufferedReader br = new BufferedReader(new InputStreamReader(
+  //        process.getInputStream()));
+  //    String line = null;
+  //    String previous = null;
+  //    while ((line = br.readLine()) != null) {
+  //      if (!line.equals(previous)) {
+  //        previous = line;
+  //        simplifiedExpression.append(line + "\r\n");
+  //      }
+  //    }
+  //    // Check result
+  //    if (process.waitFor() == 0) {
+  //      return simplifiedExpression.toString();
+  //    } else {
+  //      // Abnormal termination: Log command parameters and output and throw
+  //      // ExecutionException
+  //      System.err.println(commands);
+  //      System.err.println(out.toString());
+  //      return null;
+  //    }
+  //  }
 
 }

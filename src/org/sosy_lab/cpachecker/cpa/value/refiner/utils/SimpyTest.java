@@ -25,25 +25,63 @@ package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.IOException;
+import java.util.Map;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.converters.FileTypeConverter;
+import org.sosy_lab.common.log.BasicLogManager;
+import org.sosy_lab.common.log.StringBuildingLogHandler;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
  *
  */
 public class SimpyTest {
 
-  @Test
-  public void testSimpy() {
-    String exp = "(4 * a) + a + b + c + d";
-    String result = null;
-    try {
-      result = SimpyHandler.simplifyExpression(exp);
-    } catch (IOException | InterruptedException e) {
-      e.printStackTrace();
-    }
-    assertEquals("5*a + b + c + d", result);
+  private static LogManager logger;
+
+  /**
+   * Init dummy logger.
+   *
+   * @throws InvalidConfigurationException
+   */
+  @BeforeClass
+  public static void initalizeLogger() throws InvalidConfigurationException {
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.value.ValueAnalysisCPA",
+        "specification", "config/specification/default.spc",
+        "cpa.value.variableBlacklist", "somethingElse"
+        );
+    Configuration config = Configuration.builder()
+        .addConverter(FileOption.class, new FileTypeConverter(Configuration.defaultConfiguration()))
+        .setOptions(prop).build();
+    StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
+    logger = new BasicLogManager(config, stringLogHandler);
   }
+
+  @Test
+  public void testSimpy0() {
+    String exp = "(4 * a) + a + b + c + d";
+    String correct = "5*a + b + c + d";
+    String result = SimpyHandler.simplifyExpression(exp, logger);
+    System.out.println("Correct " + correct + ", is: " + result);
+    assertEquals(correct, result);
+  }
+
+  @Test
+  public void testSimpy1() {
+    String exp = "(7 * b) + (3 * b)";
+    String correct = "10*b";
+    String result = SimpyHandler.simplifyExpression(exp, logger);
+    System.out.println("Correct " + correct + ", is: " + result);
+    assertEquals(correct, result);
+  }
+
 
 }
