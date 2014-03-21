@@ -500,7 +500,7 @@ class _TimelimitThread(threading.Thread):
             logging.debug("TimelimitThread for process {0}: used cpu time: {1}, remaining cpu time: {2}, remaining wall time: {3}."
                           .format(self.process.pid, usedCpuTime, remainingCpuTime, remainingWallTime))
             if remainingCpuTime <= 0 or remainingWallTime <= 0:
-                logging.info('Killing process {0} due to timeout.'.format(self.process.pid))
+                logging.debug('Killing process {0} due to timeout.'.format(self.process.pid))
                 Util.killProcess(self.process.pid)
                 self.finished.set()
                 return

@@ -65,7 +65,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def _buildCPAchecker(self, executableDir):
-        logging.info('Building CPAchecker in directory {0}.'.format(executableDir))
+        logging.debug('Building CPAchecker in directory {0}.'.format(executableDir))
         ant = subprocess.Popen(['ant', '-q', 'jar'], cwd=executableDir, shell=Util.isWindows())
         (stdout, stderr) = ant.communicate()
         if ant.returncode:

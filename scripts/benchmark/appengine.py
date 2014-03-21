@@ -309,7 +309,7 @@ class _AppEngineSubmitter(threading.Thread):
                 if self.queue.empty():
                     payloadComplete = True
 
-            logging.debug('Submitting {} of {} tasks.'.format(str(len(runs)), str(self.numberOfRuns-self.submittedTasks)))
+            logging.info('Submitting {} of {} tasks.'.format(str(len(runs)), str(self.numberOfRuns-self.submittedTasks)))
 
             payload = []
             for index, run in enumerate(runs):
@@ -359,7 +359,7 @@ class _AppEnginePoller(threading.Thread):
         time.sleep(self.benchmark.config.appenginePollInterval)
         while not self.done and not STOPPED_BY_INTERRUPT:
             try:
-                logging.debug('Polling tasks')
+                logging.info('Polling tasks')
                 uri = self.benchmark.config.appengineURI+'/tasksets/'+self.tasksetKey+'/tasks?finished=true&limit=50'
                 headers = {'Accept':'application/json'}
                 request = urllib2.Request(uri, headers=headers)
@@ -393,6 +393,7 @@ class _AppEnginePoller(threading.Thread):
         logFile = run['logFile']
         headers = {'Accept':'text/plain'}
 
+        logging.info('Storing result of task {0} in file {1}'.format(taskKey, logFile))
         fileNames = []
         for file in task['files']:
             fileNames.append(file['name'])

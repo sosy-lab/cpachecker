@@ -101,7 +101,7 @@ class KillProcessOnOomThread(threading.Thread):
             # If read returned, this means the kernel sent us an event.
             # It does so either on OOM or if the cgroup is removed.
             if not self._finished.is_set():
-                logging.info('Killing process {0} due to out-of-memory event from kernel.'.format(self._process.pid))
+                logging.debug('Killing process {0} due to out-of-memory event from kernel.'.format(self._process.pid))
                 util.killProcess(self._process.pid, signal.SIGKILL)
                 # Also kill all children of subprocesses directly.
                 with open(os.path.join(self._cgroup, 'tasks'), 'rt') as tasks:
