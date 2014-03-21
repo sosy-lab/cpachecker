@@ -187,7 +187,7 @@ def main():
 
     else:
         outfilepath = os.path.join(reportdir, 'report.html')
-
+        templatevalues['title'] = os.path.basename(sourcefiles[0]) # use the first sourcefile as name
         generateReport(outfilepath, template, templatevalues)
 
 

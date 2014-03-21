@@ -641,8 +641,15 @@ a.action:hover {
 
                         svgedge.onclick = edge_clickaction(edgeid);
                         svgedge.setAttribute('cursor', 'pointer');
-                        svgedge.setAttribute('onmouseover', 'this.getElementsByTagName("text")[0].setAttribute("style", "font-weight:bold")');
-                        svgedge.setAttribute('onmouseout', 'this.getElementsByTagName("text")[0].setAttribute("style", "font-weight:normal")');
+                        svgedge.onmouseover = function() {
+                            var text = this.getElementsByTagName("text")[0];
+                            text.setAttribute("styleBackup", text.getAttribute("style"));
+                            text.setAttribute("style", "font-weight:bold");
+                        };
+                        svgedge.onmouseout = function() {
+                            var text = this.getElementsByTagName("text")[0];
+                            text.setAttribute("style", text.getAttribute("styleBackup"));
+                        };
                     }
                     self.cfacache[self.active_function] = cfa;
                     self.active_cfa = cfa;
@@ -963,15 +970,29 @@ a.action:hover {
                     for (var i = 0; i < edges.length; i++) {
                         edges[i].onclick = edge_clickaction;
                         edges[i].setAttribute('cursor', 'pointer');
-                        edges[i].setAttribute('onmouseover', 'this.getElementsByTagName("text")[0].setAttribute("style", "font-weight:bold")');
-                        edges[i].setAttribute('onmouseout', 'this.getElementsByTagName("text")[0].setAttribute("style", "font-weight:normal")');
+                        edges[i].onmouseover = function(){
+                            var text = this.getElementsByTagName("text")[0];
+                            text.setAttribute("styleBackup", text.getAttribute("style"));
+                            text.setAttribute("style", "font-weight:bold");
+                        };
+                        edges[i].onmouseout  = function(){
+                            var text = this.getElementsByTagName("text")[0];
+                            text.setAttribute("style", text.getAttribute("styleBackup"));
+                        };
                     }
                     var nodes = self.svgdoc.getElementsByClassName('node');
                     for (var i = 0; i < nodes.length; i++) {
                         nodes[i].onclick = node_clickaction;
                         nodes[i].setAttribute('cursor', 'pointer');
-                        nodes[i].setAttribute('onmouseover', 'this.getElementsByTagName("polygon")[0].setAttribute("fill", "lime")');
-                        nodes[i].setAttribute('onmouseout', 'this.getElementsByTagName("polygon")[0].setAttribute("fill", "none")');
+                        nodes[i].onmouseover = function(){
+                            var box = this.getElementsByTagName("polygon")[0];
+                            box.setAttribute("fillBackup", box.getAttribute("fill"));
+                            box.setAttribute("fill", "lime");
+                        };
+                        nodes[i].onmouseout  = function(){
+                            var box = this.getElementsByTagName("polygon")[0];
+                            box.setAttribute("fill", box.getAttribute("fillBackup"));
+                        };
                     }
                 };
 
