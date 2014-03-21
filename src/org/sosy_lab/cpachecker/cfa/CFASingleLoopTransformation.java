@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import static com.google.common.base.Predicates.*;
+import static com.google.common.collect.FluentIterable.from;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
@@ -102,7 +105,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashBiMap;
@@ -226,7 +228,8 @@ public class CFASingleLoopTransformation {
       boolean modificationRequired = !loops.isEmpty();
       if (modificationRequired && loops.size() == 1) {
         Loop singleLoop = Iterables.getOnlyElement(loops);
-        modificationRequired = singleLoop.getLoopHeads().size() > 1 || singleLoop.getIncomingEdges().size() > 1;
+        modificationRequired = singleLoop.getLoopHeads().size() > 1
+            || from(singleLoop.getIncomingEdges()).filter(not(instanceOf(CFunctionReturnEdge.class))).size() > 1;
       }
       if (!modificationRequired) {
         return toImmutableCFA(pInputCFA, pLoopStructure, pVarClassification);
@@ -438,7 +441,7 @@ public class CFASingleLoopTransformation {
    * @return all found matching edges.
    */
   private <T extends CFAEdge> Iterable<T> findEdges(Class<T> pTypeToken, CFANode pStartNode) {
-    return FluentIterable.from(findEdges(Predicates.instanceOf(pTypeToken), pStartNode)).filter(pTypeToken);
+    return from(findEdges(instanceOf(pTypeToken), pStartNode)).filter(pTypeToken);
   }
 
   /**
@@ -786,7 +789,7 @@ public class CFASingleLoopTransformation {
       this.shutdownNotifier.shutdownIfNecessary();
       CFAReversePostorder sorter = new CFAReversePostorder();
       sorter.assignSorting(nodesWithNoIdAssigned.iterator().next());
-      nodesWithNoIdAssigned = FluentIterable.from(nodesWithNoIdAssigned).filter(new Predicate<CFANode>() {
+      nodesWithNoIdAssigned = from(nodesWithNoIdAssigned).filter(new Predicate<CFANode>() {
 
         @Override
         public boolean apply(@Nullable CFANode pArg0) {
@@ -1354,7 +1357,7 @@ public class CFASingleLoopTransformation {
       return new CFunctionReturnEdge(fileLocation, (FunctionExitNode) pNewPredecessor, pNewSuccessor, functionSummaryEdge);
     case MultiEdge:
       MultiEdge multiEdge = (MultiEdge) pEdge;
-      return new MultiEdge(pNewPredecessor, pNewSuccessor, FluentIterable.from(multiEdge.getEdges()).transform(new Function<CFAEdge, CFAEdge>() {
+      return new MultiEdge(pNewPredecessor, pNewSuccessor, from(multiEdge.getEdges()).transform(new Function<CFAEdge, CFAEdge>() {
 
         @Override
         @Nullable
@@ -1416,7 +1419,7 @@ public class CFASingleLoopTransformation {
    */
   private Optional<ImmutableMultimap<String, Loop>> getLoopStructure(CFANode pSingleLoopHead) throws InterruptedException {
 
-    Predicate<CFAEdge> noFunctionReturnEdge = Predicates.not(new EdgeTypePredicate(CFAEdgeType.FunctionReturnEdge));
+    Predicate<CFAEdge> noFunctionReturnEdge = not(new EdgeTypePredicate(CFAEdgeType.FunctionReturnEdge));
 
     // First, find all nodes reachable via the loop head
     Deque<CFANode> waitlist = new ArrayDeque<>();
@@ -1949,7 +1952,7 @@ public class CFASingleLoopTransformation {
             return pArg0;
           }
 
-        }).filter(Predicates.notNull());
+        }).filter(notNull());
       }
 
     };
@@ -2102,7 +2105,7 @@ public class CFASingleLoopTransformation {
      * @return the edges leaving the node.
      */
     private FluentIterable<CFAEdge> getLeavingEdges(CFANode pNode) {
-      return FluentIterable.from(Iterables.concat(this.edges.get(pNode), this.uncommittedEdges.get(pNode)));
+      return from(Iterables.concat(this.edges.get(pNode), this.uncommittedEdges.get(pNode)));
     }
 
     /**
