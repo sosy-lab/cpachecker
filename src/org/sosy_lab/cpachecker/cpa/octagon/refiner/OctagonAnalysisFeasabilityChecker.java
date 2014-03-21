@@ -25,13 +25,16 @@ package org.sosy_lab.cpachecker.cpa.octagon.refiner;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.octagon.OctPrecision;
@@ -43,18 +46,19 @@ import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
 
 import com.google.common.collect.Lists;
 
-
+@Options(prefix="cpa.octagon.refiner")
 public class OctagonAnalysisFeasabilityChecker {
 
   private final OctTransferRelation transfer;
 
   private final LogManager logger;
   private final Configuration config;
+  private final ShutdownNotifier shutdownNotifier;
 
-  public OctagonAnalysisFeasabilityChecker(CFA cfa, LogManager log) throws InvalidConfigurationException, InvalidCFAException {
+  public OctagonAnalysisFeasabilityChecker(CFA cfa, LogManager log, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException, InvalidCFAException {
     logger = log;
     config = Configuration.builder().build();
-
+    shutdownNotifier = pShutdownNotifier;
     transfer  = new OctTransferRelation(logger, cfa);
   }
 
@@ -112,8 +116,8 @@ public class OctagonAnalysisFeasabilityChecker {
 
       ARGPath prefix = new ARGPath();
 
-
       Collection<OctState> successors = new HashSet<>();
+
       for (Pair<ARGState, CFAEdge> pathElement : path) {
         successors.clear();
         for (OctState st : next) {
@@ -121,6 +125,15 @@ public class OctagonAnalysisFeasabilityChecker {
               st,
               pPrecision,
               pathElement.getSecond()));
+
+          // computing the feasibility check takes sometimes much time with ocatongs
+          // so if the shutdownNotifer says that we should shutdown, we cannot
+          // make any assumptions about the path reachibility and say that it's
+          // reachable (over-approximation)
+          if (shutdownNotifier.shouldShutdown()) {
+            logger.log(Level.INFO, "Cancelling feasibility check with octagon Analysis, timelimit reached");
+            return path;
+          }
         }
 
         prefix.addLast(pathElement);
@@ -139,4 +152,5 @@ public class OctagonAnalysisFeasabilityChecker {
       throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
     }
   }
+
 }

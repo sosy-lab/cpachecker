@@ -793,6 +793,10 @@ cpa.octagon.refiner.doLazyAbstraction = true
 # throwing an exception
 cpa.octagon.refiner.restartWithoutRefinementOnFailedRefinement = true
 
+# Timelimit (in seconds) for the backup feasibility check with the octagon
+# analysis. Zero means there is no timelimit.
+cpa.octagon.refiner.timeForOctagonFeasibilityCheck = 0
+
 # which merge operator to use for InvariantCPA
 cpa.pointer2.merge = "JOIN"
   allowed values: [JOIN, SEP]
@@ -1259,6 +1263,77 @@ cpa.smg.runtimeCheck = NONE
 
 # Emit messages when we encounter non-target undefined behavior
 cpa.smg.unknownOnUndefined = true
+
+# set this to true when you only want to do a code analysis. If StatisticsCPA
+# is combined with other CPAs to do queries use false.
+cpa.statistics.analysis = true
+
+# which merge operator to use for StatisticsCPA? Ignored when analysis is set
+# to true
+cpa.statistics.mergeSep = "sep"
+  allowed values: [sep, join]
+
+# count the number of traversed arithmetic operations.
+cpa.statistics.metric.arithmeticOperationCount = true
+
+# count the number of traversed variable definitions with array type.
+cpa.statistics.metric.arrayVariablesCount = true
+
+# count the number of traversed assume statements.
+cpa.statistics.metric.assumeCount = true
+
+# count the number of traversed bitwise operations.
+cpa.statistics.metric.bitwiseOperationCount = true
+
+# count the number of traversed edges with more then one outgoing edge.
+cpa.statistics.metric.branchCount = true
+
+# count the number of traversed dereference operations.
+cpa.statistics.metric.dereferenceCount = true
+
+# count the number of traversed variable definitions with floating type
+# (float or double).
+cpa.statistics.metric.floatVariablesCount = true
+
+# count the number of traversed function calls.
+cpa.statistics.metric.functionCallCount = true
+
+# count the number of traversed function definitions.
+cpa.statistics.metric.functionDefCount = true
+
+# count the number of traversed global variable definitions.
+cpa.statistics.metric.globalVariablesCount = true
+
+# count the number of traversed gotos.
+cpa.statistics.metric.gotoCount = true
+
+# count the number of traversed variable definitions with integer type.
+cpa.statistics.metric.integerVariablesCount = true
+
+# count the number of traversed jumps.
+cpa.statistics.metric.jumpCount = true
+
+# count the number of traversed local variable definitions.
+cpa.statistics.metric.localVariablesCount = true
+
+# count the number of traversed loops.
+cpa.statistics.metric.loopCount = true
+
+# count the number of traversed nodes.
+cpa.statistics.metric.nodeCount = true
+
+# count the number of traversed variable definitions with pointer type.
+cpa.statistics.metric.pointerVariablesCount = true
+
+# count the number of traversed variable definitions with a complex structure
+# type.
+cpa.statistics.metric.structVariablesCount = true
+
+# set to true if you want to print the statistics in the standard output.
+cpa.statistics.printOut = true
+
+# target file to hold the statistics
+cpa.statistics.statisticsCPAFile = no default value
 
 # if enabled checks if states are target states (there exist warning for
 # uninitilized use of variables

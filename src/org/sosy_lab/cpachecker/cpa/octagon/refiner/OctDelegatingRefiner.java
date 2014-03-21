@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon.refiner;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -59,8 +62,12 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 /**
  * Refiner implementation that delegates to {@link OctInterpolationBasedRefiner},
@@ -88,6 +95,10 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
   @Option(description="whether or not to restart the analysis without refinement instead of throwing an exception")
   private boolean restartWithoutRefinementOnFailedRefinement = true;
 
+  @Option(description="Timelimit (in seconds) for the backup feasibility check with the octagon analysis."
+      + " Zero means there is no timelimit.")
+  private int timeForOctagonFeasibilityCheck = 0;
+
   // statistics
   private int numberOfValueAnalysisRefinements           = 0;
   private int numberOfSuccessfulValueAnalysisRefinements = 0;
@@ -100,6 +111,7 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
   private final CFA cfa;
 
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
 
   public static OctDelegatingRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
@@ -142,6 +154,7 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
     interpolatingRefiner  = new OctInterpolationBasedRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
     cfa                   = pCfa;
     logger                = pLogger;
+    shutdownNotifier      = pShutdownNotifier;
   }
 
   @Override
@@ -157,13 +170,10 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
 
     if (!isPathFeasableOct(errorPath)) {
       if (restartWithoutRefinementOnFailedRefinement) {
-        try {
-          trackWithFullPrecision(reached, errorPath);
-          logger.log(Level.INFO, "Refinement with ValueAnalysis failed, restarting OctagonAnalysis with full precision.");
-        } catch (InvalidConfigurationException e) {
-          throw new CPAException("Invalid configuration for feasability check with octagon analysis");
-        }
+        trackWithFullPrecision(reached, errorPath);
+        logger.log(Level.INFO, "Refinement with ValueAnalysis failed, restarting OctagonAnalysis with full precision.");
         return CounterexampleInfo.spurious();
+
       } else {
         throw new CPAException("Refinement failed");
       }
@@ -215,6 +225,7 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
     if (valueAnalysisRefinementWasSuccessful(errorPath, octPrecision.getValueAnalysisPrecision(), refinedOctPrecision.getValueAnalysisPrecision())) {
       numberOfSuccessfulValueAnalysisRefinements++;
       reached.removeSubtree(refinementRoot.getFirst(), refinedPrecisions, newPrecisionTypes);
+      logger.log(Level.INFO, "Refinement successful, precision incremented, following variables are now tracked additionally:\n" + Sets.difference(refinedOctPrecision.getTrackedVars(), octPrecision.getTrackedVars()));
       return true;
     }
     else {
@@ -222,7 +233,7 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
     }
   }
 
-  private void trackWithFullPrecision(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException, InterruptedException, InvalidConfigurationException {
+  private void trackWithFullPrecision(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException, InterruptedException {
     numberOfValueAnalysisRefinements++;
 
     UnmodifiableReachedSet reachedSet = reached.asReachedSet();
@@ -230,7 +241,12 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
     ArrayList<Precision> refinedPrecisions = new ArrayList<>(1);
     ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(1);
 
-    refinedPrecisions.add(new OctPrecision(Configuration.builder().build()));
+    try {
+      refinedPrecisions.add(new OctPrecision(Configuration.builder().build()));
+    } catch (InvalidConfigurationException e) {
+      // this never happens
+      e.printStackTrace();
+    }
     newPrecisionTypes.add(OctPrecision.class);
 
 
@@ -312,15 +328,65 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
     }
   }
 
+  /**
+   * Creates a new OctagonAnalysisPathChecker, which checks the given path at full precision.
+   */
   boolean isPathFeasableOct(ARGPath path) throws CPAException {
     try {
-      // create a new OctagonAnalysisPathChecker, which does check the given path at full precision
-      OctagonAnalysisFeasabilityChecker checker = new OctagonAnalysisFeasabilityChecker(cfa, logger);
+      // no specific timelimit set for octagon feasibility check
+      if (timeForOctagonFeasibilityCheck == 0) {
+        OctagonAnalysisFeasabilityChecker checker = new OctagonAnalysisFeasabilityChecker(cfa, logger, shutdownNotifier);
+        return checker.isFeasible(path);
+      }
 
-      return checker.isFeasible(path);
+      ShutdownNotifier notifier = ShutdownNotifier.createWithParent(shutdownNotifier);
+      ResourceLimitChecker limits = new ResourceLimitChecker(notifier, Lists.newArrayList((ResourceLimit)new FeasabilityCheckTimeLimit(timeForOctagonFeasibilityCheck*1000000)));
+
+      OctagonAnalysisFeasabilityChecker checker = new OctagonAnalysisFeasabilityChecker(cfa, logger, notifier);
+      limits.start();
+      boolean retVal = checker.isFeasible(path);
+      limits.cancel();
+
+      return retVal;
     }
     catch (InterruptedException | InvalidConfigurationException e) {
       throw new CPAException("counterexample-check failed: ", e);
+    }
+  }
+
+  static class FeasabilityCheckTimeLimit implements ResourceLimit {
+    private final long duration;
+    private final long endTime;
+
+    private FeasabilityCheckTimeLimit(long pDuration) {
+      duration = pDuration;
+      endTime = getCurrentValue() + pDuration;
+    }
+
+    public static FeasabilityCheckTimeLimit fromNowOn(long time, TimeUnit unit) {
+      checkArgument(time > 0);
+      long nanoDuration = TimeUnit.NANOSECONDS.convert(time, unit);
+      return new FeasabilityCheckTimeLimit(nanoDuration);
+    }
+
+    @Override
+    public long getCurrentValue() {
+      return System.nanoTime();
+    }
+
+    @Override
+    public boolean isExceeded(long pCurrentValue) {
+      return pCurrentValue >= endTime;
+    }
+
+    @Override
+    public long nanoSecondsToNextCheck(long pCurrentValue) {
+      return endTime - pCurrentValue;
+    }
+
+    @Override
+    public String getName() {
+      return "feasbility check timelimit of " + TimeUnit.NANOSECONDS.toSeconds(duration) + "s";
     }
   }
 }
