@@ -98,6 +98,13 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
   private AnalysisStrategySelector analysisStrategySelector = AnalysisStrategySelector.CUTE_LIKE;
 
   @Option(
+      name = "produceDebugFiles",
+      description = "Set this to true to get the automaton files for exploring new Paths."
+          + " You also get the ARG as dot file and the local reached set for every algoritm iteration"
+          + " in subdirs under output.")
+  boolean produceDebugFiles = false;
+
+  @Option(
       name = "stopOnError",
       description = "algorithm stops on first found error path. Otherwise the algorithms tries to reach 100% coverage")
   private boolean stopOnError = false;
@@ -137,7 +144,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
     PathChecker pathChecker = new PathChecker(pLogger, pfMgr, solver);
     iterationStrategy =
         new IterationStrategyFactory(singleRunConfig, cfa, new ReachedSetFactory(startupConfig.getConfig(), logger),
-            stats).createStrategy(iterationStrategySelector, pAlgorithm);
+            stats, produceDebugFiles).createStrategy(iterationStrategySelector, pAlgorithm);
 
     switch (analysisStrategySelector) {
     case BASIC:
@@ -223,7 +230,9 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
       PredicatePathAnalysisResult result = analysisStrategy.findNewFeasiblePathUsingPredicates(executedPath, iterationStrategy.getModel().getLocalReached());
       logger.log(Level.INFO, "Starting predicate path check DONE");
 
-      dumpReachedAndARG(iterationStrategy.getModel().getLocalReached());
+      if (produceDebugFiles) {
+        dumpReachedAndARG(iterationStrategy.getModel().getLocalReached());
+      }
 
       if (result.isEmpty()) {
         /*

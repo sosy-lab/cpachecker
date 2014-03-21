@@ -44,15 +44,17 @@ public class IterationStrategyFactory {
   private CFA cfa;
   private ReachedSetFactory reachedSetFactory;
   private TestGenStatistics stats;
+  private boolean produceDebugFiles;
 
 
   public IterationStrategyFactory(StartupConfig pStartupConfig, CFA pCfa, ReachedSetFactory pReachedSetFactory,
-      TestGenStatistics pStats) {
+      TestGenStatistics pStats, boolean pProduceDebugFiles) {
     super();
     startupConfig = pStartupConfig;
     cfa = pCfa;
     reachedSetFactory = pReachedSetFactory;
     stats = pStats;
+    produceDebugFiles = pProduceDebugFiles;
   }
 
   public TestGenIterationStrategy createStrategy(IterationStrategySelector pIterationStrategySelector,
@@ -62,7 +64,7 @@ public class IterationStrategyFactory {
     switch (pIterationStrategySelector) {
     case AUTOMATON_CONTROLLED:
       iterationStrategy =
-          new AutomatonControlledIterationStrategy(startupConfig, cfa, model, reachedSetFactory, stats);
+          new AutomatonControlledIterationStrategy(startupConfig, cfa, model, reachedSetFactory, stats, produceDebugFiles);
       break;
     case SAME_ALGORITHM_RESTART:
       iterationStrategy =
