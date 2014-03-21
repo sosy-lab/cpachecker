@@ -340,7 +340,8 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
       }
 
       ShutdownNotifier notifier = ShutdownNotifier.createWithParent(shutdownNotifier);
-      ResourceLimitChecker limits = new ResourceLimitChecker(notifier, Lists.newArrayList((ResourceLimit)new FeasabilityCheckTimeLimit(timeForOctagonFeasibilityCheck*1000000)));
+      FeasabilityCheckTimeLimit l = new FeasabilityCheckTimeLimit(timeForOctagonFeasibilityCheck*(long)1000000);
+      ResourceLimitChecker limits = new ResourceLimitChecker(notifier, Lists.newArrayList((ResourceLimit)l));
 
       OctagonAnalysisFeasabilityChecker checker = new OctagonAnalysisFeasabilityChecker(cfa, logger, notifier);
       limits.start();
