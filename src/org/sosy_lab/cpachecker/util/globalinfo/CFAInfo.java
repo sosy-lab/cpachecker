@@ -29,11 +29,12 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory;
-
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
 public class CFAInfo {
   private final Map<Integer, CFANode> nodeNumberToNode;
   private LocationStateFactory locationStateFactory;
+  private VariableClassification variableClassification;
 
   CFAInfo(CFA cfa) {
     HashMap<Integer, CFANode> nodeNumberToNode = new HashMap<>();
@@ -41,6 +42,11 @@ public class CFAInfo {
       nodeNumberToNode.put(node.getNodeNumber(), node);
     }
     this.nodeNumberToNode = nodeNumberToNode;
+    if(cfa.getVarClassification().isPresent()) {
+      this.variableClassification = cfa.getVarClassification().get();
+    } else {
+      this.variableClassification = null;
+    }
   }
 
   public CFANode getNodeByNodeNumber(int nodeNumber) {
@@ -53,5 +59,9 @@ public class CFAInfo {
 
   public LocationStateFactory getLocationStateFactory() {
     return locationStateFactory;
+  }
+
+  public VariableClassification getVariableClassification() {
+    return variableClassification;
   }
 }

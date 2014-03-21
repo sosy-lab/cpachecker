@@ -111,7 +111,7 @@ public final class InterpolationManager {
     }
   }
 
-
+  private final InterpolationFormulaEnhancer ife;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final FormulaManagerView fmgr;
@@ -168,6 +168,9 @@ public final class InterpolationManager {
   @Option(description="Use a single SMT solver environment for several interpolation queries")
   private boolean reuseInterpolationEnvironment = false;
 
+  @Option(description="Tunes formulas before interpolating them according to Philipp Ruemmer's \"Exploring Interpolants\"")
+  private boolean tuneInterpolationRequests = true;
+
   private final ExecutorService executor;
 
 
@@ -188,6 +191,7 @@ public final class InterpolationManager {
     pmgr = pPmgr;
     solver = pSolver;
     factory = pFmgrFactory;
+    ife = new InterpolationFormulaEnhancer(pShutdownNotifier,fmgr,factory);
 
     if (itpTimeLimit == 0) {
       executor = null;
@@ -283,6 +287,11 @@ public final class InterpolationManager {
 
       if (fmgr.useBitwiseAxioms()) {
         addBitwiseAxioms(f);
+      }
+
+      // only neccessary if interpolant actually are computed
+      if(computeInterpolants && tuneInterpolationRequests) {
+        ife.enhance(f);
       }
 
       f = Collections.unmodifiableList(f);
@@ -797,6 +806,13 @@ public final class InterpolationManager {
 
         if (computeInterpolants) {
           List<BooleanFormula> interpolants = getInterpolants(itpProver, itpGroupsIds);
+
+          if(tuneInterpolationRequests) {
+            // remove possible traces of variable' from the interpolants and the formula collection f
+            f = ife.clean(f);
+            interpolants = ife.clean(interpolants);
+          }
+
           if (verifyInterpolants) {
             verifyInterpolants(interpolants, f, itpProver);
           }
@@ -814,6 +830,16 @@ public final class InterpolationManager {
         }
 
       } else {
+        if(tuneInterpolationRequests) {
+          // remove possible traces of variable' from the formula collection f
+          f = ife.clean(f);
+          // the itpProver still stores the manipulated formulas.
+          // best solution found to initialize it with the new formulas is a "hard reset"
+          List<Pair<BooleanFormula, Integer>> orderedFormulas = orderFormulas(f);
+          itpGroupsIds = new ArrayList<>(Collections.<T>nCopies(f.size(), null));
+          checkInfeasabilityOfTrace(orderedFormulas, itpGroupsIds);
+        }
+
         // this is a real bug
         info = getErrorPath(f, itpProver, elementsOnPath);
       }
