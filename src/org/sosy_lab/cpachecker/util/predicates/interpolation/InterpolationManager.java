@@ -169,7 +169,7 @@ public final class InterpolationManager {
   private boolean reuseInterpolationEnvironment = false;
 
   @Option(description="Tunes formulas before interpolating them according to Philipp Ruemmer's \"Exploring Interpolants\"")
-  private boolean tuneInterpolationRequests = true;
+  private boolean tuneInterpolationRequests = false;
 
   private final ExecutorService executor;
 

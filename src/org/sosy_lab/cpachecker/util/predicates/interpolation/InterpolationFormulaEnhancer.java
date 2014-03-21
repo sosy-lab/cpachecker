@@ -385,19 +385,23 @@ System.out.println(orderedFormulas.get(s).toString());
 
   private Formula renameRek(Formula f, Map<String,String> replacementList, List<Pair<Formula,Formula>> replacedVariables)
   {
-    if(ufm.isVariable(f) && ufm.isNumber(f)) {
-      String newName = replacementList.get(ufm.getName(f));
-      if(newName==null) {
+    if(ufm.isVariable(f)) {
+      try {
+        String newName = replacementList.get(ufm.getName(f));
+        if(newName==null) {
+          return f;
+        }
+        Formula replacement = ufm.replaceName(f, newName);
+
+        Pair<Formula,Formula> p = Pair.of((Formula)ufm.typeFormula(FormulaType.RationalType, f),
+                                          (Formula)ufm.typeFormula(FormulaType.RationalType,replacement));
+        if(!replacedVariables.contains(p)) {
+          replacedVariables.add(p);
+        }
+        return replacement;
+      } catch(Exception e) {
         return f;
       }
-      Formula replacement = ufm.replaceName(f, newName);
-
-      Pair<Formula,Formula> p = Pair.of((Formula)ufm.typeFormula(FormulaType.RationalType, f),
-                                        (Formula)ufm.typeFormula(FormulaType.RationalType,replacement));
-      if(!replacedVariables.contains(p)) {
-        replacedVariables.add(p);
-      }
-      return replacement;
     }
     ArrayList<Formula> args = new ArrayList<>();
     for(int i=0;i<ufm.getArity(f);i++) {
