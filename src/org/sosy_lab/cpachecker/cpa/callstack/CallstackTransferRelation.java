@@ -159,7 +159,7 @@ public class CallstackTransferRelation implements TransferRelation {
 
           assert callerFunction.equals(returnElement.getCurrentFunction()) || isWildcardState(returnElement);
         } else {
-          returnElement = new CallstackState(null, callerFunction, element.getCallNode());
+          returnElement = element;
         }
 
         return Collections.singleton(returnElement);
