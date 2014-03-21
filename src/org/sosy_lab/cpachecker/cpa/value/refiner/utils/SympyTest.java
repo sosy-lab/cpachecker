@@ -42,7 +42,7 @@ import com.google.common.collect.ImmutableMap;
 /**
  *
  */
-public class SimpyTest {
+public class SympyTest {
 
   private static LogManager logger;
 
@@ -69,7 +69,7 @@ public class SimpyTest {
   public void testSimpy0() {
     String exp = "(4 * a) + a + b + c + d";
     String correct = "5*a + b + c + d";
-    String result = SimpyHandler.simplifyExpression(exp, logger);
+    String result = SympyHandler.simplifyExpression(exp, logger);
     System.out.println("Correct " + correct + ", is: " + result);
     assertEquals(correct, result);
   }
@@ -78,7 +78,7 @@ public class SimpyTest {
   public void testSimpy1() {
     String exp = "(7 * b) + (3 * b)";
     String correct = "10*b";
-    String result = SimpyHandler.simplifyExpression(exp, logger);
+    String result = SympyHandler.simplifyExpression(exp, logger);
     System.out.println("Correct " + correct + ", is: " + result);
     assertEquals(correct, result);
   }

@@ -37,12 +37,12 @@ import org.sosy_lab.common.io.Files.DeleteOnCloseFile;
  * Utility class for handling interaction with Simpy for symbolic term
  * simplification.
  */
-public class SimpyHandler {
+public class SympyHandler {
 
   /**
    * Private constructor in order to prevent instantiation.
    */
-  private SimpyHandler() {}
+  private SympyHandler() {}
 
   // TODO Detect variables with names that have more then one letter as name
 
