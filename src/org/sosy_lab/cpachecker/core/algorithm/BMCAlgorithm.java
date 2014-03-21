@@ -924,7 +924,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           }
 
         });
-        Iterable<CFAEdge> relevantInsideEdges = FluentIterable.from(pLoopStates).filter(IS_TARGET_STATE).transformAndConcat(ENTERING_EDGES);
+        Iterable<CFAEdge> relevantInsideEdges = FluentIterable.from(pLoopStates).filter(IS_TARGET_STATE).transformAndConcat(ENTERING_EDGES).toSet();
         cutPointEdges = Iterables.concat(relevantOutgoingEdges, relevantInsideEdges);
       }
       return cutPointEdges;
