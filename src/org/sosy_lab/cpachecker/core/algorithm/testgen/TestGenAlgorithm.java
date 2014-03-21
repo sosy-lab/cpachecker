@@ -184,7 +184,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
 
     while (true /*globalReached.hasWaitingState()*/) {
       startupConfig.getShutdownNotifier().shutdownIfNecessary();
-      logger.logf(Level.INFO, "TestGen iteration %d", loopCounter++);
+      logger.logf(Level.FINE, "TestGen iteration %d", loopCounter++);
       //explicit, DFS or DFSRAND, PRECISION=TRACK_ALL; with automaton of new path created in previous iteration OR custom CPA
       try {
         //sound should normally be unsound for us. Ignore the result
@@ -207,12 +207,12 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
       }
       CounterexampleTraceInfo traceInfo = analysisStrategy.computePredicateCheck(executedPath);
       if (traceInfo.isSpurious()) {
-        logger.log(Level.INFO, "Current execution path is spurious.");
+        logger.log(Level.FINE, "Current execution path is spurious.");
         //path is infeasible continue to find a new one
       }else{
         testCaseSet.addExecutedPath(executedPath);
         if (pseudoTarget.isTarget()) {
-          logger.log(Level.INFO, "Identified error path.");
+          logger.log(Level.FINE, "Identified error path.");
           if (stopOnError) {
             // TODO remove  updateGlobalReached();
             stats.getTotalTimer().stop();
@@ -226,9 +226,9 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
       /*
        * selecting new path to traverse.
        */
-      logger.log(Level.INFO, "Starting predicate path check...");
+      logger.log(Level.FINE, "Starting predicate path check...");
       PredicatePathAnalysisResult result = analysisStrategy.findNewFeasiblePathUsingPredicates(executedPath, iterationStrategy.getModel().getLocalReached());
-      logger.log(Level.INFO, "Starting predicate path check DONE");
+      logger.log(Level.FINE, "predicate path check DONE");
 
       if (produceDebugFiles) {
         dumpReachedAndARG(iterationStrategy.getModel().getLocalReached());

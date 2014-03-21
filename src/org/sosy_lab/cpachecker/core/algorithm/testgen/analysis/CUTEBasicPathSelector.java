@@ -120,13 +120,13 @@ public class CUTEBasicPathSelector implements TestGenPathAnalysisStrategy {
       if (branchingHistory.getCurrentDepths() > pathSize - nodeCounter + 1)
       {
         branchingHistory.consumeUntilSameSize(pathSize - nodeCounter);
-        logger.logf(Level.INFO, "comsumed until %d %d (%d)",pathSize-nodeCounter, branchingHistory.getCurrentDepths(),branchingHistory.getPathDepths());
+        logger.logf(Level.FINER, "comsumed until %d %d (%d)",pathSize-nodeCounter, branchingHistory.getCurrentDepths(),branchingHistory.getPathDepths());
       }
       if (branchingHistory.isPathCandidateForPredictedSection(edge, pathSize - nodeCounter))
       {
         branchingHistory.hasNext();
         oldElement = branchingHistory.next();
-        logger.logf(Level.INFO,"Is path candidate for predicted section");
+        logger.logf(Level.FINER,"Is path candidate for predicted section");
       }
       CFANode node = edge.getPredecessor();
       //num of leaving edges does not include a summary edge, so the check is valid.
@@ -148,7 +148,7 @@ public class CUTEBasicPathSelector implements TestGenPathAnalysisStrategy {
       CFAEdge otherEdge = getOtherOutgoingEdge(decidingNode, wrongEdge);
       //      if(branchingHistory.isMatch(otherEdge, oldEdge))
 
-      logger.logf(Level.INFO, "StackState: %d %d (%d)", pathSize - nodeCounter, branchingHistory.getCurrentDepths(),
+      logger.logf(Level.FINER, "StackState: %d %d (%d)", pathSize - nodeCounter, branchingHistory.getCurrentDepths(),
           branchingHistory.getPathDepths());
       /*
        * (DART: the j = -1 case)
@@ -156,15 +156,15 @@ public class CUTEBasicPathSelector implements TestGenPathAnalysisStrategy {
       //      if(pathValidator.isVisitedBranching(newARGPath, currentElement, node, otherEdge))
       if (oldElement != null)
       {
-        logger.log(Level.INFO, "Matching path length. Possibly handled this branch earlier");
+        logger.log(Level.FINER, "Matching path length. Possibly handled this branch earlier");
         if (branchingHistory.isVisited(otherEdge, oldElement)) {
-          logger.log(Level.INFO, "Branch on path was handled in an earlier iteration -> skipping branching.");
+          logger.log(Level.FINER, "Branch on path was handled in an earlier iteration -> skipping branching.");
           lastElement = currentElement;
           continue;
         }
         else
         {
-          logger.log(Level.INFO, "Same path length but not in predicted section.");
+          logger.log(Level.FINER, "Same path length but not in predicted section.");
         }
       }
 
@@ -175,12 +175,12 @@ public class CUTEBasicPathSelector implements TestGenPathAnalysisStrategy {
          * for the current value mapping or both successors were handled already with a previous iteration.
          * (the successors are in reached and the CPAAlgorithms stops if all successors were reached before).
          */
-        logger.log(Level.INFO,
+        logger.log(Level.FINER,
             "encountered an executed path that continues into an already reached region. -> Skipping");
         lastElement = currentElement;
         continue;
       }
-      logger.logf(Level.INFO, "identified valid branching (skipped branching count: %d, nodes: %d)", branchCounter,
+      logger.logf(Level.FINER, "identified valid branching (skipped branching count: %d, nodes: %d)", branchCounter,
           nodeCounter);
       //no edge found should not happen; If it does make it visible.
       assert otherEdge != null;
@@ -205,21 +205,21 @@ public class CUTEBasicPathSelector implements TestGenPathAnalysisStrategy {
       {
         newARGPath.add(Pair.of(currentElement.getFirst(), otherEdge));
         //TODO maybe add the ARGState matching the "otherEdge" path if available as last element to the path.
-        logger.logf(Level.INFO, "selected new path %s", newPath.toString());
+        logger.logf(Level.FINEST, "selected new path %s", newPath.toString());
         //        pathValidator.handleValidPath(newARGPath, traceInfo);
         branchingHistory.resetTo(newARGPath);
         return new PredicatePathAnalysisResult(traceInfo, currentElement.getFirst(), lastElement.getFirst(), newARGPath);
       }
       else {
         lastElement = currentElement;
-        logger.logf(Level.INFO, "path candidate is infeasible");
+        logger.logf(Level.FINER, "path candidate is infeasible");
         //        pathValidator.handleSpuriousPath(newPath);
         continue;
       }
 
     }
     //all possible paths explored. (DART: the j = -1 case)
-    logger.logf(Level.INFO, "No possible path left to explore");
+    logger.logf(Level.FINER, "No possible path left to explore");
     return PredicatePathAnalysisResult.INVALID;
   }
 
@@ -308,7 +308,7 @@ public class CUTEBasicPathSelector implements TestGenPathAnalysisStrategy {
       assert oldEdge.getFirst().getPredecessor().equals(edgeToCheck.getPredecessor()) : "Illegal State of history. Wrong edge executed.";
       if (oldEdge.getSecond() == null)
       {
-        logger.log(Level.INFO, "Didn't find a 'visited' match. Not a branching edge or a skipped edge.");
+        logger.log(Level.FINER, "Didn't find a 'visited' match. Not a branching edge or a skipped edge.");
         return false;
       }
       return oldEdge.getSecond();
