@@ -187,7 +187,11 @@ public class CFACreator {
 
   @Option(name="cfa.moveDeclarationsToFunctionStart",
       description="With this option, all declarations in each function will be moved"
-          + "to the beginning of each function.")
+          + "to the beginning of each function. Do only use this option if you are"
+          + "not able to handle initializer lists and designated initializers (like"
+          + " they can be used for arrays and structs) in your analysis anyway. this"
+          + " option will otherwise create c code which is not the same as the original"
+          + " one")
   private boolean moveDeclarationsToFunctionStart = false;
 
   @Option(name="cfa.useFunctionCallUnwinding",

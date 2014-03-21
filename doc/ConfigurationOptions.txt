@@ -310,7 +310,10 @@ cfa.functionCalls.recursionDepth = 5
 cfa.initializeAllVariables = false
 
 # With this option, all declarations in each function will be movedto the
-# beginning of each function.
+# beginning of each function. Do only use this option if you arenot able to
+# handle initializer lists and designated initializers (like they can be used
+# for arrays and structs) in your analysis anyway. this option will otherwise
+# create c code which is not the same as the original one
 cfa.moveDeclarationsToFunctionStart = false
 
 # remove paths from CFA that cannot lead to a specification violation
