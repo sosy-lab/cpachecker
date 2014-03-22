@@ -110,13 +110,14 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       this.wrappedProofChecker = null;
     }
     reducer = new TimedReducer(wrappedReducer);
+    final BAMCache cache = new BAMCache(config, reducer);
     prec = new BAMPrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment());
-    transfer = new BAMTransferRelation(config, logger, this, wrappedProofChecker, pReachedSetFactory, pShutdownNotifier);
+    transfer = new BAMTransferRelation(config, logger, this, wrappedProofChecker, cache, pReachedSetFactory, pShutdownNotifier);
     prec.setBAMTransferRelation(transfer);
     merge = new BAMMergeOperator(pCpa.getMergeOperator(), transfer);
     stop = new BAMStopOperator(getWrappedCpa().getStopOperator());
 
-    stats = new BAMCPAStatistics(this);
+    stats = new BAMCPAStatistics(this, cache);
     heuristic = getPartitioningHeuristic();
   }
 

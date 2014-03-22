@@ -40,10 +40,12 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 class BAMCPAStatistics implements Statistics {
 
   private final BAMCPA cpa;
+  private final BAMCache cache;
   private AbstractBAMBasedRefiner refiner = null;
 
-  public BAMCPAStatistics(BAMCPA cpa) {
+  public BAMCPAStatistics(BAMCPA cpa, BAMCache cache) {
     this.cpa = cpa;
+    this.cache = cache;
   }
 
   @Override
@@ -77,15 +79,15 @@ class BAMCPAStatistics implements Statistics {
     out.println("  Number of full cache hits:                                    " + transferRelation.fullCacheHits + " (" + toPercent(transferRelation.fullCacheHits, sumCalls) + " of all calls)");
     if (transferRelation.gatherCacheMissStatistics) {
       out.println("Cause for cache misses:                                         ");
-      out.println("  Number of abstraction caused misses:                          " + transferRelation.abstractionCausedMisses + " (" + toPercent(transferRelation.abstractionCausedMisses, transferRelation.cacheMisses) + " of all misses)");
-      out.println("  Number of precision caused misses:                            " + transferRelation.precisionCausedMisses + " (" + toPercent(transferRelation.precisionCausedMisses, transferRelation.cacheMisses) + " of all misses)");
-      out.println("  Number of misses with no similar elements:                    " + transferRelation.noSimilarCausedMisses + " (" + toPercent(transferRelation.noSimilarCausedMisses, transferRelation.cacheMisses) + " of all misses)");
+      out.println("  Number of abstraction caused misses:                          " + cache.abstractionCausedMisses + " (" + toPercent(cache.abstractionCausedMisses, transferRelation.cacheMisses) + " of all misses)");
+      out.println("  Number of precision caused misses:                            " + cache.precisionCausedMisses + " (" + toPercent(cache.precisionCausedMisses, transferRelation.cacheMisses) + " of all misses)");
+      out.println("  Number of misses with no similar elements:                    " + cache.noSimilarCausedMisses + " (" + toPercent(cache.noSimilarCausedMisses, transferRelation.cacheMisses) + " of all misses)");
     }
     out.println("Time for reducing abstract states:                            " + reducer.reduceTime + " (Calls: " + reducer.reduceTime.getNumberOfIntervals() + ")");
     out.println("Time for expanding abstract states:                           " + reducer.expandTime + " (Calls: " + reducer.expandTime.getNumberOfIntervals() + ")");
-    out.println("Time for checking equality of abstract states:                " + transferRelation.equalsTimer + " (Calls: " + transferRelation.equalsTimer.getNumberOfIntervals() + ")");
-    out.println("Time for computing the hashCode of abstract states:           " + transferRelation.hashingTimer + " (Calls: " + transferRelation.hashingTimer.getNumberOfIntervals() + ")");
-    out.println("Time for searching for similar cache entries:                   " + transferRelation.searchingTimer + " (Calls: " + transferRelation.searchingTimer.getNumberOfIntervals() + ")");
+    out.println("Time for checking equality of abstract states:                " + cache.equalsTimer + " (Calls: " + cache.equalsTimer.getNumberOfIntervals() + ")");
+    out.println("Time for computing the hashCode of abstract states:           " + cache.hashingTimer + " (Calls: " + cache.hashingTimer.getNumberOfIntervals() + ")");
+    out.println("Time for searching for similar cache entries:                   " + cache.searchingTimer + " (Calls: " + cache.searchingTimer.getNumberOfIntervals() + ")");
     out.println("Time for reducing precisions:                                   " + reducer.reducePrecisionTime + " (Calls: " + reducer.reducePrecisionTime.getNumberOfIntervals() + ")");
     out.println("Time for expanding precisions:                                  " + reducer.expandPrecisionTime + " (Calls: " + reducer.expandPrecisionTime.getNumberOfIntervals() + ")");
 
