@@ -111,14 +111,14 @@ public class CFATrackingPathAnalysisStrategy implements TestGenPathAnalysisStrat
 
       if (handledDecisions.contains(decidingNode))
       {
-        logger.log(Level.INFO, "Branch on path was handled in an earlier iteration -> skipping branching.");
+        logger.log(Level.FINER, "Branch on path was handled in an earlier iteration -> skipping branching.");
         lastElement = currentElement;
         continue;
       }
       if (lastElement == null)
       {
         //if the last element is not set, we encountered a branching node where both paths are infeasible for the current value mapping.
-        logger.log(Level.INFO, "encountered an executed path that might be spurious.");
+        logger.log(Level.FINER, "encountered an executed path that might be spurious.");
         lastElement = currentElement;
         continue;
       }
@@ -132,7 +132,7 @@ public class CFATrackingPathAnalysisStrategy implements TestGenPathAnalysisStrat
           break;
         }
       }
-      logger.logf(Level.INFO, "identified valid branching (skipped branching count: %d, nodes: %d)", branchCounter++,
+      logger.logf(Level.FINER, "identified valid branching (skipped branching count: %d, nodes: %d)", branchCounter++,
           nodeCounter);
       //no edge found should not happen; If it does make it visible.
       assert otherEdge != null;
@@ -156,7 +156,7 @@ public class CFATrackingPathAnalysisStrategy implements TestGenPathAnalysisStrat
         newARGPath.add(Pair.of(currentElement.getFirst(), otherEdge));
         if (lastElement == null) { throw new IllegalStateException("" + newPath.toString()); }
         //        handledDecisions.add(decidingNode);
-        logger.logf(Level.INFO, "selected new path %s", newPath.toString());
+        logger.logf(Level.FINER, "selected new path %s", newPath.toString());
         handledDecisions.add(decidingNode);
 //        lastHandledDecision = decidingNode;
         return new PredicatePathAnalysisResult(traceInfo, currentElement.getFirst(), lastElement.getFirst(), newARGPath);
