@@ -104,7 +104,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   public Value visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
     if(this.symbolicValues) {
       SymbolicValueFormula formula = new SymbolicValueFormula(
-          new SymbolicValueFormula.SymbolicValue("nondet:"+pIastFunctionCallExpression.toASTString()+"()"));
+          new SymbolicValueFormula.SymbolicValue(pIastFunctionCallExpression.toASTString()));
       return formula;
      } else {
         return Value.UnknownValue.getInstance();

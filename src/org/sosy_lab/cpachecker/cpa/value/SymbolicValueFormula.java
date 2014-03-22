@@ -28,9 +28,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.value.simplifier.ExternalSimplifier;
 
 
 /**
@@ -53,6 +54,10 @@ public class SymbolicValueFormula implements Value {
   /** root of the expression tree **/
   ExpressionBase root;
 
+  public ExpressionBase getRoot() {
+    return root;
+  }
+
   public SymbolicValueFormula(ExpressionBase root) {
     this.root = root;
   }
@@ -62,7 +67,10 @@ public class SymbolicValueFormula implements Value {
    * as much as possible.
    */
   public Value simplify() {
-    ExpressionBase simplifiedTree = recursiveSimplify(root);
+    ExpressionBase simplifiedTree = root;
+    if(isIntegerAddMultiplyOnly()) {
+      simplifiedTree = ExternalSimplifier.simplify(simplifiedTree);
+    }
 
     // If we actually know the value, return the known value.
     if(simplifiedTree instanceof ConstantValue) {
@@ -163,19 +171,19 @@ public class SymbolicValueFormula implements Value {
     @Override
     public boolean isIntegerAddMultiplyOnly() {
       final List<String> allowedOps = new ArrayList<>();
-      allowedOps.add("+");
-      allowedOps.add("-");
-      allowedOps.add("*");
+      allowedOps.add("PLUS");
+      allowedOps.add("MINUS");
+      allowedOps.add("MULTIPLY");
 
       // If it's not +, - or * return false
-      if(!allowedOps.contains(this.op.op)) {
+      if(!allowedOps.contains(this.op.toString())) {
         return false;
       }
 
       CSimpleType arithmeticType =
           AbstractExpressionValueVisitor.getArithmeticType(resultType);
 
-      return arithmeticType == CNumericTypes.INT &&
+      return arithmeticType.getType() == CBasicType.INT &&
           lVal.isIntegerAddMultiplyOnly() && rVal.isIntegerAddMultiplyOnly();
     }
   }
@@ -237,46 +245,6 @@ public class SymbolicValueFormula implements Value {
     } else {
       return new ConstantValue(value);
     }
-  }
-
-  /**
-   * Simplifies a CExpression to an equivalent expression
-   * using recursion.
-   *
-   * Example: "X - X" gets simplified to "0"
-   */
-  private static ExpressionBase recursiveSimplify(ExpressionBase expression) {
-    if(expression instanceof BinaryExpression) {
-      BinaryExpression binaryExpression = (BinaryExpression) expression;
-
-      switch(binaryExpression.getOperator()) {
-      case MINUS:
-        CSimpleType type = AbstractExpressionValueVisitor.getArithmeticType(binaryExpression.getResultType());
-        if(type != null) {
-          // TODO: recursive equivalence check in a separate function
-          boolean isEqual = false;
-          if(binaryExpression.getOperand1() instanceof SymbolicValue
-              && binaryExpression.getOperand2() instanceof SymbolicValue) {
-            SymbolicValue leftHand = (SymbolicValue) binaryExpression.getOperand1();
-            SymbolicValue rightHand = (SymbolicValue) binaryExpression.getOperand2();
-            if(leftHand.equals(rightHand)) {
-              isEqual = true;
-            }
-          }
-
-          if(isEqual) {
-            return new ConstantValue(new NumericValue(0));
-          }
-        }
-      }
-
-      ExpressionBase newLeftHand = recursiveSimplify(binaryExpression.getOperand1());
-      ExpressionBase newRightHand = recursiveSimplify(binaryExpression.getOperand2());
-      return new BinaryExpression(newLeftHand, newRightHand, binaryExpression.getOperator(),
-          binaryExpression.getResultType(), binaryExpression.getCalculationType());
-    }
-    // If we couldn't simplify it, return as-is.
-    return expression;
   }
 
   @Override

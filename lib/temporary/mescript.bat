@@ -1,0 +1,1 @@
+C:\Java\jdk1.6.0\bin\jrunscript -classpath meconsole010.jar;jsr305.jar;google-collect-1.0-rc3.jar;commons-logging-1.1.1.jar;log4j-1.2.11.jar -l "matheclipse script"

@@ -25,5 +25,10 @@
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.equinox.preferences.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.jdt.core.jar" sourcepath="lib/java-contrib/org.eclipse.jdt.core-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.osgi.jar"/>
+	<classpathentry kind="lib" path="lib/temporary/commons-logging-1.1.1.jar"/>
+	<classpathentry kind="lib" path="lib/temporary/google-collect-1.0-rc3.jar"/>
+	<classpathentry kind="lib" path="lib/temporary/jsr305.jar"/>
+	<classpathentry kind="lib" path="lib/temporary/log4j-1.2.11.jar"/>
+	<classpathentry kind="lib" path="lib/temporary/meconsole010.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
