@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.BasicTestGenPathAnalysisStrategy;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.BasicTestGenPathAnalysisStrategyExperiment1;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.LocationAndValueStateTrackingPathAnalysisStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.CFATrackingPathAnalysisStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.CUTEBasicPathSelector;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.DARTLikeBasicPathSelector;
@@ -85,7 +85,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
 
   public enum AnalysisStrategySelector {
     BASIC,
-    BASIC_EXPERIMENT1,
+    LOCATION_AND_VALUE_STATE_TRACKING,
     CFA_TRACKING,
     DART_LIKE,
     CUTE_LIKE
@@ -151,8 +151,8 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
       analysisStrategy = new BasicTestGenPathAnalysisStrategy(pathChecker, startupConfig, stats);
       break;
 
-    case BASIC_EXPERIMENT1:
-      analysisStrategy = new BasicTestGenPathAnalysisStrategyExperiment1(pathChecker, startupConfig, stats, cpa);
+    case LOCATION_AND_VALUE_STATE_TRACKING:
+      analysisStrategy = new LocationAndValueStateTrackingPathAnalysisStrategy(pathChecker, startupConfig, stats, cpa);
       break;
     case DART_LIKE:
       analysisStrategy = new DARTLikeBasicPathSelector(pathChecker, startupConfig, stats, cpa);

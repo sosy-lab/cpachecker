@@ -53,7 +53,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
-public class BasicTestGenPathAnalysisStrategyExperiment1 implements TestGenPathAnalysisStrategy {
+public class LocationAndValueStateTrackingPathAnalysisStrategy implements TestGenPathAnalysisStrategy {
 
   private PathChecker pathChecker;
   private List<AbstractState> handledDecisions;
@@ -61,7 +61,7 @@ public class BasicTestGenPathAnalysisStrategyExperiment1 implements TestGenPathA
   ConfigurableProgramAnalysis cpa;
   private LogManager logger;
 
-  public BasicTestGenPathAnalysisStrategyExperiment1(PathChecker pPathChecker, StartupConfig config, TestGenStatistics pStats,
+  public LocationAndValueStateTrackingPathAnalysisStrategy(PathChecker pPathChecker, StartupConfig config, TestGenStatistics pStats,
       ConfigurableProgramAnalysis pCpa) {
     super();
     pathChecker = pPathChecker;
