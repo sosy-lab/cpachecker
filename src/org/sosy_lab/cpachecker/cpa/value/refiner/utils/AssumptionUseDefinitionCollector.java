@@ -249,7 +249,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 
     case MultiEdge:
       List<CFAEdge> edges = ((MultiEdge)edge).getEdges();
-      int sizeBefore = collectedVariables.size();
+
       // process MultiEdges also in reverse order
       for(int i = edges.size() - 1; i >= 0; i--) {
         collectVariables(edges.get(i), collectedVariables);
