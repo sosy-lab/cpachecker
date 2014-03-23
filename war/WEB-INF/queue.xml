@@ -9,7 +9,7 @@
 			<!--
 				NOTE:
 				When changing this value also update it in
-				org.sosy_lab.cpachecker.appengine.server.common.TaskRunnerResource
+				org.sosy_lab.cpachecker.appengine.server.GAETaskQueueTaskExecutor
 			-->
       		<task-retry-limit>1</task-retry-limit>
     	</retry-parameters>

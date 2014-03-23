@@ -40,6 +40,8 @@ import com.google.appengine.api.taskqueue.TaskOptions;
 @Options
 public class GAETaskQueueTaskExecutor implements TaskExecutor {
 
+  public static final int MAX_RETRIES = 1; // see queue.xml
+
   public enum InstanceType {
     /**
      * A front-end instance will be used.
