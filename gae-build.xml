@@ -150,6 +150,7 @@
 		<appcfg action="update" war="${war.dir}">
 			<options>
         <arg value="--oauth2"/>
+        <arg value="--enable_jar_classes"/>
       </options>
 		</appcfg>
 	</target>
