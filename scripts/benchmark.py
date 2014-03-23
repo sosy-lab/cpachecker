@@ -44,7 +44,7 @@ from benchmark.outputHandler import OutputHandler
 
 
 DEFAULT_APPENGINE_URI = 'http://cpachecker.appspot.com'
-DEFAULT_APPENGINE_POLLINTERVAL = 60 # seconds (== 10 minutes)
+DEFAULT_APPENGINE_POLLINTERVAL = 60 # seconds
 
 # next lines are needed for stopping the script
 STOPPED_BY_INTERRUPT = False
