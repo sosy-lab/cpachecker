@@ -98,7 +98,7 @@ public class ValueAnalysisInterpolator {
   /**
    * the set of relevant variables found by the collector
    */
-  private Set<String> relevantVariables = null;
+  private Set<String> relevantVariables = new HashSet<>();
 
   /**
    * the set of assume edges leading out of loops
@@ -161,8 +161,10 @@ public class ValueAnalysisInterpolator {
       final ValueAnalysisInterpolant pInputInterpolant) throws CPAException, InterruptedException {
     numberOfInterpolationQueries = 0;
 
+    // on initial iteration
     if(pOffset == 0) {
-      assumptionsAreRelevant = isRemainingPathFeasible(pErrorPath, new ValueAnalysisState(), false);
+      assumptionsAreRelevant  = isRemainingPathFeasible(pErrorPath, new ValueAnalysisState(), false);
+      relevantVariables       = assumeCollector.obtainUseDefInformation(pErrorPath);
     }
 
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
@@ -331,7 +333,6 @@ public class ValueAnalysisInterpolator {
    */
   private boolean isUseDefInformationAffected(final List<CFAEdge> pErrorPath,
       ValueAnalysisState initialState, ValueAnalysisState initialSuccessor) {
-    relevantVariables = assumeCollector.obtainUseDefInformation(pErrorPath);
 
     boolean isUseDefInformationAffected = false;
     for(MemoryLocation memoryLocation : initialState.getDifference(initialSuccessor)) {

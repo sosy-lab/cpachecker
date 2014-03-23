@@ -79,20 +79,10 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
   private final Set<String> dependingVariables = new HashSet<>();
 
   /**
-   * the set of relevant edges, on which variables where collected
-   */
-  private final Set<CFAEdge> relevantEdges = new HashSet<>();
-
-  /**
    * the last traversed function return edge - needed as we go backwards through the edges to obtain the
    * FunctionSummaryEdge corresponding to a currently visited ReturnStatementEdge
    */
   private FunctionReturnEdge previousFunctionReturnEdge = null;
-
-  /**
-   * the path being traversed the last time, used for caching
-   */
-  private List<CFAEdge> previousPath;
 
   /**
    * This method acts as the constructor of the class.
@@ -106,15 +96,15 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
    * @return the mapping of location to referenced variables in the given path
    */
   public Set<String> obtainUseDefInformation(List<CFAEdge> path) {
-    if(path != previousPath) {
-      determineGlobalVariables(path);
 
-      for (int i = path.size() - 1; i >= 0; i--) {
-        CFAEdge edge = path.get(i);
-        collectVariables(edge, collectedVariables);
-      }
+    dependingVariables.clear();
+    collectedVariables.clear();
 
-      previousPath = path;
+    determineGlobalVariables(path);
+
+    for (int i = path.size() - 1; i >= 0; i--) {
+      CFAEdge edge = path.get(i);
+      collectVariables(edge, collectedVariables);
     }
 
     return collectedVariables;
@@ -180,7 +170,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
         if (dependingVariables.contains(variableName)) {
           dependingVariables.remove(variableName);
           collectedVariables.add(variableName);
-          relevantEdges.add(edge);
 
           if(((CVariableDeclaration)declaration).getInitializer() instanceof CInitializerExpression) {
             CInitializerExpression initializer = ((CInitializerExpression)((CVariableDeclaration)declaration).getInitializer());
@@ -210,7 +199,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 
           if (dependingVariables.contains(assignedVariable)) {
             dependingVariables.remove(assignedVariable);
-            relevantEdges.add(returnStatementEdge);
 
             collectedVariables.add(assignedVariable);
             // also add special FUNCTION_RETURN_VAR as relevant variable
@@ -233,7 +221,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
         if (dependingVariables.contains(parameter.getQualifiedName())) {
           dependingVariables.remove(parameter.getQualifiedName());
           collectedVariables.add(parameter.getQualifiedName());
-          relevantEdges.add(functionCallEdge);
 
           collectVariables(functionCallEdge, functionCallEdge.getArguments().get(j));
         }
@@ -243,7 +230,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 
     case AssumeEdge:
       CAssumeEdge assumeEdge = (CAssumeEdge)edge;
-      relevantEdges.add(assumeEdge);
       collectVariables(assumeEdge, assumeEdge.getExpression());
       break;
 
@@ -256,7 +242,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
         if (dependingVariables.contains(assignedVariable)) {
           dependingVariables.remove(assignedVariable);
           collectedVariables.add(assignedVariable);
-          relevantEdges.add(statementEdge);
           collectVariables(statementEdge, assignment.getRightHandSide());
         }
       }
@@ -268,11 +253,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
       // process MultiEdges also in reverse order
       for(int i = edges.size() - 1; i >= 0; i--) {
         collectVariables(edges.get(i), collectedVariables);
-      }
-
-      // at least one variable added -> add whole MultiEdge
-      if(collectedVariables.size() > sizeBefore) {
-        relevantEdges.add(edge);
       }
       break;
     }
@@ -388,9 +368,5 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
     protected Void visitDefault(CExpression pExp) {
       return null;
     }
-  }
-
-  public Set<CFAEdge> getRelevantEdges() {
-    return relevantEdges;
   }
 }
