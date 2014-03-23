@@ -33,11 +33,15 @@ import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
+import org.sosy_lab.cpachecker.cfa.blocks.BlockToDotWriter;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.FunctionAndLoopPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.PartitioningHeuristic;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -91,6 +95,10 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cfa.blocks.builder")
   private Class<? extends PartitioningHeuristic> blockHeuristic = FunctionAndLoopPartitioning.class;
 
+  @Option(description = "export blocks")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path exportBlocksPath = Paths.get("block_cfa.dot");
+
   public BAMCPA(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger,
       ReachedSetFactory pReachedSetFactory, ShutdownNotifier pShutdownNotifier, CFA pCfa) throws InvalidConfigurationException, CPAException {
     super(pCpa);
@@ -125,6 +133,12 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   public AbstractState getInitialState(CFANode node) {
     if (blockPartitioning == null) {
       blockPartitioning = heuristic.buildPartitioning(node);
+
+      if (exportBlocksPath != null) {
+        BlockToDotWriter writer = new BlockToDotWriter(blockPartitioning);
+        writer.dump(exportBlocksPath, logger);
+      }
+
       transfer.setBlockPartitioning(blockPartitioning);
 
       BAMPredicateCPA predicateCpa = ((WrapperCPA) getWrappedCpa()).retrieveWrappedCpa(BAMPredicateCPA.class);
