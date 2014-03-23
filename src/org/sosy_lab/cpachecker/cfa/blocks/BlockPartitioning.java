@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.blocks;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -48,6 +49,10 @@ public class BlockPartitioning {
     final ImmutableMap.Builder<CFANode, Block> returnNodeToBlock = new ImmutableMap.Builder<>();
     final ImmutableSet.Builder<Block> blocks = new ImmutableSet.Builder<>();
 
+    // this set is needed for special cases, when different blocks have the same returnNode.
+    // TODO can we avoid this?
+    final Set<CFANode> returnNodes = new HashSet<>();
+
     for (Block subtree : subtrees) {
       blocks.add(subtree);
       for (CFANode callNode : subtree.getCallNodes()) {
@@ -60,7 +65,9 @@ public class BlockPartitioning {
       }
 
       for (CFANode returnNode : subtree.getReturnNodes()) {
-        returnNodeToBlock.put(returnNode, subtree);
+        if (returnNodes.add(returnNode)) {
+          returnNodeToBlock.put(returnNode, subtree);
+        }
       }
     }
 
