@@ -60,6 +60,7 @@ public class GAETaskQueueTaskExecutor implements TaskExecutor {
   public static final String WORKER_PATH = "/workers/execute-task";
   public static final String BACKEND_NAME = "task-worker-b1";
 
+  @Deprecated
   @Option(name = "gae.instanceType",
       description = "The instance type to use when executing CPAchecker on Google App Engine."
           + "Frontend instances have a wall time limit of 9 minutes. Backends may run for up to 24 hours."
