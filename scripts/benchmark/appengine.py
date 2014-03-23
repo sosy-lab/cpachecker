@@ -393,7 +393,6 @@ class _AppEnginePoller(threading.Thread):
         logFile = run['logFile']
         headers = {'Accept':'text/plain'}
 
-        logging.info('Storing result of task {0} in file {1}'.format(taskKey, logFile))
         fileNames = []
         for file in task['files']:
             fileNames.append(file['name'])
@@ -423,7 +422,7 @@ class _AppEnginePoller(threading.Thread):
                 uri = self.benchmark.config.appengineURI+'/tasks/'+taskKey+'/files/' + APPENGINE_SETTINGS['errorFileName']
                 request = urllib2.Request(uri, headers=headers)
                 response = urllib2.urlopen(request).read()
-                response = 'Task Key: {}\n{}'.format(task, response)
+                response = 'Task Key: {}\n{}'.format(task['key'], response)
                 filewriter.writeFile(response, logFile+'.stdErr')
             except: pass
 
@@ -437,6 +436,7 @@ class _AppEnginePoller(threading.Thread):
                 urllib2.urlopen(request)
                 self.finishedTasks += 1
                 markedAsProcessed = True
+                logging.info('Stored result of task {0} in file {1}'.format(taskKey, logFile))
                 try:
                     with open(self.benchmark.outputBase+'.Processed_Tasks.txt', 'a') as f:
                         f.write(taskKey+'\n')
