@@ -428,15 +428,7 @@ class _AppEnginePoller(threading.Thread):
             except: pass
 
         headers = {'Content-type':'application/json', 'Accept':'application/json'}
-        if self.benchmark.config.appengineDeleteWhenDone:
-            try:
-                uri = self.benchmark.config.appengineURI+'/tasks/'+taskKey
-                request = urllib2.Request(uri, headers=headers)
-                request.get_method = lambda: 'DELETE'
-                urllib2.urlopen(request).read()
-            except:
-                logging.warn('The task {} could not be deleted.'.format(taskKey))
-
+        markedAsProcessed = False
         if statisticsProcessed:
             try:
                 uri = self.benchmark.config.appengineURI+'/tasksets/'+self.tasksetKey+'/tasks'
@@ -444,6 +436,7 @@ class _AppEnginePoller(threading.Thread):
                 request.get_method = lambda: 'PUT'
                 urllib2.urlopen(request)
                 self.finishedTasks += 1
+                markedAsProcessed = True
                 try:
                     with open(self.benchmark.outputBase+'.Processed_Tasks.txt', 'a') as f:
                         f.write(taskKey+'\n')
@@ -451,3 +444,12 @@ class _AppEnginePoller(threading.Thread):
                 logging.debug('Task {} finished. Status: {}'.format(taskKey, task['status']))
             except:
                 logging.debug('The task {} could not be marked as processed.'.format(taskKey))
+
+        if self.benchmark.config.appengineDeleteWhenDone and markedAsProcessed:
+            try:
+                uri = self.benchmark.config.appengineURI+'/tasks/'+taskKey
+                request = urllib2.Request(uri, headers=headers)
+                request.get_method = lambda: 'DELETE'
+                urllib2.urlopen(request).read()
+            except:
+                logging.warn('The task {} could not be deleted.'.format(taskKey))
