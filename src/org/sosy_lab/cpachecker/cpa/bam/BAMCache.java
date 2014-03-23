@@ -34,9 +34,7 @@ public class BAMCache {
   int noSimilarCausedMisses = 0;
 
   private final Map<AbstractStateHash, ReachedSet> preciseReachedCache = new HashMap<>();
-  private final Map<AbstractStateHash, ReachedSet> unpreciseReachedCache =
-          new HashMap<>();
-
+  private final Map<AbstractStateHash, ReachedSet> unpreciseReachedCache = new HashMap<>();
   private final Map<AbstractStateHash, Collection<AbstractState>> returnCache = new HashMap<>();
   private final Map<AbstractStateHash, ARGState> blockARGCache = new HashMap<>();
 
@@ -48,19 +46,19 @@ public class BAMCache {
     this.reducer = reducer;
   }
 
-  private AbstractStateHash getHashCode(AbstractState predicateKey, Precision precisionKey, Block context) {
-    return new AbstractStateHash(predicateKey, precisionKey, context);
+  private AbstractStateHash getHashCode(AbstractState stateKey, Precision precisionKey, Block context) {
+    return new AbstractStateHash(stateKey, precisionKey, context);
   }
 
-  public void put(AbstractState predicateKey, Precision precisionKey, Block context, ReachedSet item) {
-    AbstractStateHash hash = getHashCode(predicateKey, precisionKey, context);
+  public void put(AbstractState stateKey, Precision precisionKey, Block context, ReachedSet item) {
+    AbstractStateHash hash = getHashCode(stateKey, precisionKey, context);
     assert !preciseReachedCache.containsKey(hash);
     preciseReachedCache.put(hash, item);
   }
 
-  public void put(AbstractState predicateKey, Precision precisionKey, Block context, Collection<AbstractState> item,
+  public void put(AbstractState stateKey, Precision precisionKey, Block context, Collection<AbstractState> item,
                    ARGState rootOfBlock) {
-    AbstractStateHash hash = getHashCode(predicateKey, precisionKey, context);
+    AbstractStateHash hash = getHashCode(stateKey, precisionKey, context);
     assert allStatesContainedInReachedSet(item, preciseReachedCache.get(hash));
     returnCache.put(hash, item);
     blockARGCache.put(hash, rootOfBlock);
@@ -74,17 +72,16 @@ public class BAMCache {
     return true;
   }
 
-  public void removeReturnEntry(AbstractState predicateKey, Precision precisionKey, Block context) {
-    returnCache.remove(getHashCode(predicateKey, precisionKey, context));
+  public void removeReturnEntry(AbstractState stateKey, Precision precisionKey, Block context) {
+    returnCache.remove(getHashCode(stateKey, precisionKey, context));
   }
 
-  public void removeBlockEntry(AbstractState predicateKey, Precision precisionKey, Block context) {
-    blockARGCache.remove(getHashCode(predicateKey, precisionKey, context));
+  public void removeBlockEntry(AbstractState stateKey, Precision precisionKey, Block context) {
+    blockARGCache.remove(getHashCode(stateKey, precisionKey, context));
   }
 
-  public Pair<ReachedSet, Collection<AbstractState>> get(AbstractState predicateKey, Precision precisionKey,
-                                                          Block context) {
-    AbstractStateHash hash = getHashCode(predicateKey, precisionKey, context);
+  public Pair<ReachedSet, Collection<AbstractState>> get(AbstractState stateKey, Precision precisionKey, Block context) {
+    AbstractStateHash hash = getHashCode(stateKey, precisionKey, context);
 
     ReachedSet result = preciseReachedCache.get(hash);
     if (result != null) {
@@ -95,17 +92,17 @@ public class BAMCache {
     if (aggressiveCaching) {
       result = unpreciseReachedCache.get(hash);
       if (result != null) {
-        setLastAnalyzedBlock(getHashCode(predicateKey, result.getPrecision(result.getFirstState()), context));
-        return Pair.of(result,
-                returnCache.get(getHashCode(predicateKey, result.getPrecision(result.getFirstState()), context)));
+        AbstractStateHash unpreciseHash = getHashCode(stateKey, result.getPrecision(result.getFirstState()), context);
+        setLastAnalyzedBlock(unpreciseHash);
+        return Pair.of(result, returnCache.get(unpreciseHash));
       }
 
       //search for similar entry
-      Pair<ReachedSet, Collection<AbstractState>> pair = lookForSimilarState(predicateKey, precisionKey, context);
+      Pair<ReachedSet, Collection<AbstractState>> pair = lookForSimilarState(stateKey, precisionKey, context);
       if (pair != null) {
         //found similar element, use this
         unpreciseReachedCache.put(hash, pair.getFirst());
-        setLastAnalyzedBlock(getHashCode(predicateKey, pair.getFirst().getPrecision(pair.getFirst().getFirstState()),
+        setLastAnalyzedBlock(getHashCode(stateKey, pair.getFirst().getPrecision(pair.getFirst().getFirstState()),
                 context));
         return pair;
       }
@@ -125,7 +122,7 @@ public class BAMCache {
     return lastAnalyzedBlock;
   }
 
-  private Pair<ReachedSet, Collection<AbstractState>> lookForSimilarState(AbstractState pPredicateKey,
+  private Pair<ReachedSet, Collection<AbstractState>> lookForSimilarState(AbstractState pStateKey,
                                                                           Precision pPrecisionKey, Block pContext) {
     searchingTimer.start();
     try {
@@ -134,13 +131,14 @@ public class BAMCache {
 
       for (AbstractStateHash cacheKey : preciseReachedCache.keySet()) {
         //searchKey != cacheKey, check whether it is the same if we ignore the precision
-        AbstractStateHash ignorePrecisionSearchKey = getHashCode(pPredicateKey, cacheKey.precisionKey, pContext);
+        AbstractStateHash ignorePrecisionSearchKey = getHashCode(pStateKey, cacheKey.precisionKey, pContext);
         if (ignorePrecisionSearchKey.equals(cacheKey)) {
           int distance = reducer.measurePrecisionDifference(pPrecisionKey, cacheKey.precisionKey);
           if (distance < min) { //prefer similar precisions
             min = distance;
-            result =
-                    Pair.of(preciseReachedCache.get(ignorePrecisionSearchKey), returnCache.get(ignorePrecisionSearchKey));
+            result = Pair.of(
+                    preciseReachedCache.get(ignorePrecisionSearchKey),
+                    returnCache.get(ignorePrecisionSearchKey));
           }
         }
       }
@@ -151,18 +149,18 @@ public class BAMCache {
     }
   }
 
-  public void findCacheMissCause(AbstractState pPredicateKey, Precision pPrecisionKey, Block pContext) {
-    AbstractStateHash searchKey = getHashCode(pPredicateKey, pPrecisionKey, pContext);
+  public void findCacheMissCause(AbstractState pStateKey, Precision pPrecisionKey, Block pContext) {
+    AbstractStateHash searchKey = getHashCode(pStateKey, pPrecisionKey, pContext);
     for (AbstractStateHash cacheKey : preciseReachedCache.keySet()) {
       assert !searchKey.equals(cacheKey);
       //searchKey != cacheKey, check whether it is the same if we ignore the precision
-      AbstractStateHash ignorePrecisionSearchKey = getHashCode(pPredicateKey, cacheKey.precisionKey, pContext);
+      AbstractStateHash ignorePrecisionSearchKey = getHashCode(pStateKey, cacheKey.precisionKey, pContext);
       if (ignorePrecisionSearchKey.equals(cacheKey)) {
         precisionCausedMisses++;
         return;
       }
       //precision was not the cause. Check abstraction.
-      AbstractStateHash ignoreAbsSearchKey = getHashCode(cacheKey.predicateKey, pPrecisionKey, pContext);
+      AbstractStateHash ignoreAbsSearchKey = getHashCode(cacheKey.stateKey, pPrecisionKey, pContext);
       if (ignoreAbsSearchKey.equals(cacheKey)) {
         abstractionCausedMisses++;
         return;
@@ -177,18 +175,18 @@ public class BAMCache {
     returnCache.clear();
   }
 
-  public boolean containsPreciseKey(AbstractState predicateKey, Precision precisionKey, Block context) {
-    AbstractStateHash hash = getHashCode(predicateKey, precisionKey, context);
+  public boolean containsPreciseKey(AbstractState stateKey, Precision precisionKey, Block context) {
+    AbstractStateHash hash = getHashCode(stateKey, precisionKey, context);
     return preciseReachedCache.containsKey(hash);
   }
 
-  public void updatePrecisionForEntry(AbstractState predicateKey, Precision precisionKey, Block context,
+  public void updatePrecisionForEntry(AbstractState stateKey, Precision precisionKey, Block context,
                                       Precision newPrecisionKey) {
-    AbstractStateHash hash = getHashCode(predicateKey, precisionKey, context);
+    AbstractStateHash hash = getHashCode(stateKey, precisionKey, context);
     ReachedSet reachedSet = preciseReachedCache.get(hash);
     if (reachedSet != null) {
       preciseReachedCache.remove(hash);
-      preciseReachedCache.put(getHashCode(predicateKey, newPrecisionKey, context), reachedSet);
+      preciseReachedCache.put(getHashCode(stateKey, newPrecisionKey, context), reachedSet);
     }
   }
 
@@ -200,15 +198,13 @@ public class BAMCache {
 
     private final Object wrappedHash;
     private final Block context;
-
-    private final AbstractState predicateKey;
+    private final AbstractState stateKey;
     private final Precision precisionKey;
 
-    public AbstractStateHash(AbstractState pPredicateKey, Precision pPrecisionKey, Block pContext) {
-      wrappedHash = reducer.getHashCodeForState(pPredicateKey, pPrecisionKey);
+    public AbstractStateHash(AbstractState pStateKey, Precision pPrecisionKey, Block pContext) {
+      wrappedHash = reducer.getHashCodeForState(pStateKey, pPrecisionKey);
       context = checkNotNull(pContext);
-
-      predicateKey = pPredicateKey;
+      stateKey = pStateKey;
       precisionKey = pPrecisionKey;
     }
 
@@ -238,8 +234,7 @@ public class BAMCache {
     @Override
     public String toString() {
       return "AbstractStateHash [hash=" + hashCode() + ", wrappedHash=" + wrappedHash + ", context="
-              + context + ", predicateKey=" + predicateKey + ", precisionKey="
-              + precisionKey + "]";
+              + context + ", predicateKey=" + stateKey + ", precisionKey=" + precisionKey + "]";
     }
   }
 }
