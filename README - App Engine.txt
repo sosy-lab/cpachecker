@@ -2,13 +2,9 @@ Using CPAchecker on Google App Engine
 =======================================
 
 CPAchecker can be run on Google App Engine. It is being developed alongside the
-the stand-alone project. For the time being all associated files are kept
+stand-alone project. For the time being all associated files are kept
 separate from the default build process. To develop, compile and run the App
-Engine project you need to installits dependencies first.
-
-Please note that this project is under development. It might and will frequently
-change in backward incompatible ways. Things will break and might not always
-work as expected.
+Engine project you need to install its dependencies first.
 
 Installation
 ============
