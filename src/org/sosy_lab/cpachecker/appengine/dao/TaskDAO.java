@@ -197,16 +197,32 @@ public class TaskDAO {
   }
 
   private static List<Task> tasksWithStatus(Taskset taskset, boolean statusDone, int limit) {
-    if (limit == -1) {
-      limit = Integer.MAX_VALUE;
-    }
-    return sanitizeStateAndSetStatistics(ofy().load()
+    Query<Task> query = ofy()
+        .load()
         .type(Task.class)
         .filter("taskset =", taskset)
-        .filter("processed =", false)
-        .filter("done =", statusDone)
-        .limit(limit)
-        .list());
+        .filter("processed =", false);
+
+    if (limit > 0) {
+      query = query.limit(limit);
+    }
+
+    List<Task> tasks = new LinkedList<>();
+    for (Task task : sanitizeStateAndSetStatistics(query.list())) {
+      Status status = task.getStatus();
+      if (statusDone
+          && (status == Status.DONE
+          || status == Status.ERROR
+          || status == Status.TIMEOUT)) {
+        tasks.add(task);
+      } else if (!statusDone
+          && (status == Status.PENDING
+          || status == Status.RUNNING)) {
+        tasks.add(task);
+      }
+    }
+
+    return tasks;
   }
 
   /**
@@ -350,7 +366,7 @@ public class TaskDAO {
   private static Task sanitizeStateAndSetStatistics(Task task) {
     if (task == null) { return task; }
 
-    if (task.getRequestID() != null && task.getStatistic() == null) {
+    if (task.getRequestID() != null) {
       LogQuery query = LogQuery.Builder
           .withRequestIds(Collections.singletonList(task.getRequestID()))
           .includeIncomplete(false);
@@ -366,7 +382,9 @@ public class TaskDAO {
               TaskFileDAO.delete(file);
             }
           }
-          setStatistics(task, record);
+          if (task.getStatistic() == null) {
+            setStatistics(task, record);
+          }
           return save(task);
         }
 
@@ -377,7 +395,11 @@ public class TaskDAO {
               if (task.getTerminationDate() == null) {
                 task.setTerminationDate(new Date());
               }
-              setStatistics(task, record);
+
+              if (task.getStatistic() == null) {
+                setStatistics(task, record);
+              }
+
               return save(task);
             }
           } catch (IOException e) {
@@ -386,8 +408,9 @@ public class TaskDAO {
 
           TaskFile errorFile = TaskFileDAO.loadByName(TaskExecutorResource.ERROR_FILE_NAME, task);
           if (errorFile != null) {
-            if (errorFile.getContent().contains("Deadline")
-                || errorFile.getContent().contains("Timeout")) {
+            if (errorFile.getContent() != null
+                && (errorFile.getContent().contains("Deadline")
+                || errorFile.getContent().contains("Timeout"))) {
               task.setStatus(Status.TIMEOUT);
             } else {
               task.setStatus(Status.ERROR);
@@ -395,29 +418,21 @@ public class TaskDAO {
             if (task.getTerminationDate() == null) {
               task.setTerminationDate(new Date());
             }
-            setStatistics(task, record);
+
+            if (task.getStatistic() == null) {
+              setStatistics(task, record);
+            }
+
             return save(task);
           }
 
-          // FIXME checking request might not work
-          // if tried once and fails second time without starting then retries is always < max_retries
-          if (record.getStatus() == 500 && task.getRetries() < GAETaskQueueTaskExecutor.MAX_RETRIES) {
-            reset(task);
-            task.setStatus(Status.PENDING);
-            return save(task);
-          }
-
-          task.setStatus(Status.ERROR);
-          task.setStatusMessage("The task's request has finished, the task's status did not reflect this and no retries are left");
-          task.setTerminationDate(new Date());
-          task.setRequestID(record.getRequestId());
-          setStatistics(task, record);
-          save(task);
+          // use log to fix the task
+          task.setRequestID(null);
         }
       }
     }
 
-    if (task.getRequestID() == null && task.getStatus() == Status.PENDING) {
+    if (task.getRequestID() == null) {
 
       Date now = new Date();
       LogQuery query = LogQuery.Builder
@@ -430,20 +445,35 @@ public class TaskDAO {
       RequestLogs lastRecord = null;
       for (RequestLogs record : LogServiceFactory.getLogService().fetch(query)) {
         if (record.getTaskName() != null && record.getTaskName().equals(task.getTaskName())) {
-          //&& record.getStatus() == 500
+          // false positive
+          if (record.getStatus() >= 200 && record.getStatus() < 300) {
+            if (task.getResultOutcome() != null) {
+              task.setStatus(Status.DONE);
+            } else {
+              task.setStatus(Status.ERROR);
+            }
+
+            task.setRequestID(record.getRequestId());
+            setStatistics(task, record);
+            return save(task);
+          }
           amountOfDetectedRecords = amountOfDetectedRecords + 1;
           lastRecord = record;
         }
       }
 
       // retry count is 0-indexed, therefore e.g. 2 records for MAX_RETRIES == 1
-      if (amountOfDetectedRecords > GAETaskQueueTaskExecutor.MAX_RETRIES) {
+      if (amountOfDetectedRecords > GAETaskQueueTaskExecutor.MAX_RETRIES
+          || task.getRetries() == GAETaskQueueTaskExecutor.MAX_RETRIES) {
         TaskDAO.reset(task);
         task.setStatus(Status.ERROR);
         task.setStatusMessage("The task's request has finished, the task's status did not reflect this and no retries are left");
         task.setRequestID(lastRecord.getRequestId());
         task.setTerminationDate(new Date());
-        setStatistics(task, lastRecord);
+
+        if (task.getStatistic() == null) {
+          setStatistics(task, lastRecord);
+        }
         return save(task);
       }
     }
