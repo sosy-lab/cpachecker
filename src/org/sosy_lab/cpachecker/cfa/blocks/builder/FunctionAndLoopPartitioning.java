@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
