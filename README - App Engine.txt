@@ -23,12 +23,12 @@ Development
 If you use Eclipse or some other IDE add the following JARs to the classpath:
 
 lib/gae/**/*.jar
-lib/appengine-java-sdk-1.9.0/lib/user/*.jar
-lib/appengine-java-sdk-1.9.0/lib/impl/appengine-api.jar
-lib/appengine-java-sdk-1.9.0/lib/impl/appengine-api-stubs.jar
-lib/appengine-java-sdk-1.9.0/lib/impl/appengine-api-labs.jar
-lib/appengine-java-sdk-1.9.0/lib/shared/servlet-api.jar
-lib/appengine-java-sdk-1.9.0/lib/testing/appengine-testing.jar
+lib/appengine-java-sdk-1.9.1/lib/user/*.jar
+lib/appengine-java-sdk-1.9.1/lib/impl/appengine-api.jar
+lib/appengine-java-sdk-1.9.1/lib/impl/appengine-api-stubs.jar
+lib/appengine-java-sdk-1.9.1/lib/impl/appengine-api-labs.jar
+lib/appengine-java-sdk-1.9.1/lib/shared/servlet-api.jar
+lib/appengine-java-sdk-1.9.1/lib/testing/appengine-testing.jar
 
 The Eclipse classpath excludes the App Engine sources by default.
 Thus you need to remove "org/sosy_lab/cpachecker/appengine" from the excluded paths.
