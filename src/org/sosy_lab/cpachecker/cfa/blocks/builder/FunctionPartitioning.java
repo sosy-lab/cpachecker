@@ -23,41 +23,42 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
-import org.sosy_lab.common.LogManager;
+import com.google.common.base.Preconditions;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.util.CFATraversal;
 
 import java.util.Set;
 
 
 /**
- * <code>PartitioningHeuristic</code> that creates blocks for each loop- and function-body.
+ * <code>PartitioningHeuristic</code> that creates a block for each function-body.
  */
-public class FunctionAndLoopPartitioning extends PartitioningHeuristic {
+public class FunctionPartitioning extends PartitioningHeuristic {
 
-  private FunctionPartitioning functionPartitioning;
-  private LoopPartitioning loopPartitioning;
+  private static final CFATraversal TRAVERSE_CFA_INSIDE_FUNCTION = CFATraversal.dfs().ignoreFunctionCalls();
 
-  public FunctionAndLoopPartitioning(LogManager pLogger, CFA pCfa) {
+  /** Do not change signature! Constructor will be created with Reflections. */
+  public FunctionPartitioning(LogManager pLogger, CFA pCfa) {
     super(pLogger, pCfa);
-    functionPartitioning = new FunctionPartitioning(pLogger, pCfa);
-    loopPartitioning = new LoopPartitioning(pLogger, pCfa);
   }
 
   @Override
   protected boolean shouldBeCached(CFANode pNode) {
-    return functionPartitioning.shouldBeCached(pNode) || loopPartitioning.shouldBeCached(pNode);
+    if (pNode.getFunctionName().startsWith("__VERIFIER_")) {
+      // exception for __VERIFIER helper functions
+      // TODO do we need this? why?
+      return false;
+    }
+    return pNode instanceof FunctionEntryNode;
   }
 
   @Override
   protected Set<CFANode> getBlockForNode(CFANode pNode) {
-    // TODO what to do if both want to cache it?
-    if (functionPartitioning.shouldBeCached(pNode)) {
-      return functionPartitioning.getBlockForNode(pNode);
-    } else if (loopPartitioning.shouldBeCached(pNode)) {
-      return loopPartitioning.getBlockForNode(pNode);
-    } else {
-      throw new AssertionError("node should not be cached: " + pNode);
-    }
+    Preconditions.checkArgument(shouldBeCached(pNode));
+    Set<CFANode> blockNodes = TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(pNode);
+    return blockNodes;
   }
 }
