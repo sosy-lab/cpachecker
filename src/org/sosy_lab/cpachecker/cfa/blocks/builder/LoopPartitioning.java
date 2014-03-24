@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
 import com.google.common.collect.Iterables;
@@ -59,12 +60,10 @@ public class LoopPartitioning extends PartitioningHeuristic {
   private void initLoopMap() {
     loopHeaderToLoopBody = new HashMap<>();
     if (cfa.getLoopStructure().isPresent()) {
-      for (String functionName : cfa.getLoopStructure().get().keySet()) {
-        for (Loop loop : cfa.getLoopStructure().get().get(functionName)) {
-          if (loop.getLoopHeads().size() == 1) {
-            //currently only loops with single loop heads supported
-            loopHeaderToLoopBody.put(Iterables.getOnlyElement(loop.getLoopHeads()), loop.getLoopNodes());
-          }
+      for (Loop loop : cfa.getLoopStructure().get().values()) {
+        if (loop.getLoopHeads().size() == 1) {
+          //currently only loops with single loop heads supported
+          loopHeaderToLoopBody.put(Iterables.getOnlyElement(loop.getLoopHeads()), loop.getLoopNodes());
         }
       }
     }
@@ -89,8 +88,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
   }
 
   private boolean hasBlankEdgeFromLoop(CFANode pNode) {
-    for (int i = 0; i < pNode.getNumEnteringEdges(); i++) {
-      CFAEdge edge = pNode.getEnteringEdge(i);
+    for (CFAEdge edge : CFAUtils.enteringEdges(pNode)) {
       if (edge instanceof BlankEdge && isLoopHead(edge.getPredecessor())) {
         return true;
       }
@@ -126,8 +124,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
   }
 
   private void insertLoopStartState(Set<CFANode> pLoopBody, CFANode pLoopHeader) {
-    for (int i = 0; i < pLoopHeader.getNumEnteringEdges(); i++) {
-      CFAEdge edge = pLoopHeader.getEnteringEdge(i);
+    for (CFAEdge edge : CFAUtils.enteringEdges(pLoopHeader)) {
       if (edge instanceof BlankEdge && !pLoopBody.contains(edge.getPredecessor())) {
         pLoopBody.add(edge.getPredecessor());
       }
@@ -137,9 +134,8 @@ public class LoopPartitioning extends PartitioningHeuristic {
   private void insertLoopReturnStates(Set<CFANode> pLoopBody) {
     List<CFANode> addNodes = new ArrayList<>();
     for (CFANode node : pLoopBody) {
-      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-        CFAEdge edge = node.getLeavingEdge(i);
-        if (!pLoopBody.contains(edge.getSuccessor()) && !(node.getLeavingEdge(i).getEdgeType() == CFAEdgeType.FunctionCallEdge))  {
+      for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
+        if (!pLoopBody.contains(edge.getSuccessor()) && !(edge.getEdgeType() == CFAEdgeType.FunctionCallEdge))  {
           addNodes.add(edge.getSuccessor());
         }
       }
