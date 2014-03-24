@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -126,6 +127,9 @@ public class BlockToDotWriter {
       dumpBlock(app, finished, innerBlock, hierarchy);
     }
 
+    // we have to add those edges later, because dot generates wrong graphs,if the edge is inside the block.
+    Set<String> edgesToOuterBlock = new HashSet<>();
+
     // dump nodes,that are in current block and not in inner blocks (nodes of inner blocks are 'finished')
     for (CFANode node : block.getNodes()) {
       if (!finished.add(node)) {
@@ -133,11 +137,18 @@ public class BlockToDotWriter {
       }
       app.append(formatNode(node));
       for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
-        app.append(formatEdge(edge));
+        String edgeStr = formatEdge(edge);
+        if (block.getNodes().contains(edge.getSuccessor())) {
+          app.append(edgeStr);
+        } else {
+          edgesToOuterBlock.add(edgeStr);
+        }
       }
     }
 
     app.append("}\n");
+    Joiner.on('\n').appendTo(app, edgesToOuterBlock);
+    app.append("\n");
   }
 
   private String formatNode(CFANode node) {
