@@ -78,7 +78,7 @@ public class BDDReducer implements Reducer {
 
     // remove all vars, that are used in the block
     Set<Region> usedVars = mgr.extractPredicates(state.getRegion());
-    state.forget(usedVars.toArray(new Region[usedVars.size()]));
+    state = state.forget(usedVars.toArray(new Region[usedVars.size()]));
 
     // add information from block to state
     state = state.addConstraint(reducedState.getRegion());
