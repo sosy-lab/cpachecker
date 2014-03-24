@@ -30,7 +30,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.common.Classes;
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
