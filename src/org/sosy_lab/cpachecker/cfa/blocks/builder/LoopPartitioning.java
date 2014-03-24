@@ -37,6 +37,8 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
 import com.google.common.collect.Iterables;
@@ -70,7 +72,16 @@ public class LoopPartitioning extends PartitioningHeuristic {
 
   @Override
   protected boolean shouldBeCached(CFANode pNode) {
+    if (isMainFunction(pNode)) {
+      Preconditions.checkArgument(cfa.getMainFunction().getFunctionName().equals(pNode.getFunctionName()));
+      //main function
+      return true;
+    }
     return isLoopHead(pNode) && !hasBlankEdgeFromLoop(pNode) && !selfLoop(pNode);
+  }
+
+  private boolean isMainFunction(CFANode pNode) {
+    return pNode instanceof FunctionEntryNode && pNode.getNumEnteringEdges() == 0;
   }
 
   private boolean isLoopHead(CFANode pNode) {
@@ -94,6 +105,10 @@ public class LoopPartitioning extends PartitioningHeuristic {
   @Override
   protected Set<CFANode> getBlockForNode(CFANode pNode) {
     Preconditions.checkArgument(shouldBeCached(pNode));
+
+    if (isMainFunction(pNode)) {
+      return CFATraversal.dfs().ignoreFunctionCalls().collectNodesReachableFrom(pNode);
+    }
 
     if (loopHeaderToLoopBody == null) {
       initLoopMap();
