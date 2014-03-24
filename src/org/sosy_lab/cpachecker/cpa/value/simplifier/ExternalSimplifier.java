@@ -53,8 +53,8 @@ public class ExternalSimplifier {
     IExpr result;
 
     try {
-      List<SymbolicValue> usedVariables = new ArrayList<SymbolicValue>();
-      String input = "Simplify["+convertFormulaToString(expr, usedVariables)+"]";
+      List<SymbolicValue> usedVariables = new ArrayList<>();
+      String input = "Simplify[" +convertFormulaToString(expr, usedVariables) + "]";
       System.out.println(input);
       result = util.evaluate(input);
       System.out.println(result.toString());
