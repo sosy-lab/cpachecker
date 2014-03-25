@@ -49,27 +49,24 @@ import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -236,12 +233,11 @@ public class CFASingleLoopTransformation {
       }
     }
 
+    SimpleMap<CFANode, CFANode> globalNewToOld = SimpleMapAdapter.createSimpleHashMap();
+
     // Create new main function entry and initialize the program counter there
     FunctionEntryNode oldMainFunctionEntryNode = pInputCFA.getMainFunction();
-    AFunctionDeclaration mainFunctionDeclaration = oldMainFunctionEntryNode.getFunctionDefinition();
-    FunctionEntryNode start = oldMainFunctionEntryNode instanceof CFunctionEntryNode ?
-        new CFunctionEntryNode(FileLocation.DUMMY, (CFunctionDeclaration) mainFunctionDeclaration, oldMainFunctionEntryNode.getExitNode(), oldMainFunctionEntryNode.getFunctionParameterNames()) :
-        new JMethodEntryNode(FileLocation.DUMMY, (JMethodDeclaration) mainFunctionDeclaration, oldMainFunctionEntryNode.getExitNode(), oldMainFunctionEntryNode.getFunctionParameterNames());
+    FunctionEntryNode start = (FunctionEntryNode) getOrCreateNewFromOld(oldMainFunctionEntryNode, globalNewToOld);
     SingleLoopHead loopHead = new SingleLoopHead();
 
     Queue<CFANode> nodes = new ArrayDeque<>(getAllNodes(oldMainFunctionEntryNode));
@@ -251,7 +247,6 @@ public class CFASingleLoopTransformation {
 
     Multimap<Integer, CFANode> newPredecessorsToPC = LinkedHashMultimap.create();
     BiMap<Integer, CFANode> newSuccessorsToPC = HashBiMap.create();
-    SimpleMap<CFANode, CFANode> globalNewToOld = SimpleMapAdapter.createSimpleHashMap();
     globalNewToOld.put(oldMainFunctionEntryNode, start);
 
     // Create new nodes and assume edges based on program counter values leading to the new nodes
@@ -1222,8 +1217,8 @@ public class CFASingleLoopTransformation {
 
     } else if (pNode instanceof FunctionExitNode) {
 
-      FunctionExitNode oldFunctionNode = (FunctionExitNode) pNode;
-      FunctionEntryNode precomputedEntryNode = (FunctionEntryNode) pNewToOldMapping.get(oldFunctionNode.getEntryNode());
+      FunctionExitNode oldFunctionExitNode = (FunctionExitNode) pNode;
+      FunctionEntryNode precomputedEntryNode = (FunctionEntryNode) pNewToOldMapping.get(oldFunctionExitNode.getEntryNode());
 
       if (precomputedEntryNode != null) {
         return precomputedEntryNode.getExitNode();
@@ -1231,7 +1226,7 @@ public class CFASingleLoopTransformation {
 
       FunctionExitNode functionExitNode = new FunctionExitNode(functionName);
 
-      FunctionEntryNode oldEntryNode = oldFunctionNode.getEntryNode();
+      FunctionEntryNode oldEntryNode = oldFunctionExitNode.getEntryNode();
       FileLocation entryFileLocation = oldEntryNode.getFileLocation();
       String entryFunctionName = oldEntryNode.getFunctionName();
       final FunctionEntryNode functionEntryNode;
@@ -1258,7 +1253,7 @@ public class CFASingleLoopTransformation {
       functionExitNode.setEntryNode(functionEntryNode);
 
       pNewToOldMapping.put(pNode, functionExitNode);
-      pNewToOldMapping.put(oldFunctionNode, functionEntryNode);
+      pNewToOldMapping.put(oldFunctionExitNode, functionEntryNode);
 
       result = functionExitNode;
 
