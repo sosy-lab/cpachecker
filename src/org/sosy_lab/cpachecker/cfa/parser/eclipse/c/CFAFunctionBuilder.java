@@ -88,7 +88,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -101,7 +100,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -161,7 +159,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   // Data structures for handling function declarations
   private FunctionEntryNode cfa = null;
-  private final List<CFANode> cfaNodes = new ArrayList<>();
+  private Set<CFANode> cfaNodes = null;
 
   // There can be global declarations in a function
   // because we move some declarations to the global scope (e.g., static variables)
@@ -206,8 +204,11 @@ class CFAFunctionBuilder extends ASTVisitor {
     return cfa;
   }
 
-  List<CFANode> getCfaNodes() {
+  /** This method should be called after building the function's CFA. */
+  Set<CFANode> getCfaNodes() {
     checkState(cfa != null);
+    checkState(cfaNodes == null);
+    cfaNodes = CFATraversal.dfs().collectNodesReachableFrom(cfa);
     return cfaNodes;
   }
 
@@ -223,6 +224,19 @@ class CFAFunctionBuilder extends ASTVisitor {
    * This method is called after parsing and checks if we left everything clean.
    */
   void finish() {
+
+    // cleanup unnecessary nodes and edges, that were created before.
+    // cfaNodes were collected with with a FORWARD-search,
+    // so all unnecessary nodes are only reachable with BACKWARD-search.
+    // we only disconnect them from the CFA and let garbage collection do the rest
+    for (CFANode node : cfaNodes) {
+      for (CFAEdge edge : CFAUtils.enteringEdges(node).toList()) {
+        if (!cfaNodes.contains(edge.getPredecessor())){
+          CFACreationUtils.removeEdgeFromNodes(edge);
+        }
+      }
+    }
+
     assert !sideAssignmentStack.hasPreSideAssignments();
     assert !sideAssignmentStack.hasPostSideAssignments();
     assert locStack.isEmpty();
@@ -405,11 +419,9 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     final FileLocation fileloc = astCreator.getLocation(declaration);
     final FunctionExitNode returnNode = new FunctionExitNode(nameOfFunction);
-    cfaNodes.add(returnNode);
 
     final FunctionEntryNode startNode = new CFunctionEntryNode(
         fileloc, fdef, returnNode, parameterNames);
-    cfaNodes.add(startNode);
     returnNode.setEntryNode(startNode);
     cfa = startNode;
 
@@ -485,10 +497,6 @@ class CFAFunctionBuilder extends ASTVisitor {
           CFACreationUtils.removeChainOfNodesFromCFA(n);
         }
       }
-
-      // remove node which were created but aren't part of CFA (e.g. because of dead code)
-      cfaNodes.retainAll(reachableNodes);
-      assert cfaNodes.size() == reachableNodes.size(); // they should be equal now
     }
 
     return PROCESS_CONTINUE;
@@ -664,7 +672,6 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
 
     CLabelNode labelNode = new CLabelNode(cfa.getFunctionName(), labelName);
-    cfaNodes.add(labelNode);
     locStack.push(labelNode);
 
     if(localLabel == null) {
@@ -854,7 +861,6 @@ class CFAFunctionBuilder extends ASTVisitor {
   private CFANode newCFANode() {
     assert cfa != null;
     CFANode nextNode = new CFANode(cfa.getFunctionName());
-    cfaNodes.add(nextNode);
     return nextNode;
   }
 
@@ -1573,7 +1579,6 @@ class CFAFunctionBuilder extends ASTVisitor {
     // (otherwise the following edges won't get added because it has
     // no incoming edges
     CLabelNode caseNode = new CLabelNode(cfa.getFunctionName(), "__switch__default__");
-    cfaNodes.add(caseNode);
 
     // Update switchDefaultStack with the new node
     final CFANode oldDefaultNode = switchDefaultStack.pop();
