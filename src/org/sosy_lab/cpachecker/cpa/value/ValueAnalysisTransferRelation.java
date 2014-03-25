@@ -29,16 +29,17 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
@@ -521,6 +522,24 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     return state;
   }
 
+  /**
+   * Updates all variables with the given ones in the parameter.
+   *
+   * @param valuesToReplace The list of variables thtat have to be updated
+   */
+  private void updateVariables(List<Value> valuesToReplace) {
+    Set<String> varnames = state.getTrackedVariableNames();
+    for (Iterator<String> itr = varnames.iterator(); itr.hasNext();) {
+      String varname = itr.next();
+      Value value = state.getValueFor(varname);
+      if (valuesToReplace.contains(varname)) {
+        // Retrieve index and update value
+        int i = valuesToReplace.lastIndexOf(varname);
+        value = valuesToReplace.get(i);
+        state.assignConstant(varname, value);
+      }
+    }
+  }
 
   private ValueAnalysisState handleAssignment(IAssignment assignExpression, CFAEdge cfaEdge)
     throws UnrecognizedCodeException {
