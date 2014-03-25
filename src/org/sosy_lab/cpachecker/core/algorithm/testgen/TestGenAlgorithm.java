@@ -307,7 +307,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
             "Could not write reached set to file due to memory problems");
       }
 
-      Path argFile = Paths.get(outputDir, "output/args/arg" + reachedSetCounter + ".dot");
+      Path argFile = Paths.get(outputDir, "args/arg" + reachedSetCounter + ".dot");
 
       try (Writer w = Files.openOutputFile(argFile)) {
         ARGUtils.writeARGAsDot(w, (ARGState) pReached.getFirstState());
