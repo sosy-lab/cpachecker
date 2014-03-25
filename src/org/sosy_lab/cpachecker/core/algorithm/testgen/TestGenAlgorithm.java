@@ -30,6 +30,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -38,13 +39,14 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.BasicTestGenPathAnalysisStrategy;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.LocationAndValueStateTrackingPathAnalysisStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.CFATrackingPathAnalysisStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.CUTEBasicPathSelector;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.DARTLikeBasicPathSelector;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.LocationAndValueStateTrackingPathAnalysisStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.TestGenPathAnalysisStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.IterationStrategyFactory;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.model.PredicatePathAnalysisResult;
@@ -104,6 +106,11 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
           + " in subdirs under output.")
   boolean produceDebugFiles = false;
 
+  @Option(name = "testcaseOutputFile", description = "Output file Template under which the"
+      + " testcase automatons will be stored. Must include one %s somewhere.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  Path testcaseOutputFile = Paths.get("testcase%s.spc");
+
   @Option(
       name = "stopOnError",
       description = "algorithm stops on first found error path. Otherwise the algorithms tries to reach 100% coverage")
@@ -119,6 +126,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
 
   private TestGenStatistics stats;
   private int reachedSetCounter = 0;
+  private int testCaseCounter = 0;
 
   public TestGenAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
       ShutdownNotifier pShutdownNotifier, CFA pCfa,
@@ -201,16 +209,23 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
        */
       ARGState pseudoTarget = (ARGState) iterationStrategy.getLastState();
       ARGPath executedPath = ARGUtils.getOnePathTo(pseudoTarget);
-      if (initialRun)
-      {
-        initialRun = false;
-      }
+
       CounterexampleTraceInfo traceInfo = analysisStrategy.computePredicateCheck(executedPath);
+
+      if (produceDebugFiles) {
+        dumpReachedAndARG(iterationStrategy.getModel().getLocalReached());
+      }
+
       if (traceInfo.isSpurious()) {
         logger.log(Level.FINE, "Current execution path is spurious.");
         //path is infeasible continue to find a new one
       }else{
         testCaseSet.addExecutedPath(executedPath);
+
+
+        dumpTestCase(executedPath, traceInfo);
+
+
         if (pseudoTarget.isTarget()) {
           logger.log(Level.INFO, "Identified error path.");
           if (stopOnError) {
@@ -222,6 +237,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
             //TODO add error to errorpathlist
           }
         }
+
       }
       /*
        * selecting new path to traverse.
@@ -229,10 +245,6 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
       logger.log(Level.FINE, "Starting predicate path check...");
       PredicatePathAnalysisResult result = analysisStrategy.findNewFeasiblePathUsingPredicates(executedPath, iterationStrategy.getModel().getLocalReached());
       logger.log(Level.FINE, "predicate path check DONE");
-
-      if (produceDebugFiles) {
-        dumpReachedAndARG(iterationStrategy.getModel().getLocalReached());
-      }
 
       if (result.isEmpty()) {
         /*
@@ -244,6 +256,9 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
         stats.getTotalTimer().stop();
         return true; //true = sound or false = unsound. Which case is it here??
       }
+
+      initialRun = false;
+
       /*
        * symbolic analysis of the path conditions returned a new feasible path (or a new model)
        * the next iteration. Creating automaton to guide next iteration.
@@ -256,6 +271,25 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
+  }
+
+  private void dumpTestCase(ARGPath pExecutedPath, CounterexampleTraceInfo pTraceInfo) {
+    if (testcaseOutputFile == null) { return; }
+
+    String fileName = String.format(testcaseOutputFile.toAbsolutePath().toString(), testCaseCounter);
+    Path filePath = Paths.get(fileName);
+
+    String automatonName = String.format("Testcase%s", testCaseCounter);
+    ARGState rootState = pExecutedPath.getFirst().getFirst();
+    CounterexampleInfo ceInfo = CounterexampleInfo.feasible(pExecutedPath, pTraceInfo.getModel());
+
+    try (Writer w = Files.openOutputFile(filePath)) {
+      ARGUtils.producePathAutomaton(w, rootState, pExecutedPath.getStateSet(), automatonName, ceInfo);
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not write " + automatonName + " to file");
+    }
+
+    testCaseCounter++;
   }
 
   private void dumpReachedAndARG(ReachedSet pReached) {
