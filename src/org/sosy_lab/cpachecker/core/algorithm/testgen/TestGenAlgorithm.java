@@ -212,7 +212,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
       }else{
         testCaseSet.addExecutedPath(executedPath);
         if (pseudoTarget.isTarget()) {
-          logger.log(Level.FINE, "Identified error path.");
+          logger.log(Level.INFO, "Identified error path.");
           if (stopOnError) {
             // TODO remove  updateGlobalReached();
             stats.getTotalTimer().stop();
