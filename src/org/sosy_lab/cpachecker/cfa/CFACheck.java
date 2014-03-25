@@ -65,7 +65,7 @@ public class CFACheck {
 
       if (visitedNodes.add(node)) {
         Iterables.addAll(waitingNodeList, CFAUtils.successorsOf(node));
-        Iterables.addAll(waitingNodeList, CFAUtils.predecessorsOf(node)); // just to be sure to get ALL nodes.
+       // Iterables.addAll(waitingNodeList, CFAUtils.predecessorsOf(node)); // just to be sure to get ALL nodes.
 
         // The actual checks
         isConsistent(node);
