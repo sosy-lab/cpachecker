@@ -21,7 +21,9 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.testgen.analysis;
+package org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis;
+
+import static com.google.common.collect.FluentIterable.from;
 
 import java.util.Iterator;
 import java.util.List;
@@ -31,33 +33,39 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.StartupConfig;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.model.PredicatePathAnalysisResult;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
-
-public class CFATrackingPathAnalysisStrategy implements TestGenPathAnalysisStrategy {
+public class LocationAndValueStateTrackingPathAnalysisStrategy implements TestGenPathAnalysisStrategy {
 
   private PathChecker pathChecker;
-  private List<CFANode> handledDecisions;
+  private List<AbstractState> handledDecisions;
   private TestGenStatistics stats;
   ConfigurableProgramAnalysis cpa;
   private LogManager logger;
 
-  public CFATrackingPathAnalysisStrategy(PathChecker pPathChecker, StartupConfig config, TestGenStatistics pStats) {
+  public LocationAndValueStateTrackingPathAnalysisStrategy(PathChecker pPathChecker, StartupConfig config, TestGenStatistics pStats,
+      ConfigurableProgramAnalysis pCpa) {
     super();
     pathChecker = pPathChecker;
+    cpa = pCpa;
     this.logger = config.getLog();
     stats = pStats;
     handledDecisions = Lists.newLinkedList();
@@ -109,13 +117,31 @@ public class CFATrackingPathAnalysisStrategy implements TestGenPathAnalysisStrat
       //current node is a branching / deciding node. select the edge that isn't represented with the current path.
       CFANode decidingNode = node;
 
-      if (handledDecisions.contains(decidingNode))
+
+      // WARNING: some hack don't know if any good or enough
+      // ----->
+      final AbstractState currentElementTmp = currentElement.getFirst();
+      if(from(handledDecisions).anyMatch(new Predicate<AbstractState>() {
+
+        @Override
+        public boolean apply(AbstractState pInput) {
+          return AbstractStates.extractStateByType(currentElementTmp, ValueAnalysisState.class).equals(
+              AbstractStates.extractStateByType(pInput, ValueAnalysisState.class))
+              &&
+              AbstractStates.extractStateByType(currentElementTmp, LocationState.class).getLocationNode()
+                  .getNodeNumber() == AbstractStates.extractStateByType(pInput, LocationState.class).getLocationNode()
+                  .getNodeNumber();
+        }
+      }))
+        // < ------
       {
+
         logger.log(Level.FINER, "Branch on path was handled in an earlier iteration -> skipping branching.");
         lastElement = currentElement;
         continue;
       }
-      if (lastElement == null)
+//      cpa.getTransferRelation().
+      if(lastElement == null)
       {
         //if the last element is not set, we encountered a branching node where both paths are infeasible for the current value mapping.
         logger.log(Level.FINER, "encountered an executed path that might be spurious.");
@@ -132,8 +158,7 @@ public class CFATrackingPathAnalysisStrategy implements TestGenPathAnalysisStrat
           break;
         }
       }
-      logger.logf(Level.FINER, "identified valid branching (skipped branching count: %d, nodes: %d)", branchCounter++,
-          nodeCounter);
+      logger.logf(Level.FINER, "identified valid branching (skipped branching count: %d, nodes: %d)", branchCounter++, nodeCounter);
       //no edge found should not happen; If it does make it visible.
       assert otherEdge != null;
       /*
@@ -154,11 +179,11 @@ public class CFATrackingPathAnalysisStrategy implements TestGenPathAnalysisStrat
       if (!traceInfo.isSpurious())
       {
         newARGPath.add(Pair.of(currentElement.getFirst(), otherEdge));
-        if (lastElement == null) { throw new IllegalStateException("" + newPath.toString()); }
+        if (lastElement == null) {
+          throw new IllegalStateException("" + newPath.toString()); }
         //        handledDecisions.add(decidingNode);
-        logger.logf(Level.FINER, "selected new path %s", newPath.toString());
-        handledDecisions.add(decidingNode);
-//        lastHandledDecision = decidingNode;
+        logger.logf(Level.FINEST, "selected new path %s", newPath.toString());
+        handledDecisions.add(currentElement.getFirst());
         return new PredicatePathAnalysisResult(traceInfo, currentElement.getFirst(), lastElement.getFirst(), newARGPath);
       }
       else {
@@ -172,8 +197,7 @@ public class CFATrackingPathAnalysisStrategy implements TestGenPathAnalysisStrat
 
 
   @Override
-  public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPATransferException,
-      InterruptedException {
+  public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPATransferException, InterruptedException {
     return pathChecker.checkPath(pExecutedPath.asEdgesList()
         );
   }

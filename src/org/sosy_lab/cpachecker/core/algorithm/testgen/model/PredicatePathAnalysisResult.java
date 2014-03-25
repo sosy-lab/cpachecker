@@ -8,6 +8,8 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
  * represents the result of a path modification.
  * Consists of a solver result, as well as the deciding node (the last node that both paths have in common)
  * and the 'wrong' node (the successor of the deciding node that is no longer in the path)
+ * The stored {@link ARGState}s should be used with care, because the states might not represent the model.
+ * (the list of cfa edges matches the model, but the {@link ARGState}s can differ)
  */
 public class PredicatePathAnalysisResult {
 

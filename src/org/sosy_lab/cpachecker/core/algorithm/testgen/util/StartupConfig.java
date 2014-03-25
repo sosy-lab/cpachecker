@@ -21,11 +21,12 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.testgen;
+package org.sosy_lab.cpachecker.core.algorithm.testgen.util;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenAlgorithm;
 
 /**
  * Encapsulates {@link Configuration}, {@link ShutdownNotifier} and {@link LogManager} instances

@@ -21,7 +21,9 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.testgen.analysis;
+package org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis;
+
+import static com.google.common.collect.FluentIterable.from;
 
 import java.util.Iterator;
 import java.util.List;
@@ -31,24 +33,27 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.StartupConfig;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.model.PredicatePathAnalysisResult;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
-
-public class BasicTestGenPathAnalysisStrategy implements TestGenPathAnalysisStrategy {
+public class BasicTestGenPathAnalysisStrategyExperiment1 implements TestGenPathAnalysisStrategy {
 
   private PathChecker pathChecker;
   private List<AbstractState> handledDecisions;
@@ -56,9 +61,11 @@ public class BasicTestGenPathAnalysisStrategy implements TestGenPathAnalysisStra
   ConfigurableProgramAnalysis cpa;
   private LogManager logger;
 
-  public BasicTestGenPathAnalysisStrategy(PathChecker pPathChecker, StartupConfig config, TestGenStatistics pStats) {
+  public BasicTestGenPathAnalysisStrategyExperiment1(PathChecker pPathChecker, StartupConfig config, TestGenStatistics pStats,
+      ConfigurableProgramAnalysis pCpa) {
     super();
     pathChecker = pPathChecker;
+    cpa = pCpa;
     this.logger = config.getLog();
     stats = pStats;
     handledDecisions = Lists.newLinkedList();
@@ -110,13 +117,30 @@ public class BasicTestGenPathAnalysisStrategy implements TestGenPathAnalysisStra
       //current node is a branching / deciding node. select the edge that isn't represented with the current path.
       CFANode decidingNode = node;
 
-      if (handledDecisions.contains(currentElement.getFirst()))
+
+      // WARNING: some hack don't know if any good or enough
+      // ----->
+      final AbstractState currentElementTmp = currentElement.getFirst();
+      if(from(handledDecisions).anyMatch(new Predicate<AbstractState>() {
+
+        @Override
+        public boolean apply(AbstractState pInput) {
+          return AbstractStates.extractStateByType(currentElementTmp, ValueAnalysisState.class).equals(
+              AbstractStates.extractStateByType(pInput, ValueAnalysisState.class))
+              &&
+              AbstractStates.extractStateByType(currentElementTmp, LocationState.class).getLocationNode()
+                  .getNodeNumber() == AbstractStates.extractStateByType(pInput, LocationState.class).getLocationNode()
+                  .getNodeNumber();
+        }
+      }))
+        // < ------
       {
+
         logger.log(Level.INFO, "Branch on path was handled in an earlier iteration -> skipping branching.");
         lastElement = currentElement;
         continue;
       }
-
+//      cpa.getTransferRelation().
       if(lastElement == null)
       {
         //if the last element is not set, we encountered a branching node where both paths are infeasible for the current value mapping.

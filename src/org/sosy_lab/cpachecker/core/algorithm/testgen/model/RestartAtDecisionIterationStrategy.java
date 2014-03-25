@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.testgen.model;
 
-import static org.sosy_lab.cpachecker.core.algorithm.testgen.ReachedSetUtils.addReachedStatesToOtherReached;
+import static org.sosy_lab.cpachecker.core.algorithm.testgen.util.ReachedSetUtils.addReachedStatesToOtherReached;
 
-import org.sosy_lab.cpachecker.core.algorithm.testgen.ReachedSetUtils;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.StartupConfig;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.util.ReachedSetUtils;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;

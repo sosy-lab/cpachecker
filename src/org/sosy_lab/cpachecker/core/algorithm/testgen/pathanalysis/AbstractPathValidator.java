@@ -21,40 +21,37 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.testgen.analysis;
+package org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis;
 
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.BasicPathSelector.PathInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 
-public abstract class AbstractPathValidationStrategy implements PathValidationStrategy {
+public abstract class AbstractPathValidator implements PathValidator {
 
   @Override
-  public CounterexampleTraceInfo checkPathCandidate(Pair<ARGState, CFAEdge> pCurrentElement, List<CFAEdge> pNewPath) throws CPATransferException, InterruptedException {
-    return checkPath(pNewPath);
+  public CounterexampleTraceInfo validatePathCandidate(Pair<ARGState, CFAEdge> pCurrentElement, List<CFAEdge> pNewPath)
+      throws CPATransferException, InterruptedException {
+    return validatePath(pNewPath);
   }
 
   @Override
-  public void handleSpuriousPath(List<CFAEdge> pNewPath) {
-  }
+  public void handleSpuriousPath(List<CFAEdge> pNewPath) {}
 
   @Override
-  public void handleSinglePathElement(Pair<ARGState, CFAEdge> pCurrentElement) {
-//    handleElement(pCurrentElement.getSecond());
-  }
+  public void handleSinglePathElement(Pair<ARGState, CFAEdge> pCurrentElement) {}
 
   @Override
-  public void handleNewCheck(ARGPath pExecutedPath) {
-  }
+  public void handleNewCheck(ARGPath pExecutedPath) {}
 
   @Override
-  public void handleNext(long pNodeCounter) {
-  }
+  public void handleNext(PathInfo pPathInfo, CFAEdge pEdge) {}
 
 }

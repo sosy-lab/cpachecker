@@ -42,15 +42,17 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.BasicTestGenPathAnalysisStrategy;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.CFATrackingPathAnalysisStrategy;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.CUTEBasicPathSelector;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.DARTLikeBasicPathSelector;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.LocationAndValueStateTrackingPathAnalysisStrategy;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.analysis.TestGenPathAnalysisStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.IterationStrategyFactory;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.model.PredicatePathAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.model.TestGenIterationStrategy;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.BasicPathSelector;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.BasicTestGenPathAnalysisStrategy;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.CFATrackingPathAnalysisStrategy;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.CUTEBasicPathSelector;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.CUTEPathValidator;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.LocationAndValueStateTrackingPathAnalysisStrategy;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.TestGenPathAnalysisStrategy;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -89,7 +91,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
     BASIC,
     LOCATION_AND_VALUE_STATE_TRACKING,
     CFA_TRACKING,
-    DART_LIKE,
+    CUTE_PATH_SELECTOR,
     CUTE_LIKE
   }
 
@@ -97,7 +99,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
   private IterationStrategySelector iterationStrategySelector = IterationStrategySelector.AUTOMATON_CONTROLLED;
 
   @Option(name = "analysisStrategy", description = "Selects the analysis Strategy for TestGenAlgorithm")
-  private AnalysisStrategySelector analysisStrategySelector = AnalysisStrategySelector.CUTE_LIKE;
+  private AnalysisStrategySelector analysisStrategySelector = AnalysisStrategySelector.CUTE_PATH_SELECTOR;
 
   @Option(
       name = "produceDebugFiles",
@@ -162,8 +164,8 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
     case LOCATION_AND_VALUE_STATE_TRACKING:
       analysisStrategy = new LocationAndValueStateTrackingPathAnalysisStrategy(pathChecker, startupConfig, stats, cpa);
       break;
-    case DART_LIKE:
-      analysisStrategy = new DARTLikeBasicPathSelector(pathChecker, startupConfig, stats, cpa);
+    case CUTE_PATH_SELECTOR:
+      analysisStrategy = new BasicPathSelector(new CUTEPathValidator(pathChecker, startupConfig), startupConfig, stats);
       break;
     case CUTE_LIKE:
       analysisStrategy = new CUTEBasicPathSelector(pathChecker, startupConfig, stats, cpa);
@@ -188,7 +190,6 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
 
     iterationStrategy.initializeModel(pReachedSet);
     long loopCounter = 0;
-    boolean initialRun = true;
 
     while (true /*globalReached.hasWaitingState()*/) {
       startupConfig.getShutdownNotifier().shutdownIfNecessary();
@@ -256,8 +257,6 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
         stats.getTotalTimer().stop();
         return true; //true = sound or false = unsound. Which case is it here??
       }
-
-      initialRun = false;
 
       /*
        * symbolic analysis of the path conditions returned a new feasible path (or a new model)

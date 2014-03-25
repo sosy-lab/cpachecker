@@ -21,51 +21,51 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.testgen.analysis;
+package org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis;
 
 import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.StartupConfig;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.model.PredicatePathAnalysisResult;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
 
-public class BasicPathSelector implements TestGenPathAnalysisStrategy {
+public class CFATrackingPathAnalysisStrategy implements TestGenPathAnalysisStrategy {
 
+  private PathChecker pathChecker;
+  private List<CFANode> handledDecisions;
   private TestGenStatistics stats;
   ConfigurableProgramAnalysis cpa;
   private LogManager logger;
 
-  protected PathValidationStrategy pathValidator;
-
-  public BasicPathSelector(PathValidationStrategy pPathValidationStrategy, StartupConfig config, TestGenStatistics pStats) {
+  public CFATrackingPathAnalysisStrategy(PathChecker pPathChecker, StartupConfig config, TestGenStatistics pStats) {
     super();
-    pathValidator = pPathValidationStrategy;
+    pathChecker = pPathChecker;
     this.logger = config.getLog();
     stats = pStats;
+    handledDecisions = Lists.newLinkedList();
   }
 
 
   @Override
-  public PredicatePathAnalysisResult findNewFeasiblePathUsingPredicates(final ARGPath pExecutedPath, ReachedSet reachedStates)
+  public PredicatePathAnalysisResult findNewFeasiblePathUsingPredicates(final ARGPath pExecutedPath, final ReachedSet reached)
       throws CPATransferException, InterruptedException {
     /*
      * create copy of the given path, because it will be modified with this algorithm.
@@ -75,8 +75,6 @@ public class BasicPathSelector implements TestGenPathAnalysisStrategy {
     for (Pair<ARGState, CFAEdge> pair : pExecutedPath) {
       newARGPath.add(pair);
     }
-    //TODO a unmodifiable view would be preferable as the pathValidor argument
-//    ARGPath newARGPathView = Collections.unmodifiableList(newARGPath);
     /*
      * only by edge representation of the new path.
      */
@@ -86,22 +84,17 @@ public class BasicPathSelector implements TestGenPathAnalysisStrategy {
      */
     Pair<ARGState, CFAEdge> lastElement = null;
     Pair<ARGState, CFAEdge> currentElement;
-    long branchCounter = 0;
-    long nodeCounter = 0;
-    /*
-     * this is a variation of the solve_path_constraint(..., path_constraint, stack) function of DART.
-     *
-     */
     /*
      * create a descending consuming iterator to iterate through the path from last to first, while consuming elements.
      * Elements are consumed because the new path is a subpath of the original.
      */
-    Iterator<Pair<ARGState, CFAEdge>> descendingPathElements = Iterators.consumingIterator(newARGPath.descendingIterator());
-    pathValidator.handleNewCheck(pExecutedPath);
-    while (descendingPathElements.hasNext())
+    long branchCounter = 0;
+    long nodeCounter = 0;
+    Iterator<Pair<ARGState, CFAEdge>> branchingEdges = Iterators.consumingIterator(newARGPath.descendingIterator());
+    while (branchingEdges.hasNext())
     {
-      currentElement = descendingPathElements.next();
-      pathValidator.handleNext(nodeCounter++);
+      nodeCounter++;
+      currentElement = branchingEdges.next();
       CFAEdge edge = currentElement.getSecond();
       if (edge == null) {
         lastElement = currentElement;
@@ -111,43 +104,36 @@ public class BasicPathSelector implements TestGenPathAnalysisStrategy {
       //num of leaving edges does not include a summary edge, so the check is valid.
       if (node.getNumLeavingEdges() != 2) {
         lastElement = currentElement;
-        pathValidator.handleSinglePathElement(currentElement);
         continue;
       }
-      /*
-       * current node is a branching / deciding node. select the edge that isn't represented
-       * with the current path.
-       */
-      branchCounter++;
+      //current node is a branching / deciding node. select the edge that isn't represented with the current path.
       CFANode decidingNode = node;
-      CFAEdge wrongEdge = edge;
-      /*
-       * (DART: negate the path constraint)
-       */
-      CFAEdge otherEdge = getOtherOutgoingEdge(decidingNode, wrongEdge);
-      /*
-       * (DART: the j = -1 case)
-       */
-      if(pathValidator.isVisitedBranching(newARGPath, currentElement, node, otherEdge))
-      {
-        logger.log(Level.INFO, "Branch on path was handled in an earlier iteration -> skipping branching.");
-        lastElement = currentElement;
-        pathValidator.handleVisitedBranching(newARGPath, currentElement);
-        continue;
-      }
 
-      if(lastElement == null)
+      if (handledDecisions.contains(decidingNode))
       {
-        /*
-         * if the last element is not set, we encountered a branching node where both paths are infeasible
-         * for the current value mapping or both successors were handled already with a previous iteration.
-         * (the successors are in reached and the CPAAlgorithms stops if all successors were reached before).
-         */
-        logger.log(Level.INFO, "encountered an executed path that continues into an already reached region. -> Skipping");
+        logger.log(Level.FINER, "Branch on path was handled in an earlier iteration -> skipping branching.");
         lastElement = currentElement;
         continue;
       }
-      logger.logf(Level.INFO, "identified valid branching (skipped branching count: %d, nodes: %d)", branchCounter, nodeCounter);
+      if (lastElement == null)
+      {
+        //if the last element is not set, we encountered a branching node where both paths are infeasible for the current value mapping.
+        logger.log(Level.FINER, "encountered an executed path that might be spurious.");
+        lastElement = currentElement;
+        continue;
+      }
+      CFAEdge wrongEdge = edge;
+      CFAEdge otherEdge = null;
+      for (CFAEdge cfaEdge : CFAUtils.leavingEdges(decidingNode)) {
+        if (cfaEdge.equals(wrongEdge)) {
+          continue;
+        } else {
+          otherEdge = cfaEdge;
+          break;
+        }
+      }
+      logger.logf(Level.FINER, "identified valid branching (skipped branching count: %d, nodes: %d)", branchCounter++,
+          nodeCounter);
       //no edge found should not happen; If it does make it visible.
       assert otherEdge != null;
       /*
@@ -158,59 +144,38 @@ public class BasicPathSelector implements TestGenPathAnalysisStrategy {
       newPath = Lists.newArrayList(newARGPath.asEdgesList());
       newPath.add(otherEdge);
       /*
-       * evaluate path candidate symbolically using SMT-solving
-       */
-      stats.beforePathCheck();
-      CounterexampleTraceInfo traceInfo = pathValidator.checkPathCandidate(currentElement, newPath);
-      stats.afterPathCheck();
-      /*
        * check if path is feasible. If it's not continue to identify another decision node
        * If path is feasible, add the ARGState belonging to the decision node and the new edge to the ARGPath. Exit and Return result.
        */
+      stats.beforePathCheck();
+      CounterexampleTraceInfo traceInfo = pathChecker.checkPath(newPath);
+      stats.afterPathCheck();
+
       if (!traceInfo.isSpurious())
       {
         newARGPath.add(Pair.of(currentElement.getFirst(), otherEdge));
-        //TODO maybe add the ARGState matching the "otherEdge" path if available as last element to the path.
-        logger.logf(Level.INFO, "selected new path %s", newPath.toString());
-        pathValidator.handleValidPath(newARGPath, traceInfo);
+        if (lastElement == null) { throw new IllegalStateException("" + newPath.toString()); }
+        //        handledDecisions.add(decidingNode);
+        logger.logf(Level.FINER, "selected new path %s", newPath.toString());
+        handledDecisions.add(decidingNode);
+//        lastHandledDecision = decidingNode;
         return new PredicatePathAnalysisResult(traceInfo, currentElement.getFirst(), lastElement.getFirst(), newARGPath);
       }
       else {
         lastElement = currentElement;
-        pathValidator.handleSpuriousPath(newPath);
         continue;
       }
 
     }
-    //all possible paths explored. (DART: the j = -1 case)
     return PredicatePathAnalysisResult.INVALID;
   }
 
 
-
   @Override
-  public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPATransferException, InterruptedException {
-    return pathValidator.checkPath(pExecutedPath.asEdgesList()
+  public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPATransferException,
+      InterruptedException {
+    return pathChecker.checkPath(pExecutedPath.asEdgesList()
         );
-  }
-
-  /**
-   * this is the same as a constraint negation.
-   * @param decidingNode
-   * @param wrongEdge
-   * @return
-   */
-  private @Nullable CFAEdge getOtherOutgoingEdge(CFANode decidingNode, CFAEdge wrongEdge) {
-    CFAEdge otherEdge = null;
-    for (CFAEdge cfaEdge : CFAUtils.leavingEdges(decidingNode)) {
-      if (cfaEdge.equals(wrongEdge)) {
-        continue;
-      } else {
-        otherEdge = cfaEdge;
-        break;
-      }
-    }
-    return otherEdge;
   }
 
 }

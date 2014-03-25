@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.testgen.analysis;
+package org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis;
 
 import org.sosy_lab.cpachecker.core.algorithm.testgen.model.PredicatePathAnalysisResult;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -29,11 +29,35 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
-
+/**
+ *
+ */
 public interface TestGenPathAnalysisStrategy {
 
+  /**
+   * computes a new viable execution path based on the given path.
+   * The new path is a variation of the given path and fulfills the following:
+   * <ul>
+   * <li>givenPath.sublist(0,x) equals newPath.sublist(0,x): The path match for a depth x. x is a value between 0 and givenPath.size()-2.</li>
+   * <li>givenPath.get(x+1) and newPath.get(x+1) both have the same predecessor (in a ARGState or CFANode sense)</li>
+   * <li>newPath.size() = x+1</li>
+   * <li>can be empty if this algorithm was unable to find another viable path.</li>
+   * </ul>
+   * @param pExecutedPath
+   * @param reachedStates
+   * @return the new path and model if a valid path was found or {@link PredicatePathAnalysisResult#INVALID} otherwise.
+   * @throws CPATransferException
+   * @throws InterruptedException
+   */
   public PredicatePathAnalysisResult findNewFeasiblePathUsingPredicates(ARGPath pExecutedPath, ReachedSet reachedStates) throws CPATransferException, InterruptedException;
 
+  /**
+   * performs a SMT check on the given path using the underlying solver of this strategy.
+   * @param pExecutedPath
+   * @return
+   * @throws CPATransferException
+   * @throws InterruptedException
+   */
   public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPATransferException, InterruptedException;
 
 }
