@@ -1772,6 +1772,14 @@ public class CFASingleLoopTransformation {
      */
     public int getProgramCounterValue();
 
+    /**
+     * Checks if the assumption is assumed to be true or false on this edge.
+     *
+     * @return {@code true} is the assumption on this edge is assumed to be
+     * true, {@code false} otherwise.
+     */
+    public boolean getTruthAssumption();
+
   }
 
   /**
