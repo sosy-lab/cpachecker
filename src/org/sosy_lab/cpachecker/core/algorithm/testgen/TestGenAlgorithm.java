@@ -127,7 +127,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
     startupConfig = new StartupConfig(pConfig, pLogger, pShutdownNotifier);
     startupConfig.getConfig().inject(this);
     singleRunConfig = StartupConfig.createWithParent(startupConfig);
-    stats = new TestGenStatistics(iterationStrategySelector == IterationStrategySelector.AUTOMATON_CONTROLLED);
+    stats = new TestGenStatistics(iterationStrategySelector == IterationStrategySelector.AUTOMATON_CONTROLLED, pCfa);
 
     cfa = pCfa;
     cpa = pCpa;
@@ -182,7 +182,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
       }else{
         testCaseSet.addExecutedPath(executedPath);
 
-
+        stats.addTestCase(executedPath);
         dumpTestCase(executedPath, traceInfo);
 
 
