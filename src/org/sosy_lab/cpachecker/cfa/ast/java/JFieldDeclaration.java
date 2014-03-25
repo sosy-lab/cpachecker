@@ -66,7 +66,7 @@ public class JFieldDeclaration extends JVariableDeclaration {
       boolean pIsFinal, boolean pIsStatic,
       boolean pIsTransient, boolean pIsVolatile,
       VisibilityModifier pVisibility) {
-    super(pFileLocation, IS_FIELD, pType, pName, pName, null, pIsFinal);
+    super(pFileLocation, IS_FIELD, pType, pName, pName, pName, null, pIsFinal);
 
     isTransient = pIsTransient;
     isVolatile =  pIsVolatile;

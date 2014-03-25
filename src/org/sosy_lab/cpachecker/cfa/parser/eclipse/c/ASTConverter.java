@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -103,6 +104,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -172,14 +174,9 @@ class ASTConverter {
         "the cfa is simplified until at maximum one pointer is allowed for left- and rightHandSide")
   private boolean simplifyPointerExpressions = false;
 
-  @Option(name="simplifyConstExpressions",
+  @Option(
       description="simplify simple const expressions like 1+2")
-  private boolean alwaysSimplifyConstExpressions = false;
-
-  // This is neccessary because in certain situations we always need to simplify
-  // expressions, regardless of the configuration above.
-  // Probably the configuration option can go away and we always simplify expressions.
-  private boolean simplifyConstExpressions = false;
+  private boolean simplifyConstExpressions = true;
 
   private final ExpressionSimplificationVisitor expressionSimplificator;
   private final NonRecursiveExpressionSimplificationVisitor nonRecursiveExpressionSimplificator;
@@ -218,7 +215,7 @@ class ASTConverter {
       Function<String, String> pNiceFileNameFunction,
       CSourceOriginMapping pSourceOriginMapping,
       MachineModel pMachineModel, String pStaticVariablePrefix,
-      boolean pSimplifyConstExpressions, Sideassignments pSideAssignmentStack) throws InvalidConfigurationException {
+      Sideassignments pSideAssignmentStack) throws InvalidConfigurationException {
 
     pConfig.inject(this);
 
@@ -230,7 +227,6 @@ class ASTConverter {
     this.sourceOriginMapping = pSourceOriginMapping;
     this.staticVariablePrefix = pStaticVariablePrefix;
     this.sideAssignmentStack = pSideAssignmentStack;
-    this.simplifyConstExpressions = pSimplifyConstExpressions;
 
     this.expressionSimplificator = new ExpressionSimplificationVisitor(pMachineModel, pLogger);
     this.nonRecursiveExpressionSimplificator = new NonRecursiveExpressionSimplificationVisitor(pMachineModel, pLogger);
@@ -262,8 +258,22 @@ class ASTConverter {
     }
   }
 
-  Pair<? extends CExpression, ? extends Number> simplifyAndEvaluateExpression(CExpression exp) {
+  /**
+   * Simplify an expression as much as possible.
+   * Use this when you always want to evaluate a specific expression if possible,
+   * e.g. array lengths (which should be constant if possible).
+   */
+  CExpression simplifyExpressionRecursively(CExpression exp) {
     return exp.accept(expressionSimplificator);
+  }
+
+  /**
+   * Do a single step of expression simplification (not recursively).
+   * Use this when you do not care about full evaluation,
+   * or you know the operands are already evaluated if possible.
+   */
+  CExpression simplifyExpressionOneStep(CExpression exp) {
+    return exp.accept(nonRecursiveExpressionSimplificator);
   }
 
   private CExpression addSideassignmentsForExpressionsWithoutSideEffects(CAstNode node,
@@ -304,11 +314,11 @@ class ASTConverter {
 
   protected CAstNode convertExpressionWithSideEffects(IASTExpression e) {
     CAstNode converted = convertExpressionWithSideEffectsNotSimplified(e);
-    if (!alwaysSimplifyConstExpressions || !(converted instanceof CExpression)) {
+    if (!simplifyConstExpressions || !(converted instanceof CExpression)) {
       return converted;
     }
 
-    return ((CExpression)converted).accept(nonRecursiveExpressionSimplificator);
+    return simplifyExpressionOneStep((CExpression)converted);
   }
 
   private CAstNode convertExpressionWithSideEffectsNotSimplified(IASTExpression e) {
@@ -378,23 +388,53 @@ class ASTConverter {
     }
   }
 
-  private CAstNode convert(IASTConditionalExpression e) {
-    if (simplifyConstExpressions) {
-      CExpression condition = convertExpressionWithoutSideEffects(e.getLogicalConditionExpression());
-      Number value = simplifyAndEvaluateExpression(condition).getSecond();
+  static enum CONDITION { NORMAL, ALWAYS_FALSE, ALWAYS_TRUE }
 
-      if (value != null) {
-        if (value.longValue() == 0) {
-          return convertExpressionWithSideEffects(e.getNegativeResultExpression());
-        } else {
-          return convertExpressionWithSideEffects(e.getPositiveResultExpression());
-        }
+  CONDITION getConditionKind(final CExpression condition) {
+
+    if (condition instanceof CIntegerLiteralExpression
+        || condition instanceof CCharLiteralExpression) {
+      // constant int value
+      if (isZero(condition)) {
+        return CONDITION.ALWAYS_FALSE;
+      } else {
+        return CONDITION.ALWAYS_TRUE;
       }
+    }
+    return CONDITION.NORMAL;
+  }
+
+  private CAstNode convert(IASTConditionalExpression e) {
+    CExpression condition = convertExpressionWithoutSideEffects(e.getLogicalConditionExpression());
+    // Here we call simplify manually, because for conditional expressions
+    // we always want a full evaluation because we might be able to prevent
+    // a branch in the CFA.
+    // In global scope, this is even required because there cannot be any branches.
+    CExpression simplifiedCondition = simplifyExpressionRecursively(condition);
+
+    switch (getConditionKind(simplifiedCondition)) {
+    case ALWAYS_TRUE:
+      return convertExpressionWithSideEffects(e.getPositiveResultExpression());
+    case ALWAYS_FALSE:
+      return convertExpressionWithSideEffects(e.getNegativeResultExpression());
+    default:
     }
 
     CIdExpression tmp = createTemporaryVariable(e);
     sideAssignmentStack.addConditionalExpression(e, tmp);
     return tmp;
+  }
+
+  private boolean isZero(CExpression exp) {
+    if (exp instanceof CIntegerLiteralExpression) {
+      BigInteger value = ((CIntegerLiteralExpression)exp).getValue();
+      return value.equals(BigInteger.ZERO);
+    }
+    if (exp instanceof CCharLiteralExpression) {
+      char value = ((CCharLiteralExpression)exp).getCharacter();
+      return value == 0;
+    }
+    return false;
   }
 
   private CAstNode convert(IGNUASTCompoundStatementExpression e) {
@@ -1147,7 +1187,7 @@ class ASTConverter {
     }
 
 
-    Triple<CType, IASTInitializer, String> declarator = convert(f.getDeclarator(), specifier.getSecond());
+    Triple<CType, IASTInitializer, String> declarator = convert(f.getDeclarator(), specifier.getSecond(), cStorageClass == CStorageClass.STATIC);
 
     if (!(declarator.getFirst() instanceof CFunctionTypeWithNames)) {
       throw new CFAGenerationRuntimeException("Unsupported nested declarator for function definition", f);
@@ -1160,21 +1200,8 @@ class ASTConverter {
     }
 
     CFunctionTypeWithNames declSpec = (CFunctionTypeWithNames)declarator.getFirst();
-    String name = declarator.getThird();
 
-    if(cStorageClass == CStorageClass.STATIC) {
-      name = staticVariablePrefix + name;
-      declSpec = new CFunctionTypeWithNames(declSpec.isConst(),
-                                            declSpec.isVolatile(),
-                                            declSpec.getReturnType(),
-                                            declSpec.getParameterDeclarations(),
-                                            declSpec.takesVarArgs());
-      declSpec.setName(name);
-    }
-
-    FileLocation fileLoc = getLocation(f);
-
-    return new CFunctionDeclaration(fileLoc, declSpec, name, declSpec.getParameterDeclarations());
+    return new CFunctionDeclaration(getLocation(f), declSpec, declarator.getThird(), declSpec.getParameterDeclarations());
   }
 
   public List<CDeclaration> convert(final IASTSimpleDeclaration d) {
@@ -1371,7 +1398,8 @@ class ASTConverter {
   private Triple<CType, IASTInitializer, String> convert(IASTDeclarator d, CType specifier) {
 
     if (d instanceof IASTFunctionDeclarator) {
-      return convert((IASTFunctionDeclarator)d, specifier);
+      // TODO is it always right to assume that here is no static storage class
+      return convert((IASTFunctionDeclarator)d, specifier, false);
 
     } else {
       // Parsing type declarations in C is complex.
@@ -1462,7 +1490,7 @@ class ASTConverter {
       org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier a = (org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier)am;
       CExpression lengthExp = convertExpressionWithoutSideEffects(a.getConstantExpression());
       if (lengthExp != null) {
-        lengthExp = simplifyAndEvaluateExpression(lengthExp).getFirst();
+        lengthExp = simplifyExpressionRecursively(lengthExp);
       }
       return new CArrayType(a.isConst(), a.isVolatile(), type, lengthExp);
 
@@ -1471,7 +1499,7 @@ class ASTConverter {
     }
   }
 
-  private Triple<CType, IASTInitializer, String> convert(IASTFunctionDeclarator d, CType returnType) {
+  private Triple<CType, IASTInitializer, String> convert(IASTFunctionDeclarator d, CType returnType, boolean isStaticFunction) {
 
     if (!(d instanceof IASTStandardFunctionDeclarator)) {
       throw new CFAGenerationRuntimeException("Unknown non-standard function definition", d);
@@ -1512,6 +1540,10 @@ class ASTConverter {
 
     } else {
       name = convert(d.getName());
+    }
+
+    if (isStaticFunction) {
+      name = staticVariablePrefix + name;
     }
 
     fType.setName(name);

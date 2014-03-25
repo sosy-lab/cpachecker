@@ -125,6 +125,7 @@ public class NumericValue implements Value {
   @Override
   public Long asLong(CType type) {
     checkNotNull(type);
+    type = type.getCanonicalType();
     if(!(type instanceof CSimpleType)) {
       return null;
     }

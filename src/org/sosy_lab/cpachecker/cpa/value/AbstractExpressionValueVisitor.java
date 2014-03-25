@@ -968,8 +968,9 @@ public abstract class AbstractExpressionValueVisitor
         final int numBytes = machineModel.getSizeof(st);
         final int size = bitPerByte * numBytes;
         final long longValue = numericValue.longValue();
+        final boolean targetIsSigned = machineModel.isSigned(st);
 
-        if ((size < SIZE_OF_JAVA_LONG) || (size == SIZE_OF_JAVA_LONG && st.isSigned())
+        if ((size < SIZE_OF_JAVA_LONG) || (size == SIZE_OF_JAVA_LONG && targetIsSigned)
             || (longValue < Long.MAX_VALUE / 2 && longValue > Long.MIN_VALUE / 2)) {
           // we can handle this with java-type "long"
 
@@ -980,8 +981,7 @@ public abstract class AbstractExpressionValueVisitor
           if (size < SIZE_OF_JAVA_LONG) { // otherwise modulo is useless, because result would be 1
             result = longValue % maxValue; // shrink to number of bits
 
-            if (st.isSigned() ||
-                (st.getType() == CBasicType.CHAR && !st.isUnsigned() && machineModel.isDefaultCharSigned())) {
+            if (targetIsSigned) {
               if (result > (maxValue / 2) - 1) {
                 result -= maxValue;
               } else if (result < -(maxValue / 2)) {
@@ -997,7 +997,7 @@ public abstract class AbstractExpressionValueVisitor
                 longValue, targetType, result);
           }
 
-          if (st.isUnsigned() && longValue < 0) {
+          if (!targetIsSigned && longValue < 0) {
 
             if (size < SIZE_OF_JAVA_LONG) {
               // value is negative, so adding maxValue makes it positive
@@ -1006,7 +1006,7 @@ public abstract class AbstractExpressionValueVisitor
               logger.logfOnce(Level.INFO,
                   "%s: overflow, target-type is '%s', value %d is changed to %d.",
                   fileLocation,
-                  targetType, value.asLong(sourceType), result);
+                  targetType, longValue, result);
 
             } else {
               // java-type "long" is too small for big types like UNSIGNED_LONGLONG,
@@ -1014,7 +1014,7 @@ public abstract class AbstractExpressionValueVisitor
               logger.logfOnce(Level.INFO,
                   "%s: overflow, value %s of c-type '%s' may be too big for java-type 'long'.",
                   fileLocation,
-                  value.asLong(sourceType), targetType);
+                  longValue, targetType);
             }
           }
 

@@ -70,6 +70,7 @@ public class Task {
   @Id
   private Long id;
   private String requestID;
+  @Index
   private Date creationDate;
   private Date executionDate;
   private Date terminationDate;
@@ -87,14 +88,10 @@ public class Task {
   private Map<String, String> options = new HashMap<>();
   private Ref<TaskFile> program;
   private TaskStatistic statistic;
-
-  // these properties are used for speed improvements of the data store
   @Index
   private Ref<Taskset> taskset = null;
   @Index
   private boolean processed = false;
-  @Index
-  private boolean done = false;
 
   @Ignore
   private boolean optionsEscaped = false;
@@ -318,12 +315,5 @@ public class Task {
 
   public void setProcessed(boolean pProcessed) {
     processed = pProcessed;
-  }
-
-  @OnSave
-  void setDone() {
-    done = (status.equals(Status.DONE)
-        || status.equals(Status.ERROR)
-        || status.equals(Status.TIMEOUT));
   }
 }

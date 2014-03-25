@@ -29,6 +29,8 @@ import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
@@ -40,17 +42,25 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Iterables;
 
 public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
   private final Reducer reducer = new CallstackReducer();
 
+  private final CFA cfa;
+
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(CallstackCPA.class);
   }
 
-  public CallstackCPA(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+  public CallstackCPA(Configuration config, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
     super("sep", "sep", new CallstackTransferRelation(config, pLogger));
+    this.cfa = pCFA;
   }
 
   @Override
@@ -60,6 +70,21 @@ public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnal
 
   @Override
   public AbstractState getInitialState(CFANode pNode) {
+    if (cfa.getLoopStructure().isPresent()) {
+      ImmutableMultimap<String, Loop> loopStructure = cfa.getLoopStructure().get();
+      if (loopStructure.size() == 1) {
+        String functionName = Iterables.getOnlyElement(loopStructure.keys());
+        if (functionName.equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)) {
+          ImmutableCollection<Loop> loops = loopStructure.get(functionName);
+          if (loops.size() == 1) {
+            Loop loop = Iterables.getOnlyElement(loops);
+            if (loop.getLoopNodes().contains(pNode)) {
+              return new CallstackState(null, functionName, pNode);
+            }
+          }
+        }
+      }
+    }
     return new CallstackState(null, pNode.getFunctionName(), pNode);
   }
 

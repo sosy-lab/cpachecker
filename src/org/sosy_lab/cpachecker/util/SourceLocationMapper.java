@@ -305,7 +305,7 @@ public class SourceLocationMapper {
       break;
       case AssumeEdge:
         if (overApproximateTokens) {
-          result.add(endNode.getLineNumber());
+          result.add(edge.getFileLocation().getEndingLineNumber());
 
           // Assumes of a while loop should also include the while token
           for (CFAEdge e: CFAUtils.enteringEdges(startNode)) {
@@ -433,7 +433,7 @@ public class SourceLocationMapper {
     }
 
     for (CIdExpression e: idExs) {
-      result.add(VariableClassification.scopeVar(e));
+      result.add(e.getDeclaration().getQualifiedName());
     }
 
     return result;

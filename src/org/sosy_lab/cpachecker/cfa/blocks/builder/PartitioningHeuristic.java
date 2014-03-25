@@ -28,6 +28,8 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -37,6 +39,17 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
  * Defines an interface for heuristics for the partition of a program's CFA into blocks.
  */
 public abstract class PartitioningHeuristic {
+
+  protected final CFA cfa;
+  protected final LogManager logger;
+
+  /** Do not change signature! Constructor will be created with Reflections.
+   * Subclasses should also implement the same signature. */
+  public PartitioningHeuristic(LogManager pLogger, CFA pCfa) {
+    cfa = pCfa;
+    logger = pLogger;
+  }
+
   /**
    * Creates a <code>BlockPartitioning</code> using the represented heuristic.
    * @param mainFunction CFANode at which the main-function is defined
@@ -83,7 +96,7 @@ public abstract class PartitioningHeuristic {
   protected abstract boolean shouldBeCached(CFANode pNode);
 
   /**
-   * @param pNode CFANode that should be cached.
+   * @param pNode CFANode that should be cached. We assume {@link #shouldBeCached(CFANode)} for the node.
    * @return set of nodes that represent a <code>Block</code>.
    */
   protected abstract Set<CFANode> getBlockForNode(CFANode pNode);

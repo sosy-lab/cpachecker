@@ -51,7 +51,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CParser.FileToParse;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
@@ -71,10 +70,12 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers;
-import org.sosy_lab.cpachecker.cfa.simplification.ExpressionSimplifier;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -82,7 +83,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -133,10 +133,6 @@ public class CFACreator {
   @Option(name="analysis.useGlobalVars",
       description="add declarations for global variables before entry function")
   private boolean useGlobalVars = true;
-
-  @Option(name="analysis.simplifyExpressions",
-      description="simplify pure numeral expressions like '1+2' to '3'")
-  private boolean simplifyExpressions = false;
 
   @Option(name="cfa.useMultiEdges",
       description="combine sequences of simple edges into a single edge")
@@ -191,7 +187,11 @@ public class CFACreator {
 
   @Option(name="cfa.moveDeclarationsToFunctionStart",
       description="With this option, all declarations in each function will be moved"
-          + "to the beginning of each function.")
+          + "to the beginning of each function. Do only use this option if you are"
+          + "not able to handle initializer lists and designated initializers (like"
+          + " they can be used for arrays and structs) in your analysis anyway. this"
+          + " option will otherwise create c code which is not the same as the original"
+          + " one")
   private boolean moveDeclarationsToFunctionStart = false;
 
   @Option(name="cfa.useFunctionCallUnwinding",
@@ -204,6 +204,7 @@ public class CFACreator {
   private final LogManager logger;
   private final Parser parser;
   private final CFAReduction cfaReduction;
+  private final ShutdownNotifier shutdownNotifier;
 
   private static class CFACreatorStatistics implements Statistics {
 
@@ -248,6 +249,7 @@ public class CFACreator {
 
     this.config = config;
     this.logger = logger;
+    this.shutdownNotifier = pShutdownNotifier;
 
     stats.parserInstantiationTime.start();
 
@@ -394,7 +396,7 @@ public class CFACreator {
         // special part of code, returns a transformed copy of the CFA.
         // TODO SLTransformation contains some code copied from the lines above. Is this necessary?
         stats.processingTime.start();
-        immutableCFA = CFASingleLoopTransformation.getSingleLoopTransformation(logger, config).apply(cfa, loopStructure, varClassification);
+        immutableCFA = CFASingleLoopTransformation.getSingleLoopTransformation(logger, config, shutdownNotifier).apply(cfa, loopStructure, varClassification);
         mainFunction = immutableCFA.getMainFunction();
         assert mainFunction != null;
         stats.processingTime.stop();
@@ -482,18 +484,6 @@ public class CFACreator {
       CFASimplifier.simplifyCFA(cfa);
     }
 
-    if (simplifyExpressions) {
-      // this replaces some edges in the CFA with new edges.
-      // all expressions, that can be evaluated, will be replaced with their result.
-      // example: a=1+2; --> a=3;
-      // TODO support for constant propagation like "define MAGIC_NUMBER 1234".
-      for (final CFANode function : cfa.getAllFunctionHeads()) {
-        final ExpressionSimplifier es = new ExpressionSimplifier(machineModel, new LogManagerWithoutDuplicates(logger));
-        CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(function, es);
-        es.replaceEdges();
-      }
-    }
-
     if (moveDeclarationsToFunctionStart) {
       CFADeclarationMover declarationMover = new CFADeclarationMover(logger);
       declarationMover.moveDeclarationsToFunctionStart(cfa);
@@ -529,7 +519,7 @@ public class CFACreator {
           if (succ == node) {
             leavingBlankEdge.getPredecessor().removeLeavingEdge(leavingBlankEdge);
             leavingBlankEdge.getSuccessor().removeEnteringEdge(leavingBlankEdge);
-            CFANode terminationNode = new CFATerminationNode(node.getLineNumber(), node.getFunctionName());
+            CFANode terminationNode = new CFATerminationNode(node.getFunctionName());
             BlankEdge terminationEdge =
                     new BlankEdge(leavingBlankEdge.getRawStatement(),
                             leavingBlankEdge.getFileLocation(),
@@ -700,7 +690,7 @@ public class CFACreator {
     // we can add new edges between them and then reconnect the nodes
 
     // insert one node to start the series of declarations
-    CFANode cur = new CFANode(0, firstNode.getFunctionName());
+    CFANode cur = new CFANode(firstNode.getFunctionName());
     cfa.addNode(cur);
     final CFAEdge newFirstEdge = new BlankEdge("", FileLocation.DUMMY, firstNode, cur, "INIT GLOBAL VARS");
     CFACreationUtils.addEdgeUnconditionallyToCFA(newFirstEdge);
@@ -711,7 +701,7 @@ public class CFACreator {
       String rawSignature = p.getSecond();
       assert d.isGlobal();
 
-      CFANode n = new CFANode(d.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
+      CFANode n = new CFANode(cur.getFunctionName());
       cfa.addNode(n);
 
       final CFAEdge newEdge;
@@ -760,7 +750,7 @@ public class CFACreator {
     Set<String> previouslyInitializedVariables = new HashSet<>();
     ListIterator<Pair<IADeclaration, String>> iterator = globalVars.listIterator();
     while (iterator.hasNext()) {
-      Pair<IADeclaration, String> p = iterator.next();
+      final Pair<IADeclaration, String> p = iterator.next();
 
       if (p.getFirst() instanceof AVariableDeclaration) {
         CVariableDeclaration v = (CVariableDeclaration)p.getFirst();
@@ -781,19 +771,25 @@ public class CFACreator {
 
           // Add default variable initializer, because the storage class is AUTO
           // and there is no initializer later in the file.
-          CInitializer initializer = CDefaults.forType(v.getType(), v.getFileLocation());
-          v = new CVariableDeclaration(v.getFileLocation(),
-                                       v.isGlobal(),
-                                       v.getCStorageClass(),
-                                       v.getType(),
-                                       v.getName(),
-                                       v.getOrigName(),
-                                       v.getQualifiedName(),
-                                       initializer);
+          // In the case we have an incompletely defined struct
+          // (e.g., "struct s;"), we cannot produce an initializer.
+          // (Although there shouldn't be any variables of this type anyway.)
+          CType type = v.getType().getCanonicalType();
+          if (!(type instanceof CElaboratedType)
+              || (((CElaboratedType)type).getKind() == ComplexTypeKind.ENUM)) {
+            CInitializer initializer = CDefaults.forType(type, v.getFileLocation());
+            v = new CVariableDeclaration(v.getFileLocation(),
+                                         v.isGlobal(),
+                                         v.getCStorageClass(),
+                                         v.getType(),
+                                         v.getName(),
+                                         v.getOrigName(),
+                                         v.getQualifiedName(),
+                                         initializer);
 
-          previouslyInitializedVariables.add(name);
-          p = Pair.<IADeclaration, String>of(v, p.getSecond());
-          iterator.set(p); // replace declaration
+            previouslyInitializedVariables.add(name);
+            iterator.set(Pair.<IADeclaration, String>of(v, p.getSecond())); // replace declaration
+          }
         }
       }
     }

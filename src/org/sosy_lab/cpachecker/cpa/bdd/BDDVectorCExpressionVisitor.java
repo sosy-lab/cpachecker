@@ -66,15 +66,17 @@ public class BDDVectorCExpressionVisitor
         extends DefaultCExpressionVisitor<Region[], RuntimeException> {
 
   private final MachineModel machineModel;
-  private final BDDTransferRelation transferRelation;
+  private final PredicateManager predMgr;
+  private final BDDPrecision precision;
   protected final BitvectorManager bvmgr;
 
   /** This Visitor returns the numeral value for an expression.
    * @param pMachineModel where to get info about types, for casting and overflows
    */
-  protected BDDVectorCExpressionVisitor(final BDDTransferRelation pTransferRelation,
+  protected BDDVectorCExpressionVisitor(final PredicateManager pPredMgr, final BDDPrecision pPrecision,
                                      final BitvectorManager pBVmgr, final MachineModel pMachineModel) {
-    this.transferRelation = pTransferRelation;
+    this.predMgr = pPredMgr;
+    this.precision = pPrecision;
     this.bvmgr = pBVmgr;
     this.machineModel = pMachineModel;
   }
@@ -278,7 +280,7 @@ public class BDDVectorCExpressionVisitor
       }
     }
 
-    return transferRelation.createPredicate(idExp, getSize(idExp.getExpressionType()));
+    return predMgr.createPredicate(idExp.getDeclaration().getQualifiedName(), getSize(idExp.getExpressionType()), precision);
   }
 
   @Override

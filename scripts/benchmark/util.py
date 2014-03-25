@@ -26,7 +26,9 @@ CPAchecker web page:
 from __future__ import absolute_import, print_function, unicode_literals
 
 import glob
+import logging
 import os
+import signal
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
@@ -34,6 +36,23 @@ import xml.etree.ElementTree as ET
 """
 This module contains some useful functions for Strings, XML or Lists.
 """
+
+def isWindows():
+    return os.name == 'nt'
+
+def forceLinuxPath(path):
+    if isWindows():
+        return path.replace('\\', '/')
+    return path
+
+def killProcess(pid, sig=signal.SIGTERM):
+    '''
+    This function kills the process and the children in its process group.
+    '''
+    try:
+        os.killpg(pid, sig)
+    except OSError: # process itself returned and exited before killing
+        pass
 
 def printOut(value, end='\n'):
     """
@@ -172,8 +191,8 @@ def findExecutable(program, fallback=None, exitOnError=True):
     def isExecutable(programPath):
         return os.path.isfile(programPath) and os.access(programPath, os.X_OK)
 
-    dirs = os.environ['PATH'].split(os.pathsep)
-    dirs.append(".")
+    dirs = os.environ['PATH'].split(os.path.sep)
+    dirs.append(os.path.curdir)
 
     for dir in dirs:
         name = os.path.join(dir, program)
@@ -187,6 +206,11 @@ def findExecutable(program, fallback=None, exitOnError=True):
         sys.exit("ERROR: Could not find '{0}' executable".format(program))
     else:
         return fallback
+
+
+def commonBaseDir(l):
+    # os.path.commonprefix returns the common prefix, not the common directory
+    return os.path.dirname(os.path.commonprefix(l))
 
 
 def addFilesToGitRepository(baseDir, files, description):

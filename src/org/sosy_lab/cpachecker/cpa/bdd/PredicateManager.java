@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -62,24 +61,24 @@ public class PredicateManager {
   /** Contains the varNames of all really tracked vars.
    * This set may differ from the union of all partitions,
    * because not every variable, that appears in the sourcecode,
-   * is analyzed or even reachable. */
-  private final Collection<String> trackedVars = new HashSet<>();
+   * is analyzed or even reachable.
+   * This map contains the name of the variable and its bitsize in the BDD.*/
+  private final Map<String, Integer> trackedVars = new HashMap<>();
 
   private final NamedRegionManager rmgr;
 
   public PredicateManager(final Configuration config, final NamedRegionManager pRmgr,
-                          final BDDPrecision pPrecision, final CFA pCfa,
-                          final MachineModel pMachineModel
+                          final BDDPrecision pPrecision, final CFA pCfa
                           ) throws InvalidConfigurationException {
     config.inject(this);
     this.rmgr = pRmgr;
 
     if (initPartitions) {
-      initVars(pPrecision, pCfa, pMachineModel);
+      initVars(pPrecision, pCfa);
     }
   }
 
-  public Collection<String> getTrackedVars() {
+  public Map<String, Integer> getTrackedVars() {
     return trackedVars;
   }
 
@@ -97,7 +96,7 @@ public class PredicateManager {
    *  (later vars are deeper in the BDD).
    *  This function declares those vars in the beginning of the analysis,
    *  so that we can choose between some orders. */
-  protected void initVars(BDDPrecision precision, CFA cfa, MachineModel pMachineModel) {
+  protected void initVars(BDDPrecision precision, CFA cfa) {
     List<VariableClassification.Partition> partitions;
     if (initPartitionsOrdered) {
       BDDPartitionOrderer d = new BDDPartitionOrderer(cfa);
@@ -107,10 +106,11 @@ public class PredicateManager {
       partitions = cfa.getVarClassification().get().getPartitions(); // may be unsorted
     }
 
+    MachineModel machineModel = cfa.getMachineModel();
     for (VariableClassification.Partition partition : partitions) {
       // maxBitSize is too much for most variables. we only create an order here, so this should not matter.
       createPredicates(partition.getVars(), precision,
-              pMachineModel.getSizeofLongLongInt() * pMachineModel.getSizeofCharInBits());
+              machineModel.getSizeofLongLongInt() * machineModel.getSizeofCharInBits());
     }
   }
 
@@ -171,13 +171,23 @@ public class PredicateManager {
   /** This function returns regions containing bits of a variable.
    * returns regions for positions of a variable, s --> [s@2, s@1, s@0].
    * There is no check, if the variable is tracked by the the precision. */
-  public Region[] createPredicates(final String varName, final int size) {
-    trackedVars.add(varName);
+  protected Region[] createPredicateWithoutPrecisionCheck(final String varName, final int size) {
+    trackedVars.put(varName, size);
     final Region[] newRegions = new Region[size];
     for (int i = size - 1; i >= 0; i--) {
       // inverse order should be faster, because 'most changing bits' are at bottom position in BDDs.
       newRegions[i] = createPredicateDirectly(varName, i);
     }
     return newRegions;
+  }
+
+  /** This function returns regions containing bits of a variable.
+   * returns regions for positions of a variable, s --> [s@2, s@1, s@0].
+   * If the variable is not tracked by the the precision, Null is returned. */
+  protected Region[] createPredicate(final String varName, final int size, final BDDPrecision precision) {
+    if (precision != null && !precision.isTracking(varName)) {
+      return null;
+    }
+    return createPredicateWithoutPrecisionCheck(varName, size);
   }
 }

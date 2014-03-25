@@ -35,7 +35,6 @@ public class CFANode implements Comparable<CFANode> {
   private static int nextNodeNumber = 0;
 
   private final int nodeNumber;
-  private final int lineNumber;
 
   private final List<CFAEdge> leavingEdges = new ArrayList<>(1);
   private final List<CFAEdge> enteringEdges = new ArrayList<>(1);
@@ -53,16 +52,11 @@ public class CFANode implements Comparable<CFANode> {
   // reverse postorder sort id, smaller if it appears later in sorting
   private int reversePostorderId = 0;
 
-  public CFANode(int pLineNumber, String pFunctionName) {
+  public CFANode(String pFunctionName) {
     assert !pFunctionName.isEmpty();
 
-    lineNumber = pLineNumber;
     functionName = pFunctionName;
     nodeNumber = nextNodeNumber++;
-  }
-
-  public int getLineNumber() {
-    return lineNumber;
   }
 
   public int getNodeNumber() {

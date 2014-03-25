@@ -79,8 +79,9 @@ public class CDefaults {
         return initializerFor(signedIntZero(fileLoc), fileLoc);
 
        } else {
-         // struct or union
-         return emptyAggregate(fileLoc);
+         // struct or union that is incompletely defined,
+         // cannot produce an initializer
+         throw new IllegalArgumentException("Cannot produce initializer for incompletely defined type " + type);
        }
 
     } else if (type instanceof CCompositeType) {

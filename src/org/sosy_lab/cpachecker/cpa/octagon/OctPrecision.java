@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -59,10 +60,16 @@ public class OctPrecision implements Precision {
   public OctPrecision(OctPrecision pOctPrecision, Multimap<CFANode, MemoryLocation> pIncrement) {
     valuePrecision = new ValueAnalysisPrecision(pOctPrecision.valuePrecision, pIncrement);
     config = pOctPrecision.config;
+    refiner = pOctPrecision.refiner;
     trackedVars = new HashSet<>();
+    trackedVars.addAll(pOctPrecision.trackedVars);
     for (MemoryLocation mem : pIncrement.values()) {
       trackedVars.add(mem.getAsSimpleString());
     }
+  }
+
+  public Set<String> getTrackedVars() {
+    return Collections.unmodifiableSet(trackedVars);
   }
 
   public int getSize() {

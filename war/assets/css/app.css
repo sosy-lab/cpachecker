@@ -19,3 +19,7 @@
 .table-tasks th, .table-tasks td {
   text-align: center;
 }
+
+.centered {
+  text-align: center;
+}

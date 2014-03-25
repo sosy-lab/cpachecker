@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import static com.google.common.collect.Iterables.getOnlyElement;
+import static org.sosy_lab.cpachecker.util.CFAUtils.successorsOf;
+
 import java.io.IOException;
 import java.io.Writer;
 import java.util.HashMap;
@@ -203,7 +206,8 @@ public final class DOTBuilder2 {
     private String edgeToDot(CFAEdge edge) {
       if (edge.getEdgeType() == CFAEdgeType.CallToReturnEdge) {
        //create the function node
-        String calledFunction = edge.getPredecessor().getLeavingEdge(0).getSuccessor().getFunctionName();
+        CFANode functionEntryNode = getOnlyElement(successorsOf(edge.getPredecessor()).filter(FunctionEntryNode.class));
+        String calledFunction = functionEntryNode.getFunctionName();
         String ret = (++virtFuncCallNodeIdCounter) + " [shape=\"component\" label=\"" + calledFunction + "\"]\n";
         int from = edge.getPredecessor().getNodeNumber();
         ret += String.format("%d -> %d [label=\"%s\" fontname=\"Courier New\"]%n",
@@ -284,7 +288,6 @@ public final class DOTBuilder2 {
     public TraversalProcess visitNode(CFANode node) {
       Map<String, Object> jnode = new HashMap<>();
       jnode.put("no", node.getNodeNumber());
-      jnode.put("line", node.getLineNumber());
       jnode.put("func", node.getFunctionName());
       nodes.put(node.getNodeNumber(), jnode);
 
@@ -296,7 +299,8 @@ public final class DOTBuilder2 {
       Map<String, Object> jedge = new HashMap<>();
       int src = edge.getPredecessor().getNodeNumber();
       int target = edge.getSuccessor().getNodeNumber();
-      jedge.put("line", edge.getLineNumber());
+      jedge.put("line", edge.getFileLocation().getStartingLineNumber());
+      jedge.put("file", edge.getFileLocation().getFileName());
       jedge.put("source", src);
       jedge.put("target", target);
       jedge.put("stmt", getEdgeText(edge));

@@ -301,6 +301,12 @@ public class ASTConverter {
     return forInitDeclarations.size();
   }
 
+  private String getQualifiedName(String var) {
+    return scope.getCurrentClassType().getName()
+        + "_" + scope.getCurrentMethodName()
+        + "::" + var;
+  }
+
   private JType convert(ITypeBinding pTypeBinding) {
     return typeConverter.convert(pTypeBinding);
   }
@@ -516,7 +522,9 @@ public class ASTConverter {
 
       JVariableDeclaration newD = new JVariableDeclaration(fileLoc,
           convert(type), nameAndInitializer.getName(),
-          nameAndInitializer.getName(), nameAndInitializer.getInitializer(),
+          nameAndInitializer.getName(),
+          getQualifiedName(nameAndInitializer.getName()),
+          nameAndInitializer.getInitializer(),
           mB.isFinal());
 
       variableDeclarations.add(newD);
@@ -563,6 +571,7 @@ public class ASTConverter {
     return new JVariableDeclaration(getFileLocation(d),
         convert(type), d.getName().getFullyQualifiedName(),
         d.getName().getFullyQualifiedName(),
+        getQualifiedName(d.getName().getFullyQualifiedName()),
         initializerExpression, mB.isFinal());
   }
 
@@ -656,6 +665,7 @@ public class ASTConverter {
         convert(e.resolveTypeBinding()),
         name,
         name,
+        getQualifiedName(name),
         null, NOT_FINAL);
 
     scope.registerDeclarationOfThisClass(decl);
@@ -1032,7 +1042,9 @@ public class ASTConverter {
 
       JVariableDeclaration newD = new JVariableDeclaration(fileLoc,
           convert(type), nameAndInitializer.getName(),
-          nameAndInitializer.getName(), nameAndInitializer.getInitializer(),
+          nameAndInitializer.getName(),
+          getQualifiedName(nameAndInitializer.getName()),
+          nameAndInitializer.getInitializer(),
           mB.isFinal());
 
       variableDeclarations.add(newD);
@@ -1985,6 +1997,7 @@ public class ASTConverter {
         iteratorTyp,
         varName,
         varName,
+        getQualifiedName(varName),
         null, NOT_FINAL);
 
     scope.registerDeclarationOfThisClass(decl);

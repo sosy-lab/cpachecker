@@ -46,7 +46,7 @@ import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -141,8 +141,8 @@ public class VariableClassification {
   private boolean printStatsOnStartup = false;
 
   /** name for return-variables, it is used for function-returns. */
-  public static final String FUNCTION_RETURN_VARIABLE = "__retval__";
-  public static final String SCOPE_SEPARATOR = "::";
+  private static final String FUNCTION_RETURN_VARIABLE = "__retval__";
+  private static final String SCOPE_SEPARATOR = "::";
 
   /** normally a boolean value would be 0 or 1,
    * however there are cases, where the values are only 0 and 1,
@@ -151,30 +151,30 @@ public class VariableClassification {
   private boolean allowOneAsBooleanValue = false;
   private Timer buildTimer = new Timer();
 
-  private Collection<String> allVars = null;
+  private Set<String> allVars = null;
 
-  private Collection<String> nonIntBoolVars;
-  private Collection<String> nonIntEqVars;
-  private Collection<String> nonIntAddVars;
+  private Set<String> nonIntBoolVars;
+  private Set<String> nonIntEqVars;
+  private Set<String> nonIntAddVars;
 
   private Dependencies dependencies;
 
-  private Collection<String> intBoolVars;
-  private Collection<String> intEqualVars;
-  private Collection<String> intAddVars;
+  private Set<String> intBoolVars;
+  private Set<String> intEqualVars;
+  private Set<String> intAddVars;
 
-  private Collection<String> loopExitConditionVariables;
-  private Collection<String> loopExitIncDecConditionVariables;
+  private Set<String> loopExitConditionVariables;
+  private Set<String> loopExitIncDecConditionVariables;
 
   /** These sets contain all variables even ones of array, pointer or structure types.
    *  Such variables cannot be classified even as Int, so they are only kept in these sets in order
    *  not to break the classification of Int variables.*/
-  private Collection<String> assignedVariables; // Variables used in the left hand side
+  private Set<String> assignedVariables; // Variables used in the left hand side
   // Initially contains variables used in assumes and assigned to pointer dereferences,
   // then all essential variables (by propagation)
-  private Collection<String> relevantVariables;
-  private Collection<String> irrelevantVariables; // leftVariables without rightVariables
-  private Collection<String> addressedVariables;
+  private Set<String> relevantVariables;
+  private Set<String> irrelevantVariables; // leftVariables without rightVariables
+  private Set<String> addressedVariables;
 
   /** Fields information doesn't take any aliasing information into account,
    *  fields are considered per type, not per composite instance */
@@ -190,8 +190,7 @@ public class VariableClassification {
   private Set<Partition> intEqualPartitions;
   private Set<Partition> intAddPartitions;
 
-  private CollectingLHSVisitor collectingLHSVisitor = null;
-  private CollectingRHSVisitor collectingRHSVisitor = null;
+  private final CollectingLHSVisitor collectingLHSVisitor = new CollectingLHSVisitor();
 
   private final CFA cfa;
   private final ImmutableMultimap<String, Loop> loopStructure;
@@ -287,9 +286,6 @@ public class VariableClassification {
       intEqualPartitions = new HashSet<>();
       intAddPartitions = new HashSet<>();
 
-      collectingLHSVisitor = new CollectingLHSVisitor();
-      collectingRHSVisitor = new CollectingRHSVisitor();
-
       // fill maps
       collectVars();
 
@@ -371,8 +367,8 @@ public class VariableClassification {
     }
   }
 
-  public Collection<String> getVariablesOfExpression(CExpression expr) {
-    Collection<String> result = new HashSet<>();
+  public Set<String> getVariablesOfExpression(CExpression expr) {
+    Set<String> result = new HashSet<>();
     CIdExpressionCollectorVisitor collector = new CIdExpressionCollectorVisitor();
 
     expr.accept(collector);
@@ -471,7 +467,7 @@ public class VariableClassification {
    * </strong>
    * </p>
    */
-  public Collection<String> getIrrelevantVariables() {
+  public Set<String> getIrrelevantVariables() {
     build();
     return irrelevantVariables;
   }
@@ -511,7 +507,7 @@ public class VariableClassification {
    * </strong>
    * </p>
    */
-  public Collection<String> getRelevantVariables() {
+  public Set<String> getRelevantVariables() {
     build();
     return relevantVariables;
   }
@@ -526,7 +522,7 @@ public class VariableClassification {
    * </strong>
    * </p>
    */
-  public Collection<String> getAddressedVariables() {
+  public Set<String> getAddressedVariables() {
     build();
     return addressedVariables;
   }
@@ -558,14 +554,14 @@ public class VariableClassification {
    * Possible loop variables of the program
    * in form of a collection of (functionName, varNames)
    */
-  public Collection<String> getLoopExitConditionVariables() {
+  public Set<String> getLoopExitConditionVariables() {
     build();
     return loopExitConditionVariables;
   }
 
   /** This function returns a collection of scoped names.
    * This collection contains all vars. */
-  public Collection<String> getAllVars() {
+  public Set<String> getAllVars() {
     build();
     return allVars;
   }
@@ -573,7 +569,7 @@ public class VariableClassification {
   /** This function returns a collection of scoped names.
    * This collection contains all vars, that are boolean,
    * i.e. the value is 0 or 1. */
-  public Collection<String> getIntBoolVars() {
+  public Set<String> getIntBoolVars() {
     build();
     return intBoolVars;
   }
@@ -590,7 +586,7 @@ public class VariableClassification {
    * for equality with integer values.
    * There are NO mathematical calculations (add, sub, mult) with these vars.
    * This collection does not contain any variable from "IntBool" or "IntAdd". */
-  public Collection<String> getIntEqualVars() {
+  public Set<String> getIntEqualVars() {
     build();
     return intEqualVars;
   }
@@ -608,7 +604,7 @@ public class VariableClassification {
    * This collection contains all vars, that are only used in simple calculations
    * (+, -, <, >, <=, >=, ==, !=, &, &&, |, ||, ^).
    * This collection does not contain any variable from "IntBool" or "IntEq". */
-  public Collection<String> getIntAddVars() {
+  public Set<String> getIntAddVars() {
     build();
     return intAddVars;
   }
@@ -765,7 +761,7 @@ public class VariableClassification {
       CFANode pre = edge.getPredecessor();
 
       VariablesCollectingVisitor dcv = new VariablesCollectingVisitor(pre);
-      Collection<String> vars = exp.accept(dcv);
+      Set<String> vars = exp.accept(dcv);
       if (vars != null) {
         dependencies.addAll(vars, dcv.getValues(), edge, 0);
       }
@@ -774,8 +770,7 @@ public class VariableClassification {
       exp.accept(new IntEqualCollectingVisitor(pre));
       exp.accept(new IntAddCollectingVisitor(pre));
 
-      collectingRHSVisitor.setLHS(null);
-      exp.accept(collectingRHSVisitor);
+      exp.accept(new CollectingRHSVisitor(null));
       break;
     }
 
@@ -806,7 +801,7 @@ public class VariableClassification {
     }
 
     case FunctionReturnEdge: {
-      String scopedVarName = edge.getPredecessor().getFunctionName() + SCOPE_SEPARATOR + FUNCTION_RETURN_VARIABLE;
+      String scopedVarName = createFunctionReturnVariable(edge.getPredecessor().getFunctionName());
       dependencies.addVar(scopedVarName);
       Partition partition = getPartitionForVar(scopedVarName);
       partition.addEdge(edge, 0);
@@ -822,8 +817,8 @@ public class VariableClassification {
         String function = edge.getPredecessor().getFunctionName();
         handleExpression(edge,
                          rhs,
-                         FUNCTION_RETURN_VARIABLE,
-                         VariableOrField.newVariable(scopeVar(function, FUNCTION_RETURN_VARIABLE)));
+                         scopeVar(function, FUNCTION_RETURN_VARIABLE),
+                         VariableOrField.newVariable(createFunctionReturnVariable(function)));
       }
       break;
     }
@@ -854,7 +849,7 @@ public class VariableClassification {
     String varName = vdecl.getQualifiedName();
 
     // "connect" the edge with its partition
-    Collection<String> var = new HashSet<>(1);
+    Set<String> var = new HashSet<>(1);
     var.add(varName);
     dependencies.addAll(var, new HashSet<BigInteger>(), edge, 0);
 
@@ -879,8 +874,7 @@ public class VariableClassification {
       final VariableOrField lhs = lhsExpression.accept(collectingLHSVisitor);
 
       final CExpression rhs = init.getRightHandSide();
-      collectingRHSVisitor.setLHS(lhs);
-      rhs.accept(collectingRHSVisitor);
+      rhs.accept(new CollectingRHSVisitor(lhs));
     }
 
     if ((initializer == null) || !(initializer instanceof CInitializerExpression)) { return; }
@@ -919,7 +913,7 @@ public class VariableClassification {
 
       if (cfa.getAllFunctionNames().contains(functionName)) {
         // TODO is this case really appearing or is it always handled as "functionCallEdge"?
-        dependencies.add(scopeVar(functionName, FUNCTION_RETURN_VARIABLE), varName);
+        dependencies.add(createFunctionReturnVariable(functionName), varName);
 
       } else {
         // external function
@@ -962,7 +956,7 @@ public class VariableClassification {
 
         CFANode pre = edge.getPredecessor();
         VariablesCollectingVisitor dcv = new VariablesCollectingVisitor(pre);
-        Collection<String> vars = param.accept(dcv);
+        Set<String> vars = param.accept(dcv);
         if (vars != null) {
           dependencies.addAll(vars, dcv.getValues(), edge, i);
         }
@@ -983,7 +977,7 @@ public class VariableClassification {
     final List<CExpression> args = edge.getArguments();
     final List<CParameterDeclaration> params = edge.getSuccessor().getFunctionParameters();
     final String innerFunctionName = edge.getSuccessor().getFunctionName();
-    final String scopedRetVal = scopeVar(innerFunctionName, FUNCTION_RETURN_VARIABLE);
+    final String scopedRetVal = createFunctionReturnVariable(innerFunctionName);
 
     // functions can have more args than params used in the call
     assert args.size() >= params.size();
@@ -1046,7 +1040,7 @@ public class VariableClassification {
     CFANode pre = edge.getPredecessor();
 
     VariablesCollectingVisitor dcv = new VariablesCollectingVisitor(pre);
-    Collection<String> vars = exp.accept(dcv);
+    Set<String> vars = exp.accept(dcv);
     if (vars == null) {
       vars = new HashSet<>(1);
     }
@@ -1055,19 +1049,18 @@ public class VariableClassification {
     dependencies.addAll(vars, dcv.getValues(), edge, id);
 
     BoolCollectingVisitor bcv = new BoolCollectingVisitor(pre);
-    Collection<String> possibleBoolean = exp.accept(bcv);
+    Set<String> possibleBoolean = exp.accept(bcv);
     handleResult(varName, possibleBoolean, nonIntBoolVars);
 
     IntEqualCollectingVisitor ncv = new IntEqualCollectingVisitor(pre);
-    Collection<String> possibleIntEqualVars = exp.accept(ncv);
+    Set<String> possibleIntEqualVars = exp.accept(ncv);
     handleResult(varName, possibleIntEqualVars, nonIntEqVars);
 
     IntAddCollectingVisitor icv = new IntAddCollectingVisitor(pre);
-    Collection<String> possibleIntAddVars = exp.accept(icv);
+    Set<String> possibleIntAddVars = exp.accept(icv);
     handleResult(varName, possibleIntAddVars, nonIntAddVars);
 
-    collectingRHSVisitor.setLHS(lhs);
-    exp.accept(collectingRHSVisitor);
+    exp.accept(new CollectingRHSVisitor(lhs));
   }
 
   /** adds the variable to notPossibleVars, if possibleVars is null.  */
@@ -1078,19 +1071,16 @@ public class VariableClassification {
   }
 
   /** Returns a scoped name for a given IdExpression. */
-  public static String scopeVar(final CExpression exp) {
-    if(exp instanceof CIdExpression) {
-      return ((CIdExpression) exp).getDeclaration().getQualifiedName();
-    } else {
-      return exp.toASTString();
-    }
+  private static String scopeVar(final CIdExpression exp) {
+    return exp.getDeclaration().getQualifiedName();
   }
 
+  @Deprecated // for uses outside of this class, use getQualifiedName() of declarations
   public static String scopeVar(@Nullable final String function, final String var) {
     return (function == null) ? (var) : (function + SCOPE_SEPARATOR + var);
   }
 
-  public static boolean isGlobal(CExpression exp) {
+  private static boolean isGlobal(CExpression exp) {
     if (exp instanceof CIdExpression) {
       CSimpleDeclaration decl = ((CIdExpression) exp).getDeclaration();
       if (decl instanceof CDeclaration) { return ((CDeclaration) decl).isGlobal(); }
@@ -1098,8 +1088,8 @@ public class VariableClassification {
     return false;
   }
 
-  public static boolean isFunctionReturnVariable(final String var) {
-    return var != null && var.endsWith(FUNCTION_RETURN_VARIABLE);
+  public static String createFunctionReturnVariable(final String function) {
+    return function + SCOPE_SEPARATOR + FUNCTION_RETURN_VARIABLE;
   }
 
   /** returns the value of a (nested) IntegerLiteralExpression
@@ -1157,7 +1147,7 @@ public class VariableClassification {
    * other visits return the inner visit-results.
   * The Visitor also collects all numbers used in the expression. */
   private class VariablesCollectingVisitor implements
-      CExpressionVisitor<Collection<String>, RuntimeException> {
+      CExpressionVisitor<Set<String>, RuntimeException> {
 
     private CFANode predecessor;
     private Set<BigInteger> values = new TreeSet<>();
@@ -1171,16 +1161,16 @@ public class VariableClassification {
     }
 
     @Override
-    public Collection<String> visit(CArraySubscriptExpression exp) {
+    public Set<String> visit(CArraySubscriptExpression exp) {
       return null;
     }
 
     @Override
-    public Collection<String> visit(CBinaryExpression exp) {
+    public Set<String> visit(CBinaryExpression exp) {
 
       // for numeral values
       BigInteger val1 = getNumber(exp.getOperand1());
-      Collection<String> operand1;
+      Set<String> operand1;
       if (val1 == null) {
         operand1 = exp.getOperand1().accept(this);
       } else {
@@ -1190,7 +1180,7 @@ public class VariableClassification {
 
       // for numeral values
       BigInteger val2 = getNumber(exp.getOperand2());
-      Collection<String> operand2;
+      Set<String> operand2;
       if (val2 == null) {
         operand2 = exp.getOperand2().accept(this);
       } else {
@@ -1210,7 +1200,7 @@ public class VariableClassification {
     }
 
     @Override
-    public Collection<String> visit(CCastExpression exp) {
+    public Set<String> visit(CCastExpression exp) {
       BigInteger val = getNumber(exp.getOperand());
       if (val == null) {
         return exp.getOperand().accept(this);
@@ -1221,7 +1211,7 @@ public class VariableClassification {
     }
 
     @Override
-    public Collection<String> visit(CComplexCastExpression exp) {
+    public Set<String> visit(CComplexCastExpression exp) {
       // TODO complex numbers are not supported for evaluation right now, this
       // way of handling the variables my be wrong
 
@@ -1235,59 +1225,59 @@ public class VariableClassification {
     }
 
     @Override
-    public Collection<String> visit(CFieldReference exp) {
+    public Set<String> visit(CFieldReference exp) {
       String varName = exp.toASTString(); // TODO "(*p).x" vs "p->x"
-      String function = isGlobal(exp) ? "" : predecessor.getFunctionName() + SCOPE_SEPARATOR;
-      Collection<String> ret = new HashSet<>(1);
-      ret.add(function + varName);
+      String function = isGlobal(exp) ? "" : predecessor.getFunctionName();
+      Set<String> ret = new HashSet<>(1);
+      ret.add(scopeVar(function, varName));
       return ret;
     }
 
     @Override
-    public Collection<String> visit(CIdExpression exp) {
-      Collection<String> ret = new HashSet<>(1);
+    public Set<String> visit(CIdExpression exp) {
+      Set<String> ret = new HashSet<>(1);
       ret.add(exp.getDeclaration().getQualifiedName());
       return ret;
     }
 
     @Override
-    public Collection<String> visit(CCharLiteralExpression exp) {
+    public Set<String> visit(CCharLiteralExpression exp) {
       return null;
     }
 
     @Override
-    public Collection<String> visit(CFloatLiteralExpression exp) {
+    public Set<String> visit(CFloatLiteralExpression exp) {
       return null;
     }
 
     @Override
-    public Collection<String> visit(CImaginaryLiteralExpression exp) {
+    public Set<String> visit(CImaginaryLiteralExpression exp) {
       return exp.getValue().accept(this);
     }
 
     @Override
-    public Collection<String> visit(CIntegerLiteralExpression exp) {
+    public Set<String> visit(CIntegerLiteralExpression exp) {
       values.add(exp.getValue());
       return null;
     }
 
     @Override
-    public Collection<String> visit(CStringLiteralExpression exp) {
+    public Set<String> visit(CStringLiteralExpression exp) {
       return null;
     }
 
     @Override
-    public Collection<String> visit(CTypeIdExpression exp) {
+    public Set<String> visit(CTypeIdExpression exp) {
       return null;
     }
 
     @Override
-    public Collection<String> visit(CTypeIdInitializerExpression exp) {
+    public Set<String> visit(CTypeIdInitializerExpression exp) {
       return null;
     }
 
     @Override
-    public Collection<String> visit(CUnaryExpression exp) {
+    public Set<String> visit(CUnaryExpression exp) {
       BigInteger val = getNumber(exp);
       if (val == null) {
         return exp.getOperand().accept(this);
@@ -1298,7 +1288,7 @@ public class VariableClassification {
     }
 
     @Override
-    public Collection<String> visit(CPointerExpression exp) {
+    public Set<String> visit(CPointerExpression exp) {
       BigInteger val = getNumber(exp);
       if (val == null) {
         return exp.getOperand().accept(this);
@@ -1322,15 +1312,15 @@ public class VariableClassification {
     }
 
     @Override
-    public Collection<String> visit(CFieldReference exp) {
+    public Set<String> visit(CFieldReference exp) {
       nonIntBoolVars.addAll(super.visit(exp));
       return null;
     }
 
     @Override
-    public Collection<String> visit(CBinaryExpression exp) {
-      Collection<String> operand1 = exp.getOperand1().accept(this);
-      Collection<String> operand2 = exp.getOperand2().accept(this);
+    public Set<String> visit(CBinaryExpression exp) {
+      Set<String> operand1 = exp.getOperand1().accept(this);
+      Set<String> operand2 = exp.getOperand2().accept(this);
 
       if (operand1 == null || operand2 == null) { // a+123 --> a is not boolean
         if (operand1 != null) {
@@ -1365,7 +1355,7 @@ public class VariableClassification {
     }
 
     @Override
-    public Collection<String> visit(CIntegerLiteralExpression exp) {
+    public Set<String> visit(CIntegerLiteralExpression exp) {
       BigInteger value = exp.getValue();
       if (BigInteger.ZERO.equals(value)
           || (allowOneAsBooleanValue && BigInteger.ONE.equals(value))) {
@@ -1376,8 +1366,8 @@ public class VariableClassification {
     }
 
     @Override
-    public Collection<String> visit(CUnaryExpression exp) {
-      Collection<String> inner = exp.getOperand().accept(this);
+    public Set<String> visit(CUnaryExpression exp) {
+      Set<String> inner = exp.getOperand().accept(this);
 
       if (inner == null) {
         return null;
@@ -1388,8 +1378,8 @@ public class VariableClassification {
     }
 
     @Override
-    public Collection<String> visit(CPointerExpression exp) {
-      Collection<String> inner = exp.getOperand().accept(this);
+    public Set<String> visit(CPointerExpression exp) {
+      Set<String> inner = exp.getOperand().accept(this);
 
       if (inner == null) {
         return null;
@@ -1412,7 +1402,7 @@ public class VariableClassification {
     }
 
     @Override
-    public Collection<String> visit(CCastExpression exp) {
+    public Set<String> visit(CCastExpression exp) {
       BigInteger val = getNumber(exp.getOperand());
       if (val == null) {
         return exp.getOperand().accept(this);
@@ -1422,17 +1412,17 @@ public class VariableClassification {
     }
 
     @Override
-    public Collection<String> visit(CFieldReference exp) {
+    public Set<String> visit(CFieldReference exp) {
       nonIntEqVars.addAll(super.visit(exp));
       return null;
     }
 
     @Override
-    public Collection<String> visit(CBinaryExpression exp) {
+    public Set<String> visit(CBinaryExpression exp) {
 
       // for numeral values
       BigInteger val1 = getNumber(exp.getOperand1());
-      Collection<String> operand1;
+      Set<String> operand1;
       if (val1 == null) {
         operand1 = exp.getOperand1().accept(this);
       } else {
@@ -1441,7 +1431,7 @@ public class VariableClassification {
 
       // for numeral values
       BigInteger val2 = getNumber(exp.getOperand2());
-      Collection<String> operand2;
+      Set<String> operand2;
       if (val2 == null) {
         operand2 = exp.getOperand2().accept(this);
       } else {
@@ -1474,19 +1464,19 @@ public class VariableClassification {
     }
 
     @Override
-    public Collection<String> visit(CIntegerLiteralExpression exp) {
+    public Set<String> visit(CIntegerLiteralExpression exp) {
       return new HashSet<>(0);
     }
 
     @Override
-    public Collection<String> visit(CUnaryExpression exp) {
+    public Set<String> visit(CUnaryExpression exp) {
 
       // if exp is numeral
       BigInteger val = getNumber(exp);
       if (val != null) { return new HashSet<>(0); }
 
       // if exp is binary expression
-      Collection<String> inner = exp.getOperand().accept(this);
+      Set<String> inner = exp.getOperand().accept(this);
       if (isNestedBinaryExp(exp)) { return inner; }
 
       if (inner != null) {
@@ -1496,14 +1486,14 @@ public class VariableClassification {
     }
 
     @Override
-    public Collection<String> visit(CPointerExpression exp) {
+    public Set<String> visit(CPointerExpression exp) {
 
       // if exp is numeral
       BigInteger val = getNumber(exp);
       if (val != null) { return new HashSet<>(0); }
 
       // if exp is binary expression
-      Collection<String> inner = exp.getOperand().accept(this);
+      Set<String> inner = exp.getOperand().accept(this);
       if (isNestedBinaryExp(exp)) { return inner; }
 
       // if exp is unknown
@@ -1527,20 +1517,20 @@ public class VariableClassification {
     }
 
     @Override
-    public Collection<String> visit(CCastExpression exp) {
+    public Set<String> visit(CCastExpression exp) {
       return exp.getOperand().accept(this);
     }
 
     @Override
-    public Collection<String> visit(CFieldReference exp) {
+    public Set<String> visit(CFieldReference exp) {
       nonIntAddVars.addAll(super.visit(exp));
       return null;
     }
 
     @Override
-    public Collection<String> visit(CBinaryExpression exp) {
-      Collection<String> operand1 = exp.getOperand1().accept(this);
-      Collection<String> operand2 = exp.getOperand2().accept(this);
+    public Set<String> visit(CBinaryExpression exp) {
+      Set<String> operand1 = exp.getOperand1().accept(this);
+      Set<String> operand2 = exp.getOperand2().accept(this);
 
       if (operand1 == null || operand2 == null) { // a+0.2 --> no simple number
         if (operand1 != null) {
@@ -1577,13 +1567,13 @@ public class VariableClassification {
     }
 
     @Override
-    public Collection<String> visit(CIntegerLiteralExpression exp) {
+    public Set<String> visit(CIntegerLiteralExpression exp) {
       return new HashSet<>(0);
     }
 
     @Override
-    public Collection<String> visit(CUnaryExpression exp) {
-      Collection<String> inner = exp.getOperand().accept(this);
+    public Set<String> visit(CUnaryExpression exp) {
+      Set<String> inner = exp.getOperand().accept(this);
       if (inner == null) { return null; }
       if (exp.getOperator() == UnaryOperator.MINUS) { return inner; }
 
@@ -1593,8 +1583,8 @@ public class VariableClassification {
     }
 
     @Override
-    public Collection<String> visit(CPointerExpression exp) {
-      Collection<String> inner = exp.getOperand().accept(this);
+    public Set<String> visit(CPointerExpression exp) {
+      Set<String> inner = exp.getOperand().accept(this);
       if (inner == null) { return null; }
 
       nonIntAddVars.addAll(inner);
@@ -1607,8 +1597,7 @@ public class VariableClassification {
     @Override
     public VariableOrField visit(final CArraySubscriptExpression e) {
       final VariableOrField result = e.getArrayExpression().accept(this);
-      collectingRHSVisitor.setLHS(result);
-      e.getSubscriptExpression().accept(collectingRHSVisitor);
+      e.getSubscriptExpression().accept(new CollectingRHSVisitor(result));
       return result;
     }
 
@@ -1618,8 +1607,7 @@ public class VariableClassification {
       assignedFields.put(compositeType, e.getFieldName());
       final VariableOrField result = VariableOrField.newField(compositeType, e.getFieldName());
       if (e.isPointerDereference()) {
-        collectingRHSVisitor.setLHS(result);
-        e.getFieldOwner().accept(collectingRHSVisitor);
+        e.getFieldOwner().accept(new CollectingRHSVisitor(result));
       } else {
         e.getFieldOwner().accept(this);
       }
@@ -1628,8 +1616,7 @@ public class VariableClassification {
 
     @Override
     public VariableOrField visit(final CPointerExpression e) {
-      collectingRHSVisitor.setLHS(null);
-      e.getOperand().accept(collectingRHSVisitor);
+      e.getOperand().accept(new CollectingRHSVisitor(null));
       return null;
     }
 
@@ -1672,12 +1659,11 @@ public class VariableClassification {
 
   private class CollectingRHSVisitor extends DefaultCExpressionVisitor<Void, RuntimeException> {
 
-    public void setLHS(final VariableOrField lhs) {
-      this.lhs = lhs;
-    }
+    private final @Nullable VariableOrField lhs;
+    private boolean addressed = false;
 
-    public void setAddressed(final boolean addressed) {
-      this.addressed = addressed;
+    CollectingRHSVisitor(@Nullable VariableOrField pLhs) {
+      lhs = pLhs;
     }
 
     @Override
@@ -1704,9 +1690,9 @@ public class VariableClassification {
       if (e.getOperator() != UnaryOperator.AMPER) {
         return e.getOperand().accept(this);
       } else {
-        setAddressed(true);
+        addressed = true;
         e.getOperand().accept(this);
-        setAddressed(false);
+        addressed = false;
         return null;
       }
     }
@@ -1740,16 +1726,13 @@ public class VariableClassification {
     protected Void visitDefault(final CExpression e)  {
       return null;
     }
-
-    VariableOrField lhs = null;
-    boolean addressed = false;
   }
 
    /** A Partition is a Wrapper for a Collection of vars, values and edges.
    * The Partitions are disjunct, so no variable and no edge is in 2 Partitions. */
   public class Partition {
 
-    private final Collection<String> vars = new HashSet<>();
+    private final Set<String> vars = new HashSet<>();
     private final Set<BigInteger> values = Sets.newTreeSet();
     private final Multimap<CFAEdge, Integer> edges = HashMultimap.create();
 
@@ -1762,7 +1745,7 @@ public class VariableClassification {
       this.edgeToPartition = edgeToPartition;
     }
 
-    public Collection<String> getVars() {
+    public Set<String> getVars() {
       return vars;
     }
 

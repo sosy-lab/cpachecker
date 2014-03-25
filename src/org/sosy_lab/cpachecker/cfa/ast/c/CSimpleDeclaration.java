@@ -41,10 +41,5 @@ public interface CSimpleDeclaration extends IASimpleDeclaration, CAstNode {
   @Override
   public CType getType();
 
-  /**
-   * Get globally unique name of this declaration, qualified with the function name.
-   */
-  public String getQualifiedName();
-
   public  <R, X extends Exception> R accept(CSimpleDeclarationVisitor<R, X> v) throws X;
 }

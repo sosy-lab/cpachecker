@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -160,6 +161,8 @@ public final class CInitializers {
       } else if (currentType instanceof CArrayType) {
         successful = handleInitializerForArray(currentObject, 0L, (CArrayType)currentType,
             currentSubobjects, nextSubobjects, loc, edge, null);
+      } else if (currentType instanceof CElaboratedType) {
+        throw new UnrecognizedCCodeException("Unexpected initializer for " + currentType + " that is not fully defined", edge, initializerList);
       } else {
         throw new UnrecognizedCCodeException("Unexpected initializer list for type " + currentType, edge, initializerList);
       }

@@ -147,8 +147,9 @@ public class CallstackTransferRelation implements TransferRelation {
 
         final CallstackState returnElement;
 
-        if (!element.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)) {
-          assert calledFunction.equals(element.getCurrentFunction());
+        assert calledFunction.equals(element.getCurrentFunction()) || element.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+
+        if (!isWildcardState(element)) {
 
           if (!callNode.equals(element.getCallNode())) {
             // this is not the right return edge
@@ -156,10 +157,9 @@ public class CallstackTransferRelation implements TransferRelation {
           }
           returnElement = element.getPreviousState();
 
-          assert callerFunction.equals(returnElement.getCurrentFunction())
-          || returnElement.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+          assert callerFunction.equals(returnElement.getCurrentFunction()) || isWildcardState(returnElement);
         } else {
-          returnElement = new CallstackState(null, callerFunction, element.getCallNode());
+          returnElement = element;
         }
 
         return Collections.singleton(returnElement);
@@ -169,6 +169,18 @@ public class CallstackTransferRelation implements TransferRelation {
     }
 
     return Collections.singleton(pElement);
+  }
+
+  /**
+   * Checks if the given callstack state should be treated as a wildcard state.
+   *
+   * @param pState the state to check.
+   *
+   * @return {@code true} if the given state should be treated as a wildcard,
+   * {@code false} otherwise.
+   */
+  private boolean isWildcardState(CallstackState pState) {
+    return pState.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
   }
 
   @Override

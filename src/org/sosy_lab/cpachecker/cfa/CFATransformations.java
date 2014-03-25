@@ -108,8 +108,8 @@ class CFATransformations {
         @Override
         public CFANode get() {
 
-          CFANode startNode = new CFANode(0, function);
-          CFANode endNode = new CFANode(0, function);
+          CFANode startNode = new CFANode(function);
+          CFANode endNode = new CFANode(function);
           BlankEdge endEdge = new BlankEdge("null-deref", FileLocation.DUMMY, startNode, endNode, "null-deref");
           CFACreationUtils.addEdgeUnconditionallyToCFA(endEdge);
 
@@ -195,7 +195,7 @@ class CFATransformations {
     CFANode successor = edge.getSuccessor();
     CFACreationUtils.removeEdgeFromNodes(edge);
 
-    CFANode falseNode = new CFANode(edge.getLineNumber(), predecessor.getFunctionName());
+    CFANode falseNode = new CFANode(predecessor.getFunctionName());
 
     for (CFAEdge otherEdge : leavingEdges(predecessor).toList()) {
       CFAEdge newEdge = createOldEdgeWithNewNodes(falseNode, otherEdge.getSuccessor(), otherEdge);

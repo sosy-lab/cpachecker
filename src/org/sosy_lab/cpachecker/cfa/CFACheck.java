@@ -65,6 +65,7 @@ public class CFACheck {
 
       if (visitedNodes.add(node)) {
         Iterables.addAll(waitingNodeList, CFAUtils.successorsOf(node));
+        Iterables.addAll(waitingNodeList, CFAUtils.predecessorsOf(node)); // just to be sure to get ALL nodes.
 
         // The actual checks
         isConsistent(node);
@@ -83,8 +84,19 @@ public class CFACheck {
 
   private static final Function<CFANode, String> DEBUG_FORMAT = new Function<CFANode, String>() {
     @Override
-    public String apply(CFANode arg0) {
-      return arg0.getFunctionName() + ":" + arg0.toString() + " (line " + arg0.getLineNumber() + ")";
+    public String apply(CFANode node) {
+      if (node == null) {
+        // nothing useful to do. this line only exists, because input for Function.apply might be NULL.
+        return "node == NULL";
+      }
+      // try to get some information about location from node
+      String location = "not available";
+      if (node.getNumEnteringEdges() > 0) {
+        location = node.getEnteringEdge(0).getFileLocation().toString();
+      } else if (node.getNumLeavingEdges() > 0) {
+        location = node.getLeavingEdge(0).getFileLocation().toString();
+      }
+      return node.getFunctionName() + ":" + node.toString() + " (location " + location + ")";
     }
   };
 

@@ -322,7 +322,9 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     Variable<CompoundInterval> variable = ifm.asVariable(pVarName);
 
     // Optimization: If the value being assigned is equivalent to the value already stored, do nothing
-    if (getEnvironmentValue(pVarName).equals(pValue) || variable.accept(new StateEqualsVisitor(getFormulaResolver(), this.environment), pValue)) {
+    if (getEnvironmentValue(pVarName).equals(pValue)
+        && (pValue instanceof Variable<?> || pValue instanceof Constant<?> && ((Constant<CompoundInterval>) pValue).getValue().isSingleton())
+        || variable.accept(new StateEqualsVisitor(getFormulaResolver(), this.environment), pValue)) {
       return this;
     }
 

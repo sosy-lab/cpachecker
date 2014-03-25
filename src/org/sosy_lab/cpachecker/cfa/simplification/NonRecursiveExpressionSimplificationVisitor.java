@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.NumericValue;
@@ -76,6 +77,15 @@ public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpress
       return ((CIntegerLiteralExpression)expr).asLong();
     }
     // TODO CharLiteralExpression
+    if (expr instanceof CCastExpression) {
+      // We are not always able to remove cast expressions up front,
+      // but we can look into them here to optimize cases like this:
+      // 0 == (void*)0
+      CExpression simplifiedExpr = handleCast((CCastExpression)expr);
+      if (!(simplifiedExpr instanceof CCastExpression)) {
+        return getValue(simplifiedExpr);
+      }
+    }
     return null;
   }
 
@@ -132,6 +142,18 @@ public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpress
 
   @Override
   public CExpression visit(CCastExpression expr) {
+    CType targetType = expr.getExpressionType().getCanonicalType();
+    if (!(targetType instanceof CSimpleType)) {
+      // TODO maybe some simplifications can still be done?
+      // Note that we can't eliminate all casts, for example in this code:
+      // ((struct s*)0)->f
+      return expr;
+    }
+
+    return handleCast(expr);
+  }
+
+  private CExpression handleCast(CCastExpression expr) {
     final CExpression op = expr.getOperand();
     final Long v = getValue(op);
     if (v == null) {

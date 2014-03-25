@@ -42,6 +42,11 @@ public class OctMergeJoinOperator implements MergeOperator {
                 + " a widening instead of a join")
   private String joinType = "NORMAL";
 
+  @Option(name="onlyJoinEdgesInSameBlock", description="with this option enabled"
+      + "mergeJoin is only used on edges within the same block, i.e. each iteration"
+      + "of a loop is a different block, thus the precision of the analysis increases")
+  private boolean onlyJoinEdgesInSameBlock = false;
+
   public OctMergeJoinOperator(OctDomain domain, Configuration config) throws InvalidConfigurationException {
     config.inject(this);
     this.domain = domain;
@@ -49,6 +54,11 @@ public class OctMergeJoinOperator implements MergeOperator {
 
   @Override
   public AbstractState merge(AbstractState el1, AbstractState el2, Precision p) throws CPAException {
+    if (onlyJoinEdgesInSameBlock) {
+      if (!((OctState)el1).areInSameBlock((OctState)el2)) {
+        return el2;
+      }
+    }
     if (joinType.equals("NORMAL")) {
       return domain.join(el1, el2);
     } else if (joinType.equals("WIDENING")) {

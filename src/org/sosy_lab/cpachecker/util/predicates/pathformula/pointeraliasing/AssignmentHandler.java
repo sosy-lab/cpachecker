@@ -581,10 +581,10 @@ class AssignmentHandler {
       final int oldIndex = conv.getIndex(ufName, type, ssa);
       final int newIndex = oldIndex + 1;
       final FormulaType<?> returnType = conv.getFormulaTypeFromCType(type);
-      for (final PointerTarget spurious : pts.getSpuriousTargets(type, any)) {
-        final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(conv.voidPointerFormulaType, spurious.getBaseName()),
-                                      fmgr.makeNumber(conv.voidPointerFormulaType, spurious.getOffset()));
-        final Formula endAddress = fmgr.makePlus(startAddress, fmgr.makeNumber(conv.voidPointerFormulaType, size));
+      for (final PointerTarget target : pts.getMatchingTargets(type, any)) {
+        final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(conv.voidPointerFormulaType, target.getBaseName()),
+                                      fmgr.makeNumber(conv.voidPointerFormulaType, target.getOffset()));
+        final Formula endAddress = fmgr.makePlus(startAddress, fmgr.makeNumber(conv.voidPointerFormulaType, size - 1));
         constraints.addConstraint(bfmgr.or(bfmgr.and(fmgr.makeLessOrEqual(startAddress, targetAddress, false),
                                                      fmgr.makeLessOrEqual(targetAddress, endAddress,false)),
                                            fmgr.makeEqual(ffmgr.createFuncAndCall(ufName,

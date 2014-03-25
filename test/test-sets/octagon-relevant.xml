@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" softtimelimit="500" hardtimelimit="550" memlimit="32000" cpuCores="2">
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+  <option name="-heap">2500M</option>
+  <option name="-noout"/>
+
+  <sourcefiles name="Simple">
+    <includesfile>../programs/benchmarks/Simple.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="ControlFlowInteger">
+    <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="DeviceDrivers64">
+    <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
+    <option name="-64"/>
+  </sourcefiles>
+  <sourcefiles name="Loops">
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="ProductLines">
+    <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="Sequentialized">
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+  </sourcefiles>
+
+
+  <rundefinition name="octagonAnalysis-mergeSEP">
+    <option name="-octagonAnalysis"/>
+  </rundefinition>
+  <rundefinition name="octagonAnalysis-mergeJoinOnlyBlocks">
+    <option name="-octagonAnalysis-mergeJoin"/>
+    <option name="-setprop">cpa.octagon.mergeop.onlyJoinEdgesInSameBlock=true</option>
+  </rundefinition>
+  <rundefinition name="octagonAnalysis-mergeJoin">
+    <option name="-octagonAnalysis-mergeJoin"/>
+  </rundefinition>
+  <rundefinition name="octagonAnalysis-mergeWidening">
+    <option name="-octagonAnalysis-mergeWidening"/>
+  </rundefinition>
+  <rundefinition name="octagonAnalysis-restart">
+    <option name="-octagonAnalysis-restart"/>
+  </rundefinition>
+  <rundefinition name="octagonAnalysis-mergeSEP-cexCheck">
+    <option name="-octagonAnalysis"/>
+    <option name="-setprop">analysis.checkCounterexamples=true</option>
+  </rundefinition>
+  <rundefinition name="octagonAnalysis-refiner">
+    <option name="-octagonAnalysis-refiner"/>
+  </rundefinition>
+    <rundefinition name="octagonAnalysis-refiner-cexCheck">
+    <option name="-octagonAnalysis-refiner"/>
+    <option name="-setprop">analysis.checkCounterexamples=true</option>
+  </rundefinition>
+  <rundefinition name="octagonAnalysis-mergeJoin-cexCheck">
+    <option name="-octagonAnalysis-mergeJoin-cexCheck"/>
+  </rundefinition>
+  <rundefinition name="octagonAnalysis-mergeWidening-cexCheck">
+    <option name="-octagonAnalysis-mergeWidening-cexCheck"/>
+  </rundefinition>
+</benchmark>

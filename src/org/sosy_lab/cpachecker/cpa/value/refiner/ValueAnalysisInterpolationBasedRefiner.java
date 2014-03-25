@@ -38,7 +38,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
@@ -116,7 +116,6 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
   private final CFA cfa;
   private final LogManager logger;
-  private final Configuration config;
   private final ShutdownNotifier shutdownNotifier;
 
   private final ValueAnalysisInterpolator interpolator;
@@ -128,7 +127,6 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
     pConfig.inject(this);
 
     logger           = pLogger;
-    config           = pConfig;
     cfa              = pCfa;
     shutdownNotifier = pShutdownNotifier;
     interpolator     = new ValueAnalysisInterpolator(pConfig, logger, shutdownNotifier, cfa);

@@ -171,7 +171,7 @@ public class CPAchecker {
     shutdownNotifier.register(interruptThreadOnShutdown);
 
     try {
-      stats = new MainCPAStatistics(config, logger, programDenotation);
+      stats = new MainCPAStatistics(config, logger);
 
       // create reached set, cpa, algorithm
       stats.creationTime.start();
