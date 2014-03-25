@@ -28,10 +28,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.model.PredicatePathAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.BasicPathSelector.PathInfo;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -47,15 +47,14 @@ import com.google.common.collect.Maps;
 
 public class CUTEPathValidator extends AbstractPathValidator{
 
-  private BranchingHistory branchingHistory;
-  private PathChecker patchChecher;
-  private LogManager logger;
-  Pair<CFAEdge, Boolean> oldElement;
+  private final PathChecker patchChecher;
+  private final BranchingHistory branchingHistory;
+  protected Pair<CFAEdge, Boolean> oldElement;
 
-  public CUTEPathValidator(PathChecker pPatchChecher, StartupConfig config) {
-    branchingHistory = new BranchingHistory();
-    this.logger = config.getLog();
+  public CUTEPathValidator(PathChecker pPatchChecher, StartupConfig pConfig) {
+    super(pConfig);
     this.patchChecher = pPatchChecher;
+    branchingHistory = new BranchingHistory();
     oldElement = null;
   }
 
@@ -86,8 +85,8 @@ public class CUTEPathValidator extends AbstractPathValidator{
   }
 
   @Override
-  public void handleValidPath(ARGPath pNewARGPath, CounterexampleTraceInfo pTraceInfo) {
-    branchingHistory.resetTo(pNewARGPath);
+  public void handleValidPath(PredicatePathAnalysisResult result) {
+    branchingHistory.resetTo(result.getPath());
   }
 
   private boolean isVisited(Pair<ARGState, CFAEdge> currentElement, CFAEdge otherEdge) {

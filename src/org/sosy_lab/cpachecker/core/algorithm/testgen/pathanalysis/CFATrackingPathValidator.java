@@ -29,32 +29,42 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.model.PredicatePathAnalysisResult;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.BasicPathSelector.PathInfo;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
+import com.google.common.collect.Lists;
 
-public interface PathValidator {
 
-  public CounterexampleTraceInfo validatePathCandidate(Pair<ARGState, CFAEdge> pCurrentElement, List<CFAEdge> pNewPath)throws CPATransferException, InterruptedException;
+public class CFATrackingPathValidator extends AbstractPathValidator{
 
-  public CounterexampleTraceInfo validatePath(List<CFAEdge> pAsEdgesList) throws CPATransferException, InterruptedException;
+  private final PathChecker pathChecker;
+  private final List<CFANode> handledDecisions;
 
+  public CFATrackingPathValidator(PathChecker pPathChecker, StartupConfig pConfig) {
+    super(pConfig);
+    pathChecker = pPathChecker;
+    handledDecisions = Lists.newLinkedList();
+  }
+
+  @Override
+  public CounterexampleTraceInfo validatePath(List<CFAEdge> pPath) throws CPATransferException,
+      InterruptedException {
+    return pathChecker.checkPath(pPath);
+  }
+
+  @Override
   public boolean isVisitedBranching(ARGPath pNewARGPath, Pair<ARGState, CFAEdge> pCurrentElement, CFANode pNode,
-      CFAEdge pOtherEdge);
+      CFAEdge pOtherEdge) {
+    return handledDecisions.contains(pNode);
+  }
 
-  public void handleNewCheck(ARGPath pExecutedPath);
-
-  public void handleNext(PathInfo pathInfo, CFAEdge edge);
-
-  public void handleValidPath(PredicatePathAnalysisResult result);
-
-  public void handleSpuriousPath(List<CFAEdge> pNewPath);
-
-  public void handleSinglePathElement(Pair<ARGState, CFAEdge> pCurrentElement);
-
-  public void handleVisitedBranching(ARGPath pNewARGPath, Pair<ARGState, CFAEdge> pCurrentElement);
+  @Override
+  public void handleValidPath(PredicatePathAnalysisResult result) {
+    handledDecisions.add(result.getDecidingNode());
+  }
 
 }

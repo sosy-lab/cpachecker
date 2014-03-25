@@ -1,7 +1,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.testgen.model;
 
+import javax.annotation.Nullable;
+
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 /**
@@ -43,6 +48,24 @@ public class PredicatePathAnalysisResult {
   public ARGState getWrongState() {
     checkValid();
     return wrongState;
+  }
+
+  public CFANode getDecidingNode() {
+    checkValid();
+    return AbstractStates.extractLocation(decidingState);
+  }
+
+  public @Nullable CFANode getWrongNode() {
+    ARGState wState = getWrongState();
+    return AbstractStates.extractLocation(wState);
+  }
+  public CFAEdge getSelectedLastEdge() {
+    checkValid();
+    CFAEdge edge = argPath.getLast().getSecond();
+    if(edge == null && argPath.size()>1) {
+      edge = argPath.get(argPath.size()-2).getSecond();
+    }
+    return edge;
   }
 
   public ARGPath getPath() {

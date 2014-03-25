@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.model.PredicatePathAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -58,14 +57,11 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements TestGe
   private PathChecker pathChecker;
   private List<AbstractState> handledDecisions;
   private TestGenStatistics stats;
-  ConfigurableProgramAnalysis cpa;
   private LogManager logger;
 
-  public LocationAndValueStateTrackingPathAnalysisStrategy(PathChecker pPathChecker, StartupConfig config, TestGenStatistics pStats,
-      ConfigurableProgramAnalysis pCpa) {
+  public LocationAndValueStateTrackingPathAnalysisStrategy(PathChecker pPathChecker, StartupConfig config, TestGenStatistics pStats) {
     super();
     pathChecker = pPathChecker;
-    cpa = pCpa;
     this.logger = config.getLog();
     stats = pStats;
     handledDecisions = Lists.newLinkedList();

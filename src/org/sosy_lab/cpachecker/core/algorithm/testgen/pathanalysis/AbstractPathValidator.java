@@ -25,9 +25,11 @@ package org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis;
 
 import java.util.List;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.BasicPathSelector.PathInfo;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -36,6 +38,12 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 
 public abstract class AbstractPathValidator implements PathValidator {
 
+  protected final LogManager logger;
+
+  public AbstractPathValidator(StartupConfig config) {
+    this.logger = config.getLog();
+  }
+
   @Override
   public CounterexampleTraceInfo validatePathCandidate(Pair<ARGState, CFAEdge> pCurrentElement, List<CFAEdge> pNewPath)
       throws CPATransferException, InterruptedException {
@@ -43,10 +51,19 @@ public abstract class AbstractPathValidator implements PathValidator {
   }
 
   @Override
-  public void handleSpuriousPath(List<CFAEdge> pNewPath) {}
+  public void handleVisitedBranching(ARGPath pNewARGPath, Pair<ARGState, CFAEdge> pCurrentElement) {
+    // no action required
+  }
 
   @Override
-  public void handleSinglePathElement(Pair<ARGState, CFAEdge> pCurrentElement) {}
+  public void handleSpuriousPath(List<CFAEdge> pNewPath) {
+    // no action required
+  }
+
+  @Override
+  public void handleSinglePathElement(Pair<ARGState, CFAEdge> pCurrentElement) {
+    // no action required
+  }
 
   @Override
   public void handleNewCheck(ARGPath pExecutedPath) {}

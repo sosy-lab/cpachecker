@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.model.PredicatePathAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.CFAUtils2;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -55,14 +54,12 @@ import com.google.common.collect.Maps;
 public class CUTEBasicPathSelector implements TestGenPathAnalysisStrategy {
 
   private TestGenStatistics stats;
-  ConfigurableProgramAnalysis cpa;
   private LogManager logger;
   private BranchingHistory branchingHistory;
   private PathChecker pathChecker;
 
 
-  public CUTEBasicPathSelector(PathChecker pPathChecker, StartupConfig config, TestGenStatistics pStats,
-      ConfigurableProgramAnalysis pCpa) {
+  public CUTEBasicPathSelector(PathChecker pPathChecker, StartupConfig config, TestGenStatistics pStats) {
     super();
     this.pathChecker = pPathChecker;
     this.logger = config.getLog();

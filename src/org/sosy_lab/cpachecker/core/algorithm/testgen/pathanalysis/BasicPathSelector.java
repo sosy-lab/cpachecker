@@ -63,7 +63,8 @@ public class BasicPathSelector implements TestGenPathAnalysisStrategy {
   }
 
   @Override
-  public PredicatePathAnalysisResult findNewFeasiblePathUsingPredicates(final ARGPath pExecutedPath, ReachedSet reachedStates)
+  public PredicatePathAnalysisResult findNewFeasiblePathUsingPredicates(final ARGPath pExecutedPath,
+      ReachedSet reachedStates)
       throws CPATransferException, InterruptedException {
     /*
      * create copy of the given path, because it will be modified with this algorithm.
@@ -176,9 +177,10 @@ public class BasicPathSelector implements TestGenPathAnalysisStrategy {
         newARGPath.add(Pair.of(currentElement.getFirst(), otherEdge.get()));
         //TODO maybe add the ARGState matching the "otherEdge" path if available as last element to the path.
         logger.logf(Level.FINEST, "selected new path %s", newPath.toString());
-        pathValidator.handleValidPath(newARGPath, traceInfo);
-//        branchingHistory.resetTo(newARGPath);
-        return new PredicatePathAnalysisResult(traceInfo, currentElement.getFirst(), lastElement.getFirst(), newARGPath);
+        PredicatePathAnalysisResult result = new PredicatePathAnalysisResult(traceInfo, currentElement.getFirst(), lastElement.getFirst(), newARGPath);
+        pathValidator.handleValidPath(result);
+        //        branchingHistory.resetTo(newARGPath);
+        return result;
       }
       else {
         lastElement = currentElement;
@@ -196,7 +198,8 @@ public class BasicPathSelector implements TestGenPathAnalysisStrategy {
 
 
   @Override
-  public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPATransferException, InterruptedException {
+  public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPATransferException,
+      InterruptedException {
     return pathValidator.validatePath(pExecutedPath.asEdgesList()
         );
   }

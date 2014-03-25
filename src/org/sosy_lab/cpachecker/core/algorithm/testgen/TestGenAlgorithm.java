@@ -45,12 +45,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.IterationStrategyFactory;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.model.PredicatePathAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.model.TestGenIterationStrategy;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.BasicPathSelector;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.BasicTestGenPathAnalysisStrategy;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.CFATrackingPathAnalysisStrategy;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.CUTEBasicPathSelector;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.CUTEPathValidator;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.LocationAndValueStateTrackingPathAnalysisStrategy;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.PathSelectorFactory;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.TestGenPathAnalysisStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -64,13 +59,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
-import org.sosy_lab.cpachecker.util.predicates.PathChecker;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
 import com.google.common.base.Joiner;
 
@@ -123,7 +112,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
 
 
   private TestGenIterationStrategy iterationStrategy;
-  private TestGenPathAnalysisStrategy analysisStrategy;
+  private TestGenPathAnalysisStrategy pathSelector;
   private TestCaseSet testCaseSet;
 
   private TestGenStatistics stats;
@@ -144,40 +133,10 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
     cpa = pCpa;
     this.logger = pLogger;
     testCaseSet = new TestCaseSet();
-    FormulaManagerFactory formulaManagerFactory =
-        new FormulaManagerFactory(startupConfig.getConfig(), pLogger,
-            ShutdownNotifier.createWithParent(pShutdownNotifier));
-    FormulaManagerView formulaManager =
-        new FormulaManagerView(formulaManagerFactory.getFormulaManager(), startupConfig.getConfig(), logger);
-    PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, startupConfig.getConfig(), logger, cfa);
-    Solver solver = new Solver(formulaManager, formulaManagerFactory);
-    PathChecker pathChecker = new PathChecker(pLogger, pfMgr, solver);
     iterationStrategy =
         new IterationStrategyFactory(singleRunConfig, cfa, new ReachedSetFactory(startupConfig.getConfig(), logger),
             stats, produceDebugFiles).createStrategy(iterationStrategySelector, pAlgorithm);
-
-    switch (analysisStrategySelector) {
-    case BASIC:
-      analysisStrategy = new BasicTestGenPathAnalysisStrategy(pathChecker, startupConfig, stats);
-      break;
-
-    case LOCATION_AND_VALUE_STATE_TRACKING:
-      analysisStrategy = new LocationAndValueStateTrackingPathAnalysisStrategy(pathChecker, startupConfig, stats, cpa);
-      break;
-    case CUTE_PATH_SELECTOR:
-      analysisStrategy = new BasicPathSelector(new CUTEPathValidator(pathChecker, startupConfig), startupConfig, stats);
-      break;
-    case CUTE_LIKE:
-      analysisStrategy = new CUTEBasicPathSelector(pathChecker, startupConfig, stats, cpa);
-      break;
-
-    case CFA_TRACKING:
-      analysisStrategy = new CFATrackingPathAnalysisStrategy(pathChecker, startupConfig, stats);
-      break;
-
-    default:
-      throw new IllegalStateException("Not all analysisStrategySelector cases matched");
-    }
+    pathSelector = new PathSelectorFactory(startupConfig).createPathSelector(analysisStrategySelector, pCfa, stats);
 
   }
 
@@ -211,7 +170,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
       ARGState pseudoTarget = (ARGState) iterationStrategy.getLastState();
       ARGPath executedPath = ARGUtils.getOnePathTo(pseudoTarget);
 
-      CounterexampleTraceInfo traceInfo = analysisStrategy.computePredicateCheck(executedPath);
+      CounterexampleTraceInfo traceInfo = pathSelector.computePredicateCheck(executedPath);
 
       if (produceDebugFiles) {
         dumpReachedAndARG(iterationStrategy.getModel().getLocalReached());
@@ -244,7 +203,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
        * selecting new path to traverse.
        */
       logger.log(Level.FINE, "Starting predicate path check...");
-      PredicatePathAnalysisResult result = analysisStrategy.findNewFeasiblePathUsingPredicates(executedPath, iterationStrategy.getModel().getLocalReached());
+      PredicatePathAnalysisResult result = pathSelector.findNewFeasiblePathUsingPredicates(executedPath, iterationStrategy.getModel().getLocalReached());
       logger.log(Level.FINE, "predicate path check DONE");
 
       if (result.isEmpty()) {
