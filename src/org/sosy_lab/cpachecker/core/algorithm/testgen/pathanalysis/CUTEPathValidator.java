@@ -59,6 +59,11 @@ public class CUTEPathValidator extends AbstractPathValidator{
   }
 
   @Override
+  public void handleNewCheck(ARGPath pExecutedPath) {
+    oldElement = null;
+  }
+
+  @Override
   public CounterexampleTraceInfo validatePath(List<CFAEdge> pPath) throws CPATransferException,
       InterruptedException {
     return patchChecher.checkPath(pPath);
