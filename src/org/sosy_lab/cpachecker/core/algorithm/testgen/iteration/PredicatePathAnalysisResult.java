@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.core.algorithm.testgen.model;
+package org.sosy_lab.cpachecker.core.algorithm.testgen.iteration;
 
 import javax.annotation.Nullable;
 

@@ -67,12 +67,12 @@ public class PathSelectorFactory {
     return validator;
   }
 
-  public TestGenPathAnalysisStrategy createPathSelector(PathValidator pPathValidator, TestGenStatistics stats){
+  public PathSelector createPathSelector(PathValidator pPathValidator, TestGenStatistics stats){
     return new BasicPathSelector(pPathValidator,startupConfig, stats);
   }
 
-  public TestGenPathAnalysisStrategy createPathSelector(AnalysisStrategySelector selector, CFA pCfa, TestGenStatistics stats) throws InvalidConfigurationException{
-    TestGenPathAnalysisStrategy analysisStrategy;
+  public PathSelector createPathSelector(AnalysisStrategySelector selector, CFA pCfa, TestGenStatistics stats) throws InvalidConfigurationException{
+    PathSelector analysisStrategy;
     switch (selector) {
     case BASIC:
       analysisStrategy = new BasicTestGenPathAnalysisStrategy(createPathChecker(pCfa), startupConfig, stats);

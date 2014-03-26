@@ -33,7 +33,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenStatistics;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.model.PredicatePathAnalysisResult;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.PredicatePathAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.CFAUtils2;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -50,7 +50,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 
-public class CUTEBasicPathSelector implements TestGenPathAnalysisStrategy {
+public class CUTEBasicPathSelector implements PathSelector {
 
   private TestGenStatistics stats;
   private LogManager logger;

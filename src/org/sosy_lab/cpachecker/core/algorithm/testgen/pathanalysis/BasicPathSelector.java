@@ -32,7 +32,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenStatistics;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.model.PredicatePathAnalysisResult;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.PredicatePathAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.CFAUtils2;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -47,7 +47,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
 
-public class BasicPathSelector implements TestGenPathAnalysisStrategy {
+public class BasicPathSelector implements PathSelector {
 
   private TestGenStatistics stats;
   ConfigurableProgramAnalysis cpa;

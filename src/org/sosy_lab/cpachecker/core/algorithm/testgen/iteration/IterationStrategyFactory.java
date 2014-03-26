@@ -28,11 +28,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenAlgorithm.IterationStrategySelector;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenStatistics;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.model.AutomatonControlledIterationStrategy;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.model.RestartAtDecisionIterationStrategy;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.model.RestartAtRootIterationStrategy;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.model.TestGenIterationStrategy;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.model.TestGenIterationStrategy.IterationModel;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.TestGenIterationStrategy.IterationModel;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 

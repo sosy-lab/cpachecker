@@ -43,10 +43,10 @@ import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.IterationStrategyFactory;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.model.PredicatePathAnalysisResult;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.model.TestGenIterationStrategy;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.PredicatePathAnalysisResult;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.TestGenIterationStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.PathSelectorFactory;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.TestGenPathAnalysisStrategy;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.PathSelector;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -112,7 +112,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
 
 
   private TestGenIterationStrategy iterationStrategy;
-  private TestGenPathAnalysisStrategy pathSelector;
+  private PathSelector pathSelector;
   private TestCaseSet testCaseSet;
 
   private TestGenStatistics stats;

@@ -28,13 +28,12 @@ import java.util.List;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.model.PredicatePathAnalysisResult;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.PredicatePathAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.BasicPathSelector.PathInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
-
 
 public interface PathValidator {
 
@@ -42,19 +41,60 @@ public interface PathValidator {
 
   public CounterexampleTraceInfo validatePath(List<CFAEdge> pAsEdgesList) throws CPATransferException, InterruptedException;
 
-  public boolean isVisitedBranching(ARGPath pNewARGPath, Pair<ARGState, CFAEdge> pCurrentElement, CFANode pNode,
-      CFAEdge pOtherEdge);
+  /**
+   * checks if the given node is a possible candidate for a new path branching point.
+   * Should not modify internal state and never the given path.
+   * If modification is required use {@link #handleVisitedBranching(ARGPath, Pair)}.
+   * @param pNewARGPath
+   * @param pCurrentElement
+   * @param pNode
+   * @param pOtherEdge
+   * @return
+   */
+  public boolean isVisitedBranching(final ARGPath pNewARGPath,final Pair<ARGState, CFAEdge> pCurrentElement,final CFANode pNode,
+      final CFAEdge pOtherEdge);
 
+  // the following methods are hooks to trigger an action of this validator when the defined event occurs in the PathSelector.
+
+  /**
+   * triggered on a new check directly before the iteration starts.
+   *  (good as a hook to prepare or reset internals for a new run)
+   * @param pExecutedPath
+   */
   public void handleNewCheck(ARGPath pExecutedPath);
 
+  /**
+   * triggered after an element of the path is consumed.
+   * Does not trigger if the path ends at the consumed node (no leaving edge) or the element is invalid.
+   * @param pathInfo
+   * @param edge
+   */
   public void handleNext(PathInfo pathInfo, CFAEdge edge);
 
+  /**
+   * triggered after a new feasible path is identified.
+   * @param result
+   */
   public void handleValidPath(PredicatePathAnalysisResult result);
 
+  /**
+   * triggered if a path candidate is identified as infeasible.
+   * @param pNewPath
+   */
   public void handleSpuriousPath(List<CFAEdge> pNewPath);
 
+  /**
+   *
+   * @param pCurrentElement
+   */
   public void handleSinglePathElement(Pair<ARGState, CFAEdge> pCurrentElement);
 
+  /**
+   * triggered on {@link #isVisitedBranching(ARGPath, Pair, CFANode, CFAEdge)} = true.
+   *
+   * @param pNewARGPath
+   * @param pCurrentElement
+   */
   public void handleVisitedBranching(ARGPath pNewARGPath, Pair<ARGState, CFAEdge> pCurrentElement);
 
 }
