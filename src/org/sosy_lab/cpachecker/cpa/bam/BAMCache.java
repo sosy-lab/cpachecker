@@ -46,6 +46,10 @@ public class BAMCache {
     this.reducer = reducer;
   }
 
+  public boolean doesAggressiveCaching() {
+    return aggressiveCaching;
+  }
+
   private AbstractStateHash getHashCode(AbstractState stateKey, Precision precisionKey, Block context) {
     return new AbstractStateHash(stateKey, precisionKey, context);
   }
