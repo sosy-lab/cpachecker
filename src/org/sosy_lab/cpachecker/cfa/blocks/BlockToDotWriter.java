@@ -85,12 +85,12 @@ public class BlockToDotWriter {
    * a block is either completely part of the other block or there is nothing common in both blocks. */
   private Multimap<Block, Block> getHierarchy() {
 
-    // sort blocks, smallest first
+    // sort blocks, largest blocks first
     List<Block> sortedBlocks = Lists.newArrayList(blockPartitioning.getBlocks());
     Collections.sort(sortedBlocks, new Comparator<Block>() {
       @Override
       public int compare(Block b1, Block b2) {
-        return b1.getNodes().size() - b2.getNodes().size();
+        return b2.getNodes().size() - b1.getNodes().size();
       }
     });
 
@@ -98,8 +98,8 @@ public class BlockToDotWriter {
     final Multimap<Block, Block> hierarchy = HashMultimap.create();
     while (!sortedBlocks.isEmpty()) {
       // get smallest block and then the smallest outer block, that contains it
-      Block currentBlock = sortedBlocks.remove(0); // get smallest block, TODO improve sorting to avoid shifting?
-      for (Block possibleOuterBlock : sortedBlocks) { // order is important, smallest first
+      Block currentBlock = sortedBlocks.remove(sortedBlocks.size() - 1); // get smallest block,
+      for (Block possibleOuterBlock : Lists.reverse(sortedBlocks)) { // order is important, smallest first
         // trick: we know, iff one node is contained in outer block, all nodes must be contained. So we check only one.
         if (possibleOuterBlock.getNodes().contains(currentBlock.getNodes().iterator().next())) {
           hierarchy.put(possibleOuterBlock, currentBlock);
