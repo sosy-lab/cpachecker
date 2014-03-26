@@ -447,6 +447,22 @@ public enum InvariantsTransferRelation implements TransferRelation {
       }
       CLeftHandSide leftHandSide = getLeftHandSide(edge);
       if (leftHandSide != null) {
+        for (PointerState pointerState : FluentIterable.from(pOtherElements).filter(PointerState.class)) {
+          Iterator<Location> locations = PointerTransferRelation.asLocations(leftHandSide, pointerState).iterator();
+          if (!locations.hasNext()) {
+            return null;
+          }
+          InvariantsState stateBeforeClearing = state.getStateBeforePointerDereferenceClearing();
+          InvariantsState result = stateBeforeClearing;
+          while (locations.hasNext()) {
+            Location location = locations.next();
+            result = result.assign(false, location.getId(), CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top()), edge);
+          }
+          return Collections.singleton(result);
+
+        }
+
+        /*// Check all that is pointed to be the dereferenced variable
         CExpression dereferencee = null;
         if (leftHandSide instanceof CPointerExpression) {
           dereferencee = ((CPointerExpression) leftHandSide).getOperand();
@@ -467,11 +483,11 @@ public enum InvariantsTransferRelation implements TransferRelation {
                     return Collections.emptySet();
                   }
                 }
-                return Collections.singleton(result);
               }
             }
+            return Collections.singleton(result);
           }
-        }
+        }*/
       }
     }
 
