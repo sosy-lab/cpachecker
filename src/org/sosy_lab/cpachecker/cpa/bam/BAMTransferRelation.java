@@ -275,7 +275,7 @@ public class BAMTransferRelation implements TransferRelation {
   }
 
 
-  private boolean isHeadOfMainFunction(CFANode currentNode) {
+  static boolean isHeadOfMainFunction(CFANode currentNode) {
     return currentNode instanceof FunctionEntryNode && currentNode.getNumEnteringEdges() == 0;
   }
 
@@ -432,10 +432,6 @@ public class BAMTransferRelation implements TransferRelation {
     removeSubtreeTimer.stop();
   }
 
-  private static void removeSubtree(ARGReachedSet reachedSet, ARGState argElement) {
-    reachedSet.removeSubtree(argElement);
-  }
-
   //returns root of a subtree leading from the root element of the given reachedSet to the target state
   //subtree is represented using children and parents of ARGElements, where newTreeTarget is the ARGState
   //in the constructed subtree that represents target
@@ -473,7 +469,7 @@ public class BAMTransferRelation implements TransferRelation {
               computeCounterexampleSubgraph(parent, reachedSet.asReachedSet().getPrecision(parent),
                   elementsMap.get(currentElement), pPathElementToReachedState);
           if (innerTree == null) {
-            removeSubtree(reachedSet, parent);
+            ARGSubtreeRemover.removeSubtree(reachedSet, parent);
             return null;
           }
           for (ARGState child : innerTree.getChildren()) {
@@ -555,10 +551,10 @@ public class BAMTransferRelation implements TransferRelation {
       Collection<? extends AbstractState> pSuccessors) throws CPATransferException,
       InterruptedException {
     if (pCfaEdge != null) { return wrappedProofChecker.areAbstractSuccessors(pState, pCfaEdge, pSuccessors); }
-    return areAbstractSuccessors0(pState, pCfaEdge, pSuccessors, partitioning.getMainBlock());
+    return areAbstractSuccessors0(pState, pSuccessors, partitioning.getMainBlock());
   }
 
-  private boolean areAbstractSuccessors0(AbstractState pState, CFAEdge pCfaEdge,
+  private boolean areAbstractSuccessors0(AbstractState pState,
       Collection<? extends AbstractState> pSuccessors, final Block currentBlock)
       throws CPATransferException,
       InterruptedException {
@@ -710,7 +706,7 @@ public class BAMTransferRelation implements TransferRelation {
         returnNodes.add(current);
       }
 
-      if (!areAbstractSuccessors0(current, null, current.getChildren(), currentBlock)) {
+      if (!areAbstractSuccessors0(current, current.getChildren(), currentBlock)) {
         returnNodes = Collections.emptyList();
         return Pair.of(false, returnNodes);
       }

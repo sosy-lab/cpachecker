@@ -146,7 +146,7 @@ public class ARGSubtreeRemover {
     return updateCacheNeeded;
   }
 
-  private static void removeSubtree(ARGReachedSet reachedSet, ARGState argElement) {
+  static void removeSubtree(ARGReachedSet reachedSet, ARGState argElement) {
     reachedSet.removeSubtree(argElement);
   }
 
@@ -220,7 +220,7 @@ public class ARGSubtreeRemover {
       CFANode prevNode = extractLocation(prevElement);
       if (partitioning.isCallNode(prevNode)
               && !partitioning.getBlockForCallNode(prevNode).equals(openSubtrees.peek())) {
-        if (!(isHeadOfMainFunction(prevNode))) {
+        if (!(BAMTransferRelation.isHeadOfMainFunction(prevNode))) {
           openCallElements.push(prevElement);
           openSubtrees.push(partitioning.getBlockForCallNode(prevNode));
         }
@@ -300,7 +300,7 @@ public class ARGSubtreeRemover {
 
       if (partitioning.isCallNode(prevNode)
               && !partitioning.getBlockForCallNode(prevNode).equals(openSubtrees.peek())) {
-        if (!(isHeadOfMainFunction(prevNode))) {
+        if (!(BAMTransferRelation.isHeadOfMainFunction(prevNode))) {
           openSubtrees.push(partitioning.getBlockForCallNode(prevNode));
           openReachedSets.push(abstractStateToReachedSet.get(pPathElementToReachedState.get(prevElement)));
           callNodes.add(prevElement);
@@ -394,10 +394,6 @@ public class ARGSubtreeRemover {
     ReachedSet reached = reachedSetFactory.create();
     reached.add(initialState, initialPredicatePrecision);
     return reached;
-  }
-
-  private boolean isHeadOfMainFunction(CFANode currentNode) {
-    return currentNode instanceof FunctionEntryNode && currentNode.getNumEnteringEdges() == 0;
   }
 
   /** remove all states after pState from path */

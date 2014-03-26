@@ -37,16 +37,11 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
   private Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision;
   private boolean breakAnalysis = false;
   private final PrecisionAdjustment wrappedPrecisionAdjustment;
-  private BAMTransferRelation trans = null;
+  private final BAMTransferRelation trans;
 
-  public BAMPrecisionAdjustment(PrecisionAdjustment pWrappedPrecisionAdjustment) {
+  public BAMPrecisionAdjustment(PrecisionAdjustment pWrappedPrecisionAdjustment, BAMTransferRelation pTransfer) {
     this.wrappedPrecisionAdjustment = pWrappedPrecisionAdjustment;
-  }
-
-  public void setBAMTransferRelation(BAMTransferRelation pTransfer) {
-    if (trans == null) {
-      trans = pTransfer;
-    }
+    this.trans = pTransfer;
   }
 
   void setForwardPrecisionToExpandedPrecision(
