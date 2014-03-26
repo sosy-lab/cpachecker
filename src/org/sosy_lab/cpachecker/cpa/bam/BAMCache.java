@@ -110,12 +110,11 @@ public class BAMCache {
       partialCacheHits++;
     } else if (reached == null && returnStates == null) {
       cacheMisses++;
+      if (gatherCacheMissStatistics) {
+        findCacheMissCause(stateKey, precisionKey, context);
+      }
     } else {
       throw new AssertionError("invalid return-value for BAMCache.get(): " + pair);
-    }
-
-    if (gatherCacheMissStatistics) {
-      findCacheMissCause(stateKey, precisionKey, context);
     }
 
     return pair;
