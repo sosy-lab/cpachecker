@@ -87,6 +87,7 @@ public class SymbolicValueFormula implements Value {
    */
   public interface ExpressionBase {
     public boolean isIntegerAddMultiplyOnly();
+    public ExpressionBase replaceSymbolWith(SymbolicValue symbol, ConstantValue replacement);
   }
 
   public static class BinaryExpression implements ExpressionBase {
@@ -186,6 +187,14 @@ public class SymbolicValueFormula implements Value {
       return arithmeticType.getType() == CBasicType.INT &&
           lVal.isIntegerAddMultiplyOnly() && rVal.isIntegerAddMultiplyOnly();
     }
+
+    @Override
+    public ExpressionBase replaceSymbolWith(SymbolicValue pSymbol, ConstantValue pReplacement) {
+      ExpressionBase leftHand = lVal.replaceSymbolWith(pSymbol, pReplacement);
+      ExpressionBase rightHand = rVal.replaceSymbolWith(pSymbol, pReplacement);
+
+      return new BinaryExpression(leftHand, rightHand, op, resultType, calculationType);
+    }
   }
 
   /**
@@ -213,6 +222,15 @@ public class SymbolicValueFormula implements Value {
     public String toString() {
       return displayName;
     }
+
+    @Override
+    public ExpressionBase replaceSymbolWith(SymbolicValue pSymbol, ConstantValue pReplacement) {
+      if(this.equals(pSymbol)) {
+        return pReplacement;
+      } else {
+        return this;
+      }
+    }
   }
 
   public static class ConstantValue implements ExpressionBase {
@@ -237,6 +255,12 @@ public class SymbolicValueFormula implements Value {
       // the higher level expression check.
       return true;
     }
+
+    @Override
+    public ExpressionBase replaceSymbolWith(SymbolicValue pSymbol, ConstantValue pReplacement) {
+      // Constants are never replaced.
+      return this;
+    }
   }
 
   public static ExpressionBase expressionFromExplicitValue(Value value) {
@@ -245,6 +269,19 @@ public class SymbolicValueFormula implements Value {
     } else {
       return new ConstantValue(value);
     }
+  }
+
+  /**
+   * Replaces the given symbolic value with a constant. If the given symbolic value does not
+   * occur, returns `this` unmodified.
+   *
+   * @param symbol
+   * @param replacement
+   * @return
+   */
+  public Value replaceSymbolWith(SymbolicValue pSymbol, Value pReplacement) {
+    ConstantValue replacement = new ConstantValue(pReplacement);
+    return new SymbolicValueFormula(root.replaceSymbolWith(pSymbol, replacement)).simplify();
   }
 
   @Override
