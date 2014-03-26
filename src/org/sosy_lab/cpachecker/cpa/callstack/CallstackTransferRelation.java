@@ -70,12 +70,9 @@ public class CallstackTransferRelation implements TransferRelation {
 
   private final LogManagerWithoutDuplicates logger;
 
-  private final CFANode mainFunctionEntryNode;
-
-  public CallstackTransferRelation(Configuration config, LogManager pLogger, CFANode pMainFunctionEntryNode) throws InvalidConfigurationException {
+  public CallstackTransferRelation(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
     logger = new LogManagerWithoutDuplicates(pLogger);
-    mainFunctionEntryNode = pMainFunctionEntryNode;
   }
 
   @Override
@@ -150,8 +147,9 @@ public class CallstackTransferRelation implements TransferRelation {
 
         final CallstackState returnElement;
 
+        assert calledFunction.equals(element.getCurrentFunction()) || element.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+
         if (!isWildcardState(element)) {
-          assert calledFunction.equals(element.getCurrentFunction());
 
           if (!callNode.equals(element.getCallNode())) {
             // this is not the right return edge
@@ -161,7 +159,7 @@ public class CallstackTransferRelation implements TransferRelation {
 
           assert callerFunction.equals(returnElement.getCurrentFunction()) || isWildcardState(returnElement);
         } else {
-          returnElement = new CallstackState(null, callerFunction, element.getCallNode());
+          returnElement = element;
         }
 
         return Collections.singleton(returnElement);
@@ -182,8 +180,7 @@ public class CallstackTransferRelation implements TransferRelation {
    * {@code false} otherwise.
    */
   private boolean isWildcardState(CallstackState pState) {
-    return pState.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)
-        || pState.getCallNode().getLeavingSummaryEdge() == null && !pState.getCallNode().equals(mainFunctionEntryNode);
+    return pState.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
   }
 
   @Override

@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -111,7 +111,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -446,7 +445,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       memoryLocation = MemoryLocation.valueOf(functionName, varName, 0);
     }
 
-    if (addressedVariables.contains(VariableClassification.scopeVar(decl.isGlobal() ? null : functionName, varName))
+    if (addressedVariables.contains(decl.getQualifiedName())
         && decl.getType() instanceof CType
         && ((CType)decl.getType()).getCanonicalType() instanceof CPointerType) {
       ValueAnalysisState.addToBlacklist(memoryLocation);

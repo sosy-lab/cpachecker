@@ -95,9 +95,17 @@ Response
 ===========
 Returns a list of all tasks that are available.
 
+Optionally available query parameters:
+- limit:
+  limits the number of returned tasks.
+  If zero or negative all tasks will be returned. This is the default.
+- offset:
+  skips the first X tasks, where X == offset
+
 Response
 --------
 [ {
+  "processed" : false,
   "creationDate" : "2014-02-01T14:57:25.746",
   "executionDate" : "2014-02-01T14:57:27.283",
   "terminationDate" : null,

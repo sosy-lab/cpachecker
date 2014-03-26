@@ -1187,7 +1187,7 @@ class ASTConverter {
     }
 
 
-    Triple<CType, IASTInitializer, String> declarator = convert(f.getDeclarator(), specifier.getSecond());
+    Triple<CType, IASTInitializer, String> declarator = convert(f.getDeclarator(), specifier.getSecond(), cStorageClass == CStorageClass.STATIC);
 
     if (!(declarator.getFirst() instanceof CFunctionTypeWithNames)) {
       throw new CFAGenerationRuntimeException("Unsupported nested declarator for function definition", f);
@@ -1200,21 +1200,8 @@ class ASTConverter {
     }
 
     CFunctionTypeWithNames declSpec = (CFunctionTypeWithNames)declarator.getFirst();
-    String name = declarator.getThird();
 
-    if(cStorageClass == CStorageClass.STATIC) {
-      name = staticVariablePrefix + name;
-      declSpec = new CFunctionTypeWithNames(declSpec.isConst(),
-                                            declSpec.isVolatile(),
-                                            declSpec.getReturnType(),
-                                            declSpec.getParameterDeclarations(),
-                                            declSpec.takesVarArgs());
-      declSpec.setName(name);
-    }
-
-    FileLocation fileLoc = getLocation(f);
-
-    return new CFunctionDeclaration(fileLoc, declSpec, name, declSpec.getParameterDeclarations());
+    return new CFunctionDeclaration(getLocation(f), declSpec, declarator.getThird(), declSpec.getParameterDeclarations());
   }
 
   public List<CDeclaration> convert(final IASTSimpleDeclaration d) {
@@ -1411,7 +1398,8 @@ class ASTConverter {
   private Triple<CType, IASTInitializer, String> convert(IASTDeclarator d, CType specifier) {
 
     if (d instanceof IASTFunctionDeclarator) {
-      return convert((IASTFunctionDeclarator)d, specifier);
+      // TODO is it always right to assume that here is no static storage class
+      return convert((IASTFunctionDeclarator)d, specifier, false);
 
     } else {
       // Parsing type declarations in C is complex.
@@ -1511,7 +1499,7 @@ class ASTConverter {
     }
   }
 
-  private Triple<CType, IASTInitializer, String> convert(IASTFunctionDeclarator d, CType returnType) {
+  private Triple<CType, IASTInitializer, String> convert(IASTFunctionDeclarator d, CType returnType, boolean isStaticFunction) {
 
     if (!(d instanceof IASTStandardFunctionDeclarator)) {
       throw new CFAGenerationRuntimeException("Unknown non-standard function definition", d);
@@ -1552,6 +1540,10 @@ class ASTConverter {
 
     } else {
       name = convert(d.getName());
+    }
+
+    if (isStaticFunction) {
+      name = staticVariablePrefix + name;
     }
 
     fType.setName(name);

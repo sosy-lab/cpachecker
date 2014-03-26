@@ -21,23 +21,19 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.coverage;
+package org.sosy_lab.cpachecker.cpa.statistics;
 
-import java.io.IOException;
-
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /**
- * Interface for printers information about coverage
+ * Represents Data of an StatisticsProvider.
+ * The data provider takes care of tracking the current value, calculating the next value
+ * and merging paths.
+ * All instances of this interface should be immutable.
+ * (Create new StatisticsDataProvider instances for new data)
  */
-public interface CoveragePrinter {
-
-  public void addVisitedFunction(String name);
-
-  public void addExistingFunction(String name, int firstLine, int lastLine);
-
-  public void addVisitedLine(int line);
-
-  public void addExistingLine(int line);
-
-  public void print(Appendable out, String originFile) throws IOException;
+public interface StatisticsDataProvider {
+  Object getPropertyValue();
+  StatisticsDataProvider calculateNext(CFAEdge node);
+  StatisticsDataProvider mergePath(StatisticsDataProvider other);
 }

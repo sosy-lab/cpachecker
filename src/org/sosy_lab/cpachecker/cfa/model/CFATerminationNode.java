@@ -28,8 +28,8 @@ package org.sosy_lab.cpachecker.cfa.model;
  */
 public class CFATerminationNode extends CFANode {
 
-  public CFATerminationNode(int pLineNumber, String pFunctionName) {
-    super(pLineNumber, pFunctionName);
+  public CFATerminationNode(String pFunctionName) {
+    super(pFunctionName);
   }
 
   @Override

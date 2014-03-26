@@ -106,7 +106,7 @@ public class TaskFile {
   }
 
   public String getContent() {
-    flushOuputStream();
+    flushOutputStream();
     return content;
   }
 
@@ -148,7 +148,7 @@ public class TaskFile {
    * Flushes the content output stream before saving and sets the content to its contents.
    */
   @OnSave
-  void flushOuputStream() {
+  void flushOutputStream() {
     if (contentOutputStream != null && contentOutputStream.size() > 0) {
       content = contentOutputStream.toString();
     }

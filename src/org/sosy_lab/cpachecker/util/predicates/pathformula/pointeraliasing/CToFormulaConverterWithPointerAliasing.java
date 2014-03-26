@@ -34,7 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -236,13 +236,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         || getSizeof(compositeType) <= options.maxPreFilledAllocationSize();
   }
 
-  boolean isAddressedVariable(final String qualifiedName) {
-    return !variableClassification.isPresent() ||
-           variableClassification.get().getAddressedVariables().contains(qualifiedName);
-  }
-
   boolean isAddressedVariable(CDeclaration var) {
-    return isAddressedVariable(var.getQualifiedName());
+    return !variableClassification.isPresent() ||
+        variableClassification.get().getAddressedVariables().contains(var.getQualifiedName());
   }
 
   private void addAllFields(final CType type, final PointerTargetSetBuilder pts) {

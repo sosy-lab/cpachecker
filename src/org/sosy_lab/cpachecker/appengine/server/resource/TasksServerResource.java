@@ -165,10 +165,27 @@ public class TasksServerResource extends WadlServerResource implements TasksReso
 
   @Override
   public Representation tasksAsHtml() {
-    List<Task> tasks = TaskDAO.tasks();
+
+    int offset = 0;
+    if (getQueryValue("offset") != null) {
+      offset = Integer.parseInt(getQueryValue("offset"));
+    }
+    if (offset < 0) {
+      offset = 0;
+    }
+
+    int limit = 10;
+    if (getQueryValue("limit") != null) {
+      limit = Integer.parseInt(getQueryValue("limit"));
+    }
+
+    List<Task> tasks = TaskDAO.tasks(offset, limit);
     return FreemarkerUtil.templateBuilder()
         .context(getContext())
         .templateName("tasks.ftl")
+        .addData("offset", offset)
+        .addData("limit", limit)
+        .addData("numberOfTotalTasks", TaskDAO.countTotalTasks())
         .addData("tasks", tasks)
         .build();
   }
@@ -213,12 +230,26 @@ public class TasksServerResource extends WadlServerResource implements TasksReso
 
   @Override
   public Representation tasksAsJson() {
+
+    int offset = 0;
+    if (getQueryValue("offset") != null) {
+      offset = Integer.parseInt(getQueryValue("offset"));
+    }
+    if (offset < 0) {
+      offset = 0;
+    }
+
+    int limit = -1;
+    if (getQueryValue("limit") != null) {
+      limit = Integer.parseInt(getQueryValue("limit"));
+    }
+
     ObjectMapper mapper = new ObjectMapper();
     mapper.enable(SerializationFeature.INDENT_OUTPUT);
     mapper.addMixInAnnotations(Task.class, TaskMixinAnnotations.Minimal.class);
 
     try {
-      return new StringRepresentation(mapper.writeValueAsString(TaskDAO.tasks()), MediaType.APPLICATION_JSON);
+      return new StringRepresentation(mapper.writeValueAsString(TaskDAO.tasks(offset, limit)), MediaType.APPLICATION_JSON);
     } catch (JsonProcessingException e) {
       return null;
     }

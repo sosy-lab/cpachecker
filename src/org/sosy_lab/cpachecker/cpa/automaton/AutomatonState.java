@@ -198,7 +198,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
 
 
           result.add(new CStatementEdge(assignment.toASTString(), assignment, assignment.getFileLocation(),
-              new CFANode(0, cFunctionName), new CFANode(0, cFunctionName)));
+              new CFANode(cFunctionName), new CFANode(cFunctionName)));
         } else if (assignment.getRightHandSide() instanceof CFunctionCall) {
           //TODO FunctionCalls, ExpressionStatements etc
         }
@@ -227,7 +227,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
                   expression, CBinaryExpression.BinaryOperator.EQUALS);
 
           result.add(new CAssumeEdge(assignment.toASTString(), assignment.getFileLocation(),
-              new CFANode(0, cFunctionName), new CFANode(0, cFunctionName), assumeExp, true));
+              new CFANode(cFunctionName), new CFANode(cFunctionName), assumeExp, true));
         } else if(assignment.getRightHandSide() instanceof CFunctionCall) {
           //TODO FunctionCalls, ExpressionStatements etc
         }

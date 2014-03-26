@@ -64,21 +64,21 @@ public class ReducedFunctionTest {
 
   @Test
   public void testUltimate() {
-    ReducedNode entryNode = new ReducedNode(new CFANode(0, "test"), false);
-    ReducedNode exitNode = new ReducedNode(new CFANode(100, "test"), false);
+    ReducedNode entryNode = new ReducedNode(new CFANode("test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode( "test"), false);
 
-    ReducedNode n4 = new ReducedNode(new CFANode(4, "loophead"), false);
-    ReducedNode n5 = new ReducedNode(new CFANode(5, "test"), false);
-    ReducedNode n6 = new ReducedNode(new CFANode(6, "test"), false);
-    ReducedNode n7 = new ReducedNode(new CFANode(7, "test"), false);
-    ReducedNode n8 = new ReducedNode(new CFANode(8, "test"), false);
-    ReducedNode n9 = new ReducedNode(new CFANode(9, "test"), false);
-    ReducedNode n20 = new ReducedNode(new CFANode(20, "test"), false);
-    ReducedNode n21 = new ReducedNode(new CFANode(21, "test"), false);
-    ReducedNode n22 = new ReducedNode(new CFANode(22, "test"), false);
-    ReducedNode n23 = new ReducedNode(new CFANode(23, "test"), false);
-    ReducedNode n24 = new ReducedNode(new CFANode(24, "test"), false);
-    ReducedNode n25 = new ReducedNode(new CFANode(25, "test"), false);
+    ReducedNode n4 = new ReducedNode(new CFANode("loophead"), false);
+    ReducedNode n5 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n6 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n7 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n8 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n9 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n20 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n21 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n22 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n23 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n24 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n25 = new ReducedNode(new CFANode("test"), false);
 
     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 

@@ -49,6 +49,8 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 
+import com.google.common.base.Throwables;
+
 import de.uni_freiburg.informatik.ultimate.logic.Annotation;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
 import de.uni_freiburg.informatik.ultimate.logic.LoggingScript;
@@ -193,6 +195,16 @@ class SmtInterpolEnvironment {
 
       @Override
       protected void append(org.apache.log4j.spi.LoggingEvent pArg0) {
+        // SMTInterpol has serveral "catch (Throwable t) { log(t); }",
+        // which is very ugly because it also catches errors like OutOfMemoryError
+        // and ThreadDeath.
+        // We do a similarly ugly thing and rethrow such exceptions here
+        // (at least for errors and runtime exceptions).
+        org.apache.log4j.spi.ThrowableInformation throwable = pArg0.getThrowableInformation();
+        if (throwable != null) {
+          Throwables.propagateIfPossible(throwable.getThrowable());
+        }
+
         // Always log at SEVERE because it is a ERROR message (see above).
         ourLogger.log(Level.SEVERE,
             pArg0.getLoggerName(),
@@ -200,7 +212,6 @@ class SmtInterpolEnvironment {
             "output:",
             pArg0.getRenderedMessage());
 
-        org.apache.log4j.spi.ThrowableInformation throwable = pArg0.getThrowableInformation();
         if (throwable != null) {
           ourLogger.logException(Level.SEVERE, throwable.getThrowable(),
               pArg0.getLoggerName() + " exception");

@@ -29,12 +29,15 @@ import java.io.ObjectStreamException;
 import java.io.Serializable;
 import java.util.SortedSet;
 
+import com.google.common.collect.Iterables;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
@@ -85,7 +88,7 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
 
     @Override
     public String toString() {
-      return locationNode + " (line " + locationNode.getLineNumber() + ")";
+      return locationNode + " (number of node: " + locationNode.getNodeNumber() + ")";
     }
 
     @Override
@@ -98,7 +101,12 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
         if (parts[0].toLowerCase().equals("line")) {
           try {
             int queryLine = Integer.parseInt(parts[1]);
-            return this.locationNode.getLineNumber() == queryLine;
+            for (CFAEdge edge : CFAUtils.enteringEdges(this.locationNode)) {
+              if (edge.getLineNumber()  == queryLine) {
+                return true;
+              }
+            }
+            return false;
           } catch (NumberFormatException nfe) {
             throw new InvalidQueryException("The Query \"" + pProperty
                 + "\" is invalid. Could not parse the integer \"" + parts[1] + "\"");
@@ -127,7 +135,10 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
     public Object evaluateProperty(String pProperty)
         throws InvalidQueryException {
       if (pProperty.equalsIgnoreCase("lineno")) {
-        return Integer.valueOf(locationNode.getLineNumber());
+        if (this.locationNode.getNumEnteringEdges() > 0) {
+          return this.locationNode.getEnteringEdge(0).getLineNumber();
+        }
+        return 0; // DUMMY
       } else {
         return Boolean.valueOf(checkProperty(pProperty));
       }

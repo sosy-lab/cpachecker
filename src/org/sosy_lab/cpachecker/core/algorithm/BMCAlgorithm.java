@@ -505,9 +505,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     private final Boolean trivialResult;
 
-    private final FluentIterable<CFAEdge> incomingEdges;
+    private final Iterable<CFAEdge> incomingEdges;
 
-    private final FluentIterable<CFAEdge> outgoingEdges;
+    private final Iterable<CFAEdge> outgoingEdges;
 
     private final ReachedSet reachedSet;
 
@@ -516,8 +516,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     private UnmodifiableReachedSet invariantsReachedSet;
 
     public KInductionProver() {
-      FluentIterable<CFAEdge> incomingEdges = null;
-      FluentIterable<CFAEdge> outgoingEdges = null;
+      List<CFAEdge> incomingEdges = null;
+      List<CFAEdge> outgoingEdges = null;
       ReachedSet reachedSet = null;
       Loop loop = null;
       if (!cfa.getLoopStructure().isPresent()) {
@@ -542,7 +542,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
           loop = Iterables.getOnlyElement(loops.values());
           // function edges do not count as incoming/outgoing edges
-          incomingEdges = from(loop.getIncomingEdges()).filter(not(instanceOf(CFunctionReturnEdge.class)));
+          incomingEdges = from(loop.getIncomingEdges()).filter(not(instanceOf(CFunctionReturnEdge.class))).toList();
           outgoingEdges = from(loop.getOutgoingEdges())
               .filter(new Predicate<CFAEdge>() {
                 @Override
@@ -550,7 +550,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
                   if (!(pInput instanceof CFunctionCallEdge)) {
                     return true;
                   }
-                  CFANode nodeAfterFunction = ((CFunctionCallEdge)pInput).getSummaryEdge().getSuccessor();
+                  CFANode nodeAfterFunction = ((CFunctionCallEdge) pInput).getSummaryEdge().getSuccessor();
                   if (nodeAfterFunction.getNumEnteringEdges() == 0) {
                     // This is a function call without the chance to return
                     // to the node after the function (a non-terminating function).
@@ -559,7 +559,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
                   }
                   return false;
                 }
-              });
+              }).toList();
 
           if (incomingEdges.size() > 1) {
             logger.log(Level.WARNING, "Could not use induction for proving program safety, loop has too many incoming edges", incomingEdges);
@@ -591,13 +591,13 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       return trivialResult;
     }
 
-    private FluentIterable<CFAEdge> getIncomingEdges() {
+    private Iterable<CFAEdge> getIncomingEdges() {
       Preconditions.checkState(!isTrivial(), "No incoming edges computed, because the proof is trivial.");
       assert incomingEdges != null;
       return incomingEdges;
     }
 
-    private FluentIterable<CFAEdge> getOutgoingEdges() {
+    private Iterable<CFAEdge> getOutgoingEdges() {
       Preconditions.checkState(!isTrivial(), "No outgoing edges computed, because the proof is trivial.");
       assert outgoingEdges != null;
       return outgoingEdges;
@@ -728,7 +728,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       logger.log(Level.INFO, "Running algorithm to create induction hypothesis");
       ReachedSet reached = getCurrentReachedSet();
       unroll(reached);
-      adjustReachedSet(reached);
 
       final Multimap<CFANode, AbstractState> reachedPerLocation = Multimaps.index(reached, EXTRACT_LOCATION);
 
@@ -840,7 +839,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
      */
     private Precision excludeLoopEdges(Precision pFreshCutPointPrecision, CFAEdge pCutPointEdge) throws CPAException {
       List<CFAEdge> loopEdges = CFAUtils.leavingEdges(pCutPointEdge.getPredecessor())
-          .filter(Predicates.not(Predicates.equalTo(pCutPointEdge))).toList();
+          .filter(not(equalTo(pCutPointEdge))).toList();
 
       if (loopEdges.isEmpty()) {
         return pFreshCutPointPrecision;
@@ -874,13 +873,15 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         if (loopstackState == null) {
           throw new CPAException("BMC without LoopstackCPA is not supported. Please rerun with an instance of the LoopstackCPA.");
         }
-        int iteration = loopstackState.getIteration();
-        if (iteration > highestIteration || pathFormula == null) {
-          highestIteration = iteration;
-          pathFormula = extractStateByType(cutPointState, PredicateAbstractState.class).getPathFormula();
-        } else if (iteration == highestIteration) {
-          assert pathFormula != null;
-          pathFormula = pmgr.makeOr(pathFormula, extractStateByType(cutPointState, PredicateAbstractState.class).getPathFormula());
+        if (!loopstackState.mustDumpAssumptionForAvoidance()) {
+          int iteration = loopstackState.getIteration();
+          if (iteration > highestIteration || pathFormula == null) {
+            highestIteration = iteration;
+            pathFormula = extractStateByType(cutPointState, PredicateAbstractState.class).getPathFormula();
+          } else if (iteration == highestIteration) {
+            assert pathFormula != null;
+            pathFormula = pmgr.makeOr(pathFormula, extractStateByType(cutPointState, PredicateAbstractState.class).getPathFormula());
+          }
         }
       }
       Preconditions.checkArgument(pathFormula != null, "cutPointStates must not be empty.");
@@ -893,22 +894,22 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
      * location and all edges leading to target locations within the loop, but
      * not any target locations preceding the loop.
      *
-     * @param reachedPerLocation the reached set mapped to the reached locations.
-     * @param loopStates the loop states.
+     * @param pReachedPerLocation the reached set mapped to the reached locations.
+     * @param pLoopStates the loop states.
      * @return all edges that lead from the loop to a target location.
      */
-    private Iterable<CFAEdge> getCutPointEdges(final Multimap<CFANode, AbstractState> reachedPerLocation,
-        FluentIterable<AbstractState> loopStates) {
+    private Iterable<CFAEdge> getCutPointEdges(final Multimap<CFANode, AbstractState> pReachedPerLocation,
+        Iterable<AbstractState> pLoopStates) {
       final Iterable<CFAEdge> cutPointEdges;
       {
-        Iterable<CFAEdge> relevantOutgoingEdges = getOutgoingEdges().filter(new Predicate<CFAEdge>() {@Override
+        Iterable<CFAEdge> relevantOutgoingEdges = FluentIterable.from(getOutgoingEdges()).filter(new Predicate<CFAEdge>() {@Override
           public boolean apply(@Nullable CFAEdge pEdge) {
             if (pEdge == null) {
               return false;
             }
             // filter out exit edges that do not lead to a target state, we don't care about them
             CFANode exitLocation = pEdge.getSuccessor();
-            Collection<AbstractState> exitStates = reachedPerLocation.get(exitLocation);
+            Collection<AbstractState> exitStates = pReachedPerLocation.get(exitLocation);
             if (exitStates.isEmpty()) {
               return false;
             }
@@ -923,7 +924,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           }
 
         });
-        Iterable<CFAEdge> relevantInsideEdges = loopStates.filter(IS_TARGET_STATE).transformAndConcat(ENTERING_EDGES);
+        Iterable<CFAEdge> relevantInsideEdges = FluentIterable.from(pLoopStates).filter(IS_TARGET_STATE).transformAndConcat(ENTERING_EDGES).toSet();
         cutPointEdges = Iterables.concat(relevantOutgoingEdges, relevantInsideEdges);
       }
       return cutPointEdges;
@@ -950,6 +951,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   private void adjustReachedSet(ReachedSet pReachedSet) {
     Preconditions.checkArgument(!pReachedSet.isEmpty());
+    CFANode initialLocation = extractLocation(pReachedSet.getFirstState());
     for (AdjustableConditionCPA conditionCPA : conditionCPAs) {
       if (conditionCPA instanceof ReachedSetAdjustingCPA) {
         ((ReachedSetAdjustingCPA) conditionCPA).adjustReachedSet(pReachedSet);
@@ -961,7 +963,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
     if (pReachedSet.isEmpty()) {
-      CFANode initialLocation = extractLocation(pReachedSet.getFirstState());
       pReachedSet.add(cpa.getInitialState(initialLocation), cpa.getInitialPrecision(initialLocation));
     }
   }

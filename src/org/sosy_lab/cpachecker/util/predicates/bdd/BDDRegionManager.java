@@ -376,6 +376,10 @@ public class BDDRegionManager implements RegionManager {
   public Region makeExists(Region pF1, Region... pF2) {
     cleanupReferences();
 
+    if (pF2.length == 0) {
+      return pF1;
+    }
+
     // we use id() to get copies of the BDDs, otherwise we would delete them
     BDD f = unwrap(pF2[0]).id();
     for (int i = 1; i < pF2.length; i++) {

@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -65,9 +66,7 @@ public class CFADeclarationMover {
   public void moveDeclarationsToFunctionStart(MutableCFA cfa) {
     Collection<FunctionEntryNode> startNodes = cfa.getAllFunctionHeads();
     for (FunctionEntryNode node : startNodes) {
-      if (node.getNodeNumber() != 1) {
-        handleDeclarationsInFunction(node, cfa);
-      }
+      handleDeclarationsInFunction(node, cfa);
     }
   }
 
@@ -97,7 +96,7 @@ public class CFADeclarationMover {
     if (!declarations.isEmpty()) {
       // create declaration end edge, no need to add it as leaving edge to the actNode
       // this will be done in the end
-      CFANode tmpNode = new CFANode(0, functionName);
+      CFANode tmpNode = new CFANode(functionName);
       cfa.addNode(tmpNode);
       CFAEdge declEndEdge = new BlankEdge("End of Declarations", FileLocation.DUMMY, actNode, tmpNode, "End of Declarations");
       tmpNode.addEnteringEdge(declEndEdge);
@@ -121,7 +120,7 @@ public class CFADeclarationMover {
     // insert declarations into the desired destination
     while (it.hasNext()) {
       CFAEdge decl = it.next();
-      CFANode middleNode = new CFANode(decl.getLineNumber(), functionName);
+      CFANode middleNode = new CFANode(functionName);
       cfa.addNode(middleNode);
       moveDeclEdgeToNewLocation((CDeclarationEdge)decl, actNode, middleNode, cfa);
       actNode = middleNode;
@@ -216,8 +215,16 @@ public class CFADeclarationMover {
       actPred.addLeavingEdge(midEdge);
       actSucc.addEnteringEdge(midEdge);
 
+      // this is a struct or array initialisation with either values or designators
     } else if (init != null) {
-      throw new UnsupportedOperationException("Designated initializers, more implementation work to be done in CFADeclarationMover...");
+      logger.log(Level.WARNING, "Moving declaration to function start does not work correctly for initializer lists and "
+          + "designated initializers for arrays or structs, do not use the CFADeclarationMover if you are able to handle such"
+          + " expressions.");
+      actPred.removeLeavingEdge(edge);
+      actSucc.removeEnteringEdge(edge);
+      BlankEdge midEdge = new BlankEdge(edge.getRawStatement(), edge.getFileLocation(), actPred, actSucc, "Declaration was moved to function start");
+      actPred.addLeavingEdge(midEdge);
+      actSucc.addEnteringEdge(midEdge);
 
       // in order to not have to remove one node, and the edges around the previous place
       // of the declaration, we just insert a blankedge instead

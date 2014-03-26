@@ -31,10 +31,12 @@ import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -47,7 +49,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCChecker;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -62,6 +63,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
@@ -75,6 +77,8 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
   private final Timer checkTime = new Timer();
   private int numberOfInfeasiblePaths = 0;
+
+  private final Set<ARGState> checkedTargetStates = Collections.newSetFromMap(new WeakHashMap<ARGState, Boolean>());
 
   @Option(name="checker", toUppercase=true, values={"CBMC", "CPACHECKER"},
           description="which model checker to use for verifying counterexamples as a second check\n"
@@ -117,84 +121,102 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
       sound &= algorithm.run(reached);
       assert ARGUtils.checkARG(reached);
 
-      AbstractState lastState = reached.getLastState();
-      if (lastState != null && !(lastState instanceof ARGState)) {
-        // no analysis possible
-        break;
+      ARGState lastState = (ARGState)reached.getLastState();
+
+      Deque<ARGState> errorStates = new ArrayDeque<>();
+      if (lastState != null && lastState.isTarget()) {
+        errorStates.add(lastState);
+      } else {
+        from(reached)
+          .transform(AbstractStates.toState(ARGState.class))
+          .filter(AbstractStates.IS_TARGET_STATE)
+          .filter(Predicates.in(checkedTargetStates))
+          .copyInto(errorStates);
       }
 
-      ARGState errorState = (ARGState)lastState;
-      if (errorState == null || !errorState.isTarget()) {
-        List<ARGState> errorStates = from(reached)
-            .transform(AbstractStates.toState(ARGState.class))
-            .filter(AbstractStates.IS_TARGET_STATE)
-            .toList();
-
-        assert errorStates.size() <= 1 : "Number of error states is wrong, namely " + errorStates.size();
-
-        if(errorStates.isEmpty()) {
-          // no errors, so no analysis necessary
-          break;
-        } else {
-          errorState = Iterables.getOnlyElement(errorStates);
-        }
+      if (errorStates.isEmpty()) {
+        // no errors, so no analysis necessary
+        break;
       }
 
       // check counterexample
       checkTime.start();
       try {
-        ARGState rootState = (ARGState)reached.getFirstState();
+        boolean foundCounterexample = false;
+        while (!errorStates.isEmpty()) {
+          ARGState errorState = errorStates.pollFirst();
+          if (!reached.contains(errorState)) {
+            // errorState was already removed due to earlier loop iterations
+            continue;
+          }
 
-        Set<ARGState> statesOnErrorPath = ARGUtils.getAllStatesOnPathsTo(errorState);
-
-        logger.log(Level.INFO, "Error path found, starting counterexample check with " + checkerName + ".");
-        boolean feasibility;
-        try {
-          feasibility = checker.checkCounterexample(rootState, errorState, statesOnErrorPath);
-        } catch (CPAException e) {
-          logger.logUserException(Level.WARNING, e, "Counterexample found, but feasibility could not be verified");
-          //return false;
-          throw e;
+          sound = checkCounterexample(errorState, reached, sound);
+          if (reached.contains(errorState)) {
+            checkedTargetStates.add(errorState);
+            foundCounterexample = true;
+          }
         }
 
-        if (feasibility) {
-          logger.log(Level.INFO, "Error path found and confirmed by counterexample check with " + checkerName + ".");
-          return sound;
-
-        } else {
-          numberOfInfeasiblePaths++;
-          logger.log(Level.INFO, "Error path found, but identified as infeasible by counterexample check with " + checkerName + ".");
-
-          if (continueAfterInfeasibleError) {
-            // This counterexample is infeasible, so usually we would remove it
-            // from the reached set. This is not possible, because the
-            // counterexample of course contains the root state and we don't
-            // know up to which point we have to remove the path from the reached set.
-            // However, we also cannot let it stay in the reached set, because
-            // then the states on the path might cover other, actually feasible,
-            // paths, so this would prevent other real counterexamples to be found (unsound!).
-
-            // So there are two options: either let them stay in the reached set
-            // and mark analysis as unsound, or let them stay in the reached set
-            // and prevent them from covering new paths.
-
-            if (removeInfeasibleErrors) {
-              sound &= handleInfeasibleCounterexample(reached, statesOnErrorPath);
-            } else if (sound) {
-              logger.log(Level.WARNING, "Infeasible counterexample found, but could not remove it from the ARG. Therefore, we cannot prove safety.");
-              sound = false;
-            }
-
-            sound &= removeErrorState(reached, errorState);
-            assert ARGUtils.checkARG(reached);
-
-          } else {
-            ARGPath path = ARGUtils.getOnePathTo(errorState);
-            throw new RefinementFailedException(Reason.InfeasibleCounterexample, path);
-          }
+        if (foundCounterexample) {
+          break;
         }
       } finally {
         checkTime.stop();
+      }
+    }
+    return sound;
+  }
+
+  private boolean checkCounterexample(ARGState errorState, ReachedSet reached,
+      boolean sound) throws InterruptedException, CPAException, RefinementFailedException {
+    ARGState rootState = (ARGState)reached.getFirstState();
+
+    Set<ARGState> statesOnErrorPath = ARGUtils.getAllStatesOnPathsTo(errorState);
+
+    logger.log(Level.INFO, "Error path found, starting counterexample check with " + checkerName + ".");
+    boolean feasibility;
+    try {
+      feasibility = checker.checkCounterexample(rootState, errorState, statesOnErrorPath);
+    } catch (CPAException e) {
+      logger.logUserException(Level.WARNING, e, "Counterexample found, but feasibility could not be verified");
+      //return false;
+      throw e;
+    }
+
+    if (feasibility) {
+      logger.log(Level.INFO, "Error path found and confirmed by counterexample check with " + checkerName + ".");
+      return sound;
+
+    } else {
+      numberOfInfeasiblePaths++;
+      logger.log(Level.INFO, "Error path found, but identified as infeasible by counterexample check with " + checkerName + ".");
+
+      if (continueAfterInfeasibleError) {
+        // This counterexample is infeasible, so usually we would remove it
+        // from the reached set. This is not possible, because the
+        // counterexample of course contains the root state and we don't
+        // know up to which point we have to remove the path from the reached set.
+        // However, we also cannot let it stay in the reached set, because
+        // then the states on the path might cover other, actually feasible,
+        // paths, so this would prevent other real counterexamples to be found (unsound!).
+
+        // So there are two options: either let them stay in the reached set
+        // and mark analysis as unsound, or let them stay in the reached set
+        // and prevent them from covering new paths.
+
+        if (removeInfeasibleErrors) {
+          sound &= handleInfeasibleCounterexample(reached, statesOnErrorPath);
+        } else if (sound) {
+          logger.log(Level.WARNING, "Infeasible counterexample found, but could not remove it from the ARG. Therefore, we cannot prove safety.");
+          sound = false;
+        }
+
+        sound &= removeErrorState(reached, errorState);
+        assert ARGUtils.checkARG(reached);
+
+      } else {
+        ARGPath path = ARGUtils.getOnePathTo(errorState);
+        throw new RefinementFailedException(Reason.InfeasibleCounterexample, path);
       }
     }
     return sound;

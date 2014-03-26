@@ -237,12 +237,12 @@ public class CFAUtils {
   };
 
   /**
-   * A comparator for comparing {@link CFANode}s by their line numbers.
+   * A comparator for comparing {@link CFANode}s by their node numbers.
    */
-  public static final Comparator<CFANode> LINE_NUMBER_COMPARATOR = new Comparator<CFANode>() {
+  public static final Comparator<CFANode> NODE_NUMBER_COMPARATOR = new Comparator<CFANode>() {
     @Override
     public int compare(CFANode pO1, CFANode pO2) {
-      return Ints.compare(pO1.getLineNumber(), pO2.getLineNumber());
+      return Ints.compare(pO1.getNodeNumber(), pO2.getNodeNumber());
     }
   };
 

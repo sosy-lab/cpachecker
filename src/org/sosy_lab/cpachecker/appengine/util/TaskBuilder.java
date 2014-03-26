@@ -35,6 +35,8 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.appengine.dao.TaskDAO;
 import org.sosy_lab.cpachecker.appengine.dao.TaskFileDAO;
@@ -219,6 +221,7 @@ public class TaskBuilder {
     validateConfExists(task);
     validateProgramExists(program);
     validateProgramNameExists(program);
+    validateConfiguration(task);
 
     if (!hasErrors()) {
       try {
@@ -428,6 +431,14 @@ public class TaskBuilder {
   private void validateProgramNameExists(TaskFile program) {
     if (program.getPath() == null || program.getPath().isEmpty()) {
       errors.add("task.program.NameIsBlank");
+    }
+  }
+
+  private void validateConfiguration(Task task) {
+    try {
+      Configuration.builder().setOptions(task.getOptions()).build();
+    } catch (InvalidConfigurationException e) {
+      errors.add("error.invalidConfiguration");
     }
   }
 

@@ -118,4 +118,9 @@ public class EdgeExclusionPrecision implements Precision {
     return false;
   }
 
+  @Override
+  public String toString() {
+    return excludedEdges.isEmpty() ? "no precision" : excludedEdges.toString();
+  }
+
 }

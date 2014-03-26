@@ -46,7 +46,7 @@ import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -141,8 +141,8 @@ public class VariableClassification {
   private boolean printStatsOnStartup = false;
 
   /** name for return-variables, it is used for function-returns. */
-  public static final String FUNCTION_RETURN_VARIABLE = "__retval__";
-  public static final String SCOPE_SEPARATOR = "::";
+  private static final String FUNCTION_RETURN_VARIABLE = "__retval__";
+  private static final String SCOPE_SEPARATOR = "::";
 
   /** normally a boolean value would be 0 or 1,
    * however there are cases, where the values are only 0 and 1,
@@ -190,8 +190,7 @@ public class VariableClassification {
   private Set<Partition> intEqualPartitions;
   private Set<Partition> intAddPartitions;
 
-  private CollectingLHSVisitor collectingLHSVisitor = null;
-  private CollectingRHSVisitor collectingRHSVisitor = null;
+  private final CollectingLHSVisitor collectingLHSVisitor = new CollectingLHSVisitor();
 
   private final CFA cfa;
   private final ImmutableMultimap<String, Loop> loopStructure;
@@ -286,9 +285,6 @@ public class VariableClassification {
       intBoolPartitions = new HashSet<>();
       intEqualPartitions = new HashSet<>();
       intAddPartitions = new HashSet<>();
-
-      collectingLHSVisitor = new CollectingLHSVisitor();
-      collectingRHSVisitor = new CollectingRHSVisitor();
 
       // fill maps
       collectVars();
@@ -774,8 +770,7 @@ public class VariableClassification {
       exp.accept(new IntEqualCollectingVisitor(pre));
       exp.accept(new IntAddCollectingVisitor(pre));
 
-      collectingRHSVisitor.setLHS(null);
-      exp.accept(collectingRHSVisitor);
+      exp.accept(new CollectingRHSVisitor(null));
       break;
     }
 
@@ -806,7 +801,7 @@ public class VariableClassification {
     }
 
     case FunctionReturnEdge: {
-      String scopedVarName = edge.getPredecessor().getFunctionName() + SCOPE_SEPARATOR + FUNCTION_RETURN_VARIABLE;
+      String scopedVarName = createFunctionReturnVariable(edge.getPredecessor().getFunctionName());
       dependencies.addVar(scopedVarName);
       Partition partition = getPartitionForVar(scopedVarName);
       partition.addEdge(edge, 0);
@@ -822,8 +817,8 @@ public class VariableClassification {
         String function = edge.getPredecessor().getFunctionName();
         handleExpression(edge,
                          rhs,
-                         FUNCTION_RETURN_VARIABLE,
-                         VariableOrField.newVariable(scopeVar(function, FUNCTION_RETURN_VARIABLE)));
+                         scopeVar(function, FUNCTION_RETURN_VARIABLE),
+                         VariableOrField.newVariable(createFunctionReturnVariable(function)));
       }
       break;
     }
@@ -879,8 +874,7 @@ public class VariableClassification {
       final VariableOrField lhs = lhsExpression.accept(collectingLHSVisitor);
 
       final CExpression rhs = init.getRightHandSide();
-      collectingRHSVisitor.setLHS(lhs);
-      rhs.accept(collectingRHSVisitor);
+      rhs.accept(new CollectingRHSVisitor(lhs));
     }
 
     if ((initializer == null) || !(initializer instanceof CInitializerExpression)) { return; }
@@ -919,7 +913,7 @@ public class VariableClassification {
 
       if (cfa.getAllFunctionNames().contains(functionName)) {
         // TODO is this case really appearing or is it always handled as "functionCallEdge"?
-        dependencies.add(scopeVar(functionName, FUNCTION_RETURN_VARIABLE), varName);
+        dependencies.add(createFunctionReturnVariable(functionName), varName);
 
       } else {
         // external function
@@ -983,7 +977,7 @@ public class VariableClassification {
     final List<CExpression> args = edge.getArguments();
     final List<CParameterDeclaration> params = edge.getSuccessor().getFunctionParameters();
     final String innerFunctionName = edge.getSuccessor().getFunctionName();
-    final String scopedRetVal = scopeVar(innerFunctionName, FUNCTION_RETURN_VARIABLE);
+    final String scopedRetVal = createFunctionReturnVariable(innerFunctionName);
 
     // functions can have more args than params used in the call
     assert args.size() >= params.size();
@@ -1066,8 +1060,7 @@ public class VariableClassification {
     Set<String> possibleIntAddVars = exp.accept(icv);
     handleResult(varName, possibleIntAddVars, nonIntAddVars);
 
-    collectingRHSVisitor.setLHS(lhs);
-    exp.accept(collectingRHSVisitor);
+    exp.accept(new CollectingRHSVisitor(lhs));
   }
 
   /** adds the variable to notPossibleVars, if possibleVars is null.  */
@@ -1078,19 +1071,16 @@ public class VariableClassification {
   }
 
   /** Returns a scoped name for a given IdExpression. */
-  private static String scopeVar(final CExpression exp) {
-    if(exp instanceof CIdExpression) {
-      return ((CIdExpression) exp).getDeclaration().getQualifiedName();
-    } else {
-      return exp.toASTString();
-    }
+  private static String scopeVar(final CIdExpression exp) {
+    return exp.getDeclaration().getQualifiedName();
   }
 
+  @Deprecated // for uses outside of this class, use getQualifiedName() of declarations
   public static String scopeVar(@Nullable final String function, final String var) {
     return (function == null) ? (var) : (function + SCOPE_SEPARATOR + var);
   }
 
-  public static boolean isGlobal(CExpression exp) {
+  private static boolean isGlobal(CExpression exp) {
     if (exp instanceof CIdExpression) {
       CSimpleDeclaration decl = ((CIdExpression) exp).getDeclaration();
       if (decl instanceof CDeclaration) { return ((CDeclaration) decl).isGlobal(); }
@@ -1098,8 +1088,8 @@ public class VariableClassification {
     return false;
   }
 
-  public static boolean isFunctionReturnVariable(final String var) {
-    return var != null && var.endsWith(FUNCTION_RETURN_VARIABLE);
+  public static String createFunctionReturnVariable(final String function) {
+    return function + SCOPE_SEPARATOR + FUNCTION_RETURN_VARIABLE;
   }
 
   /** returns the value of a (nested) IntegerLiteralExpression
@@ -1237,9 +1227,9 @@ public class VariableClassification {
     @Override
     public Set<String> visit(CFieldReference exp) {
       String varName = exp.toASTString(); // TODO "(*p).x" vs "p->x"
-      String function = isGlobal(exp) ? "" : predecessor.getFunctionName() + SCOPE_SEPARATOR;
+      String function = isGlobal(exp) ? "" : predecessor.getFunctionName();
       Set<String> ret = new HashSet<>(1);
-      ret.add(function + varName);
+      ret.add(scopeVar(function, varName));
       return ret;
     }
 
@@ -1607,8 +1597,7 @@ public class VariableClassification {
     @Override
     public VariableOrField visit(final CArraySubscriptExpression e) {
       final VariableOrField result = e.getArrayExpression().accept(this);
-      collectingRHSVisitor.setLHS(result);
-      e.getSubscriptExpression().accept(collectingRHSVisitor);
+      e.getSubscriptExpression().accept(new CollectingRHSVisitor(result));
       return result;
     }
 
@@ -1618,8 +1607,7 @@ public class VariableClassification {
       assignedFields.put(compositeType, e.getFieldName());
       final VariableOrField result = VariableOrField.newField(compositeType, e.getFieldName());
       if (e.isPointerDereference()) {
-        collectingRHSVisitor.setLHS(result);
-        e.getFieldOwner().accept(collectingRHSVisitor);
+        e.getFieldOwner().accept(new CollectingRHSVisitor(result));
       } else {
         e.getFieldOwner().accept(this);
       }
@@ -1628,8 +1616,7 @@ public class VariableClassification {
 
     @Override
     public VariableOrField visit(final CPointerExpression e) {
-      collectingRHSVisitor.setLHS(null);
-      e.getOperand().accept(collectingRHSVisitor);
+      e.getOperand().accept(new CollectingRHSVisitor(null));
       return null;
     }
 
@@ -1672,12 +1659,11 @@ public class VariableClassification {
 
   private class CollectingRHSVisitor extends DefaultCExpressionVisitor<Void, RuntimeException> {
 
-    public void setLHS(final VariableOrField lhs) {
-      this.lhs = lhs;
-    }
+    private final @Nullable VariableOrField lhs;
+    private boolean addressed = false;
 
-    public void setAddressed(final boolean addressed) {
-      this.addressed = addressed;
+    CollectingRHSVisitor(@Nullable VariableOrField pLhs) {
+      lhs = pLhs;
     }
 
     @Override
@@ -1704,9 +1690,9 @@ public class VariableClassification {
       if (e.getOperator() != UnaryOperator.AMPER) {
         return e.getOperand().accept(this);
       } else {
-        setAddressed(true);
+        addressed = true;
         e.getOperand().accept(this);
-        setAddressed(false);
+        addressed = false;
         return null;
       }
     }
@@ -1740,9 +1726,6 @@ public class VariableClassification {
     protected Void visitDefault(final CExpression e)  {
       return null;
     }
-
-    VariableOrField lhs = null;
-    boolean addressed = false;
   }
 
    /** A Partition is a Wrapper for a Collection of vars, values and edges.

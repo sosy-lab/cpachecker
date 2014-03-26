@@ -30,8 +30,8 @@ public class FunctionExitNode extends CFANode {
 
   private FunctionEntryNode entryNode;
 
-  public FunctionExitNode(int pLineNumber, String pFunctionName) {
-    super(pLineNumber, pFunctionName);
+  public FunctionExitNode(String pFunctionName) {
+    super(pFunctionName);
   }
 
   public void setEntryNode(FunctionEntryNode pEntryNode) {

@@ -37,8 +37,16 @@ public interface Reducer {
 
   Precision getVariableExpandedPrecision(Precision rootPrecision, Block rootContext, Precision reducedPrecision);
 
+  /** Returns a hashable object for the stateKey and the precisionKey.
+   * This object is used to identify elements in the
+   * {@link org.sosy_lab.cpachecker.cpa.bam.BAMCache.AbstractStateHash AbstractStateHash}. */
   Object getHashCodeForState(AbstractState stateKey, Precision precisionKey);
 
+  /** Returns a (non-negative) value for the difference between two precisions.
+   * This function is called for aggressive caching
+   * (see {@link org.sosy_lab.cpachecker.cpa.bam.BAMCache#get(AbstractState, Precision, Block) BAMCache.get}).
+   * A greater value indicates a bigger difference in the precision.
+   * If the implementation of this function is not important, return zero. */
   int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision);
 
   AbstractState getVariableReducedStateForProofChecking(AbstractState expandedState, Block context, CFANode callNode);
