@@ -380,11 +380,6 @@ public class CFASingleLoopTransformation {
       FunctionEntryNode entryNode = fce.getSuccessor();
       FunctionExitNode exitNode = entryNode.getExitNode();
       FunctionSummaryEdge oldSummaryEdge = fce.getSummaryEdge();
-      if (!existsPath(entryNode, exitNode, shutdownNotifier)) {
-        for (CFunctionSummaryStatementEdge edge : CFAUtils.leavingEdges(oldSummaryEdge.getPredecessor()).filter(CFunctionSummaryStatementEdge.class).toList()) {
-          removeFromNodes(edge);
-        }
-      }
       CFANode oldSummarySuccessor = fce.getSummaryEdge().getSuccessor();
       Integer pcValue = pNewSuccessorsToPC.inverse().get(oldSummarySuccessor);
       if (pcValue != null) {
@@ -1468,34 +1463,6 @@ public class CFASingleLoopTransformation {
     return Optional.of(loopNodes.isEmpty() || loopNodes.size() == 1 && !pSingleLoopHead.hasEdgeTo(pSingleLoopHead)
         ? ImmutableMultimap.<String, Loop>of()
         : ImmutableMultimap.<String, Loop>builder().put(loopFunction, new Loop(pSingleLoopHead, loopNodes)).build());
-  }
-
-  /**
-   * Checks if a path from the source to the target exists.
-   *
-   * @param pSource the search start node.
-   * @param pTarget the target.
-   * @param pShutdownNotifier the shutdown notifier to be checked.
-   *
-   * @return {@code true} if a path from the source to the target exists,
-   * {@code false} otherwise.
-   *
-   * @throws InterruptedException if a shutdown has been requested by the given
-   * shutdown notifier.
-   */
-  private static boolean existsPath(CFANode pSource, CFANode pTarget, ShutdownNotifier pShutdownNotifier) throws InterruptedException {
-    return existsPath(pSource, pTarget, new Function<CFANode, Iterable<? extends CFAEdge>>() {
-
-      @Override
-      @Nullable
-      public Iterable<? extends CFAEdge> apply(@Nullable CFANode pArg0) {
-        if (pArg0 == null) {
-          return Collections.emptySet();
-        }
-        return CFAUtils.leavingEdges(pArg0);
-      }
-
-    }, pShutdownNotifier);
   }
 
   /**
