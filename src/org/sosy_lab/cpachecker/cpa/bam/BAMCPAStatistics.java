@@ -64,7 +64,7 @@ class BAMCPAStatistics implements Statistics {
     BAMTransferRelation transferRelation = cpa.getTransferRelation();
     TimedReducer reducer = cpa.getReducer();
 
-    int sumCalls = transferRelation.cacheMisses + transferRelation.partialCacheHits + transferRelation.fullCacheHits;
+    int sumCalls = cache.cacheMisses + cache.partialCacheHits + cache.fullCacheHits;
 
     int sumARTElemets = 0;
     for (ReachedSet subreached : BAMARGUtils.gatherReachedSets(cpa, reached).values()) {
@@ -74,14 +74,14 @@ class BAMCPAStatistics implements Statistics {
     out.println("Total size of all ARGs:                                         " + sumARTElemets);
     out.println("Maximum block depth:                                            " + transferRelation.maxRecursiveDepth);
     out.println("Total number of recursive CPA calls:                            " + sumCalls);
-    out.println("  Number of cache misses:                                       " + transferRelation.cacheMisses + " (" + toPercent(transferRelation.cacheMisses, sumCalls) + " of all calls)");
-    out.println("  Number of partial cache hits:                                 " + transferRelation.partialCacheHits + " (" + toPercent(transferRelation.partialCacheHits, sumCalls) + " of all calls)");
-    out.println("  Number of full cache hits:                                    " + transferRelation.fullCacheHits + " (" + toPercent(transferRelation.fullCacheHits, sumCalls) + " of all calls)");
-    if (transferRelation.gatherCacheMissStatistics) {
+    out.println("  Number of cache misses:                                       " + cache.cacheMisses + " (" + toPercent(cache.cacheMisses, sumCalls) + " of all calls)");
+    out.println("  Number of partial cache hits:                                 " + cache.partialCacheHits + " (" + toPercent(cache.partialCacheHits, sumCalls) + " of all calls)");
+    out.println("  Number of full cache hits:                                    " + cache.fullCacheHits + " (" + toPercent(cache.fullCacheHits, sumCalls) + " of all calls)");
+    if (cache.gatherCacheMissStatistics) {
       out.println("Cause for cache misses:                                         ");
-      out.println("  Number of abstraction caused misses:                          " + cache.abstractionCausedMisses + " (" + toPercent(cache.abstractionCausedMisses, transferRelation.cacheMisses) + " of all misses)");
-      out.println("  Number of precision caused misses:                            " + cache.precisionCausedMisses + " (" + toPercent(cache.precisionCausedMisses, transferRelation.cacheMisses) + " of all misses)");
-      out.println("  Number of misses with no similar elements:                    " + cache.noSimilarCausedMisses + " (" + toPercent(cache.noSimilarCausedMisses, transferRelation.cacheMisses) + " of all misses)");
+      out.println("  Number of abstraction caused misses:                          " + cache.abstractionCausedMisses + " (" + toPercent(cache.abstractionCausedMisses, cache.cacheMisses) + " of all misses)");
+      out.println("  Number of precision caused misses:                            " + cache.precisionCausedMisses + " (" + toPercent(cache.precisionCausedMisses, cache.cacheMisses) + " of all misses)");
+      out.println("  Number of misses with no similar elements:                    " + cache.noSimilarCausedMisses + " (" + toPercent(cache.noSimilarCausedMisses, cache.cacheMisses) + " of all misses)");
     }
     out.println("Time for reducing abstract states:                            " + reducer.reduceTime + " (Calls: " + reducer.reduceTime.getNumberOfIntervals() + ")");
     out.println("Time for expanding abstract states:                           " + reducer.expandTime + " (Calls: " + reducer.expandTime.getNumberOfIntervals() + ")");

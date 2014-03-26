@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import com.google.common.base.Preconditions;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -25,9 +26,16 @@ public class BAMCache {
   @Option(description = "if enabled, cache queries also consider blocks with non-matching precision for reuse.")
   private boolean aggressiveCaching = true;
 
+  @Option(description = "if enabled, the reached set cache is analysed for each cache miss to find the cause of the miss.")
+  boolean gatherCacheMissStatistics = false;
+
   final Timer hashingTimer = new Timer();
   final Timer equalsTimer = new Timer();
   final Timer searchingTimer = new Timer();
+
+  int cacheMisses = 0;
+  int partialCacheHits = 0;
+  int fullCacheHits = 0;
 
   int abstractionCausedMisses = 0;
   int precisionCausedMisses = 0;
@@ -84,7 +92,36 @@ public class BAMCache {
     blockARGCache.remove(getHashCode(stateKey, precisionKey, context));
   }
 
-  public Pair<ReachedSet, Collection<AbstractState>> get(AbstractState stateKey, Precision precisionKey, Block context) {
+  /** This function returns a Pair of the reached-set and the returnStates for the given keys.
+   * Both members of the returned Pair are NULL, if there is a cache miss.
+   * For a partial cache hit we return the partly computed reached-set and NULL as returnStates. */
+  public Pair<ReachedSet, Collection<AbstractState>> get(final AbstractState stateKey, final Precision precisionKey, final Block context) {
+
+    final Pair<ReachedSet, Collection<AbstractState>> pair = get0(stateKey, precisionKey, context);
+    Preconditions.checkNotNull(pair);
+
+    // get some statistics
+    final ReachedSet reached = pair.getFirst();
+    final Collection<AbstractState> returnStates = pair.getSecond();
+
+    if (reached != null && returnStates != null) { // we have reached-set and elements
+      fullCacheHits++;
+    } else if (reached != null) { // we have cached a partly computed reached-set
+      partialCacheHits++;
+    } else if (reached == null && returnStates == null) {
+      cacheMisses++;
+    } else {
+      throw new AssertionError("invalid return-value for BAMCache.get(): " + pair);
+    }
+
+    if (gatherCacheMissStatistics) {
+      findCacheMissCause(stateKey, precisionKey, context);
+    }
+
+    return pair;
+  }
+
+  private Pair<ReachedSet, Collection<AbstractState>> get0(final AbstractState stateKey, final Precision precisionKey, final Block context) {
     AbstractStateHash hash = getHashCode(stateKey, precisionKey, context);
 
     ReachedSet result = preciseReachedCache.get(hash);
@@ -153,7 +190,7 @@ public class BAMCache {
     }
   }
 
-  public void findCacheMissCause(AbstractState pStateKey, Precision pPrecisionKey, Block pContext) {
+  private void findCacheMissCause(AbstractState pStateKey, Precision pPrecisionKey, Block pContext) {
     AbstractStateHash searchKey = getHashCode(pStateKey, pPrecisionKey, pContext);
     for (AbstractStateHash cacheKey : preciseReachedCache.keySet()) {
       assert !searchKey.equals(cacheKey);

@@ -115,12 +115,6 @@ public class BAMTransferRelation implements TransferRelation {
   private Map<Pair<ARGState, Block>, Collection<ARGState>> correctARGsForBlocks = null;
 
   //Stats
-  @Option(
-      description = "if enabled, the reached set cache is analysed for each cache miss to find the cause of the miss.")
-  boolean gatherCacheMissStatistics = false;
-  int cacheMisses = 0;
-  int partialCacheHits = 0;
-  int fullCacheHits = 0;
   int maxRecursiveDepth = 0;
 
   final Timer recomputeARTTimer = new Timer();
@@ -241,6 +235,7 @@ public class BAMTransferRelation implements TransferRelation {
 
         return attachAdditionalInfoToCallNodes(expandedResult);
       } else {
+        // we are in the middle ofa block, so just forward to wrapped CPAs
         List<AbstractState> result = new ArrayList<>();
         for (int i = 0; i < node.getNumLeavingEdges(); i++) {
           CFAEdge e = node.getLeavingEdge(i);
@@ -294,21 +289,12 @@ public class BAMTransferRelation implements TransferRelation {
 
       if (returnElements != null) {
         assert reached != null;
-        fullCacheHits++;
         return imbueAbstractStatesWithPrecision(reached, returnElements);
       }
 
-      if (reached != null) {
-        //at least we have partly computed reach set cached
-        partialCacheHits++;
-      } else {
-        //compute the subgraph specification from scratch
-        cacheMisses++;
-
-        if (gatherCacheMissStatistics) {
-          argCache.findCacheMissCause(reducedInitialState, reducedInitialPrecision, currentBlock);
-        }
-
+      if (reached == null) {
+        // we have not even cached a partly computed reach-set,
+        // so we must compute the subgraph specification from scratch
         reached = createInitialReachedSet(reducedInitialState, reducedInitialPrecision);
         argCache.put(reducedInitialState, reducedInitialPrecision, currentBlock, reached);
         abstractStateToReachedSet.put(initialState, reached);
