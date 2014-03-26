@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis;
 
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -77,7 +76,7 @@ public class CUTEBasicPathSelector implements TestGenPathAnalysisStrategy {
      * represents the current new valid path.
      */
     ARGPath newARGPath = new ARGPath();
-    Collections.copy(newARGPath, pExecutedPath);
+    newARGPath.addAll(pExecutedPath);
     PathInfo pathInfo = new PathInfo(newARGPath.size());
     //    ARGPath newARGPathView = Collections.unmodifiableList(newARGPath);
     /*
