@@ -80,7 +80,7 @@ public class TestGenStatistics implements Statistics {
     int locs = calculateTestedLocations();
 
     out.println("Number of CPA algorithm runs:         " + cpaAlgorithmCount);
-    out.println("Number locations coverd by testcases: " + locs);
+    out.println("Locations covered by testcases:       " + locs);
     out.println("Testcase location coverage:           " + StatisticsUtils.toPercent(locs, cfa.getAllNodes().size()));
 
     if (cpaAlgorithmCount > 0) {
