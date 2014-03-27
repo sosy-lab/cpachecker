@@ -38,8 +38,8 @@ import java.util.logging.Level;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 
-import com.google.appengine.labs.repackaged.com.google.common.collect.ImmutableList;
 import com.google.common.base.Charsets;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 /**
