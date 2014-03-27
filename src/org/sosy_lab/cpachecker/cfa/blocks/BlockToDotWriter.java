@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.blocks;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -32,8 +33,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import org.sosy_lab.common.io.Files;
@@ -72,9 +73,18 @@ public class BlockToDotWriter {
     // get hierarchy, Multimap of <outer block, inner blocks>
     final Multimap<Block, Block> hierarchy = getHierarchy();
 
-    // dump
     app.append("digraph " + "blocked_CFA" + " {\n");
-    dumpBlock(app, new HashSet<CFANode>(), blockPartitioning.getMainBlock(), hierarchy);
+    final List<CFAEdge> edges = new ArrayList<>();
+
+    // dump nodes of all blocks
+    dumpBlock(app, new HashSet<CFANode>(), blockPartitioning.getMainBlock(), hierarchy, edges);
+
+    // we have to dump edges after the nodes and sub-graphs,
+    // because Dot generates wrong graphs for edges from an inner block to an outer block.
+    for (CFAEdge edge : edges) {
+      app.append(formatEdge(edge));
+    }
+
     app.append("}");
   }
 
@@ -115,8 +125,9 @@ public class BlockToDotWriter {
   }
 
   /** Dump the current block and all innerblocks of it. */
-  private void dumpBlock(Appendable app, Set<CFANode> finished,
-                         Block block, Multimap<Block, Block> hierarchy) throws IOException {
+  private void dumpBlock(final Appendable app, final Set<CFANode> finished,
+                         final Block block, final Multimap<Block, Block> hierarchy,
+                         final List<CFAEdge> edges) throws IOException {
     // todo use some block-identifier instead of index as blockname?
     String blockname = (block == blockPartitioning.getMainBlock()) ? "main_block" : "block_" + (blockIndex++);
     app.append("subgraph cluster_" + blockname + " {\n");
@@ -124,31 +135,18 @@ public class BlockToDotWriter {
 
     // dump inner blocks
     for (Block innerBlock : hierarchy.get(block)) {
-      dumpBlock(app, finished, innerBlock, hierarchy);
+      dumpBlock(app, finished, innerBlock, hierarchy, edges);
     }
-
-    // we have to add those edges later, because dot generates wrong graphs,if the edge is inside the block.
-    Set<String> edgesToOuterBlock = new HashSet<>();
 
     // dump nodes,that are in current block and not in inner blocks (nodes of inner blocks are 'finished')
     for (CFANode node : block.getNodes()) {
-      if (!finished.add(node)) {
-        continue;
-      }
-      app.append(formatNode(node));
-      for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
-        String edgeStr = formatEdge(edge);
-        if (block.getNodes().contains(edge.getSuccessor())) {
-          app.append(edgeStr);
-        } else {
-          edgesToOuterBlock.add(edgeStr);
-        }
+      if (finished.add(node)) {
+        app.append(formatNode(node));
+        Iterables.addAll(edges, CFAUtils.leavingEdges(node));
       }
     }
 
     app.append("}\n");
-    Joiner.on('\n').appendTo(app, edgesToOuterBlock);
-    app.append("\n");
   }
 
   private String formatNode(CFANode node) {
