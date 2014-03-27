@@ -50,7 +50,7 @@
   <target name="update-contrib" if="ivy.contrib.present">
     <antcall target="install-contrib"/>
    </target>
-  <target name="install-contrib" depends="load-ivy" description="Retrieve sources and docs for external libraries." unless="ivy.disable">
+  <target name="install-contrib" depends="load-ivy, cpachecker-install-contrib" description="Retrieve sources and docs for external libraries." unless="ivy.disable">
     <ivy:resolve file="lib/ivy-gae.xml" conf="contrib" log="download-only"/>
     <ivy:retrieve sync="true" pattern="${lib.dir.gae}-contrib/[artifact](-[classifier]).[ext]"/>
    </target>
@@ -128,7 +128,7 @@
     </copy>
   </target>
 
-  <target name="build" depends="resolve-dependencies,getsdk,unzipsdk,copy-jars,copy-specifications,copy-configurations,create-version-files,build-subprojects" description="Builds the project.">
+  <target name="build" depends="resolve-dependencies,getsdk,unzipsdk,copy-jars,copy-specifications,copy-configurations,create-version-file-exact,build-subprojects" description="Builds the project.">
     <copy todir="${class.dir}">
       <fileset dir="${source.dir}">
         <exclude name="**/*.java" />
@@ -171,12 +171,5 @@
         <arg value="--oauth2"/>
       </options>
     </appcfg>
-  </target>
-
-  <target name="create-version-files" depends="cpachecker-create-version-file" description="Creates files containing the respective versions of CPAchecker and CPAchecker on GAE.">
-    <exec executable="svnversion" outputproperty="gae.version" failonerror="false" failifexecutionfails="false" logError="false" error="/dev/null">
-      <env key="LANG" value="C" />
-    </exec>
-    <echo message="${gae.version}" file="${war.dir}/WEB-INF/VERSION.txt" />
   </target>
 </project>
