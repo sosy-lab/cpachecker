@@ -504,6 +504,9 @@ cpa.bam.aggressiveCaching = true
 # or any class that implements a PartitioningHeuristic
 cpa.bam.blockHeuristic = FunctionAndLoopPartitioning.class
 
+# export blocks
+cpa.bam.exportBlocksPath = "block_cfa.dot"
+
 # if enabled, the reached set cache is analysed for each cache miss to find
 # the cause of the miss.
 cpa.bam.gatherCacheMissStatistics = false
