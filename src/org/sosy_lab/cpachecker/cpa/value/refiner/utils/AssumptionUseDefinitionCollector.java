@@ -107,6 +107,12 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
       collectVariables(edge, collectedVariables);
     }
 
+    // add the remaining depending variables to the set of collectedVariables
+    // for full paths, the depending variables should always be empty at this point
+    // but sometimes, the use-def information is derived from incomplete paths,
+    // and then, it can happen that not all depending variables are consumed
+    collectedVariables.addAll(dependingVariables);
+
     return collectedVariables;
   }
 
