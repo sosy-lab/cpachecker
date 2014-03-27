@@ -55,22 +55,32 @@
     <ivy:retrieve sync="true" pattern="${lib.dir.gae}-contrib/[artifact](-[classifier]).[ext]"/>
    </target>
 
-  <target name="tests" depends="build" description="Runs all JUnit tests.">
-    <property name="test.report.dir" value="output" />
-    <mkdir dir="${test.report.dir}" />
-    <junit fork="true" printSummary="true" showOutput="false" haltonfailure="true">
+  <target description="Run all tests" depends="unit-tests" name="tests"/>
+
+  <target description="Run all JUnit tests" depends="build" name="unit-tests">
+    <mkdir dir="${test.report.dir}"/>
+    <junit fork="true" printSummary="true" showOutput="false" failureproperty="junit.failed" timeout="100000">
       <assertions>
         <enable />
       </assertions>
-      <formatter type="plain" />
-      <classpath refid="gae.classpath" />
+      <formatter type="plain"/>
+      <formatter type="xml"/>
+      <classpath refid="gae.classpath"/>
       <batchtest fork="true" todir="${test.report.dir}">
         <fileset dir="${class.dir}">
           <include name="**/appengine/**/*Test.*" />
-          <exclude name="**/*$*Test.*" />
+          <exclude name="**/*$*Test.*"/>
         </fileset>
       </batchtest>
     </junit>
+    <junitreport todir="${test.report.dir}">
+      <fileset dir="${test.report.dir}">
+        <include name="TEST-*.xml" />
+      </fileset>
+      <report format="noframes" />
+    </junitreport>
+    <move file="junit-noframes.html" tofile="JUnit.html"/>
+    <fail if="junit.failed" message="JUnit tests failed, look at JUnit.html"/>
   </target>
 
   <target name="getsdk" description="Downloads the Google App Engine SDK.">
