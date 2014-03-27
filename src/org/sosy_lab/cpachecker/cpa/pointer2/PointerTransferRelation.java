@@ -27,10 +27,9 @@ import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-
-import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -41,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -78,14 +76,10 @@ import org.sosy_lab.cpachecker.cpa.pointer2.util.Location;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSetBot;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSetTop;
-import org.sosy_lab.cpachecker.cpa.pointer2.util.Struct;
-import org.sosy_lab.cpachecker.cpa.pointer2.util.Union;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.Variable;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 
@@ -152,23 +146,20 @@ public enum PointerTransferRelation implements TransferRelation {
 
       Type type = formalParam.getType();
       final Location location;
-      if (type.toString().startsWith("struct ")) {
-        location = new Variable(type.toString());
-      } else if (type.toString().startsWith("union ")) {
+      if (type.toString().startsWith("struct ") || type.toString().startsWith("union ")) {
         location = new Variable(type.toString());
       } else {
         location = new Variable(formalParam.getQualifiedName());
+      } {
+        newState = handleAssignment(pState, pPrecision, location, asLocations(actualParam, pState, 1));
       }
-      newState = handleAssignment(pState, pPrecision, location, getLocationsOf(pState, actualParam));
     }
 
     // Handle remaining formal parameters where no actual argument was provided
     for (CParameterDeclaration formalParam : FluentIterable.from(formalParams).skip(limit)) {
       Type type = formalParam.getType();
       final Location location;
-      if (type.toString().startsWith("struct ")) {
-        location = new Variable(type.toString());
-      } else if (type.toString().startsWith("union ")) {
+      if (type.toString().startsWith("struct ") || type.toString().startsWith("union ")) {
         location = new Variable(type.toString());
       } else {
         location = new Variable(formalParam.getQualifiedName());
@@ -188,11 +179,8 @@ public enum PointerTransferRelation implements TransferRelation {
   }
 
   private PointerState handleAssignment(PointerState pState, Precision pPrecision, CExpression pLeftHandSide, CRightHandSide pRightHandSide) throws UnrecognizedCCodeException {
-    Iterable<Location> locations = asLocations(pLeftHandSide, pState);
-    if (locations != null) {
-      return handleAssignment(pState, pPrecision, locations, pRightHandSide);
-    }
-    return handleAssignment(pState, pPrecision, LocationSetTop.INSTANCE, pRightHandSide);
+    LocationSet locations = asLocations(pLeftHandSide, pState, 0);
+    return handleAssignment(pState, pPrecision, locations, pRightHandSide);
   }
 
   private PointerState handleAssignment(PointerState pState, Precision pPrecision, LocationSet pLocationSet,
@@ -213,17 +201,9 @@ public enum PointerTransferRelation implements TransferRelation {
     return result;
   }
 
-  private PointerState handleAssignment(PointerState pState, Precision pPrecision, Iterable<Location> pLeftHandSide, CRightHandSide pRightHandSide) throws UnrecognizedCCodeException {
-    PointerState result = pState;
-    for (Location lhsLocation : pLeftHandSide) {
-      result = handleAssignment(result, pPrecision, lhsLocation, pRightHandSide);
-    }
-    return result;
-  }
-
   private PointerState handleAssignment(PointerState pState, Precision pPrecision, Location pLhsLocation,
       CRightHandSide pRightHandSide) throws UnrecognizedCCodeException {
-    return pState.addPointsToInformation(pLhsLocation, getLocationsOf(pState, pRightHandSide));
+    return pState.addPointsToInformation(pLhsLocation, asLocations(pRightHandSide, pState, 1));
   }
 
   private PointerState handleAssignment(PointerState pState, Precision pPrecision, Location pLeftHandSide, LocationSet pRightHandSide) throws UnrecognizedCCodeException {
@@ -242,87 +222,87 @@ public enum PointerTransferRelation implements TransferRelation {
 
         @Override
         public LocationSet visit(CBinaryExpression pIastBinaryExpression) throws UnrecognizedCCodeException {
-          return getLocationsOf(pState, pIastBinaryExpression);
+          return asLocations(pIastBinaryExpression, pState, 1);
         }
 
         @Override
         public LocationSet visit(CCastExpression pIastCastExpression) throws UnrecognizedCCodeException {
-          return getLocationsOf(pState, pIastCastExpression);
+          return asLocations(pIastCastExpression, pState, 1);
         }
 
         @Override
         public LocationSet visit(CCharLiteralExpression pIastCharLiteralExpression) throws UnrecognizedCCodeException {
-          return getLocationsOf(pState, pIastCharLiteralExpression);
+          return asLocations(pIastCharLiteralExpression, pState, 1);
         }
 
         @Override
         public LocationSet visit(CFloatLiteralExpression pIastFloatLiteralExpression)
             throws UnrecognizedCCodeException {
-          return getLocationsOf(pState, pIastFloatLiteralExpression);
+          return asLocations(pIastFloatLiteralExpression, pState, 1);
         }
 
         @Override
         public LocationSet visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
             throws UnrecognizedCCodeException {
-          return getLocationsOf(pState, pIastIntegerLiteralExpression);
+          return asLocations(pIastIntegerLiteralExpression, pState, 1);
         }
 
         @Override
         public LocationSet visit(CStringLiteralExpression pIastStringLiteralExpression)
             throws UnrecognizedCCodeException {
-          return getLocationsOf(pState, pIastStringLiteralExpression);
+          return asLocations(pIastStringLiteralExpression, pState, 1);
         }
 
         @Override
         public LocationSet visit(CTypeIdExpression pIastTypeIdExpression) throws UnrecognizedCCodeException {
-          return getLocationsOf(pState, pIastTypeIdExpression);
+          return asLocations(pIastTypeIdExpression, pState, 1);
         }
 
         @Override
         public LocationSet visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression)
             throws UnrecognizedCCodeException {
-          return getLocationsOf(pState, pCTypeIdInitializerExpression);
+          return asLocations(pCTypeIdInitializerExpression, pState, 1);
         }
 
         @Override
         public LocationSet visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCCodeException {
-          return getLocationsOf(pState, pIastUnaryExpression);
+          return asLocations(pIastUnaryExpression, pState, 1);
         }
 
         @Override
         public LocationSet visit(CImaginaryLiteralExpression pIastLiteralExpression) throws UnrecognizedCCodeException {
-          return getLocationsOf(pState, pIastLiteralExpression);
+          return asLocations(pIastLiteralExpression, pState, 1);
         }
 
         @Override
         public LocationSet visit(CArraySubscriptExpression pIastArraySubscriptExpression)
             throws UnrecognizedCCodeException {
-          return getLocationsOf(pState, pIastArraySubscriptExpression);
+          return asLocations(pIastArraySubscriptExpression, pState, 1);
         }
 
         @Override
         public LocationSet visit(CFieldReference pIastFieldReference) throws UnrecognizedCCodeException {
-          return getLocationsOf(pState, pIastFieldReference);
+          return asLocations(pIastFieldReference, pState, 1);
         }
 
         @Override
         public LocationSet visit(CIdExpression pIastIdExpression) throws UnrecognizedCCodeException {
-          return getLocationsOf(pState, pIastIdExpression);
+          return asLocations(pIastIdExpression, pState, 1);
         }
 
         @Override
         public LocationSet visit(CPointerExpression pPointerExpression) throws UnrecognizedCCodeException {
-          return getLocationsOf(pState, pPointerExpression);
+          return asLocations(pPointerExpression, pState, 1);
         }
 
         @Override
         public LocationSet visit(CComplexCastExpression pComplexCastExpression) throws UnrecognizedCCodeException {
-          return getLocationsOf(pState, pComplexCastExpression);
+          return asLocations(pComplexCastExpression, pState, 1);
         }
 
         @Override
         public LocationSet visit(CInitializerExpression pInitializerExpression) throws UnrecognizedCCodeException {
-          return getLocationsOf(pState, pInitializerExpression.getExpression());
+          return asLocations(pInitializerExpression.getExpression(), pState, 1);
         }
 
         @Override
@@ -338,9 +318,7 @@ public enum PointerTransferRelation implements TransferRelation {
       });
 
       final Location location;
-      if (type.toString().startsWith("struct ")) {
-        location = new Variable(type.toString());
-      } else if (type.toString().startsWith("union ")) {
+      if (type.toString().startsWith("struct ") || type.toString().startsWith("union ")) {
         location = new Variable(type.toString());
       } else {
         location = new Variable(declaration.getQualifiedName());
@@ -351,21 +329,35 @@ public enum PointerTransferRelation implements TransferRelation {
     return pState;
   }
 
-  private static Iterable<Location> asLocations(final CExpression pExpression, final PointerState pState, final int pDerefCounter) throws UnrecognizedCCodeException {
-    return pExpression.accept(new CExpressionVisitor<Iterable<Location>, UnrecognizedCCodeException>() {
+  private static LocationSet toLocationSet(Iterable<? extends Location> pLocations) {
+    if (pLocations == null) {
+      return LocationSetTop.INSTANCE;
+    }
+    Iterator<? extends Location> locationIterator = pLocations.iterator();
+    if (!locationIterator.hasNext()) {
+      return LocationSetBot.INSTANCE;
+    }
+    return ExplicitLocationSet.from(pLocations);
+  }
+
+  private static LocationSet asLocations(final CRightHandSide pExpression, final PointerState pState, final int pDerefCounter) throws UnrecognizedCCodeException {
+    return pExpression.accept(new CRightHandSideVisitor<LocationSet, UnrecognizedCCodeException>() {
 
       @Override
-      public Iterable<Location> visit(CArraySubscriptExpression pIastArraySubscriptExpression)
+      public LocationSet visit(CArraySubscriptExpression pIastArraySubscriptExpression)
           throws UnrecognizedCCodeException {
         if (pIastArraySubscriptExpression.getSubscriptExpression() instanceof CLiteralExpression) {
           CLiteralExpression literal = (CLiteralExpression) pIastArraySubscriptExpression.getSubscriptExpression();
           if (literal instanceof CIntegerLiteralExpression && ((CIntegerLiteralExpression) literal).getValue().equals(BigInteger.ZERO)) {
-            Iterable<Location> starredLocations = asLocations(pIastArraySubscriptExpression.getArrayExpression(), pState, pDerefCounter);
-            if (starredLocations == null) {
-              return Collections.emptySet();
+            LocationSet starredLocations = asLocations(pIastArraySubscriptExpression.getArrayExpression(), pState, pDerefCounter);
+            if (starredLocations.isBot() || starredLocations.isTop()) {
+              return starredLocations;
+            }
+            if (!(starredLocations instanceof ExplicitLocationSet)) {
+              return LocationSetTop.INSTANCE;
             }
             Set<Location> result = new HashSet<>();
-            for (Location location : starredLocations) {
+            for (Location location : ((ExplicitLocationSet) starredLocations).getElements()) {
               LocationSet pointsToSet = pState.getPointsToSet(location);
               if (pointsToSet.isTop()) {
                 for (Location loc : pState.getKnownLocations()) {
@@ -377,60 +369,27 @@ public enum PointerTransferRelation implements TransferRelation {
                 result.addAll(explicitLocationSet.getElements());
               }
             }
-            return result;
+            return toLocationSet(result);
           }
         }
-        return Collections.emptySet();
+        return LocationSetTop.INSTANCE;
       }
 
       @Override
-      public Iterable<Location> visit(final CFieldReference pIastFieldReference) throws UnrecognizedCCodeException {
-        Collection<Location> locations = new HashSet<>();
-        int derefCounter = pDerefCounter;
-        if (pIastFieldReference.isPointerDereference()) {
-          ++derefCounter;
-        }
-        Iterable<Location> ownerLocations = asLocations(pIastFieldReference.getFieldOwner(), pState, derefCounter);
-        if (ownerLocations != null) {
-          Iterables.addAll(locations, FluentIterable.from(ownerLocations).transform(new Function<Location, Location>() {
-
-            @Override
-            public Location apply(@Nullable Location pInput) {
-              if (pInput == null) {
-                return null;
-              }
-              return new Variable(pInput.getId()  + "." + pIastFieldReference.getFieldName());
-            }
-
-          }).filter(Predicates.notNull()));
-        }
-        if (pIastFieldReference.isPointerDereference()) {
-          ownerLocations = asLocations(pIastFieldReference.getFieldOwner(), pState, pDerefCounter);
-          if (ownerLocations != null) {
-            Iterables.addAll(locations, FluentIterable.from(ownerLocations).transform(new Function<Location, Location>() {
-
-              @Override
-              public Location apply(@Nullable Location pInput) {
-                if (pInput == null) {
-                  return null;
-                }
-                return new Variable(pInput.getId()  + "->" + pIastFieldReference.getFieldName());
-              }
-
-            }).filter(Predicates.notNull()));
-          }
-        }
-        return locations;
+      public LocationSet visit(final CFieldReference pIastFieldReference) throws UnrecognizedCCodeException {
+        Type type = pIastFieldReference.getFieldOwner().getExpressionType();
+        String prefix = type.toString();
+        String infix = pIastFieldReference.isPointerDereference() ? "->" : ".";
+        String suffix = pIastFieldReference.getFieldName();
+        return toLocationSet(Collections.singleton(new Variable(prefix + infix + suffix)));
       }
 
       @Override
-      public Iterable<Location> visit(CIdExpression pIastIdExpression) throws UnrecognizedCCodeException {
+      public LocationSet visit(CIdExpression pIastIdExpression) throws UnrecognizedCCodeException {
         Type type = pIastIdExpression.getExpressionType();
         Collection<Location> result;
-        if (type.toString().startsWith("struct ")) {
-          result = Collections.<Location>singleton(new Struct(type.toString()));
-        } else if (type.toString().startsWith("union ")) {
-          result = Collections.<Location>singleton(new Union(type.toString()));
+        if (type.toString().startsWith("struct ") || type.toString().startsWith("union ")) {
+          result = Collections.<Location>singleton(new Variable(type.toString()));
         } else {
           CSimpleDeclaration declaration = pIastIdExpression.getDeclaration();
           if (declaration != null) {
@@ -443,236 +402,123 @@ public enum PointerTransferRelation implements TransferRelation {
           Collection<Location> newResult = new HashSet<>();
           for (Location location : result) {
             LocationSet targets = pState.getPointsToSet(location);
-            if (targets.isTop()) {
-              return Collections.emptySet();
+            if (targets.isTop() || targets.isBot()) {
+              return targets;
             }
-            if (!targets.isBot() && targets instanceof ExplicitLocationSet) {
-              newResult.addAll(((ExplicitLocationSet) targets).getElements());
+            if (!(targets instanceof ExplicitLocationSet)) {
+              return LocationSetTop.INSTANCE;
             }
+            newResult.addAll(((ExplicitLocationSet) targets).getElements());
           }
           result = newResult;
         }
-        return result;
+        return toLocationSet(result);
       }
 
       @Override
-      public Iterable<Location> visit(CPointerExpression pPointerExpression) throws UnrecognizedCCodeException {
+      public LocationSet visit(CPointerExpression pPointerExpression) throws UnrecognizedCCodeException {
         return asLocations(pPointerExpression.getOperand(), pState, pDerefCounter + 1);
       }
 
       @Override
-      public Iterable<Location> visit(CComplexCastExpression pComplexCastExpression) throws UnrecognizedCCodeException {
+      public LocationSet visit(CComplexCastExpression pComplexCastExpression) throws UnrecognizedCCodeException {
         return asLocations(pComplexCastExpression.getOperand(), pState, pDerefCounter);
       }
 
       @Override
-      public Iterable<Location> visit(CBinaryExpression pIastBinaryExpression) throws UnrecognizedCCodeException {
-        return FluentIterable.from(Iterables.concat(
-            asLocations(pIastBinaryExpression.getOperand1(), pState, pDerefCounter),
-            asLocations(pIastBinaryExpression.getOperand2(), pState, pDerefCounter))).toSet();
-        //return Collections.emptySet();
+      public LocationSet visit(CBinaryExpression pIastBinaryExpression) throws UnrecognizedCCodeException {
+        return toLocationSet(Iterables.concat(
+            toNormalSet(pState, asLocations(pIastBinaryExpression.getOperand1(), pState, pDerefCounter)),
+            toNormalSet(pState, asLocations(pIastBinaryExpression.getOperand2(), pState, pDerefCounter))));
       }
 
       @Override
-      public Iterable<Location> visit(CCastExpression pIastCastExpression) throws UnrecognizedCCodeException {
+      public LocationSet visit(CCastExpression pIastCastExpression) throws UnrecognizedCCodeException {
         return asLocations(pIastCastExpression.getOperand(), pState, pDerefCounter);
       }
 
       @Override
-      public Iterable<Location> visit(CCharLiteralExpression pIastCharLiteralExpression)
+      public LocationSet visit(CCharLiteralExpression pIastCharLiteralExpression)
           throws UnrecognizedCCodeException {
-        return Collections.emptySet();
+        return LocationSetBot.INSTANCE;
       }
 
       @Override
-      public Iterable<Location> visit(CFloatLiteralExpression pIastFloatLiteralExpression)
+      public LocationSet visit(CFloatLiteralExpression pIastFloatLiteralExpression)
           throws UnrecognizedCCodeException {
-        return Collections.emptySet();
+        return LocationSetBot.INSTANCE;
       }
 
       @Override
-      public Iterable<Location> visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
+      public LocationSet visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
           throws UnrecognizedCCodeException {
-        return Collections.emptySet();
+        return LocationSetBot.INSTANCE;
       }
 
       @Override
-      public Iterable<Location> visit(CStringLiteralExpression pIastStringLiteralExpression)
+      public LocationSet visit(CStringLiteralExpression pIastStringLiteralExpression)
           throws UnrecognizedCCodeException {
-        return Collections.emptySet();
+        return LocationSetBot.INSTANCE;
       }
 
       @Override
-      public Iterable<Location> visit(CTypeIdExpression pIastTypeIdExpression) throws UnrecognizedCCodeException {
-        return Collections.emptySet();
+      public LocationSet visit(CTypeIdExpression pIastTypeIdExpression) throws UnrecognizedCCodeException {
+        return LocationSetBot.INSTANCE;
       }
 
       @Override
-      public Iterable<Location> visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression)
+      public LocationSet visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression)
           throws UnrecognizedCCodeException {
-        return Collections.emptySet();
+        return LocationSetBot.INSTANCE;
       }
 
       @Override
-      public Iterable<Location> visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCCodeException {
+      public LocationSet visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCCodeException {
         if (pDerefCounter > 0 && pIastUnaryExpression.getOperator() == UnaryOperator.AMPER) {
           return asLocations(pIastUnaryExpression.getOperand(), pState, pDerefCounter - 1);
         }
-        return Collections.emptySet();
+        return LocationSetBot.INSTANCE;
       }
 
       @Override
-      public Iterable<Location> visit(CImaginaryLiteralExpression PIastLiteralExpression)
+      public LocationSet visit(CImaginaryLiteralExpression PIastLiteralExpression)
           throws UnrecognizedCCodeException {
-        return Collections.emptySet();
+        return LocationSetBot.INSTANCE;
+      }
+
+      @Override
+      public LocationSet visit(CFunctionCallExpression pIastFunctionCallExpression)
+          throws UnrecognizedCCodeException {
+        return LocationSetTop.INSTANCE;
       }});
   }
 
-  public static Iterable<Location> asLocations(CExpression pExpression, final PointerState pState) throws UnrecognizedCCodeException {
-    return asLocations(pExpression, pState, 0);
-  }
-
   /**
-   * Gets the set of possible locations the expression value may point to. For the expression 'x', the
-   * location is the points-to set of x. For the expression 's.a' the location is the points-to set of
-   * t.a, where t is the type of s. For the expression '*p', the possible locations are the sum of the
-   * points-to sets of locations the value of p points to. For '&v', the location is v.
+   * Gets the set of possible locations of the given expression. For the expression 'x', the
+   * location is the identifier x. For the expression 's.a' the location is the identifier
+   * t.a, where t is the type of s. For the expression '*p', the possible locations are the
+   * points-to set of locations the expression 'p'.
    *
    * @param pState
    * @param pExpression
    * @return
    * @throws UnrecognizedCCodeException
    */
-  private static LocationSet getLocationsOf(final PointerState pState, CRightHandSide pExpression) throws UnrecognizedCCodeException {
-    return pExpression.accept(new CRightHandSideVisitor<LocationSet, UnrecognizedCCodeException>() {
+  public static LocationSet asLocations(CExpression pExpression, final PointerState pState) throws UnrecognizedCCodeException {
+    return asLocations(pExpression, pState, 0);
+  }
 
-      @Override
-      public LocationSet visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws UnrecognizedCCodeException {
-        return LocationSetTop.INSTANCE;
-      }
-
-      @Override
-      public LocationSet visit(final CFieldReference pIastFieldReference) throws UnrecognizedCCodeException {
-        Iterable<Location> fieldReferenceAsLocations = asLocations(pIastFieldReference, pState);
-        if (fieldReferenceAsLocations == null) {
-          return LocationSetTop.INSTANCE;
-        }
-        LocationSet result = LocationSetBot.INSTANCE;
-        for (Location fieldReferenceAsLocation : fieldReferenceAsLocations) {
-          result = result.addElements(pState.getPointsToSet(fieldReferenceAsLocation));
-        }
-        return result;
-      }
-
-      @Override
-      public LocationSet visit(CIdExpression pIastIdExpression) throws UnrecognizedCCodeException {
-        Iterable<Location> isAsLocations = asLocations(pIastIdExpression, pState);
-        if (isAsLocations == null) {
-          return LocationSetTop.INSTANCE;
-        }
-        LocationSet result = LocationSetBot.INSTANCE;
-        for (Location isAsLocation : isAsLocations) {
-          result = result.addElements(pState.getPointsToSet(isAsLocation));
-        }
-        return result;
-      }
-
-      @Override
-      public LocationSet visit(CPointerExpression pPointerExpression) throws UnrecognizedCCodeException {
-        LocationSet variableLocations = getLocationsOf(pState, pPointerExpression.getOperand());
-        if (variableLocations.isTop()) {
-          return LocationSetTop.INSTANCE;
-        } else if (variableLocations.isBot()) {
-          return LocationSetBot.INSTANCE;
-        }
-        ExplicitLocationSet explicitLocationSet = (ExplicitLocationSet) variableLocations;
-        LocationSet result = LocationSetBot.INSTANCE;
-        for (Location pointerVariableLocation : explicitLocationSet.getElements()) {
-          result = result.addElements(pState.getPointsToSet(pointerVariableLocation));
-        }
-        return result;
-      }
-
-      @Override
-      public LocationSet visit(CComplexCastExpression pComplexCastExpression) throws UnrecognizedCCodeException {
-        return pComplexCastExpression.getOperand().accept(this);
-      }
-
-      @Override
-      public LocationSet visit(CBinaryExpression pIastBinaryExpression) throws UnrecognizedCCodeException {
-        return LocationSetTop.INSTANCE;
-      }
-
-      @Override
-      public LocationSet visit(CCastExpression pIastCastExpression) throws UnrecognizedCCodeException {
-        return pIastCastExpression.getOperand().accept(this);
-      }
-
-      @Override
-      public LocationSet visit(CCharLiteralExpression pIastCharLiteralExpression) throws UnrecognizedCCodeException {
-        return LocationSetTop.INSTANCE;
-      }
-
-      @Override
-      public LocationSet visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws UnrecognizedCCodeException {
-        return LocationSetTop.INSTANCE;
-      }
-
-      @Override
-      public LocationSet visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) throws UnrecognizedCCodeException {
-        return LocationSetTop.INSTANCE;
-      }
-
-      @Override
-      public LocationSet visit(CStringLiteralExpression pIastStringLiteralExpression) throws UnrecognizedCCodeException {
-        return LocationSetTop.INSTANCE;
-      }
-
-      @Override
-      public LocationSet visit(CTypeIdExpression pIastTypeIdExpression) throws UnrecognizedCCodeException {
-        return LocationSetTop.INSTANCE;
-      }
-
-      @Override
-      public LocationSet visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression) throws UnrecognizedCCodeException {
-        return LocationSetTop.INSTANCE;
-      }
-
-      @Override
-      public LocationSet visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCCodeException {
-        if (pIastUnaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
-          // For '&x', the location the value of the expression points to is x
-          CExpression target = pIastUnaryExpression.getOperand();
-          if (target instanceof CIdExpression) {
-            CIdExpression idExpression = (CIdExpression) target;
-            Type type = pIastUnaryExpression.getExpressionType();
-            if (type.toString().startsWith("struct ")) {
-              return ExplicitLocationSet.from(new Struct(type.toString()));
-            }
-            if (type.toString().startsWith("union ")) {
-              return ExplicitLocationSet.from(new Union(type.toString()));
-            }
-            CSimpleDeclaration declaration = idExpression.getDeclaration();
-            if (declaration != null) {
-              return ExplicitLocationSet.from((new Variable(declaration.getQualifiedName())));
-            }
-            return ExplicitLocationSet.from(new Variable(idExpression.getName()));
-          }
-        }
-        return LocationSetTop.INSTANCE;
-      }
-
-      @Override
-      public LocationSet visit(CImaginaryLiteralExpression pIastLiteralExpression) throws UnrecognizedCCodeException {
-        return LocationSetTop.INSTANCE;
-      }
-
-      @Override
-      public LocationSet visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
-        return LocationSetTop.INSTANCE;
-      }
-
-    });
+  public static Set<Location> toNormalSet(PointerState pState, LocationSet pLocationSet) {
+    if (pLocationSet.isBot()) {
+      return Collections.emptySet();
+    }
+    Set<Location> result = new HashSet<>();
+    if (pLocationSet.isTop() || !(pLocationSet instanceof ExplicitLocationSet)) {
+      Iterables.addAll(result, pState.getKnownLocations());
+    } else {
+      Iterables.addAll(result, ((ExplicitLocationSet) pLocationSet).getElements());
+    }
+    return result;
   }
 
   @Override

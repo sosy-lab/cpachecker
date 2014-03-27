@@ -78,13 +78,13 @@ public class ExplicitLocationSet implements LocationSet {
     return result;
   }
 
-  public static LocationSet from(Set<Location> pElements) {
+  public static LocationSet from(Set<? extends Location> pElements) {
     ExplicitLocationSet result = new ExplicitLocationSet();
     result.explicitSet.addAll(pElements);
     return result;
   }
 
-  public static LocationSet from(Iterable<Location> pElements) {
+  public static LocationSet from(Iterable<? extends Location> pElements) {
     ExplicitLocationSet result = new ExplicitLocationSet();
     for (Location element : pElements) {
       result.explicitSet.add(element);
