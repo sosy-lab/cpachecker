@@ -35,8 +35,8 @@
       <include name="**/*.jar" />
     </fileset>
     <fileset dir="${gae-sdk.dir}/lib">
-      <include name="shared/**/*.jar" />
-      <include name="impl/appengine-api*.jar" />
+      <include name="shared/servlet-api.jar" />
+      <include name="impl/appengine-api.jar" />
       <include name="testing/appengine-testing.jar" />
     </fileset>
   </path>
