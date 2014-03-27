@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.logging.Level;
 
+import com.google.common.collect.Iterables;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -107,7 +108,6 @@ public class BAMTransferRelation implements TransferRelation {
   private final TransferRelation wrappedTransfer;
   private final ReachedSetFactory reachedSetFactory;
   private final Reducer wrappedReducer;
-  private final BAMPrecisionAdjustment prec;
   private final BAMCPA bamCPA;
   private final ProofChecker wrappedProofChecker;
 
@@ -121,7 +121,7 @@ public class BAMTransferRelation implements TransferRelation {
   final Timer removeCachedSubtreeTimer = new Timer();
   final Timer removeSubtreeTimer = new Timer();
 
-
+  boolean breakAnalysis = false;
 
   public BAMTransferRelation(Configuration pConfig, LogManager pLogger, BAMCPA bamCpa,
                              ProofChecker wrappedChecker, BAMCache cache,
@@ -132,7 +132,6 @@ public class BAMTransferRelation implements TransferRelation {
     reachedSetFactory = pReachedSetFactory;
     wrappedTransfer = bamCpa.getWrappedCpa().getTransferRelation();
     wrappedReducer = bamCpa.getReducer();
-    prec = bamCpa.getPrecisionAdjustment();
     PCCInformation.instantiate(pConfig);
     bamCPA = bamCpa;
     wrappedProofChecker = wrappedChecker;
@@ -159,8 +158,15 @@ public class BAMTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(
-      AbstractState pState, Precision pPrecision, CFAEdge edge)
-      throws CPATransferException, InterruptedException {
+          final AbstractState pState, final Precision pPrecision, final CFAEdge edge)
+          throws CPATransferException, InterruptedException {
+    final Collection<? extends AbstractState> successors = getAbstractSuccessorsWithoutWrapping(pState, pPrecision, edge);
+    return attachAdditionalInfoToCallNodes(successors);
+  }
+
+  private Collection<? extends AbstractState> getAbstractSuccessorsWithoutWrapping(
+            final AbstractState pState, final Precision pPrecision, final CFAEdge edge)
+    throws CPATransferException, InterruptedException {
 
     forwardPrecisionToExpandedPrecision.clear();
 
@@ -174,12 +180,12 @@ public class BAMTransferRelation implements TransferRelation {
           //we are already in same context
           //thus we already did the recursive call or we a recursion in the cachedSubtrees
           //the latter isnt supported yet, but in the the former case we can classicaly do the post operation
-          return attachAdditionalInfoToCallNodes(wrappedTransfer.getAbstractSuccessors(pState, pPrecision, edge));
+          return wrappedTransfer.getAbstractSuccessors(pState, pPrecision, edge);
         }
 
         if (isHeadOfMainFunction(node)) {
           //skip main function
-          return attachAdditionalInfoToCallNodes(wrappedTransfer.getAbstractSuccessors(pState, pPrecision, edge));
+          return wrappedTransfer.getAbstractSuccessors(pState, pPrecision, edge);
         }
 
 
@@ -205,37 +211,22 @@ public class BAMTransferRelation implements TransferRelation {
 
         addBlockAnalysisInfo(pState);
 
-        List<AbstractState> expandedResult = new ArrayList<>(reducedResult.size());
-        for (Pair<AbstractState, Precision> reducedPair : reducedResult) {
-          AbstractState reducedState = reducedPair.getFirst();
-          Precision reducedPrecision = reducedPair.getSecond();
-
-          if (reducedState == BAMARGBlockStartState.getDummy()) {
+        if (breakAnalysis) {
             // analysis aborted, so lets abort here too
+            // TODO why return element?
             assert reducedResult.size() == 1;
-            ((BAMARGBlockStartState)reducedState).addParent((ARGState) pState);
-            expandedResult.add(reducedState);
-            return expandedResult;
-          }
-
-          ARGState expandedState =
-              (ARGState) wrappedReducer.getVariableExpandedState(pState, currentBlock, reducedState);
-          expandedToReducedCache.put(expandedState, reducedState);
-
-          Precision expandedPrecision =
-              wrappedReducer.getVariableExpandedPrecision(pPrecision, outerSubtree, reducedPrecision);
-
-          expandedState.addParent((ARGState) pState);
-          expandedResult.add(expandedState);
-
-          forwardPrecisionToExpandedPrecision.put(expandedState, expandedPrecision);
+            return Collections.singleton(Iterables.getOnlyElement(reducedResult).getFirst());
         }
+
+        logger.log(Level.FINEST, "Expanding states", reducedResult);
+
+        final List<AbstractState> expandedResult = expandResultStates(reducedResult, outerSubtree, pState, pPrecision);
 
         logger.log(Level.ALL, "Expanded results:", expandedResult);
 
         currentBlock = outerSubtree;
 
-        return attachAdditionalInfoToCallNodes(expandedResult);
+        return expandedResult;
       } else {
         // we are in the middle ofa block, so just forward to wrapped CPAs
         List<AbstractState> result = new ArrayList<>();
@@ -243,10 +234,10 @@ public class BAMTransferRelation implements TransferRelation {
           CFAEdge e = node.getLeavingEdge(i);
           result.addAll(getAbstractSuccessors0(pState, pPrecision, e));
         }
-        return attachAdditionalInfoToCallNodes(result);
+        return result;
       }
     } else {
-      return attachAdditionalInfoToCallNodes(getAbstractSuccessors0(pState, pPrecision, edge));
+      return getAbstractSuccessors0(pState, pPrecision, edge);
     }
   }
 
@@ -268,12 +259,35 @@ public class BAMTransferRelation implements TransferRelation {
       // do not perform analysis beyond the current block
       return Collections.emptySet();
     }
-    return attachAdditionalInfoToCallNodes(wrappedTransfer.getAbstractSuccessors(pElement, pPrecision, edge));
+    return wrappedTransfer.getAbstractSuccessors(pElement, pPrecision, edge);
   }
 
 
   static boolean isHeadOfMainFunction(CFANode currentNode) {
     return currentNode instanceof FunctionEntryNode && currentNode.getNumEnteringEdges() == 0;
+  }
+
+  private List<AbstractState> expandResultStates(
+          final Collection<Pair<AbstractState, Precision>> reducedResult,
+          final Block outerSubtree, final AbstractState state, final Precision precision) {
+    final List<AbstractState> expandedResult = new ArrayList<>(reducedResult.size());
+    for (Pair<AbstractState, Precision> reducedPair : reducedResult) {
+      AbstractState reducedState = reducedPair.getFirst();
+      Precision reducedPrecision = reducedPair.getSecond();
+
+      AbstractState expandedState =
+              wrappedReducer.getVariableExpandedState(state, currentBlock, reducedState);
+      expandedToReducedCache.put(expandedState, reducedState);
+
+      Precision expandedPrecision =
+              wrappedReducer.getVariableExpandedPrecision(precision, outerSubtree, reducedPrecision);
+
+      ((ARGState)expandedState).addParent((ARGState) state);
+      expandedResult.add(expandedState);
+
+      forwardPrecisionToExpandedPrecision.put(expandedState, expandedPrecision);
+    }
+    return expandedResult;
   }
 
   /** Analyse the block starting at node with initialState.
@@ -345,10 +359,8 @@ public class BAMTransferRelation implements TransferRelation {
     } else if (reached.hasWaitingState()) {
       //no target state, but waiting elements
       //analysis failed -> also break this analysis
-      prec.breakAnalysis();
-      return Collections.singletonList(Pair.of(
-              (AbstractState) BAMARGBlockStartState.createDummy(reducedInitialState),
-              reducedInitialPrecision)); //dummy element
+      breakAnalysis = true;
+      return Collections.singletonList(Pair.of(reducedInitialState, reducedInitialPrecision));
     } else {
       returnStates = AbstractStates.filterLocations(reached, currentBlock.getReturnNodes()).toList();
     }
