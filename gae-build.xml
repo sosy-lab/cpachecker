@@ -1,172 +1,172 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project basedir="." default="server" name="CPAchecker on Google App Engine" xmlns:ivy="antlib:org.apache.ivy.ant">
-	
-	<!-- use this to set the SDK version -->
-	<property name="gae-sdk.name" value="appengine-java-sdk-1.9.1" />
 
-	<property name="specification.dir" value="${basedir}/config/specification" />
-	<property name="configuration.dir" value="${basedir}/config" />
+  <!-- use this to set the SDK version -->
+  <property name="gae-sdk.name" value="appengine-java-sdk-1.9.1" />
 
-	<property name="lib.dir" value="${basedir}/lib" />
-	<property name="lib.dir.gae" value="${lib.dir}/gae" />
-	<mkdir dir="${lib.dir.gae}" />
+  <property name="specification.dir" value="${basedir}/config/specification" />
+  <property name="configuration.dir" value="${basedir}/config" />
 
-	<property name="war.dir" value="${basedir}/war" />
-	<property name="class.dir" value="${war.dir}/WEB-INF/classes" />
-	<mkdir dir="${class.dir}" />
+  <property name="lib.dir" value="${basedir}/lib" />
+  <property name="lib.dir.gae" value="${lib.dir}/gae" />
+  <mkdir dir="${lib.dir.gae}" />
 
-	<property name="gae-sdk.dir" location="${lib.dir}/${gae-sdk.name}" />
-	<property name="gae-dev.port" value="8888" />
-	<property name="gae-dev.host" value="localhost" />
-	<property name="gae-dev.debugport" value="9999" />
-	
-	<import file="${gae-sdk.dir}/config/user/ant-macros.xml" optional="true" />
-	<import file="build.xml" as="cpachecker" prefixSeparator="-" />
-	
-	<path id="gae.classpath">
-		<pathelement path="${class.dir}" />
-		<fileset dir="${lib.dir}">
-			<include name="*.jar" />
-		</fileset>
-		<fileset dir="${ivy.lib.dir}">
-			<include name="**/*.jar" />
-		</fileset>
-		<fileset dir="${lib.dir.gae}">
-			<include name="**/*.jar" />
-		</fileset>
-		<fileset dir="${gae-sdk.dir}/lib">
-			<include name="shared/**/*.jar" />
-			<include name="impl/appengine-api*.jar" />
-			<include name="testing/appengine-testing.jar" />
-		</fileset>
-	</path>
-	
-	<target name="resolve-dependencies" depends="load-ivy, update-contrib, cpachecker-resolve-dependencies" unless="ivy.disable">
-		<ivy:resolve file="lib/ivy-gae.xml" conf="build, runtime, test" log="download-only"/>
-		<ivy:retrieve sync="true" overwriteMode="different" pattern="${lib.dir.gae}/[conf]/[artifact](-[classifier]).[ext]"/>
-	</target>
-	
-	<available file="${lib.dir.gae}-contrib" property="ivy.contrib.present"/>
-	<target name="update-contrib" if="ivy.contrib.present">
-		<antcall target="install-contrib"/>
-	 </target>
-	<target name="install-contrib" depends="load-ivy" description="Retrieve sources and docs for external libraries." unless="ivy.disable">
-		<ivy:resolve file="lib/ivy-gae.xml" conf="contrib" log="download-only"/>
-		<ivy:retrieve sync="true" pattern="${lib.dir.gae}-contrib/[artifact](-[classifier]).[ext]"/>
-	 </target>
+  <property name="war.dir" value="${basedir}/war" />
+  <property name="class.dir" value="${war.dir}/WEB-INF/classes" />
+  <mkdir dir="${class.dir}" />
 
-	<target name="tests" depends="build" description="Runs all JUnit tests.">
-		<property name="test.report.dir" value="output" />
-		<mkdir dir="${test.report.dir}" />
-		<junit fork="true" printSummary="true" showOutput="false" haltonfailure="true">
-			<assertions>
-				<enable />
-			</assertions>
-			<formatter type="plain" />
-			<classpath refid="gae.classpath" />
-			<batchtest fork="true" todir="${test.report.dir}">
-				<fileset dir="${class.dir}">
-					<include name="**/appengine/**/*Test.*" />
-					<exclude name="**/*$*Test.*" />
-				</fileset>
-			</batchtest>
-		</junit>
-	</target>
+  <property name="gae-sdk.dir" location="${lib.dir}/${gae-sdk.name}" />
+  <property name="gae-dev.port" value="8888" />
+  <property name="gae-dev.host" value="localhost" />
+  <property name="gae-dev.debugport" value="9999" />
 
-	<target name="getsdk" description="Downloads the Google App Engine SDK.">
-		<get dest="${lib.dir}" src="https://commondatastorage.googleapis.com/appengine-sdks/featured/${gae-sdk.name}.zip" usetimestamp="true" verbose="true" />
-	</target>
+  <import file="${gae-sdk.dir}/config/user/ant-macros.xml" optional="true" />
+  <import file="build.xml" as="cpachecker" prefixSeparator="-" />
 
-	<available file="${lib.dir}/${gae-sdk.name}" property="gae-sdk.expanded"/>
-	<target name="unzipsdk" description="Unzips the Google App Engine SDK." depends="getsdk" unless="gae-sdk.expanded">
-		<unzip src="${lib.dir}/${gae-sdk.name}.zip" dest="${lib.dir}" />
-	</target>
+  <path id="gae.classpath">
+    <pathelement path="${class.dir}" />
+    <fileset dir="${lib.dir}">
+      <include name="*.jar" />
+    </fileset>
+    <fileset dir="${ivy.lib.dir}">
+      <include name="**/*.jar" />
+    </fileset>
+    <fileset dir="${lib.dir.gae}">
+      <include name="**/*.jar" />
+    </fileset>
+    <fileset dir="${gae-sdk.dir}/lib">
+      <include name="shared/**/*.jar" />
+      <include name="impl/appengine-api*.jar" />
+      <include name="testing/appengine-testing.jar" />
+    </fileset>
+  </path>
 
-	<target name="copy-jars" depends="resolve-dependencies" description="Copies all necessary JARs to the war directory.">
-		<copy todir="${war.dir}/WEB-INF/lib" flatten="true">
-			<fileset dir="${lib.dir}">
-				<include name="*.jar" />
-			</fileset>
-			<fileset dir="${ivy.lib.dir}">
-				<include name="runtime/*.jar" />
-				<include name="build/*.jar" />
-			</fileset>
-			<fileset dir="${lib.dir.gae}">
-				<include name="runtime/*.jar" />
-				<include name="build/*.jar" />
-			</fileset>
-			<fileset dir="${gae-sdk.dir}">
-				<include name="lib/user/**/*.jar" />
-			</fileset>
-		</copy>
-	</target>
+  <target name="resolve-dependencies" depends="load-ivy, update-contrib, cpachecker-resolve-dependencies" unless="ivy.disable">
+    <ivy:resolve file="lib/ivy-gae.xml" conf="build, runtime, test" log="download-only"/>
+    <ivy:retrieve sync="true" overwriteMode="different" pattern="${lib.dir.gae}/[conf]/[artifact](-[classifier]).[ext]"/>
+  </target>
 
-	<target name="copy-specifications" description="Copies all specifications to the war directory.">
-		<copy todir="${war.dir}/WEB-INF/specifications" flatten="true">
-			<fileset dir="${specification.dir}">
-				<include name="*.spc" />
-			</fileset>
-		</copy>
-	</target>
+  <available file="${lib.dir.gae}-contrib" property="ivy.contrib.present"/>
+  <target name="update-contrib" if="ivy.contrib.present">
+    <antcall target="install-contrib"/>
+   </target>
+  <target name="install-contrib" depends="load-ivy" description="Retrieve sources and docs for external libraries." unless="ivy.disable">
+    <ivy:resolve file="lib/ivy-gae.xml" conf="contrib" log="download-only"/>
+    <ivy:retrieve sync="true" pattern="${lib.dir.gae}-contrib/[artifact](-[classifier]).[ext]"/>
+   </target>
 
-	<target name="copy-configurations" description="Copies all configurations to the war directory.">
-		<copy todir="${war.dir}/WEB-INF/configurations">
-			<fileset dir="${configuration.dir}">
-				<include name="**/*.properties" />
-				<exclude name="**/*.spc" />
-			</fileset>
-		</copy>
-	</target>
+  <target name="tests" depends="build" description="Runs all JUnit tests.">
+    <property name="test.report.dir" value="output" />
+    <mkdir dir="${test.report.dir}" />
+    <junit fork="true" printSummary="true" showOutput="false" haltonfailure="true">
+      <assertions>
+        <enable />
+      </assertions>
+      <formatter type="plain" />
+      <classpath refid="gae.classpath" />
+      <batchtest fork="true" todir="${test.report.dir}">
+        <fileset dir="${class.dir}">
+          <include name="**/appengine/**/*Test.*" />
+          <exclude name="**/*$*Test.*" />
+        </fileset>
+      </batchtest>
+    </junit>
+  </target>
 
-	<target name="build" depends="resolve-dependencies,getsdk,unzipsdk,copy-jars,copy-specifications,copy-configurations,create-version-files,build-subprojects" description="Builds the project.">
-		<copy todir="${class.dir}">
-			<fileset dir="${source.dir}">
-				<exclude name="**/*.java" />
-			</fileset>
-		</copy>
-		<depend srcdir="${source.dir}" destdir="${class.dir}" />
-		<echo message="Compiling CPAchecker for Google App Engine"/>
-		<javac debug="true"
-			debuglevel="${debuglevel}"
-			includeAntRuntime="false"
-			destdir="${class.dir}"
-			source="${source.format}"
-			target="${class.format}"
-			encoding="UTF-8">
-			<src path="${source.dir}"/>
-			<classpath refid="gae.classpath"/>
-		</javac>
-	</target>
+  <target name="getsdk" description="Downloads the Google App Engine SDK.">
+    <get dest="${lib.dir}" src="https://commondatastorage.googleapis.com/appengine-sdks/featured/${gae-sdk.name}.zip" usetimestamp="true" verbose="true" />
+  </target>
 
-	<target name="server" depends="build" description="Starts the development server.">
-		<dev_appserver war="${war.dir}" port="${gae-dev.port}" address="${gae-dev.host}" />
-	</target>
+  <available file="${lib.dir}/${gae-sdk.name}" property="gae-sdk.expanded"/>
+  <target name="unzipsdk" description="Unzips the Google App Engine SDK." depends="getsdk" unless="gae-sdk.expanded">
+    <unzip src="${lib.dir}/${gae-sdk.name}.zip" dest="${lib.dir}" />
+  </target>
 
-	<!--
-		make sure to set up OAuth2 before deploying
-		https://developers.google.com/appengine/docs/java/tools/uploadinganapp#Passwordless_Login_with_OAuth2
-	-->
-	<target name="deploy" depends="build" description="Deploys the application.">
-		<appcfg action="update" war="${war.dir}">
-			<options>
+  <target name="copy-jars" depends="resolve-dependencies" description="Copies all necessary JARs to the war directory.">
+    <copy todir="${war.dir}/WEB-INF/lib" flatten="true">
+      <fileset dir="${lib.dir}">
+        <include name="*.jar" />
+      </fileset>
+      <fileset dir="${ivy.lib.dir}">
+        <include name="runtime/*.jar" />
+        <include name="build/*.jar" />
+      </fileset>
+      <fileset dir="${lib.dir.gae}">
+        <include name="runtime/*.jar" />
+        <include name="build/*.jar" />
+      </fileset>
+      <fileset dir="${gae-sdk.dir}">
+        <include name="lib/user/**/*.jar" />
+      </fileset>
+    </copy>
+  </target>
+
+  <target name="copy-specifications" description="Copies all specifications to the war directory.">
+    <copy todir="${war.dir}/WEB-INF/specifications" flatten="true">
+      <fileset dir="${specification.dir}">
+        <include name="*.spc" />
+      </fileset>
+    </copy>
+  </target>
+
+  <target name="copy-configurations" description="Copies all configurations to the war directory.">
+    <copy todir="${war.dir}/WEB-INF/configurations">
+      <fileset dir="${configuration.dir}">
+        <include name="**/*.properties" />
+        <exclude name="**/*.spc" />
+      </fileset>
+    </copy>
+  </target>
+
+  <target name="build" depends="resolve-dependencies,getsdk,unzipsdk,copy-jars,copy-specifications,copy-configurations,create-version-files,build-subprojects" description="Builds the project.">
+    <copy todir="${class.dir}">
+      <fileset dir="${source.dir}">
+        <exclude name="**/*.java" />
+      </fileset>
+    </copy>
+    <depend srcdir="${source.dir}" destdir="${class.dir}" />
+    <echo message="Compiling CPAchecker for Google App Engine"/>
+    <javac debug="true"
+      debuglevel="${debuglevel}"
+      includeAntRuntime="false"
+      destdir="${class.dir}"
+      source="${source.format}"
+      target="${class.format}"
+      encoding="UTF-8">
+      <src path="${source.dir}"/>
+      <classpath refid="gae.classpath"/>
+    </javac>
+  </target>
+
+  <target name="server" depends="build" description="Starts the development server.">
+    <dev_appserver war="${war.dir}" port="${gae-dev.port}" address="${gae-dev.host}" />
+  </target>
+
+  <!--
+    make sure to set up OAuth2 before deploying
+    https://developers.google.com/appengine/docs/java/tools/uploadinganapp#Passwordless_Login_with_OAuth2
+  -->
+  <target name="deploy" depends="build" description="Deploys the application.">
+    <appcfg action="update" war="${war.dir}">
+      <options>
         <arg value="--oauth2"/>
         <arg value="--enable_jar_classes"/>
       </options>
-		</appcfg>
-	</target>
+    </appcfg>
+  </target>
 
-	<target name="deploy-queues" description="Deploys the queue configuration.">
-		<appcfg action="update_queues" war="${war.dir}">
-			<options>
+  <target name="deploy-queues" description="Deploys the queue configuration.">
+    <appcfg action="update_queues" war="${war.dir}">
+      <options>
         <arg value="--oauth2"/>
       </options>
-		</appcfg>
-	</target>
+    </appcfg>
+  </target>
 
-	<target name="create-version-files" depends="cpachecker-create-version-file" description="Creates files containing the respective versions of CPAchecker and CPAchecker on GAE.">
-		<exec executable="svnversion" outputproperty="gae.version" failonerror="false" failifexecutionfails="false" logError="false" error="/dev/null">
-			<env key="LANG" value="C" />
-		</exec>
-		<echo message="${gae.version}" file="${war.dir}/WEB-INF/VERSION.txt" />
-	</target>
+  <target name="create-version-files" depends="cpachecker-create-version-file" description="Creates files containing the respective versions of CPAchecker and CPAchecker on GAE.">
+    <exec executable="svnversion" outputproperty="gae.version" failonerror="false" failifexecutionfails="false" logError="false" error="/dev/null">
+      <env key="LANG" value="C" />
+    </exec>
+    <echo message="${gae.version}" file="${war.dir}/WEB-INF/VERSION.txt" />
+  </target>
 </project>
