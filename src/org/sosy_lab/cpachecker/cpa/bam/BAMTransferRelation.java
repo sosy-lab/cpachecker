@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 @Options(prefix = "cpa.bam")
 public class BAMTransferRelation implements TransferRelation {
@@ -170,75 +171,82 @@ public class BAMTransferRelation implements TransferRelation {
 
     forwardPrecisionToExpandedPrecision.clear();
 
-    if (edge == null) {
-
-      CFANode node = extractLocation(pState);
-
-      if (partitioning.isCallNode(node)) {
-        //we have to start a recursive analysis
-        if (partitioning.getBlockForCallNode(node).equals(currentBlock)) {
-          //we are already in same context
-          //thus we already did the recursive call or we a recursion in the cachedSubtrees
-          //the latter isnt supported yet, but in the the former case we can classicaly do the post operation
-          return wrappedTransfer.getAbstractSuccessors(pState, pPrecision, edge);
-        }
-
-        if (isHeadOfMainFunction(node)) {
-          //skip main function
-          return wrappedTransfer.getAbstractSuccessors(pState, pPrecision, edge);
-        }
-
-
-        //Create ReachSet with node as initial element (+ add corresponding Location+CallStackElement)
-        //do an CPA analysis to get the complete reachset
-        //if lastElement is error State
-        // -> return lastElement and break at precision adjustment
-        //else
-        // -> compute which states refer to return nodes
-        // -> return these states as successor
-        // -> cache the result
-
-        logger.log(Level.FINER, "Starting recursive analysis of depth", ++depth);
-        logger.log(Level.ALL, "Starting state:", pState);
-        maxRecursiveDepth = Math.max(depth, maxRecursiveDepth);
-
-        Block outerSubtree = currentBlock;
-        currentBlock = partitioning.getBlockForCallNode(node);
-        Collection<Pair<AbstractState, Precision>> reducedResult = performCompositeAnalysis(pState, pPrecision, node);
-
-        logger.log(Level.FINER, "Recursive analysis of depth", depth--, "finished");
-        logger.log(Level.ALL, "Resulting states:", reducedResult);
-
-        addBlockAnalysisInfo(pState);
-
-        if (breakAnalysis) {
-            // analysis aborted, so lets abort here too
-            // TODO why return element?
-            assert reducedResult.size() == 1;
-            return Collections.singleton(Iterables.getOnlyElement(reducedResult).getFirst());
-        }
-
-        logger.log(Level.FINEST, "Expanding states", reducedResult);
-
-        final List<AbstractState> expandedResult = expandResultStates(reducedResult, outerSubtree, pState, pPrecision);
-
-        logger.log(Level.ALL, "Expanded results:", expandedResult);
-
-        currentBlock = outerSubtree;
-
-        return expandedResult;
-      } else {
-        // we are in the middle ofa block, so just forward to wrapped CPAs
-        List<AbstractState> result = new ArrayList<>();
-        for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-          CFAEdge e = node.getLeavingEdge(i);
-          result.addAll(getAbstractSuccessors0(pState, pPrecision, e));
-        }
-        return result;
-      }
-    } else {
+    if (edge != null) {
+      // TODO when does this happen?
       return getAbstractSuccessors0(pState, pPrecision, edge);
     }
+
+    CFANode node = extractLocation(pState);
+
+    if (!partitioning.isCallNode(node)) {
+      // the easy case: we are in the middle of a block, so just forward to wrapped CPAs
+      List<AbstractState> result = new ArrayList<>();
+      for (CFAEdge e : CFAUtils.leavingEdges(node)) {
+        result.addAll(getAbstractSuccessors0(pState, pPrecision, e));
+      }
+      return result;
+    }
+
+    if (partitioning.getBlockForCallNode(node).equals(currentBlock)) {
+      // we are already in same context
+      // thus we already did the recursive call or we have a recursion in the cachedSubtrees
+      // the latter is not supported yet, but in the the former case we can classically do the post operation
+      return wrappedTransfer.getAbstractSuccessors(pState, pPrecision, null); // edge is null
+    }
+
+    if (isHeadOfMainFunction(node)) {
+      // skip main function, TODO Why?
+      return wrappedTransfer.getAbstractSuccessors(pState, pPrecision, null); // edge is null
+    }
+
+    // we are a the entryNode of a new block, so we have to start a recursive analysis
+    return doRecursiveAnalysis(pState, pPrecision, node);
+  }
+
+  /** Enters a new block and performs a new analysis or returns result from cache. */
+  private Collection<? extends AbstractState> doRecursiveAnalysis(
+          final AbstractState pState, final Precision pPrecision, final CFANode node)
+          throws CPATransferException, InterruptedException  {
+
+    //Create ReachSet with node as initial element (+ add corresponding Location+CallStackElement)
+    //do an CPA analysis to get the complete reachset
+    //if lastElement is error State
+    // -> return lastElement and break at precision adjustment
+    //else
+    // -> compute which states refer to return nodes
+    // -> return these states as successor
+    // -> cache the result
+
+    logger.log(Level.FINER, "Starting recursive analysis of depth", ++depth);
+    logger.log(Level.ALL, "Starting state:", pState);
+    maxRecursiveDepth = Math.max(depth, maxRecursiveDepth);
+
+    final Block outerSubtree = currentBlock;
+    currentBlock = partitioning.getBlockForCallNode(node);
+
+    Collection<Pair<AbstractState, Precision>> reducedResult = performCompositeAnalysis(pState, pPrecision, node);
+
+    logger.log(Level.FINER, "Recursive analysis of depth", depth--, "finished");
+    logger.log(Level.ALL, "Resulting states:", reducedResult);
+
+    addBlockAnalysisInfo(pState);
+
+    if (breakAnalysis) {
+      // analysis aborted, so lets abort here too
+      // TODO why return element?
+      assert reducedResult.size() == 1;
+      return Collections.singleton(Iterables.getOnlyElement(reducedResult).getFirst());
+    }
+
+    logger.log(Level.FINEST, "Expanding states", reducedResult);
+
+    final List<AbstractState> expandedResult = expandResultStates(reducedResult, outerSubtree, pState, pPrecision);
+
+    logger.log(Level.ALL, "Expanded results:", expandedResult);
+
+    currentBlock = outerSubtree;
+
+    return expandedResult;
   }
 
   private Collection<? extends AbstractState> getAbstractSuccessors0(AbstractState pElement, Precision pPrecision,
