@@ -45,10 +45,9 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.IterationStrategyFactory;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.PredicatePathAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.TestGenIterationStrategy;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.PathSelectorFactory;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.PathSelector;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.PathSelectorFactory;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -66,10 +65,6 @@ import com.google.common.base.Joiner;
 @Options(prefix = "testgen")
 public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
 
-  StartupConfig startupConfig;
-  StartupConfig singleRunConfig;
-  private LogManager logger;
-
   public enum IterationStrategySelector {
     AUTOMATON_CONTROLLED,
     SAME_ALGORITHM_RESTART,
@@ -77,7 +72,6 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   public enum AnalysisStrategySelector {
-    BASIC,
     LOCATION_AND_VALUE_STATE_TRACKING,
     CFA_TRACKING,
     CUTE_PATH_SELECTOR,
@@ -95,29 +89,32 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
       description = "Set this to true to get the automaton files for exploring new Paths."
           + " You also get the ARG as dot file and the local reached set for every algoritm iteration"
           + " in subdirs under output.")
-  boolean produceDebugFiles = false;
+  private boolean produceDebugFiles = false;
 
   @Option(name = "testcaseOutputFile", description = "Output file Template under which the"
       + " testcase automatons will be stored. Must include one %s somewhere.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  Path testcaseOutputFile = Paths.get("testcase%s.spc");
+  private Path testcaseOutputFile = Paths.get("testcase%s.spc");
 
   @Option(
       name = "stopOnError",
       description = "algorithm stops on first found error path. Otherwise the algorithms tries to reach 100% coverage")
   private boolean stopOnError = false;
 
-  private CFA cfa;
-  private ConfigurableProgramAnalysis cpa;
 
 
   private TestGenIterationStrategy iterationStrategy;
   private PathSelector pathSelector;
-  private TestCaseSet testCaseSet;
+
+  private CFA cfa;
 
   private TestGenStatistics stats;
+  private StartupConfig startupConfig;
+  private StartupConfig singleRunConfig;
+  private LogManager logger;
   private int reachedSetCounter = 0;
   private int testCaseCounter = 0;
+
 
   public TestGenAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
       ShutdownNotifier pShutdownNotifier, CFA pCfa,
@@ -130,9 +127,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
     stats = new TestGenStatistics(iterationStrategySelector == IterationStrategySelector.AUTOMATON_CONTROLLED, pCfa);
 
     cfa = pCfa;
-    cpa = pCpa;
     this.logger = pLogger;
-    testCaseSet = new TestCaseSet();
     iterationStrategy =
         new IterationStrategyFactory(singleRunConfig, cfa, new ReachedSetFactory(startupConfig.getConfig(), logger),
             stats, produceDebugFiles).createStrategy(iterationStrategySelector, pAlgorithm);
@@ -150,18 +145,20 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
     iterationStrategy.initializeModel(pReachedSet);
     long loopCounter = 0;
 
-    while (true /*globalReached.hasWaitingState()*/) {
+    /*globalReached.hasWaitingState()*/
+    while (true) {
       startupConfig.getShutdownNotifier().shutdownIfNecessary();
-      logger.logf(Level.FINE, "TestGen iteration %d", loopCounter++);
+      logger.logf(Level.FINER, "TestGen iteration %d", loopCounter++);
       //explicit, DFS or DFSRAND, PRECISION=TRACK_ALL; with automaton of new path created in previous iteration OR custom CPA
       try {
-        //sound should normally be unsound for us. Ignore the result
+        /*
+         * run the algorithm.
+         * The run can be unsound, but thats ok, since this surrounding algorithm guarantees soundness.
+         */
         iterationStrategy.runAlgorithm();
       } catch (InterruptedException e) {
         startupConfig.getShutdownNotifier().shutdownIfNecessary();
-        // TODO handle shutdown of child but not this algorithm
       }
-
       if (!(iterationStrategy.getLastState() instanceof ARGState)) { throw new IllegalStateException(
           "wrong configuration of explicit cpa, because concolicAlg needs ARGState"); }
       /*
@@ -169,7 +166,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
        */
       ARGState pseudoTarget = (ARGState) iterationStrategy.getLastState();
       ARGPath executedPath = ARGUtils.getOnePathTo(pseudoTarget);
-
+      //TODO This call should be replaced with a real Counterexample-Check
       CounterexampleTraceInfo traceInfo = pathSelector.computePredicateCheck(executedPath);
 
       if (produceDebugFiles) {
@@ -177,27 +174,17 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       if (traceInfo.isSpurious()) {
-        logger.log(Level.FINE, "Current execution path is spurious.");
+        logger.log(Level.FINER, "Current execution path is spurious.");
         //path is infeasible continue to find a new one
       }else{
-        testCaseSet.addExecutedPath(executedPath);
-
-        stats.addTestCase(executedPath);
         dumpTestCase(executedPath, traceInfo);
-
-
         if (pseudoTarget.isTarget()) {
-          logger.log(Level.INFO, "Identified error path.");
+          logger.log(Level.FINER, "Identified error path.");
           if (stopOnError) {
-            // TODO remove  updateGlobalReached();
             stats.getTotalTimer().stop();
             return true;
-          } else {
-            testCaseSet.addTarget(pseudoTarget);
-            //TODO add error to errorpathlist
           }
         }
-
       }
       /*
        * selecting new path to traverse.
@@ -210,11 +197,9 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
         /*
          * we reached all variations (identified by predicates) of the program path.
          * If we didn't find an error, the program is safe and sound, in the sense of a concolic test.
-         * TODO: Identify the problems with soundness in context on concolic testing
          */
-//      TODO remove  updateGlobalReached();
         stats.getTotalTimer().stop();
-        return true; //true = sound or false = unsound. Which case is it here??
+        return true;
       }
 
       /*
@@ -276,17 +261,6 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
       reachedSetCounter++;
     } catch (InvalidConfigurationException e1) {
       throw new IllegalStateException(e1);
-    }
-  }
-
-  protected class TestCaseSet {
-
-    public void addTarget(AbstractState target) {
-      //FIXME
-    }
-
-    public void addExecutedPath(ARGPath path) {
-      //FIXME
     }
   }
 }

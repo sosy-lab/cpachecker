@@ -35,6 +35,10 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
+/**
+ * validates given paths using SMT-Solving. May reject other paths as well, depending on previous calls to this instance.
+ * @See {@link PathSelector} and {@link BasicPathSelector}
+ */
 public interface PathValidator {
 
   public CounterexampleTraceInfo validatePathCandidate(Pair<ARGState, CFAEdge> pCurrentElement, List<CFAEdge> pNewPath)throws CPATransferException, InterruptedException;
@@ -90,7 +94,7 @@ public interface PathValidator {
   public void handleSinglePathElement(Pair<ARGState, CFAEdge> pCurrentElement);
 
   /**
-   * triggered on {@link #isVisitedBranching(ARGPath, Pair, CFANode, CFAEdge)} = true.
+   * triggered on {@link #isVisitedBranching(ARGPath, Pair, CFANode, CFAEdge)} == true.
    *
    * @param pNewARGPath
    * @param pCurrentElement

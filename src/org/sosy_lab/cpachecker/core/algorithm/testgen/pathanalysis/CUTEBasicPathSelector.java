@@ -32,6 +32,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenAlgorithm.AnalysisStrategySelector;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.PredicatePathAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.CFAUtils2;
@@ -49,7 +50,10 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-
+/**
+ * @Deprecated replaced by {@link BasicPathSelector} in conjunction with {@link CUTEPathValidator}. Use {@link AnalysisStrategySelector#CUTE_PATH_SELECTOR}
+ */
+@Deprecated
 public class CUTEBasicPathSelector implements PathSelector {
 
   private TestGenStatistics stats;
@@ -143,7 +147,6 @@ public class CUTEBasicPathSelector implements PathSelector {
       {
         logger.log(Level.FINER, "Branch on path was handled in an earlier iteration -> skipping branching.");
         lastElement = currentElement;
-        handleVisited();
         continue;
       }
 
@@ -183,7 +186,6 @@ public class CUTEBasicPathSelector implements PathSelector {
       if (!traceInfo.isSpurious())
       {
         newARGPath.add(Pair.of(currentElement.getFirst(), otherEdge.get()));
-        //TODO maybe add the ARGState matching the "otherEdge" path if available as last element to the path.
         logger.logf(Level.FINEST, "selected new path %s", newPath.toString());
         //        pathValidator.handleValidPath(newARGPath, traceInfo);
         branchingHistory.resetTo(newARGPath);
@@ -200,12 +202,6 @@ public class CUTEBasicPathSelector implements PathSelector {
     //all possible paths explored. (DART: the j = -1 case)
     logger.logf(Level.FINER, "No possible path left to explore");
     return PredicatePathAnalysisResult.INVALID;
-  }
-
-
-  private void handleVisited() {
-    // TODO Auto-generated method stub
-
   }
 
 

@@ -175,17 +175,14 @@ public class BasicPathSelector implements PathSelector {
       if (!traceInfo.isSpurious())
       {
         newARGPath.add(Pair.of(currentElement.getFirst(), otherEdge.get()));
-        //TODO maybe add the ARGState matching the "otherEdge" path if available as last element to the path.
         logger.logf(Level.FINEST, "selected new path %s", newPath.toString());
         PredicatePathAnalysisResult result = new PredicatePathAnalysisResult(traceInfo, currentElement.getFirst(), lastElement.getFirst(), newARGPath);
         pathValidator.handleValidPath(result);
-        //        branchingHistory.resetTo(newARGPath);
         return result;
       }
       else {
         lastElement = currentElement;
         logger.logf(Level.FINER, "path candidate is infeasible");
-        //        pathValidator.handleSpuriousPath(newPath);
         continue;
       }
 

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis;
 
+import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.PredicatePathAnalysisResult;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -30,7 +31,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 /**
- *
+ * class for selecting new paths used for {@link TestGenAlgorithm}s selection of new executions.
  */
 public interface PathSelector {
 

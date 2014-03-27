@@ -175,9 +175,6 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
       if (!traceInfo.isSpurious())
       {
         newARGPath.add(Pair.of(currentElement.getFirst(), otherEdge));
-        if (lastElement == null) {
-          throw new IllegalStateException("" + newPath.toString()); }
-        //        handledDecisions.add(decidingNode);
         logger.logf(Level.FINEST, "selected new path %s", newPath.toString());
         handledDecisions.add(currentElement.getFirst());
         return new PredicatePathAnalysisResult(traceInfo, currentElement.getFirst(), lastElement.getFirst(), newARGPath);
