@@ -653,11 +653,6 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
        */
       private Deque<ARGState> sources = new ArrayDeque<>(Collections.singleton(root));
 
-      /**
-       * a flag to distinguish the initial interpolation from subsequent ones
-       */
-      private boolean isInitialInterpolation = true;
-
       @Override
       public ARGPath getNextPathForInterpolation() {
         ARGPath errorPath = new ARGPath();
