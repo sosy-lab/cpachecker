@@ -110,7 +110,8 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
     // for full paths, the set of depending variables always has be empty at this point,
     // but sometimes, the use-def information is derived from incomplete paths,
     // and for those it can happen that not all depending variables are consumed
-    assert dependingVariables.size() == 0 || isIncompletePath(path);
+    // disabled again, because handling for pointers is incomplete
+    // assert dependingVariables.size() == 0 || isIncompletePath(path);
 
     // add the remaining depending variables to the set of collectedVariables
     collectedVariables.addAll(dependingVariables);
