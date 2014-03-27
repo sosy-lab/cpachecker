@@ -108,7 +108,7 @@ public class BAMCache {
       fullCacheHits++;
     } else if (reached != null) { // we have cached a partly computed reached-set
       partialCacheHits++;
-    } else if (reached == null && returnStates == null) {
+    } else if (returnStates == null) {
       cacheMisses++;
       if (gatherCacheMissStatistics) {
         findCacheMissCause(stateKey, precisionKey, context);

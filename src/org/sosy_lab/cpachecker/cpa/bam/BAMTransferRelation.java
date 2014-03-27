@@ -159,14 +159,14 @@ public class BAMTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(
-      AbstractState pElement, Precision pPrecision, CFAEdge edge)
+      AbstractState pState, Precision pPrecision, CFAEdge edge)
       throws CPATransferException, InterruptedException {
 
     forwardPrecisionToExpandedPrecision.clear();
 
     if (edge == null) {
 
-      CFANode node = extractLocation(pElement);
+      CFANode node = extractLocation(pState);
 
       if (partitioning.isCallNode(node)) {
         //we have to start a recursive analysis
@@ -174,12 +174,12 @@ public class BAMTransferRelation implements TransferRelation {
           //we are already in same context
           //thus we already did the recursive call or we a recursion in the cachedSubtrees
           //the latter isnt supported yet, but in the the former case we can classicaly do the post operation
-          return attachAdditionalInfoToCallNodes(wrappedTransfer.getAbstractSuccessors(pElement, pPrecision, edge));
+          return attachAdditionalInfoToCallNodes(wrappedTransfer.getAbstractSuccessors(pState, pPrecision, edge));
         }
 
         if (isHeadOfMainFunction(node)) {
           //skip main function
-          return attachAdditionalInfoToCallNodes(wrappedTransfer.getAbstractSuccessors(pElement, pPrecision, edge));
+          return attachAdditionalInfoToCallNodes(wrappedTransfer.getAbstractSuccessors(pState, pPrecision, edge));
         }
 
 
@@ -193,17 +193,17 @@ public class BAMTransferRelation implements TransferRelation {
         // -> cache the result
 
         logger.log(Level.FINER, "Starting recursive analysis of depth", ++depth);
-        logger.log(Level.ALL, "Starting element:", pElement);
+        logger.log(Level.ALL, "Starting state:", pState);
         maxRecursiveDepth = Math.max(depth, maxRecursiveDepth);
 
         Block outerSubtree = currentBlock;
         currentBlock = partitioning.getBlockForCallNode(node);
-        Collection<Pair<AbstractState, Precision>> reducedResult = performCompositeAnalysis(pElement, pPrecision, node);
+        Collection<Pair<AbstractState, Precision>> reducedResult = performCompositeAnalysis(pState, pPrecision, node);
 
         logger.log(Level.FINER, "Recursive analysis of depth", depth--, "finished");
-        logger.log(Level.ALL, "Resulting elements:", reducedResult);
+        logger.log(Level.ALL, "Resulting states:", reducedResult);
 
-        addBlockAnalysisInfo(pElement);
+        addBlockAnalysisInfo(pState);
 
         List<AbstractState> expandedResult = new ArrayList<>(reducedResult.size());
         for (Pair<AbstractState, Precision> reducedPair : reducedResult) {
@@ -211,19 +211,21 @@ public class BAMTransferRelation implements TransferRelation {
           Precision reducedPrecision = reducedPair.getSecond();
 
           if (reducedState == BAMARGBlockStartState.getDummy()) {
-            ((BAMARGBlockStartState)reducedState).addParent((ARGState) pElement);
+            // analysis aborted, so lets abort here too
+            assert reducedResult.size() == 1;
+            ((BAMARGBlockStartState)reducedState).addParent((ARGState) pState);
             expandedResult.add(reducedState);
             return expandedResult;
           }
 
           ARGState expandedState =
-              (ARGState) wrappedReducer.getVariableExpandedState(pElement, currentBlock, reducedState);
+              (ARGState) wrappedReducer.getVariableExpandedState(pState, currentBlock, reducedState);
           expandedToReducedCache.put(expandedState, reducedState);
 
           Precision expandedPrecision =
               wrappedReducer.getVariableExpandedPrecision(pPrecision, outerSubtree, reducedPrecision);
 
-          expandedState.addParent((ARGState) pElement);
+          expandedState.addParent((ARGState) pState);
           expandedResult.add(expandedState);
 
           forwardPrecisionToExpandedPrecision.put(expandedState, expandedPrecision);
@@ -239,12 +241,12 @@ public class BAMTransferRelation implements TransferRelation {
         List<AbstractState> result = new ArrayList<>();
         for (int i = 0; i < node.getNumLeavingEdges(); i++) {
           CFAEdge e = node.getLeavingEdge(i);
-          result.addAll(getAbstractSuccessors0(pElement, pPrecision, e));
+          result.addAll(getAbstractSuccessors0(pState, pPrecision, e));
         }
         return attachAdditionalInfoToCallNodes(result);
       }
     } else {
-      return attachAdditionalInfoToCallNodes(getAbstractSuccessors0(pElement, pPrecision, edge));
+      return attachAdditionalInfoToCallNodes(getAbstractSuccessors0(pState, pPrecision, edge));
     }
   }
 
@@ -274,70 +276,95 @@ public class BAMTransferRelation implements TransferRelation {
     return currentNode instanceof FunctionEntryNode && currentNode.getNumEnteringEdges() == 0;
   }
 
+  /** Analyse the block starting at node with initialState.
+   * If there is a result in the cache, it is used,
+   * otherwise a recursive CPAAlgorithm is started. */
+  private Collection<Pair<AbstractState, Precision>> performCompositeAnalysis(
+          final AbstractState initialState, final Precision initialPrecision, final CFANode node)
+          throws InterruptedException, RecursiveAnalysisFailedException {
 
-  private Collection<Pair<AbstractState, Precision>> performCompositeAnalysis(AbstractState initialState,
-      Precision initialPrecision, CFANode node) throws InterruptedException, RecursiveAnalysisFailedException {
-    try {
-      AbstractState reducedInitialState = wrappedReducer.getVariableReducedState(initialState, currentBlock, node);
-      Precision reducedInitialPrecision = wrappedReducer.getVariableReducedPrecision(initialPrecision, currentBlock);
-      Pair<ReachedSet, Collection<AbstractState>> pair =
-          argCache.get(reducedInitialState, reducedInitialPrecision, currentBlock);
-      ReachedSet reached = pair.getFirst();
-      Collection<AbstractState> returnElements = pair.getSecond();
+    logger.log(Level.FINEST, "Reducing state", initialState);
+    final AbstractState reducedInitialState = wrappedReducer.getVariableReducedState(initialState, currentBlock, node);
+    final Precision reducedInitialPrecision = wrappedReducer.getVariableReducedPrecision(initialPrecision, currentBlock);
 
-      abstractStateToReachedSet.put(initialState, reached);
+    // try to get previously computed element from cache
+    final Pair<ReachedSet, Collection<AbstractState>> pair =
+            argCache.get(reducedInitialState, reducedInitialPrecision, currentBlock);
+    ReachedSet reached = pair.getFirst();
+    final Collection<AbstractState> returnStates = pair.getSecond();
 
-      if (returnElements != null) {
-        assert reached != null;
-        return imbueAbstractStatesWithPrecision(reached, returnElements);
-      }
+    final Collection<Pair<AbstractState, Precision>> result;
 
+    if (returnStates != null) {
+      assert reached != null;
+      // cache hit, return element from cache
+      logger.log(Level.FINEST, "Cache hit");
+      result = imbueAbstractStatesWithPrecision(reached, returnStates);
+
+    } else {
       if (reached == null) {
         // we have not even cached a partly computed reach-set,
         // so we must compute the subgraph specification from scratch
         reached = createInitialReachedSet(reducedInitialState, reducedInitialPrecision);
         argCache.put(reducedInitialState, reducedInitialPrecision, currentBlock, reached);
-        abstractStateToReachedSet.put(initialState, reached);
-      }
-
-      // CPAAlgorithm is not re-entrant due to statistics
-      CPAAlgorithm algorithm = algorithmFactory.newInstance();
-      algorithm.run(reached);
-
-      // if the element is an error element
-      AbstractState lastElement = reached.getLastState();
-      if (isTargetState(lastElement)) {
-        //found a target state inside a recursive subgraph call
-        //this needs to be propagated to outer subgraph (till main is reached)
-        returnElements = Collections.singletonList(lastElement);
-
-      } else if (reached.hasWaitingState()) {
-        //no target state, but waiting elements
-        //analysis failed -> also break this analysis
-        prec.breakAnalysis();
-        return Collections.singletonList(Pair.of(
-            (AbstractState) BAMARGBlockStartState.createDummy(reducedInitialState),
-            reducedInitialPrecision)); //dummy element
+        logger.log(Level.FINEST, "Cache miss: starting recursive CPAAlgorithm with new initial reached-set.");
       } else {
-        returnElements = AbstractStates.filterLocations(reached, currentBlock.getReturnNodes())
-            .toList();
+        logger.log(Level.FINEST, "Partial cache hit: starting recursive CPAAlgorithm with partial reached-set.");
       }
 
-      ARGState rootOfBlock = null;
-      if (PCCInformation.isPCCEnabled()) {
-        if (!(reached.getFirstState() instanceof ARGState)) { throw new CPATransferException(
-            "Cannot build proof, ARG, for BAM analysis."); }
-        rootOfBlock = BAMARGUtils.copyARG((ARGState) reached.getFirstState());
+      try {
+        result = performCompositeAnalysisWithCPAAlgorithm(reached, reducedInitialState, reducedInitialPrecision);
+      } catch (CPAException e) {
+        throw new RecursiveAnalysisFailedException(e);
       }
-      argCache.put(reducedInitialState, reached.getPrecision(reached.getFirstState()), currentBlock, returnElements,
-          rootOfBlock);
-
-      return imbueAbstractStatesWithPrecision(reached, returnElements);
-    } catch (CPAException e) {
-      throw new RecursiveAnalysisFailedException(e);
     }
+
+    abstractStateToReachedSet.put(initialState, reached);
+    return result;
   }
 
+
+  /** Analyse the block with a 'recursive' call to the CPAAlgorithm.
+   * Then analyse the result and get the returnStates. */
+  private Collection<Pair<AbstractState, Precision>> performCompositeAnalysisWithCPAAlgorithm(
+          final ReachedSet reached, final AbstractState reducedInitialState, final Precision reducedInitialPrecision)
+          throws InterruptedException, CPAException {
+
+    // CPAAlgorithm is not re-entrant due to statistics
+    final CPAAlgorithm algorithm = algorithmFactory.newInstance();
+    algorithm.run(reached);
+
+    // if the element is an error element
+    final Collection<AbstractState> returnStates;
+    final AbstractState lastState = reached.getLastState();
+    if (isTargetState(lastState)) {
+      //found a target state inside a recursive subgraph call
+      //this needs to be propagated to outer subgraph (till main is reached)
+      returnStates = Collections.singletonList(lastState);
+
+    } else if (reached.hasWaitingState()) {
+      //no target state, but waiting elements
+      //analysis failed -> also break this analysis
+      prec.breakAnalysis();
+      return Collections.singletonList(Pair.of(
+              (AbstractState) BAMARGBlockStartState.createDummy(reducedInitialState),
+              reducedInitialPrecision)); //dummy element
+    } else {
+      returnStates = AbstractStates.filterLocations(reached, currentBlock.getReturnNodes()).toList();
+    }
+
+    ARGState rootOfBlock = null;
+    if (PCCInformation.isPCCEnabled()) {
+      if (!(reached.getFirstState() instanceof ARGState)) {
+        throw new CPATransferException("Cannot build proof, ARG, for BAM analysis.");
+      }
+      rootOfBlock = BAMARGUtils.copyARG((ARGState) reached.getFirstState());
+    }
+    argCache.put(reducedInitialState, reached.getPrecision(reached.getFirstState()),
+                 currentBlock, returnStates, rootOfBlock);
+
+    return imbueAbstractStatesWithPrecision(reached, returnStates);
+  }
 
   private List<Pair<AbstractState, Precision>> imbueAbstractStatesWithPrecision(
       ReachedSet pReached, Collection<AbstractState> pElements) {
