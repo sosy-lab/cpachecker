@@ -143,6 +143,10 @@ public class BlockToDotWriter {
       if (finished.add(node)) {
         app.append(formatNode(node));
         Iterables.addAll(edges, CFAUtils.leavingEdges(node));
+        FunctionSummaryEdge func = node.getEnteringSummaryEdge();
+        if (func != null) {
+          edges.add(func);
+        }
       }
     }
 
