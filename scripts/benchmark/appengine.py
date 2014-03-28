@@ -191,7 +191,8 @@ def _handleAppEngineResults(benchmark, outputHandler):
             (returnValue, output, hasErr, hasTO, isNotSubmt, overQuota) = \
                 _parseAppEngineResult(run)
 
-            totalWallTime += run.wallTime
+            if run.wallTime:
+                totalWallTime += run.wallTime
 
             if hasErr: withError += 1
             if hasTO: withTimeout += 1
