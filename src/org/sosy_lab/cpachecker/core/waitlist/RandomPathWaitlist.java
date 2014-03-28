@@ -37,13 +37,13 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  * If the last iteration added more than one state (branching case of successor computation) pop()
  * returns one of these successors at random.
  */
-public class DFSRandomWaitlist extends AbstractWaitlist<LinkedList<AbstractState>> {
+public class RandomPathWaitlist extends AbstractWaitlist<LinkedList<AbstractState>> {
 
   private final Random rand = new Random();
   private int successorsOfParent;
   private CFANode parent;
 
-  protected DFSRandomWaitlist() {
+  protected RandomPathWaitlist() {
     super(new LinkedList<AbstractState>());
     successorsOfParent = 0;
   }

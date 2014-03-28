@@ -142,7 +142,7 @@ analysis.summaryEdges = false
 
 # which strategy to adopt for visiting states?
 analysis.traversal.order = DFS
-  enum:     [DFS, BFS, RAND, DFSRAND]
+  enum:     [DFS, BFS, RAND, RANDOM_PATH]
 
 # handle abstract states with more automaton matches first? (only if
 # AutomatonCPA enabled)

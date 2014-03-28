@@ -149,7 +149,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
     while (true) {
       startupConfig.getShutdownNotifier().shutdownIfNecessary();
       logger.logf(Level.FINER, "TestGen iteration %d", loopCounter++);
-      //explicit, DFS or DFSRAND, PRECISION=TRACK_ALL; with automaton of new path created in previous iteration OR custom CPA
+      //explicit, DFS or RANDOM_PATH, PRECISION=TRACK_ALL; with automaton of new path created in previous iteration OR custom CPA
       try {
         /*
          * run the algorithm.
