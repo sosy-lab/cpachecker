@@ -350,9 +350,7 @@ class ASTConverter {
       // functionCallExpressionn or unaryexpression with pointertype and operator.Amper
       // around it, we create it.
       if (type instanceof CFunctionType
-          && !(e.getParent() instanceof IASTFunctionCallExpression
-              || (e.getParent() instanceof IASTUnaryExpression
-                  && ((IASTUnaryExpression) e.getParent()).getOperator() == IASTUnaryExpression.op_amper))) {
+          && !(isFunctionCallNameExpression(e) || isAddressOfArgument(e))) {
         exp = new CUnaryExpression(exp.getFileLocation(),
                                    new CPointerType(type.isConst(),
                                                     type.isVolatile(),
@@ -386,6 +384,16 @@ class ASTConverter {
     } else {
       throw new CFAGenerationRuntimeException("Unknown expression type " + e.getClass().getSimpleName(), e);
     }
+  }
+
+  private boolean isFunctionCallNameExpression(IASTExpression e) {
+    return e.getParent() instanceof IASTFunctionCallExpression
+        && e.getPropertyInParent() == IASTFunctionCallExpression.FUNCTION_NAME;
+  }
+
+  private boolean isAddressOfArgument(IASTExpression e) {
+    return e.getParent() instanceof IASTUnaryExpression
+        && ((IASTUnaryExpression) e.getParent()).getOperator() == IASTUnaryExpression.op_amper;
   }
 
   static enum CONDITION { NORMAL, ALWAYS_FALSE, ALWAYS_TRUE }
