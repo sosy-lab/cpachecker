@@ -225,41 +225,42 @@ def handleCloudResults(benchmark, outputHandler):
         outputHandler.outputBeforeRunSet(runSet)
 
         for run in runSet.runs:
+
             stdoutFile = run.logFile + ".stdOut"
-            if not os.path.exists(stdoutFile):
+            if os.path.exists(stdoutFile):
+                try:
+                    (run.wallTime, run.cpuTime, run.memUsage, returnValue, run.energy) = parseCloudResultFile(stdoutFile)
+
+                    if returnValue is not None:
+                        # Do not delete stdOut file if there was some problem
+                        os.remove(stdoutFile)
+                    else:
+                        executedAllRuns = False
+
+                except EnvironmentError as e:
+                    logging.warning("Cannot extract measured values from output for file {0}: {1}".format(run.sourcefile, e))
+                    executedAllRuns = False
+            else:
                 logging.warning("No results exist for file {0}.".format(run.sourcefile))
                 executedAllRuns = False
-                continue
+                returnValue = None
 
-            try:
-                (run.wallTime, run.cpuTime, run.memUsage, returnValue, run.energy) = parseCloudResultFile(stdoutFile)
-
-                key = os.path.basename(run.logFile)[:-4] # VCloud uses logfilename without '.log' as key
-                if key in runToHostMap:
-                    run.host = runToHostMap[key]
-
-                if returnValue is not None:
-                    # Do not delete stdOut file if there was some problem
-                    os.remove(stdoutFile)
-                else:
-                    executedAllRuns = False
-
-            except EnvironmentError as e:
-                logging.warning("Cannot extract measured values from output for file {0}: {1}".format(run.sourcefile, e))
-                executedAllRuns = False
-                continue
+            key = os.path.basename(run.logFile)[:-4] # VCloud uses logfilename without '.log' as key
+            if key in runToHostMap:
+                run.host = runToHostMap[key]
 
             if os.path.exists(run.logFile + ".stdError"):
                 runsProducedErrorOutput = True
 
             outputHandler.outputBeforeRun(run)
             output = ''
-            try:
-                with open(run.logFile, 'rt') as outputFile:
-                    # first 6 lines are for logging, rest is output of subprocess, see RunExecutor.py for details
-                    output = '\n'.join(map(Util.decodeToString, outputFile.readlines()[6:]))
-            except IOError as e:
-                logging.warning("Cannot read log file: " + e.strerror)
+            if os.path.exists(run.logFile):
+                try:
+                    with open(run.logFile, 'rt') as outputFile:
+                        # first 6 lines are for logging, rest is output of subprocess, see RunExecutor.py for details
+                        output = '\n'.join(map(Util.decodeToString, outputFile.readlines()[6:]))
+                except IOError as e:
+                    logging.warning("Cannot read log file: " + e.strerror)
 
             run.afterExecution(returnValue, output)
             outputHandler.outputAfterRun(run)

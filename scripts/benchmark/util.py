@@ -151,6 +151,8 @@ def formatNumber(number, numberOfDigits):
     @param number: the number to format
     @param digits: the number of digits
     """
+    if number is None:
+        return ""
     return "%.{0}f".format(numberOfDigits) % number
 
 

@@ -519,10 +519,6 @@ class RunResult:
         score = result.calculateScore(category, status)
         logfileLines = None
 
-        if status == '':
-            values = [''] * len(listOfColumns)
-            return RunResult(status, category, sourcefileTag.logfile, listOfColumns, values)
-
         values = []
 
         for column in listOfColumns: # for all columns that should be shown
