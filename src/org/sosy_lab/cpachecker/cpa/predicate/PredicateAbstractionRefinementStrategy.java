@@ -37,7 +37,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -49,6 +48,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -352,13 +352,6 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       List<ARGState> pAffectedStates, ARGReachedSet pReached,
       boolean pRepeatedCounterexample)
       throws CPAException {
-
-    if (newPredicates.isEmpty() && pUnreachableState.isTarget()) {
-      // The only reason why this might appear is that the very last block is
-      // infeasible in itself, however, we check for such cases during strengthen,
-      // so they shouldn't appear here.
-      throw new RefinementFailedException(RefinementFailedException.Reason.InterpolationFailed, null);
-    }
 
     { // Add predicate "false" to unreachable location
       CFANode loc = extractLocation(pUnreachableState);

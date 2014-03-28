@@ -198,19 +198,17 @@ public abstract class RefinementStrategy {
         changedElements.add(w);
       }
     }
+
+    numberOfAffectedStates.setNextValue(changedElements.size());
     if (infeasiblePartOfART == lastElement) {
       pathLengthToInfeasibility++;
-    }
-    numberOfAffectedStates.setNextValue(changedElements.size());
 
-    if (changedElements.isEmpty() && pRepeatedCounterexample) {
-      // TODO One cause for this exception is that the CPAAlgorithm sometimes
-      // re-adds the parent of the error element to the waitlist, and thus the
-      // error element would get re-discovered immediately again.
-      // Currently the CPAAlgorithm does this only when there are siblings of
-      // the target state, which should rarely happen.
-      // We still need a better handling for this situation.
-      throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
+      if (changedElements.isEmpty()) {
+        // The only reason why this might appear is that the very last block is
+        // infeasible in itself, however, we check for such cases during strengthen,
+        // so they shouldn't appear here.
+        throw new RefinementFailedException(RefinementFailedException.Reason.InterpolationFailed, null);
+      }
     }
 
     // Hook
