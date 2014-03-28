@@ -26,8 +26,11 @@ package org.sosy_lab.cpachecker.cpa.value;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -88,6 +91,11 @@ public class SymbolicValueFormula implements Value {
   public interface ExpressionBase {
     public boolean isIntegerAddMultiplyOnly();
     public ExpressionBase replaceSymbolWith(SymbolicValue symbol, ConstantValue replacement);
+
+    /**
+     * @return A list of all symbolic values contained in the sub-tree of this expression.
+     */
+    public Set<SymbolicValue> getSymbolicValues();
   }
 
   public static class BinaryExpression implements ExpressionBase {
@@ -195,6 +203,17 @@ public class SymbolicValueFormula implements Value {
 
       return new BinaryExpression(leftHand, rightHand, op, resultType, calculationType);
     }
+
+    @Override
+    public Set<SymbolicValue> getSymbolicValues() {
+      Set<SymbolicValue> leftHand = lVal.getSymbolicValues();
+      Set<SymbolicValue> rightHand = rVal.getSymbolicValues();
+
+      // It's okay to change leftHand rather than creating a copy,
+      // since leftHand was only created for local use anyway.
+      leftHand.addAll(rightHand);
+      return leftHand;
+    }
   }
 
   /**
@@ -231,6 +250,13 @@ public class SymbolicValueFormula implements Value {
         return this;
       }
     }
+
+    @Override
+    public Set<SymbolicValue> getSymbolicValues() {
+      Set<SymbolicValue> rval = new HashSet<>();
+      rval.add(this);
+      return rval;
+    }
   }
 
   public static class ConstantValue implements ExpressionBase {
@@ -261,6 +287,11 @@ public class SymbolicValueFormula implements Value {
       // Constants are never replaced.
       return this;
     }
+
+    @Override
+    public Set<SymbolicValue> getSymbolicValues() {
+      return new HashSet<>();
+    }
   }
 
   public static ExpressionBase expressionFromExplicitValue(Value value) {
@@ -273,15 +304,64 @@ public class SymbolicValueFormula implements Value {
 
   /**
    * Replaces the given symbolic value with a constant. If the given symbolic value does not
-   * occur, returns `this` unmodified.
+   * occur, returns an unmodified version of `this`.
    *
    * @param symbol
    * @param replacement
-   * @return
+   * @return The simplified formula with the given symbol replaced.
    */
   public Value replaceSymbolWith(SymbolicValue pSymbol, Value pReplacement) {
     ConstantValue replacement = new ConstantValue(pReplacement);
     return new SymbolicValueFormula(root.replaceSymbolWith(pSymbol, replacement)).simplify();
+  }
+
+  /**
+   * Check if there's only a single symbolic value in this formula. If so, try to solve the
+   * formula for that variable.
+   *
+   * @param truthValue If false, this formula is assumed to be false, otherwise this formula
+   *                   is assumed to be true.
+   * @return A pair of the single symbolic value that was found, and the value it must have
+   *         according to this formula. null if no such pair exists.
+   */
+  public Pair<SymbolicValue, Value> inferAssignment(boolean truthValue) {
+    Set<SymbolicValue> symbolicValues = root.getSymbolicValues();
+
+    // Less or more than a single symbolic value, impossible to infer anything.
+    if(symbolicValues.size() != 1) {
+      return null;
+    }
+    SymbolicValue valueToSolveFor = symbolicValues.iterator().next();
+
+    // We want an == to solve, not an !=, but with truthValue == false,
+    // an != comes out as an ==
+    if(root instanceof BinaryExpression) {
+      BinaryExpression rootBinaryExpression = (BinaryExpression) root;
+      String operator = rootBinaryExpression.getOperator().op;
+
+      if(operator.equals("!=") && !truthValue) {
+        // If we have != and truthValue is false, convert to == instead
+        root = new BinaryExpression(rootBinaryExpression.getOperand1(),
+            rootBinaryExpression.getOperand2(),
+            BinaryExpression.BinaryOperator.EQUALS,
+            rootBinaryExpression.getCalculationType(),
+            rootBinaryExpression.getResultType());
+        operator = "==";
+        truthValue = true;
+      }
+
+      if(operator.equals("==") && truthValue) {
+        // Can only solve anything if we have an == at the top level.
+        Value result = ExternalSimplifier.solve(valueToSolveFor, root);
+        if(result == null) {
+          return null;
+        } else {
+          return Pair.of(valueToSolveFor, result);
+        }
+      }
+    }
+
+    return null;
   }
 
   @Override

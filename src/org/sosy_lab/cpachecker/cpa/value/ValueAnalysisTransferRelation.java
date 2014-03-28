@@ -106,6 +106,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.value.SymbolicValueFormula.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -360,10 +361,25 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     // get the value of the expression (either true[1L], false[0L], or unknown[null])
     Value value = getExpressionValue(expression, CNumericTypes.INT, evv);
 
-    // can not evaluate expression to something explicit, try to derive further information
     if (!value.isExplicitlyKnown()) {
-
       ValueAnalysisState element = state.clone();
+
+      // If it's a symbolic formula, try if we can solve it for any of its symbolic values.
+      if(value instanceof SymbolicValueFormula) {
+        Pair<SymbolicValue, Value> replacement = null;
+        replacement = ((SymbolicValueFormula)value).inferAssignment(truthValue);
+        if(replacement != null) {
+          for(MemoryLocation memloc : state.getTrackedMemoryLocations()) {
+            Value trackedValue = state.getValueFor(memloc);
+            if(trackedValue instanceof SymbolicValueFormula) {
+              SymbolicValueFormula trackedFormula = (SymbolicValueFormula) trackedValue;
+              System.out.println("Applying "+replacement.getFirst()+"=="+replacement.getSecond()+" to "+trackedFormula+" resulting in "+trackedFormula.replaceSymbolWith(replacement.getFirst(), replacement.getSecond()));
+              element.assignConstant(memloc, trackedFormula.replaceSymbolWith(replacement.getFirst(), replacement.getSecond()));
+            }
+          }
+        }
+      }
+
       AssigningValueVisitor avv = new AssigningValueVisitor(element, truthValue);
 
       if (expression instanceof JExpression && ! (expression instanceof CExpression)) {

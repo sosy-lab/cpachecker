@@ -35,8 +35,7 @@ import org.sosy_lab.cpachecker.cpa.value.SymbolicValueFormula.BinaryExpression;
 import org.sosy_lab.cpachecker.cpa.value.SymbolicValueFormula.ConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.SymbolicValueFormula.ExpressionBase;
 import org.sosy_lab.cpachecker.cpa.value.SymbolicValueFormula.SymbolicValue;
-
-import edu.jas.kern.ComputerThreads;
+import org.sosy_lab.cpachecker.cpa.value.Value;
 
 /**
  * Uses an external library/application to simplify symbolic formulas.
@@ -44,9 +43,6 @@ import edu.jas.kern.ComputerThreads;
 public class ExternalSimplifier {
 
   public static ExpressionBase simplify(ExpressionBase expr) {
-    // Static initialization of the MathEclipse engine instead of null
-    // you can set a file name to overload the default initial
-    // rules. This step should be called only once at program setup:
     F.initSymbols(null);
     EvalUtilities util = new EvalUtilities();
 
@@ -61,12 +57,46 @@ public class ExternalSimplifier {
       return recursiveConvertExpressionToFormula(result, usedVariables);
     } catch (final Exception e) {
       e.printStackTrace();
-    } finally {
-      // Call terminate() only one time at the end of the program
-      ComputerThreads.terminate();
     }
 
     return expr;
+  }
+
+  public static Value solve(SymbolicValue value, ExpressionBase expr) {
+    // Static initialization of the MathEclipse engine instead of null
+    // you can set a file name to overload the default initial
+    // rules. This step should be called only once at program setup:
+    F.initSymbols(null);
+    EvalUtilities util = new EvalUtilities();
+
+    IExpr result;
+
+    try {
+      List<SymbolicValue> usedVariables = new ArrayList<>();
+      String formulaString = convertFormulaToString(expr, usedVariables);
+      int toSolveIndex = usedVariables.indexOf(value);
+      String variableToSolveFor = "X" + toSolveIndex;
+      String input = "Solve[" + formulaString + ", " + variableToSolveFor + "]";
+      System.out.println(input);
+      result = util.evaluate(input);
+
+      // We expect to get something of the form `{{Rule[X0, 1]}}`, which means `X0 := 1`
+
+      // For some reason the result is wrapped in two lists.
+      result = result.getAt(1).getAt(1);
+      if(result.isRuleAST()) {
+        if(result.getAt(1).toString().equals(variableToSolveFor)) {
+          return new NumericValue(Integer.parseInt(result.getAt(2).toString()));
+        }
+      }
+
+      System.out.println(result.toString());
+      return null;
+    } catch (final Exception e) {
+      e.printStackTrace();
+    }
+
+    return null;
   }
 
   private static String convertFormulaToString(ExpressionBase expr, List<SymbolicValue> usedVariables) {
@@ -135,6 +165,8 @@ public class ExternalSimplifier {
       return "-";
     case "MULTIPLY":
       return "*";
+    case "EQUALS":
+      return "==";
     default:
       // This should never happen, as we only use the external tools to simplify
       // integer arithmetic with +, -, *
