@@ -29,7 +29,6 @@ import java.io.ObjectStreamException;
 import java.io.Serializable;
 import java.util.SortedSet;
 
-import com.google.common.collect.Iterables;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;

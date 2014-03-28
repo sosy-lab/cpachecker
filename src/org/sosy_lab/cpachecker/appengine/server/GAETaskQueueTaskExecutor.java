@@ -86,6 +86,7 @@ public class GAETaskQueueTaskExecutor implements TaskExecutor {
     config.inject(this);
   }
 
+  @SuppressWarnings("deprecation") // Backends are deprecated
   @Override
   public Task execute(Task task) {
     String taskKey = task.getKey();
