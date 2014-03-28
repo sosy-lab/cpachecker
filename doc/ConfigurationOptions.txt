@@ -1630,8 +1630,8 @@ statistics.print = false
 
 # Selects the analysis Strategy for TestGenAlgorithm
 testgen.analysisStrategy = CUTE_PATH_SELECTOR
-  enum:     [BASIC, LOCATION_AND_VALUE_STATE_TRACKING, CFA_TRACKING,
-             CUTE_PATH_SELECTOR, CUTE_LIKE]
+  enum:     [LOCATION_AND_VALUE_STATE_TRACKING, CFA_TRACKING, CUTE_PATH_SELECTOR,
+             CUTE_LIKE]
 
 # Selects the iteration Strategy for TestGenAlgorithm
 testgen.iterationStrategy = AUTOMATON_CONTROLLED

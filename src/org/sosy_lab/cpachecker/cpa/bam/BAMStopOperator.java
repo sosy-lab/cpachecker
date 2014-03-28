@@ -33,16 +33,18 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class BAMStopOperator implements StopOperator {
 
-  private StopOperator wrappedStop;
+  private final StopOperator wrappedStop;
+  private final BAMTransferRelation transfer;
 
-  public BAMStopOperator(StopOperator pWrappedStopOperator) {
+  public BAMStopOperator(StopOperator pWrappedStopOperator, BAMTransferRelation pTransfer) {
     wrappedStop = pWrappedStopOperator;
+    transfer = pTransfer;
   }
 
   @Override
   public boolean stop(AbstractState pState, Collection<AbstractState> pReached, Precision pPrecision)
       throws CPAException, InterruptedException {
-    if (pState == BAMARGBlockStartState.getDummy()) { return false; }
+    if (transfer.breakAnalysis) { return false; }
     return wrappedStop.stop(pState, pReached, pPrecision);
   }
 

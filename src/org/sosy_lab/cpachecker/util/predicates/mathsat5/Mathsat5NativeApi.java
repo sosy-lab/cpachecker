@@ -33,6 +33,7 @@ import javax.annotation.CheckReturnValue;
 
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.UnmodifiableIterator;
 
 
@@ -82,7 +83,10 @@ class Mathsat5NativeApi {
     case MSAT_UNSAT:
       return false;
     default:
-      throw new IllegalStateException("msat_solve returned " + res);
+      String msg = Strings.emptyToNull(msat_last_error_message(e));
+      String code = (res == MSAT_UNKNOWN) ? "\"unknown\"" : res + "";
+      throw new IllegalStateException("msat_solve returned " + code
+          + (msg != null ? ": " + msg : ""));
     }
   }
 

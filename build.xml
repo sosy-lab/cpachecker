@@ -166,7 +166,7 @@
 
     <target description="Make a distributable release" depends="build,jar,zip,tar" name="dist"/>
 
-    <target name="jar" depends="build">
+    <target name="create-version-file-exact">
         <!-- Determine full CPAchecker version including SVN revision. -->
         <exec executable="python"
             outputProperty="version.revision"
@@ -179,7 +179,9 @@
             <contains string="${version.base}" substring="-svn"/>
         </condition>
         <echo message="${version}" file="${version.file}"/>
+    </target>
 
+    <target name="jar" depends="build, create-version-file-exact">
         <jar basedir="${class.dir}/" includes="**" destfile="cpachecker.jar"
                 whenmanifestonly="fail">
             <manifest>

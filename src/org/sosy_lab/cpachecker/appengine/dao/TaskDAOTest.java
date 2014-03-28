@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.appengine.entity.Task.Status;
 import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 import org.sosy_lab.cpachecker.appengine.entity.Taskset;
 
-import com.google.appengine.labs.repackaged.com.google.common.collect.Lists;
+import com.google.common.collect.Lists;
 import com.googlecode.objectify.Key;
 
 

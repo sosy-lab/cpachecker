@@ -78,6 +78,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.Location;
+import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -447,30 +448,34 @@ public enum InvariantsTransferRelation implements TransferRelation {
       }
       CLeftHandSide leftHandSide = getLeftHandSide(edge);
       if (leftHandSide != null) {
-        CExpression dereferencee = null;
-        if (leftHandSide instanceof CPointerExpression) {
-          dereferencee = ((CPointerExpression) leftHandSide).getOperand();
-        } else if (leftHandSide instanceof CFieldReference) {
-          CFieldReference fieldReference = (CFieldReference) leftHandSide;
-          dereferencee = fieldReference.isPointerDereference() ? fieldReference.getFieldOwner() : null;
-        }
-        if (dereferencee != null) {
-          for (PointerState pointerState : FluentIterable.from(pOtherElements).filter(PointerState.class)) {
-            InvariantsState stateBeforeClearing = state.getStateBeforePointerDereferenceClearing();
-            InvariantsState result = stateBeforeClearing;
-            for (Location location : PointerTransferRelation.asLocations(dereferencee, pointerState)) {
-              for (String potentialTargetVar : stateBeforeClearing.getEnvironment().keySet()) {
-                org.sosy_lab.cpachecker.cpa.pointer2.util.Variable potentialTarget = new org.sosy_lab.cpachecker.cpa.pointer2.util.Variable(potentialTargetVar);
-                if (pointerState.mayPointTo(location, potentialTarget)) {
-                  result = result.assign(false, potentialTargetVar, CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top()), edge);
-                  if (result == null) {
-                    return Collections.emptySet();
-                  }
+        for (PointerState pointerState : FluentIterable.from(pOtherElements).filter(PointerState.class)) {
+          LocationSet locationSet = PointerTransferRelation.asLocations(leftHandSide, pointerState);
+          if (locationSet.isTop()) {
+            return null;
+          }
+          InvariantsState stateBeforeClearing = state.getStateBeforePointerDereferenceClearing();
+          InvariantsState result = stateBeforeClearing;
+          InvariantsFormula<CompoundInterval> top = CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
+          for (Location location : PointerTransferRelation.toNormalSet(pointerState, locationSet)) {
+            String id = location.getId();
+            if (id.contains("->") || location.getId().contains(".")) {
+              int lastIndexOfDot = id.lastIndexOf('.');
+              int lastIndexOfArrow = id.lastIndexOf("->");
+              if (lastIndexOfArrow >= 0) {
+                ++lastIndexOfArrow;
+              }
+              int lastIndexOfSep = Math.max(lastIndexOfDot, lastIndexOfArrow);
+              String end = lastIndexOfSep < 0 ? "" : id.substring(lastIndexOfSep + 1);
+              for (String variableName : result.getEnvironment().keySet()) {
+                if (variableName.endsWith(end)) {
+                  result = result.assign(false, variableName, top, edge);
                 }
-                return Collections.singleton(result);
               }
             }
+            result = result.assign(false, id, top, edge);
           }
+          return Collections.singleton(result);
+
         }
       }
     }
