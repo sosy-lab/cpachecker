@@ -317,9 +317,15 @@ class RunSetResult():
             print("Empty resultfile found: " + resultFile)
             return []
         else: # show all available columns
-            return [Column(c.get("title"), None, None)
-                    for c in resultElem.find('sourcefile').findall('column')
-                    if c.get("title") != 'category']
+            columnNames = set()
+            columns = []
+            for s in resultElem.findall('sourcefile'):
+                for c in s.findall('column'):
+                    title = c.get('title')
+                    if title != 'category' and not title in columnNames:
+                        columnNames.add(title)
+                        columns.append(Column(title, None, None))
+            return columns
 
     @staticmethod
     def _extractAttributesFromResult(resultFile, resultTag):
