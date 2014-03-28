@@ -175,6 +175,7 @@ class Mathsat5NativeApi {
   public static native boolean msat_is_fp_roundingmode_type(long e, long t);
 
   public static native boolean msat_type_equals(long t1, long t2);
+  public static native String msat_type_repr(long t);
 
   public static native long msat_declare_function(long e, String name, long t);
 
