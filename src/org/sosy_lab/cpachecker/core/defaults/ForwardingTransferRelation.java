@@ -251,8 +251,10 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
   /** This method just forwards the handling to every inner edge. */
   protected S handleMultiEdge(MultiEdge cfaEdge) throws CPATransferException {
     for (final CFAEdge innerEdge : cfaEdge) {
+      edge = innerEdge;
       state = handleSimpleEdge(innerEdge);
     }
+    edge = cfaEdge; // reset edge
     return state;
   }
 
