@@ -40,7 +40,6 @@ import java.util.logging.Level;
 
 import javax.management.JMException;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -50,6 +49,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -73,6 +73,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
+import com.google.common.collect.Ordering;
 
 @Options
 class MainCPAStatistics implements Statistics {
@@ -347,6 +348,10 @@ class MainCPAStatistics implements Statistics {
         if (size > mostFrequentLocationCount) {
           mostFrequentLocationCount = size;
           mostFrequentLocation = location.getElement();
+
+        } else if (size == mostFrequentLocationCount) {
+          // use node with smallest number to have deterministic output
+          mostFrequentLocation = Ordering.natural().min(mostFrequentLocation, location.getElement());
         }
       }
     }
