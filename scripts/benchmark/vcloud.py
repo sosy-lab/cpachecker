@@ -238,10 +238,11 @@ def handleCloudResults(benchmark, outputHandler):
                         executedAllRuns = False
 
                 except EnvironmentError as e:
-                    logging.warning("Cannot extract measured values from output for file {0}: {1}".format(run.sourcefile, e))
+                    logging.warning("Cannot extract measured values from output for file {0}: {1}".format(
+                                    outputHandler.formatSourceFileName(run.sourcefile), e))
                     executedAllRuns = False
             else:
-                logging.warning("No results exist for file {0}.".format(run.sourcefile))
+                logging.warning("No results exist for file {0}.".format(outputHandler.formatSourceFileName(run.sourcefile)))
                 executedAllRuns = False
                 returnValue = None
 
@@ -270,7 +271,7 @@ def handleCloudResults(benchmark, outputHandler):
     outputHandler.outputAfterBenchmark(STOPPED_BY_INTERRUPT)
 
     if not executedAllRuns:
-        logging.warning("Some expected result files could not be found")
+        logging.warning("Some expected result files could not be found!")
     if runsProducedErrorOutput:
         logging.warning("Some runs produced unexpected warnings on stderr, please check the {0} files!"
                         .format(os.path.join(outputDir, '*.stdError')))
