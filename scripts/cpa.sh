@@ -81,6 +81,12 @@ while [ $# -gt 0 ]; do
   shift
 done
 
+if [ -n "$TEMP" ]; then
+  JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -Djava.io.tmpdir=$TEMP"
+elif [ -n "$TMP" ]; then
+  JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -Djava.io.tmpdir=$TMP"
+fi
+
 if [ -n "$JAVA_HEAP_SIZE" ]; then
   echo "Running JavaVM with special heap size: $JAVA_HEAP_SIZE"
 fi
