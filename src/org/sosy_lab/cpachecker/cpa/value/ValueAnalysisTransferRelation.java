@@ -87,6 +87,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -125,6 +126,10 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       + "this option sets unknown (uninitialized) variables to 1L, "
       + "when the true-branch is handled.")
   private boolean initAssumptionVars = false;
+
+  @Option(description = "Process the Automaton ASSUMEs as if they were statements, not as if they were"
+      + " assumtions.")
+  private boolean automatonAssumesAsStatements = false;
 
   private final Set<String> globalVariables = new HashSet<>();
 
@@ -1071,7 +1076,9 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         result.clear();
         for(ValueAnalysisState state : toStrengthen) {
           super.setInfo(element, precision, cfaEdge);
-          Collection<ValueAnalysisState> ret = strengthen((AutomatonState)ae, cfaEdge);
+          AutomatonState autoState = (AutomatonState) ae;
+          Collection<ValueAnalysisState> ret = automatonAssumesAsStatements ?
+              strengthenAutomatonStatement(autoState, cfaEdge) : strengthenAutomatonAssume(autoState, cfaEdge);
           if(ret == null) {
             result.add(state);
           } else {
@@ -1089,7 +1096,32 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     return result;
   }
 
-  private Collection<ValueAnalysisState> strengthen(AutomatonState pAutomatonState, CFAEdge pCfaEdge) throws CPATransferException {
+  private Collection<ValueAnalysisState> strengthenAutomatonStatement(AutomatonState pAutomatonState, CFAEdge pCfaEdge) throws CPATransferException {
+
+    CIdExpression retVarName = new CIdExpression(FileLocation.DUMMY, new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false), "___cpa_temp_result_var_", null);
+
+    List<CStatementEdge> statementEdges = pAutomatonState.getAsStatementEdges(retVarName, pCfaEdge.getPredecessor().getFunctionName());
+
+    ValueAnalysisState state = this.state;
+
+    for(CStatementEdge stmtEdge : statementEdges) {
+      state = handleStatementEdge((AStatementEdge)stmtEdge, (IAStatement)stmtEdge.getStatement());
+
+      if(state == null) {
+        break;
+      } else {
+        setInfo(state, precision, pCfaEdge);
+      }
+    }
+
+    if (state == null) {
+      return Collections.emptyList();
+    } else {
+      return Collections.singleton(state);
+    }
+  }
+
+  private Collection<ValueAnalysisState> strengthenAutomatonAssume(AutomatonState pAutomatonState, CFAEdge pCfaEdge) throws CPATransferException {
 
     CIdExpression retVarName = new CIdExpression(FileLocation.DUMMY, new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false), "___cpa_temp_result_var_", null);
 

@@ -1,0 +1,89 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<!--
+  Example file that demonstrates the use of CPAchecker.
+  This file can and should be used as a base for building own benchmark definitions.
+-->
+<benchmark tool="cpachecker" timelimit="60" hardtimelimit="120">
+
+
+<!-- benchmark tool="cpachecker" timelimit="1800" memlimit="2000"> -->
+  <option name="-noout"/>
+  <option name="-heap">1200M</option>
+ <!-- 
+  <sourcefiles name="ControlFlowInteger">
+    <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
+  </sourcefiles>
+  -->
+  <sourcefiles name="Simple">
+    <includesfile>../programs/benchmarks/Simple.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="Loops">
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <exclude>../programs/benchmarks/loops/eureka_01_false-unreach-label.i</exclude>  for_infinite_loop_1_true-unreach-label_false-termination.i 
+  </sourcefiles>
+ <!-- 
+ <sourcefiles name="Sequentialized">
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+  </sourcefiles> 
+  <sourcefiles name="Nested">
+    <includesfile>nested.set</includesfile>
+  </sourcefiles>
+  -->
+
+  <!-- Global options for all run definitions. -->
+  <!-- Set the Java heap size to some value lower than the memlimit. -->
+  <option name="-heap">7000M</option>
+
+
+  <!--
+    Always use property files as specification
+    to guarantee correct interpretation of the results.
+    The following will use the file ALL.prp in the same directory as the source file.
+  -->
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+  <!--
+  <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
+  -->
+
+
+  <!--
+  <rundefinition name="without-cbmc">
+    <option name="-explicitAnalysis-no-cbmc"/>
+  </rundefinition>
+
+  <rundefinition name="with-cbmc">
+    <option name="-explicitAnalysis"/>
+  </rundefinition>
+  -->
+  
+  <rundefinition name="testgen_automaton_controlled_stop_on_error">
+    <option name="-testGen"/>
+    <option name="-setprop">testgen.stopOnError=true</option>
+    <option name="-setprop">testgen.iterationStrategy=AUTOMATON_CONTROLLED</option>
+  </rundefinition>
+  <!--
+  <rundefinition name="testgen_filtered_waitlist_stop_on_error">
+    <option name="-testGen"/>
+    <option name="-setprop">testgen.stopOnError=true</option>
+    <option name="-setprop">testgen.iterationStrategy=SAME_ALGORITHM_FILTER_WAITLIST</option>
+  </rundefinition>
+  -->
+
+
+
+  <!--
+    Search the CPAchecker output for some values.
+    The <column> tag has the pattern as content,
+    and the script will try to extract a numerical value from matching lines.
+    "numberOfDigits" gives the number of digits after the decimal separator,
+    "title" the name of the column in the table.
+    Both attributes are optional.
+    These tags are not necessary here,
+    statistics can still be extracted after the benchmark run.
+  <columns>
+    <column title="total" numberOfDigits="1">time for CPAchecker</column>
+    <column title="reached">reached set</column>
+  </columns>
+  -->
+</benchmark>

@@ -82,6 +82,9 @@ analysis.algorithm.proofCheck = false
 # ConfigurableProgramAnalysisWithPropertyChecker
 analysis.algorithm.propertyCheck = false
 
+# use the TestGen Algorithm
+analysis.algorithm.testGen = false
+
 # use a second model checking run (e.g., with CBMC or a different CPAchecker
 # configuration) to double-check counter-examples
 analysis.checkCounterexamples = false
@@ -139,7 +142,7 @@ analysis.summaryEdges = false
 
 # which strategy to adopt for visiting states?
 analysis.traversal.order = DFS
-  enum:     [DFS, BFS, RAND]
+  enum:     [DFS, BFS, RAND, DFSRAND]
 
 # handle abstract states with more automaton matches first? (only if
 # AutomatonCPA enabled)
@@ -1359,6 +1362,10 @@ cpa.uninitvars.stop = "sep"
 # Value which is allowed for the variable which is checked
 cpa.value.allowedValue = 0
 
+# Process the Automaton ASSUMEs as if they were statements, not as if they
+# were assumtions.
+cpa.value.automatonAssumesAsStatements = false
+
 # restrict abstractions to assume edges
 cpa.value.blk.alwaysAtAssumes = false
 
@@ -1620,4 +1627,27 @@ statistics.memory = true
 
 # print statistics to console
 statistics.print = false
+
+# Selects the analysis Strategy for TestGenAlgorithm
+testgen.analysisStrategy = CUTE_PATH_SELECTOR
+  enum:     [LOCATION_AND_VALUE_STATE_TRACKING, CFA_TRACKING, CUTE_PATH_SELECTOR,
+             CUTE_LIKE]
+
+# Selects the iteration Strategy for TestGenAlgorithm
+testgen.iterationStrategy = AUTOMATON_CONTROLLED
+  enum:     [AUTOMATON_CONTROLLED, SAME_ALGORITHM_RESTART,
+             SAME_ALGORITHM_FILTER_WAITLIST]
+
+# Set this to true to get the automaton files for exploring new Paths. You
+# also get the ARG as dot file and the local reached set for every algoritm
+# iteration in subdirs under output.
+testgen.produceDebugFiles = false
+
+# algorithm stops on first found error path. Otherwise the algorithms tries
+# to reach 100% coverage
+testgen.stopOnError = false
+
+# Output file Template under which the testcase automatons will be stored.
+# Must include one %s somewhere.
+testgen.testcaseOutputFile = "testcase%s.spc"
 

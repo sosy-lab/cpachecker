@@ -105,6 +105,7 @@ public interface Waitlist extends Iterable<AbstractState> {
     DFS     { @Override public Waitlist createWaitlistInstance() { return new SimpleWaitlist(this); } },
     BFS     { @Override public Waitlist createWaitlistInstance() { return new SimpleWaitlist(this); } },
     RAND    { @Override public Waitlist createWaitlistInstance() { return new RandomWaitlist();     } },
+    DFSRAND    { @Override public Waitlist createWaitlistInstance() { return new DFSRandomWaitlist();     } },
     ;
   }
 }
