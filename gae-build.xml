@@ -40,6 +40,12 @@
       <include name="testing/appengine-testing.jar" />
     </fileset>
   </path>
+  <path id="gae.classpath.test">
+    <path refid="gae.classpath"/>
+    <fileset dir="${gae-sdk.dir}/lib">
+      <include name="impl/appengine-api-stubs.jar"/>
+    </fileset>
+  </path>
 
   <target name="resolve-dependencies" depends="load-ivy, update-contrib, cpachecker-resolve-dependencies" unless="ivy.disable">
     <ivy:resolve file="lib/ivy-gae.xml" conf="build, runtime, test" log="download-only"/>
@@ -65,7 +71,7 @@
       </assertions>
       <formatter type="plain"/>
       <formatter type="xml"/>
-      <classpath refid="gae.classpath"/>
+      <classpath refid="gae.classpath.test"/>
       <batchtest fork="true" todir="${test.report.dir}">
         <fileset dir="${class.dir}">
           <include name="**/appengine/**/*Test.*" />
