@@ -35,6 +35,7 @@
         <pathelement location="${class.dir}"/>
         <fileset dir="lib" includes="*.jar" excludes="appengine-*/**,gae/**"/>
         <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar"/>
+        <fileset dir="lib/temporary" includes="*.jar"/>
     </path>
     <condition property="architecture" value="x86_64" else="x86">
         <os arch="amd64"/>
