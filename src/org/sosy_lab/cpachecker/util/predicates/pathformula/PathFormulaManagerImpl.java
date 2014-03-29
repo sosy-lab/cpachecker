@@ -147,12 +147,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       TypeHandlerWithPointerAliasing aliasingTypeHandler = new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, pFmgr, options);
       typeHandler = aliasingTypeHandler;
       ptsManager = new PointerTargetSetManager(options, pFmgr, aliasingTypeHandler, shutdownNotifier);
-      converter = new CToFormulaConverterWithPointerAliasing(options, pFmgr, pMachineModel, ptsManager, pVariableClassification, pLogger, aliasingTypeHandler);
+      converter = new CToFormulaConverterWithPointerAliasing(options, pFmgr, pMachineModel, ptsManager, pVariableClassification, pLogger, shutdownNotifier, aliasingTypeHandler);
 
     } else {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel, pFmgr);
-      converter = new CtoFormulaConverter(options, pFmgr, pMachineModel, pVariableClassification, pLogger, typeHandler);
+      converter = new CtoFormulaConverter(options, pFmgr, pMachineModel, pVariableClassification, pLogger, pShutdownNotifier, typeHandler);
       ptsManager = null;
 
       logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
@@ -163,7 +163,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Override
   public Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(PathFormula pOldFormula,
-                             final CFAEdge pEdge) throws CPATransferException {
+                             final CFAEdge pEdge) throws CPATransferException, InterruptedException {
     ErrorConditions errorConditions = new ErrorConditions(bfmgr);
     PathFormula pf = makeAnd(pOldFormula, pEdge, errorConditions);
 
@@ -171,7 +171,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   private PathFormula makeAnd(PathFormula pOldFormula, final CFAEdge pEdge, ErrorConditions errorConditions)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
     PathFormula pf = converter.makeAnd(pOldFormula, pEdge, errorConditions);
 
     if (useNondetFlags) {
@@ -204,7 +204,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException {
+  public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException, InterruptedException {
     ErrorConditions errorConditions = ErrorConditions.dummyInstance(bfmgr);
     return makeAnd(pOldFormula, pEdge, errorConditions);
   }
@@ -425,7 +425,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException {
+  public PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException {
     PathFormula pathFormula = makeEmptyPathFormula();
     for (CFAEdge edge : pPath) {
       pathFormula = makeAnd(pathFormula, edge);
@@ -444,10 +444,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    *
    * @param elementsOnPath The ARG states that should be considered.
    * @return A formula containing a predicate for each branching.
-   * @throws CPATransferException
    */
   @Override
-  public BooleanFormula buildBranchingFormula(Iterable<ARGState> elementsOnPath) throws CPATransferException {
+  public BooleanFormula buildBranchingFormula(Iterable<ARGState> elementsOnPath) throws CPATransferException, InterruptedException {
     // build the branching formula that will help us find the real error path
     BooleanFormula branchingFormula = bfmgr.makeBoolean(true);
     for (final ARGState pathElement : elementsOnPath) {

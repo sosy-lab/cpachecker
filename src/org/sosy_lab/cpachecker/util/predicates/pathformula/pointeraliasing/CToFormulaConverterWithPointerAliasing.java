@@ -34,9 +34,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -119,9 +120,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
                                    final PointerTargetSetManager pPtsMgr,
                                    final Optional<VariableClassification> pVariableClassification,
                                    final LogManager logger,
+                                   final ShutdownNotifier pShutdownNotifier,
                                    final TypeHandlerWithPointerAliasing pTypeHandler)
   throws InvalidConfigurationException {
-    super(pOptions, formulaManagerView, pMachineModel, pVariableClassification, logger, pTypeHandler);
+    super(pOptions, formulaManagerView, pMachineModel, pVariableClassification, logger, pShutdownNotifier, pTypeHandler);
     variableClassification = pVariableClassification;
     options = pOptions;
     ptsMgr = pPtsMgr;

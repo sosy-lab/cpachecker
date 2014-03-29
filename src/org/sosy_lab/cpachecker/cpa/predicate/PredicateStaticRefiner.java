@@ -348,7 +348,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
         globalPredicates);
   }
 
-  private Collection<AbstractionPredicate> assumeEdgeToPredicates(boolean atomicPredicates, AssumeEdge assume) throws CPATransferException {
+  private Collection<AbstractionPredicate> assumeEdgeToPredicates(boolean atomicPredicates, AssumeEdge assume) throws CPATransferException, InterruptedException {
     BooleanFormula relevantAssumesFormula = pathFormulaManager.makeAnd(
         pathFormulaManager.makeEmptyPathFormula(), assume).getFormula();
 
@@ -376,6 +376,9 @@ public class PredicateStaticRefiner extends StaticRefiner {
           }
         }
       }
+    } catch (InterruptedException e) {
+      logger.logUserException(Level.WARNING, e, "Interrupted, could not write assume predicates to file!");
+      Thread.currentThread().interrupt();
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "IO exception! Could not write assume predicates to file!");
     } catch (CPATransferException e) {

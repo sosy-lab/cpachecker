@@ -322,7 +322,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   }
 
   protected List<BooleanFormula> recomputeFormulasForPath(ARGPath pAllStatesTrace, int initialSize)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
     ArrayList<BooleanFormula> list = new ArrayList<>(initialSize);
     PathFormula pathFormula = pfmgr.makeEmptyPathFormula();
     pathFormula = pfmgr.makeAnd(pathFormula, pAllStatesTrace.getFirst().getSecond());

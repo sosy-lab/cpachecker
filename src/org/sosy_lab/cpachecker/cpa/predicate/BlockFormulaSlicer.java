@@ -825,7 +825,7 @@ public class BlockFormulaSlicer {
   }
 
   private PathFormula buildFormulaForEdge(ARGState parent, ARGState child, PathFormula oldFormula)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
     if (sliceBlockFormulas && !importantEdges.containsEntry(parent, child)) {
       return oldFormula;
     } else {

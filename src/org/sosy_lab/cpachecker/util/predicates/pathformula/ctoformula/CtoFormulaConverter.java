@@ -32,9 +32,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
@@ -84,6 +84,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -154,6 +155,7 @@ public class CtoFormulaConverter {
   private final BitvectorFormulaManagerView efmgr;
   protected final FunctionFormulaManagerView ffmgr;
   protected final LogManagerWithoutDuplicates logger;
+  private final ShutdownNotifier shutdownNotifier;
 
   public static final int          VARIABLE_UNSET          = -1;
   static final int                 VARIABLE_UNINITIALIZED  = 2;
@@ -162,7 +164,7 @@ public class CtoFormulaConverter {
 
   public CtoFormulaConverter(FormulaEncodingOptions pOptions, FormulaManagerView fmgr,
       MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification,
-      LogManager logger,
+      LogManager logger, ShutdownNotifier pShutdownNotifier,
       CtoFormulaTypeHandler pTypeHandler) {
 
     this.fmgr = fmgr;
@@ -176,6 +178,7 @@ public class CtoFormulaConverter {
     this.efmgr = fmgr.getBitvectorFormulaManager();
     this.ffmgr = fmgr.getFunctionFormulaManager();
     this.logger = new LogManagerWithoutDuplicates(logger);
+    this.shutdownNotifier = pShutdownNotifier;
 
     stringUfDecl = ffmgr.createFunction(
             "__string__", typeHandler.getPointerType(), FormulaType.RationalType);
@@ -513,7 +516,7 @@ public class CtoFormulaConverter {
 //  @Override
   public PathFormula makeAnd(PathFormula oldFormula,
       CFAEdge edge, ErrorConditions errorConditions)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
     // this is where the "meat" is... We have to parse the statement
     // attached to the edge, and convert it to the appropriate formula
     if (edge.getEdgeType() == CFAEdgeType.BlankEdge) {
@@ -557,13 +560,12 @@ public class CtoFormulaConverter {
    * @param ssa the current SSA map
    * @param constraints the current constraints
    * @return the formula for the edge
-   * @throws CPATransferException
    */
   private BooleanFormula createFormulaForEdge(
       final CFAEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
-          throws CPATransferException {
+          throws CPATransferException, InterruptedException {
     switch (edge.getEdgeType()) {
     case StatementEdge: {
       return makeStatement((CStatementEdge) edge, function,
@@ -612,6 +614,7 @@ public class CtoFormulaConverter {
           continue;
         }
         multiEdgeFormulas.add(createFormulaForEdge(singleEdge, function, ssa, pts, constraints, errorConditions));
+        shutdownNotifier.shutdownIfNecessary();
       }
 
       // Big conjunction at the end is better than creating a new conjunction

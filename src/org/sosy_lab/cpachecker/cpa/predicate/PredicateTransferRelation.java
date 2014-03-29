@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.ComputeAbstractionState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -252,9 +251,8 @@ public class PredicateTransferRelation implements TransferRelation {
    * @param pathFormula The previous pathFormula.
    * @param edge  The edge to analyze.
    * @return  The new pathFormula.
-   * @throws UnrecognizedCFAEdgeException
    */
-  private PathFormula convertEdgeToPathFormula(PathFormula pathFormula, CFAEdge edge) throws CPATransferException {
+  private PathFormula convertEdgeToPathFormula(PathFormula pathFormula, CFAEdge edge) throws CPATransferException, InterruptedException {
     pathFormulaTimer.start();
     try {
       // compute new pathFormula with the operation on the edge
@@ -323,7 +321,7 @@ public class PredicateTransferRelation implements TransferRelation {
 
   @SuppressWarnings("unused")
   private PredicateAbstractState strengthen(CFANode pNode, PredicateAbstractState pElement,
-      AbstractStateWithAssumptions pAssumeElement) throws CPATransferException {
+      AbstractStateWithAssumptions pAssumeElement) throws CPATransferException, InterruptedException {
 
     PathFormula pf = pElement.getPathFormula();
 
