@@ -137,7 +137,7 @@ public class BlockFormulaSlicer {
   }
 
   public List<BooleanFormula> sliceFormulasForPath(List<ARGState> path, ARGState initialState)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
 
     // first find all ARGStates for each block,
     // a block is a set of states with one start- and one end-state,
@@ -746,9 +746,10 @@ public class BlockFormulaSlicer {
 
 
   /** This function returns a PathFormula for the whole block from start to end.
-   * The SSA-indices of the new formula are based on the old formula. */
+   * The SSA-indices of the new formula are based on the old formula.
+   */
   private PathFormula buildFormula(ARGState start, ARGState end,
-      Collection<ARGState> block, PathFormula oldPf) throws CPATransferException {
+      Collection<ARGState> block, PathFormula oldPf) throws CPATransferException, InterruptedException {
 
     // this map contains all done states with their formulas
     final Map<ARGState, PathFormula> s2f = new HashMap<>(block.size());
@@ -804,7 +805,7 @@ public class BlockFormulaSlicer {
 
 
   private PathFormula makeFormulaForState(ARGState current, Map<ARGState, PathFormula> s2f)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
 
     assert current.getParents().size() > 0 : "no parent for " + current.getStateId();
 

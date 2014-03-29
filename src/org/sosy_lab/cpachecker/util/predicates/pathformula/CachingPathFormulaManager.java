@@ -101,7 +101,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeOr(PathFormula pF1, PathFormula pF2) {
+  public PathFormula makeOr(PathFormula pF1, PathFormula pF2) throws InterruptedException {
     final Pair<PathFormula, PathFormula> formulaCacheKey = Pair.of(pF1, pF2);
 
     PathFormula result = orFormulaCache.get(formulaCacheKey);

@@ -60,9 +60,9 @@ class SmtInterpolUtil {
     if (!(t instanceof ApplicationTerm)) {
       return false;
     }
-    FunctionSymbol func = ((ApplicationTerm) t).getFunction();
-    return (t instanceof ApplicationTerm)
-        && ((ApplicationTerm) t).getParameters().length > 0
+    ApplicationTerm applicationTerm = (ApplicationTerm) t;
+    FunctionSymbol func = applicationTerm.getFunction();
+    return applicationTerm.getParameters().length > 0
         && !func.isIntern()
         && !func.isInterpreted();
   }

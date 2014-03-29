@@ -52,7 +52,7 @@ public interface PathFormulaManager {
    * @param pF2 a PathFormula
    * @return (pF1 | pF2)
    */
-  PathFormula makeOr(PathFormula pF1, PathFormula pF2);
+  PathFormula makeOr(PathFormula pF1, PathFormula pF2) throws InterruptedException;
 
   PathFormula makeAnd(PathFormula pPathFormula, BooleanFormula pOtherFormula);
 

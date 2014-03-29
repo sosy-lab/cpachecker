@@ -57,7 +57,7 @@ public class PredicateMergeOperator implements MergeOperator {
 
   @Override
   public AbstractState merge(AbstractState element1,
-                               AbstractState element2, Precision precision) {
+                               AbstractState element2, Precision precision) throws InterruptedException {
 
     PredicateAbstractState elem1 = (PredicateAbstractState)element1;
     PredicateAbstractState elem2 = (PredicateAbstractState)element2;

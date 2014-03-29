@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
@@ -87,6 +88,7 @@ public class PointerTargetSetManager {
     return UNITED_BASE_FIELD_NAME_PREFIX + index;
   }
 
+  private final ShutdownNotifier shutdownNotifier;
 
   private final FormulaEncodingWithPointerAliasingOptions options;
   private final FormulaManagerView formulaManager;
@@ -95,18 +97,20 @@ public class PointerTargetSetManager {
   private final TypeHandlerWithPointerAliasing typeHandler;
 
   public PointerTargetSetManager(FormulaEncodingWithPointerAliasingOptions pOptions,
-      FormulaManagerView pFormulaManager, TypeHandlerWithPointerAliasing pTypeHandler) {
+      FormulaManagerView pFormulaManager, TypeHandlerWithPointerAliasing pTypeHandler,
+      ShutdownNotifier pShutdownNotifier) {
     options = pOptions;
     formulaManager = pFormulaManager;
     bfmgr = formulaManager.getBooleanFormulaManager();
     ffmgr = formulaManager.getFunctionFormulaManager();
     typeHandler = pTypeHandler;
+    shutdownNotifier = pShutdownNotifier;
   }
 
   public Pair<Triple<BooleanFormula, BooleanFormula, BooleanFormula>, PointerTargetSet>
             mergePointerTargetSets(final PointerTargetSet pts1,
                                    final PointerTargetSet pts2,
-                                   final SSAMap resultSSA) {
+                                   final SSAMap resultSSA) throws InterruptedException {
 
     if (pts1.isEmpty() && pts2.isEmpty()) {
       return Pair.of(
@@ -118,14 +122,17 @@ public class PointerTargetSetManager {
            PersistentSortedMap<String, CType>,
            PersistentSortedMap<String, CType>> mergedBases =
       mergeWithKeyDifferences(pts1.bases, pts2.bases, BaseUnitingConflictHandler.INSTANCE);
+    shutdownNotifier.shutdownIfNecessary();
 
     final Triple<PersistentSortedMap<CompositeField, Boolean>,
                  PersistentSortedMap<CompositeField, Boolean>,
                  PersistentSortedMap<CompositeField, Boolean>> mergedFields =
       mergeWithKeyDifferences(pts1.fields, pts2.fields, PersistentSortedMaps.<CompositeField, Boolean>getExceptionMergeConflictHandler());
+    shutdownNotifier.shutdownIfNecessary();
 
     PersistentSortedMap<String, PersistentList<PointerTarget>> mergedTargets =
       merge(pts1.targets, pts2.targets, PointerTargetSetManager.<String, PointerTarget>mergeOnConflict());
+    shutdownNotifier.shutdownIfNecessary();
 
     // Targets is always the cross product of bases and fields.
     // So when we merge the bases, fields, and targets by taking the union,
@@ -140,6 +147,7 @@ public class PointerTargetSetManager {
 
     final PersistentSortedMap<String, DeferredAllocationPool> mergedDeferredAllocations =
         mergeDeferredAllocationPools(pts1, pts2);
+    shutdownNotifier.shutdownIfNecessary();
 
     final String lastBase;
     final BooleanFormula basesMergeFormula;

@@ -140,7 +140,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     FormulaManagerFactory factory = new FormulaManagerFactory(config, pLogger, pShutdownNotifier);
     fmgr = new FormulaManagerView(factory.getFormulaManager(), config, logger);
     bfmgr = fmgr.getBooleanFormulaManager();
-    pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger, cfa));
+    pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger, pShutdownNotifier, cfa));
     solver = new Solver(fmgr, factory);
     imgr = new InterpolationManager(fmgr, pfmgr, solver, factory, config, pShutdownNotifier, logger);
   }

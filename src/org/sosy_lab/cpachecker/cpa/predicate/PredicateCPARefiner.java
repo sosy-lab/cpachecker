@@ -302,10 +302,9 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
    * @param path A list of all abstraction elements
    * @param initialState The initial element of the analysis (= the root element of the ARG)
    * @return A list of block formulas for this path.
-   * @throws CPATransferException
    */
   protected List<BooleanFormula> getFormulasForPath(List<ARGState> path, ARGState initialState)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
     getFormulasForPathTime.start();
     try {
       if (sliceBlockFormulas) {
