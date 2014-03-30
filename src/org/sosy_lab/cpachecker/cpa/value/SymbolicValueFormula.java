@@ -214,6 +214,56 @@ public class SymbolicValueFormula implements Value {
       leftHand.addAll(rightHand);
       return leftHand;
     }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((lVal == null) ? 0 : lVal.hashCode());
+      result = prime * result + ((op == null) ? 0 : op.hashCode());
+      result = prime * result + ((rVal == null) ? 0 : rVal.hashCode());
+      result = prime * result + ((resultType == null) ? 0 : resultType.hashCode());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      BinaryExpression other = (BinaryExpression) obj;
+      if (lVal == null) {
+        if (other.lVal != null) {
+          return false;
+        }
+      } else if (!lVal.equals(other.lVal)) {
+        return false;
+      }
+      if (op != other.op) {
+        return false;
+      }
+      if (rVal == null) {
+        if (other.rVal != null) {
+          return false;
+        }
+      } else if (!rVal.equals(other.rVal)) {
+        return false;
+      }
+      if (resultType == null) {
+        if (other.resultType != null) {
+          return false;
+        }
+      } else if (!resultType.equals(other.resultType)) {
+        return false;
+      }
+      return true;
+    }
   }
 
   /**
@@ -260,6 +310,36 @@ public class SymbolicValueFormula implements Value {
   }
 
   public static class ConstantValue implements ExpressionBase {
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((value == null) ? 0 : value.hashCode());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      ConstantValue other = (ConstantValue) obj;
+      if (value == null) {
+        if (other.value != null) {
+          return false;
+        }
+      } else if (!value.equals(other.value)) {
+        return false;
+      }
+      return true;
+    }
+
     private Value value;
 
     public Value getValue() {
@@ -312,7 +392,12 @@ public class SymbolicValueFormula implements Value {
    */
   public Value replaceSymbolWith(SymbolicValue pSymbol, Value pReplacement) {
     ConstantValue replacement = new ConstantValue(pReplacement);
-    return new SymbolicValueFormula(root.replaceSymbolWith(pSymbol, replacement)).simplify();
+    SymbolicValueFormula rval = new SymbolicValueFormula(root.replaceSymbolWith(pSymbol, replacement));
+    if(!rval.root.equals(root)) {
+      // Only simplify if we actually managed to replace something.
+      return rval.simplify();
+    }
+    return rval;
   }
 
   /**
@@ -338,6 +423,18 @@ public class SymbolicValueFormula implements Value {
     if(root instanceof BinaryExpression) {
       BinaryExpression rootBinaryExpression = (BinaryExpression) root;
       String operator = rootBinaryExpression.getOperator().op;
+
+      // If the left-hand or right-hand side already are the variable itself, we don't need
+      // to do expensive solving.
+      if(rootBinaryExpression.lVal instanceof SymbolicValue && rootBinaryExpression.rVal instanceof ConstantValue) {
+        SymbolicValue symbol = (SymbolicValue) rootBinaryExpression.lVal;
+        ConstantValue value = (ConstantValue) rootBinaryExpression.rVal;
+        return Pair.of(symbol, value.getValue());
+      } else if(rootBinaryExpression.rVal instanceof SymbolicValue && rootBinaryExpression.lVal instanceof ConstantValue) {
+        SymbolicValue symbol = (SymbolicValue) rootBinaryExpression.rVal;
+        ConstantValue value = (ConstantValue) rootBinaryExpression.lVal;
+        return Pair.of(symbol, value.getValue());
+      }
 
       if(operator.equals("!=") && !truthValue) {
         // If we have != and truthValue is false, convert to == instead

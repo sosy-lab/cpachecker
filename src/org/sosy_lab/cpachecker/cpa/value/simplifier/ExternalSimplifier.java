@@ -41,10 +41,16 @@ import org.sosy_lab.cpachecker.cpa.value.Value;
  * Uses an external library/application to simplify symbolic formulas.
  */
 public class ExternalSimplifier {
+  static private EvalUtilities util;
+
+  public static void initialize() {
+    if(util == null) {
+      F.initSymbols(null);
+      util = new EvalUtilities();
+    }
+  }
 
   public static ExpressionBase simplify(ExpressionBase expr) {
-    F.initSymbols(null);
-    EvalUtilities util = new EvalUtilities();
 
     IExpr result;
 
@@ -127,9 +133,9 @@ public class ExternalSimplifier {
   }
 
   private static ExpressionBase recursiveConvertExpressionToFormula(IExpr expression, List<SymbolicValue> usedVariables) {
-    if(expression.isPlus()) {
-      ExpressionBase leftHand = recursiveConvertExpressionToFormula(expression.getAt(0), usedVariables);
-      ExpressionBase rightHand = recursiveConvertExpressionToFormula(expression.getAt(1), usedVariables);
+    if(expression.isPlus() || expression.getAt(0).toString() == "Plus") {
+      ExpressionBase leftHand = recursiveConvertExpressionToFormula(expression.getAt(1), usedVariables);
+      ExpressionBase rightHand = recursiveConvertExpressionToFormula(expression.getAt(2), usedVariables);
       return new BinaryExpression(leftHand, rightHand, BinaryExpression.BinaryOperator.PLUS, CNumericTypes.INT, CNumericTypes.INT);
     } else if(expression.isTimes()) {
       ExpressionBase leftHand = recursiveConvertExpressionToFormula(expression.getAt(1), usedVariables);
@@ -137,8 +143,8 @@ public class ExternalSimplifier {
       return new BinaryExpression(leftHand, rightHand, BinaryExpression.BinaryOperator.MULTIPLY, CNumericTypes.INT, CNumericTypes.INT);
     } else if(expression.isPower()) {
       // TODO: find a way to tell symja not to generate power expressions
-      ExpressionBase base = recursiveConvertExpressionToFormula(expression.getAt(0), usedVariables);
-      ExpressionBase power = recursiveConvertExpressionToFormula(expression.getAt(1), usedVariables);
+      ExpressionBase base = recursiveConvertExpressionToFormula(expression.getAt(1), usedVariables);
+      ExpressionBase power = recursiveConvertExpressionToFormula(expression.getAt(2), usedVariables);
 
       // TODO: build an expression for any power, not just 2
       if(power instanceof ConstantValue && ((ConstantValue)power).getValue().asLong(CNumericTypes.INT) == 2) {
