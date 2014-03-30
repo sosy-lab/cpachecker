@@ -54,6 +54,36 @@ import org.sosy_lab.cpachecker.cpa.value.simplifier.ExternalSimplifier;
  * integer arithmetics, this can not be simplified to "X".
  */
 public class SymbolicValueFormula implements Value {
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((root == null) ? 0 : root.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    SymbolicValueFormula other = (SymbolicValueFormula) obj;
+    if (root == null) {
+      if (other.root != null) {
+        return false;
+      }
+    } else if (!root.equals(other.root)) {
+      return false;
+    }
+    return true;
+  }
+
   /** root of the expression tree **/
   ExpressionBase root;
 
@@ -397,7 +427,7 @@ public class SymbolicValueFormula implements Value {
       // Only simplify if we actually managed to replace something.
       return rval.simplify();
     }
-    return rval;
+    return this;
   }
 
   /**

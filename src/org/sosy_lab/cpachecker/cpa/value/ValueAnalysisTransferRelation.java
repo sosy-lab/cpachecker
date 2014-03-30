@@ -358,10 +358,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     ExpressionValueVisitor evv = getVisitor();
 
-    System.out.println(expression.toASTString());
     // get the value of the expression (either true[1L], false[0L], or unknown[null])
     Value value = getExpressionValue(expression, CNumericTypes.INT, evv);
-    System.out.println("Value for "+expression.toASTString()+" is "+value);
 
     if (!value.isExplicitlyKnown()) {
       ValueAnalysisState element = state.clone();
@@ -375,8 +373,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
             Value trackedValue = state.getValueFor(memloc);
             if(trackedValue instanceof SymbolicValueFormula) {
               SymbolicValueFormula trackedFormula = (SymbolicValueFormula) trackedValue;
-              System.out.println("Applying "+replacement.getFirst()+"=="+replacement.getSecond()+" to "+memloc+"="+trackedFormula+" resulting in "+trackedFormula.replaceSymbolWith(replacement.getFirst(), replacement.getSecond()));
-              element.assignConstant(memloc, trackedFormula.replaceSymbolWith(replacement.getFirst(), replacement.getSecond()));
+              Value newValue = trackedFormula.replaceSymbolWith(replacement.getFirst(), replacement.getSecond());
+              if(newValue != trackedValue) {
+                System.out.println("Applying "+replacement.getFirst()+"=="+replacement.getSecond()+" to "+memloc+"="+trackedFormula+" resulting in "+newValue);
+                element.assignConstant(memloc, newValue);
+              }
             }
           }
         }
