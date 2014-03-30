@@ -78,10 +78,10 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
     CUTE_LIKE
   }
 
-  @Option(name = "iterationStrategy", description = "Selects the iteration Strategy for TestGenAlgorithm")
+  @Option(name = "simulationStrategy", description = "Selects the simulation Strategy for TestGenAlgorithm")
   private IterationStrategySelector iterationStrategySelector = IterationStrategySelector.AUTOMATON_CONTROLLED;
 
-  @Option(name = "analysisStrategy", description = "Selects the analysis Strategy for TestGenAlgorithm")
+  @Option(name = "pathSelector", description = "The path selector for TestGenAlgorithm")
   private AnalysisStrategySelector analysisStrategySelector = AnalysisStrategySelector.CUTE_PATH_SELECTOR;
 
   @Option(
