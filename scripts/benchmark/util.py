@@ -193,7 +193,7 @@ def findExecutable(program, fallback=None, exitOnError=True):
     def isExecutable(programPath):
         return os.path.isfile(programPath) and os.access(programPath, os.X_OK)
 
-    dirs = os.environ['PATH'].split(os.path.sep)
+    dirs = os.environ['PATH'].split(os.path.pathsep)
     dirs.append(os.path.curdir)
 
     for dir in dirs:
