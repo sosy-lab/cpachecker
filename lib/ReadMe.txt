@@ -53,3 +53,9 @@ call "ant report-dependencies".
 - chc_lib: CHC/CLP Generalization Operators Library
   It requires a working SWI-Prolog installation.
   Apache License, Version 2.0
+
+- symja: Symja is a pure Java library for symbolic mathematics.
+  https://code.google.com/p/symja/
+  GNU Lesser General Public License
+  Symja is needed for simplifying symbolic expressions
+
