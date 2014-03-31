@@ -107,7 +107,7 @@ class AssignmentHandler {
                                   final @Nullable CRightHandSide rhs,
                                   final boolean batchMode,
                                   final @Nullable Set<CType> destroyedTypes)
-  throws UnrecognizedCCodeException {
+  throws UnrecognizedCCodeException, InterruptedException {
     if (!conv.isRelevantLeftHandSide(lhs)) {
       // Optimization for unused variables and fields
       return conv.bfmgr.makeBoolean(true);
@@ -171,7 +171,7 @@ class AssignmentHandler {
 
   public BooleanFormula handleInitializationAssignments(final CLeftHandSide variable,
                                                         final List<CExpressionAssignmentStatement> assignments)
-                                                            throws UnrecognizedCCodeException {
+                                                            throws UnrecognizedCCodeException, InterruptedException {
     CExpressionVisitorWithPointerAliasing lhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
     final Location lhsLocation = variable.accept(lhsVisitor).asLocation();
     final Set<CType> updatedTypes = new HashSet<>();
@@ -199,7 +199,7 @@ class AssignmentHandler {
                                 final @Nullable PointerTargetPattern pattern,
                                 final boolean useOldSSAIndices,
                                       @Nullable Set<CType> updatedTypes)
-  throws UnrecognizedCCodeException {
+  throws UnrecognizedCCodeException, InterruptedException {
     // Its a definite value assignment, a nondet assignment (SSA index update) or a nondet assignment among other
     // assignments to the same UF version (in this case an absense of aliasing should be somehow guaranteed, as in the
     // case of initialization assignments)
@@ -252,7 +252,7 @@ class AssignmentHandler {
   void finishAssignments(@Nonnull CType lvalueType,
                          final @Nonnull AliasedLocation lvalue,
                          final @Nonnull PointerTargetPattern pattern,
-                         final @Nonnull Set<CType> updatedTypes) {
+                         final @Nonnull Set<CType> updatedTypes) throws InterruptedException {
     addRetentionForAssignment(lvalueType,
                               lvalue.asAliased().getAddress(),
                               pattern, updatedTypes);
@@ -457,7 +457,7 @@ class AssignmentHandler {
   private void addRetentionForAssignment(@Nonnull CType lvalueType,
                                          final @Nullable Formula startAddress,
                                          final @Nonnull PointerTargetPattern pattern,
-                                         final Set<CType> typesToRetain) {
+                                         final Set<CType> typesToRetain) throws InterruptedException {
     lvalueType = CTypeUtils.simplifyType(lvalueType);
     final int size = conv.getSizeof(lvalueType);
     if (isSimpleType(lvalueType)) {
@@ -506,9 +506,10 @@ class AssignmentHandler {
                                        final int oldIndex,
                                        final int newIndex,
                                        final FormulaType<?> returnType,
-                                       final Formula lvalue) {
+                                       final Formula lvalue) throws InterruptedException {
     if (!pattern.isExact()) {
       for (final PointerTarget target : pts.getMatchingTargets(lvalueType, pattern)) {
+        conv.shutdownNotifier.shutdownIfNecessary();
         final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(conv.voidPointerFormulaType, target.getBaseName()),
                                                     fmgr.makeNumber(conv.voidPointerFormulaType, target.getOffset()));
         final BooleanFormula updateCondition = fmgr.makeEqual(targetAddress, lvalue);
@@ -524,6 +525,7 @@ class AssignmentHandler {
       }
     }
     for (final PointerTarget target : pts.getSpuriousTargets(lvalueType, pattern)) {
+      conv.shutdownNotifier.shutdownIfNecessary();
       final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(conv.voidPointerFormulaType, target.getBaseName()),
                                                   fmgr.makeNumber(conv.voidPointerFormulaType, target.getOffset()));
       constraints.addConstraint(fmgr.makeEqual(ffmgr.createFuncAndCall(ufName,
@@ -541,9 +543,10 @@ class AssignmentHandler {
                                                 final CType firstElementType,
                                                 final Formula startAddress,
                                                 final int size,
-                                                final Set<CType> types) {
+                                                final Set<CType> types) throws InterruptedException {
     final PointerTargetPattern exact = PointerTargetPattern.any();
     for (final PointerTarget target : pts.getMatchingTargets(firstElementType, pattern)) {
+      conv.shutdownNotifier.shutdownIfNecessary();
       final Formula candidateAddress = fmgr.makePlus(fmgr.makeVariable(conv.voidPointerFormulaType, target.getBaseName()),
                                                      fmgr.makeNumber(conv.voidPointerFormulaType, target.getOffset()));
       final BooleanFormula negAntecedent = bfmgr.not(fmgr.makeEqual(candidateAddress, startAddress));
@@ -574,7 +577,7 @@ class AssignmentHandler {
 
   private void addInexactRetentionConstraints(final Formula startAddress,
                                               final int size,
-                                              final Set<CType> types) {
+                                              final Set<CType> types) throws InterruptedException {
     final PointerTargetPattern any = PointerTargetPattern.any();
     for (final CType type : types) {
       final String ufName = CToFormulaConverterWithPointerAliasing.getUFName(type);
@@ -582,6 +585,7 @@ class AssignmentHandler {
       final int newIndex = oldIndex + 1;
       final FormulaType<?> returnType = conv.getFormulaTypeFromCType(type);
       for (final PointerTarget target : pts.getMatchingTargets(type, any)) {
+        conv.shutdownNotifier.shutdownIfNecessary();
         final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(conv.voidPointerFormulaType, target.getBaseName()),
                                       fmgr.makeNumber(conv.voidPointerFormulaType, target.getOffset()));
         final Formula endAddress = fmgr.makePlus(startAddress, fmgr.makeNumber(conv.voidPointerFormulaType, size - 1));

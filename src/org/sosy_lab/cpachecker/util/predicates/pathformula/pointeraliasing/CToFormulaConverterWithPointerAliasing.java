@@ -107,6 +107,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   final FunctionFormulaManagerView ffmgr = super.ffmgr;
   @SuppressWarnings("hiding")
   final MachineModel machineModel = super.machineModel;
+  @SuppressWarnings("hiding")
+  final ShutdownNotifier shutdownNotifier = super.shutdownNotifier;
 
   final TypeHandlerWithPointerAliasing typeHandler;
   final PointerTargetSetManager ptsMgr;
@@ -481,7 +483,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
                                       final PointerTargetSetBuilder pts,
                                       final Constraints constraints,
                                       final ErrorConditions errorConditions)
-  throws CPATransferException {
+  throws CPATransferException, InterruptedException {
     BooleanFormula result = super.makeReturn(resultExpression, returnEdge, function, ssa, pts, constraints, errorConditions);
 
     if (resultExpression != null) {
@@ -502,7 +504,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final CFAEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
-          throws UnrecognizedCCodeException {
+          throws UnrecognizedCCodeException, InterruptedException {
 
     AssignmentHandler assignmentHandler = new AssignmentHandler(this, edge, function, ssa, pts, constraints, errorConditions);
     return assignmentHandler.handleAssignment(lhs, rhs, false, null);
@@ -525,7 +527,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final CDeclarationEdge declarationEdge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
-          throws CPATransferException {
+          throws CPATransferException, InterruptedException {
 
     if (declarationEdge.getDeclaration() instanceof CTypeDeclaration) {
       final CType declarationType = CTypeUtils.simplifyType(
@@ -648,11 +650,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final CFAEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
-          throws UnrecognizedCCodeException {
+          throws UnrecognizedCCodeException, InterruptedException {
     final CType expressionType = CTypeUtils.simplifyType(e.getExpressionType());
     CExpressionVisitorWithPointerAliasing ev = new CExpressionVisitorWithPointerAliasing(this, edge, function, ssa, constraints, errorConditions, pts);
-    BooleanFormula result = toBooleanFormula(ev.asValueFormula(e.accept(ev),
-                                                                 expressionType));
+    BooleanFormula result = toBooleanFormula(ev.asValueFormula(e.accept(ev), expressionType));
 
     if (options.deferUntypedAllocations()) {
       DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(this, edge, ssa, pts, constraints, errorConditions);
@@ -673,7 +674,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final CFunctionCallEdge edge, final String callerFunction,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
-          throws CPATransferException {
+          throws CPATransferException, InterruptedException {
 
     final CFunctionEntryNode entryNode = edge.getSuccessor();
     BooleanFormula result = super.makeFunctionCall(edge, callerFunction, ssa, pts, constraints, errorConditions);
@@ -691,7 +692,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final CFunctionSummaryEdge summaryEdge, final String calledFunction,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
-          throws CPATransferException {
+          throws CPATransferException, InterruptedException {
 
     final BooleanFormula result = super.makeExitFunction(summaryEdge, calledFunction, ssa, pts, constraints, errorConditions);
 

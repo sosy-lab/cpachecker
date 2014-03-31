@@ -98,7 +98,7 @@ class DynamicMemoryHandler {
   }
 
   Value handleDynamicMemoryFunction(final CFunctionCallExpression e, final String functionName,
-      final CExpressionVisitorWithPointerAliasing expressionVisitor) throws UnrecognizedCCodeException {
+      final CExpressionVisitorWithPointerAliasing expressionVisitor) throws UnrecognizedCCodeException, InterruptedException {
 
     if ((conv.options.isSuccessfulAllocFunctionName(functionName) ||
         conv.options.isSuccessfulZallocFunctionName(functionName))) {
@@ -120,7 +120,7 @@ class DynamicMemoryHandler {
    * and that may or may not zero the memory.
    */
   private Formula handleMemoryAllocation(final CFunctionCallExpression e,
-      final String functionName) throws UnrecognizedCCodeException {
+      final String functionName) throws UnrecognizedCCodeException, InterruptedException {
     final boolean isZeroing = conv.options.isMemoryAllocationFunctionWithZeroing(functionName);
     List<CExpression> parameters = e.getParameterExpressions();
 
@@ -181,7 +181,7 @@ class DynamicMemoryHandler {
    */
   private Formula handleSucessfulMemoryAllocation(final String functionName,
       List<CExpression> parameters,
-      final CFunctionCallExpression e) throws UnrecognizedCCodeException {
+      final CFunctionCallExpression e) throws UnrecognizedCCodeException, InterruptedException {
     // e.getFunctionNameExpression() should not be used
     // as it might refer to another function if this method is called from handleMemoryAllocation()
     if (parameters.size() != 1) {
@@ -281,7 +281,7 @@ class DynamicMemoryHandler {
   }
 
   private Formula makeAllocation(final boolean isZeroing, final CType type, final String base)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCCodeException, InterruptedException {
     final CType baseType = CTypeUtils.getBaseType(type);
     final Formula result = conv.makeConstant(PointerTargetSet.getBaseName(base), baseType);
     if (isZeroing) {
@@ -387,7 +387,7 @@ class DynamicMemoryHandler {
 
   private void handleDeferredAllocationTypeRevelation(final @Nonnull String pointerVariable,
                                                       final @Nonnull CType type)
-                                                          throws UnrecognizedCCodeException {
+                                                          throws UnrecognizedCCodeException, InterruptedException {
     final DeferredAllocationPool deferredAllocationPool = pts.removeDeferredAllocation(pointerVariable);
     for (final String baseVariable : deferredAllocationPool.getBaseVariables()) {
       makeAllocation(deferredAllocationPool.wasAllocationZeroing(),
@@ -397,7 +397,7 @@ class DynamicMemoryHandler {
   }
 
   private void handleDeferredAllocationPointerEscape(final String pointerVariable)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCCodeException, InterruptedException {
     final DeferredAllocationPool deferredAllocationPool = pts.removeDeferredAllocation(pointerVariable);
     final CIntegerLiteralExpression size = deferredAllocationPool.getSize() != null ?
                                              deferredAllocationPool.getSize() :
@@ -424,7 +424,7 @@ class DynamicMemoryHandler {
   void handleDeferredAllocationsInAssignment(final CLeftHandSide lhs, final CRightHandSide rhs,
       final Location lhsLocation, final Expression rhsExpression, final CType lhsType,
       final Map<String, CType> lhsUsedDeferredAllocationPointers,
-      final Map<String, CType> rhsUsedDeferredAllocationPointers) throws UnrecognizedCCodeException {
+      final Map<String, CType> rhsUsedDeferredAllocationPointers) throws UnrecognizedCCodeException, InterruptedException {
     // Handle allocations: reveal the actual type form the LHS type or defer the allocation until later
     boolean isAllocation = false;
     if ((conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) &&
@@ -481,7 +481,7 @@ class DynamicMemoryHandler {
                                                      final Expression rhsExpression,
                                                      final Map<String, CType> lhsUsedDeferredAllocationPointers,
                                                      final Map<String, CType> rhsUsedDeferredAllocationPointers)
-                                                         throws UnrecognizedCCodeException {
+                                                         throws UnrecognizedCCodeException, InterruptedException {
     boolean passed = false;
     for (final Map.Entry<String, CType> usedPointer : rhsUsedDeferredAllocationPointers.entrySet()) {
       boolean handled = false;
@@ -547,7 +547,7 @@ class DynamicMemoryHandler {
 
   void handleDeferredAllocationsInAssume(final CExpression e,
                                                  final Map<String, CType> usedDeferredAllocationPointers)
-                                                     throws UnrecognizedCCodeException {
+                                                     throws UnrecognizedCCodeException, InterruptedException {
     for (final Map.Entry<String, CType> usedPointer : usedDeferredAllocationPointers.entrySet()) {
       if (!usedPointer.getValue().equals(CPointerType.POINTER_TO_VOID)) {
         handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
