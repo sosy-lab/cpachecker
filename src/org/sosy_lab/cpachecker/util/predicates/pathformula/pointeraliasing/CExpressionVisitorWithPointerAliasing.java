@@ -224,7 +224,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   static boolean isUnaliasedLocation(final CExpression e) {
     if (e instanceof CIdExpression) {
       return true;
-    } else if (e instanceof CFieldReference) {
+    } else if (e instanceof CFieldReference && !((CFieldReference) e).isPointerDereference()) {
       return isUnaliasedLocation(((CFieldReference) e).getFieldOwner());
     } else {
       return false;

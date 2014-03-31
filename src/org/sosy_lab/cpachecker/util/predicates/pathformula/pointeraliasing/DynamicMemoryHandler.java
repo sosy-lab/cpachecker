@@ -341,39 +341,54 @@ class DynamicMemoryHandler {
 
   // Handling of deferred allocations
 
+ /**
+  * The function tries to recover dynamically allocated array type from the pointer type it was casted or assigned to
+  * @param type the revealing <em>pointed</em> type (e.g. {@code char} for {@code char *}) of the pointer
+  *        to which the void * variable was casted or assigned to
+  * @param sizeLiteral the size specified at the allocation site
+  * @return the recovered array type or the {@code type} parameter in case the type can't be recovered
+  */
   private CType refineType(final @Nonnull CType type, final @Nonnull CIntegerLiteralExpression sizeLiteral) {
-    if (sizeLiteral.getValue() != null) {
-      final int size = sizeLiteral.getValue().intValue();
-      final int typeSize = conv.getSizeof(type);
-      if (type instanceof CArrayType) {
-        if (typeSize != size) {
-          conv.logger.logf(Level.WARNING,
-                           "Array size of the revealed type differs form the allocation size: %s : %d != %d",
-                           type,
-                           typeSize,
-                           size);
-        }
-        return type;
-      } else {
-        final int n = size / typeSize;
-        final int remainder = size % typeSize;
-        if (n == 0 || remainder != 0) {
-          conv.logger.logf(Level.WARNING,
-                           "Can't refine allocation type, but the sizes differ: %s : %d != %d",
-                           type,
-                           typeSize,
-                           size);
-          return type;
-        }
-        return new CArrayType(false, false, type, new CIntegerLiteralExpression(sizeLiteral.getFileLocation(),
-                                                                                sizeLiteral.getExpressionType(),
-                                                                                BigInteger.valueOf(n)));
+    assert sizeLiteral.getValue() != null;
+
+    final int size = sizeLiteral.getValue().intValue();
+    final int typeSize = conv.getSizeof(type);
+    if (type instanceof CArrayType) {
+      // An array type is used in the cast or assignment, so its size should likely match the allocated size.
+      // Issue a warning if this isn't the case
+      if (typeSize != size) {
+        conv.logger.logf(Level.WARNING,
+                         "Array size of the revealed type differs form the allocation size: %s : %d != %d",
+                         type,
+                         typeSize,
+                         size);
       }
-    } else {
+      // The type used is already an array type, nothing to recover
       return type;
+    } else {
+      // A pointer type is used in the cast or assignment.
+      // If the allocated size is the multiple of the usage type size, we can recover the
+      // actual array type (with length) of the allocation. Otherwise, just return the usage type.
+      final int n = size / typeSize;
+      final int remainder = size % typeSize;
+      if (n == 0 || remainder != 0) {
+        conv.logger.logf(Level.WARNING,
+                         "Can't refine allocation type, but the sizes differ: %s : %d != %d",
+                         type,
+                         typeSize,
+                         size);
+        return type;
+      }
+
+      return new CArrayType(false, false, type, new CIntegerLiteralExpression(sizeLiteral.getFileLocation(),
+                                                                              sizeLiteral.getExpressionType(),
+                                                                              BigInteger.valueOf(n)));
     }
   }
 
+  /** Returns the type of the allocated dynamic variable by the usage pointer
+   *  type of the void * variable and the allocation size
+   * */
   private CType getAllocationType(final @Nonnull CType type, final @Nullable CIntegerLiteralExpression sizeLiteral) {
     if (type instanceof CPointerType) {
       return sizeLiteral != null ? refineType(((CPointerType) type).getType(), sizeLiteral) :
@@ -483,71 +498,121 @@ class DynamicMemoryHandler {
                                                      final Map<String, CType> rhsUsedDeferredAllocationPointers)
                                                          throws UnrecognizedCCodeException, InterruptedException {
     boolean passed = false;
+    // Iterate over the void * variables used in the RHS of the assignment
+    // The keys of the entries contain variable names while the values specify
+    // the corresponding cast types, if present, (or void *, if not)
+    // e.g. in `ps = (struct s *) tmp;' that'd be {"tmp" -> struct s *}
     for (final Map.Entry<String, CType> usedPointer : rhsUsedDeferredAllocationPointers.entrySet()) {
       boolean handled = false;
       if (CExpressionVisitorWithPointerAliasing.isRevealingType(usedPointer.getValue())) {
+        // The cast type is pointer or array type different from void *, so it can be used to reveal the type
+        // of the allocation
+        // e.g. return (struct s *)__tmp;
         handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
         handled = true;
+
+        // If we still can't reveal the type from a cast so we'll try to reveal it from the type of the LHS,
+        // or start tracking the variable in the LHS as it's now an alias for the same dynamic variable.
+
+        // Both outcomes are only possible if the RHS is encoded as a variable.
       } else if (rhs instanceof CExpression &&
-                 // TODO: use rhsExpression.isUnaliasedLocation() instead?
-                 CExpressionVisitorWithPointerAliasing.isUnaliasedLocation((CExpression) rhs)) {
-        assert rhsExpression.isUnaliasedLocation()
+                 // This checks if the RHS is encoded as a variable rather than an UF application
+                 // rhsExpression.isUnaliasedLocation() returns just this
+                 rhsExpression.isUnaliasedLocation()) {
+        // An older criterion for the same condition is used for double-checking
+        assert CExpressionVisitorWithPointerAliasing.isUnaliasedLocation((CExpression) rhs)
             : "Wrong assumptions on deferred allocations tracking: rhs " + rhsExpression + " is not unaliased";
+        // Check if the only variable is the rhs is the one we're currently dealing with during the iteration
+        // (i.e. rhsUsedDeferredAllocationPointers doesn't contain any extra variables)
         assert rhsExpression.asUnaliasedLocation().getVariableName().equals(usedPointer.getKey())
             : "Wrong assumptions on deferred allocations tracking: rhs " + rhsExpression + " does not match " + usedPointer;
         assert rhsUsedDeferredAllocationPointers.size() == 1
             : "Wrong assumptions on deferred allocations tracking: rhs is not a single pointer, rhsUsedDeferredAllocationPointers.size() is " + rhsUsedDeferredAllocationPointers.size();
         final CType lhsType = CTypeUtils.simplifyType(lhs.getExpressionType());
+        // The worse case -- LHS has type void *
         if (lhsType.equals(CPointerType.POINTER_TO_VOID) &&
-            // TODO: is the following isUnaliasedLocation() check really needed?
-            CExpressionVisitorWithPointerAliasing.isUnaliasedLocation(lhs) &&
+            // Check if the LHS is encoded as a variable
             !lhsLocation.isAliased()) {
+          // Double-check
+          assert CExpressionVisitorWithPointerAliasing.isUnaliasedLocation(lhs)
+            : "Wrong assumptions on deferred allocations tracking: lhs " + lhsLocation + " is not unaliased";
+          // Now check that lhsUsedDeferredAllocationPointers is filled correctly.
+          // It should either contain the only pointer that was previously tracked and is now gone
+          // (rewritten with the new value) or be empty.
           final Map.Entry<String, CType> lhsUsedPointer = !lhsUsedDeferredAllocationPointers.isEmpty() ?
                                                        lhsUsedDeferredAllocationPointers.entrySet().iterator().next() :
                                                        null;
           assert lhsUsedDeferredAllocationPointers.size() <= 1
               : "Wrong assumptions on deferred allocations tracking: lhsUsedDeferredAllocationPointers.size() is " + lhsUsedDeferredAllocationPointers.size();
           assert (lhsUsedPointer == null ||
-                  (rhsExpression.asUnaliasedLocation().getVariableName()).equals(lhsUsedPointer.getKey()))
+                  (lhsLocation.asUnaliased().getVariableName()).equals(lhsUsedPointer.getKey()))
               : "Wrong assumptions on deferred allocations tracking: lhs " + lhsUsedPointer + " does not match rhs " + rhsExpression;
           if (lhsUsedPointer != null) {
+            // The assignment rewrites a void pointer that was previously tracked, so remove it from the pool
+            // e.g.
+            // __tmp = malloc(...); // allocation #1
+            // __tmp2 = malloc(...); // allocation #2
+            // __tmp = __tmp2; // __tmp doesn't point to the allocation #1 anymore
             handleDeferredAllocationPointerRemoval(lhsUsedPointer.getKey(), false);
           }
+          // Start tracking the void pointer variable in the LHS.
+          // e.g. __tmp = __tmp2; // __tmp now also points to the allocation #2
           pts.addDeferredAllocationPointer(lhsLocation.asUnaliased().getVariableName(), usedPointer.getKey());
           passed = true;
           handled = true;
         } else if (CExpressionVisitorWithPointerAliasing.isRevealingType(lhsType)) {
+          // The better case -- LHS has some pointer or array type different from void *
+          // e.g.
+          // struct s *ps;
+          // ps = __tmp;
           handleDeferredAllocationTypeRevelation(usedPointer.getKey(), lhsType);
           handled = true;
         }
       }
       if (!handled) {
+        // The worst case -- either the LHS has type void *, but is not encoded as a variable so we can't follow up its
+        // value changes, or RHS is too complicated to reveal the types of the variables in it.
+        // e.g.:
+        // ps->pf = __tmp;
+        // *pps = __tmp;
+        // ps = __tmp + 4; // 4 can be a char array index, but can also be a field offset
+
+        // So we give up and allocate a dummy.
         handleDeferredAllocationPointerEscape(usedPointer.getKey());
       }
     }
+    // Now iterate over the variable used in the LHS
     for (final Map.Entry<String, CType> usedPointer : lhsUsedDeferredAllocationPointers.entrySet()) {
-      if (!usedPointer.getValue().equals(CPointerType.POINTER_TO_VOID)) {
+      if (CExpressionVisitorWithPointerAliasing.isRevealingType(usedPointer.getValue())) {
+        // *((int *)__tmp) = 5;
         handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
-      // TODO: use lhsExpression.isUnaliasedLoation() instead (?)
-      } else if (CExpressionVisitorWithPointerAliasing.isUnaliasedLocation(lhs)) {
-        assert !lhsLocation.isAliased()
+      } else if (!lhsLocation.isAliased()) {
+        assert CExpressionVisitorWithPointerAliasing.isUnaliasedLocation(lhs)
             : "Wrong assumptions on deferred allocations tracking: lhs " + lhsLocation +" is aliased";
         assert lhsLocation.asUnaliased().getVariableName().equals(usedPointer.getKey())
             : "Wrong assumptions on deferred allocations tracking: lhs " + lhsLocation + " does not match " + usedPointer;
         assert lhsUsedDeferredAllocationPointers.size() == 1
             : "Wrong assumptions on deferred allocations tracking: lhs is not a single pointer, lhsUsedDeferredAllocationPointers.size() is " + lhsUsedDeferredAllocationPointers.size();
         if (!passed) {
+          // e.g. __tmp = 0;
           handleDeferredAllocationPointerRemoval(usedPointer.getKey(), false);
         }
+        // e.g. __tmp = __tmp2;
       } else {
+        // LHS is aliased, but pointer type can't be revealed, e.g.
+        // a[__tmp - __tmp] = 0;
+        // (char *)(__tmp + 1) = 0;
+
+        // So this includes worst cases and we'd better give up
         handleDeferredAllocationPointerEscape(usedPointer.getKey());
       }
     }
   }
 
   void handleDeferredAllocationsInAssume(final CExpression e,
-                                                 final Map<String, CType> usedDeferredAllocationPointers)
-                                                     throws UnrecognizedCCodeException, InterruptedException {
+                                         final Map<String, CType> usedDeferredAllocationPointers)
+       throws UnrecognizedCCodeException, InterruptedException {
+
     for (final Map.Entry<String, CType> usedPointer : usedDeferredAllocationPointers.entrySet()) {
       if (!usedPointer.getValue().equals(CPointerType.POINTER_TO_VOID)) {
         handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
@@ -555,6 +620,7 @@ class DynamicMemoryHandler {
         final CBinaryExpression binaryExpression = (CBinaryExpression) e;
         switch (binaryExpression.getOperator()) {
         case EQUALS:
+        case NOT_EQUALS:
         case GREATER_EQUAL:
         case GREATER_THAN:
         case LESS_EQUAL:
@@ -570,9 +636,6 @@ class DynamicMemoryHandler {
           if (type != null) {
             handleDeferredAllocationTypeRevelation(usedPointer.getKey(), type);
           }
-          break;
-        case NOT_EQUALS:
-          // TODO Do something here?
           break;
         default:
           throw new UnrecognizedCCodeException("unexpected binary operator in assume", e);
