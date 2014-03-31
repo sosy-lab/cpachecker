@@ -100,4 +100,5 @@ if [ ! -z "$CPACHECKER_ARGUMENTS" ]; then
 fi
 
 # run CPAchecker
-exec "$JAVA" $JAVA_VM_ARGUMENTS -Xmx${JAVA_HEAP_SIZE:-$DEFAULT_HEAP_SIZE} $JAVA_ASSERTIONS org.sosy_lab.cpachecker.cmdline.CPAMain "${OPTIONS[@]}" $CPACHECKER_ARGUMENTS
+# stack size is set because on some systems it is too small for CFASimplifier and very large programs
+exec "$JAVA" $JAVA_VM_ARGUMENTS -Xmx${JAVA_HEAP_SIZE:-$DEFAULT_HEAP_SIZE} -Xss1024k $JAVA_ASSERTIONS org.sosy_lab.cpachecker.cmdline.CPAMain "${OPTIONS[@]}" $CPACHECKER_ARGUMENTS
