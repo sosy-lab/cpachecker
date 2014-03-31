@@ -62,7 +62,9 @@ def setupBenchmarkForAppengine(benchmark):
         response = json.loads(urllib2.urlopen(request).read())
         global APPENGINE_SETTINGS
         APPENGINE_SETTINGS = response
-        benchmark.toolVersion = response['cpacheckerVersion']
+        benchmark.toolVersion = response['cpacheckerVersion'] \
+                                        .split('(')[0] \
+                                        .strip()
 
         logging.debug('Settings were successfully retrieved.')
     except urllib2.URLError as e:
@@ -189,7 +191,8 @@ def _handleAppEngineResults(benchmark, outputHandler):
             (returnValue, output, hasErr, hasTO, isNotSubmt, overQuota) = \
                 _parseAppEngineResult(run)
 
-            totalWallTime += run.wallTime
+            if run.wallTime:
+                totalWallTime += run.wallTime
 
             if hasErr: withError += 1
             if hasTO: withTimeout += 1

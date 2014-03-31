@@ -323,7 +323,7 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
   }
 
   @Nullable
-  public Map<ARGState, CFAEdgeWithAssignments> getexactVariableValues(ARGPath pPath) {
+  public Map<ARGState, CFAEdgeWithAssignments> getExactVariableValues(ARGPath pPath) {
 
     if (assignments.isEmpty()) {
       return null;
@@ -484,13 +484,14 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
 
         CFAEdgeWithAssignments edgeWithAssignment = pathWithAssignments.get(index);
 
-        if (!edgeWithAssignment.getCFAEdge().equals(argPair.getSecond())) {
-          // path is not equivalent
+        CFAEdge fstEdge = edgeWithAssignment.getCFAEdge();
+        CFAEdge sndEdge = argPair.getSecond();
+        if ((fstEdge != null && fstEdge.equals(sndEdge)) || (fstEdge == null && sndEdge == null)) {
+          result.put(argPair.getFirst(), edgeWithAssignment);
+          index++;
+        } else {
           return null;
         }
-
-        result.put(argPair.getFirst(), edgeWithAssignment);
-        index++;
       }
 
       return result;

@@ -411,6 +411,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     return Value.ofValue(e.accept(delegate));
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   public Value visit(final CFunctionCallExpression e) throws UnrecognizedCCodeException {
     final CExpression functionNameExpression = e.getFunctionNameExpression();
@@ -420,7 +421,15 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
       final String functionName = ((CIdExpression)functionNameExpression).getName();
       if (conv.options.isDynamicMemoryFunction(functionName)) {
         DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions);
-        return memoryHandler.handleDynamicMemoryFunction(e, functionName, this);
+        try {
+          return memoryHandler.handleDynamicMemoryFunction(e, functionName, this);
+        } catch (InterruptedException exc) {
+          // Throwing two checked exception from this visitor is not possible directly.
+          // The following does the same although it is not recommended to do so.
+          // However, we are sure that an InterrupedException from this visitor
+          // will be handled correctly outside.
+          Thread.currentThread().stop(exc);
+        }
       }
     }
 

@@ -130,7 +130,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
         from(reached)
           .transform(AbstractStates.toState(ARGState.class))
           .filter(AbstractStates.IS_TARGET_STATE)
-          .filter(Predicates.in(checkedTargetStates))
+          .filter(Predicates.not(Predicates.in(checkedTargetStates)))
           .copyInto(errorStates);
       }
 

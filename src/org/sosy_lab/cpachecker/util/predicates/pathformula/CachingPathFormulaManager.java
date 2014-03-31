@@ -66,7 +66,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException {
+  public Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException, InterruptedException {
 
     final Pair<CFAEdge, PathFormula> formulaCacheKey = Pair.of(pEdge, pOldFormula);
     Pair<PathFormula, ErrorConditions> result = andFormulaWithConditionsCache.get(formulaCacheKey);
@@ -84,7 +84,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException {
+  public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException, InterruptedException {
     final Pair<CFAEdge, PathFormula> formulaCacheKey = Pair.of(pEdge, pOldFormula);
     PathFormula result = andFormulaCache.get(formulaCacheKey);
     if (result == null) {
@@ -101,7 +101,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeOr(PathFormula pF1, PathFormula pF2) {
+  public PathFormula makeOr(PathFormula pF1, PathFormula pF2) throws InterruptedException {
     final Pair<PathFormula, PathFormula> formulaCacheKey = Pair.of(pF1, pF2);
 
     PathFormula result = orFormulaCache.get(formulaCacheKey);
@@ -150,13 +150,13 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException {
+  public PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException {
     return delegate.makeFormulaForPath(pPath);
   }
 
   @Override
   public BooleanFormula buildBranchingFormula(Iterable<ARGState> pElementsOnPath)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
     return delegate.buildBranchingFormula(pElementsOnPath);
   }
 

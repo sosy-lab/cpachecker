@@ -71,7 +71,7 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis {
   private AssumptionStorageCPA(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
     formulaManager = new FormulaManagerView(new FormulaManagerFactory(config, logger, pShutdownNotifier).getFormulaManager(), config, logger);
     CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(logger, cfa.getMachineModel(), formulaManager);
-    CtoFormulaConverter converter = new CtoFormulaConverter(new FormulaEncodingOptions(config), formulaManager, cfa.getMachineModel(), cfa.getVarClassification(), logger, typeHandler);
+    CtoFormulaConverter converter = new CtoFormulaConverter(new FormulaEncodingOptions(config), formulaManager, cfa.getMachineModel(), cfa.getVarClassification(), logger, pShutdownNotifier, typeHandler);
     abstractDomain = new AssumptionStorageDomain(formulaManager);
     stopOperator = new AssumptionStorageStop();
     BooleanFormulaManagerView bfmgr = formulaManager.getBooleanFormulaManager();

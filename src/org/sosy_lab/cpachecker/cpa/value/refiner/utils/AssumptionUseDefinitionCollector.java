@@ -107,7 +107,26 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
       collectVariables(edge, collectedVariables);
     }
 
+    // for full paths, the set of depending variables always has be empty at this point,
+    // but sometimes, the use-def information is derived from incomplete paths,
+    // and for those it can happen that not all depending variables are consumed
+    // disabled again, because handling for pointers is incomplete
+    // assert dependingVariables.size() == 0 || isIncompletePath(path);
+
+    // add the remaining depending variables to the set of collectedVariables
+    collectedVariables.addAll(dependingVariables);
+
     return collectedVariables;
+  }
+
+  /**
+   * This method determines if the given path is only a suffix of a complete path.
+   *
+   * @param path the path to check
+   * @return true, if the path is incomplete, else false
+   */
+  private boolean isIncompletePath(List<CFAEdge> path) {
+    return path.get(0).getPredecessor().getNumEnteringEdges() > 0;
   }
 
   /**

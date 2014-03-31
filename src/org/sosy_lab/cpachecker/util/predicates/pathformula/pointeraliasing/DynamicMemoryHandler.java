@@ -98,7 +98,7 @@ class DynamicMemoryHandler {
   }
 
   Value handleDynamicMemoryFunction(final CFunctionCallExpression e, final String functionName,
-      final CExpressionVisitorWithPointerAliasing expressionVisitor) throws UnrecognizedCCodeException {
+      final CExpressionVisitorWithPointerAliasing expressionVisitor) throws UnrecognizedCCodeException, InterruptedException {
 
     if ((conv.options.isSuccessfulAllocFunctionName(functionName) ||
         conv.options.isSuccessfulZallocFunctionName(functionName))) {
@@ -120,7 +120,7 @@ class DynamicMemoryHandler {
    * and that may or may not zero the memory.
    */
   private Formula handleMemoryAllocation(final CFunctionCallExpression e,
-      final String functionName) throws UnrecognizedCCodeException {
+      final String functionName) throws UnrecognizedCCodeException, InterruptedException {
     final boolean isZeroing = conv.options.isMemoryAllocationFunctionWithZeroing(functionName);
     List<CExpression> parameters = e.getParameterExpressions();
 
@@ -181,7 +181,7 @@ class DynamicMemoryHandler {
    */
   private Formula handleSucessfulMemoryAllocation(final String functionName,
       List<CExpression> parameters,
-      final CFunctionCallExpression e) throws UnrecognizedCCodeException {
+      final CFunctionCallExpression e) throws UnrecognizedCCodeException, InterruptedException {
     // e.getFunctionNameExpression() should not be used
     // as it might refer to another function if this method is called from handleMemoryAllocation()
     if (parameters.size() != 1) {
@@ -281,7 +281,7 @@ class DynamicMemoryHandler {
   }
 
   private Formula makeAllocation(final boolean isZeroing, final CType type, final String base)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCCodeException, InterruptedException {
     final CType baseType = CTypeUtils.getBaseType(type);
     final Formula result = conv.makeConstant(PointerTargetSet.getBaseName(base), baseType);
     if (isZeroing) {
@@ -387,7 +387,7 @@ class DynamicMemoryHandler {
 
   private void handleDeferredAllocationTypeRevelation(final @Nonnull String pointerVariable,
                                                       final @Nonnull CType type)
-                                                          throws UnrecognizedCCodeException {
+                                                          throws UnrecognizedCCodeException, InterruptedException {
     final DeferredAllocationPool deferredAllocationPool = pts.removeDeferredAllocation(pointerVariable);
     for (final String baseVariable : deferredAllocationPool.getBaseVariables()) {
       makeAllocation(deferredAllocationPool.wasAllocationZeroing(),
@@ -397,7 +397,7 @@ class DynamicMemoryHandler {
   }
 
   private void handleDeferredAllocationPointerEscape(final String pointerVariable)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCCodeException, InterruptedException {
     final DeferredAllocationPool deferredAllocationPool = pts.removeDeferredAllocation(pointerVariable);
     final CIntegerLiteralExpression size = deferredAllocationPool.getSize() != null ?
                                              deferredAllocationPool.getSize() :
@@ -424,7 +424,7 @@ class DynamicMemoryHandler {
   void handleDeferredAllocationsInAssignment(final CLeftHandSide lhs, final CRightHandSide rhs,
       final Location lhsLocation, final Expression rhsExpression, final CType lhsType,
       final Map<String, CType> lhsUsedDeferredAllocationPointers,
-      final Map<String, CType> rhsUsedDeferredAllocationPointers) throws UnrecognizedCCodeException {
+      final Map<String, CType> rhsUsedDeferredAllocationPointers) throws UnrecognizedCCodeException, InterruptedException {
     // Handle allocations: reveal the actual type form the LHS type or defer the allocation until later
     boolean isAllocation = false;
     if ((conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) &&
@@ -481,7 +481,7 @@ class DynamicMemoryHandler {
                                                      final Expression rhsExpression,
                                                      final Map<String, CType> lhsUsedDeferredAllocationPointers,
                                                      final Map<String, CType> rhsUsedDeferredAllocationPointers)
-                                                         throws UnrecognizedCCodeException {
+                                                         throws UnrecognizedCCodeException, InterruptedException {
     boolean passed = false;
     for (final Map.Entry<String, CType> usedPointer : rhsUsedDeferredAllocationPointers.entrySet()) {
       boolean handled = false;
@@ -491,10 +491,12 @@ class DynamicMemoryHandler {
       } else if (rhs instanceof CExpression &&
                  // TODO: use rhsExpression.isUnaliasedLocation() instead?
                  CExpressionVisitorWithPointerAliasing.isUnaliasedLocation((CExpression) rhs)) {
-        assert rhsExpression.isUnaliasedLocation() &&
-               rhsExpression.asUnaliasedLocation().getVariableName().equals(usedPointer.getKey()) &&
-               rhsUsedDeferredAllocationPointers.size() == 1 :
-               "Wrong assumptions on deferred allocations tracking: rhs is not a single pointer";
+        assert rhsExpression.isUnaliasedLocation()
+            : "Wrong assumptions on deferred allocations tracking: rhs " + rhsExpression + " is not unaliased";
+        assert rhsExpression.asUnaliasedLocation().getVariableName().equals(usedPointer.getKey())
+            : "Wrong assumptions on deferred allocations tracking: rhs " + rhsExpression + " does not match " + usedPointer;
+        assert rhsUsedDeferredAllocationPointers.size() == 1
+            : "Wrong assumptions on deferred allocations tracking: rhs is not a single pointer, rhsUsedDeferredAllocationPointers.size() is " + rhsUsedDeferredAllocationPointers.size();
         final CType lhsType = CTypeUtils.simplifyType(lhs.getExpressionType());
         if (lhsType.equals(CPointerType.POINTER_TO_VOID) &&
             // TODO: is the following isUnaliasedLocation() check really needed?
@@ -503,11 +505,11 @@ class DynamicMemoryHandler {
           final Map.Entry<String, CType> lhsUsedPointer = !lhsUsedDeferredAllocationPointers.isEmpty() ?
                                                        lhsUsedDeferredAllocationPointers.entrySet().iterator().next() :
                                                        null;
-          assert lhsUsedDeferredAllocationPointers.size() <= 1 &&
-                 rhsExpression.isUnaliasedLocation() &&
-                 (lhsUsedPointer == null ||
-                  (rhsExpression.asUnaliasedLocation().getVariableName()).equals(lhsUsedPointer.getKey())) :
-                 "Wrong assumptions on deferred allocations tracking: unrecognized lhs";
+          assert lhsUsedDeferredAllocationPointers.size() <= 1
+              : "Wrong assumptions on deferred allocations tracking: lhsUsedDeferredAllocationPointers.size() is " + lhsUsedDeferredAllocationPointers.size();
+          assert (lhsUsedPointer == null ||
+                  (rhsExpression.asUnaliasedLocation().getVariableName()).equals(lhsUsedPointer.getKey()))
+              : "Wrong assumptions on deferred allocations tracking: lhs " + lhsUsedPointer + " does not match rhs " + rhsExpression;
           if (lhsUsedPointer != null) {
             handleDeferredAllocationPointerRemoval(lhsUsedPointer.getKey(), false);
           }
@@ -528,10 +530,12 @@ class DynamicMemoryHandler {
         handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
       // TODO: use lhsExpression.isUnaliasedLoation() instead (?)
       } else if (CExpressionVisitorWithPointerAliasing.isUnaliasedLocation(lhs)) {
-        assert !lhsLocation.isAliased() &&
-               lhsLocation.asUnaliased().getVariableName().equals(usedPointer.getKey()) &&
-               lhsUsedDeferredAllocationPointers.size() == 1 :
-               "Wrong assumptions on deferred allocations tracking: lhs is not a single pointer";
+        assert !lhsLocation.isAliased()
+            : "Wrong assumptions on deferred allocations tracking: lhs " + lhsLocation +" is aliased";
+        assert lhsLocation.asUnaliased().getVariableName().equals(usedPointer.getKey())
+            : "Wrong assumptions on deferred allocations tracking: lhs " + lhsLocation + " does not match " + usedPointer;
+        assert lhsUsedDeferredAllocationPointers.size() == 1
+            : "Wrong assumptions on deferred allocations tracking: lhs is not a single pointer, lhsUsedDeferredAllocationPointers.size() is " + lhsUsedDeferredAllocationPointers.size();
         if (!passed) {
           handleDeferredAllocationPointerRemoval(usedPointer.getKey(), false);
         }
@@ -543,7 +547,7 @@ class DynamicMemoryHandler {
 
   void handleDeferredAllocationsInAssume(final CExpression e,
                                                  final Map<String, CType> usedDeferredAllocationPointers)
-                                                     throws UnrecognizedCCodeException {
+                                                     throws UnrecognizedCCodeException, InterruptedException {
     for (final Map.Entry<String, CType> usedPointer : usedDeferredAllocationPointers.entrySet()) {
       if (!usedPointer.getValue().equals(CPointerType.POINTER_TO_VOID)) {
         handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());

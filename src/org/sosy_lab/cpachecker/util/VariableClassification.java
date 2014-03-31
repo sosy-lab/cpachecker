@@ -46,7 +46,6 @@ import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -56,6 +55,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -732,13 +732,16 @@ public class VariableClassification {
     }
   }
 
-  private static CCompositeType canonizeFieldOwnerType(CType fieldOwnerType) {
-    fieldOwnerType = fieldOwnerType.getCanonicalType();
+  private static CCompositeType getCanonicalFieldOwnerType(CFieldReference fieldReference) {
+    CType fieldOwnerType = fieldReference.getFieldOwner().getExpressionType().getCanonicalType();
 
     if (fieldOwnerType instanceof CPointerType) {
       fieldOwnerType = ((CPointerType) fieldOwnerType).getType();
     }
-    assert fieldOwnerType instanceof CCompositeType : "Field owner sould have composite type";
+    assert fieldOwnerType instanceof CCompositeType
+        : "Field owner should have composite type, but the field-owner type of expression " + fieldReference
+          + " in " + fieldReference.getFileLocation()
+          + " is " + fieldOwnerType + ", which is a " + fieldOwnerType.getClass().getSimpleName() + ".";
     final CCompositeType compositeType = (CCompositeType) fieldOwnerType;
     // Currently we don't pay attention to possible const and volatile modifiers
     if (compositeType.isConst() || compositeType.isVolatile()) {
@@ -1603,7 +1606,7 @@ public class VariableClassification {
 
     @Override
     public VariableOrField visit(final CFieldReference e) {
-      final CCompositeType compositeType = canonizeFieldOwnerType(e.getFieldOwner().getExpressionType());
+      final CCompositeType compositeType = getCanonicalFieldOwnerType(e);
       assignedFields.put(compositeType, e.getFieldName());
       final VariableOrField result = VariableOrField.newField(compositeType, e.getFieldName());
       if (e.isPointerDereference()) {
@@ -1674,7 +1677,7 @@ public class VariableClassification {
 
     @Override
     public Void visit(final CFieldReference e) {
-      final CCompositeType compositeType = canonizeFieldOwnerType(e.getFieldOwner().getExpressionType());
+      final CCompositeType compositeType = getCanonicalFieldOwnerType(e);
       addVariableOrField(lhs, VariableOrField.newField(compositeType, e.getFieldName()));
       return e.getFieldOwner().accept(this);
     }

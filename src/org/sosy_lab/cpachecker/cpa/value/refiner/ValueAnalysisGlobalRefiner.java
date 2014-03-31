@@ -43,7 +43,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -51,6 +50,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -653,11 +653,6 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
        */
       private Deque<ARGState> sources = new ArrayDeque<>(Collections.singleton(root));
 
-      /**
-       * a flag to distinguish the initial interpolation from subsequent ones
-       */
-      private boolean isInitialInterpolation = true;
-
       @Override
       public ARGPath getNextPathForInterpolation() {
         ARGPath errorPath = new ARGPath();
@@ -715,15 +710,13 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
       @Override
       public ValueAnalysisInterpolant getInitialInterpolantForRoot(ARGState root) {
-
-        ValueAnalysisInterpolant initialInterpolant = interpolants.get(predecessorRelation.get(root));
+        ValueAnalysisInterpolant initialInterpolant = interpolants.get(root);
 
         if(initialInterpolant == null) {
           initialInterpolant = ValueAnalysisInterpolant.createInitial();
-          assert isInitialInterpolation : "initial interpolant was null after initial interpolation!";
-        }
 
-        isInitialInterpolation = false;
+          assert (interpolants.size() == 0) : "initial interpolant was null after initial interpolation!";
+        }
 
         return initialInterpolant;
       }

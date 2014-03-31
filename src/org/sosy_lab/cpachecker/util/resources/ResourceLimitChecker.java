@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
+import javax.annotation.Nonnull;
 import javax.management.JMException;
 
 import org.sosy_lab.common.concurrency.Threads;
@@ -130,7 +131,7 @@ public final class ResourceLimitChecker {
           Joiner.on(", ").join(Lists.transform(limitsList,
               new Function<ResourceLimit, String>() {
                 @Override
-                public String apply(ResourceLimit pInput) {
+                public String apply(@Nonnull ResourceLimit pInput) {
                   return pInput.getName();
                 }
               })));

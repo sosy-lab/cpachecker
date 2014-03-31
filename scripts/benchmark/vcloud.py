@@ -225,41 +225,43 @@ def handleCloudResults(benchmark, outputHandler):
         outputHandler.outputBeforeRunSet(runSet)
 
         for run in runSet.runs:
+
             stdoutFile = run.logFile + ".stdOut"
-            if not os.path.exists(stdoutFile):
-                logging.warning("No results exist for file {0}.".format(run.sourcefile))
-                executedAllRuns = False
-                continue
+            if os.path.exists(stdoutFile):
+                try:
+                    (run.wallTime, run.cpuTime, run.memUsage, returnValue, run.energy) = parseCloudResultFile(stdoutFile)
 
-            try:
-                (run.wallTime, run.cpuTime, run.memUsage, returnValue, run.energy) = parseCloudResultFile(stdoutFile)
+                    if returnValue is not None:
+                        # Do not delete stdOut file if there was some problem
+                        os.remove(stdoutFile)
+                    else:
+                        executedAllRuns = False
 
-                key = os.path.basename(run.logFile)[:-4] # VCloud uses logfilename without '.log' as key
-                if key in runToHostMap:
-                    run.host = runToHostMap[key]
-
-                if returnValue is not None:
-                    # Do not delete stdOut file if there was some problem
-                    os.remove(stdoutFile)
-                else:
+                except EnvironmentError as e:
+                    logging.warning("Cannot extract measured values from output for file {0}: {1}".format(
+                                    outputHandler.formatSourceFileName(run.sourcefile), e))
                     executedAllRuns = False
-
-            except EnvironmentError as e:
-                logging.warning("Cannot extract measured values from output for file {0}: {1}".format(run.sourcefile, e))
+            else:
+                logging.warning("No results exist for file {0}.".format(outputHandler.formatSourceFileName(run.sourcefile)))
                 executedAllRuns = False
-                continue
+                returnValue = None
+
+            key = os.path.basename(run.logFile)[:-4] # VCloud uses logfilename without '.log' as key
+            if key in runToHostMap:
+                run.host = runToHostMap[key]
 
             if os.path.exists(run.logFile + ".stdError"):
                 runsProducedErrorOutput = True
 
             outputHandler.outputBeforeRun(run)
             output = ''
-            try:
-                with open(run.logFile, 'rt') as outputFile:
-                    # first 6 lines are for logging, rest is output of subprocess, see RunExecutor.py for details
-                    output = '\n'.join(map(Util.decodeToString, outputFile.readlines()[6:]))
-            except IOError as e:
-                logging.warning("Cannot read log file: " + e.strerror)
+            if os.path.exists(run.logFile):
+                try:
+                    with open(run.logFile, 'rt') as outputFile:
+                        # first 6 lines are for logging, rest is output of subprocess, see RunExecutor.py for details
+                        output = '\n'.join(map(Util.decodeToString, outputFile.readlines()[6:]))
+                except IOError as e:
+                    logging.warning("Cannot read log file: " + e.strerror)
 
             run.afterExecution(returnValue, output)
             outputHandler.outputAfterRun(run)
@@ -269,7 +271,7 @@ def handleCloudResults(benchmark, outputHandler):
     outputHandler.outputAfterBenchmark(STOPPED_BY_INTERRUPT)
 
     if not executedAllRuns:
-        logging.warning("Some expected result files could not be found")
+        logging.warning("Some expected result files could not be found!")
     if runsProducedErrorOutput:
         logging.warning("Some runs produced unexpected warnings on stderr, please check the {0} files!"
                         .format(os.path.join(outputDir, '*.stdError')))

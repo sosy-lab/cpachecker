@@ -140,6 +140,23 @@ public class LoopPartitioning extends PartitioningHeuristic {
         }
       }
     }
-    pLoopBody.addAll(addNodes);
+
+    // Normally pLoopBody.addAll(addNodes) would be enough. In special cases we have to add more nodes,
+    // because they are reachable from the loop and the loopReturnNodes are reachable from them.
+    // This happens with break-statement-branches, that do not only skip the loop, but do some calculations.
+    // Then all calculation-Nodes are outside the block, but the loopReturnNode is after them and in the block.
+    // Example: for(..) { if (..) { calc ..; break; } .. }
+    // So we also add their predecessors to the block, so that the loop-block has only one entry-node.
+    // We assume, that the node direct after the loop is _only_ reachable
+    // either through the loopstart or with a break-statement.
+    final List<CFANode> waitlist = new ArrayList<>(addNodes);
+    while (!waitlist.isEmpty()) {
+      final CFANode node = waitlist.remove(0);
+      if (pLoopBody.add(node)) {
+        for (CFANode pred : CFAUtils.predecessorsOf(node)) {
+          waitlist.add(pred);
+        }
+      }
+    }
   }
 }

@@ -35,6 +35,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
+import javax.annotation.Nonnull;
+
 import org.sosy_lab.common.ChildFirstPatternClassLoader;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.log.LogManager;
@@ -286,7 +288,7 @@ public class FormulaManagerFactory {
       URL[] urls = from(Arrays.asList(((URLClassLoader)classLoader).getURLs()))
         .filter(new Predicate<URL>() {
             @Override
-            public boolean apply(URL pInput) {
+            public boolean apply(@Nonnull URL pInput) {
               return !pInput.getPath().contains("java-cup");
             }
           })

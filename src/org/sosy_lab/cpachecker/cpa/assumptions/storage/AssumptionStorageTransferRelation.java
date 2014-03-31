@@ -75,7 +75,7 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState el, List<AbstractState> others, CFAEdge edge, Precision p) throws CPATransferException {
+  public Collection<? extends AbstractState> strengthen(AbstractState el, List<AbstractState> others, CFAEdge edge, Precision p) throws CPATransferException, InterruptedException {
     AssumptionStorageState asmptStorageElem = (AssumptionStorageState)el;
     BooleanFormulaManagerView bfmgr = formulaManager.getBooleanFormulaManager();
     assert bfmgr.isTrue(asmptStorageElem.getAssumption());

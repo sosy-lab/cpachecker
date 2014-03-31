@@ -23,12 +23,9 @@
  */
 package org.sosy_lab.cpachecker.appengine.server;
 
-import java.io.IOException;
-
 import org.restlet.Restlet;
 import org.restlet.ext.wadl.WadlApplication;
 import org.restlet.routing.Router;
-import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.appengine.server.resource.RootServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.SettingsServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.TaskExecutorServerResource;
@@ -39,8 +36,6 @@ import org.sosy_lab.cpachecker.appengine.server.resource.TasksServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.TasksetServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.TasksetTasksServerResource;
 import org.sosy_lab.cpachecker.appengine.util.ObjectifyRegistry;
-
-import com.google.common.base.Charsets;
 
 import freemarker.log.Logger;
 
@@ -77,19 +72,6 @@ public class CPAcheckerApplication extends WadlApplication {
     capabilitiesFilter.setNext(router);
 
     return capabilitiesFilter;
-  }
-
-  /**
-   * Returns the version of CPAchecker on Google App Engine
-   *
-   * @return The version string
-   */
-  public static String getVersion() {
-    try {
-      return Paths.get("WEB-INF/VERSION.txt").asCharSource(Charsets.UTF_8).read();
-    } catch (IOException e) {
-      return "(unknown version)";
-    }
   }
 
   static {

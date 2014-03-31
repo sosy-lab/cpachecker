@@ -6,12 +6,12 @@
 
   <option name="-setprop">limits.time.wall=60</option>
 
-  <sourcefiles name="Simple">
+  <sourcefiles>
     <include>../programs/benchmarks/locks/*.c</include>
     <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
   </sourcefiles>
 
-  <rundefinition name="predicateAnalysis">
+  <rundefinition>
     <option name="-predicateAnalysis-PredAbsRefiner-ABEl"/>
   </rundefinition>
 

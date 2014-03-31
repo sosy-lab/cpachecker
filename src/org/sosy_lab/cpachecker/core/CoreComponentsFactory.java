@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
@@ -109,6 +110,10 @@ public class CoreComponentsFactory {
       description = "do analysis and then check "
       + "if reached set fulfills property specified by ConfigurableProgramAnalysisWithPropertyChecker")
   private boolean usePropertyCheckingAlgorithm = false;
+
+  @Option(name="algorithm.testGen",
+      description = "use the TestGen Algorithm")
+  private boolean useTestGenAlgorithm = false;
 
   @Option(name="checkProof",
       description = "do analysis and then check analysis result")
@@ -178,6 +183,10 @@ public class CoreComponentsFactory {
 
       if (useAdjustableConditions) {
         algorithm = new RestartWithConditionsAlgorithm(algorithm, cpa, config, logger);
+      }
+
+      if (useTestGenAlgorithm) {
+        algorithm = new TestGenAlgorithm(algorithm, cpa, shutdownNotifier, cfa, config, logger);
       }
 
       if (usePropertyCheckingAlgorithm) {

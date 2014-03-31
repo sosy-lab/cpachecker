@@ -538,8 +538,8 @@ class Run():
 
         # dummy values, for output in case of interrupt
         self.status = ""
-        self.cpuTime = 0
-        self.wallTime = 0
+        self.cpuTime = None
+        self.wallTime = None
         self.memUsage = None
         self.host = None
         self.energy = None
@@ -558,12 +558,13 @@ class Run():
         rlimits = self.runSet.benchmark.rlimits
         isTimeout = forceTimeout or self._isTimeout()
 
-        # calculation: returnvalue == (returncode * 256) + returnsignal
-        # highest bit of returnsignal shows only whether a core file was produced, we clear it
-        returnsignal = returnvalue & 0x7F
-        returncode = returnvalue >> 8
-        logging.debug("My subprocess returned {0}, code {1}, signal {2}.".format(returnvalue, returncode, returnsignal))
-        self.status = self.runSet.benchmark.tool.getStatus(returncode, returnsignal, output, isTimeout)
+        if returnvalue is not None:
+            # calculation: returnvalue == (returncode * 256) + returnsignal
+            # highest bit of returnsignal shows only whether a core file was produced, we clear it
+            returnsignal = returnvalue & 0x7F
+            returncode = returnvalue >> 8
+            logging.debug("My subprocess returned {0}, code {1}, signal {2}.".format(returnvalue, returncode, returnsignal))
+            self.status = self.runSet.benchmark.tool.getStatus(returncode, returnsignal, output, isTimeout)
         self.category = result.getResultCategory(self.sourcefile, self.status, self.propertyfile)
         self.runSet.benchmark.tool.addColumnValues(output, self.columns)
 
@@ -576,7 +577,8 @@ class Run():
         if self.status in result.STR_LIST and isTimeout:
             self.status = "TIMEOUT"
             self.category = result.CATEGORY_ERROR
-        if returnsignal == 9 \
+        if returnvalue is not None \
+                and returnsignal == 9 \
                 and MEMLIMIT in rlimits \
                 and self.memUsage \
                 and int(self.memUsage) >= (rlimits[MEMLIMIT] * 1024 * 1024 * 0.999):

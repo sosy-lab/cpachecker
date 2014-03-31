@@ -146,7 +146,8 @@ public class BDDState implements AbstractQueryableState {
     if (leftSide == null || rightSide == null) {
       return this;
     } else {
-      assert leftSide.length == rightSide.length;
+      assert leftSide.length == rightSide.length : "left side and right side should have equal length: "
+              + leftSide.length + " != " + rightSide.length;
       final Region[] assignRegions = bvmgr.makeBinaryEqual(leftSide, rightSide);
 
       Region result;

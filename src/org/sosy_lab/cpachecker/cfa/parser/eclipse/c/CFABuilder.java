@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -63,6 +64,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 import com.google.common.base.Function;
@@ -348,7 +350,20 @@ class CFABuilder extends ASTVisitor {
 
     functions.putAll(fileScope.getFunctions());
     typedefs.putAll(fileScope.getTypeDefs());
-    types.putAll(fileScope.getTypes());
+    for (Entry<String, CComplexTypeDeclaration> e : fileScope.getTypes().entrySet()) {
+      // only add those types to the global list which are complete, or where no
+      // complete type is available at all (from the previous found type)
+      if (types.containsKey(e.getKey())
+          && (types.get(e.getKey()).getType().getCanonicalType() instanceof CElaboratedType
+              || (types.get(e.getKey()).getType().getCanonicalType().equals(e.getValue().getType().getCanonicalType())))) {
+        types.put(e.getKey(), e.getValue());
+
+      // types which were not there before can be added without checking any
+      // other constraints
+      } else if (!types.containsKey(e.getKey())) {
+        types.put(e.getKey(), e.getValue());
+      }
+    }
 
     globalScope= new GlobalScope(globalVars, functions, types, typedefs, new HashMap<String, CComplexTypeDeclaration>(), "");
     return PROCESS_CONTINUE;

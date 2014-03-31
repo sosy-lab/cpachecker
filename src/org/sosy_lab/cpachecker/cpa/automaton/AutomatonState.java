@@ -39,9 +39,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
@@ -183,6 +185,28 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     return internalState.hashCode();
   }
 
+  public List<CStatementEdge> getAsStatementEdges(CIdExpression name_of_return_Var, String cFunctionName) {
+    if (assumptions.isEmpty()) { return ImmutableList.of(); }
+
+    List<CStatementEdge> result = new ArrayList<>(assumptions.size());
+    for (IAStatement statement : assumptions) {
+
+      if (statement instanceof CAssignment) {
+        CAssignment assignment = (CAssignment) statement;
+
+        if (assignment.getRightHandSide() instanceof CExpression) {
+
+
+          result.add(new CStatementEdge(assignment.toASTString(), assignment, assignment.getFileLocation(),
+              new CFANode(cFunctionName), new CFANode(cFunctionName)));
+        } else if (assignment.getRightHandSide() instanceof CFunctionCall) {
+          //TODO FunctionCalls, ExpressionStatements etc
+        }
+      }
+    }
+    return result;
+  }
+
   @Override
   public List<AssumeEdge> getAsAssumeEdges(AIdExpression name_of_return_Var, String cFunctionName) {
     if (assumptions.isEmpty()) {
@@ -210,6 +234,15 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
       }
     }
     return result;
+  }
+
+  /**
+   * returns the name of the automaton, to whom this state belongs to (the name is specified in the automaton file)
+   * forwards to <code>automatonCPA.getAutomaton().getName()</code>.
+   * @return name of automaton
+   */
+  public String getOwningAutomatonName() {
+    return automatonCPA.getAutomaton().getName();
   }
 
   @Override

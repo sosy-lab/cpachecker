@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 
+import com.google.common.base.Objects;
+
 abstract class Expression {
   static abstract class Location extends Expression {
     static class AliasedLocation extends Location {
@@ -45,6 +47,13 @@ abstract class Expression {
       @Override
       public Kind getKind() {
         return Kind.ALIASED_LOCATION;
+      }
+
+      @Override
+      public String toString() {
+        return Objects.toStringHelper(this)
+                      .add("address", address)
+                      .toString();
       }
 
       private final Formula address;
@@ -63,6 +72,13 @@ abstract class Expression {
       @Override
       public Kind getKind() {
         return Kind.UNALIASED_LOCATION;
+      }
+
+      @Override
+      public String toString() {
+        return Objects.toStringHelper(this)
+                      .add("variable", variableName)
+                      .toString();
       }
 
       private final String variableName;
@@ -117,6 +133,12 @@ abstract class Expression {
       public Kind getKind() {
         return Kind.NONDET;
       }
+
+      @Override
+      public String toString() {
+        return Objects.toStringHelper(this)
+                      .toString();
+      }
     }
 
     private Value(final Formula value) {
@@ -134,6 +156,13 @@ abstract class Expression {
     @Override
     public Kind getKind() {
       return Kind.DET_VALUE;
+    }
+
+    @Override
+    public String toString() {
+      return Objects.toStringHelper(this)
+                    .add("value", value)
+                    .toString();
     }
 
     private final Formula value;
