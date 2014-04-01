@@ -54,6 +54,8 @@ import org.sosy_lab.cpachecker.cpa.value.simplifier.ExternalSimplifier;
  * integer arithmetics, this can not be simplified to "X".
  */
 public class SymbolicValueFormula implements Value {
+  static int numSymbolicValues = 0;
+
   @Override
   public int hashCode() {
     final int prime = 31;
@@ -101,8 +103,13 @@ public class SymbolicValueFormula implements Value {
    */
   public Value simplify() {
     ExpressionBase simplifiedTree = root;
-    if(isIntegerAddMultiplyOnly()) {
-      simplifiedTree = ExternalSimplifier.simplify(simplifiedTree);
+
+    // Only call the external simplifier if it's actually a complex
+    // expression.
+    if(root instanceof BinaryExpression) {
+      if(isIntegerAddMultiplyOnly()) {
+        simplifiedTree = ExternalSimplifier.simplify(simplifiedTree);
+      }
     }
 
     // If we actually know the value, return the known value.
@@ -308,6 +315,8 @@ public class SymbolicValueFormula implements Value {
 
     public SymbolicValue(String name) {
       displayName = name;
+      numSymbolicValues++;
+      System.out.println("Number of unique symbolic values: "+numSymbolicValues);
     }
 
     @Override
@@ -442,6 +451,8 @@ public class SymbolicValueFormula implements Value {
   public Pair<SymbolicValue, Value> inferAssignment(boolean truthValue) {
     Set<SymbolicValue> symbolicValues = root.getSymbolicValues();
 
+    ExpressionBase root = this.root;
+
     // Less or more than a single symbolic value, impossible to infer anything.
     if(symbolicValues.size() != 1) {
       return null;
@@ -453,18 +464,6 @@ public class SymbolicValueFormula implements Value {
     if(root instanceof BinaryExpression) {
       BinaryExpression rootBinaryExpression = (BinaryExpression) root;
       String operator = rootBinaryExpression.getOperator().op;
-
-      // If the left-hand or right-hand side already are the variable itself, we don't need
-      // to do expensive solving.
-      if(rootBinaryExpression.lVal instanceof SymbolicValue && rootBinaryExpression.rVal instanceof ConstantValue) {
-        SymbolicValue symbol = (SymbolicValue) rootBinaryExpression.lVal;
-        ConstantValue value = (ConstantValue) rootBinaryExpression.rVal;
-        return Pair.of(symbol, value.getValue());
-      } else if(rootBinaryExpression.rVal instanceof SymbolicValue && rootBinaryExpression.lVal instanceof ConstantValue) {
-        SymbolicValue symbol = (SymbolicValue) rootBinaryExpression.rVal;
-        ConstantValue value = (ConstantValue) rootBinaryExpression.lVal;
-        return Pair.of(symbol, value.getValue());
-      }
 
       if(operator.equals("!=") && !truthValue) {
         // If we have != and truthValue is false, convert to == instead
@@ -478,6 +477,18 @@ public class SymbolicValueFormula implements Value {
       }
 
       if(operator.equals("==") && truthValue) {
+        // If the left-hand or right-hand side already are the variable itself, we don't need
+        // to do expensive solving.
+        if(rootBinaryExpression.lVal instanceof SymbolicValue && rootBinaryExpression.rVal instanceof ConstantValue) {
+          SymbolicValue symbol = (SymbolicValue) rootBinaryExpression.lVal;
+          ConstantValue value = (ConstantValue) rootBinaryExpression.rVal;
+          return Pair.of(symbol, value.getValue());
+        } else if(rootBinaryExpression.rVal instanceof SymbolicValue && rootBinaryExpression.lVal instanceof ConstantValue) {
+          SymbolicValue symbol = (SymbolicValue) rootBinaryExpression.rVal;
+          ConstantValue value = (ConstantValue) rootBinaryExpression.lVal;
+          return Pair.of(symbol, value.getValue());
+        }
+
         // Can only solve anything if we have an == at the top level.
         Value result = ExternalSimplifier.solve(valueToSolveFor, root);
         if(result == null) {
