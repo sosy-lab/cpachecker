@@ -182,6 +182,7 @@ public final class DOTBuilder2 {
           //write nodes
           for (CFANode node: nodes) {
             out.write(DOTBuilder.formatNode(node, loopHeads));
+            out.write('\n');
           }
 
           out.write(outb.toString());
