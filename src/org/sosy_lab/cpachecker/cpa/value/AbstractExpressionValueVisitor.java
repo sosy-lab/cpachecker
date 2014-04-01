@@ -531,7 +531,7 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(CIntegerLiteralExpression pE) throws UnrecognizedCCodeException {
-    return new NumericValue(pE.asLong());
+    return new NumericValue(pE.getValue());
   }
 
   @Override
@@ -968,8 +968,7 @@ public abstract class AbstractExpressionValueVisitor
         final long longValue = numericValue.longValue();
         final boolean targetIsSigned = machineModel.isSigned(st);
 
-        if ((size < SIZE_OF_JAVA_LONG) || (size == SIZE_OF_JAVA_LONG && targetIsSigned)
-            || (longValue < Long.MAX_VALUE / 2 && longValue > Long.MIN_VALUE / 2)) {
+        if ((size < SIZE_OF_JAVA_LONG) || (size == SIZE_OF_JAVA_LONG && targetIsSigned)) {
           // we can handle this with java-type "long"
 
           final long maxValue = 1L << size; // 2^size
