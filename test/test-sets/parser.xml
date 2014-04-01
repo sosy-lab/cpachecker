@@ -1,20 +1,26 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="60" memlimit="3000" numOfCores="1">
+<benchmark tool="cpachecker" timelimit="60" memlimit="1000" cpuCores="1">
   <!-- Test the parser frontend of CPAchecker. -->
 
   <rundefinition>
     <sourcefiles>
-      <includesfile>../programs/benchmarks/*.set</includesfile>
-      <exclude>../programs/benchmarks/memsafety/*</exclude>
+      <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
+      <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
+      <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
+      <includesfile>../programs/benchmarks/DriverChallenges.set</includesfile>
+      <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
+      <includesfile>../programs/benchmarks/Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/MemorySafety.set</includesfile>
+      <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+      <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+      <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+      <includesfile>../programs/benchmarks/Simple.set</includesfile>
     </sourcefiles>
     <sourcefiles>
       <include>../programs/simple/*.i</include>
       <include>../programs/simple/*/*.i</include>
-    </sourcefiles>
-    <sourcefiles>
-      <includesfile>../programs/benchmarks/MemorySafety.set</includesfile>
-      <option name="-preprocess"/>
     </sourcefiles>
     <sourcefiles>
       <include>../programs/simple/*.c</include>
@@ -22,6 +28,7 @@
       <option name="-preprocess"/>
     </sourcefiles>
 
+    <option name="-heap">500m</option>
     <option name="-noout"/>
     <option name="-generateCFA"/>
   </rundefinition>
