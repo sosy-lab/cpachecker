@@ -77,7 +77,7 @@ public class BlockToDotWriter {
     final List<CFAEdge> edges = new ArrayList<>();
 
     // dump nodes of all blocks
-    dumpBlock(app, new HashSet<CFANode>(), blockPartitioning.getMainBlock(), hierarchy, edges);
+    dumpBlock(app, new HashSet<CFANode>(), blockPartitioning.getMainBlock(), hierarchy, edges, 0);
 
     // we have to dump edges after the nodes and sub-graphs,
     // because Dot generates wrong graphs for edges from an inner block to an outer block.
@@ -127,15 +127,17 @@ public class BlockToDotWriter {
   /** Dump the current block and all innerblocks of it. */
   private void dumpBlock(final Appendable app, final Set<CFANode> finished,
                          final Block block, final Multimap<Block, Block> hierarchy,
-                         final List<CFAEdge> edges) throws IOException {
+                         final List<CFAEdge> edges, final int depth) throws IOException {
     // todo use some block-identifier instead of index as blockname?
-    String blockname = (block == blockPartitioning.getMainBlock()) ? "main_block" : "block_" + (blockIndex++);
+    final String blockname = (block == blockPartitioning.getMainBlock()) ? "main_block" : "block_" + (blockIndex++);
     app.append("subgraph cluster_" + blockname + " {\n");
+    app.append("style=filled\n");
+    app.append("fillcolor=" + (depth%2 == 0 ? "white" : "lightgrey") + "\n");
     app.append("label=\"" + blockname + "\"\n");
 
     // dump inner blocks
     for (Block innerBlock : hierarchy.get(block)) {
-      dumpBlock(app, finished, innerBlock, hierarchy, edges);
+      dumpBlock(app, finished, innerBlock, hierarchy, edges, depth+1);
     }
 
     // dump nodes,that are in current block and not in inner blocks (nodes of inner blocks are 'finished')

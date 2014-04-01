@@ -48,7 +48,10 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
@@ -64,6 +67,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.HashMultimap;
@@ -178,6 +182,15 @@ public class BAMTransferRelation implements TransferRelation {
 
     CFANode node = extractLocation(pState);
 
+    if (node.getLeavingSummaryEdge() != null
+            && node.getNumLeavingEdges() == 1 // this line is implied by previous line
+            && node.getLeavingEdge(0) instanceof FunctionCallEdge // this line is implied by previous line
+            && node.getLeavingEdge(0).getSuccessor() instanceof FunctionEntryNode // this line is implied by previous line
+            && partitioning.isCallNode(node.getLeavingEdge(0).getSuccessor())) {
+      // TODO check,if real recursion and not only a normal functioncall
+      return handleRecursiveFunctionCall(pState, pPrecision, node);
+    }
+
     if (!partitioning.isCallNode(node)) {
       // the easy case: we are in the middle of a block, so just forward to wrapped CPAs
       List<AbstractState> result = new ArrayList<>();
@@ -201,6 +214,117 @@ public class BAMTransferRelation implements TransferRelation {
 
     // we are a the entryNode of a new block, so we have to start a recursive analysis
     return doRecursiveAnalysis(pState, pPrecision, node);
+  }
+
+  private Collection<? extends AbstractState> handleRecursiveFunctionCall(
+          final AbstractState pState, final Precision pPrecision, final CFANode node)
+          throws CPATransferException, InterruptedException {
+    logger.log(Level.FINER, "Starting analysis of functioncall ", ++depth);
+    logger.log(Level.ALL, "Starting state:", pState);
+    maxRecursiveDepth = Math.max(depth, maxRecursiveDepth);
+
+    final FunctionCallEdge functionCallEdge = (FunctionCallEdge)node.getLeavingEdge(0);
+    final FunctionEntryNode entryNode = functionCallEdge.getSuccessor();
+    final CFANode exitNode = node.getLeavingSummaryEdge().getSuccessor();
+    final FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge)exitNode.getEnteringEdge(0);
+
+    logger.log(Level.FINEST, "Calling recursive function", functionCallEdge.getSuccessor().getFunctionName());
+    logger.log(Level.FINEST, "Reducing state", pState);
+    // TODO multiple states? see Reducer for detail.
+    final AbstractState reducedInitialState = wrappedReducer.getReducedStateAfterFunctionCall(pState, currentBlock, functionCallEdge);
+    final Precision reducedInitialPrecision = wrappedReducer.getVariableReducedPrecision(pPrecision, currentBlock);
+    logger.log(Level.FINEST, "Reduced state of recursive function is", reducedInitialState);
+
+    if (reducedInitialState == null) { return Collections.emptySet(); }
+
+    final Block outerSubtree = currentBlock;
+    currentBlock = partitioning.getBlockForCallNode(entryNode);
+
+    // try to get previously computed element from cache
+    final Pair<ReachedSet, Collection<AbstractState>> pair =
+            argCache.get(reducedInitialState, reducedInitialPrecision, currentBlock);
+    ReachedSet reached = pair.getFirst();
+    final Collection<AbstractState> returnStates = pair.getSecond();
+
+    final Collection<Pair<AbstractState, Precision>> reducedResult;
+
+    // TODO here we have to check for endless recursion, we need the current stack
+    // if block is twice in stack, abort recursion --> fixpoint?
+
+    if (returnStates != null) {
+      assert reached != null;
+      // cache hit, return element from cache
+      logger.log(Level.FINEST, "Cache hit");
+      reducedResult = imbueAbstractStatesWithPrecision(reached, returnStates);
+
+    } else {
+      if (reached == null) {
+        // we have not even cached a partly computed reach-set,
+        // so we must compute the subgraph specification from scratch
+        reached = createInitialReachedSet(reducedInitialState, reducedInitialPrecision);
+        argCache.put(reducedInitialState, reducedInitialPrecision, currentBlock, reached);
+        logger.log(Level.FINEST, "Cache miss: starting recursive CPAAlgorithm with new initial reached-set.");
+      } else {
+        logger.log(Level.FINEST, "Partial cache hit: starting recursive CPAAlgorithm with partial reached-set.");
+      }
+
+      try {
+        reducedResult = performCompositeAnalysisWithCPAAlgorithm(reached, reducedInitialState, reducedInitialPrecision);
+      } catch (CPAException e) {
+        throw new RecursiveAnalysisFailedException(e);
+      }
+    }
+
+    abstractStateToReachedSet.put(pState, reached);
+
+    logger.log(Level.FINER, "Analysis of recursive functioncall ", depth--, "finished");
+    logger.log(Level.ALL, "Resulting states:", reducedResult);
+
+    addBlockAnalysisInfo(reducedInitialState);
+
+    if (breakAnalysis) {
+      // analysis aborted, so lets abort here too
+      // TODO why return element?
+      assert reducedResult.size() == 1;
+      return Collections.singleton(Iterables.getOnlyElement(reducedResult).getFirst());
+    }
+
+    logger.log(Level.FINEST, "Expanding states", reducedResult);
+    final List<AbstractState> expandedResult = handleFunctionReturn(reducedResult, outerSubtree, pState, pPrecision, functionReturnEdge);
+    logger.log(Level.ALL, "Expanded results:", expandedResult);
+
+    currentBlock = outerSubtree;
+
+    return expandedResult;
+  }
+
+  private List<AbstractState> handleFunctionReturn(
+          final Collection<Pair<AbstractState, Precision>> reducedResult,
+          final Block outerSubtree, final AbstractState rootState, final Precision precision,
+          final FunctionReturnEdge edge) throws UnrecognizedCodeException {
+    final List<AbstractState> expandedResult = new ArrayList<>(reducedResult.size());
+    for (Pair<AbstractState, Precision> reducedPair : reducedResult) {
+      AbstractState reducedState = reducedPair.getFirst();
+      Precision reducedPrecision = reducedPair.getSecond();
+
+      Precision expandedPrecision =
+              wrappedReducer.getVariableExpandedPrecision(precision, outerSubtree, reducedPrecision);
+
+      logger.log(Level.FINEST, "function return from state", reducedState);
+      AbstractState functionReturnResult = wrappedReducer.getExpandedStateAfterFunctionReturn(rootState, currentBlock, reducedState, edge);
+      logger.log(Level.FINEST, "function return to state", functionReturnResult);
+
+      if (functionReturnResult == null) {
+        return Collections.emptyList();
+      }
+
+      ((ARGState)functionReturnResult).addParent((ARGState) rootState);
+      expandedResult.add(functionReturnResult);
+
+      forwardPrecisionToExpandedPrecision.put(functionReturnResult, expandedPrecision);
+    }
+
+    return expandedResult;
   }
 
   /** Enters a new block and performs a new analysis or returns result from cache. */
@@ -258,7 +382,8 @@ public class BAMTransferRelation implements TransferRelation {
     Block currentNodeBlock = partitioning.getBlockForReturnNode(currentNode);
     if (currentNodeBlock != null && !currentBlock.equals(currentNodeBlock)
         && currentNodeBlock.getNodes().contains(edge.getSuccessor())) {
-      // we are not analyzing the block corresponding to currentNode (currentNodeBlock) but the currentNodeBlock is inside of this block
+      // we are not analyzing the block corresponding to currentNode (currentNodeBlock),
+      // but the currentNodeBlock is inside of this block,
       // avoid a reanalysis
       return Collections.emptySet();
     }

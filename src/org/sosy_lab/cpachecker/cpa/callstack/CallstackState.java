@@ -27,7 +27,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
+import com.google.common.base.Joiner;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -77,10 +80,17 @@ public final class CallstackState implements AbstractState, Partitionable, Abstr
 
   @Override
   public String toString() {
+    final List<String> stack = new ArrayList<>();
+    CallstackState state = this;
+    while (state != null) {
+      stack.add(state.currentFunction);
+      state = state.previousState;
+    }
     return "Function " + getCurrentFunction()
         + " called from node " + getCallNode()
         + ", stack depth " + getDepth()
-        + " [" + Integer.toHexString(super.hashCode()) + "]";
+        + " [" + Integer.toHexString(super.hashCode())
+        + "], stack [" + Joiner.on(", ").join(stack) + "]";
   }
 
   public boolean sameStateInProofChecking(CallstackState pOther) {

@@ -23,16 +23,42 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
+import com.google.common.base.Preconditions;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import static  org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.FUNCTION_RETURN_VAR;
 
 public class ValueAnalysisReducer implements Reducer {
+
+  final MachineModel machineModel;
+  final LogManagerWithoutDuplicates logger;
+
+  ValueAnalysisReducer(MachineModel pMachineModel, LogManager pLogger) {
+    this.machineModel = pMachineModel;
+    this.logger = new LogManagerWithoutDuplicates(pLogger);
+  }
 
   private boolean occursInBlock(Block pBlock, String pVar) {
     // TODO could be more efficient (avoid linear runtime)
@@ -134,4 +160,108 @@ public class ValueAnalysisReducer implements Reducer {
     return getVariableExpandedState(pRootState, pReducedContext, pReducedState);
   }
 
+
+  @Override
+  public AbstractState getReducedStateAfterFunctionCall(
+          AbstractState previousState, Block context, FunctionCallEdge pEdge)
+          throws UnrecognizedCCodeException {
+
+    Preconditions.checkArgument(pEdge instanceof CFunctionCallEdge, "only C supported");
+    CFunctionCallEdge edge = (CFunctionCallEdge)pEdge;
+
+    ValueAnalysisState state = (ValueAnalysisState)previousState;
+    String functionName = edge.getPredecessor().getFunctionName();
+    String calledFunctionName = edge.getSuccessor().getFunctionName();
+
+    List<CExpression> arguments = edge.getArguments();
+    List<CParameterDeclaration> parameters = edge.getSuccessor().getFunctionParameters();
+    ValueAnalysisState newElement = state.clone();
+
+    if (!edge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
+      assert (parameters.size() == arguments.size());
+    }
+
+    // visitor for getting the values of the actual parameters in caller function context
+    final ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, functionName, machineModel, logger);
+
+    // get value of actual parameters in caller function context,
+    // 2 Steps: first calculate all values, then assign them. so we avoid problems with equal names.
+    final List<Value> paramValues = new ArrayList<>(parameters.size());
+    for (int i = 0; i < parameters.size(); i++) {
+      paramValues.add(visitor.evaluate(arguments.get(i), parameters.get(i).getType()));
+    }
+
+    for (int i = 0; i < parameters.size(); i++) {
+      String paramName = parameters.get(i).getName();
+      Value value = paramValues.get(i);
+      ValueAnalysisState.MemoryLocation formalParamName =
+              ValueAnalysisState.MemoryLocation.valueOf(calledFunctionName, paramName, 0);
+
+      if (value.isUnknown()) {
+        newElement.forget(formalParamName);
+      } else {
+        // this will override equal named variables, if necessary
+        newElement.assignConstant(formalParamName, value);
+      }
+    }
+
+    // delete all information from outside the function.
+    // this is save, because we only remove names, that are not inside the function.
+    // all params are inside the function.
+    return getVariableReducedState(newElement, context, edge.getSuccessor());
+  }
+
+  @Override
+  // 3 Steps:
+  // - first get value,
+  // - then forget everything from the inner function ant expand the state,
+  // - at last assign return-value.
+  // This should avoid conflicts for equal named variables.
+  public AbstractState getExpandedStateAfterFunctionReturn(
+          AbstractState rootState, Block reducedContext, AbstractState reducedState, FunctionReturnEdge pEdge)
+          throws UnrecognizedCodeException {
+
+    Preconditions.checkArgument(pEdge instanceof FunctionReturnEdge, "only C supported");
+    CFunctionReturnEdge edge = (CFunctionReturnEdge)pEdge;
+
+    ValueAnalysisState newState  = ((ValueAnalysisState)reducedState).clone();
+    CFunctionCall exprOnSummary = edge.getSummaryEdge().getExpression();
+    String functionName = edge.getPredecessor().getFunctionName();
+    String callerFunctionName = edge.getSuccessor().getFunctionName();
+
+    ValueAnalysisState.MemoryLocation assignedVarName = null;
+    Value value = null;
+
+    // STEP 1
+    // expression is an assignment operation, e.g. a = g(b);
+    if (exprOnSummary instanceof CFunctionCallAssignmentStatement) {
+      CFunctionCallAssignmentStatement assignExp = ((CFunctionCallAssignmentStatement)exprOnSummary);
+      CExpression op1 = assignExp.getLeftHandSide();
+
+      // we expect left hand side of the expression to be a variable
+      ValueAnalysisState.MemoryLocation returnVarName =
+              ValueAnalysisState.MemoryLocation.valueOf(functionName, FUNCTION_RETURN_VAR, 0);
+      ExpressionValueVisitor v = new ExpressionValueVisitor(newState, callerFunctionName,
+                      machineModel, logger);
+      assignedVarName = v.evaluateMemoryLocation(op1);
+      if (newState.contains(returnVarName)) {
+        value = newState.getValueFor(returnVarName);
+      }
+    }
+
+    // STEP 2
+    newState.dropFrame(functionName);
+    newState = (ValueAnalysisState)getVariableExpandedState(rootState, reducedContext, newState);
+
+    // STEP 3
+    if (assignedVarName != null) { // CFunctionCallAssignmentStatement -> assignment
+      if (value == null) { // value exists
+        newState.forget(assignedVarName);
+      } else {
+        newState.assignConstant(assignedVarName, value);
+      }
+    }
+
+    return newState;
+  }
 }

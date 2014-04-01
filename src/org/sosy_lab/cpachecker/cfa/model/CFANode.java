@@ -118,7 +118,7 @@ public class CFANode implements Comparable<CFANode> {
       }
     }
 
-    throw new IllegalArgumentException();
+    throw new IllegalArgumentException("there is no edge from " + this + " to " + pOther);
   }
 
   public boolean hasEdgeTo(CFANode pOther) {

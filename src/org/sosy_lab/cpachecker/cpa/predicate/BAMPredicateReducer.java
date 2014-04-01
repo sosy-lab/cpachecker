@@ -36,6 +36,8 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -428,4 +430,17 @@ public class BAMPredicateReducer implements Reducer {
     return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
         newAbstractionFormula, abstractionLocations, reducedState.getViolatedProperty());
   }
+
+  @Override
+  public AbstractState getReducedStateAfterFunctionCall(
+          AbstractState expandedState, Block context, FunctionCallEdge edge) {
+    throw new UnsupportedOperationException("not implemented");
+  }
+
+  @Override
+  public AbstractState getExpandedStateAfterFunctionReturn(
+          AbstractState rootState, Block reducedContext, AbstractState reducedState, FunctionReturnEdge edge) {
+    throw new UnsupportedOperationException("not implemented");
+  }
+
 }

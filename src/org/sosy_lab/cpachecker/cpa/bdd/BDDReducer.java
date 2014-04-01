@@ -30,6 +30,8 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
@@ -118,5 +120,17 @@ public class BDDReducer implements Reducer {
   public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext, AbstractState pReducedState) {
     // TODO what to do?
     return getVariableExpandedState(pRootState, pReducedContext, pReducedState);
+  }
+
+  @Override
+  public AbstractState getReducedStateAfterFunctionCall(
+          AbstractState previousState, Block context, FunctionCallEdge edge) {
+    throw new UnsupportedOperationException("not implemented");
+  }
+
+  @Override
+  public AbstractState getExpandedStateAfterFunctionReturn(
+          AbstractState rootState, Block reducedContext, AbstractState reducedState, FunctionReturnEdge edge) {
+    throw new UnsupportedOperationException("not implemented");
   }
 }
