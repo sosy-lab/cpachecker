@@ -185,7 +185,16 @@ public interface PointerTargetSetBuilder {
 //      Preconditions.checkArgument(bases.containsKey(name),
 //                                  "The base should be prepared beforehead with prepareBase()");
 
-      addTargets(name, type);
+      if (type instanceof CElaboratedType) {
+        assert ((CElaboratedType) type).getRealType() == null : "Elaborated type " + type + " that was not simplified but could have been.";
+        // This is the declaration of a variable of an incomplete struct type.
+        // We can't access the contents of this variable anyway,
+        // so we don't add targets.
+
+      } else {
+        addTargets(name, type);
+      }
+
       bases = bases.putAndCopy(name, type);
 
       lastBase = name;
