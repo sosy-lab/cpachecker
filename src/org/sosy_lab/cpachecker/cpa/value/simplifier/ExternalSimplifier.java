@@ -68,6 +68,15 @@ public class ExternalSimplifier {
     return expr;
   }
 
+  /**
+   * Exception thrown when a formula is simplified/solved that isn't yet supported.
+   */
+  static class UnsupportedFormulaException extends Exception {
+    public UnsupportedFormulaException(String message) {
+      super(message);
+    }
+  }
+
   public static Value solve(SymbolicValue value, ExpressionBase expr) {
     // Static initialization of the MathEclipse engine instead of null
     // you can set a file name to overload the default initial
@@ -105,11 +114,11 @@ public class ExternalSimplifier {
     return null;
   }
 
-  private static String convertFormulaToString(ExpressionBase expr, List<SymbolicValue> usedVariables) {
+  private static String convertFormulaToString(ExpressionBase expr, List<SymbolicValue> usedVariables) throws UnsupportedFormulaException {
     return recursiveConvertFormulaToString(expr, usedVariables);
   }
 
-  private static String recursiveConvertFormulaToString(ExpressionBase formulaExpr, List<SymbolicValue> usedVariables) {
+  private static String recursiveConvertFormulaToString(ExpressionBase formulaExpr, List<SymbolicValue> usedVariables) throws UnsupportedFormulaException {
     if(formulaExpr instanceof SymbolicValue) {
       int index = usedVariables.indexOf(formulaExpr);
       if(index == -1) {
@@ -128,11 +137,11 @@ public class ExternalSimplifier {
       return ((ConstantValue)formulaExpr).getValue().asNumericValue().getNumber().toString();
     } else {
       // This should never happen, as the above list should cover all symbolic value formulas.
-      throw new RuntimeException("Unsupported formula.");
+      throw new UnsupportedFormulaException("Unsupported formula: "+formulaExpr);
     }
   }
 
-  private static ExpressionBase recursiveConvertExpressionToFormula(IExpr expression, List<SymbolicValue> usedVariables) {
+  private static ExpressionBase recursiveConvertExpressionToFormula(IExpr expression, List<SymbolicValue> usedVariables) throws UnsupportedFormulaException {
     if(expression.isPlus() || expression.getAt(0).toString() == "Plus") {
       ExpressionBase leftHand = recursiveConvertExpressionToFormula(expression.getAt(1), usedVariables);
       ExpressionBase rightHand = recursiveConvertExpressionToFormula(expression.getAt(2), usedVariables);
@@ -159,11 +168,11 @@ public class ExternalSimplifier {
       int index = Integer.parseInt(indexString);
       return usedVariables.get(index);
     } else {
-      throw new RuntimeException("Unsupported formula: "+expression.toString());
+      throw new UnsupportedFormulaException("Unsupported formula: "+expression.toString());
     }
   }
 
-  private static String operatorIdentifierToOperator(String identifier) {
+  private static String operatorIdentifierToOperator(String identifier) throws UnsupportedFormulaException {
     switch(identifier) {
     case "PLUS":
       return "+";
@@ -176,7 +185,7 @@ public class ExternalSimplifier {
     default:
       // This should never happen, as we only use the external tools to simplify
       // integer arithmetic with +, -, *
-      throw new RuntimeException("Unsupported formula.");
+      throw new UnsupportedFormulaException("Unsupported operand: "+identifier);
     }
   }
 }
