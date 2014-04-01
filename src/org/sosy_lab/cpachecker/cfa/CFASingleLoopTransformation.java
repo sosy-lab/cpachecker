@@ -44,6 +44,8 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Queue;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
@@ -712,7 +714,7 @@ public class CFASingleLoopTransformation {
   private ImmutableCFA buildCFA(FunctionEntryNode pStartNode, CFANode pLoopHead,
       MachineModel pMachineModel, Language pLanguage) throws InvalidConfigurationException, InterruptedException {
 
-    Map<String, FunctionEntryNode> functions = new HashMap<>();
+    SortedMap<String, FunctionEntryNode> functions = new TreeMap<>();
 
     SortedSetMultimap<String, CFANode> allNodes = mapNodesToFunctions(pStartNode, functions);
 
@@ -804,7 +806,7 @@ public class CFASingleLoopTransformation {
     if (pCFA instanceof MutableCFA) {
       mutableCFA = (MutableCFA) pCFA;
     } else {
-      Map<String, FunctionEntryNode> functions = new HashMap<>();
+      SortedMap<String, FunctionEntryNode> functions = new TreeMap<>();
       SortedSetMultimap<String, CFANode> allNodes = mapNodesToFunctions(pCFA.getMainFunction(), functions);
       mutableCFA = new MutableCFA(pCFA.getMachineModel(), functions, allNodes,
           pCFA.getMainFunction(), pCFA.getLanguage());

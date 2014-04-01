@@ -27,6 +27,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
@@ -60,7 +62,7 @@ class CFABuilder extends ASTVisitor {
 
   // Data structures for handling method declarations
   // private Queue<MethodDeclaration> methodDeclarations = new LinkedList<>();
-  private final Map<String, FunctionEntryNode> cfas = new HashMap<>();
+  private final SortedMap<String, FunctionEntryNode> cfas = new TreeMap<>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
 
   private final Scope scope;
@@ -78,7 +80,7 @@ class CFABuilder extends ASTVisitor {
    * Retrieves list of all methods and constructors of program
    * @return all CFAs in the program
    */
-  public Map<String, FunctionEntryNode> getCFAs() {
+  public SortedMap<String, FunctionEntryNode> getCFAs() {
     return cfas;
   }
 

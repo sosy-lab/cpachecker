@@ -31,6 +31,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
@@ -85,7 +87,7 @@ class CFABuilder extends ASTVisitor {
 
   // Data structures for handling function declarations
   private final List<Pair<List<IASTFunctionDefinition>, Pair<String, GlobalScope>>> functionDeclarations = new ArrayList<>();
-  private final Map<String, FunctionEntryNode> cfas = new HashMap<>();
+  private final SortedMap<String, FunctionEntryNode> cfas = new TreeMap<>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
   private final List<String> eliminateableDuplicates = new ArrayList<>();
 

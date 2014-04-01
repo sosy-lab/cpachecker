@@ -27,9 +27,10 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
@@ -84,7 +85,7 @@ public class FunctionCallUnwinder {
     }
 
     // copy content of old CFAs
-    final Map<String, FunctionEntryNode> functions = new LinkedHashMap<>(cfa.getAllFunctions());
+    final SortedMap<String, FunctionEntryNode> functions = new TreeMap<>(cfa.getAllFunctions());
     final SortedSetMultimap<String, CFANode> nodes = TreeMultimap.create();
     for (final String function : cfa.getAllFunctionNames()) {
       nodes.putAll(function, cfa.getFunctionNodes(function));
