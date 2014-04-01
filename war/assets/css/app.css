@@ -1,6 +1,11 @@
 .navbar-brand {
   padding: 0;
 }
+.navbar h1 {
+  padding: 15px;
+  line-height: 20px;
+  font-size: 100%;
+}
 
 .logo {
   padding: 2px 0 2px 2px;

@@ -143,9 +143,13 @@ public class CPAchecker {
   }
 
   public static String getVersion() {
-    return version
+    return getCPAcheckerVersion()
         + " (" + StandardSystemProperty.JAVA_VM_NAME.value()
         +  " " + StandardSystemProperty.JAVA_VERSION.value() + ")";
+  }
+
+  public static String getCPAcheckerVersion() {
+    return version;
   }
 
   public CPAchecker(Configuration pConfiguration, LogManager pLogManager,

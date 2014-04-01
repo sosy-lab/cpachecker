@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.appengine.json.TaskMixinAnnotations;
 import org.sosy_lab.cpachecker.appengine.json.TaskStatisticMixinAnnotations;
 import org.sosy_lab.cpachecker.appengine.server.common.TaskResource;
 import org.sosy_lab.cpachecker.appengine.util.FreemarkerUtil;
+import org.sosy_lab.cpachecker.core.CPAchecker;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -71,6 +72,7 @@ public class TaskServerResource extends WadlServerResource implements TaskResour
         .addData("task", task)
         .addData("files", files)
         .templateName("task.ftl")
+        .addData("cpacheckerVersion", CPAchecker.getCPAcheckerVersion())
         .build();
   }
 
