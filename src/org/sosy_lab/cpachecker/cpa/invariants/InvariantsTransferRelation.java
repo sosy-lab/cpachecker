@@ -83,8 +83,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
 
 public enum InvariantsTransferRelation implements TransferRelation {
 
@@ -207,7 +207,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
     }
 
     value = topIfProblematicType(pElement, value, decl.getType());
-    return pElement.assign(false, varName, value, pEdge);
+    return pElement.assign(varName, value, pEdge);
   }
 
   private InvariantsState handleFunctionCall(final InvariantsState pElement, final CFunctionCallEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCCodeException {
@@ -238,7 +238,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
       String formalParam = scope(param.getFirst(), pEdge.getSuccessor().getFunctionName());
 
       value = topIfProblematicType(pElement, value, declaration.getType());
-      newElement = newElement.assign(false, formalParam, value, pEdge);
+      newElement = newElement.assign(formalParam, value, pEdge);
     }
 
     return newElement;
@@ -279,7 +279,6 @@ public enum InvariantsTransferRelation implements TransferRelation {
 
   private InvariantsState handleAssignment(InvariantsState pElement, String pFunctionName, CFAEdge pEdge, CExpression pLeftHandSide, InvariantsFormula<CompoundInterval> pValue, InvariantsPrecision pPrecision) throws UnrecognizedCCodeException {
     ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
-    boolean isUnknownPointerDereference = pLeftHandSide instanceof CPointerExpression || pLeftHandSide instanceof CFieldReference && ((CFieldReference) pLeftHandSide).isPointerDereference();
     if (pLeftHandSide instanceof CArraySubscriptExpression) {
       CArraySubscriptExpression arraySubscriptExpression = (CArraySubscriptExpression) pLeftHandSide;
       String array = getVarName(arraySubscriptExpression.getArrayExpression(), pEdge, pFunctionName);
@@ -287,7 +286,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
       return pElement.assignArray(array, subscript, pValue, pEdge);
     } else {
       String varName = getVarName(pLeftHandSide, pEdge, pFunctionName);
-      return pElement.assign(isUnknownPointerDereference, varName, pValue, pEdge);
+      return pElement.assign(varName, pValue, pEdge);
     }
   }
 
@@ -311,7 +310,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
     ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
     InvariantsFormula<CompoundInterval> returnedState = returnedExpression.accept(etfv);
     String returnValueName = scope(RETURN_VARIABLE_BASE_NAME, calledFunctionName);
-    return pElement.assign(false, returnValueName, returnedState, pEdge);
+    return pElement.assign(returnValueName, returnedState, pEdge);
   }
 
   private InvariantsState handleFunctionReturn(InvariantsState pElement, CFunctionReturnEdge pFunctionReturnEdge, InvariantsPrecision pPrecision)
@@ -349,10 +348,10 @@ public enum InvariantsTransferRelation implements TransferRelation {
             String varName = entry.getKey();
             if (varName.startsWith(formalParamPrefixDeref)) {
               String formalParamSuffix = varName.substring(formalParamPrefixDeref.length());
-              result = result.assign(false, actualParamName + "->" + formalParamSuffix, entry.getValue(), summaryEdge);
+              result = result.assign(actualParamName + "->" + formalParamSuffix, entry.getValue(), summaryEdge);
             } else if (varName.startsWith(formalParamPrefixAccess)) {
               String formalParamSuffix = varName.substring(formalParamPrefixAccess.length());
-              result = result.assign(false, actualParamName + "." + formalParamSuffix, entry.getValue(), summaryEdge);
+              result = result.assign(actualParamName + "." + formalParamSuffix, entry.getValue(), summaryEdge);
             }
           }
         }
@@ -434,52 +433,55 @@ public enum InvariantsTransferRelation implements TransferRelation {
       CFAEdge pCfaEdge, Precision pPrecision) throws UnrecognizedCCodeException {
 
     InvariantsState state = (InvariantsState) pElement;
-    if (state.wasClearedDueToPointerDereference()) {
-      CFAEdge edge = pCfaEdge;
-      if (edge instanceof MultiEdge) {
-        edge = FluentIterable.from((MultiEdge) edge).filter(new Predicate<CFAEdge>() {
-
-          @Override
-          public boolean apply(@Nullable CFAEdge pArg0) {
-            return getLeftHandSide(pArg0) != null;
-          }
-
-        }).last().orNull();
-      }
-      CLeftHandSide leftHandSide = getLeftHandSide(edge);
-      if (leftHandSide != null) {
-        for (PointerState pointerState : FluentIterable.from(pOtherElements).filter(PointerState.class)) {
-          LocationSet locationSet = PointerTransferRelation.asLocations(leftHandSide, pointerState);
-          if (locationSet.isTop()) {
-            return null;
-          }
-          InvariantsState stateBeforeClearing = state.getStateBeforePointerDereferenceClearing();
-          InvariantsState result = stateBeforeClearing;
-          InvariantsFormula<CompoundInterval> top = CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
-          for (Location location : PointerTransferRelation.toNormalSet(pointerState, locationSet)) {
-            String id = location.getId();
-            if (id.contains("->") || location.getId().contains(".")) {
-              int lastIndexOfDot = id.lastIndexOf('.');
-              int lastIndexOfArrow = id.lastIndexOf("->");
-              if (lastIndexOfArrow >= 0) {
-                ++lastIndexOfArrow;
-              }
-              int lastIndexOfSep = Math.max(lastIndexOfDot, lastIndexOfArrow);
-              String end = lastIndexOfSep < 0 ? "" : id.substring(lastIndexOfSep + 1);
-              for (String variableName : result.getEnvironment().keySet()) {
-                if (variableName.endsWith(end)) {
-                  result = result.assign(false, variableName, top, edge);
-                }
-              }
-            }
-            result = result.assign(false, id, top, edge);
-          }
-          return Collections.singleton(result);
-
+    CFAEdge edge = pCfaEdge;
+    if (edge instanceof MultiEdge) {
+      for (CFAEdge subEdge : ((MultiEdge) edge)) {
+        InvariantsState current = state;
+        Collection<? extends AbstractState> next = strengthen(state, pOtherElements, subEdge, pPrecision);
+        if (next == null) {
+          state = current;
+        } else if (next.isEmpty()) {
+          return next;
+        } else {
+          state = (InvariantsState) Iterables.getOnlyElement(next);
         }
       }
+      return Collections.singleton(state);
     }
-
+    CLeftHandSide leftHandSide = getLeftHandSide(edge);
+    if (leftHandSide instanceof CPointerExpression || leftHandSide instanceof CFieldReference && ((CFieldReference) leftHandSide).isPointerDereference()) {
+      FluentIterable<PointerState> pointerStates = FluentIterable.from(pOtherElements).filter(PointerState.class);
+      if (pointerStates.isEmpty()) {
+        return Collections.singleton(state.clear());
+      }
+      InvariantsState result = state;
+      for (PointerState pointerState : pointerStates) {
+        LocationSet locationSet = PointerTransferRelation.asLocations(leftHandSide, pointerState);
+        if (locationSet.isTop()) {
+          return Collections.singleton(state.clear());
+        }
+        InvariantsFormula<CompoundInterval> top = CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
+        for (Location location : PointerTransferRelation.toNormalSet(pointerState, locationSet)) {
+          String id = location.getId();
+          if (id.contains("->") || location.getId().contains(".")) {
+            int lastIndexOfDot = id.lastIndexOf('.');
+            int lastIndexOfArrow = id.lastIndexOf("->");
+            if (lastIndexOfArrow >= 0) {
+              ++lastIndexOfArrow;
+            }
+            int lastIndexOfSep = Math.max(lastIndexOfDot, lastIndexOfArrow);
+            String end = lastIndexOfSep < 0 ? "" : id.substring(lastIndexOfSep + 1);
+            for (String variableName : result.getEnvironment().keySet()) {
+              if (variableName.endsWith(end)) {
+                result = result.assign(variableName, top, edge);
+              }
+            }
+          }
+          result = result.assign(id, top, edge);
+        }
+      }
+      return Collections.singleton(result);
+    }
     return null;
   }
 

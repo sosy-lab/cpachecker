@@ -155,12 +155,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
   private Iterable<InvariantsFormula<CompoundInterval>> environmentAndAssumptions = null;
 
-  /**
-   * This state provides additional information for strengthening but is not
-   * relevant elsewhere.
-   */
-  private InvariantsState preUnknownPointerDerefClear;
-
   private volatile int hash = 0;
 
   /**
@@ -245,14 +239,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     }
   }
 
-  public InvariantsState assign(boolean isUnknownPointerDereference, String pVarName, InvariantsFormula<CompoundInterval> pValue, CFAEdge pEdge) {
-    this.preUnknownPointerDerefClear = null;
-    // If a dereferenced pointer is assigned to, anything might change, so all information is invalidated
-    if (isUnknownPointerDereference) {
-      InvariantsState result = new InvariantsState(useBitvectors, variableSelection, edgeBasedAbstractionStrategy, precision);
-      result.preUnknownPointerDerefClear = this;
-      return result;
-    }
+  public InvariantsState assign(String pVarName, InvariantsFormula<CompoundInterval> pValue, CFAEdge pEdge) {
     if (pValue instanceof Variable<?>) {
       InvariantsState result = this;
       String valueVarName = ((Variable<?>) pValue).getName();
@@ -261,10 +248,10 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       for (Map.Entry<String, InvariantsFormula<CompoundInterval>> entry : this.environment.entrySet()) {
         if (entry.getKey().startsWith(pointerDerefPrefix)) {
           String suffix = entry.getKey().substring(pointerDerefPrefix.length());
-          result = result.assign(isUnknownPointerDereference, pVarName + "->" + suffix, CompoundIntervalFormulaManager.INSTANCE.asVariable(entry.getKey()), pEdge);
+          result = result.assign(pVarName + "->" + suffix, CompoundIntervalFormulaManager.INSTANCE.asVariable(entry.getKey()), pEdge);
         } else if (entry.getKey().startsWith(nonPointerDerefPrefix)) {
           String suffix = entry.getKey().substring(nonPointerDerefPrefix.length());
-          result = result.assign(isUnknownPointerDereference, pVarName + "." + suffix, CompoundIntervalFormulaManager.INSTANCE.asVariable(entry.getKey()), pEdge);
+          result = result.assign(pVarName + "." + suffix, CompoundIntervalFormulaManager.INSTANCE.asVariable(entry.getKey()), pEdge);
         }
       }
       return result.assign(pVarName, pValue, pEdge, false);
@@ -989,15 +976,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
   public InvariantsPrecision getPrecision() {
     return this.precision;
-  }
-
-  public boolean wasClearedDueToPointerDereference() {
-    return this.preUnknownPointerDerefClear != null;
-  }
-
-  public InvariantsState getStateBeforePointerDereferenceClearing() {
-    Preconditions.checkArgument(wasClearedDueToPointerDereference());
-    return this.preUnknownPointerDerefClear;
   }
 
   static interface EdgeBasedAbstractionStrategy {
