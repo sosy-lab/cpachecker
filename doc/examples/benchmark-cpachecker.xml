@@ -58,13 +58,6 @@
          are normally not interesting for benchmarks. -->
     <option name="-noout"/>
   </rundefinition>
-  
-  
-  <rundefinition name="noout2">
-    <!-- Recommended option "-noout", as the CPAchecker output files
-         are normally not interesting for benchmarks. -->
-    <option name="-noout"/>
-  </rundefinition>
 
   <rundefinition name="with-output-files">
     <!-- Variables can appear in option values, too. -->

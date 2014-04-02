@@ -327,8 +327,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         } else if (valueExists) {
           Value value = state.getValueFor(returnVarName);
           newElement.assignConstant(assignedVarName, value);
-        } else {
-          newElement.forget(assignedVarName);
         }
 
       } else if ((op1 instanceof AIdExpression)) {
