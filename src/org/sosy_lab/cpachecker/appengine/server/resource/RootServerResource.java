@@ -30,6 +30,7 @@ import org.restlet.representation.Representation;
 import org.sosy_lab.cpachecker.appengine.server.common.RootResource;
 import org.sosy_lab.cpachecker.appengine.util.DefaultOptions;
 import org.sosy_lab.cpachecker.appengine.util.FreemarkerUtil;
+import org.sosy_lab.cpachecker.core.CPAchecker;
 
 
 public class RootServerResource extends WadlServerResource implements RootResource {
@@ -42,6 +43,7 @@ public class RootServerResource extends WadlServerResource implements RootResour
         .addData("defaultOptions", DefaultOptions.getImmutableOptions())
         .addData("specifications", DefaultOptions.getSpecifications())
         .addData("configurations", DefaultOptions.getConfigurations())
+        .addData("cpacheckerVersion", CPAchecker.getCPAcheckerVersion())
         .templateName("root.ftl")
         .build();
   }

@@ -490,7 +490,7 @@ public class PredicateAbstractionManager {
       fmgr.dumpFormulaToFile(f, dumpFile);
 
       dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predicates", 0);
-      try (Writer w = dumpFile.asCharSink(Charsets.UTF_8).openStream()) {
+      try (Writer w = dumpFile.asCharSink(Charsets.UTF_8).openBufferedStream()) {
         Joiner.on('\n').appendTo(w, predicates);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Failed to wrote predicates to file");

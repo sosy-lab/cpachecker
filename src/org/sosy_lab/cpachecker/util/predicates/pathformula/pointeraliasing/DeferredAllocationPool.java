@@ -111,7 +111,8 @@ class DeferredAllocationPool implements Serializable {
   }
 
   DeferredAllocationPool addPointerVariable(final String pointerVariable) {
-    assert !pointerVariables.contains(pointerVariable);
+    assert !pointerVariables.contains(pointerVariable)
+        : "Pointer variable " + pointerVariable + " added twice to deferred allocation pool.";
     return new DeferredAllocationPool(this, this.pointerVariables.with(pointerVariable));
   }
 

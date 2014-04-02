@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.appengine.server.common.TasksResource;
 import org.sosy_lab.cpachecker.appengine.util.DefaultOptions;
 import org.sosy_lab.cpachecker.appengine.util.FreemarkerUtil;
 import org.sosy_lab.cpachecker.appengine.util.TaskBuilder;
+import org.sosy_lab.cpachecker.core.CPAchecker;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -159,6 +160,7 @@ public class TasksServerResource extends WadlServerResource implements TasksReso
         .addData("defaultOptions", DefaultOptions.getImmutableOptions())
         .addData("specifications", DefaultOptions.getSpecifications())
         .addData("configurations", DefaultOptions.getConfigurations())
+        .addData("cpacheckerVersion", CPAchecker.getCPAcheckerVersion())
         .templateName("root.ftl")
         .build();
   }
@@ -187,6 +189,7 @@ public class TasksServerResource extends WadlServerResource implements TasksReso
         .addData("limit", limit)
         .addData("numberOfTotalTasks", TaskDAO.countTotalTasks())
         .addData("tasks", tasks)
+        .addData("cpacheckerVersion", CPAchecker.getCPAcheckerVersion())
         .build();
   }
 

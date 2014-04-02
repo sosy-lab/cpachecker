@@ -271,6 +271,13 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   protected ValueAnalysisState handleReturnStatementEdge(AReturnStatementEdge returnEdge, IAExpression expression)
           throws UnrecognizedCCodeException {
 
+    // visitor must use the initial (previous) state, because there we have all information about variables
+    ExpressionValueVisitor evv = new ExpressionValueVisitor(state, functionName, machineModel, logger, symbolicValues);
+
+    // clone state, because will be changed through removing all variables of current function's scope
+    state = state.clone();
+    state.dropFrame(functionName);
+
     if (expression == null && returnEdge instanceof CReturnStatementEdge) {
       expression = CNumericTypes.ZERO; // this is the default in C
     }
@@ -281,7 +288,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       return handleAssignmentToVariable(functionReturnVar,
           returnEdge.getSuccessor().getEntryNode().getFunctionDefinition().getType().getReturnType(), // TODO easier way to get type?
           expression,
-          getVisitor());
+          evv);
     } else {
       return state;
     }
@@ -298,6 +305,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     throws UnrecognizedCodeException {
 
     ValueAnalysisState newElement  = state.clone();
+    MemoryLocation returnVarName = MemoryLocation.valueOf(functionName, FUNCTION_RETURN_VAR, 0);
 
     // expression is an assignment operation, e.g. a = g(b);
 
@@ -308,8 +316,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       // we expect left hand side of the expression to be a variable
 
       if (op1 instanceof CLeftHandSide) {
-        MemoryLocation returnVarName = MemoryLocation.valueOf(functionName, FUNCTION_RETURN_VAR, 0);
-
         ExpressionValueVisitor v =
             new ExpressionValueVisitor(state, callerFunctionName,
                 machineModel, logger, symbolicValues);
@@ -322,16 +328,14 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
             Value value = state.getValueFor(returnVarName);
             addMissingInformation((CLeftHandSide) op1, value);
           }
-        } else if (!valueExists) {
-          newElement.forget(assignedVarName);
-        } else {
+        } else if (valueExists) {
           Value value = state.getValueFor(returnVarName);
           newElement.assignConstant(assignedVarName, value);
+        } else {
+          newElement.forget(assignedVarName);
         }
 
       } else if ((op1 instanceof AIdExpression)) {
-        String returnVarName = getScopedVariableName(FUNCTION_RETURN_VAR, functionName);
-
         String assignedVarName = getScopedVariableName(op1, callerFunctionName);
 
         if (!state.contains(returnVarName)) {
@@ -353,7 +357,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       }
     }
 
-    newElement.dropFrame(functionName);
+    newElement.forget(returnVarName);
     return newElement;
   }
 
