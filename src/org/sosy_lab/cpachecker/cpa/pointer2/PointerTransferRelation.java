@@ -505,17 +505,24 @@ public enum PointerTransferRelation implements TransferRelation {
     return asLocations(pExpression, pState, 0);
   }
 
-  public static Set<String> toNormalSet(PointerState pState, LocationSet pLocationSet) {
+  /**
+   * Gets the locations represented by the given location set considering the
+   * context of the given state. The returned iterable is guaranteed to be free
+   * of duplicates.
+   *
+   * @param pState the context.
+   * @param pLocationSet the location set.
+   *
+   * @return the locations represented by the given location set.
+   */
+  public static Iterable<String> toNormalSet(PointerState pState, LocationSet pLocationSet) {
     if (pLocationSet.isBot()) {
       return Collections.emptySet();
     }
-    Set<String> result = new HashSet<>();
     if (pLocationSet.isTop() || !(pLocationSet instanceof ExplicitLocationSet)) {
-      Iterables.addAll(result, pState.getKnownLocations());
-    } else {
-      Iterables.addAll(result, ((ExplicitLocationSet) pLocationSet));
+      return pState.getKnownLocations();
     }
-    return result;
+    return (ExplicitLocationSet) pLocationSet;
   }
 
   @Override
