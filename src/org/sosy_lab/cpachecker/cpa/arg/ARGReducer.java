@@ -25,13 +25,9 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-
 
 public class ARGReducer implements Reducer {
 
@@ -93,24 +89,6 @@ public class ARGReducer implements Reducer {
       AbstractState pReducedState) {
     return new ARGState(wrappedReducer.getVariableExpandedStateForProofChecking(
         ((ARGState) pRootState).getWrappedState(), pReducedContext, ((ARGState) pReducedState).getWrappedState()), null);
-  }
-
-  @Override
-  public AbstractState getReducedStateAfterFunctionCall(
-          AbstractState previousState, Block context, FunctionCallEdge edge)
-          throws UnrecognizedCodeException {
-    AbstractState state = wrappedReducer.getReducedStateAfterFunctionCall(
-            ((ARGState) previousState).getWrappedState(), context, edge);
-    return state == null ? null : new ARGState(state, null);
-  }
-
-  @Override
-  public AbstractState getExpandedStateAfterFunctionReturn(
-          AbstractState rootState, Block reducedContext, AbstractState reducedState, FunctionReturnEdge edge)
-          throws UnrecognizedCodeException {
-    AbstractState state = wrappedReducer.getExpandedStateAfterFunctionReturn(
-            ((ARGState)rootState).getWrappedState(), reducedContext, ((ARGState) reducedState).getWrappedState(), edge);
-    return state == null ? null : new ARGState(state, null);
   }
 
   @Override

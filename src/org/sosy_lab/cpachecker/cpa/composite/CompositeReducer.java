@@ -24,20 +24,14 @@
 package org.sosy_lab.cpachecker.cpa.composite;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-
 
 public class CompositeReducer implements Reducer {
 
@@ -157,35 +151,6 @@ public class CompositeReducer implements Reducer {
       result.add(wrappedReducers.get(i++).getVariableExpandedStateForProofChecking(p.getFirst(), pReducedContext, p.getSecond()));
     }
     return new CompositeState(result);
-  }
-
-  @Override
-  public AbstractState getReducedStateAfterFunctionCall(
-          AbstractState pExpandedState, Block pContext, FunctionCallEdge pEdge)
-          throws UnrecognizedCodeException {
-    List<AbstractState> result = new ArrayList<>();
-    int i = 0;
-    for (AbstractState expandedState : ((CompositeState) pExpandedState).getWrappedStates()) {
-      result.add(wrappedReducers.get(i++).getReducedStateAfterFunctionCall(expandedState, pContext, pEdge));
-    }
-    return new CompositeState(result);
-  }
-
-  @Override
-  public AbstractState getExpandedStateAfterFunctionReturn(
-          AbstractState pRootState, Block pReducedContext, AbstractState pReducedState, FunctionReturnEdge pEdge)
-          throws UnrecognizedCodeException {
-    List<AbstractState> rootStates = ((CompositeState)pRootState).getWrappedStates();
-    List<AbstractState> reducedStates = ((CompositeState)pReducedState).getWrappedStates();
-
-    List<AbstractState> results = new ArrayList<>();
-    int i = 0;
-    for (Pair<AbstractState, AbstractState> p : Pair.zipList(rootStates, reducedStates)) {
-      AbstractState result = wrappedReducers.get(i++).getExpandedStateAfterFunctionReturn(p.getFirst(), pReducedContext, p.getSecond(), pEdge);
-      if (result == null) return null;
-      results.add(result);
-    }
-    return new CompositeState(results);
   }
 
   @Override

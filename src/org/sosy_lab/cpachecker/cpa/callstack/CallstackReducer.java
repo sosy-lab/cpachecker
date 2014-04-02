@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
@@ -146,40 +144,6 @@ public class CallstackReducer implements Reducer {
   public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
       AbstractState pReducedState) {
     return getVariableExpandedState(pRootState, pReducedContext, pReducedState);
-  }
-
-  @Override
-  public AbstractState getReducedStateAfterFunctionCall(
-          AbstractState previousState, Block context, FunctionCallEdge edge) {
-    String functionName = edge.getSuccessor().getFunctionName();
-    CallstackState state = new CallstackState((CallstackState)previousState, functionName, edge.getPredecessor());
-
-    // reduce after entering function
-    return getVariableReducedState(state, context, edge.getSuccessor());
-  }
-
-  @Override
-  public AbstractState getExpandedStateAfterFunctionReturn(
-          AbstractState rootState, Block reducedContext, AbstractState reducedState, FunctionReturnEdge edge) {
-
-    return rootState;
-    /*
-    // expand before leaving function
-    CallstackState state = (CallstackState)getVariableExpandedState(rootState, reducedContext, reducedState);
-    assert state == rootState;
-
-    CFANode returnNode = edge.getSuccessor();
-    CFANode callNode = returnNode.getEnteringSummaryEdge().getPredecessor();
-    CFANode reducedCallNode = callNode.getLeavingEdge(0).getSuccessor();
-
-    if (!reducedCallNode.equals(state.getCallNode())) {
-      // this is not the right return edge
-      return null;
-    }
-
-    // we started a new function with an empty callstack (after reducing the stack)
-    return state;
-    */
   }
 
   @Override

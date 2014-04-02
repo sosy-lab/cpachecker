@@ -26,13 +26,9 @@ package org.sosy_lab.cpachecker.cpa.bam;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-
 
 class TimedReducer implements Reducer {
 
@@ -116,20 +112,6 @@ class TimedReducer implements Reducer {
   public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
       AbstractState pReducedState) {
     return wrappedReducer.getVariableExpandedStateForProofChecking(pRootState, pReducedContext, pReducedState);
-  }
-
-  @Override
-  public AbstractState getReducedStateAfterFunctionCall(
-          AbstractState expandedState, Block context, FunctionCallEdge edge)
-          throws UnrecognizedCodeException {
-    return wrappedReducer.getReducedStateAfterFunctionCall(expandedState, context, edge);
-  }
-
-  @Override
-  public AbstractState getExpandedStateAfterFunctionReturn(
-          AbstractState rootState, Block reducedContext, AbstractState reducedState, FunctionReturnEdge edge)
-          throws UnrecognizedCodeException {
-    return wrappedReducer.getExpandedStateAfterFunctionReturn(rootState, reducedContext, reducedState, edge);
   }
 
   @Override

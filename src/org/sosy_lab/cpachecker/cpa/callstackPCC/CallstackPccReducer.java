@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cpa.callstackPCC;
 
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
@@ -110,18 +108,6 @@ public class CallstackPccReducer implements Reducer {
   @Override
   public Object getHashCodeForState(AbstractState pStateKey, Precision pPrecisionKey) {
     return pStateKey.hashCode();
-  }
-
-  @Override
-  public AbstractState getReducedStateAfterFunctionCall(
-          AbstractState expandedState, Block context, FunctionCallEdge edge) {
-    throw new UnsupportedOperationException("not implemented");
-  }
-
-  @Override
-  public AbstractState getExpandedStateAfterFunctionReturn(
-          AbstractState rootState, Block reducedContext, AbstractState reducedState, FunctionReturnEdge edge) {
-    throw new UnsupportedOperationException("not implemented");
   }
 
   @Override

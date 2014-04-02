@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.core.defaults;
 
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
@@ -79,17 +77,6 @@ public class NoOpReducer implements Reducer {
   public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
       AbstractState pReducedState) {
     return pReducedState;
-  }
-
-  @Override
-  public AbstractState getReducedStateAfterFunctionCall(AbstractState expandedState, Block context, FunctionCallEdge edge) {
-    return expandedState;
-  }
-
-  @Override
-  public AbstractState getExpandedStateAfterFunctionReturn(
-          AbstractState rootState, Block reducedContext, AbstractState reducedState, FunctionReturnEdge edge) {
-    return reducedState;
   }
 
   @Override
