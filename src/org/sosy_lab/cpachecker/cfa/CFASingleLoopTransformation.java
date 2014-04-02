@@ -2467,12 +2467,13 @@ public class CFASingleLoopTransformation {
 
     @Override
     public void addEnteringEdge(CFAEdge pEnteringEdge) {
-      assert pEnteringEdge instanceof ProgramCounterValueAssignmentEdge;
       if (pEnteringEdge instanceof ProgramCounterValueAssignmentEdge) {
         ProgramCounterValueAssignmentEdge edge = (ProgramCounterValueAssignmentEdge) pEnteringEdge;
         int pcValue = edge.getProgramCounterValue();
         Preconditions.checkArgument(!enteringPCValueAssignmentEdges.containsKey(pcValue), "All entering program counter value assignment edges must be unique.");
         enteringPCValueAssignmentEdges.put(pcValue, edge);
+      } else {
+        assert false;
       }
       super.addEnteringEdge(pEnteringEdge);
     }
