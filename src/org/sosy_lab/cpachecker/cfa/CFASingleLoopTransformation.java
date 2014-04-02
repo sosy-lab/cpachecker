@@ -64,7 +64,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -256,17 +255,19 @@ public class CFASingleLoopTransformation {
         buildProgramCounterValueMaps(oldMainFunctionEntryNode, nodes,
             newPredecessorsToPC, newSuccessorsToPC, globalNewToOld);
 
+    // Declare program counter and initialize it
+    String pcVarName = PROGRAM_COUNTER_VAR_NAME;
+    CDeclaration pcDeclaration = new CVariableDeclaration(FileLocation.DUMMY, true, CStorageClass.AUTO, CNumericTypes.INT, pcVarName, pcVarName, pcVarName, null);
+    CIdExpression pcIdExpression = new CIdExpression(FileLocation.DUMMY, pcDeclaration);
+    CFANode declarationDummy = new CFANode(oldMainFunctionEntryNode.getFunctionName());
+    CFAEdge pcDeclarationEdge = new CDeclarationEdge(String.format("int %s = %d;", pcVarName, pcValueOfStart), FileLocation.DUMMY, start, declarationDummy, pcDeclaration);
+
+    addToNodes(pcDeclarationEdge);
+
+    newPredecessorsToPC.put(pcValueOfStart, declarationDummy);
+
     // Remove trivial dummy subgraphs and other dummy edges etc.
     simplify(start, newPredecessorsToPC, newSuccessorsToPC, globalNewToOld);
-
-    // Declare program counter and initialize it to 0
-    String pcVarName = PROGRAM_COUNTER_VAR_NAME;
-    CDeclaration pcDeclaration = new CVariableDeclaration(FileLocation.DUMMY, true, CStorageClass.AUTO, CNumericTypes.INT, pcVarName, pcVarName, pcVarName,
-        new CInitializerExpression(FileLocation.DUMMY, new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(pcValueOfStart))));
-    CIdExpression pcIdExpression = new CIdExpression(FileLocation.DUMMY, pcDeclaration);
-    CFAEdge pcDeclarationEdge = new CDeclarationEdge(String.format("int %s = %d;", pcVarName, pcValueOfStart), FileLocation.DUMMY, start, loopHead, pcDeclaration);
-    start.addLeavingEdge(pcDeclarationEdge);
-    loopHead.addEnteringEdge(pcDeclarationEdge);
 
     /*
      * Connect the subgraph tails to their successors via the loop head by
@@ -2466,6 +2467,7 @@ public class CFASingleLoopTransformation {
 
     @Override
     public void addEnteringEdge(CFAEdge pEnteringEdge) {
+      assert pEnteringEdge instanceof ProgramCounterValueAssignmentEdge;
       if (pEnteringEdge instanceof ProgramCounterValueAssignmentEdge) {
         ProgramCounterValueAssignmentEdge edge = (ProgramCounterValueAssignmentEdge) pEnteringEdge;
         int pcValue = edge.getProgramCounterValue();
@@ -2517,6 +2519,15 @@ public class CFASingleLoopTransformation {
         }
       }
       return results;
+    }
+
+    /**
+     * Gets all program counter values.
+     *
+     * @return all program counter values.
+     */
+    public Collection<Integer> getProgramCounterValues() {
+      return Collections.unmodifiableSet(enteringPCValueAssignmentEdges.keySet());
     }
 
   }
