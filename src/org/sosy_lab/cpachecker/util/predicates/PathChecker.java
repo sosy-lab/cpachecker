@@ -97,7 +97,7 @@ public class PathChecker {
    * Given a model and a path, extract the information when each variable
    * from the model was assigned.
    */
-  private CFAPathWithAssignments extractVariableAssignment(List<CFAEdge> pPath, List<SSAMap> pSsaMaps,
+  public CFAPathWithAssignments extractVariableAssignment(List<CFAEdge> pPath, List<SSAMap> pSsaMaps,
       Model pModel) {
 
     // Create a map that holds all AssignableTerms that occured
