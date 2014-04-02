@@ -77,7 +77,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
-import org.sosy_lab.cpachecker.cpa.pointer2.util.Location;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -461,23 +460,22 @@ public enum InvariantsTransferRelation implements TransferRelation {
           return Collections.singleton(state.clear());
         }
         InvariantsFormula<CompoundInterval> top = CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
-        for (Location location : PointerTransferRelation.toNormalSet(pointerState, locationSet)) {
-          String id = location.getId();
-          if (id.contains("->") || location.getId().contains(".")) {
-            int lastIndexOfDot = id.lastIndexOf('.');
-            int lastIndexOfArrow = id.lastIndexOf("->");
+        for (String location : PointerTransferRelation.toNormalSet(pointerState, locationSet)) {
+          if (location.contains("->") || location.contains(".")) {
+            int lastIndexOfDot = location.lastIndexOf('.');
+            int lastIndexOfArrow = location.lastIndexOf("->");
             if (lastIndexOfArrow >= 0) {
               ++lastIndexOfArrow;
             }
             int lastIndexOfSep = Math.max(lastIndexOfDot, lastIndexOfArrow);
-            String end = lastIndexOfSep < 0 ? "" : id.substring(lastIndexOfSep + 1);
+            String end = lastIndexOfSep < 0 ? "" : location.substring(lastIndexOfSep + 1);
             for (String variableName : result.getEnvironment().keySet()) {
               if (variableName.endsWith(end)) {
                 result = result.assign(variableName, top, edge);
               }
             }
           }
-          result = result.assign(id, top, edge);
+          result = result.assign(location, top, edge);
         }
       }
       return Collections.singleton(result);

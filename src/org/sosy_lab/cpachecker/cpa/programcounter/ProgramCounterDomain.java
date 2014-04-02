@@ -21,51 +21,29 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.pointer2;
-
-import java.util.Map.Entry;
+package org.sosy_lab.cpachecker.cpa.programcounter;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 
-public enum PointerDomain implements AbstractDomain {
+public enum ProgramCounterDomain implements AbstractDomain {
 
   INSTANCE;
 
   @Override
   public AbstractState join(AbstractState pState1, AbstractState pState2) throws CPAException {
-    PointerState state1 = (PointerState) pState1;
-    PointerState state2 = (PointerState) pState2;
-    PointerState result = state2;
-    for (Entry<String, LocationSet> pointsToEntry : state1.getPointsToMap().entrySet()) {
-      result = result.addPointsToInformation(pointsToEntry.getKey(), pointsToEntry.getValue());
-    }
-    if (result.equals(state2)) {
-      return state2;
-    }
-    if (result.equals(state1)) {
-      return state1;
-    }
-    return result;
+    ProgramCounterState state1 = (ProgramCounterState) pState1;
+    ProgramCounterState state2 = (ProgramCounterState) pState2;
+    return state1.insertAll(state2);
   }
 
   @Override
   public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2) throws CPAException, InterruptedException {
-    if (pState1 == pState2) {
-      return true;
-    }
-    PointerState state1 = (PointerState) pState1;
-    PointerState state2 = (PointerState) pState2;
-    for (Entry<String, LocationSet> pointsToEntry : state1.getPointsToMap().entrySet()) {
-      LocationSet rightSide = state2.getPointsToSet(pointsToEntry.getKey());
-      if (!rightSide.containsAll(pointsToEntry.getValue())) {
-        return false;
-      }
-    }
-    return true;
+    ProgramCounterState state1 = (ProgramCounterState) pState1;
+    ProgramCounterState state2 = (ProgramCounterState) pState2;
+    return state2.containsAll(state1);
   }
 
 }

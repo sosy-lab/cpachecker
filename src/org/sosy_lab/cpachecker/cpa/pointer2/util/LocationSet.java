@@ -26,20 +26,20 @@ package org.sosy_lab.cpachecker.cpa.pointer2.util;
 
 public interface LocationSet {
 
-  boolean mayPointTo(Location pElement);
+  boolean mayPointTo(String pLocation);
 
-  LocationSet addElement(Location pElement);
+  LocationSet addElement(String pLocation);
 
-  LocationSet removeElement(Location pElement);
+  LocationSet removeElement(String pLocation);
 
-  LocationSet addElements(Iterable<Location> pElements);
+  LocationSet addElements(Iterable<String> pLocations);
 
-  LocationSet addElements(LocationSet pElements);
+  LocationSet addElements(LocationSet pLocations);
 
   boolean isBot();
 
   boolean isTop();
 
-  boolean containsAll(LocationSet pElements);
+  boolean containsAll(LocationSet pLocations);
 
 }

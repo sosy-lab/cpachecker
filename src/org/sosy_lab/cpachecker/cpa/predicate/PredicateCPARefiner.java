@@ -48,6 +48,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -66,6 +67,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -75,6 +77,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
 
 /**
  * This class provides a basic refiner implementation for predicate analysis.
@@ -253,7 +256,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         }
       } else {
         targetPath = allStatesTrace;
-        preciseCounterexample = pathChecker.checkPath(targetPath.asEdgesList());
+        preciseCounterexample = addVariableAssignmentToCounterexample(counterexample, targetPath);
       }
       preciseCouterexampleTime.stop();
 
@@ -265,7 +268,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       return cex;
     }
   }
-
 
   static List<ARGState> transformPath(ARGPath pPath) {
     List<ARGState> result = from(pPath)
@@ -387,6 +389,27 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     } finally {
       errorPathProcessing.stop();
     }
+  }
+
+  private CounterexampleTraceInfo addVariableAssignmentToCounterexample(
+      final CounterexampleTraceInfo counterexample, final ARGPath targetPath) {
+
+    final ImmutableList<SSAMap> ssamaps =
+        from(targetPath)
+          .transform(Pair.<ARGState>getProjectionToFirst())
+          .transform(toState(PredicateAbstractState.class))
+          .transform(new Function<PredicateAbstractState, SSAMap> () {
+            @Override
+            public SSAMap apply(PredicateAbstractState pInput) {
+              return pInput.getPathFormula().getSsa();
+            }})
+          .toList();
+
+    Model model = counterexample.getModel();
+    model = counterexample.getModel().withAssignmentInformation(
+        pathChecker.extractVariableAssignment(targetPath.asEdgesList(), ssamaps, model));
+
+    return CounterexampleTraceInfo.feasible(counterexample.getCounterExampleFormulas(), model, counterexample.getBranchingPredicates());
   }
 
   @Override

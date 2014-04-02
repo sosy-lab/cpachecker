@@ -30,22 +30,22 @@ public enum LocationSetBot implements LocationSet {
   INSTANCE;
 
   @Override
-  public boolean mayPointTo(Location pTarget) {
+  public boolean mayPointTo(String pTarget) {
     return false;
   }
 
   @Override
-  public LocationSet addElement(Location pTarget) {
+  public LocationSet addElement(String pTarget) {
     return ExplicitLocationSet.from(pTarget);
   }
 
   @Override
-  public LocationSet removeElement(Location pTarget) {
+  public LocationSet removeElement(String pTarget) {
     return this;
   }
 
   @Override
-  public LocationSet addElements(Iterable<Location> pTargets) {
+  public LocationSet addElements(Iterable<String> pTargets) {
     return ExplicitLocationSet.from(pTargets);
   }
 

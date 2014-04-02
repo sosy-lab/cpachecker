@@ -21,29 +21,23 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.pointer2.util;
+package org.sosy_lab.cpachecker.appengine.common;
 
+import java.util.concurrent.ThreadFactory;
 
-public class Struct extends AbstractLocation {
+import com.google.appengine.api.ThreadManager;
 
-  public Struct(String pId) {
-    super(pId);
-  }
-
-  @Override
-  public boolean equals(Object pO) {
-    if (this == pO) {
-      return true;
-    }
-    if (pO instanceof Struct) {
-      return getId().equals(((Location) pO).getId());
-    }
-    return false;
-  }
+/**
+ * Implementation of {@link ThreadFactory}
+ * that returns threads bound to the current request
+ * using {@link ThreadManager#currentRequestThreadFactory()}.
+ * The "current request" is the determined at thread creation time,
+ * not before.
+ */
+public class CurrentRequestThreadFactory implements ThreadFactory {
 
   @Override
-  public String toString() {
-    return "struct " + getId();
+  public Thread newThread(Runnable pR) {
+    return ThreadManager.currentRequestThreadFactory().newThread(pR);
   }
-
 }
