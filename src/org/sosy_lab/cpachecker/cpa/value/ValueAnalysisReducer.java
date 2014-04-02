@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 
 import static  org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.FUNCTION_RETURN_VAR;
 
@@ -263,5 +264,43 @@ public class ValueAnalysisReducer implements Reducer {
     }
 
     return newState;
+  }
+
+  @Override
+  public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState pExpandedState) {
+
+    ValueAnalysisState rootState = (ValueAnalysisState)pRootState;
+    ValueAnalysisState expandedState = (ValueAnalysisState)pExpandedState;
+
+    // we build a new state from:
+    // - local variables from rootState,
+    // - global variables from expandedState,
+    // - the local return variable from expandedState.
+    // we copy rootState and override all global valuesand the return variable.
+
+    ValueAnalysisState diffElement = rootState.clone();
+    for (ValueAnalysisState.MemoryLocation trackedVar : expandedState.getTrackedMemoryLocations()) {
+
+      if (!trackedVar.isOnFunctionStack()) { // global -> override
+        if (diffElement.contains(trackedVar)) {
+          assert expandedState.contains(trackedVar) : "tracked var has no value: " + trackedVar;
+          diffElement.assignConstant(trackedVar, expandedState.getValueFor(trackedVar));
+        } else {
+          diffElement.forget(trackedVar);
+        }
+
+      } else if (ValueAnalysisTransferRelation.FUNCTION_RETURN_VAR.equals(trackedVar.getIdentifier())) {
+        assert (!diffElement.contains(trackedVar)) :
+                "calling function should not contain return-variable of called function: " + trackedVar;
+        if (expandedState.contains(trackedVar)) {
+          diffElement.assignConstant(trackedVar, expandedState.getValueFor(trackedVar));
+        }
+      }
+    }
+
+    // set difference to avoid null pointer exception due to precision adaption of omniscient composite precision adjustment
+    // to avoid that due to precision adaption in BAM ART which is not yet propagated tracked variable information is deleted
+    diffElement.addToDelta(diffElement);
+    return diffElement;
   }
 }

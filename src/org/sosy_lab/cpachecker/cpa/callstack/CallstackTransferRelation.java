@@ -127,8 +127,10 @@ public class CallstackTransferRelation implements TransferRelation {
             return Collections.emptySet();
           } else {
             // recursion is unsupported
-            logger.log(Level.INFO, "Recursion detected, aborting. To ignore recursion, add -skipRecursion to the command line.");
-            throw new UnsupportedCCodeException("recursion", pCfaEdge);
+            logger.log(Level.INFO, "Recursion detected.");
+            CFANode callNode = pCfaEdge.getPredecessor();
+            return Collections.singleton(new CallstackState(element, functionName, callNode));
+            // throw new UnsupportedCCodeException("recursion", pCfaEdge);
           }
         } else {
           // regular function call

@@ -105,17 +105,7 @@ public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurablePro
 
   @Override
   public Reducer getReducer() {
-    return new NoOpReducer() {
-      @Override
-      public LocationState getReducedStateAfterFunctionCall(
-              AbstractState previousState, Block context, FunctionCallEdge edge) {
-        return stateFactory.getState(edge.getSuccessor());
-      }
-      @Override
-      public AbstractState getExpandedStateAfterFunctionReturn(AbstractState rootState, Block reducedContext, AbstractState previousState, FunctionReturnEdge edge) {
-        return stateFactory.getState(edge.getSuccessor());
-      }
-    };
+    return NoOpReducer.getInstance();
   }
 
   @Override

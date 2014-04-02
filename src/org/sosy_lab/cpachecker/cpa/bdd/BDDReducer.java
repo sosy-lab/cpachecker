@@ -133,4 +133,9 @@ public class BDDReducer implements Reducer {
           AbstractState rootState, Block reducedContext, AbstractState reducedState, FunctionReturnEdge edge) {
     throw new UnsupportedOperationException("not implemented");
   }
+
+  @Override
+  public AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState expandedState) {
+    throw new UnsupportedOperationException("not implemented");
+  }
 }

@@ -91,4 +91,9 @@ public class NoOpReducer implements Reducer {
           AbstractState rootState, Block reducedContext, AbstractState reducedState, FunctionReturnEdge edge) {
     return reducedState;
   }
+
+  @Override
+  public AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState expandedState) {
+    return expandedState;
+  }
 }

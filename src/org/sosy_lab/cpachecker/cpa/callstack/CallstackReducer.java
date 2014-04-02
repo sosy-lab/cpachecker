@@ -181,4 +181,9 @@ public class CallstackReducer implements Reducer {
     return state;
     */
   }
+
+  @Override
+  public AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState expandedState) {
+    return expandedState;
+  }
 }

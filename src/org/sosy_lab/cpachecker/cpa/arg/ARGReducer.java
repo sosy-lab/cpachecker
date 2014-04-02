@@ -112,4 +112,13 @@ public class ARGReducer implements Reducer {
             ((ARGState)rootState).getWrappedState(), reducedContext, ((ARGState) reducedState).getWrappedState(), edge);
     return state == null ? null : new ARGState(state, null);
   }
+
+  @Override
+  public AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState expandedState) {
+    return new ARGState(
+            wrappedReducer.rebuildStateAfterFunctionCall(
+                    ((ARGState) rootState).getWrappedState(),
+                    ((ARGState) expandedState).getWrappedState()),
+            null);
+  }
 }

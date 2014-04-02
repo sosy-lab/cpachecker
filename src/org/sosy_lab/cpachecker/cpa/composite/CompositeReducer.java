@@ -24,9 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.composite;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -182,6 +184,18 @@ public class CompositeReducer implements Reducer {
       AbstractState result = wrappedReducers.get(i++).getExpandedStateAfterFunctionReturn(p.getFirst(), pReducedContext, p.getSecond(), pEdge);
       if (result == null) return null;
       results.add(result);
+    }
+    return new CompositeState(results);
+  }
+
+  @Override
+  public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState pExpandedState) {
+    List<AbstractState> rootStates = ((CompositeState)pRootState).getWrappedStates();
+    List<AbstractState> expandedStates = ((CompositeState)pExpandedState).getWrappedStates();
+
+    List<AbstractState> results = new ArrayList<>();
+    for (int i = 0; i < rootStates.size(); i++) {
+      results.add(wrappedReducers.get(i).rebuildStateAfterFunctionCall(rootStates.get(i), expandedStates.get(i)));
     }
     return new CompositeState(results);
   }

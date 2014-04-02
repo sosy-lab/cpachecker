@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.interfaces;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -62,7 +63,8 @@ public interface Reducer {
    * The returned state should be reduced in this function.
    * @return the state as if the TransferRelation would have executed one step on the edge. */
   // TODO do we need a set of states as returnvalue?
-   AbstractState getReducedStateAfterFunctionCall(
+  @Deprecated
+  AbstractState getReducedStateAfterFunctionCall(
           AbstractState expandedState, Block context, FunctionCallEdge edge)
           throws UnrecognizedCodeException;
 
@@ -73,7 +75,13 @@ public interface Reducer {
    * @return the state as if the TransferRelation would have executed one step on the edge
    * or NULL, iff there is no successor-state. */
   // TODO do we need a set of states as returnvalue?
+  @Deprecated
   AbstractState getExpandedStateAfterFunctionReturn(
           AbstractState rootState, Block reducedContext, AbstractState reducedState, FunctionReturnEdge edge)
           throws UnrecognizedCodeException;
+
+  /**
+   * @param rootState state before the function-call, this is the predecessor of the block-start-state.
+   * @param expandedState expanded state at function-return */
+  AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState expandedState);
   }

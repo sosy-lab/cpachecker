@@ -37,6 +37,7 @@ import java.util.Stack;
 import java.util.logging.Level;
 
 import com.google.common.collect.Iterables;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -67,7 +68,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.HashMultimap;
@@ -107,6 +107,7 @@ public class BAMTransferRelation implements TransferRelation {
   private Block currentBlock;
   private BlockPartitioning partitioning;
   private int depth = 0;
+  private final List<Triple<AbstractState, Precision, Block>> stack = new ArrayList<>();
 
   private final LogManager logger;
   private final CPAAlgorithmFactory algorithmFactory;
@@ -217,28 +218,56 @@ public class BAMTransferRelation implements TransferRelation {
   }
 
   private Collection<? extends AbstractState> handleRecursiveFunctionCall(
-          final AbstractState pState, final Precision pPrecision, final CFANode node)
+          final AbstractState rootState, final Precision precision, final CFANode rootNode)
           throws CPATransferException, InterruptedException {
-    logger.log(Level.FINER, "Starting analysis of functioncall ", ++depth);
-    logger.log(Level.ALL, "Starting state:", pState);
+
+    assert rootNode.getLeavingSummaryEdge() != null;
+    assert rootNode.getNumLeavingEdges() == 1;
+    assert rootNode.getLeavingEdge(0) instanceof FunctionCallEdge;
+    assert rootNode.getLeavingEdge(0).getSuccessor() instanceof FunctionEntryNode;
+    assert partitioning.isCallNode(rootNode.getLeavingEdge(0).getSuccessor());
+
+    FunctionEntryNode entryNode = (FunctionEntryNode) rootNode.getLeavingEdge(0).getSuccessor();
+
+    logger.log(Level.FINER, "Starting analysis of functioncall ", entryNode.getFunctionName(), "of depth", ++depth);
+    logger.log(Level.FINEST, "functioncall called from", rootNode, ", starts at", entryNode, "and ends with", entryNode.getExitNode());
     maxRecursiveDepth = Math.max(depth, maxRecursiveDepth);
 
-    final FunctionCallEdge functionCallEdge = (FunctionCallEdge)node.getLeavingEdge(0);
-    final FunctionEntryNode entryNode = functionCallEdge.getSuccessor();
-    final CFANode exitNode = node.getLeavingSummaryEdge().getSuccessor();
-    final FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge)exitNode.getEnteringEdge(0);
-
-    logger.log(Level.FINEST, "Calling recursive function", functionCallEdge.getSuccessor().getFunctionName());
-    logger.log(Level.FINEST, "Reducing state", pState);
-    // TODO multiple states? see Reducer for detail.
-    final AbstractState reducedInitialState = wrappedReducer.getReducedStateAfterFunctionCall(pState, currentBlock, functionCallEdge);
-    final Precision reducedInitialPrecision = wrappedReducer.getVariableReducedPrecision(pPrecision, currentBlock);
-    logger.log(Level.FINEST, "Reduced state of recursive function is", reducedInitialState);
-
-    if (reducedInitialState == null) { return Collections.emptySet(); }
+    // make the function-call, edge is NULL
+    final Collection<? extends AbstractState> functionCallStates = wrappedTransfer.getAbstractSuccessors(rootState, precision, null);
 
     final Block outerSubtree = currentBlock;
     currentBlock = partitioning.getBlockForCallNode(entryNode);
+
+    final List<AbstractState> expandedFunctionReturnStates = new ArrayList<>();
+    for (AbstractState entryState : functionCallStates) { // in most case we have only one functionCallState here
+      assert entryNode.equals(extractLocation(entryState)) : "location does not match: " + entryNode + " vs " + extractLocation(entryState);
+      expandedFunctionReturnStates.addAll(handleRecursiveFunctionCall0(entryState, precision, outerSubtree, entryNode));
+    }
+
+    final List<AbstractState> result = new ArrayList<>(expandedFunctionReturnStates.size());
+    for (AbstractState expandedState : expandedFunctionReturnStates) {
+      logger.log(Level.FINEST, "rebuilding state with root state", rootState);
+      logger.log(Level.FINEST, "rebuilding state with expanded state", expandedState);
+      AbstractState rebuildState = wrappedReducer.rebuildStateAfterFunctionCall(rootState, expandedState);
+      logger.log(Level.FINEST, "rebuilding finished with state", rebuildState);
+      result.add(rebuildState);
+    }
+
+    currentBlock = outerSubtree;
+
+    return result;
+  }
+
+  private Collection<? extends AbstractState> handleRecursiveFunctionCall0(
+          final AbstractState pState, final Precision pPrecision,
+          final Block outerSubtree, final FunctionEntryNode entryNode)
+          throws CPATransferException, InterruptedException {
+
+    logger.log(Level.ALL, "Initial state is", pState);
+    final AbstractState reducedInitialState = wrappedReducer.getVariableReducedState(pState, currentBlock, entryNode);
+    final Precision reducedInitialPrecision = wrappedReducer.getVariableReducedPrecision(pPrecision, currentBlock);
+    logger.log(Level.FINEST, "Reduced state is", reducedInitialState);
 
     // try to get previously computed element from cache
     final Pair<ReachedSet, Collection<AbstractState>> pair =
@@ -250,6 +279,14 @@ public class BAMTransferRelation implements TransferRelation {
 
     // TODO here we have to check for endless recursion, we need the current stack
     // if block is twice in stack, abort recursion --> fixpoint?
+    final Triple<AbstractState, Precision, Block> currentLevel =
+            Triple.of(reducedInitialState, reducedInitialPrecision, currentBlock);
+    if (stack.contains(currentLevel)) {
+      // endless recursion, with current knowledge we would never abort unrolling the recursion
+      logger.log(Level.ALL, "recursion will cause endless unrolling, aborting");
+      return Collections.emptySet();
+    }
+    stack.add(currentLevel);
 
     if (returnStates != null) {
       assert reached != null;
@@ -290,39 +327,11 @@ public class BAMTransferRelation implements TransferRelation {
     }
 
     logger.log(Level.FINEST, "Expanding states", reducedResult);
-    final List<AbstractState> expandedResult = handleFunctionReturn(reducedResult, outerSubtree, pState, pPrecision, functionReturnEdge);
+    Collection<AbstractState> expandedResult = expandResultStates(reducedResult, outerSubtree, pState, pPrecision);
     logger.log(Level.ALL, "Expanded results:", expandedResult);
 
-    currentBlock = outerSubtree;
-
-    return expandedResult;
-  }
-
-  private List<AbstractState> handleFunctionReturn(
-          final Collection<Pair<AbstractState, Precision>> reducedResult,
-          final Block outerSubtree, final AbstractState rootState, final Precision precision,
-          final FunctionReturnEdge edge) throws UnrecognizedCodeException {
-    final List<AbstractState> expandedResult = new ArrayList<>(reducedResult.size());
-    for (Pair<AbstractState, Precision> reducedPair : reducedResult) {
-      AbstractState reducedState = reducedPair.getFirst();
-      Precision reducedPrecision = reducedPair.getSecond();
-
-      Precision expandedPrecision =
-              wrappedReducer.getVariableExpandedPrecision(precision, outerSubtree, reducedPrecision);
-
-      logger.log(Level.FINEST, "function return from state", reducedState);
-      AbstractState functionReturnResult = wrappedReducer.getExpandedStateAfterFunctionReturn(rootState, currentBlock, reducedState, edge);
-      logger.log(Level.FINEST, "function return to state", functionReturnResult);
-
-      if (functionReturnResult == null) {
-        return Collections.emptyList();
-      }
-
-      ((ARGState)functionReturnResult).addParent((ARGState) rootState);
-      expandedResult.add(functionReturnResult);
-
-      forwardPrecisionToExpandedPrecision.put(functionReturnResult, expandedPrecision);
-    }
+    Triple<AbstractState, Precision,Block> lastLevel = stack.remove(stack.size()-1);
+    assert lastLevel.equals(currentLevel);
 
     return expandedResult;
   }

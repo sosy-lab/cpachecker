@@ -443,4 +443,9 @@ public class BAMPredicateReducer implements Reducer {
     throw new UnsupportedOperationException("not implemented");
   }
 
+  @Override
+  public AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState expandedState) {
+    throw new UnsupportedOperationException("not implemented");
+  }
+
 }

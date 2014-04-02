@@ -131,4 +131,9 @@ class TimedReducer implements Reducer {
           throws UnrecognizedCodeException {
     return wrappedReducer.getExpandedStateAfterFunctionReturn(rootState, reducedContext, reducedState, edge);
   }
+
+  @Override
+  public AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState expandedState) {
+    return wrappedReducer.rebuildStateAfterFunctionCall(rootState, expandedState);
+  }
 }
