@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.pointer2;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -209,8 +210,8 @@ public class PointerState implements AbstractState {
    *
    * @return all locations known to the state.
    */
-  public Iterable<String> getKnownLocations() {
-    return Iterables.concat(pointsToMap.keySet(), FluentIterable.from(pointsToMap.values()).transformAndConcat(new Function<LocationSet, Iterable<? extends String>>() {
+  public Set<String> getKnownLocations() {
+    return FluentIterable.from(Iterables.concat(pointsToMap.keySet(), FluentIterable.from(pointsToMap.values()).transformAndConcat(new Function<LocationSet, Iterable<? extends String>>() {
 
       @Override
       public Iterable<? extends String> apply(LocationSet pArg0) {
@@ -220,7 +221,7 @@ public class PointerState implements AbstractState {
         return Collections.emptySet();
       }
 
-    }));
+    }))).toSet();
   }
 
   /**
