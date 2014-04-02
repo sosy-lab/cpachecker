@@ -132,9 +132,11 @@ public class SymbolicValueFormula implements Value {
      * @return A list of all symbolic values contained in the sub-tree of this expression.
      */
     public Set<SymbolicValue> getSymbolicValues();
+
   }
 
   public static class BinaryExpression implements ExpressionBase {
+
     public static enum BinaryOperator {
       MULTIPLY      ("*"),
       DIVIDE        ("/"),
@@ -162,6 +164,9 @@ public class SymbolicValueFormula implements Value {
 
       /**
        * Get the binary operator with a specific string, or null if none.
+       *
+       * @param key a char representing the operator, e.g. '+'
+       * @return the corresponding <code>BinaryOperator</code> object
        */
       public static BinaryOperator fromString(String key) {
         for(BinaryOperator iter : BinaryOperator.values()) {
@@ -424,6 +429,7 @@ public class SymbolicValueFormula implements Value {
    *
    * @param symbol
    * @param replacement
+   * @param logger logging
    * @return The simplified formula with the given symbol replaced.
    */
   public Value replaceSymbolWith(SymbolicValue pSymbol, Value pReplacement, LogManagerWithoutDuplicates logger) {
@@ -437,13 +443,14 @@ public class SymbolicValueFormula implements Value {
   }
 
   /**
-   * Check if there's only a single symbolic value in this formula. If so, try to solve the
-   * formula for that variable.
+   * Check if there's only a single symbolic value in this formula. If so, try
+   * to solve the formula for that variable.
    *
-   * @param truthValue If false, this formula is assumed to be false, otherwise this formula
-   *                   is assumed to be true.
-   * @return A pair of the single symbolic value that was found, and the value it must have
-   *         according to this formula. null if no such pair exists.
+   * @param truthValue If false, this formula is assumed to be false, otherwise
+   *        this formula is assumed to be true.
+   * @param logger logging
+   * @return A pair of the single symbolic value that was found, and the value
+   *         it must have according to this formula. null if no such pair exists.
    */
   public Pair<SymbolicValue, Value> inferAssignment(boolean truthValue, LogManagerWithoutDuplicates logger) {
     Set<SymbolicValue> symbolicValues = root.getSymbolicValues();
