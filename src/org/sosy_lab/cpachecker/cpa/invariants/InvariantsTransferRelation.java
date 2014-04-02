@@ -470,7 +470,8 @@ public enum InvariantsTransferRelation implements TransferRelation {
             int lastIndexOfSep = Math.max(lastIndexOfDot, lastIndexOfArrow);
             String end = lastIndexOfSep < 0 ? "" : location.substring(lastIndexOfSep + 1);
             for (String variableName : result.getEnvironment().keySet()) {
-              if (variableName.endsWith(end)) {
+              if (variableName.endsWith("->" + end)
+                  || variableName.endsWith("." + end)) {
                 result = result.assign(variableName, top, edge);
               }
             }
