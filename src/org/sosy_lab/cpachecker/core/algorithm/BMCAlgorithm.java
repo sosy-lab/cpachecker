@@ -865,7 +865,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
      *
      * @throws CPAException if no loopstack information is present.
      */
-    private PathFormula extractLastIterationPath(Iterable<AbstractState> cutPointStates) throws CPAException {
+    private PathFormula extractLastIterationPath(Iterable<AbstractState> cutPointStates) throws CPAException, InterruptedException {
       int highestIteration = -1;
       PathFormula pathFormula = null;
       for (AbstractState cutPointState : cutPointStates) {

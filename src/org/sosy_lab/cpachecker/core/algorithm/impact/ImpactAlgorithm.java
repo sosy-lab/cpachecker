@@ -35,12 +35,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -140,7 +140,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     FormulaManagerFactory factory = new FormulaManagerFactory(config, pLogger, pShutdownNotifier);
     fmgr = new FormulaManagerView(factory.getFormulaManager(), config, logger);
     bfmgr = fmgr.getBooleanFormulaManager();
-    pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger, cfa));
+    pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger, pShutdownNotifier, cfa));
     solver = new Solver(fmgr, factory);
     imgr = new InterpolationManager(fmgr, pfmgr, solver, factory, config, pShutdownNotifier, logger);
   }
@@ -476,7 +476,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private void addPathFormulasToList(List<Vertex> path, List<BooleanFormula> pathFormulas) throws CPATransferException {
+  private void addPathFormulasToList(List<Vertex> path, List<BooleanFormula> pathFormulas) throws CPATransferException, InterruptedException {
     PathFormula pf = pfmgr.makeEmptyPathFormula();
     for (Vertex w : path) {
       pf = pfmgr.makeAnd(pf, w.getIncomingEdge());

@@ -38,6 +38,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Assignments;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
 import de.uni_freiburg.informatik.ultimate.logic.Logics;
 import de.uni_freiburg.informatik.ultimate.logic.Model;
+import de.uni_freiburg.informatik.ultimate.logic.QuotedObject;
 import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
 import de.uni_freiburg.informatik.ultimate.logic.Script;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
@@ -353,6 +354,11 @@ class FormulaCollectionScript implements Script {
 
   @Override
   public void exit() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public QuotedObject echo(QuotedObject pMsg) {
     throw new UnsupportedOperationException();
   }
 }

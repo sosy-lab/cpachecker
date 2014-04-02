@@ -156,7 +156,7 @@ public final class DOTBuilder2 {
 
     void writeFunctionFile(String funcname, Path outdir) throws IOException {
 
-        try (Writer out = outdir.resolve("cfa__" + funcname + ".dot").asCharSink(Charsets.UTF_8).openStream()) {
+        try (Writer out = outdir.resolve("cfa__" + funcname + ".dot").asCharSink(Charsets.UTF_8).openBufferedStream()) {
           out.write("digraph " + funcname + " {\n");
           StringBuilder outb = new StringBuilder();
           //write comboedges
@@ -182,6 +182,7 @@ public final class DOTBuilder2 {
           //write nodes
           for (CFANode node: nodes) {
             out.write(DOTBuilder.formatNode(node, loopHeads));
+            out.write('\n');
           }
 
           out.write(outb.toString());

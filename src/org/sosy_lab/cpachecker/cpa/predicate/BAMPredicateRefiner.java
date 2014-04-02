@@ -187,7 +187,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
     }
 
     @Override
-    protected final List<BooleanFormula> getFormulasForPath(List<ARGState> pPath, ARGState initialState) throws CPATransferException {
+    protected final List<BooleanFormula> getFormulasForPath(List<ARGState> pPath, ARGState initialState) throws CPATransferException, InterruptedException {
       // the elements in the path are not expanded, so they contain the path formulas
       // with the wrong indices
       // we need to re-create all path formulas in the flattened ARG
@@ -201,7 +201,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
       }
     }
 
-    private List<BooleanFormula> computeBlockFormulas(ARGState pRoot) throws CPATransferException {
+    private List<BooleanFormula> computeBlockFormulas(ARGState pRoot) throws CPATransferException, InterruptedException {
 
       Map<ARGState, PathFormula> formulas = new HashMap<>();
       List<BooleanFormula> abstractionFormulas = Lists.newArrayList();

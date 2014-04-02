@@ -279,7 +279,12 @@ class GlobalScope extends Scope {
       CComplexType knownType = (CComplexType) otherFile.getType().getCanonicalType();
       type = (CComplexType) type.getCanonicalType();
 
-      if (areEqualTypes(knownType, type, false)) {
+      // first found type is only elaborated, but the new one is a complete type, so we set the
+      // type with the normal name, and also set the old elaborate type's real type to the new one
+      if (knownType instanceof CElaboratedType) {
+        declaration = alreadyDeclaratedTypesInOtherFiles.get(name);
+        ((CElaboratedType)otherFile.getType()).setRealType(type);
+      } else if (areEqualTypes(knownType, type, false)) {
         declaration = alreadyDeclaratedTypesInOtherFiles.get(name);
       } else {
         declaration = createRenamedType(declaration);

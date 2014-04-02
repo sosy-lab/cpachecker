@@ -200,7 +200,7 @@ public final class CSimpleType implements CType {
   @Override
   public CSimpleType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
     CBasicType newType = type;
-    if (newType == CBasicType.UNSPECIFIED && (isShort || isLong || isSigned || isUnsigned || isLongLong)) {
+    if (newType == CBasicType.UNSPECIFIED) {
       newType = CBasicType.INT;
     }
 

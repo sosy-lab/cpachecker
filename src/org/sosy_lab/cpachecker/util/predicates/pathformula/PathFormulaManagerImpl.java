@@ -34,13 +34,13 @@ import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.core.Model.TermType;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -67,10 +68,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.pointerTarget.PointerTarget;
 
 import com.google.common.base.Function;
@@ -110,25 +111,27 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private final CtoFormulaTypeHandler typeHandler;
   private final @Nullable PointerTargetSetManager ptsManager;
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
 
   @Option(description="add special information to formulas about non-deterministic functions")
   private boolean useNondetFlags = false;
 
   @Deprecated
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
-      Configuration config, LogManager pLogger, MachineModel pMachineModel)
+      Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier, MachineModel pMachineModel)
           throws InvalidConfigurationException {
-    this(pFmgr, config, pLogger, pMachineModel, Optional.<VariableClassification>absent());
+    this(pFmgr, config, pLogger, pShutdownNotifier, pMachineModel, Optional.<VariableClassification>absent());
   }
 
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
-      Configuration config, LogManager pLogger, CFA pCfa)
+      Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
           throws InvalidConfigurationException {
-    this(pFmgr, config, pLogger, pCfa.getMachineModel(), pCfa.getVarClassification());
+    this(pFmgr, config, pLogger, pShutdownNotifier, pCfa.getMachineModel(), pCfa.getVarClassification());
   }
 
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
-      Configuration config, LogManager pLogger, MachineModel pMachineModel,
+      Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
+      MachineModel pMachineModel,
       Optional<VariableClassification> pVariableClassification)
           throws InvalidConfigurationException {
     config.inject(this, PathFormulaManagerImpl.class);
@@ -137,19 +140,19 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     bfmgr = fmgr.getBooleanFormulaManager();
     ffmgr = fmgr.getFunctionFormulaManager();
     logger = pLogger;
-
+    shutdownNotifier = pShutdownNotifier;
 
     if (handlePointerAliasing) {
       final FormulaEncodingWithPointerAliasingOptions options = new FormulaEncodingWithPointerAliasingOptions(config);
       TypeHandlerWithPointerAliasing aliasingTypeHandler = new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, pFmgr, options);
       typeHandler = aliasingTypeHandler;
-      ptsManager = new PointerTargetSetManager(options, pFmgr, aliasingTypeHandler);
-      converter = new CToFormulaConverterWithPointerAliasing(options, pFmgr, pMachineModel, ptsManager, pVariableClassification, pLogger, aliasingTypeHandler);
+      ptsManager = new PointerTargetSetManager(options, pFmgr, aliasingTypeHandler, shutdownNotifier);
+      converter = new CToFormulaConverterWithPointerAliasing(options, pFmgr, pMachineModel, ptsManager, pVariableClassification, pLogger, shutdownNotifier, aliasingTypeHandler);
 
     } else {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel, pFmgr);
-      converter = new CtoFormulaConverter(options, pFmgr, pMachineModel, pVariableClassification, pLogger, typeHandler);
+      converter = new CtoFormulaConverter(options, pFmgr, pMachineModel, pVariableClassification, pLogger, pShutdownNotifier, typeHandler);
       ptsManager = null;
 
       logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
@@ -160,7 +163,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Override
   public Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(PathFormula pOldFormula,
-                             final CFAEdge pEdge) throws CPATransferException {
+                             final CFAEdge pEdge) throws CPATransferException, InterruptedException {
     ErrorConditions errorConditions = new ErrorConditions(bfmgr);
     PathFormula pf = makeAnd(pOldFormula, pEdge, errorConditions);
 
@@ -168,7 +171,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   private PathFormula makeAnd(PathFormula pOldFormula, final CFAEdge pEdge, ErrorConditions errorConditions)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
     PathFormula pf = converter.makeAnd(pOldFormula, pEdge, errorConditions);
 
     if (useNondetFlags) {
@@ -201,7 +204,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException {
+  public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException, InterruptedException {
     ErrorConditions errorConditions = ErrorConditions.dummyInstance(bfmgr);
     return makeAnd(pOldFormula, pEdge, errorConditions);
   }
@@ -231,7 +234,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeOr(final PathFormula pathFormula1, final PathFormula pathFormula2) {
+  public PathFormula makeOr(final PathFormula pathFormula1, final PathFormula pathFormula2) throws InterruptedException {
 
     final BooleanFormula formula1 = pathFormula1.getFormula();
     final BooleanFormula formula2 = pathFormula2.getFormula();
@@ -292,7 +295,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
                                      final SSAMap ssa1,
                                      final PointerTargetSet pts1,
                                      final SSAMap ssa2,
-                                     final PointerTargetSet pts2) {
+                                     final PointerTargetSet pts2) throws InterruptedException {
     final Pair<SSAMap, List<Triple<String, Integer, Integer>>> ssaMergeResult = SSAMap.merge(ssa1, ssa2);
     final SSAMap resultSSA = ssaMergeResult.getFirst();
     final List<Triple<String, Integer, Integer>> symbolDifferences = ssaMergeResult.getSecond();
@@ -301,6 +304,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     BooleanFormula mergeFormula2 = bfmgr.makeBoolean(true);
 
     for (final Triple<String, Integer, Integer> symbolDifference : symbolDifferences) {
+      shutdownNotifier.shutdownIfNecessary();
       final String symbolName = symbolDifference.getFirst();
       final int index1 = Objects.firstNonNull(symbolDifference.getSecond(), 1);
       final int index2 = Objects.firstNonNull(symbolDifference.getThird(), 1);
@@ -421,7 +425,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException {
+  public PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException {
     PathFormula pathFormula = makeEmptyPathFormula();
     for (CFAEdge edge : pPath) {
       pathFormula = makeAnd(pathFormula, edge);
@@ -440,10 +444,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    *
    * @param elementsOnPath The ARG states that should be considered.
    * @return A formula containing a predicate for each branching.
-   * @throws CPATransferException
    */
   @Override
-  public BooleanFormula buildBranchingFormula(Iterable<ARGState> elementsOnPath) throws CPATransferException {
+  public BooleanFormula buildBranchingFormula(Iterable<ARGState> elementsOnPath) throws CPATransferException, InterruptedException {
     // build the branching formula that will help us find the real error path
     BooleanFormula branchingFormula = bfmgr.makeBoolean(true);
     for (final ARGState pathElement : elementsOnPath) {
@@ -526,7 +529,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     }
 
     Map<Integer, Boolean> preds = Maps.newHashMap();
-    for (AssignableTerm a : model.keySet()) {
+    for (Map.Entry<AssignableTerm, Object> entry : model.entrySet()) {
+      AssignableTerm a = entry.getKey();
       if (a instanceof Model.Variable && a.getType() == TermType.Boolean) {
 
         String name = BRANCHING_PREDICATE_NAME_PATTERN.matcher(a.getName()).replaceFirst("");
@@ -538,9 +542,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
           assert !preds.containsKey(nodeId);
 
-
-          Boolean value = (Boolean)model.get(a);
-          preds.put(nodeId, value);
+          preds.put(nodeId, (Boolean)entry.getValue());
         }
       }
     }

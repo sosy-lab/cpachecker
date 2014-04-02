@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="900" memlimit="15000" numOfCores="8">
+<benchmark tool="cpachecker" timelimit="900" memlimit="15000" cpuCores="8">
 
   <rundefinition name="predicateAnalysis">
     <sourcefiles>

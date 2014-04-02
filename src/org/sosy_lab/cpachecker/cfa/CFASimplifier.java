@@ -23,21 +23,25 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import static com.google.common.collect.Iterables.addAll;
+import static org.sosy_lab.cpachecker.util.CFAUtils.*;
+
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.CFAGenerationRuntimeException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+
+import com.google.common.base.Predicates;
 
 
 public class CFASimplifier {
@@ -52,25 +56,8 @@ public class CFASimplifier {
    */
   public static void simplifyCFA(MutableCFA cfa) {
     for (CFANode root : cfa.getAllFunctionHeads()) {
-      simplifyFunction(root, cfa, new HashSet<CFANode>());
+      simplifyFunction(root, cfa);
     }
-  }
-
-  /**
-   * Helper Method which only gets called by #simplifyFunction in several places
-   */
-  private static CFANode simplifyFunctionHelp(CFANode root, Set<CFANode> visitedNodes) {
-    while (root.getNumLeavingEdges() == 1
-        && (root.getLeavingEdge(0) instanceof BlankEdge)
-        && root.getLeavingEdge(0).getSuccessor().getNumEnteringEdges() == 1) {
-
-       if (!visitedNodes.add(root)) {
-         return null;
-       }
-
-       root = root.getLeavingEdge(0).getSuccessor();
-    }
-    return root;
   }
 
   /**
@@ -79,266 +66,147 @@ public class CFASimplifier {
    *
    * @param root
    * @param cfa The cfa where the simplifications should be applied
-   * @param visitedNodes a set of all visitedNodes, so we do not revisit them
-   *                     in case of loops / recursion
-   * @return The return value is only needed for the recursion, the returned
-   *          CFANode is the node where the search for simplifications should
-   *          continue after visiting AssumeEdges
    */
-  private static CFANode simplifyFunction(CFANode root, MutableCFA cfa, Set<CFANode> visitedNodes) {
+  private static void simplifyFunction(final CFANode root, final MutableCFA cfa) {
+    // We want to eliminate branching with two empty branches (only blank edges).
+    // Inner branches need to be eliminate first.
 
-    if (root == null) {
-      return null;
-    }
+    // The list of all branching points in this function.
+    final Deque<CFANode> branchingPoints = findBranchingPoints(root);
+    assert branchingPoints.size() == new HashSet<>(branchingPoints).size()
+        : "branchingPoints contains duplicate CFANode " + branchingPoints;
 
-    // differentiate by the number of leaving edges, when there is none, we
-    // arrived at a point where the method ends
-    // if there is one, we can progress normally
-    // if there are two leaving edges this means we got to AssumeEdges, here
-    // we have to evaluate the two subtrees and then decide if something can
-    // get simplified
-    switch (root.getNumLeavingEdges()) {
+    // We need to simplify inner branches first, thus we iterate backwards through the queue.
+    while (!branchingPoints.isEmpty()) {
+      final CFANode branchingPoint = branchingPoints.pollLast();
 
-    // no further edges, nothing more to do
-    case 0:
-      return null;
-
-    // one leaving edge, restart simplification from this node
-    case 1:
-      if (root.getNumEnteringEdges() > 1) {
-        return root;
-      }
-
-      // simplify all blankedges iteratively
-      root = simplifyFunctionHelp(root, visitedNodes);
-
-      // no next node, so we can skip simplification here
-      if (root == null) {
-        return null;
-      }
-
-      // more than one leaving edge => simplify this first
-      if (root.getNumLeavingEdges() != 1) {
-        return simplifyFunction(root, cfa, visitedNodes);
-      }
-
-      // from here we know theres only one leaving edge
-      // if this edge is a blankedge, we can simplificate the successor of this edge further
-      // if it is not, we have to restart simplification from the successor, before there
-      // are no simplifications possible
-      if (root.getLeavingEdge(0) instanceof BlankEdge) {
-
-        // if the node was already visited, we are in a loop and skip simplification
-        if (visitedNodes.add(root)) {
-          return root.getLeavingEdge(0).getSuccessor();
-        } else {
-          return null;
-        }
-
-        // no blankEdge, so we have to restart the simplification
-      } else {
-        if (!visitedNodes.add(root)) {
-          return null;
-        }
-
-        // some improvements in order to make the method not too recursive
-        root = root.getLeavingEdge(0).getSuccessor();
-        if (root.getNumLeavingEdges() == 1 && root.getNumEnteringEdges() == 1) {
-          root = simplifyFunctionHelp(root, visitedNodes);
-        }
-        while (root.getNumLeavingEdges() == 1 && root.getNumEnteringEdges() == 1 && !(root.getLeavingEdge(0) instanceof BlankEdge)) {
-
-          // if the node was already visited, we are in a loop and skip simplification
-          if (visitedNodes.add(root)) {
-            root = root.getLeavingEdge(0).getSuccessor();
-          } else {
-            return null;
-          }
-        }
-
-        // restarting the simplification is done from here
-        simplifyFunction(root, cfa, visitedNodes);
-
-        // we cannot simplify the cfa above the root node, so return null
-        return null;
-      }
-
-    // these are assume Edges which can eventually be simplified
-    case 2:
-
-      // if the node was already visited, we are in a loop and skip simplification
-      if (!visitedNodes.add(root)) {
-        return null;
-      }
-
-      // simplify the left subtree
-      CFANode left = root.getLeavingEdge(0).getSuccessor();
-      if (left.getNumLeavingEdges() == 1 && left.getNumEnteringEdges() == 1) {
-        left = simplifyFunctionHelp(left, visitedNodes);
-      }
-      left = simplifyFunction(left, cfa, visitedNodes);
-
-      // simplify the right subtree
-      CFANode right = root.getLeavingEdge(1).getSuccessor();
-      if (right.getNumLeavingEdges() == 1 && right.getNumEnteringEdges() == 1) {
-        right = simplifyFunctionHelp(right, visitedNodes);
-      }
-      right = simplifyFunction(right, cfa, visitedNodes);
-
-      // if left and right are equal, and not null the cfa can be simplificated
-      // so the edges and nodes between the root node and left/right are removed
-      // and a new blankedge is introduced
-      if (left == right && left != null) {
-        CFANode endNode = left;
-        List<FileLocation> removedFileLocations = new ArrayList<>();
-        removeNodesBetween(root, root, left, cfa, removedFileLocations);
-        CFAEdge blankEdge = new BlankEdge("skipped uneccesary edges",
-            FileLocation.merge(removedFileLocations), root, endNode, "skipped uneccesary edges");
-        root.addLeavingEdge(blankEdge);
-        endNode.addEnteringEdge(blankEdge);
-
-        if (endNode.getNumLeavingEdges() == 1 && endNode.getNumEnteringEdges() == 1) {
-          endNode = simplifyFunctionHelp(endNode, visitedNodes);
-        }
-
-        // furter simplifications are applied
-        return simplifyFunction(endNode, cfa, visitedNodes);
-      }
-
-      // left and right are not equal, so we cannot simplificate anything, return null
-      return null;
-
-    // more than 2 leaving edges should not occur
-    default:
-      throw new CFAGenerationRuntimeException("More than 2 leaving edges on node " + root + " in function " + root.getFunctionName());
+      simplifyBranching(branchingPoint, cfa);
     }
   }
 
   /**
-   * This method removes all nodes and edges between the from and the to node, and also
-   * deletes them from the cfa.
-   *
-   * @param from the CFANode where the deletion of further nodes should start
-   * @param actualFrom the same node as the from node!
-   * @param to the CFANode where the deletion should stop
-   * @param cfa The cfa where the nodes have to be deleted, too
+   * Search all branching points in a CFA in post order
+   * (any (transitive) predecessor of a node comes before that node in the result).
+   * @param root The entry point of the CFA.
+   * @return A queue of CFANodes that are branching points, in post order.
    */
-  private static void removeNodesBetween(CFANode from, CFANode actualFrom, CFANode to,
-      MutableCFA cfa, List<FileLocation> removedFileLocations) {
+  private static Deque<CFANode> findBranchingPoints(final CFANode root) {
+    // The order is important: branching points at the beginning need to come first,
+    // (similar to reverse post order).
+    // Thus we iterate through the CFA and visit each sucessor only
+    // after all its predecessors have been handled.
 
-    // if actualFrom and From are the same, this is the first call of removeNodesBetween
-    // so we know that the from node has two leaving (Assume)Edges
-    if (actualFrom == from) {
-      CFAEdge left = actualFrom.getLeavingEdge(0);
-      CFAEdge right = actualFrom.getLeavingEdge(1);
+    final Deque<CFANode> branchingPoints = new ArrayDeque<>();
+    final Set<CFANode> visitedNodes = new HashSet<>();
+    final Deque<CFANode> waitlist = new ArrayDeque<>();
+    waitlist.push(root);
 
-      actualFrom.removeLeavingEdge(left);
-      actualFrom.removeLeavingEdge(right);
-      removedFileLocations.add(left.getFileLocation());
-      removedFileLocations.add(right.getFileLocation());
+    while (!waitlist.isEmpty()) {
+      CFANode current = waitlist.pollLast();
+      if (visitedNodes.contains(current)) {
+        // loop in CFA
+        continue;
+      }
 
-      actualFrom = left.getSuccessor();
-      actualFrom.removeEnteringEdge(left);
-      if (actualFrom != to) {
-        if (actualFrom.getNumEnteringEdges() > 0) {
-          for (int i = 0;  i < actualFrom.getNumEnteringEdges(); i++) {
-            moveEdgeToOtherSuccessor(actualFrom.getEnteringEdge(i), to);
+      if (visitedNodes.containsAll(predecessorsOf(current).toList())) {
+        visitedNodes.add(current);
+
+        if (current.getNumLeavingEdges() > 1) {
+          if (current.getNumLeavingEdges() > 2) {
+            throw new CFAGenerationRuntimeException("More than 2 leaving edges on node " + current + " in function " + current.getFunctionName());
           }
+          assert CFAUtils.allLeavingEdges(current).allMatch(Predicates.instanceOf(AssumeEdge.class));
+
+          branchingPoints.addLast(current);
         }
-        cfa.removeNode(actualFrom);
-        removeNodesBetween(from, actualFrom, to, cfa, removedFileLocations);
+
+        addAll(waitlist, successorsOf(current));
+      }
+    }
+    return branchingPoints;
+  }
+
+  /**
+   * Simplify one branching in the CFA at the given node (if possible).
+   * @param branchingPoint The root of the branching (needs to have 2 outgoing AssumeEdges).
+   * @param cfa
+   */
+  private static void simplifyBranching(final CFANode branchingPoint, final MutableCFA cfa) {
+    CFANode leftEndpoint  = findEndOfBlankEdgeChain(branchingPoint.getLeavingEdge(0).getSuccessor());
+    CFANode rightEndpoint = findEndOfBlankEdgeChain(branchingPoint.getLeavingEdge(1).getSuccessor());
+
+    if (leftEndpoint.equals(rightEndpoint)) {
+      final CFANode endpoint = leftEndpoint;
+      final List<FileLocation> removedFileLocations = new ArrayList<>();
+
+      final CFAEdge leftEdge = branchingPoint.getLeavingEdge(0);
+      final CFAEdge rightEdge = branchingPoint.getLeavingEdge(1);
+
+      {
+        branchingPoint.removeLeavingEdge(leftEdge);
+        assert leftEdge instanceof AssumeEdge;
+        removedFileLocations.add(leftEdge.getFileLocation());
+        CFANode toRemove = leftEdge.getSuccessor();
+        toRemove.removeEnteringEdge(leftEdge);
+        removeChainOfNodes(toRemove, endpoint, cfa, removedFileLocations);
+      }
+      {
+        branchingPoint.removeLeavingEdge(rightEdge);
+        assert rightEdge instanceof AssumeEdge;
+        removedFileLocations.add(rightEdge.getFileLocation());
+        CFANode toRemove = rightEdge.getSuccessor();
+        toRemove.removeEnteringEdge(rightEdge);
+        removeChainOfNodes(toRemove, endpoint, cfa, removedFileLocations);
       }
 
-      actualFrom = right.getSuccessor();
-      actualFrom.removeEnteringEdge(right);
-      if (actualFrom != to && actualFrom.getNumEnteringEdges() == 0) {
-        if (actualFrom.getNumEnteringEdges() > 0) {
-          for (int i = 0;  i < actualFrom.getNumEnteringEdges(); i++) {
-            moveEdgeToOtherSuccessor(actualFrom.getEnteringEdge(i), to);
-          }
-        }
-        cfa.removeNode(actualFrom);
-        removeNodesBetween(from, actualFrom, to, cfa, removedFileLocations);
-      }
+      // Maybe there are more outgoing blank edges from the endpoint,
+      // also remove them.
+      final CFANode endpoint2 = findEndOfBlankEdgeChain(endpoint);
+      removeChainOfNodes(endpoint, endpoint2, cfa, removedFileLocations);
 
-    // if actualFrom and from are not equal, there should actually be exactly
-    // one leaving edge, this is handled here
-    } else if (actualFrom.getNumLeavingEdges() == 1) {
-      CFAEdge edge = actualFrom.getLeavingEdge(0);
-      actualFrom.removeLeavingEdge(edge);
-      actualFrom = edge.getSuccessor();
-      actualFrom.removeEnteringEdge(edge);
-      removedFileLocations.add(edge.getFileLocation());
-
-      if (actualFrom != to) {
-        cfa.removeNode(actualFrom);
-        removeNodesBetween(from, actualFrom, to, cfa, removedFileLocations);
-      }
-
-    // more or less than one leaving edge, this should never happen (if the method
-    // is called at the right places)
-    } else {
-      throw new AssertionError(actualFrom.getNumLeavingEdges() + " leaving Edge"
-                               + (actualFrom.getNumLeavingEdges() < 1 ? "" : "s")
-                               + " where exactly one should be");
+      CFAEdge blankEdge = new BlankEdge("skipped uneccesary edges",
+          FileLocation.merge(removedFileLocations), branchingPoint, endpoint2, "skipped uneccesary edges");
+      CFACreationUtils.addEdgeUnconditionallyToCFA(blankEdge);
     }
   }
 
-  private static CFAEdge moveEdgeToOtherSuccessor(CFAEdge edge, CFANode succ) {
-    CFANode pred = edge.getPredecessor();
-    pred.removeLeavingEdge(edge);
-    switch (edge.getEdgeType()) {
-    case AssumeEdge:
-      edge = new CAssumeEdge(((CAssumeEdge)edge).getRawStatement(),
-                             edge.getFileLocation(),
-                             pred,
-                             succ,
-                             ((CAssumeEdge)edge).getExpression(),
-                             ((CAssumeEdge)edge).getTruthAssumption());
-      pred.addLeavingEdge(edge);
-      succ.addEnteringEdge(edge);
-      return edge;
-    case BlankEdge:
-      edge = new BlankEdge(((BlankEdge)edge).getRawStatement(),
-                            edge.getFileLocation(),
-                            pred,
-                            succ,
-                            ((BlankEdge)edge).getDescription());
-      pred.addLeavingEdge(edge);
-      succ.addEnteringEdge(edge);
-      return edge;
-    case DeclarationEdge:
-      edge = new CDeclarationEdge(((CDeclarationEdge)edge).getRawStatement(),
-                                  edge.getFileLocation(),
-                                  pred,
-                                  succ,
-                                  ((CDeclarationEdge)edge).getDeclaration());
-      pred.addLeavingEdge(edge);
-      succ.addEnteringEdge(edge);
-      return edge;
-    case ReturnStatementEdge:
-      edge = new CReturnStatementEdge(((CReturnStatementEdge)edge).getRawStatement(),
-                                      ((CReturnStatementEdge)edge).getRawAST().orNull(),
-                                      edge.getFileLocation(),
-                                      pred,
-                                      (FunctionExitNode) succ);
-      pred.addLeavingEdge(edge);
-      succ.addEnteringEdge(edge);
-      return edge;
-    case StatementEdge:
-      edge = new CStatementEdge(((CStatementEdge)edge).getRawStatement(),
-                                ((CStatementEdge)edge).getStatement(),
-                                edge.getFileLocation(),
-                                pred,
-                                succ);
-      pred.addLeavingEdge(edge);
-      succ.addEnteringEdge(edge);
-      return edge;
-    case CallToReturnEdge:
-    case FunctionReturnEdge:
-    case MultiEdge:
-    default:
-      throw new AssertionError("should never happen");
+  private static CFANode findEndOfBlankEdgeChain(CFANode current) {
+    Set<CFANode> visitedNodes = new HashSet<>();
+
+    while (current.getNumLeavingEdges() == 1
+        && current.getLeavingEdge(0) instanceof BlankEdge) {
+
+      if (!visitedNodes.add(current)) {
+        return current;
+      }
+
+      current = current.getLeavingEdge(0).getSuccessor();
+    }
+    return current;
+  }
+
+  private static void removeChainOfNodes(final CFANode start, final CFANode endpoint,
+      final MutableCFA cfa, final List<FileLocation> removedFileLocations) {
+    CFANode toRemove = start;
+
+    while (!toRemove.equals(endpoint)) {
+      if (toRemove.getNumEnteringEdges() > 0) {
+        return;
+      }
+      assert toRemove.getNumEnteringEdges() == 0;
+      assert toRemove.getNumLeavingEdges() == 1;
+
+      CFAEdge leavingEdge = toRemove.getLeavingEdge(0);
+      toRemove.removeLeavingEdge(leavingEdge);
+      cfa.removeNode(toRemove);
+
+      CFANode nextNode = leavingEdge.getSuccessor();
+      nextNode.removeEnteringEdge(leavingEdge);
+
+      assert leavingEdge instanceof BlankEdge;
+      removedFileLocations.add(leavingEdge.getFileLocation());
+
+      toRemove = nextNode;
     }
   }
 }

@@ -355,12 +355,12 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       assert summaryExpr instanceof CFunctionCallStatement; // no assignment, nothing to do
     }
 
-    // delete variables from returning function,
-    // this results in a smaller BDD and allows to call a function twice.
-    for (String var : predmgr.getTrackedVars().keySet()) {
-      if (isLocalVariableForFunction(var, functionName)) {
-        newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var, predmgr.getTrackedVars().get(var)));
-      }
+    // remove returnVar from state,
+    // all other function-variables were removed earlier (see handleReturnStatementEdge()).
+    // --> now the state does not contain any variable from scope of called function.
+    if  (predmgr.getTrackedVars().containsKey(returnVar)) {
+      newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(
+              returnVar, predmgr.getTrackedVars().get(returnVar)));
     }
 
     return newState;
@@ -371,9 +371,10 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * evaluated right side ("x") is added to the new state. */
   @Override
   protected BDDState handleReturnStatementEdge(CReturnStatementEdge cfaEdge, CExpression rhs) {
-    if (rhs != null) {
+    BDDState newState = state;
+    final String returnVar = createFunctionReturnVariable(functionName);
 
-      BDDState newState = state;
+    if (rhs != null) {
       final Partition partition = varClass.getPartitionForEdge(cfaEdge);
       final CType functionReturnType = ((CFunctionDeclaration) cfaEdge.getSuccessor().getEntryNode()
               .getFunctionDefinition()).getType().getReturnType();
@@ -383,14 +384,22 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
       // make variable (predicate) for returnStatement,
       // delete variable, if it was used before, this is done with an existential operator
-      final Region[] retvar = predmgr.createPredicate(createFunctionReturnVariable(functionName),
+      final Region[] retvar = predmgr.createPredicate(returnVar,
               getBitsize(partition, functionReturnType), precision);
       newState = newState.forget(retvar);
       newState = newState.addAssignment(retvar, regRHS);
-
-      return newState;
     }
-    return state;
+
+    // delete variables from returning function,
+    // we do not need them after this location, because the next edge is the functionReturnEdge.
+    // this results in a smaller BDD and allows to call a function twice.
+    for (String var : predmgr.getTrackedVars().keySet()) {
+      if (isLocalVariableForFunction(var, functionName) && !returnVar.equals(var)) {
+        newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var, predmgr.getTrackedVars().get(var)));
+      }
+    }
+
+    return newState;
   }
 
   /** This function handles assumptions like "if(a==b)" and "if(a!=0)".
