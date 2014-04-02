@@ -266,6 +266,13 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   protected ValueAnalysisState handleReturnStatementEdge(AReturnStatementEdge returnEdge, IAExpression expression)
           throws UnrecognizedCCodeException {
 
+    // visitor must use the initial (previous) state, because there we have all information about variables
+    ExpressionValueVisitor evv = new ExpressionValueVisitor(state, functionName, machineModel, logger);
+
+    // clone state, because will be changed through removing all variables of current function's scope
+    state = state.clone();
+    state.dropFrame(functionName);
+
     if (expression == null && returnEdge instanceof CReturnStatementEdge) {
       expression = CNumericTypes.ZERO; // this is the default in C
     }
@@ -276,7 +283,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       return handleAssignmentToVariable(functionReturnVar,
           returnEdge.getSuccessor().getEntryNode().getFunctionDefinition().getType().getReturnType(), // TODO easier way to get type?
           expression,
-          getVisitor());
+          evv);
     } else {
       return state;
     }
@@ -349,7 +356,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       }
     }
 
-    newElement.dropFrame(functionName);
     return newElement;
   }
 
