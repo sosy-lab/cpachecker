@@ -23,15 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.pointer2.util;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableSet;
 
-public class ExplicitLocationSet implements LocationSet {
+public class ExplicitLocationSet implements LocationSet, Iterable<Location> {
 
-  private final Set<Location> explicitSet = new HashSet<>();
+  private final Set<Location> explicitSet;
+
+  private ExplicitLocationSet(ImmutableSet<Location> pLocations) {
+    assert pLocations.size() >= 1;
+    this.explicitSet = pLocations;
+  }
 
   @Override
   public boolean mayPointTo(Location pElement) {
@@ -43,22 +47,27 @@ public class ExplicitLocationSet implements LocationSet {
     if (explicitSet.contains(pElement)) {
       return this;
     }
-    ExplicitLocationSet result = new ExplicitLocationSet();
-    result.explicitSet.addAll(explicitSet);
-    result.explicitSet.add(pElement);
-    return result;
+    ImmutableSet.Builder<Location> builder = ImmutableSet.builder();
+    builder.addAll(explicitSet).add(pElement);
+    return new ExplicitLocationSet(builder.build());
   }
 
   @Override
   public LocationSet addElements(Iterable<Location> pElements) {
-    ExplicitLocationSet result = new ExplicitLocationSet();
+    ImmutableSet.Builder<Location> builder = null;
     for (Location target : pElements) {
-      result.explicitSet.add(target);
+      if (!explicitSet.contains(target)) {
+        if (builder == null) {
+          builder = ImmutableSet.builder();
+          builder.addAll(explicitSet);
+        }
+        builder.add(target);
+      }
     }
-    if (!result.explicitSet.addAll(explicitSet) && result.explicitSet.size() == explicitSet.size()) {
+    if (builder == null) {
       return this;
     }
-    return result;
+    return new ExplicitLocationSet(builder.build());
   }
 
   @Override
@@ -66,30 +75,33 @@ public class ExplicitLocationSet implements LocationSet {
     if (!explicitSet.contains(pElement)) {
       return this;
     }
-    ExplicitLocationSet result = new ExplicitLocationSet();
-    result.explicitSet.addAll(explicitSet);
-    result.explicitSet.remove(pElement);
-    return result;
+    if (getSize() == 1) {
+      return LocationSetBot.INSTANCE;
+    }
+    ImmutableSet.Builder<Location> builder = ImmutableSet.builder();
+    for (Location location : this.explicitSet) {
+      if (!location.equals(pElement)) {
+        builder.add(location);
+      }
+    }
+    return new ExplicitLocationSet(builder.build());
   }
 
   public static LocationSet from(Location pElement) {
-    ExplicitLocationSet result = new ExplicitLocationSet();
-    result.explicitSet.add(pElement);
-    return result;
-  }
-
-  public static LocationSet from(Set<? extends Location> pElements) {
-    ExplicitLocationSet result = new ExplicitLocationSet();
-    result.explicitSet.addAll(pElements);
-    return result;
+    return new ExplicitLocationSet(ImmutableSet.of(pElement));
   }
 
   public static LocationSet from(Iterable<? extends Location> pElements) {
-    ExplicitLocationSet result = new ExplicitLocationSet();
-    for (Location element : pElements) {
-      result.explicitSet.add(element);
+    Iterator<? extends Location> elementIterator = pElements.iterator();
+    if (!elementIterator.hasNext()) {
+      return LocationSetBot.INSTANCE;
     }
-    return result;
+    ImmutableSet.Builder<Location> builder = ImmutableSet.builder();
+    while (elementIterator.hasNext()) {
+      Location location = elementIterator.next();
+      builder.add(location);
+    }
+    return new ExplicitLocationSet(builder.build());
   }
 
   @Override
@@ -102,10 +114,6 @@ public class ExplicitLocationSet implements LocationSet {
     return false;
   }
 
-  public Collection<Location> getElements() {
-    return Collections.unmodifiableCollection(this.explicitSet);
-  }
-
   @Override
   public LocationSet addElements(LocationSet pElements) {
     if (pElements == this) {
@@ -115,7 +123,7 @@ public class ExplicitLocationSet implements LocationSet {
       ExplicitLocationSet explicitLocationSet = (ExplicitLocationSet) pElements;
       return addElements(explicitLocationSet.explicitSet);
     }
-    return pElements.addElements(this);
+    return pElements.addElements((LocationSet) this);
   }
 
   @Override
@@ -166,6 +174,20 @@ public class ExplicitLocationSet implements LocationSet {
       return LocationSetTop.INSTANCE.hashCode();
     }
     return explicitSet.hashCode();
+  }
+
+  @Override
+  public Iterator<Location> iterator() {
+    return explicitSet.iterator();
+  }
+
+  /**
+   * Gets the size of the explicit location set.
+   *
+   * @return the size of the explicit location set.
+   */
+  public int getSize() {
+    return explicitSet.size();
   }
 
 }

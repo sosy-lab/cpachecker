@@ -42,6 +42,8 @@ import org.sosy_lab.cpachecker.cpa.pointer2.util.Struct;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.Union;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.Variable;
 
+import com.google.common.collect.Iterables;
+
 /**
  * Instances of this class are pointer states that are used as abstract elements
  * in the pointer CPA.
@@ -156,7 +158,7 @@ public class PointerState implements AbstractState {
     if (pointsToSet instanceof ExplicitLocationSet) {
       ExplicitLocationSet explicitLocationSet = (ExplicitLocationSet) pointsToSet;
       if (explicitLocationSet.mayPointTo(pTarget)) {
-        return explicitLocationSet.getElements().size() == 1 ? true : null;
+        return explicitLocationSet.getSize() == 1 ? true : null;
       } else {
         return false;
       }
@@ -283,7 +285,7 @@ public class PointerState implements AbstractState {
     locations.addAll(pointsToMap.keySet());
     for (LocationSet targetSet : pointsToMap.values()) {
       if (targetSet instanceof ExplicitLocationSet) {
-        locations.addAll(((ExplicitLocationSet) targetSet).getElements());
+        Iterables.addAll(locations, ((ExplicitLocationSet) targetSet));
       }
     }
     return locations;

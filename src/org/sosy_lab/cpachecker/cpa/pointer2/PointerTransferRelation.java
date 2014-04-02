@@ -189,8 +189,7 @@ public enum PointerTransferRelation implements TransferRelation {
     if (pLocationSet.isTop()) {
       locations = pState.getKnownLocations();
     } else if (pLocationSet instanceof ExplicitLocationSet) {
-      ExplicitLocationSet explicitLocationSet = (ExplicitLocationSet) pLocationSet;
-      locations = explicitLocationSet.getElements();
+      locations = (ExplicitLocationSet) pLocationSet;
     } else {
       locations = Collections.<Location>emptySet();
     }
@@ -357,7 +356,7 @@ public enum PointerTransferRelation implements TransferRelation {
               return LocationSetTop.INSTANCE;
             }
             Set<Location> result = new HashSet<>();
-            for (Location location : ((ExplicitLocationSet) starredLocations).getElements()) {
+            for (Location location : ((ExplicitLocationSet) starredLocations)) {
               LocationSet pointsToSet = pState.getPointsToSet(location);
               if (pointsToSet.isTop()) {
                 for (Location loc : pState.getKnownLocations()) {
@@ -366,7 +365,7 @@ public enum PointerTransferRelation implements TransferRelation {
                 break;
               } else if (!pointsToSet.isBot() && pointsToSet instanceof ExplicitLocationSet) {
                 ExplicitLocationSet explicitLocationSet = (ExplicitLocationSet) pointsToSet;
-                result.addAll(explicitLocationSet.getElements());
+                Iterables.addAll(result, explicitLocationSet);
               }
             }
             return toLocationSet(result);
@@ -408,7 +407,7 @@ public enum PointerTransferRelation implements TransferRelation {
             if (!(targets instanceof ExplicitLocationSet)) {
               return LocationSetTop.INSTANCE;
             }
-            newResult.addAll(((ExplicitLocationSet) targets).getElements());
+            Iterables.addAll(newResult, ((ExplicitLocationSet) targets));
           }
           result = newResult;
         }
@@ -516,7 +515,7 @@ public enum PointerTransferRelation implements TransferRelation {
     if (pLocationSet.isTop() || !(pLocationSet instanceof ExplicitLocationSet)) {
       Iterables.addAll(result, pState.getKnownLocations());
     } else {
-      Iterables.addAll(result, ((ExplicitLocationSet) pLocationSet).getElements());
+      Iterables.addAll(result, ((ExplicitLocationSet) pLocationSet));
     }
     return result;
   }
