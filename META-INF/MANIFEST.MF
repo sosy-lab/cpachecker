@@ -17,3 +17,4 @@ Export-Package: com.google.common.io,
  org.sosy_lab.cpachecker.core
 Require-Bundle: org.eclipse.core.runtime;resolution:=optional,
  org.eclipse.cdt.core;bundle-version="[5.2.0,5.4.0)";resolution:=optional
+Import-Package: org.sosy_lab.common

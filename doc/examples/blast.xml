@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 
-<benchmark tool="blast" timelimit="900" memlimit="15360">
+<benchmark tool="blast" timelimit="900" memlimit="7000" numOfCores="4">
 
   <!-- GLOBAL OPTIONS -->
   <option name="-alias">bdd</option>
