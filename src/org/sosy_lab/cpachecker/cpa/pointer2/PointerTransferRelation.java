@@ -72,11 +72,9 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
-import org.sosy_lab.cpachecker.cpa.pointer2.util.Location;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSetBot;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSetTop;
-import org.sosy_lab.cpachecker.cpa.pointer2.util.Variable;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -145,11 +143,11 @@ public enum PointerTransferRelation implements TransferRelation {
       CParameterDeclaration formalParam = param.getFirst();
 
       Type type = formalParam.getType();
-      final Location location;
+      final String location;
       if (type.toString().startsWith("struct ") || type.toString().startsWith("union ")) {
-        location = new Variable(type.toString());
+        location = type.toString();
       } else {
-        location = new Variable(formalParam.getQualifiedName());
+        location = formalParam.getQualifiedName();
       } {
         newState = handleAssignment(pState, pPrecision, location, asLocations(actualParam, pState, 1));
       }
@@ -158,11 +156,11 @@ public enum PointerTransferRelation implements TransferRelation {
     // Handle remaining formal parameters where no actual argument was provided
     for (CParameterDeclaration formalParam : FluentIterable.from(formalParams).skip(limit)) {
       Type type = formalParam.getType();
-      final Location location;
+      final String location;
       if (type.toString().startsWith("struct ") || type.toString().startsWith("union ")) {
-        location = new Variable(type.toString());
+        location = type.toString();
       } else {
-        location = new Variable(formalParam.getQualifiedName());
+        location = formalParam.getQualifiedName();
       }
       newState = handleAssignment(pState, pPrecision, location, LocationSetBot.INSTANCE);
     }
@@ -185,27 +183,27 @@ public enum PointerTransferRelation implements TransferRelation {
 
   private PointerState handleAssignment(PointerState pState, Precision pPrecision, LocationSet pLocationSet,
       CRightHandSide pRightHandSide) throws UnrecognizedCCodeException {
-    final Iterable<Location> locations;
+    final Iterable<String> locations;
     if (pLocationSet.isTop()) {
       locations = pState.getKnownLocations();
     } else if (pLocationSet instanceof ExplicitLocationSet) {
       locations = (ExplicitLocationSet) pLocationSet;
     } else {
-      locations = Collections.<Location>emptySet();
+      locations = Collections.<String>emptySet();
     }
     PointerState result = pState;
-    for (Location location : locations) {
+    for (String location : locations) {
       result = handleAssignment(result, pPrecision, location, pRightHandSide);
     }
     return result;
   }
 
-  private PointerState handleAssignment(PointerState pState, Precision pPrecision, Location pLhsLocation,
+  private PointerState handleAssignment(PointerState pState, Precision pPrecision, String pLhsLocation,
       CRightHandSide pRightHandSide) throws UnrecognizedCCodeException {
     return pState.addPointsToInformation(pLhsLocation, asLocations(pRightHandSide, pState, 1));
   }
 
-  private PointerState handleAssignment(PointerState pState, Precision pPrecision, Location pLeftHandSide, LocationSet pRightHandSide) throws UnrecognizedCCodeException {
+  private PointerState handleAssignment(PointerState pState, Precision pPrecision, String pLeftHandSide, LocationSet pRightHandSide) throws UnrecognizedCCodeException {
     return pState.addPointsToInformation(pLeftHandSide, pRightHandSide);
   }
 
@@ -316,11 +314,11 @@ public enum PointerTransferRelation implements TransferRelation {
 
       });
 
-      final Location location;
+      final String location;
       if (type.toString().startsWith("struct ") || type.toString().startsWith("union ")) {
-        location = new Variable(type.toString());
+        location = type.toString();
       } else {
-        location = new Variable(declaration.getQualifiedName());
+        location = declaration.getQualifiedName();
       }
       return handleAssignment(pState, pPrecision, location, rhs);
 
@@ -328,11 +326,11 @@ public enum PointerTransferRelation implements TransferRelation {
     return pState;
   }
 
-  private static LocationSet toLocationSet(Iterable<? extends Location> pLocations) {
+  private static LocationSet toLocationSet(Iterable<? extends String> pLocations) {
     if (pLocations == null) {
       return LocationSetTop.INSTANCE;
     }
-    Iterator<? extends Location> locationIterator = pLocations.iterator();
+    Iterator<? extends String> locationIterator = pLocations.iterator();
     if (!locationIterator.hasNext()) {
       return LocationSetBot.INSTANCE;
     }
@@ -355,11 +353,11 @@ public enum PointerTransferRelation implements TransferRelation {
             if (!(starredLocations instanceof ExplicitLocationSet)) {
               return LocationSetTop.INSTANCE;
             }
-            Set<Location> result = new HashSet<>();
-            for (Location location : ((ExplicitLocationSet) starredLocations)) {
+            Set<String> result = new HashSet<>();
+            for (String location : ((ExplicitLocationSet) starredLocations)) {
               LocationSet pointsToSet = pState.getPointsToSet(location);
               if (pointsToSet.isTop()) {
-                for (Location loc : pState.getKnownLocations()) {
+                for (String loc : pState.getKnownLocations()) {
                   result.add(loc);
                 }
                 break;
@@ -380,26 +378,26 @@ public enum PointerTransferRelation implements TransferRelation {
         String prefix = type.toString();
         String infix = pIastFieldReference.isPointerDereference() ? "->" : ".";
         String suffix = pIastFieldReference.getFieldName();
-        return toLocationSet(Collections.singleton(new Variable(prefix + infix + suffix)));
+        return toLocationSet(Collections.singleton(prefix + infix + suffix));
       }
 
       @Override
       public LocationSet visit(CIdExpression pIastIdExpression) throws UnrecognizedCCodeException {
         Type type = pIastIdExpression.getExpressionType();
-        Collection<Location> result;
+        Collection<String> result;
         if (type.toString().startsWith("struct ") || type.toString().startsWith("union ")) {
-          result = Collections.<Location>singleton(new Variable(type.toString()));
+          result = Collections.<String>singleton(type.toString());
         } else {
           CSimpleDeclaration declaration = pIastIdExpression.getDeclaration();
           if (declaration != null) {
-            result = Collections.<Location>singleton(new Variable(declaration.getQualifiedName()));
+            result = Collections.<String>singleton(declaration.getQualifiedName());
           } else {
-            result = Collections.<Location>singleton(new Variable(pIastIdExpression.getName()));
+            result = Collections.<String>singleton(pIastIdExpression.getName());
           }
         }
         for (int deref = pDerefCounter; deref > 0 && !result.isEmpty(); --deref) {
-          Collection<Location> newResult = new HashSet<>();
-          for (Location location : result) {
+          Collection<String> newResult = new HashSet<>();
+          for (String location : result) {
             LocationSet targets = pState.getPointsToSet(location);
             if (targets.isTop() || targets.isBot()) {
               return targets;
@@ -507,11 +505,11 @@ public enum PointerTransferRelation implements TransferRelation {
     return asLocations(pExpression, pState, 0);
   }
 
-  public static Set<Location> toNormalSet(PointerState pState, LocationSet pLocationSet) {
+  public static Set<String> toNormalSet(PointerState pState, LocationSet pLocationSet) {
     if (pLocationSet.isBot()) {
       return Collections.emptySet();
     }
-    Set<Location> result = new HashSet<>();
+    Set<String> result = new HashSet<>();
     if (pLocationSet.isTop() || !(pLocationSet instanceof ExplicitLocationSet)) {
       Iterables.addAll(result, pState.getKnownLocations());
     } else {

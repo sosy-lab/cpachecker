@@ -28,34 +28,34 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
 
-public class ExplicitLocationSet implements LocationSet, Iterable<Location> {
+public class ExplicitLocationSet implements LocationSet, Iterable<String> {
 
-  private final Set<Location> explicitSet;
+  private final Set<String> explicitSet;
 
-  private ExplicitLocationSet(ImmutableSet<Location> pLocations) {
+  private ExplicitLocationSet(ImmutableSet<String> pLocations) {
     assert pLocations.size() >= 1;
     this.explicitSet = pLocations;
   }
 
   @Override
-  public boolean mayPointTo(Location pElement) {
-    return this.explicitSet.contains(pElement);
+  public boolean mayPointTo(String pLocation) {
+    return this.explicitSet.contains(pLocation);
   }
 
   @Override
-  public LocationSet addElement(Location pElement) {
-    if (explicitSet.contains(pElement)) {
+  public LocationSet addElement(String pLocation) {
+    if (explicitSet.contains(pLocation)) {
       return this;
     }
-    ImmutableSet.Builder<Location> builder = ImmutableSet.builder();
-    builder.addAll(explicitSet).add(pElement);
+    ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+    builder.addAll(explicitSet).add(pLocation);
     return new ExplicitLocationSet(builder.build());
   }
 
   @Override
-  public LocationSet addElements(Iterable<Location> pElements) {
-    ImmutableSet.Builder<Location> builder = null;
-    for (Location target : pElements) {
+  public LocationSet addElements(Iterable<String> pLocations) {
+    ImmutableSet.Builder<String> builder = null;
+    for (String target : pLocations) {
       if (!explicitSet.contains(target)) {
         if (builder == null) {
           builder = ImmutableSet.builder();
@@ -71,34 +71,34 @@ public class ExplicitLocationSet implements LocationSet, Iterable<Location> {
   }
 
   @Override
-  public LocationSet removeElement(Location pElement) {
-    if (!explicitSet.contains(pElement)) {
+  public LocationSet removeElement(String pLocation) {
+    if (!explicitSet.contains(pLocation)) {
       return this;
     }
     if (getSize() == 1) {
       return LocationSetBot.INSTANCE;
     }
-    ImmutableSet.Builder<Location> builder = ImmutableSet.builder();
-    for (Location location : this.explicitSet) {
-      if (!location.equals(pElement)) {
+    ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+    for (String location : this.explicitSet) {
+      if (!location.equals(pLocation)) {
         builder.add(location);
       }
     }
     return new ExplicitLocationSet(builder.build());
   }
 
-  public static LocationSet from(Location pElement) {
-    return new ExplicitLocationSet(ImmutableSet.of(pElement));
+  public static LocationSet from(String pLocation) {
+    return new ExplicitLocationSet(ImmutableSet.of(pLocation));
   }
 
-  public static LocationSet from(Iterable<? extends Location> pElements) {
-    Iterator<? extends Location> elementIterator = pElements.iterator();
+  public static LocationSet from(Iterable<? extends String> pLocations) {
+    Iterator<? extends String> elementIterator = pLocations.iterator();
     if (!elementIterator.hasNext()) {
       return LocationSetBot.INSTANCE;
     }
-    ImmutableSet.Builder<Location> builder = ImmutableSet.builder();
+    ImmutableSet.Builder<String> builder = ImmutableSet.builder();
     while (elementIterator.hasNext()) {
-      Location location = elementIterator.next();
+      String location = elementIterator.next();
       builder.add(location);
     }
     return new ExplicitLocationSet(builder.build());
@@ -177,7 +177,7 @@ public class ExplicitLocationSet implements LocationSet, Iterable<Location> {
   }
 
   @Override
-  public Iterator<Location> iterator() {
+  public Iterator<String> iterator() {
     return explicitSet.iterator();
   }
 

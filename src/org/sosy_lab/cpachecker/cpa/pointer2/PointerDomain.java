@@ -27,7 +27,6 @@ import java.util.Map.Entry;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.pointer2.util.Location;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -41,7 +40,7 @@ public enum PointerDomain implements AbstractDomain {
     PointerState state1 = (PointerState) pState1;
     PointerState state2 = (PointerState) pState2;
     PointerState result = state2;
-    for (Entry<Location, LocationSet> pointsToEntry : state1.getPointsToMap().entrySet()) {
+    for (Entry<String, LocationSet> pointsToEntry : state1.getPointsToMap().entrySet()) {
       result = result.addPointsToInformation(pointsToEntry.getKey(), pointsToEntry.getValue());
     }
     if (result.equals(state2)) {
@@ -60,7 +59,7 @@ public enum PointerDomain implements AbstractDomain {
     }
     PointerState state1 = (PointerState) pState1;
     PointerState state2 = (PointerState) pState2;
-    for (Entry<Location, LocationSet> pointsToEntry : state1.getPointsToMap().entrySet()) {
+    for (Entry<String, LocationSet> pointsToEntry : state1.getPointsToMap().entrySet()) {
       LocationSet rightSide = state2.getPointsToSet(pointsToEntry.getKey());
       if (!rightSide.containsAll(pointsToEntry.getValue())) {
         return false;
