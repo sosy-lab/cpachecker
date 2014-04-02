@@ -372,15 +372,14 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       // If it's a symbolic formula, try if we can solve it for any of its symbolic values.
       if(value instanceof SymbolicValueFormula) {
         Pair<SymbolicValue, Value> replacement = null;
-        replacement = ((SymbolicValueFormula)value).inferAssignment(truthValue);
+        replacement = ((SymbolicValueFormula)value).inferAssignment(truthValue, logger);
         if(replacement != null) {
           for(MemoryLocation memloc : state.getTrackedMemoryLocations()) {
             Value trackedValue = state.getValueFor(memloc);
             if(trackedValue instanceof SymbolicValueFormula) {
               SymbolicValueFormula trackedFormula = (SymbolicValueFormula) trackedValue;
-              Value newValue = trackedFormula.replaceSymbolWith(replacement.getFirst(), replacement.getSecond());
+              Value newValue = trackedFormula.replaceSymbolWith(replacement.getFirst(), replacement.getSecond(), logger);
               if(newValue != trackedValue) {
-                System.out.println("Applying "+replacement.getFirst()+"=="+replacement.getSecond()+" to "+memloc+"="+trackedFormula+" resulting in "+newValue);
                 element.assignConstant(memloc, newValue);
               }
             }

@@ -23,10 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -80,16 +83,6 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
   /* additional methods */
 
-  /**
-   * Get the value for an unknown IdExpression(variable).
-   *
-   * With symbolic value analysis enabled, this should be
-   * a formula containing just that IdExpression.
-   */
-  private Value getUnknownIdExpressionValue(MemoryLocation memLoc) {
-    return Value.UnknownValue.getInstance();
-  }
-
   @Override
   public void reset() {
     super.reset();
@@ -100,15 +93,30 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     return missingPointer;
   }
 
+  /** Heuristic to avoid generating too many symbolic values for the same file location. */
+  private static Map<FileLocation, Integer> numberOfSymbolsGenerated = new HashMap<>();
+  private final int maxNumberOfSymbolsGenerated = 200;
+
   @Override
   public Value visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
     if(this.symbolicValues) {
-      SymbolicValueFormula formula = new SymbolicValueFormula(
-          new SymbolicValueFormula.SymbolicValue(pIastFunctionCallExpression.toASTString()));
-      return formula;
-     } else {
-        return Value.UnknownValue.getInstance();
-     }
+      // Only generate a symbolic value if we haven't already generated many symbolic
+      // values for this location.
+      FileLocation key = pIastFunctionCallExpression.getFileLocation();
+      int generatedSymbols = 0;
+      if(numberOfSymbolsGenerated.containsKey(key)) {
+        generatedSymbols = numberOfSymbolsGenerated.get(key);
+      }
+
+      if(generatedSymbols < maxNumberOfSymbolsGenerated) {
+        numberOfSymbolsGenerated.put(key,  generatedSymbols + 1);
+        SymbolicValueFormula formula = new SymbolicValueFormula(
+            new SymbolicValueFormula.SymbolicValue(pIastFunctionCallExpression.toASTString()));
+        return formula;
+      }
+    }
+
+    return Value.UnknownValue.getInstance();
   }
 
   @Override
@@ -136,7 +144,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     if (state.contains(memLoc)) {
       return state.getValueFor(memLoc);
     } else {
-      return getUnknownIdExpressionValue(memLoc);
+      return Value.UnknownValue.getInstance();
     }
   }
 

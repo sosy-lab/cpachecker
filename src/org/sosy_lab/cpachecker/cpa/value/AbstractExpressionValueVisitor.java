@@ -206,7 +206,7 @@ public abstract class AbstractExpressionValueVisitor
     }
 
     if (lVal instanceof SymbolicValueFormula || rVal instanceof SymbolicValueFormula) {
-      return calculateSymbolicBinaryExpression(lVal, rVal, binaryExpr);
+      return calculateSymbolicBinaryExpression(lVal, rVal, binaryExpr, logger);
     }
 
     Value result;
@@ -264,7 +264,7 @@ public abstract class AbstractExpressionValueVisitor
    * e.g. joining `a` and `5` with `+` will produce `a + 5`
    */
   public static Value calculateSymbolicBinaryExpression(Value lVal, Value rVal,
-      final CBinaryExpression binaryExpr) {
+      final CBinaryExpression binaryExpr, LogManagerWithoutDuplicates logger) {
 
     // Convert the CBinaryOperator to an operator suitable for our symbolic value formulas
     SymbolicValueFormula.BinaryExpression.BinaryOperator op =
@@ -281,7 +281,7 @@ public abstract class AbstractExpressionValueVisitor
     SymbolicValueFormula.ExpressionBase rightHand =
         SymbolicValueFormula.expressionFromExplicitValue(rVal);
 
-    return new SymbolicValueFormula(new SymbolicValueFormula.BinaryExpression(leftHand, rightHand, op, binaryExpr.getExpressionType(), binaryExpr.getCalculationType())).simplify();
+    return new SymbolicValueFormula(new SymbolicValueFormula.BinaryExpression(leftHand, rightHand, op, binaryExpr.getExpressionType(), binaryExpr.getCalculationType())).simplify(logger);
   }
 
   /**

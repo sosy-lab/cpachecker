@@ -25,10 +25,12 @@ package org.sosy_lab.cpachecker.cpa.value.simplifier;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 
 import org.matheclipse.core.eval.EvalUtilities;
 import org.matheclipse.core.expression.F;
 import org.matheclipse.core.interfaces.IExpr;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cpa.value.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.SymbolicValueFormula.BinaryExpression;
@@ -50,19 +52,17 @@ public class ExternalSimplifier {
     }
   }
 
-  public static ExpressionBase simplify(ExpressionBase expr) {
+  public static ExpressionBase simplify(ExpressionBase expr, LogManagerWithoutDuplicates logger) {
 
     IExpr result;
 
     try {
       List<SymbolicValue> usedVariables = new ArrayList<>();
       String input = "Simplify[" +convertFormulaToString(expr, usedVariables) + "]";
-      System.out.println(input);
       result = util.evaluate(input);
-      System.out.println(result.toString());
       return recursiveConvertExpressionToFormula(result, usedVariables);
     } catch (final Exception e) {
-      e.printStackTrace();
+      logger.logf(Level.FINE, "Error simplifying formula %s: %s", expr.toString(), e.toString());
     }
 
     return expr;
@@ -72,18 +72,14 @@ public class ExternalSimplifier {
    * Exception thrown when a formula is simplified/solved that isn't yet supported.
    */
   static class UnsupportedFormulaException extends Exception {
+    private static final long serialVersionUID = 1L;
+
     public UnsupportedFormulaException(String message) {
       super(message);
     }
   }
 
-  public static Value solve(SymbolicValue value, ExpressionBase expr) {
-    // Static initialization of the MathEclipse engine instead of null
-    // you can set a file name to overload the default initial
-    // rules. This step should be called only once at program setup:
-    F.initSymbols(null);
-    EvalUtilities util = new EvalUtilities();
-
+  public static Value solve(SymbolicValue value, ExpressionBase expr, LogManagerWithoutDuplicates logger) {
     IExpr result;
 
     try {
@@ -92,7 +88,6 @@ public class ExternalSimplifier {
       int toSolveIndex = usedVariables.indexOf(value);
       String variableToSolveFor = "X" + toSolveIndex;
       String input = "Solve[" + formulaString + ", " + variableToSolveFor + "]";
-      System.out.println(input);
       result = util.evaluate(input);
 
       // We expect to get something of the form `{{Rule[X0, 1]}}`, which means `X0 := 1`
@@ -105,10 +100,9 @@ public class ExternalSimplifier {
         }
       }
 
-      System.out.println(result.toString());
       return null;
     } catch (final Exception e) {
-      e.printStackTrace();
+      logger.logf(Level.FINE, "Error solving formula %s: %s", expr.toString(), e.toString());
     }
 
     return null;

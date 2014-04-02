@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -54,8 +55,6 @@ import org.sosy_lab.cpachecker.cpa.value.simplifier.ExternalSimplifier;
  * integer arithmetics, this can not be simplified to "X".
  */
 public class SymbolicValueFormula implements Value {
-  static int numSymbolicValues = 0;
-
   @Override
   public int hashCode() {
     final int prime = 31;
@@ -101,14 +100,14 @@ public class SymbolicValueFormula implements Value {
    * Returns a version of this symboli{c value that was simplified
    * as much as possible.
    */
-  public Value simplify() {
+  public Value simplify(LogManagerWithoutDuplicates logger) {
     ExpressionBase simplifiedTree = root;
 
     // Only call the external simplifier if it's actually a complex
     // expression.
     if(root instanceof BinaryExpression) {
       if(isIntegerAddMultiplyOnly()) {
-        simplifiedTree = ExternalSimplifier.simplify(simplifiedTree);
+        simplifiedTree = ExternalSimplifier.simplify(simplifiedTree, logger);
       }
     }
 
@@ -315,8 +314,6 @@ public class SymbolicValueFormula implements Value {
 
     public SymbolicValue(String name) {
       displayName = name;
-      numSymbolicValues++;
-      System.out.println("Number of unique symbolic values: "+numSymbolicValues);
     }
 
     @Override
@@ -429,12 +426,12 @@ public class SymbolicValueFormula implements Value {
    * @param replacement
    * @return The simplified formula with the given symbol replaced.
    */
-  public Value replaceSymbolWith(SymbolicValue pSymbol, Value pReplacement) {
+  public Value replaceSymbolWith(SymbolicValue pSymbol, Value pReplacement, LogManagerWithoutDuplicates logger) {
     ConstantValue replacement = new ConstantValue(pReplacement);
     SymbolicValueFormula rval = new SymbolicValueFormula(root.replaceSymbolWith(pSymbol, replacement));
     if(!rval.root.equals(root)) {
       // Only simplify if we actually managed to replace something.
-      return rval.simplify();
+      return rval.simplify(logger);
     }
     return this;
   }
@@ -448,7 +445,7 @@ public class SymbolicValueFormula implements Value {
    * @return A pair of the single symbolic value that was found, and the value it must have
    *         according to this formula. null if no such pair exists.
    */
-  public Pair<SymbolicValue, Value> inferAssignment(boolean truthValue) {
+  public Pair<SymbolicValue, Value> inferAssignment(boolean truthValue, LogManagerWithoutDuplicates logger) {
     Set<SymbolicValue> symbolicValues = root.getSymbolicValues();
 
     ExpressionBase root = this.root;
@@ -490,7 +487,7 @@ public class SymbolicValueFormula implements Value {
         }
 
         // Can only solve anything if we have an == at the top level.
-        Value result = ExternalSimplifier.solve(valueToSolveFor, root);
+        Value result = ExternalSimplifier.solve(valueToSolveFor, root, logger);
         if(result == null) {
           return null;
         } else {
