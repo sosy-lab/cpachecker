@@ -50,7 +50,6 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.FileLogFormatter;
 import org.sosy_lab.cpachecker.appengine.common.GAEConfigurationBuilder;
-import org.sosy_lab.cpachecker.appengine.common.TaskMappingThreadFactory;
 import org.sosy_lab.cpachecker.appengine.dao.TaskDAO;
 import org.sosy_lab.cpachecker.appengine.dao.TaskFileDAO;
 import org.sosy_lab.cpachecker.appengine.entity.Task;
@@ -68,6 +67,7 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import com.google.appengine.api.LifecycleManager;
 import com.google.appengine.api.LifecycleManager.ShutdownHook;
+import com.google.appengine.api.ThreadManager;
 import com.google.apphosting.api.ApiProxy;
 import com.google.common.base.Charsets;
 import com.google.common.io.FileWriteMode;
@@ -106,10 +106,11 @@ public class TaskExecutorServerResource extends WadlServerResource implements Ta
       // continue business as usual
     }
 
-    TaskMappingThreadFactory.registerTaskWithThread(task, Thread.currentThread());
-    Threads.setThreadFactory(new TaskMappingThreadFactory());
+    Threads.setThreadFactory(ThreadManager.currentRequestThreadFactory());
+    GAEPathFactory.registerTaskWithCurrentThread(task);
+    // TODO unregister task at some point to free memory?
 
-    Paths.setFactory(new GAEPathFactory(TaskMappingThreadFactory.getMap()));
+    Paths.setFactory(new GAEPathFactory());
     errorPath = Paths.get(ERROR_FILE_NAME);
 
     @SuppressWarnings("unchecked")

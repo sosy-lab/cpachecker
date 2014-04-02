@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.appengine.io;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
-import java.util.Map;
 
 import javax.annotation.Nullable;
 
@@ -42,27 +41,28 @@ import org.sosy_lab.cpachecker.appengine.entity.Task;
  */
 public class GAEPathFactory implements AbstractPathFactory {
 
-  private Task task;
-  private Map<Thread, Task> threadTaskMap;
+  /**
+   * This {@link ThreadLocal} stores the mapping from a {@link Thread}
+   * to their corresponding {@link Task} instance.
+   * It is an {@link InheritableThreadLocal} so that each "child" {@link Thread}
+   * automatically inherits the {@link Task} from its "parent".
+   */
+  private static final ThreadLocal<Task> threadTaskMap = new InheritableThreadLocal<>();
 
   /**
-   * Creates an instance that depends on the given {@link Task} when it creates
-   * {@link Path} instances.
-   *
-   * @param task The {@link Task} to use when creating {@link Path} instances
+   * Creates an instance that uses the registered {@link Task}
+   * instances when a {@link Path} instance is created.
    */
-  public GAEPathFactory(Task task) {
-    this.task = checkNotNull(task);
+  public GAEPathFactory() {
   }
 
   /**
-   * Creates an instance that uses the given {@link Map} to retrieve a {@link Task}
-   * instance when a {@link Path} instance is created.
+   * Registers a {@link Task} with the current {@link Thread}.
    *
-   * @param map A {@link Map} to retrieve the dependent {@link Task} from.
+   * @param task The {@link Task} to map to the {@link Thread}
    */
-  public GAEPathFactory(Map<Thread, Task> map) {
-    threadTaskMap = checkNotNull(map);
+  public static void registerTaskWithCurrentThread(Task task) {
+    threadTaskMap.set(task);
   }
 
   /**
@@ -72,10 +72,7 @@ public class GAEPathFactory implements AbstractPathFactory {
    */
   @Override
   public Path getPath(@Nullable String path, @Nullable String... more) {
-    Task taskForPath = task;
-    if (taskForPath == null) {
-      taskForPath = threadTaskMap.get(Thread.currentThread());
-    }
+    Task taskForPath = threadTaskMap.get();
 
     if (taskForPath == null) {
       return new FileSystemPath(path, more);
