@@ -51,8 +51,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
@@ -250,6 +248,7 @@ public class BAMTransferRelation implements TransferRelation {
       logger.log(Level.FINEST, "rebuilding state with root state", rootState);
       logger.log(Level.FINEST, "rebuilding state with expanded state", expandedState);
       AbstractState rebuildState = wrappedReducer.rebuildStateAfterFunctionCall(rootState, expandedState);
+      //((ARGState)rebuildState).addParent((ARGState)rootState);
       logger.log(Level.FINEST, "rebuilding finished with state", rebuildState);
       result.add(rebuildState);
     }
@@ -504,7 +503,15 @@ public class BAMTransferRelation implements TransferRelation {
       breakAnalysis = true;
       return Collections.singletonList(Pair.of(reducedInitialState, reducedInitialPrecision));
     } else {
-      returnStates = AbstractStates.filterLocations(reached, currentBlock.getReturnNodes()).toList();
+      // get only those states, that are at block-exit.
+      // in case of recursion, the block-exit-nodes might also appear in the middle of the block,
+      // but the middle states have children, the exit-states have not.
+      returnStates = new ArrayList<>();
+      for (AbstractState returnState : AbstractStates.filterLocations(reached, currentBlock.getReturnNodes())) {
+        if (((ARGState)returnState).getChildren().isEmpty()) {
+          returnStates.add(returnState);
+        }
+      }
     }
 
     ARGState rootOfBlock = null;
