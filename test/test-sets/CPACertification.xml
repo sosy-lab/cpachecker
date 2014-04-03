@@ -411,7 +411,7 @@
 </rundefinition>
 
 <rundefinition name="A_ExplicitDF">
-	<option name="-explicit-trac-all"/>
+	<option name="-explicitAnalysis-pcc-trac-all"/>
 	<option name="-setprop">analysis.traversal.order=BFS</option>
 	<option name="-setprop">cpa.value.merge=JOIN</option>
 	<option name="-setprop">cpa.propertychecker.className=SingleValueChecker</option>
@@ -436,7 +436,7 @@
 </rundefinition>
 
 <rundefinition name="V_ExplicitDF">
-	<option name="-explicit-trac-all"/>
+	<option name="-explicitAnalysis-pcc-trac-all"/>
 	<option name="-setprop">analysis.traversal.order=BFS</option>
 	<option name="-setprop">cpa.value.merge=JOIN</option>
 	<option name="-setprop">cpa.propertychecker.className=SingleValueChecker</option>
