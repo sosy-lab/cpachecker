@@ -177,11 +177,12 @@ def getBenchmarkDataForCloud(benchmark):
             assert not "\t" in argString # cannot call toTabList(), if there is a tab
 
             logFile = os.path.relpath(run.logFile, benchmark.logFolder)
+            assert run.sourcefile is run.sourcefiles[0]
             if os.path.exists(run.sourcefile):
-                runDefinitions.append(toTabList([argString, logFile, run.sourcefile] + run.requiredFiles))
+                runDefinitions.append(toTabList([argString, logFile] + run.sourcefiles + run.requiredFiles))
             else:
                 runDefinitions.append(toTabList([argString, logFile] + run.requiredFiles))
-            sourceFiles.append(run.sourcefile)
+            sourceFiles.extend(run.sourcefiles)
 
     if not runDefinitions: sys.exit("Benchmark has nothing to run.")
 

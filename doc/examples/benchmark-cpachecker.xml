@@ -19,6 +19,8 @@
     <!-- Files can be "included" and "excluded". -->
     <include>../../test/programs/benchmarks/locks/*_1*_*.c</include>
     <exclude>../../test/programs/benchmarks/locks/*_13_*.c</exclude>
+
+    <append>${benchmark_path}/${sourcefile_path}/${sourcefile_name}.should_not_exist</append>
   </sourcefiles>
 
   <sourcefiles name="DeviceDrivers64">

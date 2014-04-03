@@ -51,7 +51,6 @@ def substituteVars(oldList, runSet, sourcefile=None):
     This method replaces special substrings from a list of string
     and return a new list.
     """
-
     benchmark = runSet.benchmark
 
     # list with tuples (key, value): 'key' is replaced by 'value'
@@ -361,7 +360,7 @@ class RunSet:
                     logging.warning('Pattern {0} in requiredfiles tag did not match any file.'.format(requiredFilesTag.text))
                 requiredFiles = requiredFiles.union(thisRequiredFiles)
 
-            # get list of filenames
+            # get lists of filenames
             sourcefiles = self.getSourcefilesFromXML(sourcefilesTag, self.benchmark.baseDir)
 
             # get file-specific options for filenames
@@ -435,10 +434,21 @@ class RunSet:
         for run in sourcefilesTag.findall("withoutfile"):
             sourcefiles.append(run.text)
 
-        return sourcefiles
+        # some runs need more than one sourcefile, 
+        # the first sourcefile is a normal 'include'-file, we use its name as identifier for logfile and result-category
+        # all other files are 'append'ed.
+        sourcefilesLists = []
+        appendFileTags = sourcefilesTag.findall("append")
+        for sourcefile in sourcefiles:
+            files = [sourcefile]
+            for appendFile in appendFileTags:
+                files.extend(self.expandFileNamePattern(appendFile.text, baseDir, sourcefile=sourcefile))
+            sourcefilesLists.append(files)
+        
+        return sourcefilesLists
 
 
-    def expandFileNamePattern(self, pattern, baseDir):
+    def expandFileNamePattern(self, pattern, baseDir, sourcefile=None):
         """
         The function expandFileNamePattern expands a filename pattern to a sorted list
         of filenames. The pattern can contain variables and wildcards.
@@ -450,7 +460,7 @@ class RunSet:
 
         # replace vars like ${benchmark_path},
         # with converting to list and back, we can use the function 'substituteVars()'
-        expandedPattern = substituteVars([pattern], self)
+        expandedPattern = substituteVars([pattern], self, sourcefile)
         assert len(expandedPattern) == 1
         expandedPattern = expandedPattern[0]
 
@@ -488,16 +498,18 @@ class Run():
     A Run contains one sourcefile and options.
     """
 
-    def __init__(self, sourcefile, fileOptions, runSet, propertyFiles=[], requiredFiles=[]):
-        self.sourcefile = sourcefile
+    def __init__(self, sourcefiles, fileOptions, runSet, propertyFiles=[], requiredFiles=[]):
+        assert sourcefiles
+        self.sourcefiles = sourcefiles
+        self.sourcefile = self.sourcefiles[0] # used for name of logfile, substitution, result-category
         self.runSet = runSet
         self.specificOptions = fileOptions # options that are specific for this run
-        self.logFile = runSet.logFolder + os.path.basename(sourcefile) + ".log"
+        self.logFile = runSet.logFolder + os.path.basename(self.sourcefile) + ".log"
         self.requiredFiles = requiredFiles
 
         # lets reduce memory-consumption: if 2 lists are equal, do not use the second one
         self.options = runSet.options + fileOptions if fileOptions else runSet.options # all options to be used when executing this run
-        substitutedOptions = substituteVars(self.options, runSet, sourcefile)
+        substitutedOptions = substituteVars(self.options, runSet, self.sourcefile)
         if substitutedOptions != self.options: self.options = substitutedOptions # for less memory again
 
         # get propertyfile for Run: if available, use the last one
@@ -517,7 +529,7 @@ class Run():
             # we check two cases: direct filename or user-defined substitution, one of them must be a 'file'
             # TODO: do we need the second case? it is equal to previous used option "-spec ${sourcefile_path}/ALL.prp"
             expandedPropertyFiles = Util.expandFileNamePattern(self.propertyfile, self.runSet.benchmark.baseDir)
-            substitutedPropertyfiles = substituteVars([self.propertyfile], runSet, sourcefile)
+            substitutedPropertyfiles = substituteVars([self.propertyfile], runSet, self.sourcefile)
             assert len(substitutedPropertyfiles) == 1
             
             if expandedPropertyFiles:
@@ -547,7 +559,7 @@ class Run():
 
 
     def getCmdline(self):
-        args = self.runSet.benchmark.tool.getCmdline(self.runSet.benchmark.executable, self.options, self.sourcefile, self.propertyfile)
+        args = self.runSet.benchmark.tool.getCmdline(self.runSet.benchmark.executable, self.options, self.sourcefiles, self.propertyfile)
         args = [os.path.expandvars(arg) for arg in args]
         args = [os.path.expanduser(arg) for arg in args]
         return args;

@@ -15,7 +15,10 @@ class Tool(benchmark.tools.template.BaseTool):
         return 'Feaver'
 
 
-    def getCmdline(self, executable, options, sourcefile, propertyfile):
+    def getCmdline(self, executable, options, sourcefiles, propertyfile):
+        assert len(sourcefiles) == 1, "only one sourcefile supported"
+        sourcefile = sourcefiles[0]
+        
         # create tmp-files for feaver, feaver needs special error-labels
         self.prepSourcefile = _prepareSourcefile(sourcefile)
 

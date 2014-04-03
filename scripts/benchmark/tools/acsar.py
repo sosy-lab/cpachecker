@@ -16,7 +16,10 @@ class Tool(benchmark.tools.template.BaseTool):
         return 'Acsar'
 
 
-    def getCmdline(self, executable, options, sourcefile, propertyfile):
+    def getCmdline(self, executable, options, sourcefiles, propertyfile):
+        assert len(sourcefiles) == 1, "only one sourcefile supported"
+        sourcefile = sourcefiles[0]
+
         # create tmp-files for acsar, acsar needs special error-labels
         self.prepSourcefile = self._prepareSourcefile(sourcefile)
 

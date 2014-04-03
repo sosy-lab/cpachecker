@@ -104,11 +104,11 @@ class Tool(benchmark.tools.template.BaseTool):
         return 'CPAchecker'
 
 
-    def getCmdline(self, executable, options, sourcefile, propertyfile=None):
+    def getCmdline(self, executable, options, sourcefiles, propertyfile=None):
         if ("-stats" not in options):
             options = options + ["-stats"]
         spec = ["-spec", propertyfile] if propertyfile is not None else []
-        return [executable] + options + spec + [sourcefile]
+        return [executable] + options + spec + sourcefiles
 
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
