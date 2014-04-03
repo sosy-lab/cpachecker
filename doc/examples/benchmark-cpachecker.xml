@@ -20,7 +20,8 @@
     <include>../../test/programs/benchmarks/locks/*_1*_*.c</include>
     <exclude>../../test/programs/benchmarks/locks/*_13_*.c</exclude>
 
-    <append>${benchmark_path}/${sourcefile_path}/${sourcefile_name}.should_not_exist</append>
+    <!-- Multiple sourcefiles can be used as input for the tool, just append some files. All matching files will be appended. -->
+    <append>../../${sourcefile_path}/${sourcefile_name}__second_file.c.does_not_exist</append>
   </sourcefiles>
 
   <sourcefiles name="DeviceDrivers64">
