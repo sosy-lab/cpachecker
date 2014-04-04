@@ -245,8 +245,10 @@ public interface PointerTargetSetBuilder {
                             final String composite,
                             final String memberName) {
       final CType cType = CTypeUtils.simplifyType(currentType);
-      assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type:" + cType;
-      if (cType instanceof CArrayType) {
+      if (cType instanceof CElaboratedType) {
+        // unresolved struct type won't have any targets, do nothing
+
+      } else if (cType instanceof CArrayType) {
         final CArrayType arrayType = (CArrayType) cType;
         Integer length = CTypeUtils.getArrayLength(arrayType);
         if (length == null) {
