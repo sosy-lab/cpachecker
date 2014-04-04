@@ -1852,12 +1852,10 @@ class ASTConverter {
 
   /** This function returns the converted file-location of an IASTNode. */
   FileLocation getLocation(final IASTNode n) {
-    return getLocation(n.getFileLocation());
-  }
+    IASTFileLocation l = n.getFileLocation();
 
-  FileLocation getLocation(IASTFileLocation l) {
     if (l == null) {
-      return null;
+      return FileLocation.DUMMY;
     }
 
     String fileName = l.getFileName();
