@@ -660,7 +660,7 @@ class DynamicMemoryHandler {
    * declared in current function scope from tracking after returning from the function.
    */
   void handleDeferredAllocationInFunctionExit(final String function) {
-    String prefix = function + CtoFormulaConverter.scoped("", function);
+    String prefix = CtoFormulaConverter.scoped("", function);
     SortedSet<String> localVariables = Collections3.subSetWithPrefix(pts.getDeferredAllocationVariables(), prefix);
 
     for (final String variable : localVariables) {
