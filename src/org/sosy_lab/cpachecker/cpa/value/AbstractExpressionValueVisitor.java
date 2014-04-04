@@ -1020,7 +1020,7 @@ public abstract class AbstractExpressionValueVisitor
         } else {
           // java-type "long" is too small for big types like UNSIGNED_LONGLONG,
           // so we do nothing here and trust the analysis, that handles it later
-          logger.logfOnce(Level.INFO,
+          logger.logfOnce(Level.FINEST,
               "%s: overflow, value %s of c-type '%s' may be too big for java-type 'long'.",
               fileLocation,
               value, targetType);
