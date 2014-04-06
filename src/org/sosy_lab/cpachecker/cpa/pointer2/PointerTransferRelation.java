@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -81,10 +82,15 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 
-
 public enum PointerTransferRelation implements TransferRelation {
 
   INSTANCE;
+
+  /**
+   * Base name of the variable that is introduced to pass results from
+   * returning function calls.
+   */
+  private static final String RETURN_VARIABLE_BASE_NAME = "___cpa_temp_result_var_";
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision,
@@ -118,6 +124,7 @@ public enum PointerTransferRelation implements TransferRelation {
       }
       break;
     case ReturnStatementEdge:
+      resultState = handleReturnStatementEdge(pState, pPrecision, (CReturnStatementEdge) pCfaEdge);
       break;
     case StatementEdge:
       resultState = handleStatementEdge(pState, pPrecision, (CStatementEdge) pCfaEdge);
@@ -126,6 +133,17 @@ public enum PointerTransferRelation implements TransferRelation {
       throw new UnrecognizedCCodeException("Unrecognized CFA edge.", pCfaEdge);
     }
     return resultState;
+  }
+
+  private PointerState handleReturnStatementEdge(PointerState pState, Precision pPrecision,
+      CReturnStatementEdge pCfaEdge) throws UnrecognizedCCodeException {
+    if (pCfaEdge.getExpression() == null) {
+      return pState;
+    }
+    return handleAssignment(pState,
+        pPrecision,
+        RETURN_VARIABLE_BASE_NAME + pCfaEdge.getSuccessor().getFunctionName(),
+        pCfaEdge.getExpression());
   }
 
   private PointerState handleFunctionCallEdge(PointerState pState, Precision pPrecision,
@@ -384,17 +402,22 @@ public enum PointerTransferRelation implements TransferRelation {
       @Override
       public LocationSet visit(CIdExpression pIastIdExpression) throws UnrecognizedCCodeException {
         Type type = pIastIdExpression.getExpressionType();
-        Collection<String> result;
+        final String location;
         if (type.toString().startsWith("struct ") || type.toString().startsWith("union ")) {
-          result = Collections.<String>singleton(type.toString());
+          location = type.toString();
         } else {
           CSimpleDeclaration declaration = pIastIdExpression.getDeclaration();
           if (declaration != null) {
-            result = Collections.<String>singleton(declaration.getQualifiedName());
+            location = declaration.getQualifiedName();
           } else {
-            result = Collections.<String>singleton(pIastIdExpression.getName());
+            location = pIastIdExpression.getName();
           }
         }
+        return visit(location);
+      }
+
+      private LocationSet visit(String pLocation) {
+        Collection<String> result = Collections.singleton(pLocation);
         for (int deref = pDerefCounter; deref > 0 && !result.isEmpty(); --deref) {
           Collection<String> newResult = new HashSet<>();
           for (String location : result) {
@@ -486,7 +509,7 @@ public enum PointerTransferRelation implements TransferRelation {
       @Override
       public LocationSet visit(CFunctionCallExpression pIastFunctionCallExpression)
           throws UnrecognizedCCodeException {
-        return LocationSetTop.INSTANCE;
+        return visit(RETURN_VARIABLE_BASE_NAME + pIastFunctionCallExpression.getDeclaration().getQualifiedName());
       }});
   }
 

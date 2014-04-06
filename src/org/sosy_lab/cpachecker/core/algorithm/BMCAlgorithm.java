@@ -515,6 +515,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     private UnmodifiableReachedSet invariantsReachedSet;
 
+    private int stackDepth = 0;
+
     public KInductionProver() {
       List<CFAEdge> incomingEdges = null;
       List<CFAEdge> outgoingEdges = null;
@@ -627,12 +629,12 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         invariantsReachedSet = currentInvariantsReachedSet;
         BooleanFormula invariants = extractInvariantsAt(currentInvariantsReachedSet, loopHead);
         if (isProverInitialized()) {
-          prover.pop();
+          pop();
         } else {
           prover = solver.newProverEnvironmentWithModelGeneration();
         }
         invariants = fmgr.instantiate(invariants, SSAMap.emptySSAMap().withDefault(1));
-        prover.push(invariants);
+        push(invariants);
       }
       assert isProverInitialized();
       return prover;
@@ -641,9 +643,24 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     @Override
     public void close() {
       if (isProverInitialized()) {
-        prover.pop();
+        while (stackDepth-- > 0) {
+          prover.pop();
+        }
         prover.close();
       }
+    }
+
+    private void pop() {
+      Preconditions.checkState(isProverInitialized());
+      Preconditions.checkState(stackDepth > 0);
+      prover.pop();
+      --stackDepth;
+    }
+
+    private void push(BooleanFormula pFormula) {
+      Preconditions.checkState(isProverInitialized());
+      prover.push(pFormula);
+      ++stackDepth;
     }
 
     private BooleanFormula extractInvariantsAt(UnmodifiableReachedSet pReachedSet, CFANode pLocation) throws CPAException, InterruptedException {
@@ -813,13 +830,13 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       logger.log(Level.INFO, "Starting induction check...");
 
       stats.inductionCheck.start();
-      prover.push(inductions);
+      push(inductions);
       boolean sound = prover.isUnsat();
 
       if (!sound && logger.wouldBeLogged(Level.ALL)) {
         logger.log(Level.ALL, "Model returned for induction check:", prover.getModel());
       }
-      prover.pop();
+      pop();
       stats.inductionCheck.stop();
 
       logger.log(Level.FINER, "Soundness after induction check:", sound);

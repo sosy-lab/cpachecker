@@ -236,7 +236,8 @@ class OutputHandler:
             run.resultline = self.formatSourceFileName(run.sourcefile)
 
         # prepare XML structure for each run and runSet
-            run.xml = ET.Element("sourcefile", {"name": run.sourcefile})
+            run.xml = ET.Element("sourcefile", 
+                                 {"name": run.sourcefile, "files": "[" + ", ".join(run.sourcefiles) + "]"})
             if run.specificOptions:
                 run.xml.set("options", " ".join(run.specificOptions))
             run.xml.extend(self.XMLDummyElems)

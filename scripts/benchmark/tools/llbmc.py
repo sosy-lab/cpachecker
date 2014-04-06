@@ -23,7 +23,9 @@ class Tool(benchmark.tools.template.BaseTool):
         return 'LLBMC'
 
 
-    def getCmdline(self, executable, options, sourcefile, propertyfile):
+    def getCmdline(self, executable, options, sourcefiles, propertyfile):
+        assert len(sourcefiles) == 1, "only one sourcefile supported"
+        sourcefile = sourcefiles[0]
         # compile sourcefile with clang
         self.prepSourcefile = self._prepareSourcefile(sourcefile)
 

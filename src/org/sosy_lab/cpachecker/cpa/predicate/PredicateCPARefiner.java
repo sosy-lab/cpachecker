@@ -398,6 +398,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         from(targetPath)
           .transform(Pair.<ARGState>getProjectionToFirst())
           .transform(toState(PredicateAbstractState.class))
+          .skip(1) // skip ARG root with empty SSAMap before first edge
           .transform(new Function<PredicateAbstractState, SSAMap> () {
             @Override
             public SSAMap apply(PredicateAbstractState pInput) {
@@ -405,9 +406,15 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
             }})
           .toList();
 
+    List<CFAEdge> edges = targetPath.asEdgesList();
+    // last edge in ARGPath is the one beyond target state, exclude it
+    edges = edges.subList(0, edges.size()-1);
+
+    assert ssamaps.size() == edges.size();
+
     Model model = counterexample.getModel();
     model = counterexample.getModel().withAssignmentInformation(
-        pathChecker.extractVariableAssignment(targetPath.asEdgesList(), ssamaps, model));
+        pathChecker.extractVariableAssignment(edges, ssamaps, model));
 
     return CounterexampleTraceInfo.feasible(counterexample.getCounterExampleFormulas(), model, counterexample.getBranchingPredicates());
   }

@@ -15,7 +15,7 @@
   <rundefinition>
 
     <sourcefiles name="ex-bdd-bool">
-      <option name="-explicit-BDD-bool"/>
+      <option name="-explicitAnalysis-BDD-bool"/>
       <include>../programs/benchmarks/ssh/*clnt*</include>
       <exclude>../programs/benchmarks/ssh/*clnt*1*</exclude>
       <include>../programs/benchmarks/ssh-simplified/*clnt*</include>
@@ -25,7 +25,7 @@
     </sourcefiles>
     
     <sourcefiles name="ex-bdd-eq">
-      <option name="-explicit-BDD-bool-intEQ"/>
+      <option name="-explicitAnalysis-BDD-bool-intEQ"/>
       <include>../programs/benchmarks/ssh/*clnt*1*</include>
       <include>../programs/benchmarks/ssh-simplified/*clnt*1*</include>
       <include>../programs/benchmarks/product-lines/*product1*</include>
@@ -33,7 +33,7 @@
     </sourcefiles>
     
     <sourcefiles name="ex-bdd-add">
-      <option name="-explicit-BDD-bool-intEQ-intADD"/>
+      <option name="-explicitAnalysis-BDD-bool-intEQ-intADD"/>
       <include>../programs/benchmarks/ssh/*srvr*</include>
       <exclude>../programs/benchmarks/ssh/*srvr*1*</exclude>
       <include>../programs/benchmarks/ssh-simplified/*srvr*</include>

@@ -341,6 +341,13 @@ public class CFACreator {
 
       cfa = postProcessingOnMutableCFAs(cfa, c.getGlobalDeclarations());
 
+      // Check CFA again after post-processings
+      stats.checkTime.start();
+      for (String functionName : cfa.getAllFunctionNames()) {
+        assert CFACheck.check(cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName), false);
+      }
+      stats.checkTime.stop();
+
       // THIRD, do read-only post-processings on each single function CFA
 
       // Annotate CFA nodes with reverse postorder information for later use.
@@ -516,7 +523,10 @@ public class CFACreator {
         CFANode current = waitlist.poll();
         for (CFAEdge leavingBlankEdge : CFAUtils.leavingEdges(current).filter(BlankEdge.class).toList()) {
           CFANode succ = leavingBlankEdge.getSuccessor();
-          if (succ == node) {
+          if (succ == node && succ.getNumEnteringEdges() > 1) {
+            // Found empty loop
+            // We can only remove edges to nodes that have more than one incoming edge,
+            // otherwise we create an unreachable node.
             leavingBlankEdge.getPredecessor().removeLeavingEdge(leavingBlankEdge);
             leavingBlankEdge.getSuccessor().removeEnteringEdge(leavingBlankEdge);
             CFANode terminationNode = new CFATerminationNode(node.getFunctionName());
