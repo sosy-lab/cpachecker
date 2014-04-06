@@ -341,6 +341,13 @@ public class CFACreator {
 
       cfa = postProcessingOnMutableCFAs(cfa, c.getGlobalDeclarations());
 
+      // Check CFA again after post-processings
+      stats.checkTime.start();
+      for (String functionName : cfa.getAllFunctionNames()) {
+        assert CFACheck.check(cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName), false);
+      }
+      stats.checkTime.stop();
+
       // THIRD, do read-only post-processings on each single function CFA
 
       // Annotate CFA nodes with reverse postorder information for later use.

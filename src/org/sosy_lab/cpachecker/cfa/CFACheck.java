@@ -31,6 +31,7 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -87,16 +88,16 @@ public class CFACheck {
     public String apply(CFANode node) {
       if (node == null) {
         // nothing useful to do. this line only exists, because input for Function.apply might be NULL.
-        return "node == NULL";
+        return "NULL";
       }
       // try to get some information about location from node
-      String location = "not available";
+      FileLocation location = FileLocation.DUMMY;
       if (node.getNumEnteringEdges() > 0) {
-        location = node.getEnteringEdge(0).getFileLocation().toString();
+        location = node.getEnteringEdge(0).getFileLocation();
       } else if (node.getNumLeavingEdges() > 0) {
-        location = node.getLeavingEdge(0).getFileLocation().toString();
+        location = node.getLeavingEdge(0).getFileLocation();
       }
-      return node.getFunctionName() + ":" + node.toString() + " (location " + location + ")";
+      return node.getFunctionName() + ":" + node + " (" + location + ")";
     }
   };
 
@@ -109,7 +110,7 @@ public class CFACheck {
     // check entering edges
     int entering = pNode.getNumEnteringEdges();
     if (entering == 0) {
-      assert (pNode instanceof FunctionEntryNode) : "Dead code: node " + DEBUG_FORMAT.apply(pNode) + " has no incoming edges";
+      assert (pNode instanceof FunctionEntryNode) : "Dead code: node " + DEBUG_FORMAT.apply(pNode) + " has no incoming edges (successors are " + CFAUtils.successorsOf(pNode).transform(DEBUG_FORMAT) + ")";
     }
 
     // check leaving edges
@@ -118,7 +119,7 @@ public class CFACheck {
       case 0:
         if (!pruned) {
           // not possible to check this when CFA was pruned
-          assert pNode instanceof CFATerminationNode : "Dead end at node " + pNode;
+          assert pNode instanceof CFATerminationNode : "Dead end at node " + DEBUG_FORMAT.apply(pNode);
         }
         break;
 
