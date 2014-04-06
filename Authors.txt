@@ -8,6 +8,7 @@ Former Maintainers:
 
 Contributors:
   Christian Bielert (2013 - 2014), University of Passau, Germany
+  Mike Czech (2013), University of Paderborn, Germany
   Przemislaw Daca (2011 - 2012), Technical University of Denmark, Denmark
   Peter Dahlberg (2013 - 2014), University of Passau, Germany
   Matthias Dangl (since 2012), University of Passau, Germany
