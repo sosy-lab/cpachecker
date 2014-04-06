@@ -12,11 +12,14 @@ Prepare Programs for Verification by CPAchecker
 
    All programs need to pre-processed with the C pre-processor,
    i.e., they may not contain #define and #include directives.
-   Currently, a program must consist of one single file.
+   You can enable pre-processing inside CPAchecker
+   by specifying -preprocess on the command line.
+   Multiple C files can be given and will be linked together
+   and verified as a single program (experimental feature).
 
    CPAchecker is able to parse and analyze a large subset of (GNU)C.
    If parsing fails for your program, please send a report to
-   cpachecker-users@sosy-lab.org.
+   cpachecker-users@googlegroups.com.
 
 
 Verifying a Program with CPAchecker

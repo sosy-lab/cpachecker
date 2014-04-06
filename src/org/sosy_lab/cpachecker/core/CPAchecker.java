@@ -240,7 +240,7 @@ public class CPAchecker {
       if (e.getLanguage() == Language.C) {
         msg.append("If the code was not preprocessed, please use a C preprocessor\nor specify the -preprocess command-line argument.\n");
       }
-      msg.append("If the error still occurs, please send this error message\ntogether with the input file to cpachecker-users@sosy-lab.org.\n");
+      msg.append("If the error still occurs, please send this error message\ntogether with the input file to cpachecker-users@googlegroups.com.\n");
       logger.log(Level.INFO, msg);
 
     } catch (InvalidConfigurationException e) {
