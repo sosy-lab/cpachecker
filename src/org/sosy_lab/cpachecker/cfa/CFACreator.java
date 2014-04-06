@@ -523,7 +523,10 @@ public class CFACreator {
         CFANode current = waitlist.poll();
         for (CFAEdge leavingBlankEdge : CFAUtils.leavingEdges(current).filter(BlankEdge.class).toList()) {
           CFANode succ = leavingBlankEdge.getSuccessor();
-          if (succ == node) {
+          if (succ == node && succ.getNumEnteringEdges() > 1) {
+            // Found empty loop
+            // We can only remove edges to nodes that have more than one incoming edge,
+            // otherwise we create an unreachable node.
             leavingBlankEdge.getPredecessor().removeLeavingEdge(leavingBlankEdge);
             leavingBlankEdge.getSuccessor().removeEnteringEdge(leavingBlankEdge);
             CFANode terminationNode = new CFATerminationNode(node.getFunctionName());
