@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.*;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -810,8 +812,6 @@ class ASTConverter {
         sideAssignmentStack.getAndResetPreSideAssignments();
         sideAssignmentStack.leaveBlock();
         if (params.size() == 2) {
-          // TODO this is not completly right considering arrays and perhaps structs
-          // http://www.ocf.berkeley.edu/~pad/tigcc/doc/tigcclib/gnuexts_SEC104___builtin_types_compatible_p.html
           if (areCompatibleTypes(params.get(0).getExpressionType(), params.get(1).getExpressionType())) {
             return CNumericTypes.ONE;
           } else {
@@ -880,14 +880,22 @@ class ASTConverter {
     return new CFunctionCallExpression(getLocation(e), returnType, functionName, params, declaration);
   }
 
-  // TODO this is not completly right considering arrays and perhaps structs
-  // http://www.ocf.berkeley.edu/~pad/tigcc/doc/tigcclib/gnuexts_SEC104___builtin_types_compatible_p.html
   private boolean areCompatibleTypes(CType a, CType b) {
-    a = a.getCanonicalType(false, false);
-    b = b.getCanonicalType(false, false);
-    if (a.equals(b) ||
-        a instanceof CEnumType && b instanceof CEnumType) {
+    // http://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#index-g_t_005f_005fbuiltin_005ftypes_005fcompatible_005fp-3613
+    a = withoutConst(withoutVolatile(a.getCanonicalType()));
+    b = withoutConst(withoutVolatile(b.getCanonicalType()));
+    if (a.equals(b)) {
       return true;
+    }
+    if (a instanceof CArrayType && b instanceof CArrayType) {
+      CArrayType arrayA = (CArrayType)a;
+      CArrayType arrayB = (CArrayType)b;
+      if (arrayA.getType().equals(arrayB.getType())) {
+        if (arrayA.getLength() == null || arrayB.getLength() == null) {
+          // The type int[] and int[5] are compatible
+          return true;
+        }
+      }
     }
     return false;
   }
