@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
@@ -90,19 +91,11 @@ public class SourceLocationMapper {
     }
 
     @Override
-    public int compareTo(OriginDescriptor pO) {
-      if (this.originFileName.isPresent() != pO.originFileName.isPresent()) {
-        return -1;
-      }
-
-      if (this.originFileName.isPresent()) {
-        int result = this.originFileName.get().compareTo(pO.originFileName.get());
-        if (result != 0) {
-          return result;
-        }
-      }
-
-      return Integer.compare(this.originLineNumber, pO.originLineNumber);
+    public int compareTo(OriginDescriptor that) {
+      return ComparisonChain.start()
+          .compare(this.originFileName.orNull(), that.originFileName.orNull())
+          .compare(this.originLineNumber, that.originLineNumber)
+          .result();
     }
   }
 
