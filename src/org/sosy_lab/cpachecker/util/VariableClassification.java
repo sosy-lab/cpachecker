@@ -88,6 +88,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -793,6 +794,9 @@ public class VariableClassification {
       } else if (statement instanceof CFunctionCallStatement) {
         handleExternalFunctionCall(edge, ((CFunctionCallStatement) statement).
             getFunctionCallExpression().getParameterExpressions());
+
+        ((CFunctionCallStatement) statement).getFunctionCallExpression()
+            .accept(new CollectingRHSVisitor(null));
       }
 
       break;
@@ -923,6 +927,8 @@ public class VariableClassification {
         Partition partition = getPartitionForVar(varName);
         partition.addEdge(edge, -1); // negative value, because all positives are used for params
       }
+
+      rhs.accept(new CollectingRHSVisitor(lhsVariableOrField));
 
       handleExternalFunctionCall(edge, func.getParameterExpressions());
 
@@ -1660,7 +1666,8 @@ public class VariableClassification {
     }
   }
 
-  private class CollectingRHSVisitor extends DefaultCExpressionVisitor<Void, RuntimeException> {
+  private class CollectingRHSVisitor extends DefaultCExpressionVisitor<Void, RuntimeException>
+                                     implements CRightHandSideVisitor<Void, RuntimeException> {
 
     private final @Nullable VariableOrField lhs;
     private boolean addressed = false;
@@ -1721,6 +1728,14 @@ public class VariableClassification {
       addVariableOrField(lhs, variable);
       if (addressed) {
         addressedVariables.add(variable.getScopedName());
+      }
+      return null;
+    }
+
+    @Override
+    public Void visit(CFunctionCallExpression e) throws RuntimeException {
+      for (CExpression param : e.getParameterExpressions()) {
+        param.accept(this);
       }
       return null;
     }

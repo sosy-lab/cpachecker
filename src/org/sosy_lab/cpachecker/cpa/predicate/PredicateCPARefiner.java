@@ -398,6 +398,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         from(targetPath)
           .transform(Pair.<ARGState>getProjectionToFirst())
           .transform(toState(PredicateAbstractState.class))
+          .skip(1) // skip ARG root with empty SSAMap before first edge
           .transform(new Function<PredicateAbstractState, SSAMap> () {
             @Override
             public SSAMap apply(PredicateAbstractState pInput) {
