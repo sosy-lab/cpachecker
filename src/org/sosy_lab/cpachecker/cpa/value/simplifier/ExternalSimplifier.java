@@ -143,7 +143,7 @@ public class ExternalSimplifier {
   }
 
   private static ExpressionBase recursiveConvertExpressionToFormula(IExpr expression, List<SymbolicValue> usedVariables) throws UnsupportedFormulaException {
-    if(expression.isPlus() || expression.getAt(0).toString() == "Plus") {
+    if(expression.isPlus() || expression.getAt(0).toString().equals("Plus")) {
       ExpressionBase leftHand = recursiveConvertExpressionToFormula(expression.getAt(1), usedVariables);
       ExpressionBase rightHand = recursiveConvertExpressionToFormula(expression.getAt(2), usedVariables);
       return new BinaryExpression(leftHand, rightHand, BinaryExpression.BinaryOperator.PLUS, CNumericTypes.INT, CNumericTypes.INT);
