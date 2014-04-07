@@ -500,8 +500,9 @@ class Run():
 
     def __init__(self, sourcefiles, fileOptions, runSet, propertyFiles=[], requiredFiles=[]):
         assert sourcefiles
-        self.sourcefiles = sourcefiles
-        self.sourcefile = self.sourcefiles[0] # used for name of logfile, substitution, result-category
+        self.sourcefile = sourcefiles[0] # used for name of logfile, substitution, result-category
+        self.sourcefiles = Util.getFiles(sourcefiles) # expand directories to get their sub-files
+        logging.debug("Creating Run with identifier '{0}' and files {1}".format(self.sourcefile, self.sourcefiles))
         self.runSet = runSet
         self.specificOptions = fileOptions # options that are specific for this run
         self.logFile = runSet.logFolder + os.path.basename(self.sourcefile) + ".log"
