@@ -519,6 +519,8 @@ class RunResult:
         
         # fallback for compatibility, 
         # TODO: remove this block and set CATEGORY_UNKNOWN as default value
+        if status == 'false(label)':
+            status = 'false(reach)'
         if category == 'placeholderForUnknown':
             category = result.getResultCategory(sourcefileTag.get('name'), status)
 
