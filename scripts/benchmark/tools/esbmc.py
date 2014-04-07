@@ -62,12 +62,12 @@ class Tool(benchmark.tools.template.BaseTool):
                       'error label',
                       'VERIFICATION FAILED'],
                       output):
-            status = result.STR_FALSE_LABEL
+            status = result.STR_FALSE_REACH
         elif self.allInText(['Violated property:',
                       'assertion',
                       'VERIFICATION FAILED'],
                       output):
-            status = result.STR_FALSE_LABEL
+            status = result.STR_FALSE_REACH
         elif self.allInText(['Violated property:',
                       'dereference failure: forgotten memory',
                       'VERIFICATION FAILED'],

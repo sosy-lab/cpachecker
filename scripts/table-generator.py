@@ -782,7 +782,7 @@ def getCategoryCount(categoryList):
     return (
         # correctTrue, correctFalseLabel, correctProperty
             counts[result.CATEGORY_CORRECT, result.STR_TRUE],
-            counts[result.CATEGORY_CORRECT, result.STR_FALSE_LABEL],
+            counts[result.CATEGORY_CORRECT, result.STR_FALSE_REACH],
             counts[result.CATEGORY_CORRECT, result.STR_FALSE_DEREF] \
           + counts[result.CATEGORY_CORRECT, result.STR_FALSE_FREE] \
           + counts[result.CATEGORY_CORRECT, result.STR_FALSE_MEMTRACK] \
@@ -790,7 +790,7 @@ def getCategoryCount(categoryList):
 
         # wrongTrue, wrongFalseLabel, wrongProperty
             counts[result.CATEGORY_WRONG, result.STR_TRUE],
-            counts[result.CATEGORY_WRONG, result.STR_FALSE_LABEL],
+            counts[result.CATEGORY_WRONG, result.STR_FALSE_REACH],
             counts[result.CATEGORY_WRONG, result.STR_FALSE_DEREF] \
           + counts[result.CATEGORY_WRONG, result.STR_FALSE_FREE] \
           + counts[result.CATEGORY_WRONG, result.STR_FALSE_MEMTRACK] \
@@ -798,7 +798,7 @@ def getCategoryCount(categoryList):
           
         # missing
             counts[result.CATEGORY_MISSING, result.STR_TRUE] \
-          + counts[result.CATEGORY_MISSING, result.STR_FALSE_LABEL] \
+          + counts[result.CATEGORY_MISSING, result.STR_FALSE_REACH] \
           + counts[result.CATEGORY_MISSING, result.STR_FALSE_DEREF] \
           + counts[result.CATEGORY_MISSING, result.STR_FALSE_FREE] \
           + counts[result.CATEGORY_MISSING, result.STR_FALSE_MEMTRACK] \
@@ -825,7 +825,7 @@ def getStatsOfNumberColumn(values, categoryList, columnTitle):
     return (StatValue.fromList(valueList),
             StatValue.fromList(valuesPerCategory[result.CATEGORY_CORRECT, None]), # None as DUMMY
             StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STR_TRUE]),
-            StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_LABEL]),
+            StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_REACH]),
             StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_DEREF] +
                                valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_FREE] +
                                valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_MEMTRACK] +

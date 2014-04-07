@@ -103,7 +103,7 @@ class Tool(benchmark.tools.cpachecker.Tool):
                 if line.startswith('TRUE'):
                     newStatus = result.STR_TRUE
                 elif line.startswith('FALSE'):
-                  newStatus = result.STR_FALSE_LABEL
+                  newStatus = result.STR_FALSE_REACH
                   match = re.match('.* Violation of propert[a-z]* (.*) found by chosen configuration.*', line)
                   if match:
                       newStatus = result.STR_FALSE + '(' + match.group(1) + ')'

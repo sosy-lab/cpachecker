@@ -40,20 +40,20 @@ STR_TRUE = 'true'
 STR_UNKNOWN = 'unknown'
 STR_FALSE = 'false' # only for special cases. STR_FALSE is no official result, because property is missing
 
-STR_FALSE_LABEL =       'false(label)'
+STR_FALSE_REACH =       'false(reach)'
 STR_FALSE_TERMINATION = 'false(termination)'
 STR_FALSE_DEREF =        'false(valid-deref)'
 STR_FALSE_FREE =         'false(valid-free)'
 STR_FALSE_MEMTRACK =     'false(valid-memtrack)'
 
 STR_LIST = [STR_TRUE, STR_UNKNOWN, 
-            STR_FALSE_LABEL, STR_FALSE_TERMINATION, 
+            STR_FALSE_REACH, STR_FALSE_TERMINATION, 
             STR_FALSE_DEREF, STR_FALSE_FREE, STR_FALSE_MEMTRACK]
 
 # string searched in filenames to determine correct or incorrect status.
 # use lower case! the dict contains assignments 'filename' --> 'status'
-FALSE_SUBSTRINGS = {'_false-unreach-label':  STR_FALSE_LABEL,
-                    '_false-unreach-call':   STR_FALSE_LABEL,
+FALSE_SUBSTRINGS = {'_false-unreach-label':  STR_FALSE_REACH,
+                    '_false-unreach-call':   STR_FALSE_REACH,
                     '_false-termination':    STR_FALSE_TERMINATION,
                     '_false-valid-deref':    STR_FALSE_DEREF,
                     '_false-valid-free':     STR_FALSE_FREE,
@@ -64,8 +64,8 @@ assert all('_false-' in k for k in FALSE_SUBSTRINGS.keys())
 
 
 # this map contains substring of property-files with their status
-PROPERTY_MATCHER = {'LTL(G ! label(':         STR_FALSE_LABEL,
-                    'LTL(G ! call(__VERIFIER_error()))': STR_FALSE_LABEL,
+PROPERTY_MATCHER = {'LTL(G ! label(':         STR_FALSE_REACH,
+                    'LTL(G ! call(__VERIFIER_error()))': STR_FALSE_REACH,
                     'LTL(F end)':             STR_FALSE_TERMINATION,
                     'LTL(G valid-free)':      STR_FALSE_FREE,
                     'LTL(G valid-deref)' :    STR_FALSE_DEREF,
