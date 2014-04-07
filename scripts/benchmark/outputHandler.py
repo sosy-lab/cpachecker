@@ -210,7 +210,7 @@ class OutputHandler:
 
         self.runSet = runSet
 
-        sourcefiles = [run.sourcefile for run in runSet.runs]
+        sourcefiles = [run.identifier for run in runSet.runs]
 
         # common prefix of file names
         self.commonPrefix = Util.commonBaseDir(sourcefiles) + os.path.sep
@@ -233,11 +233,11 @@ class OutputHandler:
 
         # prepare information for text output
         for run in runSet.runs:
-            run.resultline = self.formatSourceFileName(run.sourcefile)
+            run.resultline = self.formatSourceFileName(run.identifier)
 
         # prepare XML structure for each run and runSet
             run.xml = ET.Element("sourcefile", 
-                                 {"name": run.sourcefile, "files": "[" + ", ".join(run.sourcefiles) + "]"})
+                                 {"name": run.identifier, "files": "[" + ", ".join(run.sourcefiles) + "]"})
             if run.specificOptions:
                 run.xml.set("options", " ".join(run.specificOptions))
             run.xml.extend(self.XMLDummyElems)
@@ -314,9 +314,9 @@ class OutputHandler:
             progressIndicator = " ({0}/{1})".format(self.runSet.runs.index(run), len(self.runSet.runs))
             terminalTitle = TERMINAL_TITLE.format(self.runSet.fullName + progressIndicator) if USE_COLORS and sys.stdout.isatty() else ""
             if self.benchmark.numOfThreads == 1:
-                Util.printOut(terminalTitle + timeStr + self.formatSourceFileName(run.sourcefile), '')
+                Util.printOut(terminalTitle + timeStr + self.formatSourceFileName(run.identifier), '')
             else:
-                Util.printOut(terminalTitle + timeStr + "starting   " + self.formatSourceFileName(run.sourcefile))
+                Util.printOut(terminalTitle + timeStr + "starting   " + self.formatSourceFileName(run.identifier))
         finally:
             OutputHandler.printLock.release()
 
@@ -349,7 +349,7 @@ class OutputHandler:
                     pass
 
         # store information in run
-        run.resultline = self.createOutputLine(run.sourcefile, run.status,
+        run.resultline = self.createOutputLine(run.identifier, run.status,
                 cpuTimeStr, wallTimeStr, run.host, run.energy, run.columns, run.energy)
         self.addValuesToRunXML(run, cpuTimeStr, wallTimeStr)
 
@@ -367,7 +367,7 @@ class OutputHandler:
                 Util.printOut(valueStr)
             else:
                 timeStr = time.strftime("%H:%M:%S", time.localtime()) + " "*14
-                Util.printOut(timeStr + self.formatSourceFileName(run.sourcefile) + valueStr)
+                Util.printOut(timeStr + self.formatSourceFileName(run.identifier) + valueStr)
 
             # write result in TXTFile and XML
             self.TXTFile.append(self.runSetToTXT(run.runSet), False)

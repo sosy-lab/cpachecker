@@ -324,7 +324,7 @@ class RunSet:
         if self.shouldBeExecuted():
             sourcefilesSet = set()
             for run in self.runs:
-                base = os.path.basename(run.sourcefile)
+                base = os.path.basename(run.identifier)
                 if base in sourcefilesSet:
                     logging.warning("sourcefile with basename '" + base + 
                     "' appears twice in runset. This could cause problems with equal logfile-names.")
@@ -495,22 +495,22 @@ loggedMissingPropertyFiles = set()
 
 class Run():
     """
-    A Run contains one sourcefile and options.
+    A Run contains some sourcefile, some options, propertyfiles and some other stuff, that is needed for the Run.
     """
 
     def __init__(self, sourcefiles, fileOptions, runSet, propertyFiles=[], requiredFiles=[]):
         assert sourcefiles
-        self.sourcefile = sourcefiles[0] # used for name of logfile, substitution, result-category
+        self.identifier = sourcefiles[0] # used for name of logfile, substitution, result-category
         self.sourcefiles = Util.getFiles(sourcefiles) # expand directories to get their sub-files
-        logging.debug("Creating Run with identifier '{0}' and files {1}".format(self.sourcefile, self.sourcefiles))
+        logging.debug("Creating Run with identifier '{0}' and files {1}".format(self.identifier, self.sourcefiles))
         self.runSet = runSet
         self.specificOptions = fileOptions # options that are specific for this run
-        self.logFile = runSet.logFolder + os.path.basename(self.sourcefile) + ".log"
+        self.logFile = runSet.logFolder + os.path.basename(self.identifier) + ".log"
         self.requiredFiles = requiredFiles
 
         # lets reduce memory-consumption: if 2 lists are equal, do not use the second one
         self.options = runSet.options + fileOptions if fileOptions else runSet.options # all options to be used when executing this run
-        substitutedOptions = substituteVars(self.options, runSet, self.sourcefile)
+        substitutedOptions = substituteVars(self.options, runSet, self.identifier)
         if substitutedOptions != self.options: self.options = substitutedOptions # for less memory again
 
         # get propertyfile for Run: if available, use the last one
@@ -530,7 +530,7 @@ class Run():
             # we check two cases: direct filename or user-defined substitution, one of them must be a 'file'
             # TODO: do we need the second case? it is equal to previous used option "-spec ${sourcefile_path}/ALL.prp"
             expandedPropertyFiles = Util.expandFileNamePattern(self.propertyfile, self.runSet.benchmark.baseDir)
-            substitutedPropertyfiles = substituteVars([self.propertyfile], runSet, self.sourcefile)
+            substitutedPropertyfiles = substituteVars([self.propertyfile], runSet, self.identifier)
             assert len(substitutedPropertyfiles) == 1
             
             if expandedPropertyFiles:
@@ -578,7 +578,7 @@ class Run():
             returncode = returnvalue >> 8
             logging.debug("My subprocess returned {0}, code {1}, signal {2}.".format(returnvalue, returncode, returnsignal))
             self.status = self.runSet.benchmark.tool.getStatus(returncode, returnsignal, output, isTimeout)
-        self.category = result.getResultCategory(self.sourcefile, self.status, self.propertyfile)
+        self.category = result.getResultCategory(self.identifier, self.status, self.propertyfile)
         self.runSet.benchmark.tool.addColumnValues(output, self.columns)
 
         

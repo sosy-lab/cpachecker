@@ -177,8 +177,7 @@ def getBenchmarkDataForCloud(benchmark):
             assert not "\t" in argString # cannot call toTabList(), if there is a tab
 
             logFile = os.path.relpath(run.logFile, benchmark.logFolder)
-            assert run.sourcefile is run.sourcefiles[0]
-            if os.path.exists(run.sourcefile):
+            if os.path.exists(run.identifier):
                 runDefinitions.append(toTabList([argString, logFile] + run.sourcefiles + run.requiredFiles))
             else:
                 runDefinitions.append(toTabList([argString, logFile] + run.requiredFiles))
@@ -240,10 +239,10 @@ def handleCloudResults(benchmark, outputHandler):
 
                 except EnvironmentError as e:
                     logging.warning("Cannot extract measured values from output for file {0}: {1}".format(
-                                    outputHandler.formatSourceFileName(run.sourcefile), e))
+                                    outputHandler.formatSourceFileName(run.identifier), e))
                     executedAllRuns = False
             else:
-                logging.warning("No results exist for file {0}.".format(outputHandler.formatSourceFileName(run.sourcefile)))
+                logging.warning("No results exist for file {0}.".format(outputHandler.formatSourceFileName(run.identifier)))
                 executedAllRuns = False
                 returnValue = None
 
