@@ -179,7 +179,6 @@ public abstract class AbstractExpressionValueVisitor
    * @param resultType the result will be casted to this type
    * @param machineModel information about types
    * @param logger for logging
-   * @param edge only for logging
    */
   public static Value calculateBinaryOperation(Value lVal, Value rVal,
       final CBinaryExpression binaryExpr,
@@ -206,7 +205,7 @@ public abstract class AbstractExpressionValueVisitor
     }
 
     if (lVal instanceof SymbolicValueFormula || rVal instanceof SymbolicValueFormula) {
-      return calculateSymbolicBinaryExpression(lVal, rVal, binaryExpr);
+      return calculateSymbolicBinaryExpression(lVal, rVal, binaryExpr, logger);
     }
 
     Value result;
@@ -262,9 +261,15 @@ public abstract class AbstractExpressionValueVisitor
    * Join a symbolic formula with something else using a binary expression.
    *
    * e.g. joining `a` and `5` with `+` will produce `a + 5`
+   *
+   * @param lVal left hand side value
+   * @param rVal right hand side value
+   * @param binaryExpr the binary expression with the operator
+   * @param logger logging
+   * @return the calculated Value
    */
   public static Value calculateSymbolicBinaryExpression(Value lVal, Value rVal,
-      final CBinaryExpression binaryExpr) {
+      final CBinaryExpression binaryExpr, LogManagerWithoutDuplicates logger) {
 
     // Convert the CBinaryOperator to an operator suitable for our symbolic value formulas
     SymbolicValueFormula.BinaryExpression.BinaryOperator op =
@@ -281,13 +286,19 @@ public abstract class AbstractExpressionValueVisitor
     SymbolicValueFormula.ExpressionBase rightHand =
         SymbolicValueFormula.expressionFromExplicitValue(rVal);
 
-    return new SymbolicValueFormula(new SymbolicValueFormula.BinaryExpression(leftHand, rightHand, op, binaryExpr.getExpressionType(), binaryExpr.getCalculationType())).simplify();
+    return new SymbolicValueFormula(new SymbolicValueFormula.BinaryExpression(leftHand, rightHand, op, binaryExpr.getExpressionType(), binaryExpr.getCalculationType())).simplify(logger);
   }
 
   /**
    * Calculate an arithmetic operation on two integer types.
-   * @param l
-   * @return
+   *
+   * @param l left hand side value
+   * @param r right hand side value
+   * @param op the binary operator
+   * @param calculationType The type the result of the calculation should have
+   * @param machineModel the machine model
+   * @param logger logging
+   * @return the resulting value
    */
   private static long arithmeticOperation(final long l, final long r,
       final BinaryOperator op, final CType calculationType,
@@ -366,6 +377,17 @@ public abstract class AbstractExpressionValueVisitor
 
   }
 
+  /**
+   * Calculate an arithmetic operation on two double types.
+   *
+   * @param l left hand side value
+   * @param r right hand side value
+   * @param op the binary operator
+   * @param calculationType The type the result of the calculation should have
+   * @param machineModel the machine model
+   * @param logger logging
+   * @return the resulting value
+   */
   private static double arithmeticOperation(final double l, final double r,
       final BinaryOperator op, final CType calculationType,
       final MachineModel machineModel, final LogManager logger) {
@@ -401,6 +423,17 @@ public abstract class AbstractExpressionValueVisitor
 
   }
 
+  /**
+   * Calculate an arithmetic operation on two float types.
+   *
+   * @param l left hand side value
+   * @param r right hand side value
+   * @param op the binary operator
+   * @param calculationType The type the result of the calculation should have
+   * @param machineModel the machine model
+   * @param logger logging
+   * @return the resulting value
+   */
   private static float arithmeticOperation(final float l, final float r,
       final BinaryOperator op, final CType calculationType,
       final MachineModel machineModel, final LogManager logger) {
@@ -436,6 +469,17 @@ public abstract class AbstractExpressionValueVisitor
 
   }
 
+  /**
+   * Calculate an arithmetic operation on two Value types.
+   *
+   * @param l left hand side value
+   * @param r right hand side value
+   * @param op the binary operator
+   * @param calculationType The type the result of the calculation should have
+   * @param machineModel the machine model
+   * @param logger logging
+   * @return the resulting values
+   */
   private static Value arithmeticOperation(final Value l, final Value r,
       final BinaryOperator op, final CType calculationType,
       final MachineModel machineModel, final LogManager logger) {
@@ -937,15 +981,19 @@ public abstract class AbstractExpressionValueVisitor
    * is assigned to a variable of type 'char'.
    *
    * @param value will be casted. If value is null, null is returned.
+   * @param sourceType the type of the input value
    * @param targetType value will be casted to targetType.
    * @param machineModel contains information about types
    * @param logger for logging
-   * @param edge only for logging
+   * @param fileLocation the location of the corresponding code in the source file
+   * @return the casted Value
    */
   public static Value castCValue(@Nonnull final Value value, final CType sourceType,
-      final CType targetType,
-      final MachineModel machineModel, final LogManagerWithoutDuplicates logger, final FileLocation fileLocation) {
-    if (value.isUnknown()) { return Value.UnknownValue.getInstance(); }
+      final CType targetType, final MachineModel machineModel,
+      final LogManagerWithoutDuplicates logger, final FileLocation fileLocation) {
+
+    // If we don't know the value explicitly, just return it.
+    if (!value.isExplicitlyKnown()) { return value; }
 
     // For now can only cast numeric value's
     if (!value.isNumericValue()) {
@@ -1086,6 +1134,8 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   /**
+   *
+   * @param type the input type
    * @return A numeric type that can be used to perform arithmetics on an instance
    *         of the type directly, or null if none.
    *

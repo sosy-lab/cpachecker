@@ -39,7 +39,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public interface Value {
   public boolean isNumericValue();
 
+  /** False if we have no idea about this value(can not track it), true otherwise. */
   public boolean isUnknown();
+
+  /** True if we deterministically know the actual value, false otherwise. */
+  public boolean isExplicitlyKnown();
 
   /** Return the NumericValue if this is a numeric value, null otherwise. **/
   public NumericValue asNumericValue();
@@ -80,6 +84,11 @@ public interface Value {
     @Override
     public boolean isUnknown() {
       return true;
+    }
+
+    @Override
+    public boolean isExplicitlyKnown() {
+      return false;
     }
 
   }

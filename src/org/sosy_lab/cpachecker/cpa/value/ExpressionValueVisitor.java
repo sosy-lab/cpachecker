@@ -23,14 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
@@ -58,16 +62,23 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
   private final ValueAnalysisState state;
 
+  private boolean symbolicValues = false;
+
   /** This Visitor returns the numeral value for an expression.
+   *
    * @param pState where to get the values for variables (identifiers)
    * @param pFunctionName current scope, used only for variable-names
    * @param pMachineModel where to get info about types, for casting and overflows
    * @param pLogger logging
+   * @param pSymbolicValues flag for symbolic value analysis. <code>true</code>
+   *        if a symbolic analysis should be performed, <code>false</code> if a
+   *        concrete value analysis should be performed
    */
   public ExpressionValueVisitor(ValueAnalysisState pState, String pFunctionName,
-      MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
+      MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger, boolean pSymbolicValues) {
     super(pFunctionName, pMachineModel, pLogger);
     this.state = pState;
+    this.symbolicValues = pSymbolicValues;
   }
 
   /* additional methods */
@@ -80,6 +91,32 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
   public boolean hasMissingPointer() {
     return missingPointer;
+  }
+
+  /** Heuristic to avoid generating too many symbolic values for the same file location. */
+  private static Map<FileLocation, Integer> numberOfSymbolsGenerated = new HashMap<>();
+  private final int maxNumberOfSymbolsGenerated = 200;
+
+  @Override
+  public Value visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
+    if(this.symbolicValues) {
+      // Only generate a symbolic value if we haven't already generated many symbolic
+      // values for this location.
+      FileLocation key = pIastFunctionCallExpression.getFileLocation();
+      int generatedSymbols = 0;
+      if(numberOfSymbolsGenerated.containsKey(key)) {
+        generatedSymbols = numberOfSymbolsGenerated.get(key);
+      }
+
+      if(generatedSymbols < maxNumberOfSymbolsGenerated) {
+        numberOfSymbolsGenerated.put(key,  generatedSymbols + 1);
+        SymbolicValueFormula formula = new SymbolicValueFormula(
+            new SymbolicValueFormula.SymbolicValue(pIastFunctionCallExpression.toASTString()));
+        return formula;
+      }
+    }
+
+    return Value.UnknownValue.getInstance();
   }
 
   @Override

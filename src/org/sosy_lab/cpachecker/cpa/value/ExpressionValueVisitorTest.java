@@ -28,6 +28,8 @@ import java.math.BigInteger;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -43,6 +45,9 @@ import com.google.common.collect.Lists;
 
 
 public class ExpressionValueVisitorTest {
+
+  @Option(name="cpa.value.symbolicValues", description="enables generation of symbolic values")
+  private boolean symbolicValues = false;
 
 
   // we need some dummy-values.
@@ -91,10 +96,9 @@ public class ExpressionValueVisitorTest {
     logger = new LogManagerWithoutDuplicates(TestLogManager.getInstance());
 
     evv32 = new ExpressionValueVisitor(
-        state, functionName, MachineModel.LINUX32, logger);
+        state, functionName, MachineModel.LINUX32, logger, symbolicValues);
     evv64 = new ExpressionValueVisitor(
-        state, functionName, MachineModel.LINUX64, logger);
-
+        state, functionName, MachineModel.LINUX64, logger, symbolicValues);
   }
 
   @Test

@@ -1470,6 +1470,9 @@ cpa.value.refiner.performInitialStaticRefinement = false
 cpa.value.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
 
+# enables generation of symbolic values
+cpa.value.symbolicValues = false
+
 # Variable name of the variable for which should be checked that its value is
 # globally a certain value 
 cpa.value.varName = ""

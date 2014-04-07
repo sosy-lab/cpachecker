@@ -29,16 +29,17 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
@@ -106,6 +107,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.value.SymbolicValueFormula.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -121,6 +123,9 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   // the value of the map entry is the explanation for the user
   private static final Map<String, String> UNSUPPORTED_FUNCTIONS
       = ImmutableMap.of("pthread_create", "threads");
+
+  @Option(name="symbolicValues", description="enables generation of symbolic values")
+  private boolean symbolicValues = false;
 
   @Option(description = "if there is an assumption like (x!=0), "
       + "this option sets unknown (uninitialized) variables to 1L, "
@@ -267,7 +272,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
           throws UnrecognizedCCodeException {
 
     // visitor must use the initial (previous) state, because there we have all information about variables
-    ExpressionValueVisitor evv = new ExpressionValueVisitor(state, functionName, machineModel, logger);
+    ExpressionValueVisitor evv = new ExpressionValueVisitor(state, functionName, machineModel, logger, symbolicValues);
 
     // clone state, because will be changed through removing all variables of current function's scope
     state = state.clone();
@@ -313,8 +318,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       if (op1 instanceof CLeftHandSide) {
         ExpressionValueVisitor v =
             new ExpressionValueVisitor(state, callerFunctionName,
-                machineModel, logger);
-
+                machineModel, logger, symbolicValues);
         MemoryLocation assignedVarName = v.evaluateMemoryLocation((CLeftHandSide) op1);
 
         boolean valueExists = state.contains(returnVarName);
@@ -366,10 +370,27 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     // get the value of the expression (either true[1L], false[0L], or unknown[null])
     Value value = getExpressionValue(expression, CNumericTypes.INT, evv);
 
-    // value is null, try to derive further information
-    if (value.isUnknown()) {
-
+    if (!value.isExplicitlyKnown()) {
       ValueAnalysisState element = state.clone();
+
+      // If it's a symbolic formula, try if we can solve it for any of its symbolic values.
+      if(value instanceof SymbolicValueFormula) {
+        Pair<SymbolicValue, Value> replacement = null;
+        replacement = ((SymbolicValueFormula)value).inferAssignment(truthValue, logger);
+        if(replacement != null) {
+          for(MemoryLocation memloc : state.getTrackedMemoryLocations()) {
+            Value trackedValue = state.getValueFor(memloc);
+            if(trackedValue instanceof SymbolicValueFormula) {
+              SymbolicValueFormula trackedFormula = (SymbolicValueFormula) trackedValue;
+              Value newValue = trackedFormula.replaceSymbolWith(replacement.getFirst(), replacement.getSecond(), logger);
+              if(newValue != trackedValue) {
+                element.assignConstant(memloc, newValue);
+              }
+            }
+          }
+        }
+      }
+
       AssigningValueVisitor avv = new AssigningValueVisitor(element, truthValue);
 
       if (expression instanceof JExpression && ! (expression instanceof CExpression)) {
@@ -469,7 +490,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     boolean complexType = decl.getType() instanceof JClassOrInterfaceType || decl.getType() instanceof JArrayType;
 
 
-    if (!complexType  && (missingInformationRightJExpression != null || initialValue != Value.UnknownValue.getInstance())) {
+    if (!complexType  && (missingInformationRightJExpression != null || !initialValue.isUnknown())) {
       if (missingFieldVariableObject) {
         fieldNameAndInitialValue = Pair.of(varName, initialValue);
       } else if (missingInformationRightJExpression == null) {
@@ -527,7 +548,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     return state;
   }
-
 
   private ValueAnalysisState handleAssignment(IAssignment assignExpression, CFAEdge cfaEdge)
     throws UnrecognizedCodeException {
@@ -631,7 +651,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
 
     if (visitor.hasMissingPointer()) {
-      assert value.isUnknown();
+      assert !value.isExplicitlyKnown();
     }
 
     if (isMissingCExpressionInformation(visitor, exp)) {
@@ -701,7 +721,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     protected boolean truthValue = false;
 
     public AssigningValueVisitor(ValueAnalysisState assignableState, boolean truthValue) {
-      super(state, functionName, machineModel, logger);
+      super(state, functionName, machineModel, logger, symbolicValues);
       this.assignableState = assignableState;
       this.truthValue = truthValue;
     }
@@ -896,7 +916,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     private final RTTState jortState;
 
     public FieldAccessExpressionValueVisitor(RTTState pJortState) {
-      super(state, functionName, machineModel, logger);
+      super(state, functionName, machineModel, logger, symbolicValues);
       jortState = pJortState;
     }
 
@@ -1327,11 +1347,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     Value value = resolveValue(pSmgState, pMissingInformation.getMissingCExpressionInformation());
 
-    if(!value.isUnknown() && value.equals(new NumericValue(truthValue))) {
+    if(value.isExplicitlyKnown() && value.equals(new NumericValue(truthValue))) {
       return null;
     } else {
 
-      if(value.isUnknown()) {
+      if(!value.isExplicitlyKnown()) {
 
         // Try deriving further Information
         ValueAnalysisState element = pNewElement.clone();
@@ -1665,6 +1685,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   /** returns an initialized, empty visitor */
   private ExpressionValueVisitor getVisitor() {
-    return new ExpressionValueVisitor(state, functionName, machineModel, logger);
+    return new ExpressionValueVisitor(state, functionName, machineModel, logger, symbolicValues);
   }
 }

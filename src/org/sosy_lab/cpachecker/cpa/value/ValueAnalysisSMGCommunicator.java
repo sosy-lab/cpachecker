@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -55,6 +56,9 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
  * will be done in another class.
  */
 public class ValueAnalysisSMGCommunicator {
+
+  @Option(name="cpa.value.symbolicValues", description="enables generation of symbolic values")
+  private boolean symbolicValues = false;
 
   private final CFAEdge cfaEdge;
   private final LogManagerWithoutDuplicates logger;
@@ -116,12 +120,12 @@ public class ValueAnalysisSMGCommunicator {
     private final SMGExplicitExpressionEvaluator smgEvaluator;
 
     public ExplicitExpressionValueVisitor() {
-      super(valueAnalysisState, functionName, machineModel, logger);
+      super(valueAnalysisState, functionName, machineModel, logger, symbolicValues);
       smgEvaluator = new SMGExplicitExpressionEvaluator(this);
     }
 
     public ExplicitExpressionValueVisitor(SMGExplicitExpressionEvaluator pSmgEvaluator) {
-      super(valueAnalysisState, functionName, machineModel, logger);
+      super(valueAnalysisState, functionName, machineModel, logger,symbolicValues);
       smgEvaluator = pSmgEvaluator;
     }
 

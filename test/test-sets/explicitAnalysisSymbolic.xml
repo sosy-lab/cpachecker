@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="90">
+  <option name="-noout"/>
+  <option name="-heap">1200M</option>
+
+  <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
+
+  <sourcefiles name="ControlFlowInteger">
+    <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="Simple">
+    <includesfile>../programs/benchmarks/Simple.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="Sequentialized">
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="Nested">
+    <includesfile>nested.set</includesfile>
+  </sourcefiles>
+
+  <rundefinition name="with-symbolic">
+    <option name="-explicitAnalysis-symbolicValues"/>
+  </rundefinition>
+  <rundefinition name="without-symbolic">
+    <option name="-explicitAnalysis-no-cbmc"/>
+  </rundefinition>
+
+  <columns>
+    <column title="total">time for CPAchecker</column>
+    <column title="reached">reached set</column>
+    <column title="memory">Heap memory usage</column>
+  </columns>
+</benchmark>
