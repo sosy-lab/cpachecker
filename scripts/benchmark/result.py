@@ -53,6 +53,7 @@ STR_LIST = [STR_TRUE, STR_UNKNOWN,
 # string searched in filenames to determine correct or incorrect status.
 # use lower case! the dict contains assignments 'filename' --> 'status'
 FALSE_SUBSTRINGS = {'_false-unreach-label':  STR_FALSE_LABEL,
+                    '_false-unreach-call':   STR_FALSE_LABEL,
                     '_false-termination':    STR_FALSE_TERMINATION,
                     '_false-valid-deref':    STR_FALSE_DEREF,
                     '_false-valid-free':     STR_FALSE_FREE,
