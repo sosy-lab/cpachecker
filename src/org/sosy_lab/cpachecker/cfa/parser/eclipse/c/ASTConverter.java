@@ -165,6 +165,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 
@@ -761,7 +762,15 @@ class ASTConverter {
           }
         }
 
-        // no matching field found
+        // no matching field found, search in all subsequent composite types
+        if (!foundReplacement) {
+          Optional<CFieldReference> replace = hasInnerField(owner, compositeType, fieldName, loc);
+          if (replace.isPresent()) {
+            foundReplacement = true;
+            owner = replace.get();
+          }
+        }
+
         if (!foundReplacement) {
           throw new CFAGenerationRuntimeException("Accessing non-existent field of composite type", e);
         }
@@ -793,6 +802,30 @@ class ASTConverter {
     }
 
     return new CFieldReference(loc, type, fieldName, owner, e.isPointerDereference());
+  }
+
+  private Optional<CFieldReference> hasInnerField(CExpression owner, CCompositeType compositeType, String fieldName, FileLocation loc) {
+    for (CCompositeTypeMemberDeclaration field : compositeType.getMembers()) {
+      if (field.getType().getCanonicalType() instanceof CCompositeType) {
+        for (CCompositeTypeMemberDeclaration innerField : ((CCompositeType)field.getType().getCanonicalType()).getMembers()) {
+          if (fieldName.equals(innerField.getName())) {
+            return Optional.of(new CFieldReference(loc, field.getType(), field.getName(), owner, false));
+          }
+        }
+      }
+    }
+
+    // we did not find any field in the first iteration, so we now search in the
+    // composite types within the composite types...
+    for (CCompositeTypeMemberDeclaration field : compositeType.getMembers()) {
+      if (field.getType().getCanonicalType() instanceof CCompositeType) {
+        return hasInnerField(new CFieldReference(loc, field.getType(), field.getName(), owner, false),
+                             (CCompositeType)field.getType().getCanonicalType(),
+                             fieldName,
+                             loc);
+      }
+    }
+    return Optional.absent();
   }
 
   private CRightHandSide convert(IASTFunctionCallExpression e) {
