@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 @Options
-public class ARG_CPAStrategy extends AbstractStrategy {
+public class ARG_CPAStrategy extends SequentialReadStrategy {
 
   @Option(name = "pcc.checkPropertyPerElement", description = "")
   private boolean singleCheck = false;

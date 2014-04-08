@@ -56,7 +56,7 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMARGBlockStartState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.propertychecker.NoTargetStateChecker;
-import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
+import org.sosy_lab.cpachecker.pcc.strategy.SequentialReadStrategy;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
@@ -66,7 +66,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  * 2) independent of the order when an ARG state is checked
  */
 @Options
-public class ARGProofCheckerParallelStrategy extends AbstractStrategy {
+public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
 
   private ARGState[] args;
   private ProofChecker checker;

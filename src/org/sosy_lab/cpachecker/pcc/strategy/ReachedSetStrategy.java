@@ -47,7 +47,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 @Options
-public class ReachedSetStrategy extends AbstractStrategy {
+public class ReachedSetStrategy extends SequentialReadStrategy {
 
   protected AbstractState[] reachedSet;
   protected Multimap<CFANode, AbstractState> statesPerLocation;

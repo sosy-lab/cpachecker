@@ -37,8 +37,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -47,6 +45,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -83,7 +83,6 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
 
   @Override
   public void writeProof(UnmodifiableReachedSet pReached) {
-    Object proof = getProofToWrite(pReached);
 
     OutputStream fos = null;
     try {
@@ -96,7 +95,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       ObjectOutputStream o = new ObjectOutputStream(zos);
       //TODO might also want to write used configuration to the file so that proof checker does not need to get it as an argument
       //write ARG
-      o.writeObject(proof);
+      writeProofToStream(o, pReached);
       zos.closeEntry();
 
       ze = new ZipEntry("Helper");
@@ -124,7 +123,8 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     }
   }
 
-  protected abstract Object getProofToWrite(UnmodifiableReachedSet pReached);
+  protected abstract void writeProofToStream(ObjectOutputStream out, UnmodifiableReachedSet reached) throws IOException;
+
 
   @Override
   public void readProof() throws IOException, ClassNotFoundException, InvalidConfigurationException {
@@ -159,7 +159,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       entry = zis.getNextEntry();
       assert entry.getName().equals("Proof");
       o = new ObjectInputStream(zis);
-      prepareForChecking(o.readObject());
+      readProofFromStream(o);
       o.close();
       zis.close();
     } finally {
@@ -169,7 +169,9 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     }
   }
 
-  protected abstract void prepareForChecking(Object pReadObject) throws InvalidConfigurationException;
+
+
+  protected abstract void readProofFromStream(ObjectInputStream in) throws ClassNotFoundException, InvalidConfigurationException, IOException;
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {

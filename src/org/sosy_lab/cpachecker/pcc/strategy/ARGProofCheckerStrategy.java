@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.propertychecker.NoTargetStateChecker;
 
 @Options
-public class ARGProofCheckerStrategy extends AbstractStrategy {
+public class ARGProofCheckerStrategy extends SequentialReadStrategy {
 
   private ARGState root;
   private ProofChecker checker;
