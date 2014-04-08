@@ -71,38 +71,4 @@ public class SMGSingleLinkedListTest {
     Assert.assertFalse(sll2.matchSpecificShape(sll3));
     Assert.assertFalse(sll1.matchSpecificShape(sll3));
   }
-
-  @Test(expected=IllegalArgumentException.class)
-  public void isMoreGenericDiffSizeTest() {
-    SMGRegion prototype1 = new SMGRegion(16, "prototype_1");
-    SMGRegion prototype2 = new SMGRegion(32, "prototype_2");
-    SMGSingleLinkedList sll1 = new SMGSingleLinkedList(prototype1, 8, 8);
-    SMGSingleLinkedList sll2 = new SMGSingleLinkedList(prototype2, 8, 8);
-    sll1.isMoreGeneral(sll2);
-  }
-
-  @Test
-  public void isMoreGenericConcreteTest() {
-    SMGRegion prototype1 = new SMGRegion(16, "prototype");
-    SMGSingleLinkedList sll1 = new SMGSingleLinkedList(prototype1, 8, 8);
-    Assert.assertTrue(sll1.isMoreGeneral(prototype1));
-  }
-
-  @Test(expected=IllegalArgumentException.class)
-  public void isMoreGenericNonMatchTest() {
-    SMGRegion prototype = new SMGRegion(16, "prototype");
-    SMGSingleLinkedList sll1 = new SMGSingleLinkedList(prototype, 0, 8);
-    SMGSingleLinkedList sll2 = new SMGSingleLinkedList(prototype, 8, 10);
-    sll1.isMoreGeneral(sll2);
-  }
-
-  @Test
-  public void isMoreGenericMatchTest() {
-    SMGRegion prototype = new SMGRegion(16, "prototype");
-    SMGSingleLinkedList sll1 = new SMGSingleLinkedList(prototype, 8, 4);
-    SMGSingleLinkedList sll2 = new SMGSingleLinkedList(prototype, 8, 12);
-
-    Assert.assertTrue(sll1.isMoreGeneral(sll2));
-    Assert.assertFalse(sll2.isMoreGeneral(sll1));
-  }
 }
