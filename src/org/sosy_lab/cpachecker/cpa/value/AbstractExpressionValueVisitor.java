@@ -645,8 +645,7 @@ public abstract class AbstractExpressionValueVisitor
       throw new AssertionError("SIZEOF should be handled before!");
 
     case AMPER: // valid expression, but it's a pointer value
-      // TODO Not precise enough
-      return new NumericValue(getSizeof(unaryOperand.getExpressionType()));
+      return Value.UnknownValue.getInstance();
     case TILDE:
     default:
       // TODO handle unimplemented operators
