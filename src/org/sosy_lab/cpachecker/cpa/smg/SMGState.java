@@ -64,7 +64,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
   static private final AtomicInteger id_counter = new AtomicInteger(0);
 
   private final Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues = new HashMap<>();
-  private CLangSMG heap;
+  private final CLangSMG heap;
   private final LogManager logger;
   private SMGState predecessor;
   private final int id;
