@@ -623,13 +623,19 @@ public abstract class AbstractExpressionValueVisitor
     final UnaryOperator unaryOperator = unaryExpression.getOperator();
     final CExpression unaryOperand = unaryExpression.getOperand();
 
-    if (unaryOperator == UnaryOperator.SIZEOF) { return new NumericValue(machineModel.getSizeof(unaryOperand
-        .getExpressionType())); }
+    if (unaryOperator == UnaryOperator.SIZEOF) {
+      return new NumericValue(machineModel.getSizeof(unaryOperand.getExpressionType()));
+    }
+    if (unaryOperator == UnaryOperator.AMPER) {
+      // valid expression, but it's a pointer value
+      return Value.UnknownValue.getInstance();
+    }
 
     final Value value = unaryOperand.accept(this);
 
-    if (value.isUnknown() && unaryOperator != UnaryOperator.SIZEOF) { return Value.UnknownValue
-        .getInstance(); }
+    if (value.isUnknown()) {
+      return Value.UnknownValue.getInstance();
+    }
 
     if (!value.isNumericValue()) {
       logger.logf(Level.FINE, "Invalid argument for unary operator %s: %s", unaryOperator.toString(), value.toString());
@@ -641,15 +647,12 @@ public abstract class AbstractExpressionValueVisitor
     case MINUS:
       return numericValue.negate();
 
-    case SIZEOF:
-      throw new AssertionError("SIZEOF should be handled before!");
-
-    case AMPER: // valid expression, but it's a pointer value
-      return Value.UnknownValue.getInstance();
     case TILDE:
-    default:
-      // TODO handle unimplemented operators
+      // TODO handle unimplemented operator
       return Value.UnknownValue.getInstance();
+
+    default:
+      throw new AssertionError();
     }
   }
 
