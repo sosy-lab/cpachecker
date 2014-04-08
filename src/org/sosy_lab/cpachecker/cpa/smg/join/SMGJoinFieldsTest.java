@@ -28,7 +28,6 @@ import java.util.Set;
 
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -112,7 +111,7 @@ public class SMGJoinFieldsTest {
     Assert.assertEquals(1, hvSet.size());
 
     SMGEdgeHasValue newHv = Iterables.getOnlyElement(hvSet);
-    Assert.assertEquals(smg1.getNullValue(), newHv.getValue());
+    Assert.assertEquals(smg1.getNullValue().intValue(), newHv.getValue());
     Assert.assertSame(obj1, newHv.getObject());
     Assert.assertEquals(4, newHv.getSizeInBytes(MachineModel.LINUX64));
     Assert.assertEquals(2, newHv.getOffset());
@@ -140,7 +139,7 @@ public class SMGJoinFieldsTest {
     Set<SMGEdgeHasValue> hvSet = SMGJoinFields.getHVSetOfCommonNullValues(smg1, smg2, obj1, obj1);
     Assert.assertEquals(2, hvSet.size());
     for (SMGEdgeHasValue hv : hvSet) {
-      Assert.assertEquals(hv.getValue(), smg1.getNullValue());
+      Assert.assertEquals(hv.getValue(), smg1.getNullValue().intValue());
       Assert.assertSame(hv.getObject(), obj1);
       Assert.assertTrue(hv.getOffset() == 14 || hv.getOffset() == 18);
       if (hv.getOffset() == 14) {
@@ -248,7 +247,6 @@ public class SMGJoinFieldsTest {
   }
 
   @Test
-  @Ignore //TODO: Fix
   public void mergeNonNullAplliedTest() {
     SMGRegion obj1 = new SMGRegion(8, "Object 1");
     SMGRegion obj2 = new SMGRegion(8, "Object 2");

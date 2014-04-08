@@ -279,7 +279,7 @@ final class SMGConsistencyVerifier {
         pLogger,
         "Has Value edge consistency");
     toReturn = toReturn && verifySMGProperty(
-        verifyEdgeConsistency(pLogger, pSmg, pSmg.getPTEdges()),
+        verifyEdgeConsistency(pLogger, pSmg, pSmg.getPTEdges().values()),
         pLogger,
         "Points To edge consistency");
     toReturn = toReturn && verifySMGProperty(

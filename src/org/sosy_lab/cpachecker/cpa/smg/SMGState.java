@@ -47,13 +47,11 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGUnknownValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMGConsistencyVerifier;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGFactory;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoin;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
@@ -66,7 +64,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
   static private final AtomicInteger id_counter = new AtomicInteger(0);
 
   private final Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues = new HashMap<>();
-  private WritableSMG heap;
+  private CLangSMG heap;
   private final LogManager logger;
   private SMGState predecessor;
   private final int id;
@@ -122,7 +120,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
    * @param pMachineModel A machine model for the underlying SMGs
    */
   public SMGState(LogManager pLogger, MachineModel pMachineModel) {
-    heap = SMGFactory.createWritableSMG(pMachineModel);
+    heap = new CLangSMG(pMachineModel);
     logger = pLogger;
     predecessor = null;
     id = id_counter.getAndIncrement();
@@ -138,7 +136,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
    * @throws SMGInconsistentException
    */
   public SMGState(SMGState pOriginalState) {
-    heap = SMGFactory.createWritableCopy(pOriginalState.heap);
+    heap = new CLangSMG(pOriginalState.heap);
     logger = pOriginalState.logger;
     predecessor = pOriginalState.predecessor;
     id = id_counter.getAndIncrement();
@@ -252,7 +250,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
    * @return A {@link SMGObject} for current function return value storage.
    */
   final public SMGObject getFunctionReturnObject() {
-    return heap.getStackReturnObject(0);
+    return heap.getFunctionReturnObject();
   }
 
   /**
@@ -296,6 +294,20 @@ public class SMGState implements AbstractQueryableState, Targetable {
   public String toDot(String pName, String pLocation) {
     SMGPlotter plotter = new SMGPlotter();
     return plotter.smgAsDot(heap, pName, pLocation, explicitValues);
+  }
+
+  /**
+   * Returns a DOT representation of the SMGState with explicit Values
+   * inserted where possible.
+   *
+   * @param pName A name of the graph.
+   * @param pLocation A location in the program.
+   * @param pExplicitState
+   * @return String containing a DOT graph corresponding to the SMGState.
+   */
+  public String toDot(String pName, String pLocation, ValueAnalysisState pExplicitState) {
+    SMGExplicitPlotter plotter = new SMGExplicitPlotter(pExplicitState, this);
+    return plotter.smgAsDot(heap, "Explicit_"+ pName, pLocation);
   }
 
   /**
@@ -749,9 +761,9 @@ public class SMGState implements AbstractQueryableState, Targetable {
     // TODO A better way of getting those edges, maybe with a filter
     // like the Has-Value-Edges
 
-    Set<SMGEdgePointsTo> pointsToEdges = heap.getPTEdges();
+    Map<Integer, SMGEdgePointsTo> pointsToEdges = heap.getPTEdges();
 
-    for (SMGEdgePointsTo edge : pointsToEdges) {
+    for (SMGEdgePointsTo edge : pointsToEdges.values()) {
       if (edge.getObject().equals(memory) && edge.getOffset() == offset) {
         return edge.getValue();
       }
@@ -772,7 +784,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
    * @param smgObject The memory the given Address belongs to.
    * @throws SMGInconsistentException
    */
-  public void free(Integer address, Integer offset, SMGRegion smgObject) throws SMGInconsistentException {
+  public void free(Integer address, Integer offset, SMGObject smgObject) throws SMGInconsistentException {
 
     if (!heap.isHeapObject(smgObject)) {
       // You may not free any objects not on the heap.
@@ -837,9 +849,12 @@ public class SMGState implements AbstractQueryableState, Targetable {
         }
 
         return edge1.getObject() != edge2.getObject() || edge1.getOffset() != edge2.getOffset();
+      } else {
+        return false;
       }
+    } else {
+      return heap.haveNeqRelation(Integer.valueOf(value1), Integer.valueOf(value2));
     }
-    return false;
   }
 
   /**
@@ -974,6 +989,14 @@ public class SMGState implements AbstractQueryableState, Targetable {
     return heap.getNullObject();
   }
 
+  public void identifyEqualValues(SMGKnownSymValue pKnownVal1, SMGKnownSymValue pKnownVal2) {
+    heap.mergeValues(pKnownVal1.getAsInt(), pKnownVal2.getAsInt());
+  }
+
+  public void identifyNonEqualValues(SMGKnownSymValue pKnownVal1, SMGKnownSymValue pKnownVal2) {
+    heap.addNeqRelation(pKnownVal1.getAsInt(), pKnownVal2.getAsInt());
+  }
+
   @Override
   public boolean isTarget() {
     return violatedProperty != null;
@@ -1000,6 +1023,6 @@ public class SMGState implements AbstractQueryableState, Targetable {
   }
   public void attemptAbstraction() {
     SMGAbstractionManager manager = new SMGAbstractionManager(heap);
-    heap = SMGFactory.createWritableCopy(manager.execute());
+    heap = manager.execute();
   }
 }

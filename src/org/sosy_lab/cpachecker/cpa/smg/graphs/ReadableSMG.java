@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
@@ -47,7 +46,6 @@ public interface ReadableSMG {
   public SMGObject getNullObject();
   public boolean isHeapObject(SMGObject pObject);
   public SMGRegion getStackReturnObject(int pUp);
-  public SMGObject getObjectPointedBy(Integer pValue);
 
   public boolean isObjectValid(SMGObject pRegion);
   public BitSet getNullBytesForObject(SMGObject pObject);
@@ -62,10 +60,7 @@ public interface ReadableSMG {
   public Iterable<SMGEdgeHasValue> getHVEdges();
   public Iterable<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter);
   public SMGEdgeHasValue getUniqueHV(SMGEdgeHasValueFilter pFilter, boolean pStrict);
-  public boolean isCoveredByNullifiedBlocks(SMGObject pObject, int pOffset, CType pType);
-  public boolean isCoveredByNullifiedBlocks(SMGEdgeHasValue pEdge);
 
   public MachineModel getMachineModel();
   public boolean hasMemoryLeaks();
-
 }
