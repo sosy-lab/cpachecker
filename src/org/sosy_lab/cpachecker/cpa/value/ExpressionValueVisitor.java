@@ -225,15 +225,15 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         return null;
       }
 
-      Long subscriptValue = subscript.accept(evv).asLong(subscript.getExpressionType());
+      Value subscriptValue = subscript.accept(evv);
 
-      if(subscriptValue == null) {
+      if(!subscriptValue.isExplicitlyKnown() || !subscriptValue.isNumericValue()) {
         return null;
       }
 
       long typeSize = evv.getSizeof(elementType);
 
-      long subscriptOffset = subscriptValue * typeSize;
+      long subscriptOffset = subscriptValue.asNumericValue().longValue() * typeSize;
 
       if (arrayLoc.isOnFunctionStack()) {
 
