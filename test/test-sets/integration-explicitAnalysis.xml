@@ -15,11 +15,11 @@
       <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
       <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
-		<!-- exclude tasksi from Sequentialized set -- >
+      <!-- exclude tasks from Sequentialized set -->
       <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
 
-		<!-- exclude close-to-timeout tasks -- >
+      <!-- exclude close-to-timeout tasks -->
       <exclude>../programs/benchmarks/ssh-simplified/s3_clnt_1_true-unreach-label.cil.c</exclude>
       <exclude>../programs/benchmarks/eca/Problem04_60_false-unreach-label.c</exclude>
       <exclude>../programs/benchmarks/eca/Problem06_60_false-unreach-label.c</exclude>
