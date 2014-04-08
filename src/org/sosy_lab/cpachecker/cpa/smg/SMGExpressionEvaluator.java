@@ -1507,6 +1507,49 @@ public class SMGExpressionEvaluator {
     }
 
     @Override
+    public Value visit(CBinaryExpression binaryExp) throws UnrecognizedCCodeException {
+
+      Value value = super.visit(binaryExp);
+
+      if (value.isUnknown() && isPointerComparison(binaryExp)) {
+        /* We may be able to get an explicit Value from pointer comaprisons.*/
+
+        SMGSymbolicValue symValue;
+        try {
+          symValue = evaluateAssumptionValue(smgState, edge, binaryExp);
+        } catch (CPATransferException e) {
+          UnrecognizedCCodeException e2 =
+              new UnrecognizedCCodeException("SMG cannot be evaluated", binaryExp);
+          e2.initCause(e);
+          throw e2;
+        }
+
+        if (symValue.equals(SMGKnownSymValue.TRUE)) {
+          return new NumericValue(1);
+        } else if (symValue.equals(SMGKnownSymValue.FALSE)) {
+          return new NumericValue(0);
+        }
+      }
+
+      return value;
+    }
+
+    private boolean isPointerComparison(CBinaryExpression pE) {
+
+      switch(pE.getOperator()) {
+      case EQUALS:
+      case LESS_EQUAL:
+      case GREATER_EQUAL:
+      case GREATER_THAN:
+      case LESS_THAN:
+        //TODO Check, if one of the two operand types is expressed as pointer, e.g. pointer, struct, array, etc
+        return true;
+      }
+
+      return false;
+    }
+
+    @Override
     protected Value evaluateCPointerExpression(CPointerExpression pCPointerExpression)
         throws UnrecognizedCCodeException {
       return evaluateLeftHandSideExpression(pCPointerExpression);
