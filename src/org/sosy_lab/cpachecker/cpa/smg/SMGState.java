@@ -938,34 +938,20 @@ public class SMGState implements AbstractQueryableState, Targetable {
     //Remove all Target edges in range
     Iterable<SMGEdgeHasValue> targetEdges = getHVEdges(filterTarget);
 
-    List<SMGEdgeHasValue> toBeErased = new ArrayList<>();
-
     for (SMGEdgeHasValue edge : targetEdges) {
       if (edge.overlapsWith(pTargetRangeOffset, targetRangeSize, heap.getMachineModel())) {
-        toBeErased.add(edge);
+        heap.removeHasValueEdge(edge);
       }
-    }
-
-    for (SMGEdgeHasValue edge : toBeErased) {
-      // Be wary of concurrent modification while writing values
-      heap.removeHasValueEdge(edge);
     }
 
     // Shift the source edge offset depending on the target range offset
     int copyShift = pTargetRangeOffset - pSourceRangeOffset;
 
-    List<SMGEdgeHasValue> toBeWritten = new ArrayList<>();
-
     for (SMGEdgeHasValue edge : getHVEdges(filterSource)) {
       if (edge.overlapsWith(pSourceRangeOffset, pSourceRangeSize, heap.getMachineModel())) {
-        // Be wary of concurrent modification while writing values
-        toBeWritten.add(edge);
+        int offset = edge.getOffset() + copyShift;
+        writeValue(pTarget, offset, edge.getType(), edge.getValue());
       }
-    }
-
-    for(SMGEdgeHasValue edge : toBeWritten) {
-      int offset = edge.getOffset() + copyShift;
-      writeValue(pTarget, offset, edge.getType(), edge.getValue());
     }
 
     performConsistencyCheck(SMGRuntimeCheck.FULL);
