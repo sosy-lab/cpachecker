@@ -404,7 +404,7 @@ public class SMGExpressionEvaluator {
     @Override
     public SMGAddress visit(CIdExpression variableName) throws CPATransferException {
 
-      SMGObject object = smgState.getSMG().getObjectForVisibleVariable(variableName.getName());
+      SMGObject object = smgState.getObjectForVisibleVariable(variableName.getName());
 
       return SMGAddress.valueOf(object, SMGKnownExpValue.ZERO);
     }
@@ -584,7 +584,7 @@ public class SMGExpressionEvaluator {
 
     private SMGAddressValue createAddressOfVariable(CIdExpression idExpression) throws SMGInconsistentException {
 
-      SMGObject variableObject = smgState.getSMG().getObjectForVisibleVariable(idExpression.getName());
+      SMGObject variableObject = smgState.getObjectForVisibleVariable(idExpression.getName());
 
       if (variableObject == null) {
         return SMGUnknownValue.getInstance();
@@ -794,7 +794,7 @@ public class SMGExpressionEvaluator {
       return SMGUnknownValue.getInstance();
     }
 
-    if(!pSmgState.getSMG().isPointer(pAddressValue.getAsInt())) {
+    if(!pSmgState.isPointer(pAddressValue.getAsInt())) {
       return SMGUnknownValue.getInstance();
     }
 
@@ -1222,7 +1222,7 @@ public class SMGExpressionEvaluator {
       } else if (decl instanceof CVariableDeclaration
           || decl instanceof CParameterDeclaration) {
 
-        SMGObject variableObject = smgState.getSMG().getObjectForVisibleVariable(idExpression.getName());
+        SMGObject variableObject = smgState.getObjectForVisibleVariable(idExpression.getName());
 
         return readValue(smgState, variableObject, SMGKnownExpValue.ZERO,
             getRealExpressionType(idExpression), cfaEdge);

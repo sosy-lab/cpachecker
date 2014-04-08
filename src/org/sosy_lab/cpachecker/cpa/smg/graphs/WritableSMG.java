@@ -38,7 +38,7 @@ public interface WritableSMG extends ReadableSMG {
   public void addStackObject(SMGRegion pObject);
   public void addStackFrame(CFunctionDeclaration pFunction);
   public void dropStackFrame();
-  public void removeHeapObject(SMGObject pObject);
+  public void removeObject(SMGObject pObject);
 
   public void addValue(Integer pValue);
   public void removeValue(Integer pValue);

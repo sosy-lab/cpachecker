@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.sll;
 
+import static org.mockito.Mockito.mock;
+
 import org.junit.Assert;
 import org.junit.Test;
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
@@ -34,15 +37,16 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.DummyAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 
 public class SMGSingleLinkedListTest {
+  static private final  LogManager logger = mock(LogManager.class);
   static private MachineModel mm = MachineModel.LINUX64;
 
-  @SuppressWarnings("unused")
   private SMGRegion prepareSingleLinkedList(SMGState pState) throws SMGInconsistentException {
     SMGRegion pointer = new SMGRegion(mm.getSizeofPtr(), "pointer");
-    Integer listAddress = pState.getAddress(pState.getSMG().getNullObject(), 0);
+    Integer listAddress = pState.getAddress(pState.getNullObject(), 0);
     pState.addGlobalObject(pointer);
     for (int i = 0; i < 15; i++) {
       SMGEdgePointsTo pt = pState.addNewHeapAllocation(mm.getSizeofPtr(), "node");
@@ -63,6 +67,7 @@ public class SMGSingleLinkedListTest {
 
     return pointer;
   }
+
 
   @Test
   public void basicsTest() {

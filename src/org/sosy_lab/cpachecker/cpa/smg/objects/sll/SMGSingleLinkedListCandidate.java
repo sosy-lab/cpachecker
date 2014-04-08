@@ -103,7 +103,7 @@ public class SMGSingleLinkedListCandidate implements SMGAbstractionCandidate {
       }
 
       value = edgeToFollow.getValue();
-      newSMG.removeHeapObject(node);
+      newSMG.removeObject(node);
       node = newSMG.getPointer(value).getObject();
     }
     SMGEdgeHasValue newOutbound = new SMGEdgeHasValue(edgeToFollow.getType(), offset, sll, value);

@@ -129,7 +129,7 @@ class CLangSMG extends SMG implements WritableSMG {
   }
 
   @Override
-  public void removeHeapObject(final SMGObject pObj) {
+  public void removeObject(final SMGObject pObj) {
     super.removeObject(pObj);
     if (isHeapObject(pObj)) {
       heap_objects.remove(pObj);
@@ -464,10 +464,5 @@ class CLangSMG extends SMG implements WritableSMG {
   final public void removeHeapObjectAndEdges(SMGObject pObject) {
     heap_objects.remove(pObject);
     removeObjectAndEdges(pObject);
-  }
-
-  @Override
-  public boolean containsValue(Integer pValue) {
-    return getValues().contains(pValue);
   }
 }
