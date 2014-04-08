@@ -187,10 +187,12 @@ public class SMGExpressionEvaluator {
           "Field " + "(" + fieldOffset + ", " + pType.toASTString("") + ")" +
           " does not fit object " + pObject.toString() + ".");
 
+      // TODO Modifying read state, ugly ...
+      pSmgState.setInvalidRead();
       return SMGUnknownValue.getInstance();
     }
 
-    Integer value = pSmgState.readValueNonModifiying(pObject, fieldOffset, pType);
+    Integer value = pSmgState.readValue(pObject, fieldOffset, pType);
 
     if (value == null) {
       return SMGUnknownValue.getInstance();

@@ -1572,39 +1572,6 @@ public class SMGTransferRelation implements TransferRelation {
       return explicitValue;
     }
 
-    @Override
-    public SMGSymbolicValue readValue(SMGState pSmgState, SMGObject pObject,
-        SMGExplicitValue pOffset, CType pType, CFAEdge pEdge) throws SMGInconsistentException, UnrecognizedCCodeException {
-
-      if (pOffset.isUnknown() || pObject == null) {
-        return SMGUnknownValue.getInstance();
-      }
-
-      int fieldOffset = pOffset.getAsInt();
-
-      boolean doesNotFitIntoObject = fieldOffset < 0
-          || fieldOffset + getSizeof(pEdge, pType) > pObject.getSize();
-
-      if (doesNotFitIntoObject) {
-        // Field does not fit size of declared Memory
-        logger.log(Level.WARNING, pEdge.getFileLocation() + ":",
-            "Field " + "(" + fieldOffset + ", " + pType.toASTString("") + ")" +
-            " does not fit object " + pObject.toString() + ".");
-
-        pSmgState.setInvalidRead();
-        return SMGUnknownValue.getInstance();
-      }
-
-      Integer value = pSmgState.readValue(pObject, fieldOffset, pType);
-
-      if (value == null) {
-        return SMGUnknownValue.getInstance();
-      }
-
-      return SMGKnownSymValue.valueOf(value);
-    }
-
-
     public boolean isMissingExplicitInformation() {
       return missingExplicitInformation;
     }
