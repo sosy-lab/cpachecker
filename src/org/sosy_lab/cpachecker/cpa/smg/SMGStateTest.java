@@ -237,7 +237,7 @@ public class SMGStateTest {
 
     Integer pointer = pt.getValue();
 
-    SMGEdgePointsTo pt_obtained = state.getSMG().getPointer(pointer);
+    SMGEdgePointsTo pt_obtained = state.getPointerFromValue(pointer);
     Assert.assertEquals(pt_obtained.getObject(), pt.getObject());
   }
 
@@ -250,6 +250,6 @@ public class SMGStateTest {
     SMGKnownSymValue nonpointer = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
     state.writeValue(pt.getObject(), 0, mockType16b, nonpointer);
 
-    state.getSMG().getPointer(nonpointer.getAsInt());
+    state.getPointerFromValue(nonpointer.getAsInt());
   }
 }

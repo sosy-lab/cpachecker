@@ -798,7 +798,7 @@ public class SMGExpressionEvaluator {
       return SMGUnknownValue.getInstance();
     }
 
-    SMGEdgePointsTo edge = pSmgState.getSMG().getPointer(pAddressValue.getAsInt());
+    SMGEdgePointsTo edge = pSmgState.getPointerFromValue(pAddressValue.getAsInt());
 
     return createAddress(edge);
   }
@@ -824,13 +824,13 @@ public class SMGExpressionEvaluator {
       return SMGUnknownValue.getInstance();
     }
 
-    Integer address = pSmgState.getSMG().getAddress(pTarget, pOffset.getAsInt());
+    Integer address = pSmgState.getAddress(pTarget, pOffset.getAsInt());
 
     if (address == null) {
       return SMGUnknownValue.getInstance();
     }
 
-    return createAddress(pSmgState.getSMG().getPointer(address));
+    return createAddress(pSmgState.getPointerFromValue(address));
   }
 
   /**

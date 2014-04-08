@@ -60,8 +60,6 @@ public interface ReadableSMG {
   public SMGEdgePointsTo getPointer(Integer pValue);
   public Set<SMGEdgePointsTo> getPTEdges();
   public boolean isPointer(Integer pValue);
-  public Integer getAddress(SMGObject pMemory, Integer pOffset);
-
 
   public Iterable<SMGEdgeHasValue> getHVEdges();
   public Iterable<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter);

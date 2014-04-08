@@ -302,6 +302,26 @@ public class SMGState implements AbstractQueryableState, Targetable {
   }
 
   /**
+   * Returns a Points-To edge leading from a value.
+   *
+   * Constant.
+   *
+   * @param pValue A value for which to return the Points-To edge
+   * @return A Points-To edge leading from the passed value. The value needs to be
+   * a pointer, i.e. it needs to have that edge. If it does not have it, the method raises
+   * an exception.
+   *
+   * @throws SMGInconsistentException When the value passed does not have a Points-To edge.
+   */
+  public SMGEdgePointsTo getPointerFromValue(Integer pValue) throws SMGInconsistentException {
+    if (heap.isPointer(pValue)) {
+      return heap.getPointer(pValue);
+    }
+
+    throw new SMGInconsistentException("Asked for a Points-To edge for a non-pointer value");
+  }
+
+  /**
    * Read Value in field (object, type) of an Object.
    *
    * This method does not modify the state being read,
@@ -676,6 +696,35 @@ public class SMGState implements AbstractQueryableState, Targetable {
 
   public void setMemLeak() {
     heap.setMemoryLeak();
+  }
+
+  /**
+   * Get the symbolic value, that represents the address
+   * pointing to the given memory with the given offset, if it exists.
+   *
+   * @param memory
+   *          get address belonging to this memory.
+   * @param offset
+   *          get address with this offset relative to the beginning of the
+   *          memory.
+   * @return Address of the given field, or null, if such an address does not
+   *         yet exist in the SMG.
+   */
+  @Nullable
+  public Integer getAddress(SMGObject memory, int offset) {
+
+    // TODO A better way of getting those edges, maybe with a filter
+    // like the Has-Value-Edges
+
+    Set<SMGEdgePointsTo> pointsToEdges = heap.getPTEdges();
+
+    for (SMGEdgePointsTo edge : pointsToEdges) {
+      if (edge.getObject().equals(memory) && edge.getOffset() == offset) {
+        return edge.getValue();
+      }
+    }
+
+    return null;
   }
 
   /**
