@@ -25,11 +25,16 @@ package org.sosy_lab.cpachecker.cpa.smg.objects;
 
 
 
-public class SMGObject {
+public abstract class SMGObject {
   final private int size;
   final private String label;
 
-  static private final SMGObject nullObject = new SMGObject(0, "NULL");
+  static private final SMGObject nullObject = new SMGObject(0, "NULL") {
+    @Override
+    public String toString() {
+      return "NULL";
+    }
+  };
 
   static public final SMGObject getNullObject() {
     return nullObject;
