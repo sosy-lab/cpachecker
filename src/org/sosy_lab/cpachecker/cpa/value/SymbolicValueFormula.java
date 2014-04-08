@@ -25,9 +25,17 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.simplifier.ExternalSimplifier;
 
 
 /**
@@ -47,8 +55,42 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
  * integer arithmetics, this can not be simplified to "X".
  */
 public class SymbolicValueFormula implements Value {
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((root == null) ? 0 : root.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    SymbolicValueFormula other = (SymbolicValueFormula) obj;
+    if (root == null) {
+      if (other.root != null) {
+        return false;
+      }
+    } else if (!root.equals(other.root)) {
+      return false;
+    }
+    return true;
+  }
+
   /** root of the expression tree **/
   ExpressionBase root;
+
+  public ExpressionBase getRoot() {
+    return root;
+  }
 
   public SymbolicValueFormula(ExpressionBase root) {
     this.root = root;
@@ -58,8 +100,23 @@ public class SymbolicValueFormula implements Value {
    * Returns a version of this symboli{c value that was simplified
    * as much as possible.
    */
-  public SymbolicValueFormula simplify() {
-    ExpressionBase simplifiedTree = recursiveSimplify(root);
+  public Value simplify(LogManagerWithoutDuplicates logger) {
+    ExpressionBase simplifiedTree = root;
+
+    // Only call the external simplifier if it's actually a complex
+    // expression.
+    if(root instanceof BinaryExpression) {
+      if(isIntegerAddMultiplyOnly()) {
+        simplifiedTree = ExternalSimplifier.simplify(simplifiedTree, logger);
+      }
+    }
+
+    // If we actually know the value, return the known value.
+    if(simplifiedTree instanceof ConstantValue) {
+      return ((ConstantValue) simplifiedTree).getValue();
+    }
+
+    // Otherwise, return the formula.
     return new SymbolicValueFormula(simplifiedTree);
   }
 
@@ -68,10 +125,18 @@ public class SymbolicValueFormula implements Value {
    * Base class for elements of a symbolic expression, e.g. "X + X"
    */
   public interface ExpressionBase {
+    public boolean isIntegerAddMultiplyOnly();
+    public ExpressionBase replaceSymbolWith(SymbolicValue symbol, ConstantValue replacement);
+
+    /**
+     * @return A list of all symbolic values contained in the sub-tree of this expression.
+     */
+    public Set<SymbolicValue> getSymbolicValues();
 
   }
 
   public static class BinaryExpression implements ExpressionBase {
+
     public static enum BinaryOperator {
       MULTIPLY      ("*"),
       DIVIDE        ("/"),
@@ -99,10 +164,13 @@ public class SymbolicValueFormula implements Value {
 
       /**
        * Get the binary operator with a specific string, or null if none.
+       *
+       * @param key a char representing the operator, e.g. '+'
+       * @return the corresponding <code>BinaryOperator</code> object
        */
       public static BinaryOperator fromString(String key) {
         for(BinaryOperator iter : BinaryOperator.values()) {
-          if(iter.op == key) {
+          if(iter.op.equals(key)) {
             return iter;
           }
         }
@@ -149,47 +217,170 @@ public class SymbolicValueFormula implements Value {
     public String toString() {
       return lVal.toString() + " " + op.toString() + " " + rVal.toString();
     }
-  }
 
-  /**
-   * Represents an undetermined value.
-   */
-  public static class SymbolicValue implements ExpressionBase {
-    /**
-     * The location in memory this SymbolicValue occupies.
-     *
-     * TODO: think about potentially representing values that aren't
-     *       anywhere in memory, e.g. `int x = 2 + nondet();`, now `nondet()`
-     *       has no memory location, but we'd still like to treat it as
-     *       symbolic value
-     */
-    private MemoryLocation location;
+    @Override
+    public boolean isIntegerAddMultiplyOnly() {
+      final List<String> allowedOps = new ArrayList<>();
+      allowedOps.add("PLUS");
+      allowedOps.add("MINUS");
+      allowedOps.add("MULTIPLY");
 
-    public SymbolicValue(MemoryLocation location) {
-      this.location = location;
+      // If it's not +, - or * return false
+      if(!allowedOps.contains(this.op.toString())) {
+        return false;
+      }
+
+      CSimpleType arithmeticType =
+          AbstractExpressionValueVisitor.getArithmeticType(resultType);
+
+      return arithmeticType.getType() == CBasicType.INT &&
+          lVal.isIntegerAddMultiplyOnly() && rVal.isIntegerAddMultiplyOnly();
     }
 
     @Override
-    public boolean equals(Object other) {
-      if(other instanceof SymbolicValue) {
-        return location.equals(((SymbolicValue) other).location);
-      } else {
-        return false;
-      }
+    public ExpressionBase replaceSymbolWith(SymbolicValue pSymbol, ConstantValue pReplacement) {
+      ExpressionBase leftHand = lVal.replaceSymbolWith(pSymbol, pReplacement);
+      ExpressionBase rightHand = rVal.replaceSymbolWith(pSymbol, pReplacement);
+
+      return new BinaryExpression(leftHand, rightHand, op, resultType, calculationType);
+    }
+
+    @Override
+    public Set<SymbolicValue> getSymbolicValues() {
+      Set<SymbolicValue> leftHand = lVal.getSymbolicValues();
+      Set<SymbolicValue> rightHand = rVal.getSymbolicValues();
+
+      // It's okay to change leftHand rather than creating a copy,
+      // since leftHand was only created for local use anyway.
+      leftHand.addAll(rightHand);
+      return leftHand;
     }
 
     @Override
     public int hashCode() {
-      return location.hashCode();
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((lVal == null) ? 0 : lVal.hashCode());
+      result = prime * result + ((op == null) ? 0 : op.hashCode());
+      result = prime * result + ((rVal == null) ? 0 : rVal.hashCode());
+      result = prime * result + ((resultType == null) ? 0 : resultType.hashCode());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      BinaryExpression other = (BinaryExpression) obj;
+      if (lVal == null) {
+        if (other.lVal != null) {
+          return false;
+        }
+      } else if (!lVal.equals(other.lVal)) {
+        return false;
+      }
+      if (op != other.op) {
+        return false;
+      }
+      if (rVal == null) {
+        if (other.rVal != null) {
+          return false;
+        }
+      } else if (!rVal.equals(other.rVal)) {
+        return false;
+      }
+      if (resultType == null) {
+        if (other.resultType != null) {
+          return false;
+        }
+      } else if (!resultType.equals(other.resultType)) {
+        return false;
+      }
+      return true;
+    }
+  }
+
+  /**
+   * Represents an undetermined input to our program, e.g. `nondet()`.
+   */
+  public static class SymbolicValue implements ExpressionBase {
+    private String displayName;
+
+    // Don't overwrite the equals method, SymbolicValue's are supposed
+    // to be unique, even values with the same display name can refer
+    // to different data.
+
+    public SymbolicValue(String name) {
+      displayName = name;
+    }
+
+    @Override
+    public boolean isIntegerAddMultiplyOnly() {
+      // We don't know whether this is an integer, we must let
+      // the higher level expression check.
+      return true;
     }
 
     @Override
     public String toString() {
-      return location.getAsSimpleString();
+      return displayName;
+    }
+
+    @Override
+    public ExpressionBase replaceSymbolWith(SymbolicValue pSymbol, ConstantValue pReplacement) {
+      if(this.equals(pSymbol)) {
+        return pReplacement;
+      } else {
+        return this;
+      }
+    }
+
+    @Override
+    public Set<SymbolicValue> getSymbolicValues() {
+      Set<SymbolicValue> rval = new HashSet<>();
+      rval.add(this);
+      return rval;
     }
   }
 
   public static class ConstantValue implements ExpressionBase {
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((value == null) ? 0 : value.hashCode());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      ConstantValue other = (ConstantValue) obj;
+      if (value == null) {
+        if (other.value != null) {
+          return false;
+        }
+      } else if (!value.equals(other.value)) {
+        return false;
+      }
+      return true;
+    }
+
     private Value value;
 
     public Value getValue() {
@@ -204,6 +395,24 @@ public class SymbolicValueFormula implements Value {
     public String toString() {
       return value.toString();
     }
+
+    @Override
+    public boolean isIntegerAddMultiplyOnly() {
+      // We don't know whether this is an integer, we must let
+      // the higher level expression check.
+      return true;
+    }
+
+    @Override
+    public ExpressionBase replaceSymbolWith(SymbolicValue pSymbol, ConstantValue pReplacement) {
+      // Constants are never replaced.
+      return this;
+    }
+
+    @Override
+    public Set<SymbolicValue> getSymbolicValues() {
+      return new HashSet<>();
+    }
   }
 
   public static ExpressionBase expressionFromExplicitValue(Value value) {
@@ -215,43 +424,86 @@ public class SymbolicValueFormula implements Value {
   }
 
   /**
-   * Simplifies a CExpression to an equivalent expression
-   * using recursion.
+   * Replaces the given symbolic value with a constant. If the given symbolic value does not
+   * occur, returns an unmodified version of `this`.
    *
-   * Example: "X - X" gets simplified to "0"
+   * @param symbol
+   * @param replacement
+   * @param logger logging
+   * @return The simplified formula with the given symbol replaced.
    */
-  private static ExpressionBase recursiveSimplify(ExpressionBase expression) {
-    if(expression instanceof BinaryExpression) {
-      BinaryExpression binaryExpression = (BinaryExpression) expression;
+  public Value replaceSymbolWith(SymbolicValue pSymbol, Value pReplacement, LogManagerWithoutDuplicates logger) {
+    ConstantValue replacement = new ConstantValue(pReplacement);
+    SymbolicValueFormula rval = new SymbolicValueFormula(root.replaceSymbolWith(pSymbol, replacement));
+    if(!rval.root.equals(root)) {
+      // Only simplify if we actually managed to replace something.
+      return rval.simplify(logger);
+    }
+    return this;
+  }
 
-      switch(binaryExpression.getOperator()) {
-      case MINUS:
-        CSimpleType type = AbstractExpressionValueVisitor.getArithmeticType(binaryExpression.getResultType());
-        if(type != null) {
-          // TODO: recursive equivalence check in a separate function
-          boolean isEqual = false;
-          if(binaryExpression.getOperand1() instanceof SymbolicValue
-              && binaryExpression.getOperand2() instanceof SymbolicValue) {
-            SymbolicValue leftHand = (SymbolicValue) binaryExpression.getOperand1();
-            SymbolicValue rightHand = (SymbolicValue) binaryExpression.getOperand2();
-            if(leftHand.equals(rightHand)) {
-              isEqual = true;
-            }
-          }
+  /**
+   * Check if there's only a single symbolic value in this formula. If so, try
+   * to solve the formula for that variable.
+   *
+   * @param truthValue If false, this formula is assumed to be false, otherwise
+   *        this formula is assumed to be true.
+   * @param logger logging
+   * @return A pair of the single symbolic value that was found, and the value
+   *         it must have according to this formula. null if no such pair exists.
+   */
+  public Pair<SymbolicValue, Value> inferAssignment(boolean truthValue, LogManagerWithoutDuplicates logger) {
+    Set<SymbolicValue> symbolicValues = root.getSymbolicValues();
 
-          if(isEqual) {
-            return new ConstantValue(new NumericValue(0));
-          }
-        }
+    ExpressionBase root = this.root;
+
+    // Less or more than a single symbolic value, impossible to infer anything.
+    if(symbolicValues.size() != 1) {
+      return null;
+    }
+    SymbolicValue valueToSolveFor = symbolicValues.iterator().next();
+
+    // We want an == to solve, not an !=, but with truthValue == false,
+    // an != comes out as an ==
+    if(root instanceof BinaryExpression) {
+      BinaryExpression rootBinaryExpression = (BinaryExpression) root;
+      String operator = rootBinaryExpression.getOperator().op;
+
+      if(operator.equals("!=") && !truthValue) {
+        // If we have != and truthValue is false, convert to == instead
+        root = new BinaryExpression(rootBinaryExpression.getOperand1(),
+            rootBinaryExpression.getOperand2(),
+            BinaryExpression.BinaryOperator.EQUALS,
+            rootBinaryExpression.getCalculationType(),
+            rootBinaryExpression.getResultType());
+        operator = "==";
+        truthValue = true;
       }
 
-      ExpressionBase newLeftHand = recursiveSimplify(binaryExpression.getOperand1());
-      ExpressionBase newRightHand = recursiveSimplify(binaryExpression.getOperand2());
-      return new BinaryExpression(newLeftHand, newRightHand, binaryExpression.getOperator(),
-          binaryExpression.getResultType(), binaryExpression.getCalculationType());
+      if(operator.equals("==") && truthValue) {
+        // If the left-hand or right-hand side already are the variable itself, we don't need
+        // to do expensive solving.
+        if(rootBinaryExpression.lVal instanceof SymbolicValue && rootBinaryExpression.rVal instanceof ConstantValue) {
+          SymbolicValue symbol = (SymbolicValue) rootBinaryExpression.lVal;
+          ConstantValue value = (ConstantValue) rootBinaryExpression.rVal;
+          return Pair.of(symbol, value.getValue());
+        } else if(rootBinaryExpression.rVal instanceof SymbolicValue && rootBinaryExpression.lVal instanceof ConstantValue) {
+          SymbolicValue symbol = (SymbolicValue) rootBinaryExpression.rVal;
+          ConstantValue value = (ConstantValue) rootBinaryExpression.lVal;
+          return Pair.of(symbol, value.getValue());
+        }
+
+        // Can only solve anything if we have an == at the top level.
+        Value result = ExternalSimplifier.solve(valueToSolveFor, root, logger);
+        if(result == null) {
+          return null;
+        } else {
+          return Pair.of(valueToSolveFor, result);
+        }
+      }
     }
-    // If we couldn't simplify it, return as-is.
-    return expression;
+
+    return null;
   }
 
   @Override
@@ -261,7 +513,12 @@ public class SymbolicValueFormula implements Value {
 
   @Override
   public boolean isUnknown() {
-    return true;
+    return false;
+  }
+
+  @Override
+  public boolean isExplicitlyKnown() {
+    return false;
   }
 
   @Override
@@ -278,6 +535,19 @@ public class SymbolicValueFormula implements Value {
   @Override
   public String toString() {
     return "SymbolicValueFormula {"+root.toString()+"}";
+  }
+
+  /**
+   * Check if this formula consists entirely of integer arithmetic
+   * with +, - and *
+   *
+   * If that's the case, shuffling around parts of the formula will
+   * not change the result, so simplification is possible.
+   *
+   * @return true if this formula fulfills the above requirements, false otherwise
+   */
+  public boolean isIntegerAddMultiplyOnly() {
+    return root.isIntegerAddMultiplyOnly();
   }
 
 }

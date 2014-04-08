@@ -32,17 +32,14 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
- * Stores a numeric value that can be tracked by the
- * ValueAnalysisCPA.
+ * Stores a numeric value that can be tracked by the ValueAnalysisCPA.
  */
 public class NumericValue implements Value {
   private Number number;
 
   /**
-   * Creates a new <code>NumericValue</code>, given the type and a
-   * <code>BigDecimal</code>.
-   * @param pType the inital type of the number.
-   * @param pNumber the value of the number (must be a <code>BigDecimal</code>)
+   * Creates a new <code>NumericValue</code>.
+   * @param pNumber the value of the number
    */
   public NumericValue(Number pNumber) {
     number = pNumber;
@@ -143,6 +140,11 @@ public class NumericValue implements Value {
   @Override
   public boolean isUnknown() {
     return false;
+  }
+
+  @Override
+  public boolean isExplicitlyKnown() {
+    return true;
   }
 
   @Override

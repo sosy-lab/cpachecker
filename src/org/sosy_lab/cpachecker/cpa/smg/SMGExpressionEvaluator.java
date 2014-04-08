@@ -273,7 +273,7 @@ public class SMGExpressionEvaluator {
 
     Value value = rValue.accept(visitor);
 
-    if (value.isUnknown() || !value.isNumericValue()) {
+    if (!value.isExplicitlyKnown() || !value.isNumericValue()) {
       return SMGUnknownValue.getInstance();
     } else {
       Long longValue = value.asLong(getRealExpressionType(rValue));

@@ -67,7 +67,7 @@ class Tool(benchmark.tools.template.BaseTool):
                     if 'unwinding assertion' in reason:
                         status = result.STR_UNKNOWN
                     else:
-                        status = result.STR_FALSE_LABEL
+                        status = result.STR_FALSE_REACH
 
                 elif status == "SUCCESS":
                     assert returncode == 0

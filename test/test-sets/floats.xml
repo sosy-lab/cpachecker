@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="1800" memlimit="2000">
+  <option name="-noout"/>
+  <option name="-heap">1200M</option>
+
+  <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
+
+  <sourcefiles name="Floats">
+    <includesfile>floats.set</includesfile>
+  </sourcefiles>
+
+  <rundefinition name="without-cbmc">
+    <option name="-explicitAnalysis-no-cbmc"/>
+  </rundefinition>
+
+  <rundefinition name="with-cbmc">
+    <option name="-explicitAnalysis"/>
+  </rundefinition>
+
+  <columns>
+    <column title="total">time for CPAchecker</column>
+    <column title="reached">reached set</column>
+    <column title="memory">Heap memory usage</column>
+  </columns>
+
+</benchmark>

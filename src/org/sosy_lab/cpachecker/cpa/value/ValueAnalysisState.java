@@ -359,7 +359,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
       String[] parts = pProperty.split("==");
       if (parts.length != 2) {
         Value value = this.constantsMap.get(MemoryLocation.valueOf(pProperty));
-        if (!value.isUnknown()) {
+        if (value.isExplicitlyKnown()) {
           return value;
         } else {
           throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not find the variable \""

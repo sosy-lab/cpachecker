@@ -177,6 +177,23 @@ def expandFileNamePattern(pattern, baseDir):
     return fileList
 
 
+def getFiles(paths):
+    changed = False
+    result = []
+    for path in paths:
+        if os.path.isfile(path):
+            result.append(path)
+        elif os.path.isdir(path):
+            changed = True
+            for currentPath, dirs, files in os.walk(path):
+                # ignore hidden files, on Linux they start with '.',
+                # inplace replacement of 'dirs', because it is used later in os.walk
+                files = [f for f in files if not f.startswith('.')]
+                dirs[:] = [d for d in dirs if not d.startswith('.')]
+                result.extend(os.path.join(currentPath, f) for f in files)
+    return result if changed else paths
+
+
 def appendFileToFile(sourcename, targetname):
     source = open(sourcename, 'r')
     try:

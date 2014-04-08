@@ -49,7 +49,7 @@ class Tool(benchmark.tools.template.BaseTool):
         if 'SSSAFE' in output:
             status = result.STR_TRUE
         elif 'UNSAFE' in output:
-            status = result.STR_FALSE_LABEL
+            status = result.STR_FALSE_REACH
         else:
             status = result.STR_UNKNOWN
 

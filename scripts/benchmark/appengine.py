@@ -137,22 +137,22 @@ def _getBenchmarkDataForAppEngine(benchmark):
 
         for run in runSet.runs:
             if STOPPED_BY_INTERRUPT: break
-            args = {'commandline':' '.join(run.getCmdline()), 'programName':run.sourcefile}
+            args = {'commandline':' '.join(run.getCmdline()), 'programName':run.identifier}
             try:
                 with open(run.propertyfile, 'r') as f:
                     args['properties'] = f.read()
             except:
                 sys.exit("Cannot read properties file {}.".format(run.propertyfile))
             try:
-                with open(run.sourcefile, 'r') as f:
+                with open(run.identifier, 'r') as f:
                     args['programText'] = f.read()
             except:
-                sys.exit("Cannot read program file {}.".format(run.sourcefile))
+                sys.exit("Cannot read program file {}.".format(run.identifier))
             runQueue.put({'payload':args,
                           'logFile':os.path.abspath(run.logFile),
                           'debug':benchmark.config.debug,
                           'maxLogfileSize':benchmark.config.maxLogfileSize})
-            sourceFiles.append(run.sourcefile)
+            sourceFiles.append(run.identifier)
 
     if not sourceFiles: sys.exit("Benchmark has nothing to run.")
 

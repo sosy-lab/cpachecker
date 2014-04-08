@@ -16,7 +16,7 @@ class Tool(benchmark.tools.template.BaseTool):
         status = result.STR_UNKNOWN
         for line in output.splitlines():
             if line.startswith('0 safe, 1 unsafe'):
-                status = result.STR_FALSE_LABEL
+                status = result.STR_FALSE_REACH
             elif line.startswith('1 safe, 0 unsafe'):
                 status = result.STR_TRUE
             elif returnsignal == 9:
