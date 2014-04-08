@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg.graphs;
+package org.sosy_lab.cpachecker.cpa.smg;
 
 import java.util.ArrayList;
 import java.util.logging.Level;
@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
 import com.google.common.collect.Iterables;
 
-final class SMGConsistencyVerifier {
+public final class SMGConsistencyVerifier {
   private SMGConsistencyVerifier() {} /* utility class */
 
   /**

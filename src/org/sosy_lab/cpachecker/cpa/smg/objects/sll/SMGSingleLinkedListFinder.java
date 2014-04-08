@@ -30,18 +30,18 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
+import org.sosy_lab.cpachecker.cpa.smg.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionFinder;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.ReadableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
 import com.google.common.collect.Iterables;
 
 public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
-  private ReadableSMG smg;
+  private CLangSMG smg;
   private Map<SMGObject, Map<Integer, SMGSingleLinkedListCandidate>> candidates = new HashMap<>();
   private Map<Integer, Integer> inboundPointers = new HashMap<>();
 
@@ -56,7 +56,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
   }
 
   @Override
-  public Set<SMGAbstractionCandidate> traverse(ReadableSMG pSmg) {
+  public Set<SMGAbstractionCandidate> traverse(CLangSMG pSmg) {
     smg = pSmg;
 
     buildInboundPointers();
@@ -77,8 +77,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
   }
 
   private void buildInboundPointers() {
-    for (SMGEdgePointsTo pt : smg.getPTEdges()) {
-      int pointer = pt.getValue();
+    for (Integer pointer : smg.getPTEdges().keySet()) {
       inboundPointers.put(pointer, Iterables.size(smg.getHVEdges(new SMGEdgeHasValueFilter().filterHavingValue(pointer))));
     }
   }

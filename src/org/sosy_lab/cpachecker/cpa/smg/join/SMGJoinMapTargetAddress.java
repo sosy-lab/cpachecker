@@ -25,19 +25,18 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import java.util.Collection;
 
+import org.sosy_lab.cpachecker.cpa.smg.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.ReadableSMG;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
 final class SMGJoinMapTargetAddress {
-  private WritableSMG smg;
+  private SMG smg;
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
   private Integer value;
 
-  public SMGJoinMapTargetAddress(ReadableSMG pSMG1, ReadableSMG pSMG2, WritableSMG destSMG,
+  public SMGJoinMapTargetAddress(SMG pSMG1, SMG pSMG2, SMG destSMG,
                              SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
                              Integer pAddress1, Integer pAddress2) {
     smg = destSMG;
@@ -52,7 +51,7 @@ final class SMGJoinMapTargetAddress {
     }
 
     // TODO: Ugly, refactor
-    Collection<SMGEdgePointsTo> edges = smg.getPTEdges();
+    Collection<SMGEdgePointsTo> edges = smg.getPTEdges().values();
     for (SMGEdgePointsTo edge : edges) {
       if ((edge.getObject() == target) &&
           (edge.getOffset() == pt.getOffset())) {
@@ -68,7 +67,7 @@ final class SMGJoinMapTargetAddress {
     mapping2.map(pAddress2, value);
   }
 
-  public WritableSMG getSMG() {
+  public SMG getSMG() {
     return smg;
   }
 

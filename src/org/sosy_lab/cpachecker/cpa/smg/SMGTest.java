@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg.graphs;
+package org.sosy_lab.cpachecker.cpa.smg;
 
 import java.util.BitSet;
 import java.util.HashSet;
@@ -35,11 +35,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
@@ -479,5 +474,113 @@ public class SMGTest {
   public void getObjectPointedByTest() {
     Assert.assertEquals(obj1, smg.getObjectPointedBy(val1));
     Assert.assertNull(smg.getObjectPointedBy(val2));
+  }
+
+  @Test
+  public void neqBasicTest() {
+    NeqRelation nr = new NeqRelation();
+    Integer one = Integer.valueOf(1);
+    Integer two = Integer.valueOf(2);
+    Integer three = Integer.valueOf(3);
+
+    Assert.assertFalse(nr.neq_exists(one, two));
+    Assert.assertFalse(nr.neq_exists(one, three));
+    Assert.assertFalse(nr.neq_exists(two, three));
+    Assert.assertFalse(nr.neq_exists(two, one));
+    Assert.assertFalse(nr.neq_exists(three, one));
+    Assert.assertFalse(nr.neq_exists(three, two));
+
+    nr.add_relation(one, three);
+
+    Assert.assertFalse(nr.neq_exists(one, two));
+    Assert.assertTrue(nr.neq_exists(one, three));
+    Assert.assertFalse(nr.neq_exists(two, three));
+    Assert.assertFalse(nr.neq_exists(two, one));
+    Assert.assertTrue(nr.neq_exists(three, one));
+    Assert.assertFalse(nr.neq_exists(three, two));
+
+    nr.add_relation(one, three);
+
+    Assert.assertFalse(nr.neq_exists(one, two));
+    Assert.assertTrue(nr.neq_exists(one, three));
+    Assert.assertFalse(nr.neq_exists(two, three));
+    Assert.assertFalse(nr.neq_exists(two, one));
+    Assert.assertTrue(nr.neq_exists(three, one));
+    Assert.assertFalse(nr.neq_exists(three, two));
+
+    nr.add_relation(two, three);
+
+    Assert.assertFalse(nr.neq_exists(one, two));
+    Assert.assertTrue(nr.neq_exists(one, three));
+    Assert.assertTrue(nr.neq_exists(two, three));
+    Assert.assertFalse(nr.neq_exists(two, one));
+    Assert.assertTrue(nr.neq_exists(three, one));
+    Assert.assertTrue(nr.neq_exists(three, two));
+
+    nr.remove_relation(one, three);
+
+    Assert.assertFalse(nr.neq_exists(one, two));
+    Assert.assertFalse(nr.neq_exists(one, three));
+    Assert.assertTrue(nr.neq_exists(two, three));
+    Assert.assertFalse(nr.neq_exists(two, one));
+    Assert.assertFalse(nr.neq_exists(three, one));
+    Assert.assertTrue(nr.neq_exists(three, two));
+  }
+
+  @Test
+  public void neqPutAllTest() {
+    NeqRelation nr = new NeqRelation();
+    NeqRelation newNr = new NeqRelation();
+    Integer one = Integer.valueOf(1);
+    Integer two = Integer.valueOf(2);
+    Integer three = Integer.valueOf(3);
+
+    nr.add_relation(one, three);
+
+    newNr.putAll(nr);
+    Assert.assertFalse(nr.neq_exists(one, two));
+    Assert.assertTrue(nr.neq_exists(one, three));
+    Assert.assertFalse(nr.neq_exists(two, three));
+    Assert.assertFalse(newNr.neq_exists(two, one));
+    Assert.assertTrue(newNr.neq_exists(three, one));
+    Assert.assertFalse(newNr.neq_exists(three, two));
+
+    nr.remove_relation(one, three);
+    Assert.assertFalse(nr.neq_exists(one, two));
+    Assert.assertFalse(nr.neq_exists(one, three));
+    Assert.assertFalse(nr.neq_exists(two, three));
+    Assert.assertFalse(newNr.neq_exists(two, one));
+    Assert.assertTrue(newNr.neq_exists(three, one));
+    Assert.assertFalse(newNr.neq_exists(three, two));
+  }
+
+  @Test
+  public void neqRemoveValueTest() {
+    NeqRelation nr = new NeqRelation();
+    Integer one = Integer.valueOf(1);
+    Integer two = Integer.valueOf(2);
+    Integer three = Integer.valueOf(3);
+
+    nr.add_relation(one, two);
+    nr.add_relation(one, three);
+    nr.removeValue(one);
+    Assert.assertFalse(nr.neq_exists(one, two));
+    Assert.assertFalse(nr.neq_exists(one, three));
+    Assert.assertFalse(nr.neq_exists(two, three));
+  }
+
+  @Test
+  public void neqMergeValuesTest() {
+    NeqRelation nr = new NeqRelation();
+    Integer one = Integer.valueOf(1);
+    Integer two = Integer.valueOf(2);
+    Integer three = Integer.valueOf(3);
+
+    nr.add_relation(one, three);
+    nr.mergeValues(two, three);
+
+    Assert.assertTrue(nr.neq_exists(one, two));
+    Assert.assertFalse(nr.neq_exists(one, three));
+    Assert.assertFalse(nr.neq_exists(two, three));
   }
 }

@@ -32,13 +32,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
+import org.sosy_lab.cpachecker.cpa.smg.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.ReadableSMG;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGFactory;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
@@ -48,14 +46,14 @@ public class SMGJoinTest {
   static private final CFunctionType functionType = AnonymousTypes.createSimpleFunctionType(AnonymousTypes.dummyInt);
   static private final CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
 
-  private WritableSMG smg1;
-  private WritableSMG smg2;
+  private CLangSMG smg1;
+  private CLangSMG smg2;
 
   @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
-    smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
-    smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    smg1 = new CLangSMG(MachineModel.LINUX64);
+    smg2 = new CLangSMG(MachineModel.LINUX64);
   }
 
   // Testing condition: adds an identical global variable to both SMGs
@@ -110,7 +108,7 @@ public class SMGJoinTest {
     smg2.addHasValueEdge(hv2);
   }
 
-  private void assertObjectCounts(ReadableSMG pSMG, int pGlobals, int pHeap, int pFrames) {
+  private void assertObjectCounts(CLangSMG pSMG, int pGlobals, int pHeap, int pFrames) {
     Assert.assertEquals(pSMG.getGlobalObjects().size(), pGlobals);
     Assert.assertEquals(pSMG.getHeapObjects().size(), pHeap);
     Assert.assertEquals(pSMG.getStackFrames().size(), pFrames);
@@ -124,7 +122,7 @@ public class SMGJoinTest {
     Assert.assertTrue(join.isDefined());
     Assert.assertEquals(join.getStatus(), SMGJoinStatus.EQUAL);
 
-    ReadableSMG resultSMG = join.getJointSMG();
+    CLangSMG resultSMG = join.getJointSMG();
     Assert.assertTrue(resultSMG.getGlobalObjects().containsKey(varName));
     assertObjectCounts(resultSMG, 1, 1, 0);
   }
@@ -140,7 +138,7 @@ public class SMGJoinTest {
     Assert.assertTrue(join.isDefined());
     Assert.assertEquals(join.getStatus(), SMGJoinStatus.EQUAL);
 
-    ReadableSMG resultSMG = join.getJointSMG();
+    CLangSMG resultSMG = join.getJointSMG();
     Assert.assertTrue(resultSMG.getStackFrames().getFirst().containsVariable(varName));
     assertObjectCounts(resultSMG, 0, 1, 1);
   }
@@ -153,7 +151,7 @@ public class SMGJoinTest {
     Assert.assertTrue(join.isDefined());
     Assert.assertEquals(join.getStatus(), SMGJoinStatus.EQUAL);
 
-    ReadableSMG resultSMG = join.getJointSMG();
+    CLangSMG resultSMG = join.getJointSMG();
     Assert.assertTrue(resultSMG.getGlobalObjects().containsKey(varName));
     assertObjectCounts(resultSMG, 1, 1, 0);
 
@@ -173,7 +171,7 @@ public class SMGJoinTest {
     Assert.assertTrue(join.isDefined());
     Assert.assertEquals(join.getStatus(), SMGJoinStatus.EQUAL);
 
-    ReadableSMG resultSMG = join.getJointSMG();
+    CLangSMG resultSMG = join.getJointSMG();
     Assert.assertTrue(resultSMG.getStackFrames().getFirst().containsVariable(varName));
     assertObjectCounts(resultSMG, 0, 1, 1);
 

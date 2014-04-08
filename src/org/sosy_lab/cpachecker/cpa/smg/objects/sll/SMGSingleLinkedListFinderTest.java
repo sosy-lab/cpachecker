@@ -30,13 +30,12 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
+import org.sosy_lab.cpachecker.cpa.smg.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGFactory;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
@@ -46,7 +45,7 @@ import com.google.common.collect.Iterables;
 public class SMGSingleLinkedListFinderTest {
   @Test
   public void simpleListTest() {
-    WritableSMG smg = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
 
     SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, 5, 16, 8, "pointer");
 
@@ -64,7 +63,7 @@ public class SMGSingleLinkedListFinderTest {
 
   @Test
   public void nullifiedPointerInferenceTest() {
-    WritableSMG smg = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
 
     TestHelpers.createGlobalList(smg, 2, 16, 8, "pointer");
 
@@ -75,7 +74,7 @@ public class SMGSingleLinkedListFinderTest {
 
   @Test
   public void listWithInboundPointersTest() {
-    WritableSMG smg = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
     Integer tail = TestHelpers.createList(smg, 4, 16, 8, "tail");
 
     SMGEdgeHasValue head = TestHelpers.createGlobalList(smg, 3, 16, 8, "head");

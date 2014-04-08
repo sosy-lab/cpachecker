@@ -29,13 +29,11 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
+import org.sosy_lab.cpachecker.cpa.smg.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.ReadableSMG;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGFactory;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
@@ -56,9 +54,9 @@ public class SMGSingleLinkedListCandidate implements SMGAbstractionCandidate {
   }
 
   @Override
-  public ReadableSMG execute(ReadableSMG pSMG) {
+  public CLangSMG execute(CLangSMG pSMG) {
     // TMP: This will result in a new SMG
-    WritableSMG newSMG = SMGFactory.createWritableCopy(pSMG);
+    CLangSMG newSMG = new CLangSMG(pSMG);
 
     // TMP: Create an appropriate SLL and add it to new SMG
     SMGSingleLinkedList sll = new SMGSingleLinkedList((SMGRegion)start, offset, length);
@@ -68,7 +66,7 @@ public class SMGSingleLinkedListCandidate implements SMGAbstractionCandidate {
 
     // TMP: Replace all edges pointing to starting element with ones leading to the SLL
     //TODO: Better filtering of the pointers!!!
-    for (SMGEdgePointsTo pt : newSMG.getPTEdges()) {
+    for (SMGEdgePointsTo pt : newSMG.getPTEdges().values()) {
       if (pt.getObject().equals(start)) {
         SMGEdgePointsTo newPt = new SMGEdgePointsTo(pt.getValue(), sll, pt.getOffset());
         toReplace.put(pt, newPt);
@@ -85,8 +83,8 @@ public class SMGSingleLinkedListCandidate implements SMGAbstractionCandidate {
     SMGEdgeHasValue edgeToFollow = null;
     for (int i = 0; i < length; i++) {
       if (value != null) {
-        newSMG.removePointsToEdge(value);
         newSMG.removeValue(value);
+        newSMG.removePointsToEdge(value);
       }
 
       Iterable<SMGEdgeHasValue> outboundEdges = newSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(node).filterAtOffset(offset));
@@ -103,7 +101,7 @@ public class SMGSingleLinkedListCandidate implements SMGAbstractionCandidate {
       }
 
       value = edgeToFollow.getValue();
-      newSMG.removeObject(node);
+      newSMG.removeHeapObjectAndEdges(node);
       node = newSMG.getPointer(value).getObject();
     }
     SMGEdgeHasValue newOutbound = new SMGEdgeHasValue(edgeToFollow.getType(), offset, sll, value);

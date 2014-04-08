@@ -26,16 +26,14 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cpa.smg.graphs.ReadableSMG;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGFactory;
 import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedListFinder;
 
 public class SMGAbstractionManager {
-  private ReadableSMG smg;
+  private CLangSMG smg;
   private List<SMGAbstractionCandidate> abstractionCandidates = new ArrayList<>();
 
-  public SMGAbstractionManager(ReadableSMG pSMG) {
-    smg = SMGFactory.createWritableCopy(pSMG);
+  public SMGAbstractionManager(CLangSMG pSMG) {
+    smg = new CLangSMG(pSMG);
   }
 
   private boolean hasCandidates() {
@@ -49,7 +47,7 @@ public class SMGAbstractionManager {
     return abstractionCandidates.get(0);
   }
 
-  public ReadableSMG execute() {
+  public CLangSMG execute() {
     while (hasCandidates()) {
       SMGAbstractionCandidate best = getBestCandidate();
       smg = best.execute(smg);
