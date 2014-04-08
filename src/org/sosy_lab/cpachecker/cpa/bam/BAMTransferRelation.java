@@ -237,20 +237,29 @@ public class BAMTransferRelation implements TransferRelation {
     final Block outerSubtree = currentBlock;
     currentBlock = partitioning.getBlockForCallNode(entryNode);
 
-    final List<AbstractState> expandedFunctionReturnStates = new ArrayList<>();
+    final List<AbstractState> result = new ArrayList<>();
     for (AbstractState entryState : functionCallStates) { // in most case we have only one functionCallState here
       assert entryNode.equals(extractLocation(entryState)) : "location does not match: " + entryNode + " vs " + extractLocation(entryState);
-      expandedFunctionReturnStates.addAll(handleRecursiveFunctionCall0(entryState, precision, outerSubtree, entryNode));
-    }
+      final Collection<? extends AbstractState> expandedFunctionReturnStates = handleRecursiveFunctionCall0(entryState, precision, outerSubtree, entryNode);
 
-    final List<AbstractState> result = new ArrayList<>(expandedFunctionReturnStates.size());
-    for (AbstractState expandedState : expandedFunctionReturnStates) {
-      logger.log(Level.FINEST, "rebuilding state with root state", rootState);
-      logger.log(Level.FINEST, "rebuilding state with expanded state", expandedState);
-      AbstractState rebuildState = wrappedReducer.rebuildStateAfterFunctionCall(rootState, expandedState);
-      //((ARGState)rebuildState).addParent((ARGState)rootState);
-      logger.log(Level.FINEST, "rebuilding finished with state", rebuildState);
-      result.add(rebuildState);
+      for (AbstractState expandedState : expandedFunctionReturnStates) {
+        logger.log(Level.FINEST, "rebuilding state with root state", rootState);
+        logger.log(Level.FINEST, "rebuilding state with expanded state", expandedState);
+        AbstractState rebuildState = wrappedReducer.rebuildStateAfterFunctionCall(rootState, expandedState);
+        logger.log(Level.FINEST, "rebuilding finished with state", rebuildState);
+
+        // in the ARG of the outer block we have now the connection "rootState <-> expandedState"
+        assert ((ARGState)expandedState).getChildren().isEmpty() && ((ARGState)expandedState).getParents().size() == 1:
+            "unexpected expanded state: " + expandedState;
+        assert ((ARGState)entryState).getChildren().size() == 1 && ((ARGState)entryState).getChildren().contains(expandedState):
+            "successor of entry state must be expanded state " + expandedState;
+
+        // we replace this connection with "rootState <-> rebuildState"
+        ((ARGState)expandedState).removeFromARG();
+        ((ARGState)rebuildState).addParent((ARGState)entryState);
+
+        result.add(rebuildState);
+      }
     }
 
     currentBlock = outerSubtree;
