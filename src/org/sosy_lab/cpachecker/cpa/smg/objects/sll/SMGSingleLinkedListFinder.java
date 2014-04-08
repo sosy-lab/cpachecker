@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionFinder;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.ReadableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
@@ -57,7 +56,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
   }
 
   @Override
-  public Set<SMGAbstractionCandidate> traverse(ReadableSMG pSmg) throws SMGInconsistentException {
+  public Set<SMGAbstractionCandidate> traverse(ReadableSMG pSmg) {
     smg = pSmg;
 
     buildInboundPointers();
@@ -84,7 +83,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     }
   }
 
-  private void startTraversal(SMGObject pObject) throws SMGInconsistentException {
+  private void startTraversal(SMGObject pObject) {
     if (candidates.containsKey(pObject)) {
       // Processed already in continueTraversal
       return;
@@ -99,7 +98,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     }
   }
 
-  private void continueTraversal(int pValue, SMGSingleLinkedListCandidate pCandidate) throws SMGInconsistentException {
+  private void continueTraversal(int pValue, SMGSingleLinkedListCandidate pCandidate) {
     SMGEdgePointsTo pt = smg.getPointer(pValue);
     SMGObject object = pt.getObject();
     if (! candidates.containsKey(object)) {

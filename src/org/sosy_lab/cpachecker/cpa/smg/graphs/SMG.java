@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
@@ -447,16 +446,12 @@ class SMG {
    * Returns the {@link SMGEdgePointsTo} edge with the
    * given value as source.
    *
-   * @param pValue the source of the {@link SMGEdgePointsTo} edge.
+   * @param value the source of the {@link SMGEdgePointsTo} edge.
    * @return the {@link SMGEdgePointsTo} edge with the
    * {@link value} as source.
-   * @throws SMGInconsistentException
    */
-  public final SMGEdgePointsTo getPointer(Integer pValue) throws SMGInconsistentException {
-    if (pt_edges.containsKey(pValue)) {
-      return pt_edges.get(pValue);
-    }
-    throw new SMGInconsistentException("Not a pointer: " + pValue);
+  public final SMGEdgePointsTo getPointer(Integer value) {
+    return pt_edges.get(value);
   }
 
   public final boolean isCoveredByNullifiedBlocks(SMGEdgeHasValue pEdge) {

@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
@@ -56,9 +55,9 @@ public interface ReadableSMG {
   public Set<Integer> getValues();
   public boolean containsValue(Integer pValue);
   public int getNullValue();
-  public boolean isUnequal(int pV1, int pV2) throws SMGInconsistentException;
+  public boolean isUnequal(int pV1, int pV2);
 
-  public SMGEdgePointsTo getPointer(Integer pValue) throws SMGInconsistentException;
+  public SMGEdgePointsTo getPointer(Integer pValue);
   public Set<SMGEdgePointsTo> getPTEdges();
   public boolean isPointer(Integer pValue);
   public Integer getAddress(SMGObject pMemory, Integer pOffset);

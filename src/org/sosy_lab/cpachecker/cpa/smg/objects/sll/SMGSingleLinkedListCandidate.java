@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.ReadableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.WritableSMG;
@@ -57,7 +56,7 @@ public class SMGSingleLinkedListCandidate implements SMGAbstractionCandidate {
   }
 
   @Override
-  public ReadableSMG execute(ReadableSMG pSMG) throws SMGInconsistentException {
+  public ReadableSMG execute(ReadableSMG pSMG) {
     // TMP: This will result in a new SMG
     WritableSMG newSMG = SMGFactory.createWritableCopy(pSMG);
 

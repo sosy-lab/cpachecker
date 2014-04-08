@@ -38,7 +38,7 @@ public class SMGAbstractionManager {
     smg = SMGFactory.createWritableCopy(pSMG);
   }
 
-  private boolean hasCandidates() throws SMGInconsistentException {
+  private boolean hasCandidates() {
     SMGSingleLinkedListFinder sllCandidateFinder = new SMGSingleLinkedListFinder();
     abstractionCandidates.addAll(sllCandidateFinder.traverse(smg));
 
@@ -49,7 +49,7 @@ public class SMGAbstractionManager {
     return abstractionCandidates.get(0);
   }
 
-  public ReadableSMG execute() throws SMGInconsistentException {
+  public ReadableSMG execute() {
     while (hasCandidates()) {
       SMGAbstractionCandidate best = getBestCandidate();
       smg = best.execute(smg);

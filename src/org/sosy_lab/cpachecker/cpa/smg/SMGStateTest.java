@@ -250,6 +250,6 @@ public class SMGStateTest {
     SMGKnownSymValue nonpointer = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
     state.writeValue(pt.getObject(), 0, mockType16b, nonpointer);
 
-    pt = state.getSMG().getPointer(nonpointer.getAsInt());
+    state.getSMG().getPointer(nonpointer.getAsInt());
   }
 }

@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.ReadableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.WritableSMG;
@@ -75,7 +74,7 @@ public class SMGSingleLinkedListCandidateTest {
   }
 
   @Test
-  public void executeOnSimpleList() throws SMGInconsistentException {
+  public void executeOnSimpleList() {
     WritableSMG smg = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
     int NODE_SIZE = 8;
@@ -114,7 +113,7 @@ public class SMGSingleLinkedListCandidateTest {
   }
 
   @Test
-  public void executeOnNullTerminatedList() throws SMGInconsistentException {
+  public void executeOnNullTerminatedList() {
     WritableSMG smg = SMGFactory.createWritableSMG(MachineModel.LINUX64);
     SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, 2, 16, 8, "pointer");
 

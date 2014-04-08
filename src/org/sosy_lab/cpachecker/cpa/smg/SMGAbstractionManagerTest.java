@@ -74,7 +74,7 @@ public class SMGAbstractionManagerTest {
   }
 
   @Test
-  public void testExecute() throws SMGInconsistentException {
+  public void testExecute() {
     SMGAbstractionManager manager = new SMGAbstractionManager(smg);
     ReadableSMG afterAbstraction = manager.execute();
 
