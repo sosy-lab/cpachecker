@@ -76,7 +76,7 @@ public class SMGSingleLinkedListCandidateTest {
     CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
 
     int NODE_SIZE = 8;
-    int SEGMENT_LENGTH = 18;
+    int SEGMENT_LENGTH = 4;
     int OFFSET = 0;
 
     SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, SEGMENT_LENGTH + 1, NODE_SIZE, OFFSET, "pointer");

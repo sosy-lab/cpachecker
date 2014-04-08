@@ -55,16 +55,12 @@ public class SMGSingleLinkedListCandidate implements SMGAbstractionCandidate {
 
   @Override
   public CLangSMG execute(CLangSMG pSMG) {
-    // TMP: This will result in a new SMG
     CLangSMG newSMG = new CLangSMG(pSMG);
-
-    // TMP: Create an appropriate SLL and add it to new SMG
     SMGSingleLinkedList sll = new SMGSingleLinkedList((SMGRegion)start, offset, length);
     newSMG.addHeapObject(sll);
 
     Map<SMGEdgePointsTo, SMGEdgePointsTo> toReplace = new HashMap<>();
 
-    // TMP: Replace all edges pointing to starting element with ones leading to the SLL
     //TODO: Better filtering of the pointers!!!
     for (SMGEdgePointsTo pt : newSMG.getPTEdges().values()) {
       if (pt.getObject().equals(start)) {
