@@ -1319,13 +1319,25 @@ class ASTConverter {
         return new CTypeDefDeclaration(fileLoc, isGlobal, type, name, scope.createScopedNameOf(name));
       }
 
-      if (type instanceof CFunctionTypeWithNames) {
+      if (type instanceof CFunctionType) {
         if (initializer != null) {
           throw new CFAGenerationRuntimeException("Function definition with initializer", d);
         }
 
-        CFunctionTypeWithNames functionType = (CFunctionTypeWithNames)type;
-        return new CFunctionDeclaration(fileLoc, functionType, name, functionType.getParameterDeclarations());
+        List<CParameterDeclaration> params;
+
+        CFunctionType functionType = (CFunctionType)type;
+        if (functionType instanceof CFunctionTypeWithNames) {
+          params = ((CFunctionTypeWithNames)type).getParameterDeclarations();
+        } else {
+          params = new ArrayList<>(functionType.getParameters().size());
+          int i = 0;
+          for (CType paramType : functionType.getParameters()) {
+            params.add(new CParameterDeclaration(fileLoc, paramType, "__param" + i++));
+          }
+        }
+
+        return new CFunctionDeclaration(fileLoc, functionType, name, params);
       }
 
       // now it should be a regular variable declaration
