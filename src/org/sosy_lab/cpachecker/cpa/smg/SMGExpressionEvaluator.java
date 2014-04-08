@@ -969,7 +969,7 @@ public class SMGExpressionEvaluator {
         int v2 = pV2.getAsInt();
 
         boolean areEqual = (v1 == v2);
-        boolean areNonEqual = (smgState.getSMG().isUnequal(v1, v2));
+        boolean areNonEqual = (smgState.isUnequal(v1, v2));
 
         switch (pOp) {
         case NOT_EQUALS:
@@ -1397,7 +1397,7 @@ public class SMGExpressionEvaluator {
         return false;
       }
 
-      return pSmgState.getSMG().isUnequal(pLVal.getAsInt(), pRVal.getAsInt());
+      return pSmgState.isUnequal(pLVal.getAsInt(), pRVal.getAsInt());
     }
 
     @Override
