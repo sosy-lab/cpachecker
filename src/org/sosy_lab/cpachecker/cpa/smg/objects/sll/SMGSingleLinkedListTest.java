@@ -68,6 +68,27 @@ public class SMGSingleLinkedListTest {
     return pointer;
   }
 
+  @Test
+  public void freeTest() throws SMGInconsistentException, InvalidQueryException {
+    SMGState state = new SMGState(logger, mm);
+    SMGRegion variable = prepareSingleLinkedList(state);
+
+    Integer address = state.readValue(variable, 0, AnonymousTypes.dummyPointer);
+    SMGEdgePointsTo pt = state.getPointerFromValue(address);
+    SMGSingleLinkedList sll = (SMGSingleLinkedList)(pt.getObject());
+    int originalLength = sll.getLength();
+
+    state.free(pt.getValue(), pt.getOffset(), sll);
+
+    Integer addressAfterFree = state.getAddress(sll, 0);
+    Assert.assertNotNull(addressAfterFree);
+    Assert.assertEquals(originalLength - 1, sll.getLength());
+    state.pruneUnreachable();
+
+    Integer addressAfterPrune = state.getAddress(sll, 0);
+    Assert.assertNull(addressAfterPrune);
+    Assert.assertTrue(state.checkProperty("has-leaks"));
+  }
 
   @Test
   public void basicsTest() {
