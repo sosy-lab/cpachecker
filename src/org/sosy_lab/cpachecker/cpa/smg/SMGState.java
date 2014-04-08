@@ -971,8 +971,4 @@ public class SMGState implements AbstractQueryableState, Targetable {
     }
     return SMGUnknownValue.getInstance();
   }
-  public void attemptAbstraction() {
-    SMGAbstractionManager manager = new SMGAbstractionManager(heap);
-    heap = manager.execute();
-  }
 }

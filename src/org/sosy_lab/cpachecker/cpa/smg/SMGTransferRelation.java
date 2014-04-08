@@ -513,12 +513,7 @@ public class SMGTransferRelation implements TransferRelation {
       }
       plotWhenConfigured("interesting", null, successor, cfaEdge.getDescription());
       break;
-    case BlankEdge:
-      successor = new SMGState(smgState);
-      successor.pruneUnreachable();
-      successor.attemptAbstraction();
-      plotWhenConfigured("interesting", null, successor, cfaEdge.getDescription());
-      break;
+
     default:
       successor = smgState;
     }
