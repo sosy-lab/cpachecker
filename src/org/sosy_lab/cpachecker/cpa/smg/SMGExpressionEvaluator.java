@@ -295,7 +295,7 @@ public class SMGExpressionEvaluator {
 
       return SMGUnknownValue.getInstance();
     } else {
-      Long longValue = value.asLong(getRealExpressionType(rValue));
+      Long longValue = value.asNumericValue().longValue();
 
       if(longValue != null) {
         return SMGKnownExpValue.valueOf(longValue);
