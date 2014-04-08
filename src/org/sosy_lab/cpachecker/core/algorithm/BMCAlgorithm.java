@@ -29,8 +29,12 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.FILTE
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.io.PrintStream;
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -48,8 +52,33 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.IALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -59,6 +88,7 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.util.ReachedSetUtils;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -88,6 +118,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -104,6 +135,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
@@ -212,22 +245,24 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   private final List<? extends AdjustableConditionCPA> conditionCPAs;
 
+  private final Iterable<CFAEdge> ignorableEdges;
+
   private BooleanFormulaManagerView bfmgr;
 
-  public BMCAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa,
-                      Configuration config, LogManager logger,
+  public BMCAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
+                      Configuration pConfig, LogManager pLogger,
                       ReachedSetFactory pReachedSetFactory,
                       ShutdownNotifier pShutdownNotifier, CFA pCfa)
                       throws InvalidConfigurationException, CPAException {
-    config.inject(this);
-    this.algorithm = algorithm;
-    this.cpa = pCpa;
-    this.logger = logger;
+    pConfig.inject(this);
+    algorithm = pAlgorithm;
+    cpa = pCpa;
+    logger = pLogger;
     reachedSetFactory = pReachedSetFactory;
     cfa = pCfa;
 
     if (induction && useInvariantsForInduction) {
-      invariantGenerator = new CPAInvariantGenerator(config, logger, reachedSetFactory, pShutdownNotifier, cfa);
+      invariantGenerator = new CPAInvariantGenerator(pConfig, pLogger, reachedSetFactory, pShutdownNotifier, cfa);
     } else {
       invariantGenerator = new DoNothingInvariantGenerator(reachedSetFactory);
     }
@@ -241,14 +276,31 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = predCpa.getPathFormulaManager();
     solver = predCpa.getSolver();
-
-    this.shutdownNotifier = pShutdownNotifier;
+    shutdownNotifier = pShutdownNotifier;
     conditionCPAs = CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class).toList();
+
+    ignorableEdges = induction ? getIgnorableEdges(cfa) : Collections.<CFAEdge>emptySet();
   }
 
   @Override
   public boolean run(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    CFANode initialLocation = extractLocation(pReachedSet.getFirstState());
+    final ReachedSet reachedSet;
+    if (Iterables.isEmpty(ignorableEdges)) {
+      reachedSet = pReachedSet;
+    } else {
+      reachedSet = reachedSetFactory.create();
+      ReachedSetUtils.addReachedStatesToOtherReached(pReachedSet, reachedSet);
+      for (AbstractState waitingState : pReachedSet.getWaitlist()) {
+        Precision precision = pReachedSet.getPrecision(waitingState);
+        precision = excludeIgnorableEdges(precision);
+        reachedSet.remove(waitingState);
+        reachedSet.add(waitingState, precision);
+      }
+    }
+
+
+    CFANode initialLocation = extractLocation(reachedSet.getFirstState());
+
     invariantGenerator.start(initialLocation);
 
     try {
@@ -261,8 +313,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
         do {
           shutdownNotifier.shutdownIfNecessary();
-          soundInner = unroll(pReachedSet);
-          if (from(pReachedSet)
+          soundInner = unroll(reachedSet);
+          if (from(reachedSet)
               .skip(1) // first state of reached is always an abstraction state, so skip it
               .transform(toState(PredicateAbstractState.class))
               .anyMatch(FILTER_ABSTRACTION_STATES)) {
@@ -272,11 +324,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           }
 
           // first check safety
-          boolean safe = checkTargetStates(pReachedSet, prover);
+          boolean safe = checkTargetStates(reachedSet, prover);
           logger.log(Level.FINER, "Program is safe?:", safe);
 
           if (!safe) {
-            createErrorPath(pReachedSet, prover);
+            createErrorPath(reachedSet, prover);
           }
 
           prover.pop(); // remove program formula from solver stack
@@ -292,7 +344,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           if (soundInner && safe) {
 
             // check bounding assertions
-            sound = checkBoundingAssertions(pReachedSet, prover);
+            sound = checkBoundingAssertions(reachedSet, prover);
 
             // try to prove program safety via induction
             if (induction) {
@@ -310,6 +362,10 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     } finally {
       invariantGenerator.cancel();
+      if (reachedSet != pReachedSet) {
+        pReachedSet.clear();
+        ReachedSetUtils.addReachedStatesToOtherReached(reachedSet, pReachedSet);
+      }
     }
   }
 
@@ -574,7 +630,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           }
           reachedSet = reachedSetFactory.create();
           CFANode loopHead = Iterables.getOnlyElement(loop.getLoopHeads());
-          reachedSet.add(cpa.getInitialState(loopHead), cpa.getInitialPrecision(loopHead));
+          Precision precision = cpa.getInitialPrecision(loopHead);
+          if (trivialResult == null) {
+            precision = excludeIgnorableEdges(precision);
+          }
+          reachedSet.add(cpa.getInitialState(loopHead), precision);
           stats.inductionPreparation.stop();
         }
       }
@@ -796,6 +856,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
            * the precision to exclude all other edges leaving the cut point
            */
           Precision freshCutPointPrecision = cpa.getInitialPrecision(cutPoint);
+          freshCutPointPrecision = excludeIgnorableEdges(freshCutPointPrecision);
           freshCutPointPrecision = excludeLoopEdges(freshCutPointPrecision, cutPointEdge);
 
           // Create path formulas by running CPAAlgorithm
@@ -917,34 +978,32 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
      */
     private Iterable<CFAEdge> getCutPointEdges(final Multimap<CFANode, AbstractState> pReachedPerLocation,
         Iterable<AbstractState> pLoopStates) {
-      final Iterable<CFAEdge> cutPointEdges;
-      {
-        Iterable<CFAEdge> relevantOutgoingEdges = FluentIterable.from(getOutgoingEdges()).filter(new Predicate<CFAEdge>() {@Override
-          public boolean apply(@Nullable CFAEdge pEdge) {
-            if (pEdge == null) {
-              return false;
-            }
-            // filter out exit edges that do not lead to a target state, we don't care about them
-            CFANode exitLocation = pEdge.getSuccessor();
-            Collection<AbstractState> exitStates = pReachedPerLocation.get(exitLocation);
-            if (exitStates.isEmpty()) {
-              return false;
-            }
-            ARGState lastExitState = (ARGState) Iterables.getLast(exitStates);
+      Iterable<CFAEdge> relevantOutgoingEdges = FluentIterable.from(getOutgoingEdges()).filter(new Predicate<CFAEdge>() {
 
-            // the states reachable from the exit edge
-            Set<ARGState> outOfLoopStates = lastExitState.getSubgraph();
-            if (!from(outOfLoopStates).anyMatch(IS_TARGET_STATE)) {
-              return false;
-            }
-            return true;
+        @Override
+        public boolean apply(@Nullable CFAEdge pEdge) {
+          if (pEdge == null) {
+            return false;
           }
+          // filter out exit edges that do not lead to a target state, we don't care about them
+          CFANode exitLocation = pEdge.getSuccessor();
+          Collection<AbstractState> exitStates = pReachedPerLocation.get(exitLocation);
+          if (exitStates.isEmpty()) {
+            return false;
+          }
+          ARGState lastExitState = (ARGState) Iterables.getLast(exitStates);
 
-        });
-        Iterable<CFAEdge> relevantInsideEdges = FluentIterable.from(pLoopStates).filter(IS_TARGET_STATE).transformAndConcat(ENTERING_EDGES).toSet();
-        cutPointEdges = Iterables.concat(relevantOutgoingEdges, relevantInsideEdges);
-      }
-      return cutPointEdges;
+          // the states reachable from the exit edge
+          Set<ARGState> outOfLoopStates = lastExitState.getSubgraph();
+          if (!from(outOfLoopStates).anyMatch(IS_TARGET_STATE)) {
+            return false;
+          }
+          return true;
+        }
+
+      });
+      Iterable<CFAEdge> relevantInsideEdges = FluentIterable.from(pLoopStates).filter(IS_TARGET_STATE).transformAndConcat(ENTERING_EDGES).toSet();
+      return Iterables.concat(relevantOutgoingEdges, relevantInsideEdges);
     }
 
   }
@@ -980,7 +1039,319 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
     if (pReachedSet.isEmpty()) {
-      pReachedSet.add(cpa.getInitialState(initialLocation), cpa.getInitialPrecision(initialLocation));
+      Precision precision = cpa.getInitialPrecision(initialLocation);
+      precision = excludeIgnorableEdges(precision);
+      pReachedSet.add(cpa.getInitialState(initialLocation), precision);
     }
   }
+
+  private Precision excludeIgnorableEdges(Precision pPrecision) {
+    return excludeEdges(pPrecision, ignorableEdges);
+  }
+
+  private Precision excludeEdges(Precision pPrecision, Iterable<CFAEdge> pEdgesToIgnore) {
+    EdgeExclusionPrecision oldPrecision = Precisions.extractPrecisionByType(pPrecision, EdgeExclusionPrecision.class);
+    if (oldPrecision != null) {
+      EdgeExclusionPrecision newPrecision = oldPrecision.excludeMoreEdges(pEdgesToIgnore);
+      return Precisions.replaceByType(pPrecision, newPrecision, EdgeExclusionPrecision.class);
+    }
+    return pPrecision;
+  }
+
+  /**
+   * Consider a variable v assigned at a location l within a single loop L.
+   * If the next occurrence of v is at an assume edge e and all paths starting
+   * at e either modify no variables but v before looping back to l or leave
+   * the loop L without ever again referring to v, then the induction algorithm
+   * may treat the edge e as non-existent.
+   *
+   * Reason: The paths starting at e do not change the safety property of the
+   * loop.
+   *
+   * Advantage: This optimization makes induction possible for loops with a
+   * non-deterministically loop-assigned switch variables where the default
+   * case does not contain any logic. Such code is often generated by driver
+   * environments.
+   *
+   * @param pCFA the control flow automaton.
+   *
+   * @return the control flow edges ignorable for induction according to the
+   * reasoning described above.
+   */
+  private static Iterable<CFAEdge> getIgnorableEdges(CFA pCFA) {
+    // Check if the required preconditions are met
+    if (!pCFA.getVarClassification().isPresent()
+        || !pCFA.getLoopStructure().isPresent()) {
+      return Collections.emptySet();
+    }
+    ImmutableMultimap<String, Loop> loopStructure = pCFA.getLoopStructure().get();
+    if (loopStructure.isEmpty() || loopStructure.values().size() > 2) {
+      return Collections.emptySet();
+    }
+    Loop loop = Iterables.getOnlyElement(loopStructure.values());
+    if (loop.getLoopHeads().size() != 1) {
+      return Collections.emptySet();
+    }
+
+    CFANode loopHead = Iterables.getOnlyElement(loop.getLoopHeads());
+    Set<CFANode> loopNodes = loop.getLoopNodes();
+    VariableClassification variableClassification = pCFA.getVarClassification().get();
+
+    // Compute all potential assignment edges within the loop
+    Deque<CFANode> waitlist = new ArrayDeque<>();
+    Set<CFANode> visited = new HashSet<>();
+    waitlist.offer(loopHead);
+    Set<CFAEdge> potentialAssignmentEdges = new HashSet<>();
+    while (!waitlist.isEmpty()) {
+      CFANode current = waitlist.poll();
+      if (visited.add(current)) {
+        for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(current)) {
+          if (loopNodes.contains(leavingEdge.getSuccessor())) {
+            if (leavingEdge.getEdgeType() == CFAEdgeType.DeclarationEdge
+                || leavingEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+              potentialAssignmentEdges.add(leavingEdge);
+            }
+            waitlist.offer(leavingEdge.getSuccessor());
+          }
+        }
+      }
+    }
+    waitlist.clear();
+    visited.clear();
+
+    // Extract all candidate assignments
+    Map<CFAEdge, String> candidateAssignments = new HashMap<>();
+    for (CFAEdge edge : potentialAssignmentEdges) {
+      if (edge instanceof AStatementEdge) {
+        IAStatement statement = ((AStatementEdge) edge).getStatement();
+        final IALeftHandSide leftHandSide;
+        if (statement instanceof AExpressionAssignmentStatement) {
+          AExpressionAssignmentStatement assignmentStatement = (AExpressionAssignmentStatement) statement;
+          leftHandSide = assignmentStatement.getLeftHandSide();
+        } else if (statement instanceof AFunctionCallAssignmentStatement) {
+          AFunctionCallAssignmentStatement assignmentStatement = (AFunctionCallAssignmentStatement) statement;
+          leftHandSide = assignmentStatement.getLeftHandSide();
+        } else {
+          leftHandSide = null;
+        }
+        if (leftHandSide instanceof AIdExpression) {
+          String variableName = ((AIdExpression) leftHandSide).getDeclaration().getQualifiedName();
+          if (!variableClassification.getAddressedVariables().contains(variableName)) {
+            candidateAssignments.put(edge, variableName);
+          }
+        }
+      }
+    }
+
+    // Filter for all edges that actually may be ignored for induction
+    Set<CFAEdge> ignorableEdges = new HashSet<>();
+
+    for (Map.Entry<CFAEdge, String> entry : candidateAssignments.entrySet()) {
+      assert waitlist.isEmpty();
+      assert visited.isEmpty();
+
+      CFAEdge candidateAssignmentEdge = entry.getKey();
+      String variable = entry.getValue();
+
+      waitlist.offer(candidateAssignmentEdge.getSuccessor());
+
+      while (!waitlist.isEmpty()) {
+        CFANode current = waitlist.poll();
+        if (visited.add(current)) {
+          for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
+            CFANode successor = leavingEdge.getSuccessor();
+            if (loopNodes.contains(successor)) {
+              boolean variableIsInvolved = getInvolvedVariables(leavingEdge, variableClassification).contains(variable);
+              boolean isAssumeEdge = leavingEdge.getEdgeType() == CFAEdgeType.AssumeEdge;
+              if (!variableIsInvolved || isAssumeEdge) {
+                waitlist.add(successor);
+              }
+              if (variableIsInvolved && isAssumeEdge && isIgnorable(leavingEdge, candidateAssignmentEdge, ignorableEdges, variableClassification, loop, variable)) {
+                ignorableEdges.add(leavingEdge);
+              }
+            }
+          }
+        }
+      }
+
+      waitlist.clear();
+      visited.clear();
+    }
+
+    return ignorableEdges;
+  }
+
+  private static boolean isIgnorable(CFAEdge pAssumeEdge, CFAEdge pAssignmentEdge, Set<CFAEdge> pIgnorableEdges,
+      VariableClassification pVariableClassification, Loop pLoop, String pVariable) {
+    Preconditions.checkArgument(pLoop.getLoopHeads().size() == 1);
+    if (pIgnorableEdges.contains(pAssumeEdge)) {
+      return true;
+    }
+
+    CFANode loopHead = Iterables.getOnlyElement(pLoop.getLoopHeads());
+
+    Deque<CFANode> waitlist = new ArrayDeque<>();
+    Deque<Boolean> loopHeadReachedWaitlist = new ArrayDeque<>();
+    Set<CFANode> visited = new HashSet<>();
+    waitlist.offer(pAssumeEdge.getSuccessor());
+    loopHeadReachedWaitlist.offer(false);
+
+    boolean assignmentReached = false;
+    boolean assumptionReached = false;
+
+    while (!waitlist.isEmpty()) {
+      CFANode current = waitlist.poll();
+      boolean loopHeadReached = loopHeadReachedWaitlist.poll();
+      if (visited.add(current)) {
+        for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
+          CFANode successor = leavingEdge.getSuccessor();
+          boolean loopHeadReachedLocal = loopHeadReached || current.equals(loopHead);
+          if (current.equals(pAssignmentEdge.getPredecessor())) {
+            assignmentReached = true;
+          } else if (current.equals(pAssumeEdge.getPredecessor())) {
+            assumptionReached = true;
+          } else {
+            boolean isInLoop = pLoop.getLoopNodes().contains(successor);
+            boolean isBeforeLoopHead = isInLoop && !loopHeadReachedLocal;
+            Iterable<String> involvedVariables = getInvolvedVariables(leavingEdge, pVariableClassification);
+            involvedVariables = from(involvedVariables).filter(not(in(pVariableClassification.getIrrelevantVariables())));
+            if (isBeforeLoopHead && leavingEdge.getEdgeType() != CFAEdgeType.BlankEdge
+                || !isBeforeLoopHead && (Iterables.contains(involvedVariables, pVariable) && !(Iterables.all(involvedVariables, equalTo(pVariable)) && leavingEdge.getEdgeType() == CFAEdgeType.DeclarationEdge))) {
+              return false;
+            }
+          }
+          if (!assignmentReached || !assumptionReached) {
+            waitlist.add(successor);
+            loopHeadReachedWaitlist.offer(loopHeadReachedLocal);
+          }
+        }
+        if (current.getNumLeavingEdges() == 0 && !loopHeadReached) {
+          return false;
+        }
+      }
+    }
+
+    return assignmentReached && assumptionReached;
+  }
+
+  private static Set<String> getInvolvedVariables(CFAEdge pCfaEdge, VariableClassification pVariableClassification) {
+    switch (pCfaEdge.getEdgeType()) {
+    case AssumeEdge: {
+      AssumeEdge assumeEdge = (AssumeEdge) pCfaEdge;
+      IAExpression expression = assumeEdge.getExpression();
+      return getInvolvedVariables(expression, pVariableClassification);
+    }
+    case MultiEdge: {
+      MultiEdge multiEdge = (MultiEdge) pCfaEdge;
+      ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+      for (CFAEdge edge : multiEdge) {
+        builder.addAll(getInvolvedVariables(edge, pVariableClassification));
+      }
+      return builder.build();
+    }
+    case DeclarationEdge: {
+      ADeclarationEdge declarationEdge = (ADeclarationEdge) pCfaEdge;
+      IADeclaration declaration = declarationEdge.getDeclaration();
+      if (declaration instanceof AVariableDeclaration) {
+        AVariableDeclaration variableDeclaration = (AVariableDeclaration) declaration;
+        String declaredVariable = variableDeclaration.getQualifiedName();
+        IAInitializer initializer = variableDeclaration.getInitializer();
+        if (initializer == null) {
+          return Collections.singleton(declaredVariable);
+        }
+        ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+        builder.add(declaredVariable);
+        if (initializer instanceof AInitializerExpression) {
+          builder.addAll(getInvolvedVariables(((AInitializerExpression) initializer).getExpression(), pVariableClassification));
+        } else if (initializer instanceof CInitializer) {
+          builder.addAll(getInvolvedVariables((CInitializer) initializer, pVariableClassification));
+        } else if (initializer instanceof JArrayInitializer) {
+          for (IAExpression expression : ((JArrayInitializer) initializer).getInitializerExpressions()) {
+            builder.addAll(getInvolvedVariables(expression, pVariableClassification));
+          }
+        }
+        return builder.build();
+      } else {
+        return Collections.emptySet();
+      }
+    }
+    case FunctionCallEdge: {
+      FunctionCallEdge functionCallEdge = (FunctionCallEdge) pCfaEdge;
+      ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+      for (IAExpression argument : functionCallEdge.getArguments()) {
+        builder.addAll(getInvolvedVariables(argument, pVariableClassification));
+      }
+      for (IAExpression parameter : functionCallEdge.getSummaryEdge().getExpression().getFunctionCallExpression().getParameterExpressions()) {
+        builder.addAll(getInvolvedVariables(parameter, pVariableClassification));
+      }
+      return builder.build();
+    }
+    case ReturnStatementEdge: {
+      AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) pCfaEdge;
+      return getInvolvedVariables(returnStatementEdge.getExpression(), pVariableClassification);
+    }
+    case StatementEdge: {
+      AStatementEdge statementEdge = (AStatementEdge) pCfaEdge;
+      IAStatement statement = statementEdge.getStatement();
+      if (statement instanceof AExpressionAssignmentStatement) {
+        AExpressionAssignmentStatement expressionAssignmentStatement = (AExpressionAssignmentStatement) statement;
+        ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+        builder.addAll(getInvolvedVariables(expressionAssignmentStatement.getLeftHandSide(), pVariableClassification));
+        builder.addAll(getInvolvedVariables(expressionAssignmentStatement.getRightHandSide(), pVariableClassification));
+        return builder.build();
+      } else if (statement instanceof AExpressionStatement) {
+        return getInvolvedVariables(((AExpressionStatement) statement).getExpression(), pVariableClassification);
+      } else if (statement instanceof AFunctionCallAssignmentStatement) {
+        AFunctionCallAssignmentStatement functionCallAssignmentStatement = (AFunctionCallAssignmentStatement) statement;
+        ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+        builder.addAll(getInvolvedVariables(functionCallAssignmentStatement.getLeftHandSide(), pVariableClassification));
+        for (IAExpression expression : functionCallAssignmentStatement.getFunctionCallExpression().getParameterExpressions()) {
+          builder.addAll(getInvolvedVariables(expression, pVariableClassification));
+        }
+        return builder.build();
+      } else if (statement instanceof AFunctionCallStatement) {
+        AFunctionCallStatement functionCallStatement = (AFunctionCallStatement) statement;
+        ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+        for (IAExpression expression : functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
+          builder.addAll(getInvolvedVariables(expression, pVariableClassification));
+        }
+        return builder.build();
+      } else {
+        return Collections.emptySet();
+      }
+    }
+    case BlankEdge:
+    case CallToReturnEdge:
+    case FunctionReturnEdge:
+    default:
+      return Collections.emptySet();
+    }
+  }
+
+  private static Set<String> getInvolvedVariables(CInitializer pCInitializer, VariableClassification pVariableClassification) {
+    if (pCInitializer instanceof CDesignatedInitializer) {
+      return getInvolvedVariables(((CDesignatedInitializer) pCInitializer).getRightHandSide(), pVariableClassification);
+    } else if (pCInitializer instanceof CInitializerExpression) {
+      return getInvolvedVariables(((CInitializerExpression) pCInitializer).getExpression(), pVariableClassification);
+    } else if (pCInitializer instanceof CInitializerList) {
+      CInitializerList initializerList = (CInitializerList) pCInitializer;
+      ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+      for (CInitializer initializer : initializerList.getInitializers()) {
+        builder.addAll(getInvolvedVariables(initializer, pVariableClassification));
+      }
+      return builder.build();
+    }
+    return Collections.emptySet();
+  }
+
+  private static Set<String> getInvolvedVariables(IAExpression pExpression, VariableClassification pVariableClassification) {
+    if (pExpression == null) {
+      return Collections.emptySet();
+    } if (pExpression instanceof CExpression) {
+      return pVariableClassification.getVariablesOfExpression((CExpression) pExpression);
+    } else {
+      throw new UnsupportedOperationException("VariableClassification only supports C expressions");
+    }
+  }
+
 }

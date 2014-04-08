@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 
 /**
@@ -67,6 +68,22 @@ public class EdgeExclusionPrecision implements Precision {
    */
   private EdgeExclusionPrecision(ImmutableSet<CFAEdge> pExcludedEdges) {
     this.excludedEdges = pExcludedEdges;
+  }
+
+  /**
+   * Returns a precision that excludes all edges excluded by this precision
+   * plus all given edges.
+   *
+   * @param pAdditionalExcludedEdges the additional edges to exclude.
+   *
+   * @return a precision that excludes all edges excluded by this precision
+   * plus all given edges.
+   */
+  public EdgeExclusionPrecision excludeMoreEdges(Iterable<CFAEdge> pAdditionalExcludedEdges) {
+    if (pAdditionalExcludedEdges instanceof Collection) {
+      return excludeMoreEdges((Collection<CFAEdge>) pAdditionalExcludedEdges);
+    }
+    return excludeMoreEdges(FluentIterable.from(pAdditionalExcludedEdges).toSet());
   }
 
   /**
