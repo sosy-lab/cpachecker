@@ -379,12 +379,7 @@ public class SMGTransferRelation implements TransferRelation {
     //TODO: A variation for more pConfigs
 
     if (pConfig.equals(exportSMG)) {
-      if (pName == null) {
-        builtins.dumpSMGPlot("smg-" + pState.getId(), pState.getSMG(), pLocation);
-      } else {
-        builtins.dumpSMGPlot(pName, pState.getSMG(), pLocation);
-      }
-
+      builtins.dumpSMGPlot(pName, pState.getSMG(), pLocation);
     }
   }
 
@@ -404,7 +399,6 @@ public class SMGTransferRelation implements TransferRelation {
     logger.log(Level.FINEST, "Code:", cfaEdge.getCode());
 
     SMGState successor;
-    SMGStateBuilder successorBuilder;
 
     SMGState smgState = (SMGState) state;
 
@@ -449,7 +443,7 @@ public class SMGTransferRelation implements TransferRelation {
       // this is a statement edge which leads the function to the
       // last node of its CFA, where return edge is from that last node
       // to the return site of the caller function
-      successorBuilder = new SMGStateBuilder(handleExitFromFunction(smgState, returnEdge), logger);
+      successor = handleExitFromFunction(smgState, returnEdge);
 
       // if this is the entry function, there is no FunctionReturnEdge
       // so we have to check for memleaks here
@@ -458,17 +452,15 @@ public class SMGTransferRelation implements TransferRelation {
         // TODO: Handle leaks at any program exit point (abort, etc.)
 
         if (handleNonFreedMemoryInMainAsMemLeak) {
-          successorBuilder.dropStackFrame();
+          successor.getWritableSMG().dropStackFrame();
         }
-        successorBuilder.pruneUnreachable();
+        successor.getWritableSMG().pruneUnreachable();
       }
-      successor = successorBuilder.build();
       plotWhenConfigured("interesting", null, successor, cfaEdge.getDescription());
       break;
     case BlankEdge:
-      successorBuilder = new SMGStateBuilder(smgState, logger);
-      successorBuilder.pruneUnreachable();
-      successor = successorBuilder.build();
+      successor = new SMGState(smgState);
+      successor.getWritableSMG().pruneUnreachable();
       successor.attemptAbstraction();
       plotWhenConfigured("interesting", null, successor, cfaEdge.getDescription());
       break;
