@@ -48,6 +48,7 @@ import com.google.common.base.Function;
 import com.google.common.primitives.Ints;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 public class ARGState extends AbstractSingleWrapperState implements Comparable<ARGState>, TargetableWithPredicatedAnalysis {
 
@@ -116,7 +117,8 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     return Collections.unmodifiableCollection(children);
   }
 
-  public CFAEdge getEdgeToChild(ARGState pChild) {
+  /** Returns the edge from current state to child or Null, if there is no edge. */
+  public @Nullable CFAEdge getEdgeToChild(ARGState pChild) {
     checkArgument(children.contains(pChild));
 
     CFANode currentLoc = extractLocation(this);
@@ -125,8 +127,11 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     if (currentLoc.getLeavingSummaryEdge() != null
         && currentLoc.getLeavingSummaryEdge().getSuccessor().equals(childNode)) {
       return currentLoc.getLeavingSummaryEdge();
+    } else if (currentLoc.hasEdgeTo(childNode)) {
+      return currentLoc.getEdgeTo(childNode);
+    } else {
+      return null;
     }
-    return currentLoc.getEdgeTo(childNode);
   }
 
   public Set<ARGState> getSubgraph() {

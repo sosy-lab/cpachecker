@@ -139,23 +139,25 @@ class ARGToDotWriter {
         edges.append(child.getStateId());
         edges.append(" [");
 
-        boolean colored = highlightEdge.apply(Pair.of(currentElement, child));
-        if (colored) {
-          edges.append("color=\"red\"");
-        }
 
         if (currentElement.getChildren().contains(child)) {
           CFAEdge edge = currentElement.getEdgeToChild(child);
-          assert edge != null;
-          if (colored) {
-            edges.append(" ");
+          if (edge == null) {
+            // there is no direct edge between the nodes, use a dummy-edge
+            edges.append("style=\"bold\" color=\"blue\" label=\"indirect edge\"");
+          } else {
+            // edge exists, use info from edge
+            boolean colored = highlightEdge.apply(Pair.of(currentElement, child));
+            if (colored) {
+              edges.append("color=\"red\" ");
+            }
+            edges.append("label=\"");
+            edges.append("Line ");
+            edges.append(edge.getLineNumber());
+            edges.append(": ");
+            edges.append(edge.getDescription().replaceAll("\n", " ").replace('"', '\''));
+            edges.append("\"");
           }
-          edges.append("label=\"");
-          edges.append("Line ");
-          edges.append(edge.getLineNumber());
-          edges.append(": ");
-          edges.append(edge.getDescription().replaceAll("\n", " ").replace('"', '\''));
-          edges.append("\"");
           edges.append(" id=\"");
           edges.append(currentElement.getStateId());
           edges.append(" -> ");
