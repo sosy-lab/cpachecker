@@ -274,6 +274,25 @@ public class SMGExpressionEvaluator {
     Value value = rValue.accept(visitor);
 
     if (!value.isExplicitlyKnown() || !value.isNumericValue()) {
+
+      //Sometimes, we can get the explicit Value from SMGCPA, especially if the result happens to
+      //be a pointer to the Null Object, or through reinterpretation
+      SMGSymbolicValue symbolicValue = evaluateExpressionValue(smgState, cfaEdge, rValue);
+
+      if(!symbolicValue.isUnknown()) {
+        if(symbolicValue == SMGKnownSymValue.ZERO) {
+          return SMGKnownExpValue.ZERO;
+        }
+
+        if(symbolicValue instanceof SMGAddressValue) {
+          SMGAddressValue address = (SMGAddressValue) symbolicValue;
+
+          if(address.getObject() == SMGObject.getNullObject()) {
+            return SMGKnownExpValue.valueOf(address.getOffset().getAsLong());
+          }
+        }
+      }
+
       return SMGUnknownValue.getInstance();
     } else {
       Long longValue = value.asLong(getRealExpressionType(rValue));
