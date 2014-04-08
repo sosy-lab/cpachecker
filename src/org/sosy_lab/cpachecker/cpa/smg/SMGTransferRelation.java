@@ -452,15 +452,15 @@ public class SMGTransferRelation implements TransferRelation {
         // TODO: Handle leaks at any program exit point (abort, etc.)
 
         if (handleNonFreedMemoryInMainAsMemLeak) {
-          successor.getWritableSMG().dropStackFrame();
+          successor.dropStackFrame();
         }
-        successor.getWritableSMG().pruneUnreachable();
+        successor.pruneUnreachable();
       }
       plotWhenConfigured("interesting", null, successor, cfaEdge.getDescription());
       break;
     case BlankEdge:
       successor = new SMGState(smgState);
-      successor.getWritableSMG().pruneUnreachable();
+      successor.pruneUnreachable();
       successor.attemptAbstraction();
       plotWhenConfigured("interesting", null, successor, cfaEdge.getDescription());
       break;
@@ -505,7 +505,7 @@ public class SMGTransferRelation implements TransferRelation {
     logger.log(Level.FINEST, "Handling return Statement: ", returnExp);
 
     CType expType = expressionEvaluator.getRealExpressionType(returnExp);
-    SMGObject tmpFieldMemory = predecessor.getSMG().getStackReturnObject(0);
+    SMGObject tmpFieldMemory = predecessor.getFunctionReturnObject();
 
     SMGState smgState = predecessor;
 
@@ -540,7 +540,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       SMGSymbolicValue rValue = getFunctionReturnValue(newState, rValueType, functionReturnEdge);
 
-      newState.getWritableSMG().dropStackFrame();
+      newState.dropStackFrame();
 
       SMGAddress address = calculateLValueAddress(newState, functionReturnEdge, lValue);
 
@@ -559,11 +559,11 @@ public class SMGTransferRelation implements TransferRelation {
         //TODO missingInformation, exception
       }
     } else {
-      newState.getWritableSMG().dropStackFrame();
+      newState.dropStackFrame();
     }
 
     if (checkForMemLeaksAtEveryFrameDrop) {
-      newState.getWritableSMG().pruneUnreachable();
+      newState.pruneUnreachable();
     }
 
     return newState;
@@ -571,7 +571,7 @@ public class SMGTransferRelation implements TransferRelation {
 
   private SMGSymbolicValue getFunctionReturnValue(SMGState smgState, CType type, CFAEdge pCFAEdge) throws SMGInconsistentException, UnrecognizedCCodeException {
 
-    SMGObject tmpMemory = smgState.getSMG().getStackReturnObject(0);
+    SMGObject tmpMemory = smgState.getFunctionReturnObject();
 
     return expressionEvaluator.readValue(smgState.getSMG(), tmpMemory, SMGKnownExpValue.ZERO, type, pCFAEdge);
   }
@@ -610,7 +610,7 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     CFunctionDeclaration functionDeclaration = functionEntryNode.getFunctionDefinition();
-    newState.getWritableSMG().addStackFrame(functionDeclaration);
+    newState.addStackFrame(functionDeclaration);
 
     for (ParameterValue parameterValue : parameterValues) {
 
@@ -619,7 +619,7 @@ public class SMGTransferRelation implements TransferRelation {
       String varname = parameterValue.getVarName();
       SMGSymbolicValue value = parameterValue.getValue();
 
-      SMGObject newObject = newState.getWritableSMG().addLocalVariable(paramType, varname);
+      SMGObject newObject = newState.addLocalVariable(paramType, varname);
 
       assignValueToField(newState, callEdge, newObject, 0, paramType, value, valueType);
     }
@@ -968,7 +968,7 @@ public class SMGTransferRelation implements TransferRelation {
     SMGObject newObject;
 
     if (pVarDecl.isGlobal()) {
-      newObject = pNewState.getWritableSMG().addGlobalVariable(cType, varName);
+      newObject = pNewState.addGlobalVariable(cType, varName);
     } else {
       newObject = pNewState.getSMG().getObjectForVisibleVariable(varName);
 
@@ -978,7 +978,7 @@ public class SMGTransferRelation implements TransferRelation {
        *  already processed the declaration, we do nothing.
        */
       if (newObject == null) {
-        newObject = pNewState.getWritableSMG().addLocalVariable(cType, varName);
+        newObject = pNewState.addLocalVariable(cType, varName);
       }
     }
     handleInitializerForDeclaration(pNewState, predecessor, newObject, pVarDecl, pEdge);

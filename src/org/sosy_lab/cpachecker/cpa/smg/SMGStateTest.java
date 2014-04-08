@@ -52,8 +52,8 @@ public class SMGStateTest {
     inconsistent_state = new SMGState(logger, MachineModel.LINUX64);
     SMGEdgePointsTo pt = inconsistent_state.getWritableSMG().addNewHeapAllocation(8, "label");
 
-    consistent_state.getWritableSMG().addGlobalObject((SMGRegion)pt.getObject());
-    inconsistent_state.getWritableSMG().addGlobalObject((SMGRegion)pt.getObject());
+    consistent_state.addGlobalObject((SMGRegion)pt.getObject());
+    inconsistent_state.addGlobalObject((SMGRegion)pt.getObject());
   }
 
   /*

@@ -44,8 +44,6 @@ public interface WritableSMG extends ReadableSMG {
   public void addStackFrame(CFunctionDeclaration pFunction);
   public void dropStackFrame();
   public void removeHeapObject(SMGObject pObject);
-  public SMGObject addLocalVariable(CType pType, String pVarName) throws SMGInconsistentException;
-  public SMGObject addGlobalVariable(CType pType, String pVarName) throws SMGInconsistentException;
 
   public void addValue(Integer pValue);
   public void removeValue(Integer pValue);
