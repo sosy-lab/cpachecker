@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,8 +39,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-
-import com.google.common.collect.Iterables;
 
 public class SMG {
   final private HashSet<SMGObject> objects = new HashSet<>();
@@ -410,7 +409,7 @@ public class SMG {
    * Getter for obtaining unmodifiable view on Has-Value edges set. Constant.
    * @return Unmodifiable view on Has-Value edges set.
    */
-  final public Iterable<SMGEdgeHasValue> getHVEdges() {
+  final public Set<SMGEdgeHasValue> getHVEdges() {
     return Collections.unmodifiableSet(hv_edges);
   }
 
@@ -420,23 +419,8 @@ public class SMG {
    * @param pFilter Filtering object
    * @return A set of Has-Value edges for which the criteria in p hold
    */
-  final public Iterable<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {
-    return Iterables.filter(Collections.unmodifiableSet(hv_edges), pFilter.asPredicate());
-  }
-
-  /**
-   * Getter for obtaining a unique edge adhering to certain criteria.
-   * @param pFilter Criteria for filtering
-   * @param pCheck Defines if a check for non-uniqueness should be done.
-   * @return A HVEdge adhering to filter
-   */
-  final public SMGEdgeHasValue getUniqueHV(SMGEdgeHasValueFilter pFilter, boolean pCheck) {
-    Iterator<SMGEdgeHasValue> it = getHVEdges(pFilter).iterator();
-    SMGEdgeHasValue hv = it.next();
-    if (pCheck && it.hasNext()) {
-      throw new IllegalArgumentException("Applying filter does not result in unique HV edge");
-    }
-    return hv;
+  final public Set<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {
+    return Collections.unmodifiableSet(pFilter.filterSet(hv_edges));
   }
 
   /**
@@ -649,7 +633,7 @@ final class SMGConsistencyVerifier {
     // Verify that NULL object has no value
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pSmg.getNullObject());
 
-    if (pSmg.getHVEdges(filter).iterator().hasNext()) {
+    if (! pSmg.getHVEdges(filter).isEmpty()) {
       pLogger.log(Level.SEVERE, "SMG inconsistent: null object has some value");
       return false;
     }
@@ -685,7 +669,7 @@ final class SMGConsistencyVerifier {
       // Verify that the HasValue edge set for this invalid object is empty
       SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(obj);
 
-      if (pSmg.getHVEdges(filter).iterator().hasNext()) {
+      if (pSmg.getHVEdges(filter).size() > 0) {
         pLogger.log(Level.SEVERE, "SMG inconsistent: invalid object has a HVEdge");
         return false;
       }
@@ -743,9 +727,9 @@ final class SMGConsistencyVerifier {
    * @param pEdges A set of edges for consistency verification
    * @return True, if all edges in {@link pEdges} satisfy consistency criteria. False otherwise.
    */
-  static private boolean verifyEdgeConsistency(LogManager pLogger, SMG pSmg, Iterable<? extends SMGEdge> pEdges) {
+  static private boolean verifyEdgeConsistency(LogManager pLogger, SMG pSmg, Collection<? extends SMGEdge> pEdges) {
     ArrayList<SMGEdge> to_verify = new ArrayList<>();
-    Iterables.addAll(to_verify, pEdges);
+    to_verify.addAll(pEdges);
 
     while (to_verify.size() > 0) {
       SMGEdge edge = to_verify.get(0);

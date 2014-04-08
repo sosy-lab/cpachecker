@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.sll;
 
-import java.util.HashSet;
 import java.util.Set;
 
 import org.junit.Assert;
@@ -91,19 +90,15 @@ public class SMGSingleLinkedListFinderTest {
     SMGEdgeHasValue connection = null;
     do {
       SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(lastFromHead).filterAtOffset(8);
-      Iterable<SMGEdgeHasValue> connections = smg.getHVEdges(filter);
+      Set<SMGEdgeHasValue> connections = smg.getHVEdges(filter);
       connection = null;
-      if (connections.iterator().hasNext()) {
+      if (connections.size() > 0) {
         connection = Iterables.getOnlyElement(connections);
         lastFromHead = smg.getPointer(connection.getValue()).getObject();
       }
     } while (connection != null);
 
-    Set<SMGEdgeHasValue> toRemove = new HashSet<>();
     for (SMGEdgeHasValue hv : smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(lastFromHead))) {
-      toRemove.add(hv);
-    }
-    for(SMGEdgeHasValue hv : toRemove) {
       smg.removeHasValueEdge(hv);
     }
 

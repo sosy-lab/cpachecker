@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import java.util.Set;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 public class SMGJoinTest {
   static private final CFunctionType functionType = AnonymousTypes.createSimpleFunctionType(AnonymousTypes.dummyInt);
@@ -157,8 +160,9 @@ public class SMGJoinTest {
 
     SMGObject global = resultSMG.getGlobalObjects().get(varName);
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(global).filterAtOffset(0);
-
-    Assert.assertTrue(resultSMG.getValues().contains(Integer.valueOf(resultSMG.getUniqueHV(filter, true).getValue())));
+    Set<SMGEdgeHasValue> edges = resultSMG.getHVEdges(filter);
+    SMGEdgeHasValue edge = Iterables.getOnlyElement(edges);
+    Assert.assertTrue(resultSMG.getValues().contains(Integer.valueOf(edge.getValue())));
   }
 
   @Test
@@ -177,8 +181,9 @@ public class SMGJoinTest {
 
     SMGObject global = resultSMG.getStackFrames().getFirst().getVariable(varName);
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(global).filterAtOffset(0);
-
-    Assert.assertTrue(resultSMG.getValues().contains(Integer.valueOf(resultSMG.getUniqueHV(filter, true).getValue())));
+    Set<SMGEdgeHasValue> edges = resultSMG.getHVEdges(filter);
+    SMGEdgeHasValue edge = Iterables.getOnlyElement(edges);
+    Assert.assertTrue(resultSMG.getValues().contains(Integer.valueOf(edge.getValue())));
   }
 
   private void joinUpdateUnit(SMGJoinStatus firstOperand, SMGJoinStatus forLe, SMGJoinStatus forRe) {

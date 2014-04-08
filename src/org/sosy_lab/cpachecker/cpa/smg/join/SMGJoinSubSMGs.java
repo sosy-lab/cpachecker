@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
 import com.google.common.collect.Sets;
+import com.google.common.collect.Iterables;
 
 
 final class SMGJoinSubSMGs {
@@ -84,7 +85,7 @@ final class SMGJoinSubSMGs {
     for (SMGEdgeHasValue hvIn1 : edgesOnObject1){
       filterOnSMG2.filterAtOffset(hvIn1.getOffset());
       filterOnSMG2.filterByType(hvIn1.getType());
-      SMGEdgeHasValue hvIn2 = inputSMG2.getUniqueHV(filterOnSMG2, performChecks);
+      SMGEdgeHasValue hvIn2 = Iterables.getOnlyElement(inputSMG2.getHVEdges(filterOnSMG2));
 
       SMGJoinValues joinValues = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG,
           mapping1, mapping2, hvIn1.getValue(), hvIn2.getValue() /*, ldiff */);

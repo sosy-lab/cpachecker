@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.sll;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -59,19 +58,13 @@ public class SMGSingleLinkedListCandidate implements SMGAbstractionCandidate {
     SMGSingleLinkedList sll = new SMGSingleLinkedList((SMGRegion)start, offset, length);
     newSMG.addHeapObject(sll);
 
-    Map<SMGEdgePointsTo, SMGEdgePointsTo> toReplace = new HashMap<>();
-
     //TODO: Better filtering of the pointers!!!
     for (SMGEdgePointsTo pt : newSMG.getPTEdges().values()) {
       if (pt.getObject().equals(start)) {
         SMGEdgePointsTo newPt = new SMGEdgePointsTo(pt.getValue(), sll, pt.getOffset());
-        toReplace.put(pt, newPt);
+        newSMG.removePointsToEdge(pt.getValue());
+        newSMG.addPointsToEdge(newPt);
       }
-    }
-
-    for (SMGEdgePointsTo pt : toReplace.keySet()) {
-      newSMG.removePointsToEdge(pt.getValue());
-      newSMG.addPointsToEdge(toReplace.get(pt));
     }
 
     SMGObject node = start;
@@ -83,7 +76,7 @@ public class SMGSingleLinkedListCandidate implements SMGAbstractionCandidate {
         newSMG.removePointsToEdge(value);
       }
 
-      Iterable<SMGEdgeHasValue> outboundEdges = newSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(node).filterAtOffset(offset));
+      Set<SMGEdgeHasValue> outboundEdges = newSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(node).filterAtOffset(offset));
       edgeToFollow = null;
       for (SMGEdgeHasValue outbound : outboundEdges) {
         CType fieldType = outbound.getType();

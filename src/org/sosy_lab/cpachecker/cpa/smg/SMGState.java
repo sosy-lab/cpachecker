@@ -55,8 +55,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-import com.google.common.collect.Iterables;
-
 public class SMGState implements AbstractQueryableState, Targetable {
   static boolean targetMemoryErrors = true;
   static boolean unknownOnUndefined = true;
@@ -374,9 +372,12 @@ public class SMGState implements AbstractQueryableState, Targetable {
 
     SMGEdgeHasValue edge = new SMGEdgeHasValue(pType, pOffset, pObject, 0);
 
-    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pObject).filterAtOffset(pOffset);
+    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
+    filter.filterByObject(pObject);
+    filter.filterAtOffset(pOffset);
+    Set<SMGEdgeHasValue> edges = heap.getHVEdges(filter);
 
-    for (SMGEdgeHasValue object_edge : heap.getHVEdges(filter)) {
+    for (SMGEdgeHasValue object_edge : edges) {
       if (edge.isCompatibleFieldOnSameObject(object_edge, heap.getMachineModel())) {
         performConsistencyCheck(SMGRuntimeCheck.HALF);
         return object_edge.getValue();
@@ -476,8 +477,8 @@ public class SMGState implements AbstractQueryableState, Targetable {
     // Check if the edge is  not present already
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pObject);
 
-    Iterable<SMGEdgeHasValue> edges = heap.getHVEdges(filter);
-    if (Iterables.contains(edges, new_edge)) {
+    Set<SMGEdgeHasValue> edges = heap.getHVEdges(filter);
+    if (edges.contains(new_edge)) {
       performConsistencyCheck(SMGRuntimeCheck.HALF);
       return new_edge;
     }
@@ -488,7 +489,6 @@ public class SMGState implements AbstractQueryableState, Targetable {
     }
 
     HashSet<SMGEdgeHasValue> overlappingZeroEdges = new HashSet<>();
-    HashSet<SMGEdgeHasValue> toRemove = new HashSet<>();
 
     /* We need to remove all non-zero overlapping edges
      * and remember all overlapping zero edges to shrink them later
@@ -502,7 +502,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
         if (hvEdgeIsZero) {
           overlappingZeroEdges.add(hv);
         } else {
-          toRemove.add(hv);
+          heap.removeHasValueEdge(hv);
         }
 
 
@@ -527,9 +527,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
       }
     }
 
-    for (SMGEdgeHasValue hv : toRemove) {
-      heap.removeHasValueEdge(hv);
-    }
+    // TODO Until I know where the error lies, I will keep my version of shrinking in.
     shrinkOverlappingZeroEdges(new_edge, overlappingZeroEdges);
 
     heap.addHasValueEdge(new_edge);
@@ -846,7 +844,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
     invalidFree = true;
   }
 
-  public Iterable<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {
+  public Set<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {
     return heap.getHVEdges(pFilter);
   }
 
@@ -896,11 +894,13 @@ public class SMGState implements AbstractQueryableState, Targetable {
 
     int targetRangeSize = pTargetRangeOffset + copyRange;
 
-    SMGEdgeHasValueFilter filterSource = SMGEdgeHasValueFilter.objectFilter(pSource);
-    SMGEdgeHasValueFilter filterTarget = SMGEdgeHasValueFilter.objectFilter(pTarget);
+    SMGEdgeHasValueFilter filterSource = new SMGEdgeHasValueFilter();
+    filterSource.filterByObject(pSource);
+    SMGEdgeHasValueFilter filterTarget = new SMGEdgeHasValueFilter();
+    filterTarget.filterByObject(pTarget);
 
     //Remove all Target edges in range
-    Iterable<SMGEdgeHasValue> targetEdges = getHVEdges(filterTarget);
+    Set<SMGEdgeHasValue> targetEdges = getHVEdges(filterTarget);
 
     for (SMGEdgeHasValue edge : targetEdges) {
       if (edge.overlapsWith(pTargetRangeOffset, targetRangeSize, heap.getMachineModel())) {
@@ -908,10 +908,13 @@ public class SMGState implements AbstractQueryableState, Targetable {
       }
     }
 
+    // Copy all Source edges
+    Set<SMGEdgeHasValue> sourceEdges = getHVEdges(filterSource);
+
     // Shift the source edge offset depending on the target range offset
     int copyShift = pTargetRangeOffset - pSourceRangeOffset;
 
-    for (SMGEdgeHasValue edge : getHVEdges(filterSource)) {
+    for (SMGEdgeHasValue edge : sourceEdges) {
       if (edge.overlapsWith(pSourceRangeOffset, pSourceRangeSize, heap.getMachineModel())) {
         int offset = edge.getOffset() + copyShift;
         writeValue(pTarget, offset, edge.getType(), edge.getValue());

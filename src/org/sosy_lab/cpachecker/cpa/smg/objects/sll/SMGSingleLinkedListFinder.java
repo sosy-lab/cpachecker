@@ -38,8 +38,6 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
-import com.google.common.collect.Iterables;
-
 public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
   private CLangSMG smg;
   private Map<SMGObject, Map<Integer, SMGSingleLinkedListCandidate>> candidates = new HashMap<>();
@@ -78,7 +76,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
 
   private void buildInboundPointers() {
     for (Integer pointer : smg.getPTEdges().keySet()) {
-      inboundPointers.put(pointer, Iterables.size(smg.getHVEdges(new SMGEdgeHasValueFilter().filterHavingValue(pointer))));
+      inboundPointers.put(pointer, smg.getHVEdges(new SMGEdgeHasValueFilter().filterHavingValue(pointer)).size());
     }
   }
 
