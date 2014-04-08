@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -301,12 +301,12 @@ public class ValueAnalysisSMGCommunicator {
     @Override
     public SMGExplicitValue evaluateExplicitValue(SMGState pSmgState, CFAEdge pCfaEdge, CRightHandSide pRValue)
         throws CPATransferException {
-      Long value = pRValue.accept(evv).asLong(pRValue.getExpressionType());
+      Value value = pRValue.accept(evv);
 
-      if (value == null) {
-        return SMGUnknownValue.getInstance();
+      if (value.isExplicitlyKnown() && value.isNumericValue()) {
+        return SMGKnownExpValue.valueOf(value.asNumericValue().longValue());
       } else {
-        return SMGKnownExpValue.valueOf(value);
+        return SMGUnknownValue.getInstance();
       }
     }
   }

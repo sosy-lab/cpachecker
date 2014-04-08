@@ -102,6 +102,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.AssumeVisitor;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.LValueAssignmentVisitor;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.value.Value;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisSMGCommunicator;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -1762,7 +1763,13 @@ public class SMGTransferRelation implements TransferRelation {
         new ValueAnalysisSMGCommunicator(pExplicitState, functionName,
             pSmgState, machineModel, logger, edge);
 
-    return cc.evaluateExpression(rValue).asLong(rValue.getExpressionType());
+    Value value = cc.evaluateExpression(rValue);
+
+    if (value.isExplicitlyKnown() && value.isNumericValue()) {
+      return value.asNumericValue().longValue();
+    }
+
+    return null;
   }
 
   @SuppressWarnings("unused")
@@ -1818,12 +1825,12 @@ public class SMGTransferRelation implements TransferRelation {
       ValueAnalysisSMGCommunicator cc = new ValueAnalysisSMGCommunicator(explicitState, functionName,
           pState, machineModel, logger, pCfaEdge);
 
-      Long value = cc.evaluateExpression(pRValue).asLong(pRValue.getExpressionType());
+      Value valueV = cc.evaluateExpression(pRValue);
 
-      if (value == null) {
+      if(!valueV.isExplicitlyKnown() || !valueV.isNumericValue()) {
         return SMGUnknownValue.getInstance();
       } else {
-        return SMGKnownExpValue.valueOf(value);
+        return SMGKnownExpValue.valueOf(valueV.asNumericValue().longValue());
       }
     }
   }
