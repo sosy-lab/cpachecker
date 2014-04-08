@@ -31,7 +31,6 @@ import java.util.Map;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.ReadableSMG;
@@ -123,7 +122,7 @@ public final class SMGPlotter {
     Path outputFile = Paths.get(String.format(exportSMGFilePattern.toAbsolutePath().getPath(), pId));
     SMGPlotter plotter = new SMGPlotter();
 
-    Files.writeFile(outputFile, plotter.smgAsDot(pSmg, pId, "debug plot"));
+    Files.writeFile(outputFile, plotter.smgAsDot(pSmg, pId, "debug plot", explicitValues));
   }
 
   private final HashMap <SMGObject, SMGObjectNode> objectIndex = new HashMap<>();
@@ -136,7 +135,7 @@ public final class SMGPlotter {
     return original.replaceAll("[:]", "_");
   }
 
-  public String smgAsDot(ReadableSMG smg, String name, String location) {
+  public String smgAsDot(ReadableSMG smg, String name, String location, Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) {
     StringBuilder sb = new StringBuilder();
 
     sb.append("digraph gr_" + name.replace('-', '_') + "{\n");
@@ -161,9 +160,7 @@ public final class SMGPlotter {
 
     for (int value : smg.getValues()) {
       if (value != smg.getNullValue()) {
-        SMGExplicitValue explicitValue = smg.getExplicit(SMGKnownSymValue.valueOf(value));
-        String explicitValueString = explicitValue.isUnknown() ? "" : " : " + String.valueOf(explicitValue.getAsLong());
-        sb.append(newLineWithOffset(smgValueAsDot(value, explicitValueString)));
+        sb.append(newLineWithOffset(smgValueAsDot(value, explicitValues)));
       }
     }
 
@@ -268,8 +265,18 @@ public final class SMGPlotter {
     return "value_" + pEdge.getValue() + " -> " + objectIndex.get(pEdge.getObject()).getName() + "[label=\"+" + pEdge.getOffset() + "b\"];";
   }
 
-  private static String smgValueAsDot(int pValue, String pExplicit) {
-    return "value_" + pValue + "[label=\"#" + pValue + pExplicit +  "\"];";
+  private static String smgValueAsDot(int value, Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) {
+
+
+    String explicitValue = "";
+
+    SMGKnownSymValue symValue =  SMGKnownSymValue.valueOf(value);
+
+    if(explicitValues.containsKey(symValue)) {
+      explicitValue = " : " + String.valueOf(explicitValues.get(symValue).getAsLong());
+    }
+
+    return "value_" + value + "[label=\"#" + value + explicitValue +  "\"];";
   }
 
   private String newLineWithOffset(String pLine) {

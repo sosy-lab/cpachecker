@@ -24,11 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -38,20 +36,14 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddress;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGSymbolicValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 /**
@@ -99,25 +91,6 @@ class CLangSMG extends SMG implements WritableSMG {
   static public void setPerformChecks(boolean pSetting, LogManager logger) {
     CLangSMG.perform_checks = pSetting;
     CLangSMG.logger = logger;
-  }
-
-  /**
-   * Based on the current setting of runtime check level, it either performs
-   * a full consistency check or not. If the check is performed and the
-   * state is deemed inconsistent, a {@link SMGInconsistentException} is thrown.
-   *
-   * Constant.
-   *
-   * @param pLevel A level of the check request. When e.g. HALF is passed, it
-   * means "perform the check if the setting is HALF or finer.
-   * @throws SMGInconsistentException
-   */
-  final public void performConsistencyCheck() throws SMGInconsistentException {
-    if (performChecks()) {
-      if ( ! CLangSMGConsistencyVerifier.verifyCLangSMG(logger, this) ) {
-        throw new SMGInconsistentException("SMG was found inconsistent during a check");
-      }
-    }
   }
 
   static public boolean performChecks() {
@@ -482,10 +455,12 @@ class CLangSMG extends SMG implements WritableSMG {
   }
 
   @Override
-  public void mergeValues(int v1, int v2) throws SMGInconsistentException {
+  public void mergeValues(int v1, int v2) {
     super.mergeValues(v1, v2);
 
-    performConsistencyCheck();
+    if (CLangSMG.performChecks()) {
+      CLangSMGConsistencyVerifier.verifyCLangSMG(CLangSMG.logger, this);
+    }
   }
 
   final public void removeHeapObjectAndEdges(SMGObject pObject) {
@@ -555,345 +530,5 @@ class CLangSMG extends SMG implements WritableSMG {
     }
 
     return null;
-  }
-
-  /**
-   * Read Value in field (object, type) of an Object.
-   *
-   * This method does not modify the state being read,
-   * and is therefore safe to call outside of a
-   * transfer relation context.
-   *
-   * @param pObject SMGObject representing the memory the field belongs to.
-   * @param pOffset offset of field being read.
-   * @param pType type of field
-   * @return A Symbolic value, if found, otherwise null.
-   */
-  @Override
-  public Integer readValue(SMGObject pObject, int pOffset, CType pType) {
-    if (! isObjectValid(pObject)) {
-      return null;
-    }
-
-    SMGEdgeHasValue edge = new SMGEdgeHasValue(pType, pOffset, pObject, 0);
-
-    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pObject).filterAtOffset(pOffset);
-
-    for (SMGEdgeHasValue object_edge : getHVEdges(filter)) {
-      if (edge.isCompatibleFieldOnSameObject(object_edge, getMachineModel())) {
-        return object_edge.getValue();
-      }
-    }
-
-    if (isCoveredByNullifiedBlocks(edge)) { return 0; }
-
-    return null;
-  }
-
-  @Override
-  public SMGEdgePointsTo addNewHeapAllocation(int pSize, String pLabel) throws SMGInconsistentException {
-    SMGRegion new_object = new SMGRegion(pSize, pLabel);
-    int new_value = SMGValueFactory.getNewValue();
-    SMGEdgePointsTo points_to = new SMGEdgePointsTo(new_value, new_object, 0);
-    addHeapObject(new_object);
-    addValue(new_value);
-    addPointsToEdge(points_to);
-
-    performConsistencyCheck();
-    return points_to;
-  }
-
-  /**
-   * Write a value into a field (offset, type) of an Object.
-   * Additionally, this method writes a points-to edge into the
-   * SMG, if the given symbolic value points to an address, and
-   *
-   *
-   * @param object SMGObject representing the memory the field belongs to.
-   * @param offset offset of field written into.
-   * @param type type of field written into.
-   * @param value value to be written into field.
-   * @param machineModel Currently used Machine Model
-   * @throws SMGInconsistentException
-   */
-  @Override
-  public SMGEdgeHasValue writeValue(SMGObject pObject, int pOffset,
-      CType pType, SMGSymbolicValue pValue) throws SMGInconsistentException {
-
-    int value;
-
-    // If the value is not yet known by the SMG
-    // create a unconstrained new symbolic value
-    if (pValue.isUnknown()) {
-      value = SMGValueFactory.getNewValue();
-    } else {
-      value = pValue.getAsInt();
-    }
-
-    // If the value represents an address, and the address is known,
-    // add the necessary points-To edge.
-    if (pValue instanceof SMGAddressValue) {
-      if (! containsValue(value)) {
-        SMGAddress address = ((SMGAddressValue) pValue).getAddress();
-
-        if (!address.isUnknown()) {
-          if(!containsValue(value)) {
-            addValue(value);
-          }
-          SMGEdgePointsTo pointsToEdge = new SMGEdgePointsTo(value, pObject, pOffset);
-          addPointsToEdge(pointsToEdge);
-        }
-      }
-    }
-
-    return writeValue(pObject, pOffset, pType, value);
-  }
-
-  /**
-   * This method simulates a free invocation. It checks,
-   * whether the call is valid, and invalidates the
-   * Memory the given address points to.
-   * The address (address, offset, smgObject) is the argument
-   * of the free invocation. It does not need to be part of the SMG.
-   *
-   * @param pAddress The symbolic Value of the address.
-   * @param pOffset The offset of the address relative to the beginning of smgObject.
-   * @param pRegion The memory the given Address belongs to.
-   * @throws SMGInconsistentException
-   */
-  @Override
-  public void free(Integer pAddress, Integer pOffset, SMGRegion pRegion) throws SMGInconsistentException {
-
-    if (! isHeapObject(pRegion)) {
-      // You may not free any objects not on the heap.
-      //setInvalidFree();
-      return;
-    }
-
-    if(!(pOffset == 0)) {
-      // you may not invoke free on any address that you
-      // didn't get through a malloc invocation.
-      //setInvalidFree();
-      return;
-    }
-
-    if (! isObjectValid(pRegion)) {
-      // you may not invoke free multiple times on
-      // the same object
-      //setInvalidFree();
-      return;
-    }
-
-    setValidity(pRegion, false);
-    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pRegion);
-
-    List<SMGEdgeHasValue> to_remove = new ArrayList<>();
-    for (SMGEdgeHasValue edge : getHVEdges(filter)) {
-      to_remove.add(edge);
-    }
-
-    for (SMGEdgeHasValue edge : to_remove) {
-      removeHasValueEdge(edge);
-    }
-
-    performConsistencyCheck();
-  }
-
-  /**
-   * Write a value into a field (offset, type) of an Object.
-   *
-   *
-   * @param object SMGObject representing the memory the field belongs to.
-   * @param offset offset of field written into.
-   * @param type type of field written into.
-   * @param value value to be written into field.
-   * @param machineModel Currently used Machine Model
-   * @throws SMGInconsistentException
-   */
-  private SMGEdgeHasValue writeValue(SMGObject pObject, int pOffset, CType pType, Integer pValue) throws SMGInconsistentException {
-    // vgl Algorithm 1 Byte-Precise Verification of Low-Level List Manipulation FIT-TR-2012-04
-
-    if (! isObjectValid(pObject)) {
-      //Attempt to write to invalid object
-      return null;
-    }
-
-    SMGEdgeHasValue new_edge = new SMGEdgeHasValue(pType, pOffset, pObject, pValue);
-
-    // Check if the edge is  not present already
-    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pObject);
-
-    Iterable<SMGEdgeHasValue> edges = getHVEdges(filter);
-    if (Iterables.contains(edges, new_edge)) {
-      performConsistencyCheck();
-      return new_edge;
-    }
-
-    // If the value is not in the SMG, we need to add it
-    if ( ! getValues().contains(pValue) ) {
-      addValue(pValue);
-    }
-
-    HashSet<SMGEdgeHasValue> overlappingZeroEdges = new HashSet<>();
-    HashSet<SMGEdgeHasValue> toRemove = new HashSet<>();
-
-    /* We need to remove all non-zero overlapping edges
-     * and remember all overlapping zero edges to shrink them later
-     */
-    for (SMGEdgeHasValue hv : edges) {
-
-      boolean hvEdgeOverlaps = new_edge.overlapsWith(hv, getMachineModel());
-      boolean hvEdgeIsZero = hv.getValue() == getNullValue();
-
-      if (hvEdgeOverlaps) {
-        if (hvEdgeIsZero) {
-          overlappingZeroEdges.add(hv);
-        } else {
-          toRemove.add(hv);
-        }
-
-
-        //TODO This method of shrinking did not work for my benchmarks, investigate
-        /*
-        if (hv.getValue() == heap.getNullValue()) {
-          if (hv.getOffset() < new_edge.getOffset()) {
-            int prefixNullSize = new_edge.getOffset() - hv.getOffset();
-            SMGEdgeHasValue prefixNull = new SMGEdgeHasValue(prefixNullSize, hv.getOffset(), pObject, heap.getNullValue());
-            heap.addHasValueEdge(prefixNull);
-          }
-
-          int hvEnd = hv.getOffset() + hv.getSizeInBytes(heap.getMachineModel());
-          int neEnd = new_edge.getOffset() + new_edge.getSizeInBytes(heap.getMachineModel());
-          if (hvEnd > neEnd) {
-            int postfixNullSize = hvEnd - neEnd;
-            SMGEdgeHasValue postfixNull = new SMGEdgeHasValue(postfixNullSize, neEnd, pObject, heap.getNullValue());
-            heap.addHasValueEdge(postfixNull);
-          }
-        }
-        */
-      }
-    }
-
-    for (SMGEdgeHasValue hv : toRemove) {
-      removeHasValueEdge(hv);
-    }
-    shrinkOverlappingZeroEdges(new_edge, overlappingZeroEdges);
-
-    addHasValueEdge(new_edge);
-    performConsistencyCheck();
-
-    return new_edge;
-  }
-
-  private void shrinkOverlappingZeroEdges(SMGEdgeHasValue pNew_edge,
-      Set<SMGEdgeHasValue> pOverlappingZeroEdges) {
-
-    SMGObject object = pNew_edge.getObject();
-    int offset = pNew_edge.getOffset();
-
-    boolean newEdgePointsToZero = pNew_edge.getValue() == 0;
-    MachineModel maModel = getMachineModel();
-    int sizeOfType = pNew_edge.getSizeInBytes(maModel);
-
-    // Shrink overlapping zero edges
-    for (SMGEdgeHasValue zeroEdge : pOverlappingZeroEdges) {
-      // If the new_edge points to zero, we can just remove them
-      removeHasValueEdge(zeroEdge);
-
-      if (!newEdgePointsToZero) {
-
-        int zeroEdgeOffset = zeroEdge.getOffset();
-
-        int offset2 = offset + sizeOfType;
-        int zeroEdgeOffset2 = zeroEdgeOffset + zeroEdge.getSizeInBytes(maModel);
-
-        if (zeroEdgeOffset < offset) {
-          SMGEdgeHasValue newZeroEdge = new SMGEdgeHasValue(offset - zeroEdgeOffset, zeroEdgeOffset, object, 0);
-          addHasValueEdge(newZeroEdge);
-        }
-
-        if (offset2 < zeroEdgeOffset2) {
-          SMGEdgeHasValue newZeroEdge = new SMGEdgeHasValue(zeroEdgeOffset2 - offset2, offset2, object, 0);
-          addHasValueEdge(newZeroEdge);
-        }
-      }
-    }
-  }
-
-  /**
-   * Copys (shallow) the hv-edges of source in the given source range
-   * to the target at the given target offset. Note that the source
-   * range (pSourceRangeSize - pSourceRangeOffset) has to fit into
-   * the target range ( size of pTarget - pTargetRangeOffset).
-   * Also, pSourceRangeOffset has to be less or equal to the size
-   * of the source Object.
-   *
-   * This method is mainly used to assign struct variables.
-   *
-   * @param pSource the SMGObject providing the hv-edges
-   * @param pTarget the target of the copy process
-   * @param pTargetRangeOffset begin the copy of source at this offset
-   * @param pSourceRangeSize the size of the copy of source
-   * @param pSourceRangeOffset insert the copy of source into target at this offset
-   * @throws SMGInconsistentException thrown if the copying leads to an inconsistent SMG.
-   */
-  @Override
-  public void copy(SMGObject pSource, SMGObject pTarget, int pSourceRangeOffset, int pSourceRangeSize, int pTargetRangeOffset) throws SMGInconsistentException {
-
-    int copyRange = pSourceRangeSize - pSourceRangeOffset;
-
-    assert pSource.getSize() >= pSourceRangeSize;
-    assert pSourceRangeOffset >= 0;
-    assert pTargetRangeOffset >= 0;
-    assert copyRange >= 0;
-    assert copyRange <= pTarget.getSize();
-
-    // If copy range is 0, do nothing
-    if(copyRange == 0) {
-      return;
-    }
-
-    int targetRangeSize = pTargetRangeOffset + copyRange;
-
-    SMGEdgeHasValueFilter filterSource = SMGEdgeHasValueFilter.objectFilter(pSource);
-    SMGEdgeHasValueFilter filterTarget = SMGEdgeHasValueFilter.objectFilter(pTarget);
-
-    //Remove all Target edges in range
-    Iterable<SMGEdgeHasValue> targetEdges = getHVEdges(filterTarget);
-
-    List<SMGEdgeHasValue> toBeErased = new ArrayList<>();
-
-    for (SMGEdgeHasValue edge : targetEdges) {
-      if (edge.overlapsWith(pTargetRangeOffset, targetRangeSize, getMachineModel())) {
-        toBeErased.add(edge);
-      }
-    }
-
-    for (SMGEdgeHasValue edge : toBeErased) {
-      // Be wary of concurrent modification while writing values
-      removeHasValueEdge(edge);
-    }
-
-    // Shift the source edge offset depending on the target range offset
-    int copyShift = pTargetRangeOffset - pSourceRangeOffset;
-
-    List<SMGEdgeHasValue> toBeWritten = new ArrayList<>();
-
-    for (SMGEdgeHasValue edge : getHVEdges(filterSource)) {
-      if (edge.overlapsWith(pSourceRangeOffset, pSourceRangeSize, getMachineModel())) {
-        // Be wary of concurrent modification while writing values
-        toBeWritten.add(edge);
-      }
-    }
-
-    for(SMGEdgeHasValue edge : toBeWritten) {
-      int offset = edge.getOffset() + copyShift;
-      writeValue(pTarget, offset, edge.getType(), edge.getValue());
-    }
-
-    performConsistencyCheck();
-    //TODO Why do I do this here?
-    pruneUnreachable();
-    performConsistencyCheck();
   }
 }

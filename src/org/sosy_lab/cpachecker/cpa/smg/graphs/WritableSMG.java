@@ -26,13 +26,8 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
@@ -58,12 +53,4 @@ public interface WritableSMG extends ReadableSMG {
   public void setValidity(SMGRegion pRegion, boolean pValidity);
   public void pruneUnreachable();
   public void setMemoryLeak();
-
-  public void clearExplicit(SMGKnownSymValue pKey);
-  public void putExplicit(SMGKnownSymValue pKey, SMGKnownExpValue pValue);
-
-  public SMGEdgePointsTo addNewHeapAllocation(int pSize, String pLabel) throws SMGInconsistentException;
-  public SMGEdgeHasValue writeValue(SMGObject pObject, int pOffset, CType pType, SMGSymbolicValue pValue) throws SMGInconsistentException;
-  public void free(Integer pAddress, Integer pOffset, SMGRegion pRegion) throws SMGInconsistentException;
-  public void copy(SMGObject pSource, SMGObject pTarget, int pSourceRangeOffset, int pSourceRangeSize, int pTargetRangeOffset) throws SMGInconsistentException;
 }

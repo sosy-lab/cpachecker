@@ -45,10 +45,10 @@ public class SMGSingleLinkedListTest {
     Integer listAddress = pState.getSMG().getAddress(pState.getSMG().getNullObject(), 0);
     pState.addGlobalObject(pointer);
     for (int i = 0; i < 15; i++) {
-      SMGEdgePointsTo pt = pState.getWritableSMG().addNewHeapAllocation(mm.getSizeofPtr(), "node");
-      pState.getWritableSMG().writeValue(pt.getObject(), 0, AnonymousTypes.dummyPointer, SMGKnownSymValue.valueOf(listAddress));
+      SMGEdgePointsTo pt = pState.addNewHeapAllocation(mm.getSizeofPtr(), "node");
+      pState.writeValue(pt.getObject(), 0, AnonymousTypes.dummyPointer, SMGKnownSymValue.valueOf(listAddress));
       listAddress = pt.getValue();
-      pState.getWritableSMG().writeValue(pointer, 0, AnonymousTypes.dummyPointer,SMGKnownSymValue.valueOf(listAddress));
+      pState.writeValue(pointer, 0, AnonymousTypes.dummyPointer,SMGKnownSymValue.valueOf(listAddress));
     }
     pState.attemptAbstraction();
 
