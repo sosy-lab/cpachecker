@@ -31,6 +31,8 @@ import shutil
 import signal
 import tempfile
 
+from . import util as Util
+
 def initCgroup(cgroupsParents, subsystem):
     """
     Initialize a cgroup subsystem.
