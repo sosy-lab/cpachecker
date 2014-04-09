@@ -777,6 +777,25 @@ class ASTConverter {
       }
 
       logger.log(Level.FINE, "Field reference", e.getRawSignature(), "has unknown type", type);
+
+      // check if the field is in the struct or in a struct inside the struct
+    } else {
+      CType ownerType = owner.getExpressionType().getCanonicalType();
+      if (ownerType instanceof CCompositeType) {
+        boolean foundValidField = false;
+        for (CCompositeTypeMemberDeclaration field : ((CCompositeType) ownerType).getMembers()) {
+          if (fieldName.equals(field.getName())) {
+            foundValidField = true;
+            break;
+          }
+        }
+        if (!foundValidField) {
+          Optional<CFieldReference> replace = hasInnerField(owner, (CCompositeType) ownerType, fieldName, loc);
+          if (replace.isPresent()) {
+            owner = replace.get();
+          }
+        }
+      }
     }
 
     // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
