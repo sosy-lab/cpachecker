@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -86,6 +87,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -216,6 +218,32 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     final ValueAnalysisState successor = state;
     state = backup;
     return successor;
+  }
+
+  @Override
+  protected ValueAnalysisState handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge) {
+    final ValueAnalysisState newState = state.clone();
+
+    // is we skip a function, we forget all global variables
+    // TODO forgetting only those variables, that are used in the function, would be enough.
+    for (MemoryLocation variable : state.getTrackedMemoryLocations()) {
+      if (!variable.isOnFunctionStack()) {
+        newState.forget(variable);
+      }
+    }
+
+    // TODO if we have a argument '&x' for the function, should we also forget it?
+
+    // also forget the assigned return-value
+    CFunctionCall call = cfaEdge.getExpression();
+    if (call instanceof CFunctionCallAssignmentStatement) {
+      CLeftHandSide lhs = ((CFunctionCallAssignmentStatement) call).getLeftHandSide();
+      if (lhs instanceof AIdExpression) {
+        newState.forget(MemoryLocation.valueOf(functionName, ((AIdExpression) lhs).getName(), 0));
+      }
+    }
+
+    return newState;
   }
 
   @Override

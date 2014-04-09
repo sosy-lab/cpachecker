@@ -252,10 +252,10 @@ public class BAMTransferRelation implements TransferRelation {
 
       final Collection<? extends AbstractState> functionResultStates;
 
-      logger.log(Level.INFO, "current Stack:", stack);
-      logger.log(Level.INFO, "adding new Level:", currentLevel);
+      logger.log(Level.FINEST, "current Stack:", stack);
+      logger.log(Level.FINEST, "adding new Level:", currentLevel);
 
-      if (stack.contains(currentLevel)) {
+      if (stackContains(stack, currentLevel)) {
         // TODO replace 'stack contains level' with 'level covers any of stack'?
         // TODO this case is unreachable, because abstract states have no equality.
         // if level is twice in stack, we have endless recursion.
@@ -294,6 +294,24 @@ public class BAMTransferRelation implements TransferRelation {
     currentBlock = outerSubtree;
 
     return result;
+  }
+
+  private boolean stackContains(final List<Triple<AbstractState, Precision, Block>> stack,
+                                final Triple<AbstractState, Precision, Block> currentLevel)
+      throws CPATransferException, InterruptedException {
+    try {
+      for (Triple<AbstractState, Precision, Block> level : stack) {
+        if (level.getThird() == currentLevel.getThird()
+                && bamCPA.isCoveredBy(level.getFirst(), currentLevel.getFirst())) {
+          // previous state contains less information
+          // TODO how to compare precisions? equality would be enough
+          return true;
+        }
+      }
+      return false;
+    } catch (CPAException e) {
+      throw new CPATransferException(e.getMessage());
+    }
   }
 
   /** Analyse function-call, return expanded and rebuild exit-states. */
