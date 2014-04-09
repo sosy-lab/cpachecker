@@ -80,7 +80,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 
@@ -448,33 +447,24 @@ public enum InvariantsTransferRelation implements TransferRelation {
           return Collections.singleton(state.clear());
         }
         InvariantsFormula<CompoundInterval> top = CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
-        Iterable<String> locations = PointerTransferRelation.toNormalSet(pointerState, locationSet);
-        boolean moreThanOneLocation = hasMoreThanNElements(locations, 1);
-        for (String location : locations) {
-          int lastIndexOfDot = location.lastIndexOf('.');
-          int lastIndexOfArrow = location.lastIndexOf("->");
-          final boolean hasDot = lastIndexOfDot >= 0;
-          final boolean hasArrow = lastIndexOfArrow >= 0;
-          if (hasArrow || hasDot) {
+        for (String location : PointerTransferRelation.toNormalSet(pointerState, locationSet)) {
+          if (location.contains("->") || location.contains(".")) {
+            int lastIndexOfDot = location.lastIndexOf('.');
+            int lastIndexOfArrow = location.lastIndexOf("->");
+            if (lastIndexOfArrow >= 0) {
+              ++lastIndexOfArrow;
+            }
             int lastIndexOfSep = Math.max(lastIndexOfDot, lastIndexOfArrow);
-            final String end = location.substring(lastIndexOfSep);
-            Iterable<? extends String> targets = FluentIterable.from(result.getEnvironment().keySet()).filter(new Predicate<String>() {
-
-              @Override
-              public boolean apply(String pVar) {
-                return pVar != null && pVar.endsWith(end);
-              }
-
-            });
-            if (moreThanOneLocation || hasMoreThanNElements(targets, 1)) {
-              for (String variableName : targets) {
+            assert lastIndexOfSep >= 0;
+            String end = location.substring(lastIndexOfSep + 1);
+            for (String variableName : result.getEnvironment().keySet()) {
+              if (variableName.endsWith("->" + end)
+                  || variableName.endsWith("." + end)) {
                 result = result.assign(variableName, top, edge);
               }
             }
           }
-          if (moreThanOneLocation) {
-            result = result.assign(location, top, edge);
-          }
+          result = result.assign(location, top, edge);
         }
       }
       return Collections.singleton(result);
@@ -531,9 +521,5 @@ public enum InvariantsTransferRelation implements TransferRelation {
       }
     }
     return null;
-  }
-
-  private static boolean hasMoreThanNElements(Iterable<?> pIterable, int pN) {
-    return !Iterables.isEmpty(Iterables.skip(pIterable, pN));
   }
 }

@@ -26,12 +26,10 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.WeakHashMap;
@@ -71,7 +69,7 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
+import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState.EdgeBasedAbstractionStrategyFactories;
@@ -96,7 +94,7 @@ import com.google.common.collect.ImmutableSet;
 /**
  * This is a CPA for collecting simple invariants about integer variables.
  */
-public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA {
+public class InvariantsCPA extends AbstractCPA implements AdjustableConditionCPA {
 
   /**
    * A formula visitor for collecting the variables contained in a formula.
@@ -134,9 +132,6 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
     @Option(description="controls whether to use abstract evaluation always, never, or only on already previously visited edges.")
     private EdgeBasedAbstractionStrategyFactories edgeBasedAbstractionStrategyFactory = EdgeBasedAbstractionStrategyFactories.VISITED_EDGES;
 
-    @Option(description="controls the condition adjustment logic: STATIC means that condition adjustment is a no-op, INTERESTING_VARIABLES increments the interesting variable limit.")
-    private ConditionAdjusterFactories conditionAdjusterFactory = ConditionAdjusterFactories.INTERESTING_VARIABLES;
-
   }
 
   /**
@@ -172,8 +167,6 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
   private final WeakHashMap<CFANode, InvariantsPrecision> initialPrecisionMap = new WeakHashMap<>();
 
   private boolean relevantVariableLimitReached = false;
-
-  private final Map<CFANode, InvariantsState> invariants = new HashMap<>();
 
   /**
    * Gets a factory for creating InvariantCPAs.
@@ -361,11 +354,6 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
 
     initialPrecisionMap.put(pNode, precision);
 
-    InvariantsState invariant = invariants.get(pNode);
-    if (invariant != null) {
-      return new InvariantsState(options.useBitvectors, variableSelection, precision, invariant);
-    }
-
     // Create the configured initial state
     return new InvariantsState(options.useBitvectors, variableSelection, precision);
   }
@@ -377,10 +365,6 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
       return precision;
     }
     return getInitialState(pNode).getPrecision();
-  }
-
-  public void injectInvariant(CFANode pLocation, InvariantsState pInvariant) {
-    this.invariants.put(pLocation, pInvariant);
   }
 
   /**
@@ -400,12 +384,13 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
 
   @Override
   public boolean adjustPrecision() {
-    return options.conditionAdjusterFactory.createConditionAdjuster().adjustConditions(this);
-  }
-
-  @Override
-  public void adjustReachedSet(ReachedSet pReachedSet) {
-    options.conditionAdjusterFactory.createConditionAdjuster().adjustReachedSet(this, pReachedSet);
+    if (relevantVariableLimitReached) {
+      return false;
+    }
+    initialPrecisionMap.clear();
+    ++options.interestingVariableLimit;
+    logManager.log(Level.INFO, "Adjusting interestingVariableLimit to " + options.interestingVariableLimit);
+    return true;
   }
 
   private static void expand(Set<String> pRelevantVariables, Collection<CFAEdge> pCfaEdges, int pLimit) {
@@ -599,96 +584,4 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
         handleAssignment(pFunctionReturnEdge.getSuccessor().getFunctionName(), pFunctionReturnEdge, funcExp.getLeftHandSide(), value, pRelevantVariables, pLimit);
       }
   }
-
-  public interface ConditionAdjuster {
-
-    boolean adjustConditions(InvariantsCPA pCPA);
-
-    void adjustReachedSet(InvariantsCPA pInvariantsCPA, ReachedSet pReachedSet);
-
-  }
-
-  public interface ConditionAdjusterFactory {
-
-    ConditionAdjuster createConditionAdjuster();
-
-  }
-
-  public enum ConditionAdjusterFactories implements ConditionAdjusterFactory {
-
-    STATIC {
-
-      @Override
-      public ConditionAdjuster createConditionAdjuster() {
-        return new ConditionAdjuster() {
-
-          @Override
-          public boolean adjustConditions(InvariantsCPA pCPA) {
-            return true;
-          }
-
-          @Override
-          public void adjustReachedSet(InvariantsCPA pInvariantsCPA, ReachedSet pReachedSet) {
-            // No actions required
-          }
-        };
-      }
-
-    },
-
-    INTERESTING_VARIABLES {
-
-      @Override
-      public ConditionAdjuster createConditionAdjuster() {
-        return new ConditionAdjuster() {
-
-          @Override
-          public boolean adjustConditions(InvariantsCPA pCPA) {
-            if (pCPA.relevantVariableLimitReached) {
-              pCPA.options.conditionAdjusterFactory = MAXIMUM_FORMULA_DEPTH;
-              return pCPA.options.conditionAdjusterFactory.createConditionAdjuster().adjustConditions(pCPA);
-            }
-            pCPA.initialPrecisionMap.clear();
-            ++pCPA.options.interestingVariableLimit;
-            pCPA.logManager.log(Level.INFO, "Adjusting interestingVariableLimit to", pCPA.options.interestingVariableLimit);
-            return true;
-          }
-
-          @Override
-          public void adjustReachedSet(InvariantsCPA pInvariantsCPA, ReachedSet pReachedSet) {
-            pReachedSet.clear();
-          }
-        };
-      }
-
-    },
-
-    MAXIMUM_FORMULA_DEPTH {
-
-      @Override
-      public ConditionAdjuster createConditionAdjuster() {
-        return new ConditionAdjuster() {
-
-          @Override
-          public boolean adjustConditions(InvariantsCPA pCPA) {
-            if (pCPA.options.maximumFormulaDepth >= 4) {
-              return false;
-            }
-            pCPA.initialPrecisionMap.clear();
-            ++pCPA.options.maximumFormulaDepth;
-            pCPA.logManager.log(Level.INFO, "Adjusting maximum formula depth to", pCPA.options.maximumFormulaDepth);
-            return true;
-          }
-
-          @Override
-          public void adjustReachedSet(InvariantsCPA pInvariantsCPA, ReachedSet pReachedSet) {
-            pReachedSet.clear();
-          }
-        };
-      }
-
-    };
-
-  }
-
 }
