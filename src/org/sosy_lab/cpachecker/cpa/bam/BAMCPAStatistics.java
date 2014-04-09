@@ -31,6 +31,7 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
@@ -43,6 +44,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.FileSystemPath;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
@@ -60,10 +62,17 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 @Options(prefix="cpa.bam")
 class BAMCPAStatistics implements Statistics {
 
-  @Option(name="file",
-          description="export blocked ARG as .dot file")
+  @Option(description="export blocked ARG as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path argFile = Paths.get("BlockedARG.dot");
+
+  @Option(description="export single blocked ARG as .dot files, should contain '%d'")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path indexedArgFile = Paths.get("ARGs/ARG_%d.dot");
+
+  @Option(description="export used parts of blocked ARG as .dot file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path simplifiedArgFile = Paths.get("BlockedARGSimplified.dot");
 
   private final BAMCPA cpa;
   private final BAMCache cache;
@@ -141,6 +150,7 @@ class BAMCPAStatistics implements Statistics {
     }
 
     exportAllReachedSets(reached);
+    exportLatestReachedSets(reached);
   }
 
   private void exportAllReachedSets(final ReachedSet mainReachedSet) {
@@ -151,34 +161,31 @@ class BAMCPAStatistics implements Statistics {
       allReachedSets.add(mainReachedSet);
 
       final Set<ARGState> rootStates = new HashSet<>();
-      rootStates.add((ARGState)mainReachedSet.getFirstState());
       final Multimap<ARGState, ARGState> connections = HashMultimap.create();
 
       for (final ReachedSet reachedSet : allReachedSets) {
         ARGState rootState = (ARGState) reachedSet.getFirstState();
         rootStates.add(rootState);
+        Multimap<ARGState, ARGState> localConnections = HashMultimap.create();
+        getConnections(rootState, localConnections);
+        connections.putAll(localConnections);
 
-        Set<ARGState> finished = new HashSet<>();
-        Deque<ARGState> waitlist = new ArrayDeque<>();
-        waitlist.add(rootState);
-        while (!waitlist.isEmpty()) {
-          ARGState state = waitlist.pop();
-          if (!finished.add(state)) {
-            continue;
-          }
-          if (cpa.getTransferRelation().abstractStateToReachedSet.containsKey(state)) {
-            ReachedSet target = cpa.getTransferRelation().abstractStateToReachedSet.get(state);
-            AbstractState targetState = target.getFirstState();
-            connections.put(state, (ARGState)targetState);
-          }
-          if (cpa.getTransferRelation().expandedToReducedCache.containsKey(state)) {
-            AbstractState sourceState = cpa.getTransferRelation().expandedToReducedCache.get(state);
-            connections.put((ARGState)sourceState, state);
-          }
-          waitlist.addAll(state.getChildren());
+        // dump small graph
+        Path file = new FileSystemPath(String.format(
+                indexedArgFile.getPath(), ((ARGState) reachedSet.getFirstState()).getStateId()));
+        try (Writer w = Files.openOutputFile(file)) {
+          ARGToDotWriter.write(w,
+                  Collections.singleton((ARGState) reachedSet.getFirstState()),
+                  localConnections,
+                  ARGUtils.CHILDREN_OF_STATE,
+                  Predicates.alwaysTrue(),
+                  Predicates.alwaysFalse());
+        } catch (IOException e) {
+          // ignore, TODO write message for user
         }
       }
 
+      // dump super-graph
       try (Writer w = Files.openOutputFile(argFile)) {
         ARGToDotWriter.write(w,
                 rootStates,
@@ -192,4 +199,65 @@ class BAMCPAStatistics implements Statistics {
     }
   }
 
+  /** dump only those ReachedSets, that are reachable from mainReachedSet. */
+  private void exportLatestReachedSets(final ReachedSet mainReachedSet) {
+
+    if (simplifiedArgFile != null) {
+
+      final Multimap<ARGState, ARGState> connections = HashMultimap.create();
+      final Set<ReachedSet> finished = new HashSet<>();
+      final Deque<ReachedSet> waitlist = new ArrayDeque<>();
+      waitlist.add(mainReachedSet);
+      while (!waitlist.isEmpty()){
+        ReachedSet reachedSet = waitlist.pop();
+        if (!finished.add(reachedSet)) {
+          continue;
+        }
+        ARGState rootState = (ARGState) reachedSet.getFirstState();
+        Set<ReachedSet> referencedReachedSets = getConnections(rootState, connections);
+        waitlist.addAll(referencedReachedSets);
+      }
+
+      final Set<ARGState> rootStates = new HashSet<>();
+      for (ReachedSet reachedSet : finished) {
+        rootStates.add((ARGState)reachedSet.getFirstState());
+      }
+
+      try (Writer w = Files.openOutputFile(simplifiedArgFile)) {
+        ARGToDotWriter.write(w,
+                rootStates,
+                connections,
+                ARGUtils.CHILDREN_OF_STATE,
+                Predicates.alwaysTrue(),
+                Predicates.alwaysFalse());
+      } catch (IOException e) {
+        // ignore, TODO write message for user
+      }
+    }
+  }
+
+  private Set<ReachedSet> getConnections(final ARGState rootState, final Multimap<ARGState, ARGState> connections) {
+    final Set<ReachedSet> referencedReachedSets = new HashSet<>();
+    final Set<ARGState> finished = new HashSet<>();
+    final Deque<ARGState> waitlist = new ArrayDeque<>();
+    waitlist.add(rootState);
+    while (!waitlist.isEmpty()) {
+      ARGState state = waitlist.pop();
+      if (!finished.add(state)) {
+        continue;
+      }
+      if (cpa.getTransferRelation().abstractStateToReachedSet.containsKey(state)) {
+        ReachedSet target = cpa.getTransferRelation().abstractStateToReachedSet.get(state);
+        referencedReachedSets.add(target);
+        ARGState targetState = (ARGState) target.getFirstState();
+        connections.put(state, targetState);
+      }
+      if (cpa.getTransferRelation().expandedToReducedCache.containsKey(state)) {
+        AbstractState sourceState = cpa.getTransferRelation().expandedToReducedCache.get(state);
+        connections.put((ARGState) sourceState, state);
+      }
+      waitlist.addAll(state.getChildren());
+    }
+    return referencedReachedSets;
+  }
 }
