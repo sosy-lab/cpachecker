@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
@@ -225,7 +226,7 @@ public class BAMTransferRelation implements TransferRelation {
     assert rootNode.getLeavingEdge(0).getSuccessor() instanceof FunctionEntryNode;
     assert partitioning.isCallNode(rootNode.getLeavingEdge(0).getSuccessor());
 
-    FunctionEntryNode entryNode = (FunctionEntryNode) rootNode.getLeavingEdge(0).getSuccessor();
+    final FunctionEntryNode entryNode = (FunctionEntryNode) rootNode.getLeavingEdge(0).getSuccessor();
 
     logger.log(Level.FINER, "Starting analysis of functioncall ", entryNode.getFunctionName(), "of depth", ++depth);
     logger.log(Level.FINEST, "functioncall called from", rootNode, ", starts at", entryNode, "and ends with", entryNode.getExitNode());
@@ -240,30 +241,54 @@ public class BAMTransferRelation implements TransferRelation {
     final List<AbstractState> result = new ArrayList<>();
     for (AbstractState entryState : functionCallStates) { // in most case we have only one functionCallState here
       assert entryNode.equals(extractLocation(entryState)) : "location does not match: " + entryNode + " vs " + extractLocation(entryState);
-      final Collection<? extends AbstractState> expandedFunctionReturnStates = handleRecursiveFunctionCall0(entryState, precision, outerSubtree, entryNode);
 
-      for (AbstractState expandedState : expandedFunctionReturnStates) {
-        logger.log(Level.FINEST, "rebuilding state with root state", rootState);
-        logger.log(Level.FINEST, "rebuilding state with expanded state", expandedState);
-        AbstractState rebuildState = wrappedReducer.rebuildStateAfterFunctionCall(rootState, expandedState);
-        logger.log(Level.FINEST, "rebuilding finished with state", rebuildState);
+      logger.log(Level.ALL, "Initial state is", entryState);
+      final AbstractState reducedInitialState = wrappedReducer.getVariableReducedState(entryState, currentBlock, entryNode);
+      final Precision reducedInitialPrecision = wrappedReducer.getVariableReducedPrecision(precision, currentBlock);
+      logger.log(Level.FINEST, "Reduced state is", reducedInitialState);
 
-        // in the ARG of the outer block we have now the connection "rootState <-> expandedState"
-        assert ((ARGState)expandedState).getChildren().isEmpty() && ((ARGState)expandedState).getParents().size() == 1:
-            "unexpected expanded state: " + expandedState;
-        assert ((ARGState)entryState).getChildren().size() == 1 && ((ARGState)entryState).getChildren().contains(expandedState):
-            "successor of entry state must be expanded state " + expandedState;
+      final Triple<AbstractState, Precision, Block> currentLevel =
+              Triple.of(reducedInitialState, reducedInitialPrecision, currentBlock);
 
-        // we replace this connection with "rootState <-> rebuildState"
-        ((ARGState)expandedState).removeFromARG();
-        ((ARGState)rebuildState).addParent((ARGState)entryState);
+      final Collection<? extends AbstractState> functionResultStates;
 
-        // also clean up local cache
-        AbstractState reducedState = expandedToReducedCache.remove(expandedState);
-        expandedToReducedCache.put(rebuildState, reducedState);
+      logger.log(Level.INFO, "current Stack:", stack);
+      logger.log(Level.INFO, "adding new Level:", currentLevel);
 
-        result.add(rebuildState);
+      if (stack.contains(currentLevel)) {
+        // TODO replace 'stack contains level' with 'level covers any of stack'?
+        // TODO this case is unreachable, because abstract states have no equality.
+        // if level is twice in stack, we have endless recursion.
+        // with current knowledge we would never abort unrolling the recursion.
+        // lets skip the function and return only a short "summary" of the function.
+        logger.log(Level.ALL, "recursion will cause endless unrolling, skipping function and analysing summary-edge.");
+
+        FunctionSummaryEdge summaryEdge = rootNode.getLeavingSummaryEdge();
+        functionResultStates = wrappedTransfer.getAbstractSuccessors(rootState, precision, summaryEdge);
+
+        // current location is "after" the function-return-edge.
+
+      } else {
+        // enter block of function-call and start recursive analysis
+        stack.add(currentLevel);
+
+        functionResultStates = handleRecursiveFunctionCall0(
+                rootState, entryState, precision, outerSubtree, reducedInitialState, reducedInitialPrecision);
+
+        if (breakAnalysis) {
+          // analysis aborted, so lets abort here too
+          // TODO why return element?
+          assert functionResultStates.size() == 1;
+          return functionResultStates;
+        }
+
+        final Triple<AbstractState, Precision, Block> lastLevel = stack.remove(stack.size() - 1);
+        assert lastLevel.equals(currentLevel);
+
+        // current location is "before" the function-return-edge.
       }
+
+      result.addAll(functionResultStates);
     }
 
     currentBlock = outerSubtree;
@@ -271,34 +296,52 @@ public class BAMTransferRelation implements TransferRelation {
     return result;
   }
 
-  private Collection<? extends AbstractState> handleRecursiveFunctionCall0(
-          final AbstractState pState, final Precision pPrecision,
-          final Block outerSubtree, final FunctionEntryNode entryNode)
+  /** Analyse function-call, return expanded and rebuild exit-states. */
+  private Collection<AbstractState> handleRecursiveFunctionCall0(
+          final AbstractState rootState, final AbstractState entryState,
+          final Precision precision, final Block outerSubtree,
+          final AbstractState reducedInitialState, final Precision reducedInitialPrecision)
           throws CPATransferException, InterruptedException {
 
-    logger.log(Level.ALL, "Initial state is", pState);
-    final AbstractState reducedInitialState = wrappedReducer.getVariableReducedState(pState, currentBlock, entryNode);
-    final Precision reducedInitialPrecision = wrappedReducer.getVariableReducedPrecision(pPrecision, currentBlock);
-    logger.log(Level.FINEST, "Reduced state is", reducedInitialState);
+    final Collection<Pair<AbstractState, Precision>> reducedResult =
+            getReducedResult(entryState, reducedInitialState, reducedInitialPrecision);
+
+    logger.log(Level.FINER, "Analysis of recursive functioncall ", depth--, "finished");
+    logger.log(Level.ALL, "Resulting states:", reducedResult);
+
+    addBlockAnalysisInfo(reducedInitialState);
+
+    if (breakAnalysis) {
+      // analysis aborted, so lets abort here too
+      // TODO why return element?
+      assert reducedResult.size() == 1;
+      return Collections.singleton(Iterables.getOnlyElement(reducedResult).getFirst());
+    }
+
+    logger.log(Level.FINEST, "Expanding states", reducedResult);
+    final Collection<AbstractState> expandedFunctionReturnStates = expandResultStates(reducedResult, outerSubtree, entryState, precision);
+    logger.log(Level.ALL, "Expanded results:", expandedFunctionReturnStates);
+
+    final Collection<AbstractState> rebuildStates = new ArrayList<>(expandedFunctionReturnStates.size());
+    for (final AbstractState expandedState : expandedFunctionReturnStates) {
+      rebuildStates.add(getRebuildState(rootState, entryState, expandedState));
+    }
+    return rebuildStates;
+  }
+
+  /** Get reduced exit-states for a block. If possible, cached information is used. */
+  private Collection<Pair<AbstractState, Precision>> getReducedResult(
+          final AbstractState entryState,
+          final AbstractState reducedInitialState, final Precision reducedInitialPrecision)
+          throws RecursiveAnalysisFailedException, InterruptedException {
+
+    final Collection<Pair<AbstractState, Precision>> reducedResult;
 
     // try to get previously computed element from cache
     final Pair<ReachedSet, Collection<AbstractState>> pair =
             argCache.get(reducedInitialState, reducedInitialPrecision, currentBlock);
     ReachedSet reached = pair.getFirst();
     final Collection<AbstractState> returnStates = pair.getSecond();
-
-    final Collection<Pair<AbstractState, Precision>> reducedResult;
-
-    // TODO here we have to check for endless recursion, we need the current stack
-    // if block is twice in stack, abort recursion --> fixpoint?
-    final Triple<AbstractState, Precision, Block> currentLevel =
-            Triple.of(reducedInitialState, reducedInitialPrecision, currentBlock);
-    if (stack.contains(currentLevel)) {
-      // endless recursion, with current knowledge we would never abort unrolling the recursion
-      logger.log(Level.ALL, "recursion will cause endless unrolling, aborting");
-      return Collections.emptySet();
-    }
-    stack.add(currentLevel);
 
     if (returnStates != null) {
       assert reached != null;
@@ -324,28 +367,35 @@ public class BAMTransferRelation implements TransferRelation {
       }
     }
 
-    abstractStateToReachedSet.put(pState, reached);
+    abstractStateToReachedSet.put(entryState, reached);
 
-    logger.log(Level.FINER, "Analysis of recursive functioncall ", depth--, "finished");
-    logger.log(Level.ALL, "Resulting states:", reducedResult);
+    return reducedResult;
+  }
 
-    addBlockAnalysisInfo(reducedInitialState);
+  /** Reconstruct the resulting state from root-, entry- and expanded-state.
+   * Also cleanup and update the ARG with the new build state. */
+  private AbstractState getRebuildState(final AbstractState rootState, final AbstractState entryState, final AbstractState expandedState) {
+    logger.log(Level.FINEST, "rebuilding state with root state", rootState);
+    logger.log(Level.FINEST, "rebuilding state with expanded state", expandedState);
+    final AbstractState rebuildState = wrappedReducer.rebuildStateAfterFunctionCall(rootState, expandedState);
+    logger.log(Level.FINEST, "rebuilding finished with state", rebuildState);
 
-    if (breakAnalysis) {
-      // analysis aborted, so lets abort here too
-      // TODO why return element?
-      assert reducedResult.size() == 1;
-      return Collections.singleton(Iterables.getOnlyElement(reducedResult).getFirst());
-    }
+    // in the ARG of the outer block we have now the connection "rootState <-> expandedState"
+    assert ((ARGState)expandedState).getChildren().isEmpty() && ((ARGState)expandedState).getParents().size() == 1:
+        "unexpected expanded state: " + expandedState;
+    assert ((ARGState)entryState).getChildren().size() == 1 && ((ARGState)entryState).getChildren().contains(expandedState):
+        "successor of entry state " +  entryState + " must be expanded state " + expandedState;
 
-    logger.log(Level.FINEST, "Expanding states", reducedResult);
-    Collection<AbstractState> expandedResult = expandResultStates(reducedResult, outerSubtree, pState, pPrecision);
-    logger.log(Level.ALL, "Expanded results:", expandedResult);
+    // we replace this connection with "rootState <-> rebuildState"
+    ((ARGState)expandedState).removeFromARG();
+    ((ARGState)rebuildState).addParent((ARGState)entryState);
 
-    Triple<AbstractState, Precision,Block> lastLevel = stack.remove(stack.size()-1);
-    assert lastLevel.equals(currentLevel);
+    // also clean up local cache
+    assert expandedToReducedCache.containsKey(expandedState) : "expanded state should be part of the cache: " + expandedState;
+    final AbstractState reducedState = expandedToReducedCache.remove(expandedState);
+    expandedToReducedCache.put(rebuildState, reducedState);
 
-    return expandedResult;
+    return rebuildState;
   }
 
   /** Enters a new block and performs a new analysis or returns result from cache. */
