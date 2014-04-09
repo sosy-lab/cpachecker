@@ -26,24 +26,53 @@ package org.sosy_lab.cpachecker.cpa.bam;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
 
+import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Writer;
+import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.Set;
 
+import com.google.common.base.Predicates;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 
 /**
  * Prints some BAM related statistics
  */
+@Options(prefix="cpa.bam")
 class BAMCPAStatistics implements Statistics {
+
+  @Option(name="file",
+          description="export blocked ARG as .dot file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path argFile = Paths.get("BlockedARG.dot");
 
   private final BAMCPA cpa;
   private final BAMCache cache;
   private AbstractBAMBasedRefiner refiner = null;
 
-  public BAMCPAStatistics(BAMCPA cpa, BAMCache cache) {
+  public BAMCPAStatistics(BAMCPA cpa, BAMCache cache, Configuration config)
+  throws InvalidConfigurationException {
+    config.inject(this);
+
     this.cpa = cpa;
     this.cache = cache;
   }
@@ -100,7 +129,7 @@ class BAMCPAStatistics implements Statistics {
     }
 
     //Add to reached set all states from BAM cache
-    Collection<ReachedSet> cachedStates = transferRelation.getCachedReachedSet();
+    Collection<ReachedSet> cachedStates = cache.getAllCachedReachedStates();
     for (ReachedSet set : cachedStates) {
       for (AbstractState state : set.asCollection()) {
         /* Method 'add' add state not only in list of reached states, but also in waitlist,
@@ -108,6 +137,57 @@ class BAMCPAStatistics implements Statistics {
          */
         reached.add(state, set.getPrecision(state));
         reached.removeOnlyFromWaitlist(state);
+      }
+    }
+
+    exportAllReachedSets(reached);
+  }
+
+  private void exportAllReachedSets(final ReachedSet mainReachedSet) {
+
+    if (argFile != null) {
+
+      final Set<ReachedSet> allReachedSets = new HashSet<>(cache.getAllCachedReachedStates());
+      allReachedSets.add(mainReachedSet);
+
+      final Set<ARGState> rootStates = new HashSet<>();
+      rootStates.add((ARGState)mainReachedSet.getFirstState());
+      final Multimap<ARGState, ARGState> connections = HashMultimap.create();
+
+      for (final ReachedSet reachedSet : allReachedSets) {
+        ARGState rootState = (ARGState) reachedSet.getFirstState();
+        rootStates.add(rootState);
+
+        Set<ARGState> finished = new HashSet<>();
+        Deque<ARGState> waitlist = new ArrayDeque<>();
+        waitlist.add(rootState);
+        while (!waitlist.isEmpty()) {
+          ARGState state = waitlist.pop();
+          if (!finished.add(state)) {
+            continue;
+          }
+          if (cpa.getTransferRelation().abstractStateToReachedSet.containsKey(state)) {
+            ReachedSet target = cpa.getTransferRelation().abstractStateToReachedSet.get(state);
+            AbstractState targetState = target.getFirstState();
+            connections.put(state, (ARGState)targetState);
+          }
+          if (cpa.getTransferRelation().expandedToReducedCache.containsKey(state)) {
+            AbstractState sourceState = cpa.getTransferRelation().expandedToReducedCache.get(state);
+            connections.put((ARGState)sourceState, state);
+          }
+          waitlist.addAll(state.getChildren());
+        }
+      }
+
+      try (Writer w = Files.openOutputFile(argFile)) {
+        ARGToDotWriter.write(w,
+                rootStates,
+                connections,
+                ARGUtils.CHILDREN_OF_STATE,
+                Predicates.alwaysTrue(),
+                Predicates.alwaysFalse());
+      } catch (IOException e) {
+        // ignore, TODO write message for user
       }
     }
   }

@@ -99,8 +99,8 @@ public class BAMTransferRelation implements TransferRelation {
 
   private final BAMCache argCache;
 
-  private final Map<AbstractState, ReachedSet> abstractStateToReachedSet = new HashMap<>();
-  private final Map<AbstractState, AbstractState> expandedToReducedCache = new HashMap<>();
+  final Map<AbstractState, ReachedSet> abstractStateToReachedSet = new HashMap<>();
+  final Map<AbstractState, AbstractState> expandedToReducedCache = new HashMap<>();
 
   private Block currentBlock;
   private BlockPartitioning partitioning;
@@ -257,6 +257,10 @@ public class BAMTransferRelation implements TransferRelation {
         // we replace this connection with "rootState <-> rebuildState"
         ((ARGState)expandedState).removeFromARG();
         ((ARGState)rebuildState).addParent((ARGState)entryState);
+
+        // also clean up local cache
+        AbstractState reducedState = expandedToReducedCache.remove(expandedState);
+        expandedToReducedCache.put(rebuildState, reducedState);
 
         result.add(rebuildState);
       }
@@ -922,10 +926,6 @@ public class BAMTransferRelation implements TransferRelation {
       return Pair.of(false, returnNodes);
     }
     return Pair.of(true, returnNodes);
-  }
-
-  public Collection<ReachedSet> getCachedReachedSet() {
-    return argCache.getAllCachedReachedStates();
   }
 
   public void setCorrectARG(Pair<ARGState, Block> pKey, Collection<ARGState> pEndOfBlock){
