@@ -1286,13 +1286,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         && pEdge.getEdgeType() != CFAEdgeType.MultiEdge) {
       return true;
     }
-    if (pEdge instanceof ADeclarationEdge) {
-      ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
-      if (declarationEdge.getDeclaration() instanceof AVariableDeclaration) {
-        return ((AVariableDeclaration) declarationEdge.getDeclaration()).getInitializer() == null;
-      }
-      return true;
-    }
     if (pEdge instanceof AStatementEdge) {
       IAStatement statement = ((AStatementEdge) pEdge).getStatement();
       if (statement instanceof AExpressionAssignmentStatement
@@ -1306,8 +1299,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         if (!isFreeOfSideEffects(edge)) {
           return false;
         }
-        return true;
       }
+      return true;
     }
     return false;
   }
