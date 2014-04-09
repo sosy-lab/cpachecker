@@ -382,12 +382,13 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
                                                   final CType returnType,
                                                   final int oldIndex,
                                                   final int newIndex,
-                                                  final PointerTargetSet pts) {
+                                                  final PointerTargetSet pts) throws InterruptedException {
     assert oldIndex < newIndex;
 
     final FormulaType<?> returnFormulaType =  converter.getFormulaTypeFromCType(returnType);
     BooleanFormula result = bfmgr.makeBoolean(true);
     for (final PointerTarget target : pts.getAllTargets(returnType)) {
+      shutdownNotifier.shutdownIfNecessary();
       final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(typeHandler.getPointerType(), target.getBaseName()),
                                                   fmgr.makeNumber(typeHandler.getPointerType(), target.getOffset()));
 
