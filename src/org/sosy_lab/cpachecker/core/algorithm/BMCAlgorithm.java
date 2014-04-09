@@ -1282,7 +1282,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private static boolean isFreeOfSideEffects(CFAEdge pEdge) {
     if (pEdge == null
         || pEdge.getEdgeType() != CFAEdgeType.StatementEdge
-        && pEdge.getEdgeType() != CFAEdgeType.DeclarationEdge) {
+        && pEdge.getEdgeType() != CFAEdgeType.DeclarationEdge
+        && pEdge.getEdgeType() != CFAEdgeType.MultiEdge) {
       return true;
     }
     if (pEdge instanceof ADeclarationEdge) {
