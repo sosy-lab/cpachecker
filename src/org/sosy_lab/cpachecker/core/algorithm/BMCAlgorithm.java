@@ -106,6 +106,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.edgeexclusion.EdgeExclusionPrecision;
+import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
+import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -575,7 +577,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     public KInductionProver() {
       List<CFAEdge> incomingEdges = null;
-      List<CFAEdge> outgoingEdges = null;
+      FluentIterable<CFAEdge> outgoingEdges = null;
       ReachedSet reachedSet = null;
       Loop loop = null;
       if (!cfa.getLoopStructure().isPresent()) {
@@ -617,7 +619,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
                   }
                   return false;
                 }
-              }).toList();
+              });
 
           if (incomingEdges.size() > 1) {
             logger.log(Level.WARNING, "Could not use induction for proving program safety, loop has too many incoming edges", incomingEdges);
@@ -688,6 +690,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       if (currentInvariantsReachedSet != invariantsReachedSet) {
         invariantsReachedSet = currentInvariantsReachedSet;
         BooleanFormula invariants = extractInvariantsAt(currentInvariantsReachedSet, loopHead);
+        injectInvariants(currentInvariantsReachedSet, loopHead);
         if (isProverInitialized()) {
           pop();
         } else {
@@ -698,6 +701,29 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       }
       assert isProverInitialized();
       return prover;
+    }
+
+    private void injectInvariants(UnmodifiableReachedSet pReachedSet, CFANode pLocation) {
+      InvariantsCPA invariantsCPA = CPAs.retrieveCPA(cpa, InvariantsCPA.class);
+      if (invariantsCPA == null) {
+        return;
+      }
+      InvariantsState invariant = null;
+      for (AbstractState locState : AbstractStates.filterLocation(pReachedSet, pLocation)) {
+        InvariantsState disjunctivePart = AbstractStates.extractStateByType(locState, InvariantsState.class);
+        if (disjunctivePart != null) {
+          if (invariant == null) {
+            invariant = disjunctivePart;
+          } else {
+            invariant = invariant.join(disjunctivePart, true);
+          }
+        } else {
+          return;
+        }
+      }
+      if (invariant != null) {
+        invariantsCPA.injectInvariant(pLocation, invariant);
+      }
     }
 
     @Override
@@ -1021,11 +1047,29 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
    * @throws InterruptedException
    */
   private boolean unroll(ReachedSet pReachedSet) throws PredicatedAnalysisPropertyViolationException, CPAException, InterruptedException {
-    adjustReachedSet(pReachedSet);
+    return unroll(pReachedSet, Collections.<CFAEdge>emptySet());
+  }
+
+  /**
+   * Unrolls the given reached set using the algorithm provided to this
+   * instance of the bounded model checking algorithm.
+   *
+   * @param pReachedSet the reached set to unroll.
+   * @param pExcludedEdges edges that are excluded in the current edge
+   * exclusion precision and should stay excluded.
+   *
+   * @return {@code true} if the unrolling was sound, {@code false} otherwise.
+   *
+   * @throws PredicatedAnalysisPropertyViolationException
+   * @throws CPAException
+   * @throws InterruptedException
+   */
+  private boolean unroll(ReachedSet pReachedSet, Iterable<CFAEdge> pExcludedEdges) throws PredicatedAnalysisPropertyViolationException, CPAException, InterruptedException {
+    adjustReachedSet(pReachedSet, pExcludedEdges);
     return algorithm.run(pReachedSet);
   }
 
-  private void adjustReachedSet(ReachedSet pReachedSet) {
+  private void adjustReachedSet(ReachedSet pReachedSet, Iterable<CFAEdge> pExcludedEdges) {
     Preconditions.checkArgument(!pReachedSet.isEmpty());
     CFANode initialLocation = extractLocation(pReachedSet.getFirstState());
     for (AdjustableConditionCPA conditionCPA : conditionCPAs) {
@@ -1041,6 +1085,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     if (pReachedSet.isEmpty()) {
       Precision precision = cpa.getInitialPrecision(initialLocation);
       precision = excludeIgnorableEdges(precision);
+      precision = excludeEdges(precision, pExcludedEdges);
       pReachedSet.add(cpa.getInitialState(initialLocation), precision);
     }
   }
@@ -1215,7 +1260,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
             boolean isBeforeLoopHead = isInLoop && !loopHeadReachedLocal;
             Iterable<String> involvedVariables = getInvolvedVariables(leavingEdge, pVariableClassification);
             involvedVariables = from(involvedVariables).filter(not(in(pVariableClassification.getIrrelevantVariables())));
-            if (isBeforeLoopHead && leavingEdge.getEdgeType() != CFAEdgeType.BlankEdge
+            if (isBeforeLoopHead && !isFreeOfSideEffects(leavingEdge)
                 || !isBeforeLoopHead && (Iterables.contains(involvedVariables, pVariable) && !(Iterables.all(involvedVariables, equalTo(pVariable)) && leavingEdge.getEdgeType() == CFAEdgeType.DeclarationEdge))) {
               return false;
             }
@@ -1232,6 +1277,38 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     return assignmentReached && assumptionReached;
+  }
+
+  private static boolean isFreeOfSideEffects(CFAEdge pEdge) {
+    if (pEdge == null
+        || pEdge.getEdgeType() != CFAEdgeType.StatementEdge
+        && pEdge.getEdgeType() != CFAEdgeType.DeclarationEdge) {
+      return true;
+    }
+    if (pEdge instanceof ADeclarationEdge) {
+      ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
+      if (declarationEdge.getDeclaration() instanceof AVariableDeclaration) {
+        return ((AVariableDeclaration) declarationEdge.getDeclaration()).getInitializer() == null;
+      }
+      return true;
+    }
+    if (pEdge instanceof AStatementEdge) {
+      IAStatement statement = ((AStatementEdge) pEdge).getStatement();
+      if (statement instanceof AExpressionAssignmentStatement
+          || statement instanceof AFunctionCallAssignmentStatement) {
+        return false;
+      }
+      return true;
+    }
+    if (pEdge instanceof MultiEdge) {
+      for (CFAEdge edge : (MultiEdge) pEdge)  {
+        if (!isFreeOfSideEffects(edge)) {
+          return false;
+        }
+        return true;
+      }
+    }
+    return false;
   }
 
   private static Set<String> getInvolvedVariables(CFAEdge pCfaEdge, VariableClassification pVariableClassification) {
