@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy;
 
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
-
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -35,63 +33,43 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
-import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.pcc.propertychecker.NoTargetStateChecker;
 
 @Options
-public class ARGProofCheckerStrategy extends SequentialReadStrategy {
+public class ARGProofCheckerStrategy extends AbstractARGStrategy {
 
-  private ARGState root;
-  private ProofChecker checker;
-  private PropertyChecker propChecker;
-  private final ShutdownNotifier shutdownNotifier;
+  private final ProofChecker checker;
+  private Set<ARGState> postponedStates;
+  private Set<ARGState> waitingForUnexploredParents;
+  private Set<ARGState> inWaitlist;
 
-  public ARGProofCheckerStrategy(Configuration pConfig, LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier, ProofChecker pChecker)
+
+  public ARGProofCheckerStrategy(final Configuration pConfig, final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier, final ProofChecker pChecker)
       throws InvalidConfigurationException {
-    super(pConfig, pLogger);
+    super(pConfig, pLogger, pChecker instanceof PropertyCheckerCPA ? ((PropertyCheckerCPA) pChecker).getPropChecker()
+        : new NoTargetStateChecker(), pShutdownNotifier);
     checker = pChecker;
-    propChecker = new NoTargetStateChecker();
-    if (pChecker instanceof PropertyCheckerCPA) {
-      propChecker = ((PropertyCheckerCPA) pChecker).getPropChecker();
-    }
-    shutdownNotifier = pShutdownNotifier;
-  }
-
-  @Override
-  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) {
-    if (correctReachedSetFormatForProof(pReached)) {
-      root = (ARGState) pReached.getFirstState();
-    }
   }
 
   @Override
   public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    //TODO does not account for strengthen yet (proof check will fail if strengthen is needed to explain successor states)
 
-    logger.log(Level.INFO, "Proof check algorithm started");
 
-    AbstractState initialState = pReachedSet.popFromWaitlist();
-    Precision initialPrecision = pReachedSet.getPrecision(initialState);
+   if(!super.checkCertificate(pReachedSet)){
+     return false;
+   }
 
-    logger.log(Level.FINE, "Checking root state");
-
-    if (!(checker.isCoveredBy(initialState, root) && checker.isCoveredBy(root, initialState))) {
-      logger.log(Level.WARNING, "Root state of proof is invalid.");
-      return false;
-    }
-
-    pReachedSet.add(root, initialPrecision);
-
-    Set<ARGState> postponedStates = new HashSet<>();
+   // TODO later remove them
+   ARGState initialState = (ARGState) pReachedSet.popFromWaitlist();
+   Precision initialPrecision = pReachedSet.getPrecision(initialState);
 
     Set<ARGState> waitingForUnexploredParents = new HashSet<>();
     Set<ARGState> inWaitlist = new HashSet<>();
@@ -100,14 +78,7 @@ public class ARGProofCheckerStrategy extends SequentialReadStrategy {
     boolean unexploredParent;
 
     do {
-      for (ARGState e : postponedStates) {
-        if (!pReachedSet.contains(e.getCoveringState())) {
-          logger.log(Level.WARNING, "Covering state", e.getCoveringState(), "was not found in reached set");
-          return false;
-        }
-        pReachedSet.reAddToWaitlist(e);
-      }
-      postponedStates.clear();
+      prepareNextWaitlistIteration(pReachedSet);
 
       while (pReachedSet.hasWaitingState()) {
         shutdownNotifier.shutdownIfNecessary();
@@ -141,22 +112,26 @@ public class ARGProofCheckerStrategy extends SequentialReadStrategy {
             logger.log(Level.WARNING, "Found cycle in covering relation for state", state);
             return false;
           }
-          if (!checker.isCoveredBy(state, coveringState)) {
+          if (!checkCovering(state, coveringState, initialPrecision)) {
             stats.stopTimer.stop();
             logger.log(Level.WARNING, "State", state, "is not covered by", coveringState);
             return false;
           }
           stats.stopTimer.stop();
         } else {
+
+
           stats.transferTimer.start();
           Collection<ARGState> successors = state.getChildren();
           logger.log(Level.FINER, "Checking abstract successors", successors);
+
           if (!checker.areAbstractSuccessors(state, null, successors)) {
             stats.transferTimer.stop();
             logger.log(Level.WARNING, "State", state, "has other successors than", successors);
             return false;
           }
           stats.transferTimer.stop();
+
           for (ARGState e : successors) {
             unexploredParent = false;
             for (ARGState p : e.getParents()) {
@@ -181,49 +156,92 @@ public class ARGProofCheckerStrategy extends SequentialReadStrategy {
           }
         }
       }
-    } while (!postponedStates.isEmpty());
+    } while (!isCheckComplete());
 
     return waitingForUnexploredParents.isEmpty();
   }
 
-  private boolean isCoveringCycleFree(ARGState pState) {
-    HashSet<ARGState> seen = new HashSet<>();
-    seen.add(pState);
-    while (pState.isCovered()) {
-      pState = pState.getCoveringState();
-      boolean isNew = seen.add(pState);
-      if (!isNew) { return false; }
+  @Override
+  protected void initChecking(final ARGState pRoot) {
+    postponedStates = new HashSet<>();
+    waitingForUnexploredParents = new HashSet<>();
+    inWaitlist = new HashSet<>();
+    inWaitlist.add(pRoot);
+  }
+
+  @Override
+  protected boolean checkForStatePropertyAndOtherStateActions(ARGState pState) {
+    inWaitlist.remove(pState);
+    return super.checkForStatePropertyAndOtherStateActions(pState);
+  }
+
+  @Override
+  protected boolean checkCovering(final ARGState pCovered, final ARGState pCovering, final Precision pPrecision) throws CPAException,
+      InterruptedException {
+    return checker.isCoveredBy(pCovered, pCovering);
+  }
+
+  @Override
+  protected boolean isCheckSuccessful() {
+    return waitingForUnexploredParents.isEmpty();
+  }
+
+  @Override
+  protected boolean isCheckComplete() {
+    return postponedStates.isEmpty();
+  }
+
+  @Override
+  protected boolean prepareNextWaitlistIteration(final ReachedSet pReachedSet) {
+    for (ARGState e : postponedStates) {
+      if (!pReachedSet.contains(e.getCoveringState())) {
+        logger.log(Level.WARNING, "Covering state", e.getCoveringState(), "was not found in reached set");
+        return false;
+      }
+      pReachedSet.reAddToWaitlist(e);
     }
+    postponedStates.clear();
     return true;
   }
 
-  private boolean correctReachedSetFormatForProof(UnmodifiableReachedSet pReached) {
-    if (pReached.getFirstState() == null
-        || !(pReached.getFirstState() instanceof ARGState)
-        || (extractLocation(pReached.getFirstState()) == null)) {
-      logger.log(Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
-      return false;
+  @Override
+  protected boolean checkSuccessors(final ARGState pPredecessor, final Collection<ARGState> pSuccessors,
+      final Precision pPrecision) throws CPATransferException, InterruptedException {
+    return checker.areAbstractSuccessors(pPredecessor, null, pSuccessors);
+  }
+
+  @Override
+  protected boolean addSuccessors(final Collection<ARGState> pSuccessors, final ReachedSet pReachedSet, final Precision pPrecision) {
+    boolean unexploredParent;
+    for (ARGState e : pSuccessors) {
+      unexploredParent = false;
+      for (ARGState p : e.getParents()) {
+        if (!pReachedSet.contains(p) || inWaitlist.contains(p)) {
+          waitingForUnexploredParents.add(e);
+          unexploredParent = true;
+          break;
+        }
+      }
+      if (unexploredParent) {
+        continue;
+      }
+      if (pReachedSet.contains(e)) {
+        // state unknown parent of e
+        logger.log(Level.WARNING, "State", e, "has other parents than", e.getParents());
+        return false;
+      } else {
+        waitingForUnexploredParents.remove(e);
+        pReachedSet.add(e, pPrecision);
+        inWaitlist.add(e);
+      }
     }
     return true;
   }
 
   @Override
-  protected Object getProofToWrite(UnmodifiableReachedSet pReached) {
-    constructInternalProofRepresentation(pReached);
-    return root;
+  protected boolean treatStateIfCoveredByUnkownState(ARGState pCovered, ARGState pCoveringState, ReachedSet pReachedSet,
+      Precision pPrecision) {
+    postponedStates.add(pCovered);
+    return true;
   }
-
-  @Override
-  protected void prepareForChecking(Object pReadProof) throws InvalidConfigurationException {
-    try {
-      stats.preparationTimer.start();
-    if (!(pReadProof instanceof ARGState)) {
-      throw new InvalidConfigurationException("Proof Strategy requires ARG.");
-    }
-    root = (ARGState) pReadProof;
-    } finally {
-      stats.preparationTimer.stop();
-    }
-  }
-
 }
