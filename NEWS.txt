@@ -1,32 +1,97 @@
-Changes since CPAchecker 1.2
-----------------------------
+Changes from CPAchecker 1.2 to CPAchecker 1.3.4
+-----------------------------------------------
 
-* r11339: The renaming of ABM to BAM (Block-Abstraction Memoization)
-  was now applied in CPAchecker. This means that all classes and configuration options
-  as well as the respective configuration files were renamed.
-  Please update your configurations accordingly.
-* r10756: The much improved pointer-alias handling with UFs is now the default in PredicateCPA.
-* r10375: Many options regarding the analysis algorithm (algorithm.* options such as
-  analysis.useRefinement and analysis.useCBMC) were renamed.
-* r8454: CPAchecker with PredicateCPA now outputs information when in the error path
-  values were assigned to each variable (in ErrorPath.*.txt),
-  so analyzing an error path manually should be easier now.
-* r8387: CPAchecker can now find and report multiple specification violations in one file.
-  To use this, set the option "analysis.stopAfterError = false".
-  Note that because of this the file names of all error-path-related output files
-  (e.g., "ErrorPath*.*") have changed.
-* r8060: Better resolution of relative paths, for example, paths in configuration files
-  are now relative to the directory of the configuration file.
-  Now CPAchecker should be easily runnable from any directory.
-* r7277: The -spec command-line argument does not only accept file-name values,
-  but also single words. A file with a matching name from config/specification/*.spc
-  will be used in this case.
-  Example: scripts/cpa.sh -spec ErrorLabel ...
-* r7183: scripts/regression.py removed.
-  All it's features are also supported by table-generator.py.
-* r7043: CPAchecker now requires Java 7.
-  C.f. INSTALL.txt, README.txt and doc/Developing.txt for more information.
-* r7005: MathSAT4 is no longer available as SMT solver.
+Main changes:
+
+* Conditional Model Checking (CMC)
+  The flexibility of sequential combinations of analyses inside CPAchecker has been extended.
+  A configuration based on this won two categories of SV-COMP'14
+  and a silver medal in the category Overall
+  (cf. http://sv-comp.sosy-lab.org/2014/results/).
+
+* Symbolic Memory Graphs (SMG)
+  An analysis that models the heap precisely as SMGs has been added
+  and can be used for finding memory violations.
+  It won the category MemorySafety of SV-COMP'14
+  (cf. http://sv-comp.sosy-lab.org/2014/results/).
+
+* Precision Reuse
+  The explicit-value analysis and the predicate analysis have gained support for precision reuse,
+  a technique that allows much faster regression verification,
+  i.e., verification of a new version of a program
+  (cf., "Precision Reuse for Efficient Regression Verification".
+  Dirk Beyer, Stefan Löwe, Evgeny Novikov, Andreas Stahlbauer, and Philipp Wendler.
+  In Proc. ESEC/FSE, ACM, 2013).
+
+* Domain Types
+  A suitable abstract domain can be selected automatically
+  depending on the usage pattern of each variable,
+  for example a BDD or explicit-value analysis
+  (cf. "Domain Types: Abstract-Domain Selection Based on Variable Usage".
+  Sven Apel, Dirk Beyer, Karlheinz Friedberger, Franco Raimondi, and Alexander von Rhein.
+  In Proc. HVC, LNCS 8244, Springer, 2013).
+
+* k-Induction
+  A proof method based on k-Induction (using an SMT solver) has been added
+  and can be combined with our bounded-model-checking implementation
+  (config -bmc-induction).
+
+* Predicate Analysis
+  A much improved pointer handling is implemented and enabled by default.
+  Support for a bitprecise handling of all int variables has been added
+  (including overflows and bitwise operators).
+  This configuration is available as -predicateAnalysis-bitprecise.
+
+* Google App Engine
+  CPAchecker has been successfully ported to the Google App Engine,
+  accessible via a web frontend (http://cpachecker.appspot.com) and a JSON API.
+
+* Improved C Frontend
+  Support for many additional C features has been added to CPAchecker.
+  Pre-processing with CIL is not necessary any more.
+  CPAchecker can be given several C files at once
+  and links them together before verifying them as a single program.
+  This simplifies verification of programs consisting of multiple source files.
+
+* Experimental Java Support
+  A Java frontend has been added to CPAchecker,
+  and some analyses were extended to support verification of Java programs.
+  This is still experimental and several language features are still missing
+  (e.g., exceptions).
+
+
+Further changes:
+
+* Java 7 is required now.
+
+* Specification
+  Support for property files of the SV-COMP added, specify them with -spec <FILE.prp>
+  (cf. http://sv-comp.sosy-lab.org/2014/rules.php)
+
+* Configuration-File Changes:
+  File names are now relative to the file in which they are given,
+  several CPAs have been renamed (ABMCPA -> BAMCPA, ExplicitCPA -> ValueAnalysisCPA),
+  many changes to other configuration options as well.
+  If you use your own configuration files, you will need to adjust them
+  (cf. doc/ConfigurationOptions.txt)
+
+* Error Paths
+  Multiple error paths can be searched and written to disk
+  with the option "analysis.stopAfterError = false".
+  More information about variable assignments has been added to the error paths.
+  The use of the report generator has been simplified,
+  just call scripts/report-generator.py (cf. doc/BuildReport.txt).
+
+* SMT solvers for Predicate Analysis:
+  SMTInterpol (http://ultimate.informatik.uni-freiburg.de/smtinterpol/index.html)
+  is now well integrated.
+  The support for MathSAT4 was dropped (MathSAT5 continues to be the default solver).
+
+* Benchmarking Support
+  CPAchecker provides scripts for benchmarking with large sets of programs.
+  These have been extended and now provide more precise time and memory measurement
+  (using Linux cgroups). Also the generated HTML tables have more features now.
+  (cf. doc/Benchmark.txt)
 
 
 Changes from CPAchecker 1.1 to CPAchecker 1.2
