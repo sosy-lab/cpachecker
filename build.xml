@@ -6,7 +6,7 @@
          locally for one machine if necessary. -->
     <property file="build.properties"/>
 
-    <property name="version.base" value="1.3-svn"/> <!-- change here for a release -->
+    <property name="version.base" value="1.3.4-svn"/> <!-- change here for a release -->
 
     <!-- The following properties may be set via file build.properties or command line to change the build behavior. -->
     <!-- <property name="ivy.disable" value=""/> --> <!-- Disable ivy completely. -->
