@@ -327,6 +327,24 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       return this;
     }
 
+    // Avoid self-assignments if an equivalent alternative is available
+    if (pValue.accept(new ContainsVarVisitor<CompoundInterval>(), pVarName)) {
+      InvariantsFormula<CompoundInterval> alternative = environment.get(variable);
+      if (!(alternative instanceof Variable)) {
+        alternative = null;
+        for (Map.Entry<String, InvariantsFormula<CompoundInterval>> entry : environment.entrySet()) {
+          InvariantsFormula<CompoundInterval> value = entry.getValue();
+          if (value.equals(variable)) {
+            alternative = CompoundIntervalFormulaManager.INSTANCE.asVariable(entry.getKey());
+            break;
+          }
+        }
+      }
+      if (alternative != null) {
+        pValue = pValue.accept(new ReplaceVisitor<>(variable, alternative));
+      }
+    }
+
     final InvariantsState result = new InvariantsState(useBitvectors, newVariableSelection, edgeBasedAbstractionStrategy.addVisitedEdge(pEdge), precision);
 
     /*
