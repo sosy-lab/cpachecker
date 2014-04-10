@@ -187,7 +187,7 @@ public class BAMTransferRelation implements TransferRelation {
             && node.getLeavingEdge(0) instanceof FunctionCallEdge // this line is implied by previous line
             && node.getLeavingEdge(0).getSuccessor() instanceof FunctionEntryNode // this line is implied by previous line
             && partitioning.isCallNode(node.getLeavingEdge(0).getSuccessor())) {
-      // TODO check,if real recursion and not only a normal functioncall
+      // TODO check, if real recursion and not only a normal functioncall
       return handleRecursiveFunctionCall(pState, pPrecision, node);
     }
 
@@ -255,14 +255,16 @@ public class BAMTransferRelation implements TransferRelation {
       logger.log(Level.FINEST, "current Stack:", stack);
       logger.log(Level.FINEST, "adding new Level:", currentLevel);
 
-      if (stackContains(stack, currentLevel)) {
-        // TODO replace 'stack contains level' with 'level covers any of stack'?
-        // TODO this case is unreachable, because abstract states have no equality.
+      if (stackContainsCoveredLevel(stack, currentLevel)) {
         // if level is twice in stack, we have endless recursion.
         // with current knowledge we would never abort unrolling the recursion.
         // lets skip the function and return only a short "summary" of the function.
         logger.log(Level.ALL, "recursion will cause endless unrolling, skipping function and analysing summary-edge.");
 
+        // cleanup function-call-state, that was needed to determine the reduced state of currentLevel
+        ((ARGState)entryState).removeFromARG();
+
+        // skip function-call
         FunctionSummaryEdge summaryEdge = rootNode.getLeavingSummaryEdge();
         functionResultStates = wrappedTransfer.getAbstractSuccessors(rootState, precision, summaryEdge);
 
@@ -296,14 +298,14 @@ public class BAMTransferRelation implements TransferRelation {
     return result;
   }
 
-  private boolean stackContains(final List<Triple<AbstractState, Precision, Block>> stack,
+  private boolean stackContainsCoveredLevel(final List<Triple<AbstractState, Precision, Block>> stack,
                                 final Triple<AbstractState, Precision, Block> currentLevel)
       throws CPATransferException, InterruptedException {
     try {
       for (Triple<AbstractState, Precision, Block> level : stack) {
         if (level.getThird() == currentLevel.getThird()
                 && bamCPA.isCoveredBy(level.getFirst(), currentLevel.getFirst())) {
-          // previous state contains less information
+          // previously reached state contains 'more' information,
           // TODO how to compare precisions? equality would be enough
           return true;
         }

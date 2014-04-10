@@ -36,9 +36,11 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -48,6 +50,8 @@ import org.sosy_lab.common.io.FileSystemPath;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -55,6 +59,8 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+
+import javax.annotation.Nullable;
 
 /**
  * Prints some BAM related statistics
@@ -73,6 +79,14 @@ class BAMCPAStatistics implements Statistics {
   @Option(description="export used parts of blocked ARG as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path simplifiedArgFile = Paths.get("BlockedARGSimplified.dot");
+
+  private final Predicate<Pair<ARGState,ARGState>> highlightSummaryEdge = new Predicate<Pair<ARGState, ARGState>>() {
+    @Override
+    public boolean apply(Pair<ARGState, ARGState> input) {
+      final CFAEdge edge = input.getFirst().getEdgeToChild(input.getSecond());
+      return edge instanceof FunctionSummaryEdge;
+    }
+  };
 
   private final BAMCPA cpa;
   private final BAMCache cache;
@@ -179,7 +193,7 @@ class BAMCPAStatistics implements Statistics {
                   localConnections,
                   ARGUtils.CHILDREN_OF_STATE,
                   Predicates.alwaysTrue(),
-                  Predicates.alwaysFalse());
+                  highlightSummaryEdge);
         } catch (IOException e) {
           // ignore, TODO write message for user
         }
@@ -192,7 +206,7 @@ class BAMCPAStatistics implements Statistics {
                 connections,
                 ARGUtils.CHILDREN_OF_STATE,
                 Predicates.alwaysTrue(),
-                Predicates.alwaysFalse());
+                highlightSummaryEdge);
       } catch (IOException e) {
         // ignore, TODO write message for user
       }
@@ -229,7 +243,7 @@ class BAMCPAStatistics implements Statistics {
                 connections,
                 ARGUtils.CHILDREN_OF_STATE,
                 Predicates.alwaysTrue(),
-                Predicates.alwaysFalse());
+                highlightSummaryEdge);
       } catch (IOException e) {
         // ignore, TODO write message for user
       }
