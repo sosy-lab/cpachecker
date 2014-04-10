@@ -405,7 +405,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       BooleanFormula branchingFormula = pmgr.buildBranchingFormula(arg);
 
       if (bfmgr.isTrue(branchingFormula)) {
-        logger.log(Level.WARNING, "Could not create error path because of missing branching informating");
+        logger.log(Level.WARNING, "Could not create error path because of missing branching information!");
         return;
       }
 
