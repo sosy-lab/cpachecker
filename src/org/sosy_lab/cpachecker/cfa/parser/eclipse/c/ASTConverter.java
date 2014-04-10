@@ -422,8 +422,21 @@ class ASTConverter {
     // a branch in the CFA.
     // In global scope, this is even required because there cannot be any branches.
     CExpression simplifiedCondition = simplifyExpressionRecursively(condition);
+    CONDITION conditionKind = getConditionKind(simplifiedCondition);
 
-    switch (getConditionKind(simplifiedCondition)) {
+    if (conditionKind == CONDITION.NORMAL
+        && condition instanceof CIdExpression
+        && ((CIdExpression) condition).getName().contains("__CPAchecker_TMP_")) {
+      List<Pair<IASTExpression, CIdExpression>> conditions = Lists.newArrayList(sideAssignmentStack.getConditionalExpressions());
+      for (Pair<IASTExpression, CIdExpression> condPair : conditions) {
+        // == comparision here, this should be the same variables, not only equal ones
+        if (condPair.getSecond() == condition) {
+          conditionKind = getConditionKind(condPair.getFirst());
+        }
+      }
+    }
+
+    switch (conditionKind) {
     case ALWAYS_TRUE:
       return convertExpressionWithSideEffects(e.getPositiveResultExpression());
     case ALWAYS_FALSE:
@@ -434,6 +447,65 @@ class ASTConverter {
     CIdExpression tmp = createTemporaryVariable(e);
     sideAssignmentStack.addConditionalExpression(e, tmp);
     return tmp;
+  }
+
+  private CONDITION getConditionKind(IASTExpression exp) {
+    if (exp instanceof IASTBinaryExpression
+        && (((IASTBinaryExpression) exp).getOperator() == IASTBinaryExpression.op_logicalAnd
+           || ((IASTBinaryExpression) exp).getOperator() == IASTBinaryExpression.op_logicalOr)) {
+      IASTBinaryExpression binExp = (IASTBinaryExpression) exp;
+
+      switch (binExp.getOperator()) {
+      case IASTBinaryExpression.op_logicalAnd: {
+        CONDITION left = getConditionKind(binExp.getOperand1());
+        switch (left) {
+        case ALWAYS_TRUE:
+          return getConditionKind(binExp.getOperand2());
+        case ALWAYS_FALSE:
+          return left;
+        case NORMAL:
+          if (getConditionKind(binExp.getOperand2()) == CONDITION.ALWAYS_FALSE) {
+            return CONDITION.ALWAYS_FALSE;
+          } else {
+            return CONDITION.NORMAL;
+          }
+          default:
+            throw new AssertionError("unhandled case statement");
+        }
+      }
+
+      case IASTBinaryExpression.op_logicalOr: {
+        CONDITION left = getConditionKind(binExp.getOperand1());
+        switch (left) {
+        case ALWAYS_TRUE:
+          return CONDITION.ALWAYS_TRUE;
+        case ALWAYS_FALSE:
+          return getConditionKind(binExp.getOperand2());
+        case NORMAL:
+          CONDITION right = getConditionKind(binExp.getOperand2());
+          if (right == CONDITION.ALWAYS_FALSE) {
+            return CONDITION.NORMAL;
+          } else {
+            return right;
+          }
+        default:
+          throw new AssertionError("unhandled case statement");
+        }
+      }
+
+      default:
+        throw new AssertionError("unhandled case statement");
+      }
+
+    } else {
+      sideAssignmentStack.enterBlock();
+      CExpression simplifiedExp = convertExpressionWithoutSideEffects(exp);
+      sideAssignmentStack.getAndResetConditionalExpressions();
+      sideAssignmentStack.getAndResetPostSideAssignments();
+      sideAssignmentStack.getAndResetPreSideAssignments();
+      sideAssignmentStack.leaveBlock();
+      return getConditionKind(simplifiedExp);
+    }
   }
 
   private boolean isZero(CExpression exp) {
