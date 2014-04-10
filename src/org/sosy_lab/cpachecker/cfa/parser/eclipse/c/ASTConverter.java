@@ -416,39 +416,25 @@ class ASTConverter {
   }
 
   private CAstNode convert(IASTConditionalExpression e) {
-    CExpression condition = convertExpressionWithoutSideEffects(e.getLogicalConditionExpression());
-    // Here we call simplify manually, because for conditional expressions
-    // we always want a full evaluation because we might be able to prevent
-    // a branch in the CFA.
-    // In global scope, this is even required because there cannot be any branches.
-    CExpression simplifiedCondition = simplifyExpressionRecursively(condition);
-    CONDITION conditionKind = getConditionKind(simplifiedCondition);
-
-    if (conditionKind == CONDITION.NORMAL
-        && condition instanceof CIdExpression
-        && ((CIdExpression) condition).getName().contains("__CPAchecker_TMP_")) {
-      List<Pair<IASTExpression, CIdExpression>> conditions = Lists.newArrayList(sideAssignmentStack.getConditionalExpressions());
-      for (Pair<IASTExpression, CIdExpression> condPair : conditions) {
-        // == comparision here, this should be the same variables, not only equal ones
-        if (condPair.getSecond() == condition) {
-          conditionKind = getConditionKind(condPair.getFirst());
-        }
-      }
-    }
+    // check condition kind so we can eventually skip creating an unnecessary branch
+    CONDITION conditionKind = getConditionKind(e.getLogicalConditionExpression());
 
     switch (conditionKind) {
     case ALWAYS_TRUE:
       return convertExpressionWithSideEffects(e.getPositiveResultExpression());
     case ALWAYS_FALSE:
       return convertExpressionWithSideEffects(e.getNegativeResultExpression());
+    case NORMAL:
+      CIdExpression tmp = createTemporaryVariable(e);
+      sideAssignmentStack.addConditionalExpression(e, tmp);
+      return tmp;
     default:
+      throw new AssertionError("Unhandled case statement: " + conditionKind);
     }
-
-    CIdExpression tmp = createTemporaryVariable(e);
-    sideAssignmentStack.addConditionalExpression(e, tmp);
-    return tmp;
   }
 
+  /** Computes the condition kind of an IASTExpression, logical ors and logical ands are resolved
+   * the rest works as with the condition kind method for CExpressions */
   private CONDITION getConditionKind(IASTExpression exp) {
     if (exp instanceof IASTBinaryExpression
         && (((IASTBinaryExpression) exp).getOperator() == IASTBinaryExpression.op_logicalAnd
@@ -499,7 +485,11 @@ class ASTConverter {
 
     } else {
       sideAssignmentStack.enterBlock();
-      CExpression simplifiedExp = convertExpressionWithoutSideEffects(exp);
+      // Here we call simplify manually, because for conditional expressions
+      // we always want a full evaluation because we might be able to prevent
+      // a branch in the CFA.
+      // In global scope, this is even required because there cannot be any branches.
+      CExpression simplifiedExp = simplifyExpressionRecursively(convertExpressionWithoutSideEffects(exp));
       sideAssignmentStack.getAndResetConditionalExpressions();
       sideAssignmentStack.getAndResetPostSideAssignments();
       sideAssignmentStack.getAndResetPreSideAssignments();
