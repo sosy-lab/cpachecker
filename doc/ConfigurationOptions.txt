@@ -710,6 +710,15 @@ cpa.invariants.analyzeRelevantVariablesOnly = true
 # locations only.
 cpa.invariants.analyzeTargetPathsOnly = true
 
+# controls the condition adjustment logic: STATIC means that condition
+# adjustment is a no-op, INTERESTING_VARIABLES increases the interesting
+# variable limit, MAXIMUM_FORMULA_DEPTH increases the maximum formula depth,
+# ABSTRACTION_STRATEGY tries to choose a more precise abstraction strategy
+# and COMPOUND combines the other strategies (minus STATIC).
+cpa.invariants.conditionAdjusterFactory = COMPOUND
+  enum:     [STATIC, INTERESTING_VARIABLES, MAXIMUM_FORMULA_DEPTH,
+             ABSTRACTION_STRATEGY, COMPOUND]
+
 # controls whether to use abstract evaluation always, never, or only on
 # already previously visited edges.
 cpa.invariants.edgeBasedAbstractionStrategyFactory = VISITED_EDGES
