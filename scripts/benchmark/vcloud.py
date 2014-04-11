@@ -279,7 +279,7 @@ def handleCloudResults(benchmark, outputHandler):
 
     if not executedAllRuns:
         logging.warning("Some expected result files could not be found!")
-    if runsProducedErrorOutput:
+    if runsProducedErrorOutput and not benchmark.config.debug:
         logging.warning("Some runs produced unexpected warnings on stderr, please check the {0} files!"
                         .format(os.path.join(outputDir, '*.stdError')))
 
