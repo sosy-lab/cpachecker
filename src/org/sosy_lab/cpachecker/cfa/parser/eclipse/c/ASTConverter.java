@@ -29,6 +29,8 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Deque;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -165,7 +167,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 
@@ -792,77 +793,79 @@ class ASTConverter {
       }
     }
 
+    CType ownerType = owner.getExpressionType().getCanonicalType();
+    if (ownerType instanceof CPointerType) {
+      ownerType = ((CPointerType) ownerType).getType();
+      while (ownerType instanceof CPointerType) {
+        ownerType = ((CPointerType) ownerType).getType();
+      }
+      ownerType = ownerType.getCanonicalType();
+    }
+    List<Pair<String, CType>> wayToInnerField = getWayToInnerField(ownerType, fieldName, loc, new ArrayList<Pair<String, CType>>());
+    CExpression fullFieldReference = owner;
+    if (!wayToInnerField.isEmpty()) {
+      boolean isPointerDereference = e.isPointerDereference();
+      for (Pair<String, CType> field : wayToInnerField) {
+        fullFieldReference = new CFieldReference(loc, field.getSecond(), field.getFirst(), fullFieldReference, isPointerDereference);
+        isPointerDereference = false;
+      }
+    } else {
+      throw new CFAGenerationRuntimeException("Accessing unknown field " + fieldName + " in " + ownerType + " in file " + staticVariablePrefix.split("__")[0], e);
+    }
+
     // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
     // if the owner is a FieldReference itself there's the need for a temporary Variable
     // but only if we are not in global scope, otherwise there will be parsing errors
-    if (simplifyPointerExpressions && owner instanceof CFieldReference && !scope.isGlobalScope() && (e.isPointerDereference())) {
-      owner = createInitializedTemporaryVariable(loc, owner.getExpressionType(), owner);
-    }
-
-    CType type = typeConverter.convert(e.getExpressionType());
-    if (containsProblemType(type)) {
-      CType ownerType = owner.getExpressionType().getCanonicalType();
-      if (e.isPointerDereference()) {
-        if (!(ownerType instanceof CPointerType)) {
-          throw new CFAGenerationRuntimeException("Dereferencing non-pointer type", e);
-        }
-        ownerType = ((CPointerType)ownerType).getType();
-      }
-      ownerType = ownerType.getCanonicalType();
-
-      if (ownerType instanceof CCompositeType) {
-        CCompositeType compositeType = (CCompositeType)ownerType;
-        boolean foundReplacement = false;
-        for (CCompositeTypeMemberDeclaration field : compositeType.getMembers()) {
-          if (fieldName.equals(field.getName())) {
-            logger.log(Level.FINE, "Replacing type", type, "of field reference", e.getRawSignature(),
-                "in line", e.getFileLocation().getStartingLineNumber(),
-                "with", field.getType());
-            type = field.getType();
-            foundReplacement = true;
-            break;
-          }
-        }
-
-        // no matching field found, search in all subsequent composite types
-        if (!foundReplacement) {
-          Optional<CFieldReference> replace = hasInnerField(owner, compositeType, fieldName, loc);
-          if (replace.isPresent()) {
-            foundReplacement = true;
-            owner = replace.get();
-          }
-        }
-
-        if (!foundReplacement) {
-          throw new CFAGenerationRuntimeException("Accessing non-existent field of composite type", e);
-        }
+    if (simplifyPointerExpressions && (wayToInnerField.size() > 1 || owner instanceof CFieldReference) && !scope.isGlobalScope()) {
+      CExpression tmp = fullFieldReference;
+      Deque<Pair<CType, String>> fields = new LinkedList<>();
+      while (tmp != owner) {
+        fields.push(Pair.of(tmp.getExpressionType(), ((CFieldReference)tmp).getFieldName()));
+        tmp = ((CFieldReference) tmp).getFieldOwner();
       }
 
-      logger.log(Level.FINE, "Field reference", e.getRawSignature(), "has unknown type", type);
+      boolean isFirstVisit = true;
+      while (!fields.isEmpty()) {
+        Pair<CType, String> actField = fields.pop();
 
-      // check if the field is in the struct or in a struct inside the struct
-    } else {
-      CType ownerType = owner.getExpressionType().getCanonicalType();
-      if (ownerType instanceof CCompositeType) {
-        boolean foundValidField = false;
-        for (CCompositeTypeMemberDeclaration field : ((CCompositeType) ownerType).getMembers()) {
-          if (fieldName.equals(field.getName())) {
-            foundValidField = true;
-            break;
+        // base case, when there is no field access left
+        if (fields.isEmpty()) {
+
+          // in case there is only one field access we have to check here on a pointer dereference
+          if (isFirstVisit && e.isPointerDereference()) {
+            CPointerExpression exp = new CPointerExpression(loc, owner.getExpressionType(), owner);
+            CExpression tmpOwner = new CFieldReference(loc, actField.getFirst(), actField.getSecond(), exp, false);
+            owner = createInitializedTemporaryVariable(loc, tmpOwner.getExpressionType(), tmpOwner);
+          } else {
+            owner = new CFieldReference(loc, actField.getFirst(), actField.getSecond(), owner, false);
           }
-        }
-        if (!foundValidField) {
-          Optional<CFieldReference> replace = hasInnerField(owner, (CCompositeType) ownerType, fieldName, loc);
-          if (replace.isPresent()) {
-            owner = replace.get();
+        } else {
+
+          // here could be a pointer dereference, in this case we create a temporary variable
+          // otherwise there is nothing special to be done
+          if (isFirstVisit) {
+            if (e.isPointerDereference()) {
+              CPointerExpression exp = new CPointerExpression(loc, owner.getExpressionType(), owner);
+              CExpression tmpOwner = new CFieldReference(loc, actField.getFirst(), actField.getSecond(), exp, false);
+              owner = createInitializedTemporaryVariable(loc, tmpOwner.getExpressionType(), tmpOwner);
+            } else {
+              owner = new CFieldReference(loc, actField.getFirst(), actField.getSecond(), owner, false);
+            }
+            isFirstVisit = false;
+
+            // only first field access may be an pointer dereference so we do not have to check anything
+            // in this clause, just put a field reference to the next field on the actual owner
+          } else {
+            owner = new CFieldReference(loc, actField.getFirst(), actField.getSecond(), owner, false);
           }
         }
       }
-    }
+
+      return (CFieldReference) owner;
 
     // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
     // if there is a "var->field" convert it to (*var).field
-    if (simplifyPointerExpressions && e.isPointerDereference()) {
+    } else if (simplifyPointerExpressions && e.isPointerDereference()) {
       CType newType = null;
       CType typeDefType = owner.getExpressionType();
 
@@ -879,34 +882,47 @@ class ASTConverter {
 
       CPointerExpression exp = new CPointerExpression(loc, newType, owner);
 
-      return new CFieldReference(loc, type, fieldName, exp, false);
+      return new CFieldReference(loc, fullFieldReference.getExpressionType(), fieldName, exp, false);
     }
 
-    return new CFieldReference(loc, type, fieldName, owner, e.isPointerDereference());
+    return (CFieldReference) fullFieldReference;
   }
 
-  private Optional<CFieldReference> hasInnerField(CExpression owner, CCompositeType compositeType, String fieldName, FileLocation loc) {
-    for (CCompositeTypeMemberDeclaration field : compositeType.getMembers()) {
-      if (field.getType().getCanonicalType() instanceof CCompositeType) {
-        for (CCompositeTypeMemberDeclaration innerField : ((CCompositeType)field.getType().getCanonicalType()).getMembers()) {
-          if (fieldName.equals(innerField.getName())) {
-            return Optional.of(new CFieldReference(loc, field.getType(), field.getName(), owner, false));
+  /**
+   * This method creates a list of all necessary field access for finding the searched field.
+   * Besides the case that the searched field is directly in the struct, there is the case
+   * that the field is in an anonymous struct or union inside the "owner" struct. This anonymous
+   * structs / unions are then the "way" to the searched field.
+   *
+   * @param allReferences an empty list
+   * @return the fields (including the searched one) in the right order
+   */
+  private List<Pair<String, CType>> getWayToInnerField(CType owner, String fieldName, FileLocation loc, List<Pair<String, CType>> allReferences) {
+    CType type = owner.getCanonicalType();
+
+    if (type instanceof CCompositeType) {
+      for (CCompositeTypeMemberDeclaration member : ((CCompositeType) type).getMembers()) {
+        if (member.getName().equals(fieldName)) {
+          allReferences.add(Pair.of(member.getName(), member.getType()));
+          return allReferences;
+        }
+      }
+
+      // no field found in current struct, so proceed to the structs/unions which are
+      // fields inside the current struct
+      for (CCompositeTypeMemberDeclaration member : ((CCompositeType) type).getMembers()) {
+        if (member.getName().contains("__anon_type_member_")) {
+          List<Pair<String, CType>> tmp = new ArrayList<>(allReferences);
+          tmp.add(Pair.of(member.getName(), member.getType()));
+          tmp = getWayToInnerField(member.getType(), fieldName, loc, tmp);
+          if (!tmp.isEmpty()) {
+            return tmp;
           }
         }
       }
     }
 
-    // we did not find any field in the first iteration, so we now search in the
-    // composite types within the composite types...
-    for (CCompositeTypeMemberDeclaration field : compositeType.getMembers()) {
-      if (field.getType().getCanonicalType() instanceof CCompositeType) {
-        return hasInnerField(new CFieldReference(loc, field.getType(), field.getName(), owner, false),
-                             (CCompositeType)field.getType().getCanonicalType(),
-                             fieldName,
-                             loc);
-      }
-    }
-    return Optional.absent();
+    return Collections.emptyList();
   }
 
   private CRightHandSide convert(IASTFunctionCallExpression e) {
