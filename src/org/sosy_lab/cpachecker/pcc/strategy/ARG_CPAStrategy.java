@@ -95,7 +95,7 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
   @Override
   protected boolean checkForStatePropertyAndOtherStateActions(final ARGState pState) {
     if (!singleCheck) {
-      visitedStates.add(root);
+      visitedStates.add(pState);
     } else {
       super.checkForStatePropertyAndOtherStateActions(pState);
     }
