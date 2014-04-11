@@ -33,6 +33,8 @@ import tempfile
 
 from . import util as Util
 
+CGROUP_NAME_PREFIX=benchmark_
+
 def initCgroup(cgroupsParents, subsystem):
     """
     Initialize a cgroup subsystem.
@@ -130,7 +132,7 @@ def createCgroup(cgroupsParents, *subsystems):
             createdCgroupsPerSubsystem[subsystem] = createdCgroupsPerParent[parentCgroup]
             continue
 
-        cgroup = tempfile.mkdtemp(prefix='benchmark_', dir=parentCgroup)
+        cgroup = tempfile.mkdtemp(prefix=CGROUP_NAME_PREFIX, dir=parentCgroup)
         createdCgroupsPerSubsystem[subsystem] = cgroup
         createdCgroupsPerParent[parentCgroup] = cgroup
 
