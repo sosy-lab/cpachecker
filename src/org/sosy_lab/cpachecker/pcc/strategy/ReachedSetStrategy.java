@@ -63,7 +63,7 @@ public class ReachedSetStrategy extends SequentialReadStrategy {
 
 
   @Override
-  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) {
+  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) throws InvalidConfigurationException {
       reachedSet = new AbstractState[pReached.size()];
       pReached.asCollection().toArray(reachedSet);
       orderReachedSetByLocation(reachedSet);
@@ -135,7 +135,7 @@ public class ReachedSetStrategy extends SequentialReadStrategy {
   }
 
   @Override
-  protected Object getProofToWrite(UnmodifiableReachedSet pReached) {
+  protected Object getProofToWrite(UnmodifiableReachedSet pReached) throws InvalidConfigurationException {
     constructInternalProofRepresentation(pReached);
     return reachedSet;
   }

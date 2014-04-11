@@ -41,7 +41,7 @@ public abstract class SequentialReadStrategy extends AbstractStrategy {
   }
 
   @Override
-  protected void writeProofToStream(ObjectOutputStream out, UnmodifiableReachedSet reached) throws IOException {
+  protected void writeProofToStream(ObjectOutputStream out, UnmodifiableReachedSet reached) throws IOException, InvalidConfigurationException {
     out.writeObject(getProofToWrite(reached));
   }
 
@@ -50,7 +50,7 @@ public abstract class SequentialReadStrategy extends AbstractStrategy {
     prepareForChecking(in.readObject());
   }
 
-  protected abstract Object getProofToWrite(UnmodifiableReachedSet pReached);
+  protected abstract Object getProofToWrite(UnmodifiableReachedSet pReached) throws InvalidConfigurationException;
 
   protected abstract void prepareForChecking(Object pReadObject) throws InvalidConfigurationException;
 }

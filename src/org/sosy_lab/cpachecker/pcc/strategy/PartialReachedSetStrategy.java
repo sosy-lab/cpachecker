@@ -31,54 +31,69 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.PartialReachedConstructionAlgorithm;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPABackwards;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.ARGBasedPartialReachedSetConstructionAlgorithm;
+import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.HeuristicPartialReachedSetConstructionAlgorithm;
+import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.MonotoneStopARGBasedPartialReachedSetConstructionAlgorithm;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 @Options
 public class PartialReachedSetStrategy extends ReachedSetStrategy {
 
+  @Option(description = "Selects the strategy used for partial certificate construction")
+  private final CertificateTypes certificateType = CertificateTypes.HEURISTIC;
+
+  private final PartialReachedConstructionAlgorithm certificateConstructor;
+
+  @Option(
+      description = "Set to true if certificate contains not only abstract states but also the size of reached set, enables proper PCC")
+  private final boolean reachedSizeInCertificate = false;
+
+  public enum CertificateTypes {
+    HEURISTIC,
+    ARG,
+    MONOTONESTOPARG
+  }
 
   public PartialReachedSetStrategy(Configuration pConfig, LogManager pLogger,
       ShutdownNotifier pShutdownNotifier, PropertyCheckerCPA pCpa) throws InvalidConfigurationException {
     super(pConfig, pLogger, pShutdownNotifier, pCpa);
+    pConfig.inject(this);
+    switch (certificateType) {
+    case ARG:
+      ARGCPA cpa = pCpa.retrieveWrappedCpa(ARGCPA.class);
+      if (cpa == null) { throw new InvalidConfigurationException(
+          "Require ARCPA and PropertyCheckerCPA must be a top level CPA of ARGCPA"); }
+      certificateConstructor = new ARGBasedPartialReachedSetConstructionAlgorithm(cpa.getWrappedCPAs().get(0));
+      break;
+    case MONOTONESTOPARG:
+      certificateConstructor = new MonotoneStopARGBasedPartialReachedSetConstructionAlgorithm();
+      break;
+    default:
+      certificateConstructor = new HeuristicPartialReachedSetConstructionAlgorithm();
+    }
   }
 
   @Override
-  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) {
-    reachedSet = computePartialReachedSet(pReached);
+  public void constructInternalProofRepresentation(final UnmodifiableReachedSet pReached) throws InvalidConfigurationException {
+    // TODO also save reached set size
+    reachedSet = certificateConstructor.computePartialReachedSet(pReached);
     orderReachedSetByLocation(reachedSet);
-  }
-
-  private AbstractState[] computePartialReachedSet(UnmodifiableReachedSet pReached) {
-    // TODO probably change computation to add if successor of element not contained
-    ArrayList<AbstractState> result = new ArrayList<>();
-    CFANode node;
-    for (AbstractState state : pReached.asCollection()) {
-      node = AbstractStates.extractLocation(state);
-      if (node == null || node.getNumEnteringEdges() > 1
-          || (node.getNumLeavingEdges() > 0 && node.getLeavingEdge(0).getEdgeType() == CFAEdgeType.FunctionCallEdge)) {
-        result.add(state);
-      }
-    }
-    if (!result.contains(pReached.getFirstState())) {
-      result.add(pReached.getFirstState());
-    }
-    AbstractState[] arrayRep = new AbstractState[result.size()];
-    result.toArray(arrayRep);
-    return arrayRep;
   }
 
   @Override
