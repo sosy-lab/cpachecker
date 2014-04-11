@@ -274,10 +274,6 @@ cegar.globalRefinement = false
 # omitted.
 cegar.refiner = no default value
 
-# Selects the strategy used for partial certificate construction
-certificateType = HEURISTIC
-  enum:     [HEURISTIC, ARG, MONOTONESTOPARG]
-
 # Which functions should be interpreted as encoding assumptions
 cfa.assumeFunctions = {"__VERIFIER_assume"}
 
@@ -1571,6 +1567,10 @@ parser.transformTokensToLines = false
 # not the original input file.
 parser.usePreprocessor = false
 
+# Selects the strategy used for partial certificate construction
+pcc.certificateType = HEURISTIC
+  enum:     [HEURISTIC, ARG, MONOTONESTOPARG]
+
 pcc.checkPropertyPerElement = false
 
 # Enable interleaved proof reading and writing, may not be supported by every
@@ -1582,6 +1582,10 @@ pcc.proofFile = "arg.obj"
 
 # Generate and dump a proof
 pcc.proofgen.doPCC = false
+
+# Set to true if certificate contains not only abstract states but also the
+# size of reached set, enables proper PCC
+pcc.reachedSizeInCertificate = false
 
 # Qualified name for class which implements certification strategy, hence
 # proof writing, to be used.
@@ -1595,10 +1599,6 @@ pcc.useCores = 1
 # print reached set to text file
 reachedSet.export = true
 reachedSet.file = "reached.txt"
-
-# Set to true if certificate contains not only abstract states but also the
-# size of reached set, enables proper PCC
-reachedSizeInCertificate = false
 
 # List of files with configurations to use. A filename can be suffixed with
 # :if-interrupted, :if-failed, and :if-terminated which means that this

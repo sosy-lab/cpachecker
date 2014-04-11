@@ -52,10 +52,11 @@ import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.MonotoneStopARGBa
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-@Options
+@Options(prefix="pcc")
 public class PartialReachedSetStrategy extends ReachedSetStrategy {
 
-  @Option(description = "Selects the strategy used for partial certificate construction")
+  @Option(
+      description = "Selects the strategy used for partial certificate construction")
   private final CertificateTypes certificateType = CertificateTypes.HEURISTIC;
 
   private final PartialReachedConstructionAlgorithm certificateConstructor;
