@@ -43,9 +43,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public abstract class AbstractARGStrategy extends SequentialReadStrategy {
 
-  protected ARGState root; // TODO private later
+  private ARGState root;
   protected final PropertyChecker propChecker;
-  protected final ShutdownNotifier shutdownNotifier; // TODO private later
+  private final ShutdownNotifier shutdownNotifier;
 
   public AbstractARGStrategy(Configuration pConfig, LogManager pLogger, PropertyChecker pPropertyChecker,
       ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
@@ -177,7 +177,7 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
     }
   }
 
-  protected boolean isCoveringCycleFree(ARGState pState) { // TODO private
+  private boolean isCoveringCycleFree(ARGState pState) {
     HashSet<ARGState> seen = new HashSet<>();
     seen.add(pState);
     while (pState.isCovered()) {
