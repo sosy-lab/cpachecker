@@ -33,7 +33,7 @@ import tempfile
 
 from . import util as Util
 
-CGROUP_NAME_PREFIX=benchmark_
+CGROUP_NAME_PREFIX='benchmark_'
 
 def initCgroup(cgroupsParents, subsystem):
     """
