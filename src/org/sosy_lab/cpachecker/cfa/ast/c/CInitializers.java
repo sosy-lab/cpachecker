@@ -299,6 +299,32 @@ public final class CInitializers {
         successful = handleInitializerForArray(currentSubobject, index.longValue(), arrayType,
             currentSubobjects, nextSubobjects, loc, edge, designator);
 
+      } else if (designator instanceof CArrayRangeDesignator) {
+        if (!(currentType instanceof CArrayType)) {
+          throw new UnrecognizedCCodeException("Designated array initializer for non-array type", edge, designator);
+        }
+
+        CArrayType arrayType = (CArrayType)currentType;
+        CExpression floorExp = ((CArrayRangeDesignator)designator).getFloorExpression();
+        CExpression ceilExp = ((CArrayRangeDesignator)designator).getCeilExpression();
+
+        if (!(floorExp instanceof CIntegerLiteralExpression) || !(ceilExp instanceof CIntegerLiteralExpression)) {
+          throw new UnrecognizedCCodeException("Cannot evaluate expression as array range designator", edge, designator);
+        }
+
+        BigInteger indexBottom = ((CIntegerLiteralExpression)floorExp).getValue();
+        BigInteger indexTop = ((CIntegerLiteralExpression)ceilExp).getValue();
+        if (!BigInteger.valueOf(indexBottom.longValue()).equals(indexBottom)
+            || !BigInteger.valueOf(indexTop.longValue()).equals(indexTop)) {
+          throw new UnrecognizedCCodeException("Array range designator is too large to initialize explicitly", edge, designator);
+        }
+
+        successful = true;
+        for (long index = indexBottom.longValue(); index < indexTop.longValue() && successful; index++) {
+          successful = handleInitializerForArray(currentSubobject, index, arrayType,
+              currentSubobjects, nextSubobjects, loc, edge, designator);
+        }
+
       } else {
         throw new UnrecognizedCCodeException("Unrecognized initializer designator", edge, designator);
       }
