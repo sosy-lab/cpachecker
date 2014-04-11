@@ -252,6 +252,11 @@ def handleCloudResults(benchmark, outputHandler):
             if key in runToHostMap:
                 run.values['host'] = runToHostMap[key]
 
+            dataFile = run.logFile + ".data"
+            if os.path.exists(dataFile):
+                outputHandler.allCreatedFiles.append(dataFile)
+                run.values.update(parseCloudRunResultFile(dataFile, benchmark.config.debug))
+
             if os.path.exists(run.logFile + ".stdError"):
                 runsProducedErrorOutput = True
 
@@ -342,3 +347,17 @@ def parseCloudResultFile(filePath):
             energy      = info[CloudRunExecutor.ENERGY_STR]
 
     return (wallTime, cpuTime, memUsage, returnValue, energy)
+
+
+def parseCloudRunResultFile(filePath, allValues):
+    values = {}
+
+    with open(filePath, 'rt') as file:
+        for line in file:
+            (key, value) = line.split("=", 2)
+            if key == "host":
+                values[key] = value
+            elif allValues:
+                values["vcloud-" + key] = value
+
+    return values
