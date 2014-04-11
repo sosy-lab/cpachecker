@@ -115,6 +115,12 @@ class Benchmark:
         self.date = time.strftime("%y-%m-%d_%H%M", currentTime)
         self.dateISO = time.strftime("%y-%m-%d %H:%M", currentTime)
 
+        self.outputBase = OUTPUT_PATH + self.name + "." + self.date
+        self.logFolder = self.outputBase + ".logfiles" + os.path.sep
+        if os.path.exists(self.logFolder):
+            # we refuse to overwrite existing results
+            sys.exit('Output directory {0} already exists, will not overwrite existing results.'.format(self.logFolder))
+
         # parse XML
         rootTag = ET.ElementTree().parse(benchmarkFile)
 
@@ -180,11 +186,7 @@ class Benchmark:
             sys.exit()
 
         # create folder for file-specific log-files.
-        # existing files (with the same name) will be OVERWRITTEN!
-        self.outputBase = OUTPUT_PATH + self.name + "." + self.date
-        self.logFolder = self.outputBase + ".logfiles" + os.path.sep
-        if not os.path.isdir(self.logFolder):
-            os.makedirs(self.logFolder)
+        os.makedirs(self.logFolder)
 
         # get global options and propertyFiles
         self.options = Util.getListFromXML(rootTag)
