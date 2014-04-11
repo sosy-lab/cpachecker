@@ -229,7 +229,9 @@ def handleCloudResults(benchmark, outputHandler):
             stdoutFile = run.logFile + ".stdOut"
             if os.path.exists(stdoutFile):
                 try:
-                    (run.wallTime, run.cpuTime, run.memUsage, returnValue, run.energy) = parseCloudResultFile(stdoutFile)
+                    (run.wallTime, run.cpuTime, memUsage, returnValue, energy) = parseCloudResultFile(stdoutFile)
+                    run.values['memUsage'] = memUsage
+                    run.values['energy'] = energy
 
                     if returnValue is not None:
                         # Do not delete stdOut file if there was some problem
@@ -248,7 +250,7 @@ def handleCloudResults(benchmark, outputHandler):
 
             key = os.path.basename(run.logFile)[:-4] # VCloud uses logfilename without '.log' as key
             if key in runToHostMap:
-                run.host = runToHostMap[key]
+                run.values['host'] = runToHostMap[key]
 
             if os.path.exists(run.logFile + ".stdError"):
                 runsProducedErrorOutput = True

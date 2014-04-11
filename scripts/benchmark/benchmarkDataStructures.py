@@ -549,13 +549,13 @@ class Run():
         # (we need this for storing the results in them).
         self.columns = [Column(c.text, c.title, c.numberOfDigits) for c in self.runSet.benchmark.columns]
 
+        # here we store the optional result values, e.g. memory usage, energy, host name
+        self.values = {}
+
         # dummy values, for output in case of interrupt
         self.status = ""
         self.cpuTime = None
         self.wallTime = None
-        self.memUsage = None
-        self.host = None
-        self.energy = None
         self.category = result.CATEGORY_UNKNOWN
 
 

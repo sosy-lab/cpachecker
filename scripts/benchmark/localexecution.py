@@ -159,13 +159,15 @@ class _Worker(threading.Thread):
         self.outputHandler.outputBeforeRun(run)
 
         benchmark = run.runSet.benchmark
-        (run.wallTime, run.cpuTime, run.memUsage, returnvalue, output, run.energy) = \
+        (run.wallTime, run.cpuTime, memUsage, returnvalue, output, energy) = \
             self.runExecutor.executeRun(
                 run.getCmdline(), benchmark.rlimits, run.logFile,
                 myCpuIndex=self.numberOfThread,
                 environments=benchmark.getEnvironments(),
                 runningDir=benchmark.workingDirectory(),
                 maxLogfileSize=benchmark.config.maxLogfileSize)
+        run.values['memUsage'] = memUsage
+        run.values['energy'] = energy
 
         if self.runExecutor.PROCESS_KILLED:
             # If the run was interrupted, we ignore the result and cleanup.
