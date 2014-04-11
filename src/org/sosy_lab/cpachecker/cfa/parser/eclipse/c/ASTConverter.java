@@ -524,10 +524,17 @@ class ASTConverter {
   }
 
   private CArraySubscriptExpression convert(IASTArraySubscriptExpression e) {
-    return new CArraySubscriptExpression(getLocation(e),
-        typeConverter.convert(e.getExpressionType()),
-        convertExpressionWithoutSideEffects(e.getArrayExpression()),
-        convertExpressionWithoutSideEffects(toExpression(e.getArgument())));
+    CType arrayType = typeConverter.convert(e.getExpressionType());
+    CExpression arrayExpr = convertExpressionWithoutSideEffects(e.getArrayExpression());
+    CExpression subscriptExpr = convertExpressionWithoutSideEffects(toExpression(e.getArgument()));
+
+    if (arrayType instanceof CProblemType) {
+      CType exprType = arrayExpr.getExpressionType();
+      if (exprType instanceof CArrayType) {
+        arrayType = ((CArrayType) exprType).getType();
+      }
+    }
+    return new CArraySubscriptExpression(getLocation(e), arrayType, arrayExpr, subscriptExpr);
   }
 
   /**
