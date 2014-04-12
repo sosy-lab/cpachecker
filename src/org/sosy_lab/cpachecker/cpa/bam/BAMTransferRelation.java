@@ -206,13 +206,13 @@ public class BAMTransferRelation implements TransferRelation {
     return doRecursiveAnalysis(pState, pPrecision, node);
   }
 
-  private boolean stackContainsCoveredLevel(final List<Triple<AbstractState, Precision, Block>> stack,
+  private boolean stackContainsCoveringLevel(final List<Triple<AbstractState, Precision, Block>> stack,
                                 final Triple<AbstractState, Precision, Block> currentLevel)
       throws CPATransferException, InterruptedException {
     try {
       for (Triple<AbstractState, Precision, Block> level : stack) {
         if (level.getThird() == currentLevel.getThird()
-                && bamCPA.isCoveredBy(level.getFirst(), currentLevel.getFirst())) {
+                && bamCPA.isCoveredBy(currentLevel.getFirst(), level.getFirst())) {
           // previously reached state contains 'more' information,
           // TODO how to compare precisions? equality would be enough
           return true;
@@ -371,7 +371,7 @@ public class BAMTransferRelation implements TransferRelation {
       logger.log(Level.FINEST, "current Stack:", stack);
       logger.log(Level.FINEST, "new Level:", currentLevel);
 
-      if (stackContainsCoveredLevel(stack, currentLevel)) {
+      if (stackContainsCoveringLevel(stack, currentLevel)) {
         // if level is twice in stack, we have endless recursion.
         // with current knowledge we would never abort unrolling the recursion.
         // lets skip the function and return only a short "summary" of the function.
