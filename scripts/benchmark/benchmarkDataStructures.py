@@ -121,7 +121,7 @@ class Benchmark:
 
         self.outputBase = OUTPUT_PATH + self.name + "." + self.instance
         self.logFolder = self.outputBase + ".logfiles" + os.path.sep
-        if os.path.exists(self.logFolder):
+        if not config.reprocessResults and os.path.exists(self.logFolder):
             # we refuse to overwrite existing results
             sys.exit('Output directory {0} already exists, will not overwrite existing results.'.format(self.logFolder))
 
