@@ -57,13 +57,13 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
 
   @Option(
       description = "Selects the strategy used for partial certificate construction")
-  private final CertificateTypes certificateType = CertificateTypes.HEURISTIC;
+  private CertificateTypes certificateType = CertificateTypes.HEURISTIC;
 
   private final PartialReachedConstructionAlgorithm certificateConstructor;
 
   @Option(
       description = "Set to true if certificate contains not only abstract states but also the size of reached set, enables proper PCC")
-  private final boolean reachedSizeInCertificate = false;
+  private boolean reachedSizeInCertificate = false;
 
   public enum CertificateTypes {
     HEURISTIC,
