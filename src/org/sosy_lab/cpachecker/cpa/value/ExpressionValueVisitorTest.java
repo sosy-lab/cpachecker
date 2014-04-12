@@ -110,32 +110,32 @@ public class ExpressionValueVisitorTest {
     runAllCastTests();
   }
 
-  @Test
+
   private void runAllCastTests() throws Exception {
     checkSimpleCasts32();
     checkSimpleCasts64();
     checkCasts32();
-    checkCasts32();
+    checkCasts64();
   }
 
-  @Test
+
   private void checkSimpleCasts32() throws Exception {
     checkSimpleCasts(evv32);
     checkCastsDirect(evv32);
   }
 
-  @Test
+
   private void checkSimpleCasts64() throws Exception {
     checkSimpleCasts(evv64);
     checkCastsDirect(evv64);
   }
 
-  @Test
+
   private void checkCasts32() throws Exception {
     checkCasts32(evv32);
   }
 
-  @Test
+
   private void checkCasts64() throws Exception {
     checkCasts64(evv64);
   }
