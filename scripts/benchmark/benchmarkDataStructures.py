@@ -56,6 +56,7 @@ def substituteVars(oldList, runSet, sourcefile=None):
     # list with tuples (key, value): 'key' is replaced by 'value'
     keyValueList = [('${benchmark_name}',     benchmark.name),
                     ('${benchmark_date}',     benchmark.date),
+                    ('${benchmark_instance}', benchmark.instance),
                     ('${benchmark_path}',     benchmark.baseDir),
                     ('${benchmark_path_abs}', os.path.abspath(benchmark.baseDir)),
                     ('${benchmark_file}',     os.path.basename(benchmark.benchmarkFile)),
@@ -114,8 +115,11 @@ class Benchmark:
         currentTime = time.localtime()
         self.date = time.strftime("%y-%m-%d_%H%M", currentTime)
         self.dateISO = time.strftime("%y-%m-%d %H:%M", currentTime)
+        self.instance = self.date
+        if not config.benchmarkInstanceIdent is None:
+            self.instance = benchmarkInstanceIdent
 
-        self.outputBase = OUTPUT_PATH + self.name + "." + self.date
+        self.outputBase = OUTPUT_PATH + self.name + "." + self.instance
         self.logFolder = self.outputBase + ".logfiles" + os.path.sep
         if os.path.exists(self.logFolder):
             # we refuse to overwrite existing results

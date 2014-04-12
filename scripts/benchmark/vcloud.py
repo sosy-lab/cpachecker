@@ -48,39 +48,42 @@ DEFAULT_CLOUD_CPUMODEL_REQUIREMENT = "" # empty string matches every model
 STOPPED_BY_INTERRUPT = False
 
 
-def executeBenchmarkInCloud(benchmark, outputHandler):
-    # build input for cloud
-    cloudInput = getCloudInput(benchmark)
-    cloudInputFile = os.path.join(benchmark.logFolder, 'cloudInput.txt')
-    filewriter.writeFile(cloudInput, cloudInputFile)
-    outputHandler.allCreatedFiles.append(cloudInputFile)
+def executeBenchmarkInCloud(benchmark, outputHandler, justReprocessResults):
+    if not justReprocessResults:
+        # build input for cloud
+        cloudInput = getCloudInput(benchmark)
+        cloudInputFile = os.path.join(benchmark.logFolder, 'cloudInput.txt')
+        filewriter.writeFile(cloudInput, cloudInputFile)
+        outputHandler.allCreatedFiles.append(cloudInputFile)
 
-    # install cloud and dependencies
-    ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"], shell=Util.isWindows())
-    ant.communicate()
-    ant.wait()
+        # install cloud and dependencies
+        ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"], shell=Util.isWindows())
+        ant.communicate()
+        ant.wait()
 
-    # start cloud and wait for exit
-    logging.debug("Starting cloud.")
-    if benchmark.config.debug:
-        logLevel =  "FINER"
+        # start cloud and wait for exit
+        logging.debug("Starting cloud.")
+        if benchmark.config.debug:
+            logLevel =  "FINER"
+        else:
+            logLevel = "INFO"
+        libDir = os.path.abspath(os.path.join(os.path.curdir, "lib", "java-benchmark"))
+        cmdLine = ["java", "-jar", os.path.join(libDir, "vcloud.jar"), "benchmark", "--loglevel", logLevel]
+        if benchmark.config.cloudMaster:
+            cmdLine.extend(["--master", benchmark.config.cloudMaster])
+        if benchmark.config.debug:
+            cmdLine.extend(["--print-new-files", "true"])
+        cloud = subprocess.Popen(cmdLine, stdin=subprocess.PIPE, shell=Util.isWindows())
+        try:
+            (out, err) = cloud.communicate(cloudInput.encode('utf-8'))
+        except KeyboardInterrupt:
+            killScriptCloud()
+        returnCode = cloud.wait()
+
+        if returnCode and not STOPPED_BY_INTERRUPT:
+            logging.warn("Cloud return code: {0}".format(returnCode))
     else:
-        logLevel = "INFO"
-    libDir = os.path.abspath(os.path.join(os.path.curdir, "lib", "java-benchmark"))
-    cmdLine = ["java", "-jar", os.path.join(libDir, "vcloud.jar"), "benchmark", "--loglevel", logLevel]
-    if benchmark.config.cloudMaster:
-        cmdLine.extend(["--master", benchmark.config.cloudMaster])
-    if benchmark.config.debug:
-        cmdLine.extend(["--print-new-files", "true"])
-    cloud = subprocess.Popen(cmdLine, stdin=subprocess.PIPE, shell=Util.isWindows())
-    try:
-        (out, err) = cloud.communicate(cloudInput.encode('utf-8'))
-    except KeyboardInterrupt:
-        killScriptCloud()
-    returnCode = cloud.wait()
-
-    if returnCode and not STOPPED_BY_INTERRUPT:
-        logging.warn("Cloud return code: {0}".format(returnCode))
+        returnCode = 0    
 
     handleCloudResults(benchmark, outputHandler)
 

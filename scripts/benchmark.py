@@ -82,7 +82,7 @@ def executeBenchmark(benchmarkFile):
             repr(benchmarkFile), len(benchmark.runSets)))
 
     if config.cloud:
-        result = vcloud.executeBenchmarkInCloud(benchmark, outputHandler)
+        result = vcloud.executeBenchmarkInCloud(benchmark, outputHandler, config.reprocessResults)
     elif config.appengine:
         result = appengine.executeBenchmarkInAppengine(benchmark, outputHandler)
     else:
@@ -201,6 +201,19 @@ def main(argv=None):
                       dest="maxLogfileSize", type=int, default=20,
                       metavar="SIZE",
                       help="Shrink logfiles to SIZE in MB, if they are too big. (-1 to disable, default value: 20 MB).")
+
+    parser.add_argument("--justReprocessResults",
+                      dest="reprocessResults",
+                      action="store_true",
+                      help="Do not run the benchmarks. Assume that the benchmarks were already executed and the log files are stored.")
+
+    parser.add_argument("--benchmarkInstanceIdent",
+                      dest="benchmarkInstanceIdent",
+                      type=str,
+                      default=None,
+                      help="Per default the current date and time is used to identify one run of the a benchmark. "
+                        + "With this option you can specify an explicit value for the ident. "
+                        + "This is usefull for reprocessing stored benchmark results.")
     
     parser.add_argument("--appengine",
                       dest="appengine",
