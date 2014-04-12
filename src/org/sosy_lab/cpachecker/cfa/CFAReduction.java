@@ -33,7 +33,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
@@ -61,7 +60,6 @@ import com.google.common.collect.ImmutableList;
  * In fact, this should probably *not* be called ConeOfInfluenceCFAReduction,
  * since it is *much* more trivial (and less powerful) than that.
  */
-@Options(prefix="cfa.pruning")
 public class CFAReduction {
 
   private final Configuration config;
@@ -69,8 +67,6 @@ public class CFAReduction {
   private final ShutdownNotifier shutdownNotifier;
 
   public CFAReduction(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
-    config.inject(this);
-
     if (config.getProperty("specification") == null) {
       throw new InvalidConfigurationException("Option cfa.removeIrrelevantForSpecification is only valid if a specification is given!");
     }

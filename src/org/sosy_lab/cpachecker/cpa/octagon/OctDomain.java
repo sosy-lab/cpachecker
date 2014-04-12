@@ -28,24 +28,21 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.octagon.Octagon;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
-@Options(prefix="cpa.octagon.domain")
 class OctDomain implements AbstractDomain {
 
   private static long totaltime = 0;
   private LogManager logger;
 
   public OctDomain(LogManager log, Configuration config) throws InvalidConfigurationException {
-    config.inject(this);
     logger = log;
   }
 

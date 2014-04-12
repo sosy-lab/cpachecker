@@ -25,10 +25,9 @@ package org.sosy_lab.cpachecker.cpa.rtt;
 
 import java.util.Collection;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -48,7 +47,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-@Options(prefix="cpa.RTT")
 public class RTTCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   public static CPAFactory factory() {
@@ -65,15 +63,12 @@ public class RTTCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
   private  PrecisionAdjustment precisionAdjustment;
   private final RTTCPAStatistics statistics;
 
-  private final Configuration config;
   private final LogManager logger;
 
 
   public RTTCPA(Configuration pConfig, LogManager logger, CFA cfa) throws InvalidConfigurationException {
-    this.config = pConfig;
     this.logger = logger;
 
-    config.inject(this);
     mergeOperator = new MergeSepOperator();
     abstractDomain = new RTTDomain();
     stopOperator = new StopSepOperator(abstractDomain);

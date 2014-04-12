@@ -27,11 +27,10 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -46,7 +45,6 @@ import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
 
 import com.google.common.collect.Lists;
 
-@Options(prefix="cpa.octagon.refiner")
 public class OctagonAnalysisFeasabilityChecker {
 
   private final OctTransferRelation transfer;

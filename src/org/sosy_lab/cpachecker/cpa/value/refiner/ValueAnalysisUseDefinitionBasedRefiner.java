@@ -28,11 +28,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -67,7 +65,6 @@ import com.google.common.collect.Multimap;
 /**
  * Refiner implementation that extracts a precision increment solely based on syntactical information from error traces.
  */
-@Options(prefix="cpa.value.refiner")
 public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefiner implements Statistics, StatisticsProvider {
   // statistics
   private int numberOfRefinements           = 0;
@@ -96,11 +93,9 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
   private static ValueAnalysisUseDefinitionBasedRefiner initialiseRefiner(
       ConfigurableProgramAnalysis cpa, ValueAnalysisCPA pValueAnalysisCpa)
           throws CPAException, InvalidConfigurationException {
-    Configuration config = pValueAnalysisCpa.getConfiguration();
     LogManager logger    = pValueAnalysisCpa.getLogger();
 
     return new ValueAnalysisUseDefinitionBasedRefiner(
-        config,
         logger,
         pValueAnalysisCpa.getShutdownNotifier(),
         cpa,
@@ -109,14 +104,12 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
   }
 
   protected ValueAnalysisUseDefinitionBasedRefiner(
-      final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final ConfigurableProgramAnalysis pCpa,
       ValueAnalysisStaticRefiner pValueAnalysisStaticRefiner,
       final CFA pCfa) throws CPAException, InvalidConfigurationException {
     super(pCpa);
-    pConfig.inject(this);
 
     cfa    = pCfa;
     logger = pLogger;
