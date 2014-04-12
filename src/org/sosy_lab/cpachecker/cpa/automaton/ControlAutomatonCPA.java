@@ -115,7 +115,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
     config.inject(this, ControlAutomatonCPA.class);
 
-    transferRelation = new AutomatonTransferRelation(this, logger);
+    transferRelation = new AutomatonTransferRelation(this, config, logger);
 
     final PrecisionAdjustment lPrecisionAdjustment;
 

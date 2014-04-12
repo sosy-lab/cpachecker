@@ -41,6 +41,8 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.Timer;
@@ -80,7 +82,9 @@ class AutomatonTransferRelation implements TransferRelation {
   Timer totalStrengthenTime = new Timer();
   StatIntHist automatonSuccessors = new StatIntHist(StatKind.AVG, "Automaton transfer successors");
 
-  public AutomatonTransferRelation(ControlAutomatonCPA pCpa, LogManager pLogger) {
+  public AutomatonTransferRelation(ControlAutomatonCPA pCpa, Configuration config,
+      LogManager pLogger) throws InvalidConfigurationException {
+    config.inject(this);
     this.cpa = pCpa;
     this.logger = pLogger;
   }
