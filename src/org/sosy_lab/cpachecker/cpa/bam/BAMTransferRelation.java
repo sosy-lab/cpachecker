@@ -323,7 +323,7 @@ public class BAMTransferRelation implements TransferRelation {
 
   /** Enters a new block and performs a new analysis or returns result from cache. */
   private Collection<? extends AbstractState> doRecursiveAnalysis(
-          final AbstractState pState, final Precision pPrecision, final CFANode node)
+          final AbstractState initialState, final Precision pPrecision, final CFANode node)
           throws CPATransferException, InterruptedException  {
 
     //Create ReachSet with node as initial element (+ add corresponding Location+CallStackElement)
@@ -336,32 +336,32 @@ public class BAMTransferRelation implements TransferRelation {
     // -> cache the result
 
     logger.log(Level.FINER, "Starting recursive analysis of depth", ++depth);
-    logger.log(Level.ALL, "Starting state:", pState);
+    logger.log(Level.ALL, "Starting state:", initialState);
     maxRecursiveDepth = Math.max(depth, maxRecursiveDepth);
 
     final Block outerSubtree = currentBlock;
     currentBlock = partitioning.getBlockForCallNode(node);
 
-    logger.log(Level.FINEST, "Reducing state", pState);
-    final AbstractState reducedInitialState = wrappedReducer.getVariableReducedState(pState, currentBlock, node);
+    logger.log(Level.FINEST, "Reducing state", initialState);
+    final AbstractState reducedInitialState = wrappedReducer.getVariableReducedState(initialState, currentBlock, node);
     final Precision reducedInitialPrecision = wrappedReducer.getVariableReducedPrecision(pPrecision, currentBlock);
 
     final Collection<? extends AbstractState> resultStates;
 
-    assert !((ARGState)pState).getParents().isEmpty();
+    assert !((ARGState)initialState).getParents().isEmpty();
 
     if (!(node instanceof FunctionEntryNode)) {
       // block is a loop-block
-      resultStates = analyseBlockAndExpand(pState, pPrecision, outerSubtree, reducedInitialState, reducedInitialPrecision);
+      resultStates = analyseBlockAndExpand(initialState, pPrecision, outerSubtree, reducedInitialState, reducedInitialPrecision);
 
     } else {
       // function-entry and old block --> begin new block
       // TODO match only recursive function, not all functions
 
       // get the rootState, that is the abstract state of the functioncall.
-      final CallstackState callstackState = extractStateByType(pState, CallstackState.class);
+      final CallstackState callstackState = extractStateByType(initialState, CallstackState.class);
       final CFANode rootNode = callstackState.getCallNode();
-      Collection<ARGState> possibleRootStates = ((ARGState)pState).getParents();
+      Collection<ARGState> possibleRootStates = ((ARGState)initialState).getParents();
       assert possibleRootStates.size() == 1 : "too many functioncalls: " + possibleRootStates;
       AbstractState rootState = possibleRootStates.iterator().next();
 
@@ -378,7 +378,7 @@ public class BAMTransferRelation implements TransferRelation {
         logger.log(Level.ALL, "recursion will cause endless unrolling, skipping function and analysing summary-edge.");
 
         // cleanup function-call-state, that was needed to determine the reduced state of currentLevel
-        ((ARGState)pState).removeFromARG();
+        ((ARGState)initialState).removeFromARG();
 
         // skip function-call
         FunctionSummaryEdge summaryEdge = rootNode.getLeavingSummaryEdge();
@@ -391,7 +391,7 @@ public class BAMTransferRelation implements TransferRelation {
         stack.add(currentLevel);
 
         final Collection<AbstractState> expandedFunctionReturnStates = analyseBlockAndExpand(
-                pState, pPrecision, outerSubtree, reducedInitialState, reducedInitialPrecision);
+                initialState, pPrecision, outerSubtree, reducedInitialState, reducedInitialPrecision);
 
         if (breakAnalysis) {
           // analysis aborted, so lets abort here too
@@ -403,7 +403,7 @@ public class BAMTransferRelation implements TransferRelation {
         // TODO rebuild only if there is recursion
         final Collection<AbstractState> rebuildStates = new ArrayList<>(expandedFunctionReturnStates.size());
         for (final AbstractState expandedState : expandedFunctionReturnStates) {
-          rebuildStates.add(getRebuildState(rootState, pState, expandedState));
+          rebuildStates.add(getRebuildState(rootState, initialState, expandedState));
         }
         resultStates = rebuildStates;
 
