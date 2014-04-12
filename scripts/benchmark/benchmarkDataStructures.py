@@ -117,7 +117,7 @@ class Benchmark:
         self.dateISO = time.strftime("%y-%m-%d %H:%M", currentTime)
         self.instance = self.date
         if not config.benchmarkInstanceIdent is None:
-            self.instance = benchmarkInstanceIdent
+            self.instance = config.benchmarkInstanceIdent
 
         self.outputBase = OUTPUT_PATH + self.name + "." + self.instance
         self.logFolder = self.outputBase + ".logfiles" + os.path.sep
