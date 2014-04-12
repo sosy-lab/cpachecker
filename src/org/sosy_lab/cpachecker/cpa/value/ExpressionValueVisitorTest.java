@@ -28,8 +28,6 @@ import java.math.BigInteger;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -46,7 +44,6 @@ import com.google.common.collect.Lists;
 
 public class ExpressionValueVisitorTest {
 
-  @Option(name="cpa.value.symbolicValues", description="enables generation of symbolic values")
   private boolean symbolicValues = false;
 
 
@@ -102,24 +99,44 @@ public class ExpressionValueVisitorTest {
   }
 
   @Test
-  public void checkSimpleCasts32() throws Exception {
+  public void checkCastsWithoutSymbolicValues() throws Exception {
+    symbolicValues = false;
+    runAllCastTests();
+  }
+
+  @Test
+  public void checkCastsWithSymbolicValues() throws Exception {
+    symbolicValues = true;
+    runAllCastTests();
+  }
+
+  @Test
+  private void runAllCastTests() throws Exception {
+    checkSimpleCasts32();
+    checkSimpleCasts64();
+    checkCasts32();
+    checkCasts32();
+  }
+
+  @Test
+  private void checkSimpleCasts32() throws Exception {
     checkSimpleCasts(evv32);
     checkCastsDirect(evv32);
   }
 
   @Test
-  public void checkSimpleCasts64() throws Exception {
+  private void checkSimpleCasts64() throws Exception {
     checkSimpleCasts(evv64);
     checkCastsDirect(evv64);
   }
 
   @Test
-  public void checkCasts32() throws Exception {
+  private void checkCasts32() throws Exception {
     checkCasts32(evv32);
   }
 
   @Test
-  public void checkCasts64() throws Exception {
+  private void checkCasts64() throws Exception {
     checkCasts64(evv64);
   }
 
