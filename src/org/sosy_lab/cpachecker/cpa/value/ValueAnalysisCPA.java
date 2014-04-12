@@ -38,7 +38,6 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -214,7 +213,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
     List<String> contents = null;
     try {
-      contents = Files.readLines(initialPrecisionFile, Charset.defaultCharset());
+      contents = initialPrecisionFile.asCharSource(Charset.defaultCharset()).readLines();
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not read precision from file named " + initialPrecisionFile);
       return mapping;
