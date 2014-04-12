@@ -23,10 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -45,8 +46,8 @@ public class PredicateAbstractDomain implements AbstractDomain {
 
   private final PredicateAbstractionManager mgr;
 
-  public PredicateAbstractDomain(PredicateCPA pCpa) throws InvalidConfigurationException {
-    pCpa.getConfiguration().inject(this, PredicateAbstractDomain.class);
+  public PredicateAbstractDomain(PredicateCPA pCpa, Configuration config) throws InvalidConfigurationException {
+    config.inject(this, PredicateAbstractDomain.class);
     mgr = pCpa.getPredicateManager();
   }
 

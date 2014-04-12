@@ -28,6 +28,7 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -62,10 +63,10 @@ public class ValueAnalysisCPAStatistics implements Statistics {
 
   private Refiner refiner = null;
 
-  public ValueAnalysisCPAStatistics(ValueAnalysisCPA cpa) throws InvalidConfigurationException {
+  public ValueAnalysisCPAStatistics(ValueAnalysisCPA cpa, Configuration config) throws InvalidConfigurationException {
     this.cpa = cpa;
 
-    this.cpa.getConfiguration().inject(this, ValueAnalysisCPAStatistics.class);
+    config.inject(this, ValueAnalysisCPAStatistics.class);
   }
 
   @Override

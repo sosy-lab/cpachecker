@@ -38,6 +38,7 @@ import java.util.TreeMap;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -117,14 +118,14 @@ class PredicateCPAStatistics extends AbstractStatistics {
 
   public PredicateCPAStatistics(PredicateCPA pCpa, BlockOperator pBlk,
       RegionManager pRmgr, AbstractionManager pAbsmgr, CFA pCfa,
-      Timer pInvariantGeneratorTimer)
+      Timer pInvariantGeneratorTimer, Configuration config)
           throws InvalidConfigurationException {
     cpa = pCpa;
     blk = pBlk;
     rmgr = pRmgr;
     absmgr = pAbsmgr;
     invariantGeneratorTime = checkNotNull(pInvariantGeneratorTimer);
-    cpa.getConfiguration().inject(this, PredicateCPAStatistics.class);
+    config.inject(this, PredicateCPAStatistics.class);
 
     loopInvariantsWriter = new LoopInvariantsWriter(pCfa, cpa.getLogger(), pAbsmgr, cpa.getFormulaManager(), pRmgr);
     abstractionsWriter = new PredicateAbstractionsWriter(cpa.getLogger(), pAbsmgr, cpa.getFormulaManager());

@@ -138,7 +138,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
     staticRefiner       = initializeStaticRefiner(cfa);
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     reducer             = new ValueAnalysisReducer();
-    statistics          = new ValueAnalysisCPAStatistics(this);
+    statistics          = new ValueAnalysisCPAStatistics(this, config);
 
     if (doTargetCheck) {
       ValueAnalysisState.initChecker(config);
