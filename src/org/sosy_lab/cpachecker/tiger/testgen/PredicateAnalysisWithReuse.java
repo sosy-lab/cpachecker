@@ -136,22 +136,32 @@ public class PredicateAnalysisWithReuse implements AnalysisWithReuse, PrecisionC
       // TODO update config
       Collection<String> opts = new ArrayList<>();
       opts.add("analysis.traversal.order = BFS");
+      opts.add("analysis.traversal.useReversePostorder = true");
+      opts.add("analysis.traversal.useCallstack = true");
       opts.add("analysis.entryFunction = " + pEntryFunction);
 
       // we want to use CEGAR algorithm
       opts.add("analysis.useRefinement = true");
       opts.add("cegar.refiner = " + org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner.class.getCanonicalName());
 
+      //opts.add("cpa.predicate.refinement.performInitialStaticRefinement = true");
       opts.add("cpa.predicate.addBranchingInformation = false");
       opts.add("cpa.predicate.useNondetFlags = true");
       opts.add("cpa.predicate.initAllVars = false");
       //opts.add("cpa.predicate.noAutoInitPrefix = __BLAST_NONDET");
-      opts.add("cpa.predicate.blk.useCache = false");
+      opts.add("cpa.predicate.blk.useCache = true");
+      //opts.add("cpa.predicate.blk.alwaysAtFunctions = false");
+      //opts.add("cpa.predicate.blk.alwaysAtLoops = false");
+
       //opts.add("cpa.predicate.mathsat.lvalsAsUIFs = true");
       // we need theory combination for example for using uninterpreted functions used in conjunction with linear arithmetic (correctly)
       // TODO caution: using dtc changes the results ... WRONG RESULTS !!!
       //opts.add("cpa.predicate.mathsat.useDtc = true");
-      opts.add("cpa.interval.merge = JOIN");
+      //opts.add("cpa.interval.merge = JOIN");
+
+      opts.add("cpa.arg.export = false");
+      opts.add("reachedSet.export = true");
+      //opts.add("statistics.export = false");
 
       mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction, opts, false);
       mLogManager = new BasicLogManager(mConfiguration);
