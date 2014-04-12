@@ -7,6 +7,7 @@ http://www.oracle.com/technetwork/java/javase/documentation/codeconvtoc-136057.h
 Further guidelines that are very worth reading:
 - Bloch: Effective Java, 2nd Edition: http://www.amazon.com/Effective-Java-Edition-Joshua-Bloch/dp/0321356683/
 - Guava User Guide: https://code.google.com/p/guava-libraries/wiki/GuavaExplained
+- Google's Java style guide: http://google-styleguide.googlecode.com/svn/trunk/javaguide.html
 
 We suggest to use Eclipse for development,
 as several parts of this guide are incorporated into the Eclipse project configuration
@@ -79,6 +80,9 @@ Version Control:
 - In order to avoid EOL problems caused by Unix/Windows/Mac, let's run
   find ./ -name "*" -exec svn propset svn:eol-style native {} \;
   from time to time.
+- Set the svn:executable property only on files that need it (executables).
+  On Linux this is done automatically, but Windows users should take care
+  that this property is not added for all newly created files.
 
 Design:
 - Prefer immutable objects, for own classes and for collections
