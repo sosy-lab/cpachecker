@@ -350,6 +350,12 @@ public final class ErrorPathShrinker {
         currentCFAEdgePair = reverseIterator.next();
         CFAEdge cfaEdge = currentCFAEdgePair.getSecond();
 
+        if (cfaEdge == null) {
+          // if two ARG-States are not directly connected with an edge, we skip this edge.
+          // We skip also all info, that might be part of the skipped edge.
+          continue;
+        }
+
         // check the type of the edge
         switch (cfaEdge.getEdgeType()) {
 
