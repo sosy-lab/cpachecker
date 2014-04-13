@@ -23,21 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.sll;
 
-import java.util.HashSet;
 import java.util.Set;
 
 import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
+import org.sosy_lab.cpachecker.cpa.smg.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGFactory;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
@@ -46,8 +43,8 @@ import com.google.common.collect.Iterables;
 
 public class SMGSingleLinkedListFinderTest {
   @Test
-  public void simpleListTest() throws SMGInconsistentException {
-    WritableSMG smg = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+  public void simpleListTest() {
+    CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
 
     SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, 5, 16, 8, "pointer");
 
@@ -64,8 +61,8 @@ public class SMGSingleLinkedListFinderTest {
   }
 
   @Test
-  public void nullifiedPointerInferenceTest() throws SMGInconsistentException {
-    WritableSMG smg = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+  public void nullifiedPointerInferenceTest() {
+    CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
 
     TestHelpers.createGlobalList(smg, 2, 16, 8, "pointer");
 
@@ -75,8 +72,8 @@ public class SMGSingleLinkedListFinderTest {
   }
 
   @Test
-  public void listWithInboundPointersTest() throws SMGInconsistentException {
-    WritableSMG smg = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+  public void listWithInboundPointersTest() {
+    CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
     Integer tail = TestHelpers.createList(smg, 4, 16, 8, "tail");
 
     SMGEdgeHasValue head = TestHelpers.createGlobalList(smg, 3, 16, 8, "head");
@@ -93,19 +90,15 @@ public class SMGSingleLinkedListFinderTest {
     SMGEdgeHasValue connection = null;
     do {
       SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(lastFromHead).filterAtOffset(8);
-      Iterable<SMGEdgeHasValue> connections = smg.getHVEdges(filter);
+      Set<SMGEdgeHasValue> connections = smg.getHVEdges(filter);
       connection = null;
-      if (connections.iterator().hasNext()) {
+      if (connections.size() > 0) {
         connection = Iterables.getOnlyElement(connections);
         lastFromHead = smg.getPointer(connection.getValue()).getObject();
       }
     } while (connection != null);
 
-    Set<SMGEdgeHasValue> toRemove = new HashSet<>();
     for (SMGEdgeHasValue hv : smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(lastFromHead))) {
-      toRemove.add(hv);
-    }
-    for(SMGEdgeHasValue hv : toRemove) {
       smg.removeHasValueEdge(hv);
     }
 

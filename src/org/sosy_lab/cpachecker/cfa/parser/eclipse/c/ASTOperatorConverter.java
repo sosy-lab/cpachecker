@@ -55,6 +55,8 @@ class ASTOperatorConverter {
       throw new IllegalArgumentException("For the star operator, CPointerExpression should be used instead of CUnaryExpression with a star operator.");
     case IASTUnaryExpression.op_tilde:
       return UnaryOperator.TILDE;
+    case IASTUnaryExpression.op_alignOf:
+      return UnaryOperator.ALIGNOF;
     default:
       throw new CFAGenerationRuntimeException("Unknown unary operator", e);
     }

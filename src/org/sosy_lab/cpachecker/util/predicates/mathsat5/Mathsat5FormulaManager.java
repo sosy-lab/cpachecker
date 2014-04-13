@@ -51,7 +51,6 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Splitter.MapSplitter;
 import com.google.common.collect.ImmutableMap;
 
-@Options(prefix="cpa.predicate.mathsat5")
 public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, Long> implements AutoCloseable {
 
   @Options(prefix="cpa.predicate.mathsat5")

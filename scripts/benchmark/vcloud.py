@@ -48,39 +48,42 @@ DEFAULT_CLOUD_CPUMODEL_REQUIREMENT = "" # empty string matches every model
 STOPPED_BY_INTERRUPT = False
 
 
-def executeBenchmarkInCloud(benchmark, outputHandler):
-    # build input for cloud
-    cloudInput = getCloudInput(benchmark)
-    cloudInputFile = os.path.join(benchmark.logFolder, 'cloudInput.txt')
-    filewriter.writeFile(cloudInput, cloudInputFile)
-    outputHandler.allCreatedFiles.append(cloudInputFile)
+def executeBenchmarkInCloud(benchmark, outputHandler, justReprocessResults):
+    if not justReprocessResults:
+        # build input for cloud
+        cloudInput = getCloudInput(benchmark)
+        cloudInputFile = os.path.join(benchmark.logFolder, 'cloudInput.txt')
+        filewriter.writeFile(cloudInput, cloudInputFile)
+        outputHandler.allCreatedFiles.append(cloudInputFile)
 
-    # install cloud and dependencies
-    ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"], shell=Util.isWindows())
-    ant.communicate()
-    ant.wait()
+        # install cloud and dependencies
+        ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"], shell=Util.isWindows())
+        ant.communicate()
+        ant.wait()
 
-    # start cloud and wait for exit
-    logging.debug("Starting cloud.")
-    if benchmark.config.debug:
-        logLevel =  "FINER"
+        # start cloud and wait for exit
+        logging.debug("Starting cloud.")
+        if benchmark.config.debug:
+            logLevel =  "FINER"
+        else:
+            logLevel = "INFO"
+        libDir = os.path.abspath(os.path.join(os.path.curdir, "lib", "java-benchmark"))
+        cmdLine = ["java", "-jar", os.path.join(libDir, "vcloud.jar"), "benchmark", "--loglevel", logLevel]
+        if benchmark.config.cloudMaster:
+            cmdLine.extend(["--master", benchmark.config.cloudMaster])
+        if benchmark.config.debug:
+            cmdLine.extend(["--print-new-files", "true"])
+        cloud = subprocess.Popen(cmdLine, stdin=subprocess.PIPE, shell=Util.isWindows())
+        try:
+            (out, err) = cloud.communicate(cloudInput.encode('utf-8'))
+        except KeyboardInterrupt:
+            killScriptCloud()
+        returnCode = cloud.wait()
+
+        if returnCode and not STOPPED_BY_INTERRUPT:
+            logging.warn("Cloud return code: {0}".format(returnCode))
     else:
-        logLevel = "INFO"
-    libDir = os.path.abspath(os.path.join(os.path.curdir, "lib", "java-benchmark"))
-    cmdLine = ["java", "-jar", os.path.join(libDir, "vcloud.jar"), "benchmark", "--loglevel", logLevel]
-    if benchmark.config.cloudMaster:
-        cmdLine.extend(["--master", benchmark.config.cloudMaster])
-    if benchmark.config.debug:
-        cmdLine.extend(["--print-new-files", "true"])
-    cloud = subprocess.Popen(cmdLine, stdin=subprocess.PIPE, shell=Util.isWindows())
-    try:
-        (out, err) = cloud.communicate(cloudInput.encode('utf-8'))
-    except KeyboardInterrupt:
-        killScriptCloud()
-    returnCode = cloud.wait()
-
-    if returnCode and not STOPPED_BY_INTERRUPT:
-        logging.warn("Cloud return code: {0}".format(returnCode))
+        returnCode = 0    
 
     handleCloudResults(benchmark, outputHandler)
 
@@ -229,7 +232,9 @@ def handleCloudResults(benchmark, outputHandler):
             stdoutFile = run.logFile + ".stdOut"
             if os.path.exists(stdoutFile):
                 try:
-                    (run.wallTime, run.cpuTime, run.memUsage, returnValue, run.energy) = parseCloudResultFile(stdoutFile)
+                    (run.wallTime, run.cpuTime, memUsage, returnValue, energy) = parseCloudResultFile(stdoutFile)
+                    run.values['memUsage'] = memUsage
+                    run.values['energy'] = energy
 
                     if returnValue is not None:
                         # Do not delete stdOut file if there was some problem
@@ -248,7 +253,12 @@ def handleCloudResults(benchmark, outputHandler):
 
             key = os.path.basename(run.logFile)[:-4] # VCloud uses logfilename without '.log' as key
             if key in runToHostMap:
-                run.host = runToHostMap[key]
+                run.values['host'] = runToHostMap[key]
+
+            dataFile = run.logFile + ".data"
+            if os.path.exists(dataFile):
+                outputHandler.allCreatedFiles.append(dataFile)
+                run.values.update(parseCloudRunResultFile(dataFile, benchmark.config.debug))
 
             if os.path.exists(run.logFile + ".stdError"):
                 runsProducedErrorOutput = True
@@ -272,7 +282,7 @@ def handleCloudResults(benchmark, outputHandler):
 
     if not executedAllRuns:
         logging.warning("Some expected result files could not be found!")
-    if runsProducedErrorOutput:
+    if runsProducedErrorOutput and not benchmark.config.debug:
         logging.warning("Some runs produced unexpected warnings on stderr, please check the {0} files!"
                         .format(os.path.join(outputDir, '*.stdError')))
 
@@ -340,3 +350,17 @@ def parseCloudResultFile(filePath):
             energy      = info[CloudRunExecutor.ENERGY_STR]
 
     return (wallTime, cpuTime, memUsage, returnValue, energy)
+
+
+def parseCloudRunResultFile(filePath, allValues):
+    values = {}
+
+    with open(filePath, 'rt') as file:
+        for line in file:
+            (key, value) = line.split("=", 2)
+            if key == "host":
+                values[key] = value
+            elif allValues:
+                values["vcloud-" + key] = value
+
+    return values

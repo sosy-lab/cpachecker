@@ -165,7 +165,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     AbstractionManager abstractionManager = new AbstractionManager(regionManager, formulaManager, config, logger);
 
     predicateManager = new PredicateAbstractionManager(abstractionManager, formulaManager, pathFormulaManager, solver, config, logger);
-    transfer = new PredicateTransferRelation(this, blk);
+    transfer = new PredicateTransferRelation(this, blk, config);
 
     topState = PredicateAbstractState.mkAbstractionState(
         formulaManager.getBooleanFormulaManager(),
@@ -173,7 +173,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
         predicateManager.makeTrueAbstractionFormula(null),
         PathCopyingPersistentTreeMap.<CFANode, Integer>of(),
         null);
-    domain = new PredicateAbstractDomain(this);
+    domain = new PredicateAbstractDomain(this, config);
 
     if (mergeType.equals("SEP")) {
       merge = MergeSepOperator.getInstance();
@@ -205,7 +205,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 
     stats = new PredicateCPAStatistics(this, blk, regionManager, abstractionManager,
-        cfa, invariantGenerator.getTimeOfExecution());
+        cfa, invariantGenerator.getTimeOfExecution(), config);
 
     GlobalInfo.getInstance().storeFormulaManager(formulaManager);
   }

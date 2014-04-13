@@ -29,6 +29,8 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Deque;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -415,24 +417,86 @@ class ASTConverter {
   }
 
   private CAstNode convert(IASTConditionalExpression e) {
-    CExpression condition = convertExpressionWithoutSideEffects(e.getLogicalConditionExpression());
-    // Here we call simplify manually, because for conditional expressions
-    // we always want a full evaluation because we might be able to prevent
-    // a branch in the CFA.
-    // In global scope, this is even required because there cannot be any branches.
-    CExpression simplifiedCondition = simplifyExpressionRecursively(condition);
+    // check condition kind so we can eventually skip creating an unnecessary branch
+    CONDITION conditionKind = getConditionKind(e.getLogicalConditionExpression());
 
-    switch (getConditionKind(simplifiedCondition)) {
+    switch (conditionKind) {
     case ALWAYS_TRUE:
       return convertExpressionWithSideEffects(e.getPositiveResultExpression());
     case ALWAYS_FALSE:
       return convertExpressionWithSideEffects(e.getNegativeResultExpression());
+    case NORMAL:
+      CIdExpression tmp = createTemporaryVariable(e);
+      sideAssignmentStack.addConditionalExpression(e, tmp);
+      return tmp;
     default:
+      throw new AssertionError("Unhandled case statement: " + conditionKind);
     }
+  }
 
-    CIdExpression tmp = createTemporaryVariable(e);
-    sideAssignmentStack.addConditionalExpression(e, tmp);
-    return tmp;
+  /** Computes the condition kind of an IASTExpression, logical ors and logical ands are resolved
+   * the rest works as with the condition kind method for CExpressions */
+  private CONDITION getConditionKind(IASTExpression exp) {
+    if (exp instanceof IASTBinaryExpression
+        && (((IASTBinaryExpression) exp).getOperator() == IASTBinaryExpression.op_logicalAnd
+           || ((IASTBinaryExpression) exp).getOperator() == IASTBinaryExpression.op_logicalOr)) {
+      IASTBinaryExpression binExp = (IASTBinaryExpression) exp;
+
+      switch (binExp.getOperator()) {
+      case IASTBinaryExpression.op_logicalAnd: {
+        CONDITION left = getConditionKind(binExp.getOperand1());
+        switch (left) {
+        case ALWAYS_TRUE:
+          return getConditionKind(binExp.getOperand2());
+        case ALWAYS_FALSE:
+          return left;
+        case NORMAL:
+          if (getConditionKind(binExp.getOperand2()) == CONDITION.ALWAYS_FALSE) {
+            return CONDITION.ALWAYS_FALSE;
+          } else {
+            return CONDITION.NORMAL;
+          }
+          default:
+            throw new AssertionError("unhandled case statement");
+        }
+      }
+
+      case IASTBinaryExpression.op_logicalOr: {
+        CONDITION left = getConditionKind(binExp.getOperand1());
+        switch (left) {
+        case ALWAYS_TRUE:
+          return CONDITION.ALWAYS_TRUE;
+        case ALWAYS_FALSE:
+          return getConditionKind(binExp.getOperand2());
+        case NORMAL:
+          CONDITION right = getConditionKind(binExp.getOperand2());
+          if (right == CONDITION.ALWAYS_FALSE) {
+            return CONDITION.NORMAL;
+          } else {
+            return right;
+          }
+        default:
+          throw new AssertionError("unhandled case statement");
+        }
+      }
+
+      default:
+        throw new AssertionError("unhandled case statement");
+      }
+
+    } else {
+      sideAssignmentStack.enterBlock();
+      // Here we call simplify manually, because for conditional expressions
+      // we always want a full evaluation because we might be able to prevent
+      // a branch in the CFA.
+      // In global scope, this is even required because there cannot be any branches.
+      CExpression simplifiedExp = simplifyExpressionRecursively(convertExpressionWithoutSideEffects(exp));
+      sideAssignmentStack.getAndResetConditionalExpressions();
+      sideAssignmentStack.getAndResetPostSideAssignments();
+      sideAssignmentStack.getAndResetPreSideAssignments();
+      sideAssignmentStack.leaveBlock();
+      return getConditionKind(simplifiedExp);
+    }
   }
 
   private boolean isZero(CExpression exp) {
@@ -460,10 +524,17 @@ class ASTConverter {
   }
 
   private CArraySubscriptExpression convert(IASTArraySubscriptExpression e) {
-    return new CArraySubscriptExpression(getLocation(e),
-        typeConverter.convert(e.getExpressionType()),
-        convertExpressionWithoutSideEffects(e.getArrayExpression()),
-        convertExpressionWithoutSideEffects(toExpression(e.getArgument())));
+    CType arrayType = typeConverter.convert(e.getExpressionType());
+    CExpression arrayExpr = convertExpressionWithoutSideEffects(e.getArrayExpression());
+    CExpression subscriptExpr = convertExpressionWithoutSideEffects(toExpression(e.getArgument()));
+
+    if (arrayType instanceof CProblemType) {
+      CType exprType = arrayExpr.getExpressionType();
+      if (exprType instanceof CArrayType) {
+        arrayType = ((CArrayType) exprType).getType();
+      }
+    }
+    return new CArraySubscriptExpression(getLocation(e), arrayType, arrayExpr, subscriptExpr);
   }
 
   /**
@@ -729,50 +800,79 @@ class ASTConverter {
       }
     }
 
+    CType ownerType = owner.getExpressionType().getCanonicalType();
+    if (ownerType instanceof CPointerType) {
+      ownerType = ((CPointerType) ownerType).getType();
+      while (ownerType instanceof CPointerType) {
+        ownerType = ((CPointerType) ownerType).getType();
+      }
+      ownerType = ownerType.getCanonicalType();
+    }
+    List<Pair<String, CType>> wayToInnerField = getWayToInnerField(ownerType, fieldName, loc, new ArrayList<Pair<String, CType>>());
+    CExpression fullFieldReference = owner;
+    if (!wayToInnerField.isEmpty()) {
+      boolean isPointerDereference = e.isPointerDereference();
+      for (Pair<String, CType> field : wayToInnerField) {
+        fullFieldReference = new CFieldReference(loc, field.getSecond(), field.getFirst(), fullFieldReference, isPointerDereference);
+        isPointerDereference = false;
+      }
+    } else {
+      throw new CFAGenerationRuntimeException("Accessing unknown field " + fieldName + " in " + ownerType + " in file " + staticVariablePrefix.split("__")[0], e);
+    }
+
     // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
     // if the owner is a FieldReference itself there's the need for a temporary Variable
     // but only if we are not in global scope, otherwise there will be parsing errors
-    if (simplifyPointerExpressions && owner instanceof CFieldReference && !scope.isGlobalScope() && (e.isPointerDereference())) {
-      owner = createInitializedTemporaryVariable(loc, owner.getExpressionType(), owner);
-    }
-
-    CType type = typeConverter.convert(e.getExpressionType());
-    if (containsProblemType(type)) {
-      CType ownerType = owner.getExpressionType().getCanonicalType();
-      if (e.isPointerDereference()) {
-        if (!(ownerType instanceof CPointerType)) {
-          throw new CFAGenerationRuntimeException("Dereferencing non-pointer type", e);
-        }
-        ownerType = ((CPointerType)ownerType).getType();
+    if (simplifyPointerExpressions && (wayToInnerField.size() > 1 || owner instanceof CFieldReference) && !scope.isGlobalScope()) {
+      CExpression tmp = fullFieldReference;
+      Deque<Pair<CType, String>> fields = new LinkedList<>();
+      while (tmp != owner) {
+        fields.push(Pair.of(tmp.getExpressionType(), ((CFieldReference)tmp).getFieldName()));
+        tmp = ((CFieldReference) tmp).getFieldOwner();
       }
-      ownerType = ownerType.getCanonicalType();
 
-      if (ownerType instanceof CCompositeType) {
-        CCompositeType compositeType = (CCompositeType)ownerType;
-        boolean foundReplacement = false;
-        for (CCompositeTypeMemberDeclaration field : compositeType.getMembers()) {
-          if (fieldName.equals(field.getName())) {
-            logger.log(Level.FINE, "Replacing type", type, "of field reference", e.getRawSignature(),
-                "in line", e.getFileLocation().getStartingLineNumber(),
-                "with", field.getType());
-            type = field.getType();
-            foundReplacement = true;
-            break;
+      boolean isFirstVisit = true;
+      while (!fields.isEmpty()) {
+        Pair<CType, String> actField = fields.pop();
+
+        // base case, when there is no field access left
+        if (fields.isEmpty()) {
+
+          // in case there is only one field access we have to check here on a pointer dereference
+          if (isFirstVisit && e.isPointerDereference()) {
+            CPointerExpression exp = new CPointerExpression(loc, owner.getExpressionType(), owner);
+            CExpression tmpOwner = new CFieldReference(loc, actField.getFirst(), actField.getSecond(), exp, false);
+            owner = createInitializedTemporaryVariable(loc, tmpOwner.getExpressionType(), tmpOwner);
+          } else {
+            owner = new CFieldReference(loc, actField.getFirst(), actField.getSecond(), owner, false);
+          }
+        } else {
+
+          // here could be a pointer dereference, in this case we create a temporary variable
+          // otherwise there is nothing special to be done
+          if (isFirstVisit) {
+            if (e.isPointerDereference()) {
+              CPointerExpression exp = new CPointerExpression(loc, owner.getExpressionType(), owner);
+              CExpression tmpOwner = new CFieldReference(loc, actField.getFirst(), actField.getSecond(), exp, false);
+              owner = createInitializedTemporaryVariable(loc, tmpOwner.getExpressionType(), tmpOwner);
+            } else {
+              owner = new CFieldReference(loc, actField.getFirst(), actField.getSecond(), owner, false);
+            }
+            isFirstVisit = false;
+
+            // only first field access may be an pointer dereference so we do not have to check anything
+            // in this clause, just put a field reference to the next field on the actual owner
+          } else {
+            owner = new CFieldReference(loc, actField.getFirst(), actField.getSecond(), owner, false);
           }
         }
-
-        // no matching field found
-        if (!foundReplacement) {
-          throw new CFAGenerationRuntimeException("Accessing non-existent field of composite type", e);
-        }
       }
 
-      logger.log(Level.FINE, "Field reference", e.getRawSignature(), "has unknown type", type);
-    }
+      return (CFieldReference) owner;
 
     // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
     // if there is a "var->field" convert it to (*var).field
-    if (simplifyPointerExpressions && e.isPointerDereference()) {
+    } else if (simplifyPointerExpressions && e.isPointerDereference()) {
       CType newType = null;
       CType typeDefType = owner.getExpressionType();
 
@@ -789,10 +889,47 @@ class ASTConverter {
 
       CPointerExpression exp = new CPointerExpression(loc, newType, owner);
 
-      return new CFieldReference(loc, type, fieldName, exp, false);
+      return new CFieldReference(loc, fullFieldReference.getExpressionType(), fieldName, exp, false);
     }
 
-    return new CFieldReference(loc, type, fieldName, owner, e.isPointerDereference());
+    return (CFieldReference) fullFieldReference;
+  }
+
+  /**
+   * This method creates a list of all necessary field access for finding the searched field.
+   * Besides the case that the searched field is directly in the struct, there is the case
+   * that the field is in an anonymous struct or union inside the "owner" struct. This anonymous
+   * structs / unions are then the "way" to the searched field.
+   *
+   * @param allReferences an empty list
+   * @return the fields (including the searched one) in the right order
+   */
+  private List<Pair<String, CType>> getWayToInnerField(CType owner, String fieldName, FileLocation loc, List<Pair<String, CType>> allReferences) {
+    CType type = owner.getCanonicalType();
+
+    if (type instanceof CCompositeType) {
+      for (CCompositeTypeMemberDeclaration member : ((CCompositeType) type).getMembers()) {
+        if (member.getName().equals(fieldName)) {
+          allReferences.add(Pair.of(member.getName(), member.getType()));
+          return allReferences;
+        }
+      }
+
+      // no field found in current struct, so proceed to the structs/unions which are
+      // fields inside the current struct
+      for (CCompositeTypeMemberDeclaration member : ((CCompositeType) type).getMembers()) {
+        if (member.getName().contains("__anon_type_member_")) {
+          List<Pair<String, CType>> tmp = new ArrayList<>(allReferences);
+          tmp.add(Pair.of(member.getName(), member.getType()));
+          tmp = getWayToInnerField(member.getType(), fieldName, loc, tmp);
+          if (!tmp.isEmpty()) {
+            return tmp;
+          }
+        }
+      }
+    }
+
+    return Collections.emptyList();
   }
 
   private CRightHandSide convert(IASTFunctionCallExpression e) {
@@ -1286,13 +1423,25 @@ class ASTConverter {
         return new CTypeDefDeclaration(fileLoc, isGlobal, type, name, scope.createScopedNameOf(name));
       }
 
-      if (type instanceof CFunctionTypeWithNames) {
+      if (type instanceof CFunctionType) {
         if (initializer != null) {
           throw new CFAGenerationRuntimeException("Function definition with initializer", d);
         }
 
-        CFunctionTypeWithNames functionType = (CFunctionTypeWithNames)type;
-        return new CFunctionDeclaration(fileLoc, functionType, name, functionType.getParameterDeclarations());
+        List<CParameterDeclaration> params;
+
+        CFunctionType functionType = (CFunctionType)type;
+        if (functionType instanceof CFunctionTypeWithNames) {
+          params = ((CFunctionTypeWithNames)type).getParameterDeclarations();
+        } else {
+          params = new ArrayList<>(functionType.getParameters().size());
+          int i = 0;
+          for (CType paramType : functionType.getParameters()) {
+            params.add(new CParameterDeclaration(fileLoc, paramType, "__param" + i++));
+          }
+        }
+
+        return new CFunctionDeclaration(fileLoc, functionType, name, params);
       }
 
       // now it should be a regular variable declaration

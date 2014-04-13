@@ -73,7 +73,6 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-@Options(prefix = "cpa.bam")
 public class BAMTransferRelation implements TransferRelation {
 
   @Options
@@ -131,7 +130,6 @@ public class BAMTransferRelation implements TransferRelation {
   public BAMTransferRelation(Configuration pConfig, LogManager pLogger, BAMCPA bamCpa,
                              ProofChecker wrappedChecker, BAMCache cache,
       ReachedSetFactory pReachedSetFactory, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
-    pConfig.inject(this);
     logger = pLogger;
     algorithmFactory = new CPAAlgorithmFactory(bamCpa, logger, pConfig, pShutdownNotifier);
     reachedSetFactory = pReachedSetFactory;

@@ -31,7 +31,6 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -63,13 +62,11 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 import com.google.common.collect.Iterables;
 
-@Options(prefix = "cpa.pointerA")
 public class AndersenTransferRelation implements TransferRelation {
 
   private final LogManager logger;
 
   public AndersenTransferRelation(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
-    pConfig.inject(this);
     logger = pLogger;
   }
 

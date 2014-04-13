@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGUnknownValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -89,7 +88,7 @@ public class ValueAnalysisSMGCommunicator {
 
     SMGExplicitExpressionEvaluator eee =
         new SMGExplicitExpressionEvaluator();
-    return eee.evaluateExpressionValue(smgState.getWritableSMG(), cfaEdge, rValue);
+    return eee.evaluateExpressionValue(smgState, cfaEdge, rValue);
   }
 
   public SMGAddressValue evaluateSMGAddressExpression(CRightHandSide rValue)
@@ -97,7 +96,7 @@ public class ValueAnalysisSMGCommunicator {
 
     SMGExplicitExpressionEvaluator eee =
         new SMGExplicitExpressionEvaluator();
-    return eee.evaluateAddress(smgState.getWritableSMG(), cfaEdge, rValue);
+    return eee.evaluateAddress(smgState, cfaEdge, rValue);
   }
 
   public MemoryLocation evaluateLeftHandSide(CExpression lValue)
@@ -259,7 +258,7 @@ public class ValueAnalysisSMGCommunicator {
         SMGSymbolicValue value;
 
         try {
-          value = smgEvaluator.evaluateExpressionValue(smgState.getWritableSMG(), cfaEdge, rValue);
+          value = smgEvaluator.evaluateExpressionValue(smgState, cfaEdge, rValue);
         } catch (CPATransferException e) {
           logger.logDebugException(e);
           throw new UnrecognizedCCodeException("Rvalue Could not be evaluated by smgEvaluator", cfaEdge,rValue);
@@ -300,14 +299,14 @@ public class ValueAnalysisSMGCommunicator {
     }
 
     @Override
-    public SMGExplicitValue evaluateExplicitValue(WritableSMG pSmg, CFAEdge pCfaEdge, CRightHandSide pRValue)
+    public SMGExplicitValue evaluateExplicitValue(SMGState pSmgState, CFAEdge pCfaEdge, CRightHandSide pRValue)
         throws CPATransferException {
-      Long value = pRValue.accept(evv).asLong(pRValue.getExpressionType());
+      Value value = pRValue.accept(evv);
 
-      if (value == null) {
-        return SMGUnknownValue.getInstance();
+      if (value.isExplicitlyKnown() && value.isNumericValue()) {
+        return SMGKnownExpValue.valueOf(value.asNumericValue().longValue());
       } else {
-        return SMGKnownExpValue.valueOf(value);
+        return SMGUnknownValue.getInstance();
       }
     }
   }

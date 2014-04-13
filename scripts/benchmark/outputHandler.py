@@ -350,7 +350,8 @@ class OutputHandler:
 
         # store information in run
         run.resultline = self.createOutputLine(run.identifier, run.status,
-                cpuTimeStr, wallTimeStr, run.host, run.energy, run.columns, run.energy)
+                cpuTimeStr, wallTimeStr, run.values.get('host'), run.values.get('energy'),
+                run.columns)
         self.addValuesToRunXML(run, cpuTimeStr, wallTimeStr)
 
         # output in terminal/console
@@ -456,12 +457,9 @@ class OutputHandler:
         runElem.append(ET.Element("column", {"title": "category", "value": run.category}))
         runElem.append(ET.Element("column", {"title": "cputime", "value": cpuTimeStr}))
         runElem.append(ET.Element("column", {"title": "walltime", "value": wallTimeStr}))
-        if run.memUsage is not None:
-            runElem.append(ET.Element("column", {"title": "memUsage", "value": str(run.memUsage)}))
-        if run.host:
-            runElem.append(ET.Element("column", {"title": "host", "value": run.host}))
-        if run.energy is not None:
-            runElem.append(ET.Element("column", {"title": "energy", "value": str(run.energy)}))
+        for key, value in run.values.items():
+            if value is not None:
+                runElem.append(ET.Element("column", {"title": key, "value": str(value)}))
 
         for column in run.columns:
             runElem.append(ET.Element("column",

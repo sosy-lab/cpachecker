@@ -82,6 +82,7 @@ public class CUnaryExpression extends AUnaryExpression implements CExpression {
     AMPER  ("&"),
     TILDE  ("~"),
     SIZEOF ("sizeof"),
+    ALIGNOF ("__alignof__"),
     ;
 
     private final String mOp;

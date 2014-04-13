@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.util.automaton;
 
 import java.io.IOException;
-import java.io.StringWriter;
+import java.io.Writer;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -44,6 +44,7 @@ import org.w3c.dom.Node;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
+import com.google.common.io.CharStreams;
 
 
 public class AutomatonGraphmlCommon {
@@ -185,14 +186,14 @@ public class AutomatonGraphmlCommon {
   public static class GraphMlBuilder {
 
     private final Document doc;
-    private final Appendable target;
+    private final Writer target;
 
     public GraphMlBuilder(Appendable target) throws ParserConfigurationException {
       DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
       DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
 
       this.doc = docBuilder.newDocument();
-      this.target = target;
+      this.target = CharStreams.asWriter(target);
     }
 
     public Element createElement(GraphMlTag tag) {
@@ -285,7 +286,6 @@ public class AutomatonGraphmlCommon {
 
     public void appendToAppendable(Node n) {
       try {
-        StringWriter sw = new StringWriter();
         TransformerFactory tf = TransformerFactory.newInstance();
         Transformer transformer = tf.newTransformer();
         transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
@@ -293,9 +293,8 @@ public class AutomatonGraphmlCommon {
         transformer.setOutputProperty(OutputKeys.INDENT, "yes");
         transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
 
-        transformer.transform(new DOMSource(n), new StreamResult(sw));
-        target.append(sw.toString());
-      } catch (TransformerException | IOException ex) {
+        transformer.transform(new DOMSource(n), new StreamResult(target));
+      } catch (TransformerException ex) {
           throw new RuntimeException("Error while dumping program path", ex);
       }
     }

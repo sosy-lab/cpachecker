@@ -26,10 +26,13 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.WeakHashMap;
@@ -42,6 +45,8 @@ import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.time.TimeSpan;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -69,7 +74,7 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
+import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState.EdgeBasedAbstractionStrategyFactories;
@@ -88,13 +93,14 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 
 /**
  * This is a CPA for collecting simple invariants about integer variables.
  */
-public class InvariantsCPA extends AbstractCPA implements AdjustableConditionCPA {
+public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA {
 
   /**
    * A formula visitor for collecting the variables contained in a formula.
@@ -132,6 +138,9 @@ public class InvariantsCPA extends AbstractCPA implements AdjustableConditionCPA
     @Option(description="controls whether to use abstract evaluation always, never, or only on already previously visited edges.")
     private EdgeBasedAbstractionStrategyFactories edgeBasedAbstractionStrategyFactory = EdgeBasedAbstractionStrategyFactories.VISITED_EDGES;
 
+    @Option(description="controls the condition adjustment logic: STATIC means that condition adjustment is a no-op, INTERESTING_VARIABLES increases the interesting variable limit, MAXIMUM_FORMULA_DEPTH increases the maximum formula depth, ABSTRACTION_STRATEGY tries to choose a more precise abstraction strategy and COMPOUND combines the other strategies (minus STATIC).")
+    private ConditionAdjusterFactories conditionAdjusterFactory = ConditionAdjusterFactories.COMPOUND;
+
   }
 
   /**
@@ -168,6 +177,10 @@ public class InvariantsCPA extends AbstractCPA implements AdjustableConditionCPA
 
   private boolean relevantVariableLimitReached = false;
 
+  private final Map<CFANode, InvariantsState> invariants = new HashMap<>();
+
+  private final ConditionAdjuster conditionAdjuster;
+
   /**
    * Gets a factory for creating InvariantCPAs.
    *
@@ -197,6 +210,7 @@ public class InvariantsCPA extends AbstractCPA implements AdjustableConditionCPA
     this.reachedSetFactory = pReachedSetFactory;
     this.cfa = pCfa;
     this.options = pOptions;
+    this.conditionAdjuster = pOptions.conditionAdjusterFactory.createConditionAdjuster(this);
   }
 
   @Override
@@ -354,6 +368,11 @@ public class InvariantsCPA extends AbstractCPA implements AdjustableConditionCPA
 
     initialPrecisionMap.put(pNode, precision);
 
+    InvariantsState invariant = invariants.get(pNode);
+    if (invariant != null) {
+      return new InvariantsState(options.useBitvectors, variableSelection, precision, invariant);
+    }
+
     // Create the configured initial state
     return new InvariantsState(options.useBitvectors, variableSelection, precision);
   }
@@ -365,6 +384,10 @@ public class InvariantsCPA extends AbstractCPA implements AdjustableConditionCPA
       return precision;
     }
     return getInitialState(pNode).getPrecision();
+  }
+
+  public void injectInvariant(CFANode pLocation, InvariantsState pInvariant) {
+    this.invariants.put(pLocation, pInvariant);
   }
 
   /**
@@ -384,13 +407,12 @@ public class InvariantsCPA extends AbstractCPA implements AdjustableConditionCPA
 
   @Override
   public boolean adjustPrecision() {
-    if (relevantVariableLimitReached) {
-      return false;
-    }
-    initialPrecisionMap.clear();
-    ++options.interestingVariableLimit;
-    logManager.log(Level.INFO, "Adjusting interestingVariableLimit to " + options.interestingVariableLimit);
-    return true;
+    return conditionAdjuster.adjustConditions();
+  }
+
+  @Override
+  public void adjustReachedSet(ReachedSet pReachedSet) {
+    conditionAdjuster.adjustReachedSet(pReachedSet);
   }
 
   private static void expand(Set<String> pRelevantVariables, Collection<CFAEdge> pCfaEdges, int pLimit) {
@@ -584,4 +606,265 @@ public class InvariantsCPA extends AbstractCPA implements AdjustableConditionCPA
         handleAssignment(pFunctionReturnEdge.getSuccessor().getFunctionName(), pFunctionReturnEdge, funcExp.getLeftHandSide(), value, pRelevantVariables, pLimit);
       }
   }
+
+  public static interface ConditionAdjuster {
+
+    boolean adjustConditions();
+
+    void adjustReachedSet(ReachedSet pReachedSet);
+
+  }
+
+  private static interface ValueIncreasingAdjuster extends ConditionAdjuster {
+
+    int getInc();
+
+    void setInc(int pInc);
+
+  }
+
+  public interface ConditionAdjusterFactory {
+
+    ConditionAdjuster createConditionAdjuster(InvariantsCPA pCPA);
+
+  }
+
+  public enum ConditionAdjusterFactories implements ConditionAdjusterFactory {
+
+    STATIC {
+
+      @Override
+      public ConditionAdjuster createConditionAdjuster(final InvariantsCPA pCPA) {
+        return new ConditionAdjuster() {
+
+          @Override
+          public boolean adjustConditions() {
+            return true;
+          }
+
+          @Override
+          public void adjustReachedSet(ReachedSet pReachedSet) {
+            // No actions required
+          }
+        };
+      }
+
+    },
+
+    INTERESTING_VARIABLES {
+
+      @Override
+      public ConditionAdjuster createConditionAdjuster(final InvariantsCPA pCPA) {
+        return new InterestingVariableLimitAdjuster(pCPA);
+      }
+
+    },
+
+    MAXIMUM_FORMULA_DEPTH {
+
+      @Override
+      public ConditionAdjuster createConditionAdjuster(final InvariantsCPA pCPA) {
+        return new FormulaDepthAdjuster(pCPA);
+      }
+
+    },
+
+    ABSTRACTION_STRATEGY {
+
+      @Override
+      public ConditionAdjuster createConditionAdjuster(final InvariantsCPA pCPA) {
+        return new AbstractionStrategyAdjuster(pCPA);
+      }
+
+    },
+
+    COMPOUND {
+
+      @Override
+      public ConditionAdjuster createConditionAdjuster(final InvariantsCPA pCPA) {
+        return new CompoundConditionAdjuster(pCPA);
+      }
+
+    };
+
+  }
+
+  private static class CompoundConditionAdjuster implements ConditionAdjuster {
+
+    private Timer timer = new Timer();
+
+    private TimeSpan previousTimeSpan = null;
+
+    private Deque<ValueIncreasingAdjuster> innerAdjusters = new ArrayDeque<>();
+
+    private ConditionAdjuster defaultInner;
+
+    public CompoundConditionAdjuster(InvariantsCPA pCPA) {
+      innerAdjusters.add(new InterestingVariableLimitAdjuster(pCPA));
+      innerAdjusters.add(new FormulaDepthAdjuster(pCPA));
+      defaultInner = new AbstractionStrategyAdjuster(pCPA);
+    }
+
+    @Override
+    public boolean adjustConditions() {
+      if (!hasInner()) {
+        return defaultInner.adjustConditions();
+      }
+      ValueIncreasingAdjuster inner = getCurrentInner();
+      if (previousTimeSpan != null) {
+        timer.stop();
+        TimeSpan sinceLastAdjustment = timer.getLengthOfLastInterval();
+        int comp = sinceLastAdjustment.compareTo(previousTimeSpan);
+        int inc = inner.getInc();
+        if (comp < 0) {
+          inc *= 2;
+        } else if (comp > 0 && inc > 1) {
+          inc /= 2;
+          swapInner();
+        }
+        inner.setInc(inc);
+        previousTimeSpan = sinceLastAdjustment;
+      } else if (timer.isRunning()) {
+        timer.stop();
+        previousTimeSpan = timer.getLengthOfLastInterval();
+      }
+      timer.start();
+      boolean result = inner.adjustConditions();
+      if (!result) {
+        this.innerAdjusters.remove(inner);
+        return adjustConditions();
+      }
+      return result;
+    }
+
+    @Override
+    public void adjustReachedSet(ReachedSet pReachedSet) {
+      if (hasInner()) {
+        getCurrentInner().adjustReachedSet(pReachedSet);
+      } else {
+        defaultInner.adjustReachedSet(pReachedSet);
+      }
+    }
+
+    private boolean hasInner() {
+      return !innerAdjusters.isEmpty();
+    }
+
+    private ValueIncreasingAdjuster getCurrentInner() {
+      Preconditions.checkArgument(hasInner());
+      return innerAdjusters.getFirst();
+    }
+
+    private void swapInner() {
+      if (hasInner()) {
+        innerAdjusters.addLast(innerAdjusters.removeFirst());
+      }
+    }
+
+  }
+
+  private static class InterestingVariableLimitAdjuster implements ValueIncreasingAdjuster {
+
+    private final InvariantsCPA cpa;
+
+    private int inc = 1;
+
+    private InterestingVariableLimitAdjuster(InvariantsCPA pCPA) {
+      cpa = pCPA;
+    }
+
+    @Override
+    public boolean adjustConditions() {
+      if (cpa.relevantVariableLimitReached) {
+        return false;
+      }
+      cpa.initialPrecisionMap.clear();
+      cpa.options.interestingVariableLimit += inc;
+      cpa.logManager.log(Level.INFO, "Adjusting interestingVariableLimit to", cpa.options.interestingVariableLimit);
+      return true;
+    }
+
+    @Override
+    public void adjustReachedSet(ReachedSet pReachedSet) {
+      pReachedSet.clear();
+    }
+
+    @Override
+    public int getInc() {
+      return this.inc;
+    }
+
+    @Override
+    public void setInc(int pInc) {
+      Preconditions.checkArgument(pInc > 0);
+      this.inc = pInc;
+    }
+  }
+
+  private static class FormulaDepthAdjuster implements ValueIncreasingAdjuster {
+
+    private final InvariantsCPA cpa;
+
+    private int inc = 1;
+
+    private FormulaDepthAdjuster(InvariantsCPA pCPA) {
+      cpa = pCPA;
+    }
+
+    @Override
+    public boolean adjustConditions() {
+      if (cpa.options.maximumFormulaDepth >= 2) {
+        return false;
+      }
+      cpa.initialPrecisionMap.clear();
+      cpa.options.maximumFormulaDepth += inc;
+      cpa.logManager.log(Level.INFO, "Adjusting maximum formula depth to", cpa.options.maximumFormulaDepth);
+      return true;
+    }
+
+    @Override
+    public void adjustReachedSet(ReachedSet pReachedSet) {
+      pReachedSet.clear();
+    }
+
+    @Override
+    public int getInc() {
+      return this.inc;
+    }
+
+    @Override
+    public void setInc(int pInc) {
+      Preconditions.checkArgument(pInc > 0);
+      this.inc = pInc;
+    }
+  }
+
+  private static class AbstractionStrategyAdjuster implements ConditionAdjuster {
+
+    private final InvariantsCPA cpa;
+
+    public AbstractionStrategyAdjuster(InvariantsCPA pCPA) {
+      this.cpa = pCPA;
+    }
+
+    @Override
+    public boolean adjustConditions() {
+      if (cpa.options.edgeBasedAbstractionStrategyFactory == EdgeBasedAbstractionStrategyFactories.ALWAYS) {
+        cpa.options.edgeBasedAbstractionStrategyFactory = EdgeBasedAbstractionStrategyFactories.VISITED_EDGES;
+      } else if (cpa.options.edgeBasedAbstractionStrategyFactory == EdgeBasedAbstractionStrategyFactories.VISITED_EDGES) {
+        cpa.options.edgeBasedAbstractionStrategyFactory = EdgeBasedAbstractionStrategyFactories.NEVER;
+      } else {
+        return false;
+      }
+      cpa.logManager.log(Level.INFO, "Adjusting abstraction strategy to", cpa.options.edgeBasedAbstractionStrategyFactory);
+      return true;
+    }
+
+    @Override
+    public void adjustReachedSet(ReachedSet pReachedSet) {
+      pReachedSet.clear();
+    }
+
+  }
+
 }

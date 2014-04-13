@@ -39,6 +39,7 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -109,8 +110,9 @@ public class PredicateTransferRelation implements TransferRelation {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
 
-  public PredicateTransferRelation(PredicateCPA pCpa, BlockOperator pBlk) throws InvalidConfigurationException {
-    pCpa.getConfiguration().inject(this, PredicateTransferRelation.class);
+  public PredicateTransferRelation(PredicateCPA pCpa, BlockOperator pBlk,
+      Configuration config) throws InvalidConfigurationException {
+    config.inject(this, PredicateTransferRelation.class);
 
     logger = pCpa.getLogger();
     formulaManager = pCpa.getPredicateManager();

@@ -35,7 +35,7 @@ public interface PCCStrategy {
 
   public void writeProof(UnmodifiableReachedSet pReached);
 
-  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached);
+  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) throws InvalidConfigurationException;
 
   public void readProof() throws IOException, ClassNotFoundException, InvalidConfigurationException;
 

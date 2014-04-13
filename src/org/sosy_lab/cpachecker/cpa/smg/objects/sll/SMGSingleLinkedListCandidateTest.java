@@ -29,14 +29,13 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
+import org.sosy_lab.cpachecker.cpa.smg.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.ReadableSMG;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGFactory;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+
+import com.google.common.collect.Iterables;
 
 
 public class SMGSingleLinkedListCandidateTest {
@@ -75,11 +74,11 @@ public class SMGSingleLinkedListCandidateTest {
   }
 
   @Test
-  public void executeOnSimpleList() throws SMGInconsistentException {
-    WritableSMG smg = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+  public void executeOnSimpleList() {
+    CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
 
     int NODE_SIZE = 8;
-    int SEGMENT_LENGTH = 18;
+    int SEGMENT_LENGTH = 4;
     int OFFSET = 0;
 
     SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, SEGMENT_LENGTH + 1, NODE_SIZE, OFFSET, "pointer");
@@ -88,7 +87,7 @@ public class SMGSingleLinkedListCandidateTest {
     SMGObject startObject = smg.getPointer(value).getObject();
     SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(startObject, OFFSET, SEGMENT_LENGTH);
 
-    ReadableSMG abstractedSmg = candidate.execute(smg);
+    CLangSMG abstractedSmg = candidate.execute(smg);
     Set<SMGObject> heap = abstractedSmg.getHeapObjects();
     Assert.assertEquals(3, heap.size());
     SMGObject pointedObject = abstractedSmg.getPointer(value).getObject();
@@ -98,8 +97,9 @@ public class SMGSingleLinkedListCandidateTest {
     Assert.assertEquals(NODE_SIZE, segment.getSize());
     Assert.assertEquals(SEGMENT_LENGTH, segment.getLength());
     Assert.assertEquals(OFFSET, segment.getOffset());
-
-    SMGEdgeHasValue onlyOutboundEdge = abstractedSmg.getUniqueHV(SMGEdgeHasValueFilter.objectFilter(segment), true);
+    Set<SMGEdgeHasValue> outboundEdges = abstractedSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(segment));
+    Assert.assertEquals(1, outboundEdges.size());
+    SMGEdgeHasValue onlyOutboundEdge = Iterables.getOnlyElement(outboundEdges);
     Assert.assertEquals(OFFSET, onlyOutboundEdge.getOffset());
     Assert.assertSame(AnonymousTypes.dummyPointer, onlyOutboundEdge.getType());
 
@@ -107,21 +107,23 @@ public class SMGSingleLinkedListCandidateTest {
     Assert.assertTrue(stopper instanceof SMGRegion);
     SMGRegion stopperRegion = (SMGRegion)stopper;
     Assert.assertEquals(NODE_SIZE, stopperRegion.getSize());
-    onlyOutboundEdge = abstractedSmg.getUniqueHV(SMGEdgeHasValueFilter.objectFilter(stopper), true);
+    outboundEdges = abstractedSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(stopperRegion));
+    Assert.assertEquals(1, outboundEdges.size());
+    onlyOutboundEdge = Iterables.getOnlyElement(outboundEdges);
     Assert.assertEquals(0, onlyOutboundEdge.getValue());
     Assert.assertEquals(0, onlyOutboundEdge.getOffset());
     Assert.assertEquals(NODE_SIZE, onlyOutboundEdge.getSizeInBytes(abstractedSmg.getMachineModel()));
   }
 
   @Test
-  public void executeOnNullTerminatedList() throws SMGInconsistentException {
-    WritableSMG smg = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+  public void executeOnNullTerminatedList() {
+    CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
     SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, 2, 16, 8, "pointer");
 
     Integer value = root.getValue();
     SMGObject startObject = smg.getPointer(value).getObject();
     SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(startObject, 8, 2);
-    ReadableSMG abstractedSmg = candidate.execute(smg);
+    CLangSMG abstractedSmg = candidate.execute(smg);
     Set<SMGObject> heap = abstractedSmg.getHeapObjects();
     Assert.assertEquals(2, heap.size());
 
@@ -130,7 +132,9 @@ public class SMGSingleLinkedListCandidateTest {
     Assert.assertTrue(sll instanceof SMGSingleLinkedList);
     SMGSingleLinkedList realSll = (SMGSingleLinkedList)sll;
     Assert.assertEquals(2, realSll.getLength());
-    SMGEdgeHasValue outbound = abstractedSmg.getUniqueHV(SMGEdgeHasValueFilter.objectFilter(realSll), true);
+    Set<SMGEdgeHasValue> outboundEdges = abstractedSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(realSll));
+    Assert.assertEquals(1, outboundEdges.size());
+    SMGEdgeHasValue outbound = Iterables.getOnlyElement(outboundEdges);
     Assert.assertEquals(8, outbound.getOffset());
     Assert.assertEquals(8, outbound.getSizeInBytes(abstractedSmg.getMachineModel()));
     Assert.assertEquals(0, outbound.getValue());

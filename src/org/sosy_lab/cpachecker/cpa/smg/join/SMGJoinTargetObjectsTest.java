@@ -25,22 +25,20 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cpa.smg.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGFactory;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
 
 public class SMGJoinTargetObjectsTest {
-  private WritableSMG smg1;
-  private WritableSMG smg2;
-  private WritableSMG destSMG;
+  private SMG smg1;
+  private SMG smg2;
+  private SMG destSMG;
 
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
@@ -57,9 +55,9 @@ public class SMGJoinTargetObjectsTest {
 
   @Before
   public void setUp() {
-    smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
-    smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
-    destSMG = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    smg1 = new SMG(MachineModel.LINUX64);
+    smg2 = new SMG(MachineModel.LINUX64);
+    destSMG = new SMG(MachineModel.LINUX64);
 
     mapping1 = new SMGNodeMapping();
     mapping2 = new SMGNodeMapping();
@@ -67,11 +65,11 @@ public class SMGJoinTargetObjectsTest {
 
   @Test
   public void matchingObjectsWithoutMappingTest() throws SMGInconsistentException {
-    smg1.addHeapObject(obj1);
+    smg1.addObject(obj1);
     smg1.addValue(value1);
     smg1.addPointsToEdge(pt1);
 
-    smg2.addHeapObject(obj2);
+    smg2.addObject(obj2);
     smg2.addValue(value2);
     smg2.addPointsToEdge(pt2);
 
@@ -83,15 +81,15 @@ public class SMGJoinTargetObjectsTest {
 
   @Test(expected=UnsupportedOperationException.class)
   public void matchingObjectsWithMappingTest() throws SMGInconsistentException {
-    smg1.addHeapObject(obj1);
+    smg1.addObject(obj1);
     smg1.addValue(value1);
     smg1.addPointsToEdge(pt1);
 
-    smg2.addHeapObject(obj2);
+    smg2.addObject(obj2);
     smg2.addValue(value2);
     smg2.addPointsToEdge(pt2);
 
-    destSMG.addHeapObject(destObj);
+    destSMG.addObject(destObj);
     mapping1.map(obj1, destObj);
 
     SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, obj1, obj2);
@@ -103,7 +101,7 @@ public class SMGJoinTargetObjectsTest {
 
   @Test
   public void nonMatchingObjectsTest() throws SMGInconsistentException {
-    smg1.addHeapObject(obj1);
+    smg1.addObject(obj1);
     smg1.addValue(value1);
     smg1.addPointsToEdge(pt1);
 
@@ -119,11 +117,11 @@ public class SMGJoinTargetObjectsTest {
     SMGEdgePointsTo pt1null = new SMGEdgePointsTo(value1, smg1.getNullObject(), 2);
     SMGEdgePointsTo pt2null = new SMGEdgePointsTo(value2, smg2.getNullObject(), 1);
 
-    smg1.addHeapObject(obj1);
+    smg1.addObject(obj1);
     smg1.addValue(value1);
     smg1.addPointsToEdge(pt1null);
 
-    smg2.addHeapObject(obj2);
+    smg2.addObject(obj2);
     smg2.addValue(value2);
     smg2.addPointsToEdge(pt2null);
 
@@ -134,7 +132,6 @@ public class SMGJoinTargetObjectsTest {
   }
 
   @Test
-  @Ignore
   public void joinTargetObjectsAlreadyJoinedNull() throws SMGInconsistentException {
     SMGEdgePointsTo pt1null = new SMGEdgePointsTo(value1, smg1.getNullObject(), 0);
     SMGEdgePointsTo pt2null = new SMGEdgePointsTo(value2, smg2.getNullObject(), 0);
@@ -145,7 +142,7 @@ public class SMGJoinTargetObjectsTest {
     smg1.addPointsToEdge(pt1null);
     smg2.addPointsToEdge(pt2null);
 
-    SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(SMGFactory.createWritableCopy(smg1), SMGFactory.createWritableCopy(smg2), SMGFactory.createWritableCopy(destSMG),
+    SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(new SMG(smg1), new SMG(smg2), new SMG(destSMG),
                                                       new SMGNodeMapping(mapping1), new SMGNodeMapping(mapping2),
                                                       value1, value2);
     SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, value1, value2);
@@ -164,9 +161,9 @@ public class SMGJoinTargetObjectsTest {
     smg1.addValue(value1);
     smg2.addValue(value2);
 
-    smg1.addHeapObject(obj1);
-    smg2.addHeapObject(obj2);
-    destSMG.addHeapObject(destObj);
+    smg1.addObject(obj1);
+    smg2.addObject(obj2);
+    destSMG.addObject(destObj);
 
     smg1.addPointsToEdge(pt1);
     smg2.addPointsToEdge(pt2);

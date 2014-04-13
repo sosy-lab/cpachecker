@@ -170,6 +170,18 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     this(pUseBitvectors, pVariableSelection, pPrecision.getEdgeBasedAbstractionStrategyFactory().getAbstractionStrategy(), pPrecision);
   }
 
+  public InvariantsState(boolean pUseBitvectors, VariableSelection<CompoundInterval> pVariableSelection,
+      InvariantsPrecision pPrecision, InvariantsState pInvariant) {
+    this.edgeBasedAbstractionStrategy = pPrecision.getEdgeBasedAbstractionStrategyFactory().getAbstractionStrategy();
+    this.environment = pInvariant.environment;
+    this.assumptions = pInvariant.assumptions;
+    this.partialEvaluator = pInvariant.partialEvaluator;
+    this.useBitvectors = pUseBitvectors;
+    this.variableSelection = pVariableSelection;
+    this.collectedInterestingAssumptions = pInvariant.collectedInterestingAssumptions;
+    this.precision = pPrecision;
+  }
+
   /**
    * Creates a new invariants state with just a value for the flag indicating
    * whether or not to use bit vectors for representing states, a selection of
@@ -313,6 +325,24 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
         && (pValue instanceof Variable<?> || pValue instanceof Constant<?> && ((Constant<CompoundInterval>) pValue).getValue().isSingleton())
         || variable.accept(new StateEqualsVisitor(getFormulaResolver(), this.environment), pValue)) {
       return this;
+    }
+
+    // Avoid self-assignments if an equivalent alternative is available
+    if (pValue.accept(new ContainsVarVisitor<CompoundInterval>(), pVarName)) {
+      InvariantsFormula<CompoundInterval> alternative = environment.get(variable);
+      if (!(alternative instanceof Variable)) {
+        alternative = null;
+        for (Map.Entry<String, InvariantsFormula<CompoundInterval>> entry : environment.entrySet()) {
+          InvariantsFormula<CompoundInterval> value = entry.getValue();
+          if (value.equals(variable)) {
+            alternative = CompoundIntervalFormulaManager.INSTANCE.asVariable(entry.getKey());
+            break;
+          }
+        }
+      }
+      if (alternative != null) {
+        pValue = pValue.accept(new ReplaceVisitor<>(variable, alternative));
+      }
     }
 
     final InvariantsState result = new InvariantsState(useBitvectors, newVariableSelection, edgeBasedAbstractionStrategy.addVisitedEdge(pEdge), precision);
@@ -854,6 +884,10 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   }
 
   public InvariantsState join(InvariantsState pElement2) {
+    return join(pElement2, false);
+  }
+
+  public InvariantsState join(InvariantsState pElement2, boolean pForceJoin) {
     Preconditions.checkArgument(pElement2.useBitvectors == useBitvectors);
     Preconditions.checkArgument(pElement2.precision == precision);
 
@@ -863,8 +897,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     InvariantsState result;
 
     if (isLessThanOrEqualTo(element2)
-        || !collectedInterestingAssumptions.equals(element2.collectedInterestingAssumptions)
-        || !environmentsEqualWithRespectToInterestingVariables(pElement2)) {
+        || !pForceJoin && !collectedInterestingAssumptions.equals(element2.collectedInterestingAssumptions)
+        || !pForceJoin && !environmentsEqualWithRespectToInterestingVariables(pElement2)) {
       result = element2;
     } else if (element2.isLessThanOrEqualTo(element1)) {
       result = element1;

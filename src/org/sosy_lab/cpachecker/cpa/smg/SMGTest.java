@@ -21,11 +21,10 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg.graphs;
+package org.sosy_lab.cpachecker.cpa.smg;
 
 import java.util.BitSet;
 import java.util.HashSet;
-import java.util.NoSuchElementException;
 import java.util.Set;
 
 import org.junit.Assert;
@@ -35,16 +34,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 
 
 public class SMGTest {
@@ -53,8 +44,8 @@ public class SMGTest {
   private SMG smg;
   CType mockType = AnonymousTypes.createTypeWithLength(4);
 
-  SMGRegion obj1 = new SMGRegion(8, "object-1");
-  SMGRegion obj2 = new SMGRegion(8, "object-2");
+  SMGObject obj1 = new SMGRegion(8, "object-1");
+  SMGObject obj2 = new SMGRegion(8, "object-2");
 
   Integer val1 = Integer.valueOf(1);
   Integer val2 = Integer.valueOf(2);
@@ -90,31 +81,6 @@ public class SMGTest {
     smg.addHasValueEdge(hv2has1at4);
   }
 
-  @Test(expected=NoSuchElementException.class)
-  public void getUniqueHV0Test() {
-    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(obj1);
-    smg.getUniqueHV(filter, false);
-  }
-
-  @Test
-  public void getUniqueHV1Test() {
-    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(obj2).filterAtOffset(0);
-    Assert.assertEquals(smg.getUniqueHV(filter, true), hv2has2at0);
-    Assert.assertEquals(smg.getUniqueHV(filter, false), hv2has2at0);
-  }
-
-  @Test(expected=IllegalArgumentException.class)
-  public void getUniqueHV2CheckTest() {
-    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(obj2);
-    smg.getUniqueHV(filter, true);
-  }
-
-  @Test(expected=IllegalArgumentException.class)
-  public void getUniqueHV2NoCheckTest() {
-    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(obj2);
-    Assert.assertNotNull(smg.getUniqueHV(filter, true));
-  }
-
   @Test
   public void getNullBytesForObjectTest() {
     SMG smg = getNewSMG64();
@@ -136,7 +102,9 @@ public class SMGTest {
     hvSet.add(hv);
 
     smg.replaceHVSet(hvSet);
-    Set<SMGEdgeHasValue> newHVSet = Sets.newHashSet(smg.getHVEdges());
+
+    Set<SMGEdgeHasValue> newHVSet = smg.getHVEdges();
+
     Assert.assertTrue(hvSet.equals(newHVSet));
   }
 
@@ -160,7 +128,7 @@ public class SMGTest {
     SMGObject target_object = smg.getObjectPointedBy(nullAddress);
     Assert.assertEquals(nullObject, target_object);
 
-    Assert.assertFalse(smg.getHVEdges().iterator().hasNext());
+    Assert.assertEquals(0, smg.getHVEdges().size());
 
     //copy constructor
     SMG smg_copy = new SMG(smg);
@@ -189,8 +157,8 @@ public class SMGTest {
     SMGObject target_object_for_third = smg_copy.getObjectPointedBy(third_value);
     Assert.assertEquals(third_object, target_object_for_third);
 
-    Assert.assertFalse(smg.getHVEdges().iterator().hasNext());
-    Assert.assertEquals(1, Iterables.size(smg_copy.getHVEdges()));
+    Assert.assertEquals(0, smg.getHVEdges().size());
+    Assert.assertEquals(1, smg_copy.getHVEdges().size());
   }
 
   @Test
@@ -201,10 +169,10 @@ public class SMGTest {
     SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 0, object, smg.getNullValue());
 
     smg.addHasValueEdge(hv);
-    Assert.assertTrue(Iterables.contains(smg.getHVEdges(), hv));
+    Assert.assertTrue(smg.getHVEdges().contains(hv));
 
     smg.removeHasValueEdge(hv);
-    Assert.assertFalse(Iterables.contains(smg.getHVEdges(), hv));
+    Assert.assertFalse(smg.getHVEdges().contains(hv));
   }
 
   @Test
@@ -226,11 +194,9 @@ public class SMGTest {
     Assert.assertTrue(smg.getObjects().contains(object));
     smg.removeObject(object);
     Assert.assertFalse(smg.getObjects().contains(object));
-
-    Assert.assertTrue(Iterables.contains(smg.getHVEdges(), hv0));
-    Assert.assertTrue(Iterables.contains(smg.getHVEdges(), hv4));
-
-    Assert.assertTrue(smg.getPTEdges().contains(pt));
+    Assert.assertTrue(smg.getHVEdges().contains(hv0));
+    Assert.assertTrue(smg.getHVEdges().contains(hv4));
+    Assert.assertTrue(smg.getPTEdges().values().contains(pt));
   }
 
   @Test
@@ -252,9 +218,9 @@ public class SMGTest {
     Assert.assertTrue(smg.getObjects().contains(object));
     smg.removeObjectAndEdges(object);
     Assert.assertFalse(smg.getObjects().contains(object));
-    Assert.assertFalse(Iterables.contains(smg.getHVEdges(), hv0));
-    Assert.assertFalse(Iterables.contains(smg.getHVEdges(), hv4));
-    Assert.assertFalse(smg.getPTEdges().contains(pt));
+    Assert.assertFalse(smg.getHVEdges().contains(hv0));
+    Assert.assertFalse(smg.getHVEdges().contains(hv4));
+    Assert.assertFalse(smg.getPTEdges().values().contains(pt));
   }
 
   @Test
@@ -282,6 +248,13 @@ public class SMGTest {
     Assert.assertFalse(smg_copy.isObjectValid(smg_copy.getNullObject()));
     Assert.assertTrue(smg_copy.isObjectValid(obj1));
     Assert.assertTrue(smg_copy.isObjectValid(obj2));
+  }
+
+  @Test
+  public void consistencyViolationValidNullTest() {
+    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
+    smg.setValidity(smg.getNullObject(), true);
+    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg));
   }
 
   @Test
@@ -444,20 +417,11 @@ public class SMGTest {
 
   @Test
   public void getHVEdgesTest() {
-    Assert.assertTrue(Iterables.contains(smg.getHVEdges(), hv2has2at0));
-    Assert.assertTrue(Iterables.contains(smg.getHVEdges(), hv2has1at4));
-    Assert.assertEquals(2, Iterables.size(smg.getHVEdges()));
-  }
+    HashSet<SMGEdgeHasValue> set = new HashSet<>();
+    set.add(hv2has2at0);
+    set.add(hv2has1at4);
 
-  @Test
-  public void getHVEdgesFilteredTest() {
-    Assert.assertEquals(0, Iterables.size(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj1))));
-    Assert.assertEquals(2, Iterables.size(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2))));
-    Assert.assertTrue(Iterables.contains(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2)), hv2has2at0));
-    Assert.assertTrue(Iterables.contains(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2)), hv2has1at4));
-
-    Assert.assertEquals(1, Iterables.size(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2).filterAtOffset(0))));
-    Assert.assertTrue(Iterables.contains(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2).filterAtOffset(0)), hv2has2at0));
+    Assert.assertTrue(smg.getHVEdges().containsAll(set));
   }
 
   @Test
@@ -465,12 +429,120 @@ public class SMGTest {
     HashSet<SMGEdgePointsTo> set = new HashSet<>();
     set.add(pt1to1);
 
-    Assert.assertTrue(smg.getPTEdges().containsAll(set));
+    Assert.assertTrue(smg.getPTEdges().values().containsAll(set));
   }
 
   @Test
   public void getObjectPointedByTest() {
     Assert.assertEquals(obj1, smg.getObjectPointedBy(val1));
     Assert.assertNull(smg.getObjectPointedBy(val2));
+  }
+
+  @Test
+  public void neqBasicTest() {
+    NeqRelation nr = new NeqRelation();
+    Integer one = Integer.valueOf(1);
+    Integer two = Integer.valueOf(2);
+    Integer three = Integer.valueOf(3);
+
+    Assert.assertFalse(nr.neq_exists(one, two));
+    Assert.assertFalse(nr.neq_exists(one, three));
+    Assert.assertFalse(nr.neq_exists(two, three));
+    Assert.assertFalse(nr.neq_exists(two, one));
+    Assert.assertFalse(nr.neq_exists(three, one));
+    Assert.assertFalse(nr.neq_exists(three, two));
+
+    nr.add_relation(one, three);
+
+    Assert.assertFalse(nr.neq_exists(one, two));
+    Assert.assertTrue(nr.neq_exists(one, three));
+    Assert.assertFalse(nr.neq_exists(two, three));
+    Assert.assertFalse(nr.neq_exists(two, one));
+    Assert.assertTrue(nr.neq_exists(three, one));
+    Assert.assertFalse(nr.neq_exists(three, two));
+
+    nr.add_relation(one, three);
+
+    Assert.assertFalse(nr.neq_exists(one, two));
+    Assert.assertTrue(nr.neq_exists(one, three));
+    Assert.assertFalse(nr.neq_exists(two, three));
+    Assert.assertFalse(nr.neq_exists(two, one));
+    Assert.assertTrue(nr.neq_exists(three, one));
+    Assert.assertFalse(nr.neq_exists(three, two));
+
+    nr.add_relation(two, three);
+
+    Assert.assertFalse(nr.neq_exists(one, two));
+    Assert.assertTrue(nr.neq_exists(one, three));
+    Assert.assertTrue(nr.neq_exists(two, three));
+    Assert.assertFalse(nr.neq_exists(two, one));
+    Assert.assertTrue(nr.neq_exists(three, one));
+    Assert.assertTrue(nr.neq_exists(three, two));
+
+    nr.remove_relation(one, three);
+
+    Assert.assertFalse(nr.neq_exists(one, two));
+    Assert.assertFalse(nr.neq_exists(one, three));
+    Assert.assertTrue(nr.neq_exists(two, three));
+    Assert.assertFalse(nr.neq_exists(two, one));
+    Assert.assertFalse(nr.neq_exists(three, one));
+    Assert.assertTrue(nr.neq_exists(three, two));
+  }
+
+  @Test
+  public void neqPutAllTest() {
+    NeqRelation nr = new NeqRelation();
+    NeqRelation newNr = new NeqRelation();
+    Integer one = Integer.valueOf(1);
+    Integer two = Integer.valueOf(2);
+    Integer three = Integer.valueOf(3);
+
+    nr.add_relation(one, three);
+
+    newNr.putAll(nr);
+    Assert.assertFalse(nr.neq_exists(one, two));
+    Assert.assertTrue(nr.neq_exists(one, three));
+    Assert.assertFalse(nr.neq_exists(two, three));
+    Assert.assertFalse(newNr.neq_exists(two, one));
+    Assert.assertTrue(newNr.neq_exists(three, one));
+    Assert.assertFalse(newNr.neq_exists(three, two));
+
+    nr.remove_relation(one, three);
+    Assert.assertFalse(nr.neq_exists(one, two));
+    Assert.assertFalse(nr.neq_exists(one, three));
+    Assert.assertFalse(nr.neq_exists(two, three));
+    Assert.assertFalse(newNr.neq_exists(two, one));
+    Assert.assertTrue(newNr.neq_exists(three, one));
+    Assert.assertFalse(newNr.neq_exists(three, two));
+  }
+
+  @Test
+  public void neqRemoveValueTest() {
+    NeqRelation nr = new NeqRelation();
+    Integer one = Integer.valueOf(1);
+    Integer two = Integer.valueOf(2);
+    Integer three = Integer.valueOf(3);
+
+    nr.add_relation(one, two);
+    nr.add_relation(one, three);
+    nr.removeValue(one);
+    Assert.assertFalse(nr.neq_exists(one, two));
+    Assert.assertFalse(nr.neq_exists(one, three));
+    Assert.assertFalse(nr.neq_exists(two, three));
+  }
+
+  @Test
+  public void neqMergeValuesTest() {
+    NeqRelation nr = new NeqRelation();
+    Integer one = Integer.valueOf(1);
+    Integer two = Integer.valueOf(2);
+    Integer three = Integer.valueOf(3);
+
+    nr.add_relation(one, three);
+    nr.mergeValues(two, three);
+
+    Assert.assertTrue(nr.neq_exists(one, two));
+    Assert.assertFalse(nr.neq_exists(one, three));
+    Assert.assertFalse(nr.neq_exists(two, three));
   }
 }

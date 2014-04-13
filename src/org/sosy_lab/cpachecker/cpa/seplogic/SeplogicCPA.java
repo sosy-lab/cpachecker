@@ -31,7 +31,6 @@ import java.util.Deque;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -52,7 +51,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.seplogic.interfaces.PartingstarInterface;
 
-@Options(prefix="cpa.seplogic")
 public class SeplogicCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
   class SeplogicStatistics implements Statistics {
 
@@ -92,7 +90,6 @@ public class SeplogicCPA implements ConfigurableProgramAnalysis, StatisticsProvi
   }
 
   private SeplogicCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
-    config.inject(this);
     PartingstarInterface.prepare(config, logger);
     transferRelation = new SeplogicTransferRelation(this, logger);
   }

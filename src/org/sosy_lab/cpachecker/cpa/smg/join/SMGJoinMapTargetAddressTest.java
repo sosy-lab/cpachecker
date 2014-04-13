@@ -25,23 +25,19 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cpa.smg.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.ReadableSMG;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGFactory;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
 
 public class SMGJoinMapTargetAddressTest {
 
-  private WritableSMG smg1;
-  private WritableSMG destSMG;
+  private SMG smg1;
+  private SMG destSMG;
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
 
@@ -56,16 +52,15 @@ public class SMGJoinMapTargetAddressTest {
 
   @Before
   public void setUp() {
-    smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
-    destSMG = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    smg1 = new SMG(MachineModel.LINUX64);
+    destSMG = new SMG(MachineModel.LINUX64);
     mapping1 = new SMGNodeMapping();
     mapping2 = new SMGNodeMapping();
   }
 
   @Test
-  @Ignore
-  public void mapTargetAddressExistingNull() throws SMGInconsistentException {
-    ReadableSMG origDestSMG = SMGFactory.createWritableCopy(destSMG);
+  public void mapTargetAddressExistingNull() {
+    SMG origDestSMG = new SMG(destSMG);
     SMGNodeMapping origMapping1 = new SMGNodeMapping(mapping1);
 
     SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(smg1, null, destSMG, mapping1, null, smg1.getNullValue(), null);
@@ -76,22 +71,21 @@ public class SMGJoinMapTargetAddressTest {
   }
 
   @Test
-  @Ignore
-  public void mapTargetAddressExisting() throws SMGInconsistentException {
+  public void mapTargetAddressExisting() {
     SMGEdgePointsTo destEdge = new SMGEdgePointsTo(destValue, destObj, 0);
 
     smg1.addValue(value1);
-    smg1.addHeapObject(obj1);
+    smg1.addObject(obj1);
     smg1.addPointsToEdge(edge1);
 
     destSMG.addValue(destValue);
-    destSMG.addHeapObject(destObj);
+    destSMG.addObject(destObj);
     destSMG.addPointsToEdge(destEdge);
 
     mapping1.map(obj1, destObj);
 
     SMGNodeMapping origMapping1 = new SMGNodeMapping(mapping1);
-    ReadableSMG origDestSMG = SMGFactory.createWritableCopy(destSMG);
+    SMG origDestSMG = new SMG(destSMG);
 
     SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(smg1, null, destSMG, mapping1, null, value1, null);
     Assert.assertEquals(origDestSMG, mta.getSMG());
@@ -101,18 +95,18 @@ public class SMGJoinMapTargetAddressTest {
   }
 
   @Test
-  public void mapTargetAddressNew() throws SMGInconsistentException {
+  public void mapTargetAddressNew() {
     smg1.addValue(value1);
-    smg1.addHeapObject(obj1);
+    smg1.addObject(obj1);
     smg1.addPointsToEdge(edge1);
 
-    destSMG.addHeapObject(destObj);
+    destSMG.addObject(destObj);
 
     mapping1.map(obj1, destObj);
 
     SMGNodeMapping origMapping1 = new SMGNodeMapping(mapping1);
     SMGNodeMapping origMapping2 = new SMGNodeMapping(mapping2);
-    ReadableSMG origDestSMG = SMGFactory.createWritableCopy(destSMG);
+    SMG origDestSMG = new SMG(destSMG);
 
     SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(smg1, null, destSMG, mapping1, mapping2, value1, value2);
     Assert.assertNotEquals(origDestSMG, mta.getSMG());

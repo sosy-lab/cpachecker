@@ -24,16 +24,16 @@
 package org.sosy_lab.cpachecker.cpa.smg.objects.sll;
 
 import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
+import org.sosy_lab.cpachecker.cpa.smg.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
 
 public final class TestHelpers {
-  static public final Integer createList(WritableSMG pSmg, int pLength, int pSize, int pOffset, String pPrefix) {
+  static public final Integer createList(CLangSMG pSmg, int pLength, int pSize, int pOffset, String pPrefix) {
     Integer value = null;
     for (int i = 0; i < pLength; i++) {
       SMGObject node = new SMGRegion(pSize, pPrefix + "list_node" + i);
@@ -53,7 +53,7 @@ public final class TestHelpers {
     return value;
   }
 
-  static public final SMGEdgeHasValue createGlobalList(WritableSMG pSmg, int pLength, int pSize, int pOffset, String pVariable) {
+  static public final SMGEdgeHasValue createGlobalList(CLangSMG pSmg, int pLength, int pSize, int pOffset, String pVariable) {
     Integer value = TestHelpers.createList(pSmg, pLength, pSize, pOffset, pVariable);
     SMGRegion globalVar = new SMGRegion(8, pVariable);
     SMGEdgeHasValue hv = new SMGEdgeHasValue(AnonymousTypes.dummyPointer, 0, globalVar, value);

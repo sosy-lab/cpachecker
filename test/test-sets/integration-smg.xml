@@ -11,7 +11,6 @@
     <includesfile>../programs/cpalien/cpalien.set</includesfile>
     <option name="-CPAlien"/>
     <option name="-preprocess" />
-    <option name="-setprop">memorysafety.config=config/CPAlien.properties</option>
     <propertyfile>../programs/benchmarks/PropertyMemSafety.prp</propertyfile>
   </sourcefiles>
 

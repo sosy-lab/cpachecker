@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg.graphs;
+package org.sosy_lab.cpachecker.cpa.smg;
 
 import static org.mockito.Mockito.mock;
 
@@ -40,15 +40,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
-import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 public class CLangSMGTest {
   static private final CFunctionType functionType = AnonymousTypes.createSimpleFunctionType(AnonymousTypes.dummyInt);
@@ -106,7 +102,7 @@ public class CLangSMGTest {
     Assert.assertEquals(obj1, smg_copy.getObjectPointedBy(val1));
 
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(obj2);
-    Assert.assertEquals(hv, smg_copy.getUniqueHV(filter, true));
+    Assert.assertEquals(hv, Iterables.getOnlyElement(smg_copy.getHVEdges(filter)));
   }
 
   @Test

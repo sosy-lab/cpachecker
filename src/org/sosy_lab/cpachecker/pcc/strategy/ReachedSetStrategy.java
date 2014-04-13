@@ -47,7 +47,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 @Options
-public class ReachedSetStrategy extends AbstractStrategy {
+public class ReachedSetStrategy extends SequentialReadStrategy {
 
   protected AbstractState[] reachedSet;
   protected Multimap<CFANode, AbstractState> statesPerLocation;
@@ -63,7 +63,7 @@ public class ReachedSetStrategy extends AbstractStrategy {
 
 
   @Override
-  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) {
+  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) throws InvalidConfigurationException {
       reachedSet = new AbstractState[pReached.size()];
       pReached.asCollection().toArray(reachedSet);
       orderReachedSetByLocation(reachedSet);
@@ -135,7 +135,7 @@ public class ReachedSetStrategy extends AbstractStrategy {
   }
 
   @Override
-  protected Object getProofToWrite(UnmodifiableReachedSet pReached) {
+  protected Object getProofToWrite(UnmodifiableReachedSet pReached) throws InvalidConfigurationException {
     constructInternalProofRepresentation(pReached);
     return reachedSet;
   }

@@ -254,7 +254,7 @@ def _parseAppEngineResult(run):
 
                 run.wallTime = timedelta(microseconds=result['statistic']['latency']).total_seconds()
                 run.cpuTime = result['statistic']['CPUTime']
-                run.host = result['statistic']['host']
+                run.values['host'] = result['statistic']['host']
         except:
             pass # can't read std out file
 

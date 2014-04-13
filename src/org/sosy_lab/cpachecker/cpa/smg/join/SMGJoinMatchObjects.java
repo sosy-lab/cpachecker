@@ -25,14 +25,14 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
+import org.sosy_lab.cpachecker.cpa.smg.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.ReadableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
 final class SMGJoinMatchObjects {
@@ -49,7 +49,7 @@ final class SMGJoinMatchObjects {
 
   final private static boolean checkMatchingMapping(SMGObject pObj1, SMGObject pObj2,
                                                     SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-                                                    ReadableSMG pSMG1, ReadableSMG pSMG2) {
+                                                    SMG pSMG1, SMG pSMG2) {
     if (pMapping1.containsKey(pObj1) && pMapping2.containsKey(pObj2) &&
         pMapping1.get(pObj1) != pMapping2.get(pObj2)) {
       return true;
@@ -60,7 +60,7 @@ final class SMGJoinMatchObjects {
 
   final private static boolean checkConsistentMapping(SMGObject pObj1, SMGObject pObj2,
                                                       SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-                                                      ReadableSMG pSMG1, ReadableSMG pSMG2) {
+                                                      SMG pSMG1, SMG pSMG2) {
     if ((pMapping1.containsKey(pObj1) && pMapping2.containsValue(pMapping1.get(pObj1))) ||
         (pMapping2.containsKey(pObj2) && pMapping1.containsValue(pMapping2.get(pObj2)))) {
       return true;
@@ -70,7 +70,7 @@ final class SMGJoinMatchObjects {
   }
 
   final private static boolean checkConsistentObjects(SMGObject pObj1, SMGObject pObj2,
-                                                      ReadableSMG pSMG1, ReadableSMG pSMG2) {
+                                                      SMG pSMG1, SMG pSMG2) {
     if ((pObj1.getSize() != pObj2.getSize()) ||
         (pSMG1.isObjectValid(pObj1) != pSMG2.isObjectValid(pObj2))) {
       return true;
@@ -81,18 +81,18 @@ final class SMGJoinMatchObjects {
 
   final private static boolean checkConsistentFields(SMGObject pObj1, SMGObject pObj2,
       SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-      ReadableSMG pSMG1, ReadableSMG pSMG2) {
+      SMG pSMG1, SMG pSMG2) {
 
     List<SMGEdgeHasValue> fields = new ArrayList<>();
 
-    Iterables.addAll(fields, pSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj1)));
-    Iterables.addAll(fields, pSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj2)));
+    fields.addAll(pSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj1)));
+    fields.addAll(pSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj2)));
 
     //TODO: We go through some fields twice, fix
     for (SMGEdgeHasValue hv : fields) {
-      Iterable<SMGEdgeHasValue> hv1 = pSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj1).filterByType(hv.getType()).filterAtOffset(hv.getOffset()));
-      Iterable<SMGEdgeHasValue> hv2 = pSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj2).filterByType(hv.getType()).filterAtOffset(hv.getOffset()));
-      if (hv1.iterator().hasNext() && hv2.iterator().hasNext()) {
+      Set<SMGEdgeHasValue> hv1 = pSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj1).filterByType(hv.getType()).filterAtOffset(hv.getOffset()));
+      Set<SMGEdgeHasValue> hv2 = pSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj2).filterByType(hv.getType()).filterAtOffset(hv.getOffset()));
+      if (hv1.size() > 0 && hv2.size() > 0) {
         Integer v1 = Iterators.getOnlyElement(hv1.iterator()).getValue();
         Integer v2 = Iterators.getOnlyElement(hv2.iterator()).getValue();
         if (pMapping1.containsKey(v1) && pMapping2.containsKey(v2) && !(pMapping1.get(v1).equals(pMapping2.get(v2)))){
@@ -119,7 +119,7 @@ final class SMGJoinMatchObjects {
     return false;
   }
 
-  public SMGJoinMatchObjects(SMGJoinStatus pStatus, ReadableSMG pSMG1, ReadableSMG pSMG2,
+  public SMGJoinMatchObjects(SMGJoinStatus pStatus, SMG pSMG1, SMG pSMG2,
                              SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
                              SMGObject pObj1, SMGObject pObj2){
     if ((! pSMG1.getObjects().contains(pObj1)) || (! pSMG2.getObjects().contains(pObj2))) {

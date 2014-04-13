@@ -25,14 +25,14 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cpa.smg.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.ReadableSMG;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
 import com.google.common.collect.Sets;
+import com.google.common.collect.Iterables;
 
 
 final class SMGJoinSubSMGs {
@@ -44,15 +44,15 @@ final class SMGJoinSubSMGs {
   private SMGJoinStatus status;
   private boolean defined = false;
 
-  private ReadableSMG inputSMG1;
-  private ReadableSMG inputSMG2;
-  private WritableSMG destSMG;
+  private SMG inputSMG1;
+  private SMG inputSMG2;
+  private SMG destSMG;
 
   private SMGNodeMapping mapping1 = null;
   private SMGNodeMapping mapping2 = null;
 
   public SMGJoinSubSMGs(SMGJoinStatus initialStatus,
-                        ReadableSMG pSMG1, ReadableSMG pSMG2, WritableSMG pDestSMG,
+                        SMG pSMG1, SMG pSMG2, SMG pDestSMG,
                         SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
                         SMGObject pObj1, SMGObject pObj2, SMGObject pNewObject) throws SMGInconsistentException{
 
@@ -85,7 +85,7 @@ final class SMGJoinSubSMGs {
     for (SMGEdgeHasValue hvIn1 : edgesOnObject1){
       filterOnSMG2.filterAtOffset(hvIn1.getOffset());
       filterOnSMG2.filterByType(hvIn1.getType());
-      SMGEdgeHasValue hvIn2 = inputSMG2.getUniqueHV(filterOnSMG2, performChecks);
+      SMGEdgeHasValue hvIn2 = Iterables.getOnlyElement(inputSMG2.getHVEdges(filterOnSMG2));
 
       SMGJoinValues joinValues = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG,
           mapping1, mapping2, hvIn1.getValue(), hvIn2.getValue() /*, ldiff */);
@@ -114,15 +114,15 @@ final class SMGJoinSubSMGs {
     return status;
   }
 
-  public ReadableSMG getSMG1() {
+  public SMG getSMG1() {
     return inputSMG1;
   }
 
-  public ReadableSMG getSMG2() {
+  public SMG getSMG2() {
     return inputSMG2;
   }
 
-  public ReadableSMG getDestSMG() {
+  public SMG getDestSMG() {
     return destSMG;
   }
 

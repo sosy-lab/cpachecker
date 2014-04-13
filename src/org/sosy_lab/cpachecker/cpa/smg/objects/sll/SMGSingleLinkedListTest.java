@@ -25,44 +25,11 @@ package org.sosy_lab.cpachecker.cpa.smg.objects.sll;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.DummyAbstraction;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
 
 public class SMGSingleLinkedListTest {
-  static private MachineModel mm = MachineModel.LINUX64;
-
-  @SuppressWarnings("unused")
-  private SMGRegion prepareSingleLinkedList(SMGState pState) throws SMGInconsistentException {
-    SMGRegion pointer = new SMGRegion(mm.getSizeofPtr(), "pointer");
-    Integer listAddress = pState.getSMG().getAddress(pState.getSMG().getNullObject(), 0);
-    pState.getWritableSMG().addGlobalObject(pointer);
-    for (int i = 0; i < 15; i++) {
-      SMGEdgePointsTo pt = pState.getWritableSMG().addNewHeapAllocation(mm.getSizeofPtr(), "node");
-      pState.getWritableSMG().writeValue(pt.getObject(), 0, AnonymousTypes.dummyPointer, SMGKnownSymValue.valueOf(listAddress));
-      listAddress = pt.getValue();
-      pState.getWritableSMG().writeValue(pointer, 0, AnonymousTypes.dummyPointer,SMGKnownSymValue.valueOf(listAddress));
-    }
-    pState.attemptAbstraction();
-
-    Integer sllAddress = pState.getSMG().readValue(pointer, 0, AnonymousTypes.dummyPointer);
-    SMGEdgePointsTo pt = pState.getSMG().getPointer(sllAddress);
-    SMGObject object = pt.getObject();
-
-    Assert.assertTrue(object instanceof SMGSingleLinkedList);
-    SMGSingleLinkedList sll = (SMGSingleLinkedList) object;
-    Assert.assertEquals(15, sll.getLength());
-    Assert.assertEquals(0, sll.getOffset());
-
-    return pointer;
-  }
 
   @Test
   public void basicsTest() {
@@ -103,39 +70,5 @@ public class SMGSingleLinkedListTest {
     Assert.assertTrue(sll1.matchSpecificShape(sll2));
     Assert.assertFalse(sll2.matchSpecificShape(sll3));
     Assert.assertFalse(sll1.matchSpecificShape(sll3));
-  }
-
-  @Test(expected=IllegalArgumentException.class)
-  public void isMoreGenericDiffSizeTest() {
-    SMGRegion prototype1 = new SMGRegion(16, "prototype_1");
-    SMGRegion prototype2 = new SMGRegion(32, "prototype_2");
-    SMGSingleLinkedList sll1 = new SMGSingleLinkedList(prototype1, 8, 8);
-    SMGSingleLinkedList sll2 = new SMGSingleLinkedList(prototype2, 8, 8);
-    sll1.isMoreGeneral(sll2);
-  }
-
-  @Test
-  public void isMoreGenericConcreteTest() {
-    SMGRegion prototype1 = new SMGRegion(16, "prototype");
-    SMGSingleLinkedList sll1 = new SMGSingleLinkedList(prototype1, 8, 8);
-    Assert.assertTrue(sll1.isMoreGeneral(prototype1));
-  }
-
-  @Test(expected=IllegalArgumentException.class)
-  public void isMoreGenericNonMatchTest() {
-    SMGRegion prototype = new SMGRegion(16, "prototype");
-    SMGSingleLinkedList sll1 = new SMGSingleLinkedList(prototype, 0, 8);
-    SMGSingleLinkedList sll2 = new SMGSingleLinkedList(prototype, 8, 10);
-    sll1.isMoreGeneral(sll2);
-  }
-
-  @Test
-  public void isMoreGenericMatchTest() {
-    SMGRegion prototype = new SMGRegion(16, "prototype");
-    SMGSingleLinkedList sll1 = new SMGSingleLinkedList(prototype, 8, 4);
-    SMGSingleLinkedList sll2 = new SMGSingleLinkedList(prototype, 8, 12);
-
-    Assert.assertTrue(sll1.isMoreGeneral(sll2));
-    Assert.assertFalse(sll2.isMoreGeneral(sll1));
   }
 }

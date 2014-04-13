@@ -23,19 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import org.sosy_lab.cpachecker.cpa.smg.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.ReadableSMG;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
 final class SMGJoinTargetObjects {
   private SMGJoinStatus status;
   private boolean defined = false;
   private boolean recoverable = false;
-  private ReadableSMG inputSMG1;
-  private ReadableSMG inputSMG2;
-  private WritableSMG destSMG;
+  private SMG inputSMG1;
+  private SMG inputSMG2;
+  private SMG destSMG;
   private Integer value;
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
@@ -51,7 +50,7 @@ final class SMGJoinTargetObjects {
   }
 
   private static boolean checkAlreadyJoined(SMGJoinTargetObjects pJto, SMGObject pObj1, SMGObject pObj2,
-                                            Integer pAddress1, Integer pAddress2) throws SMGInconsistentException {
+                                            Integer pAddress1, Integer pAddress2) {
     if ((! pObj1.notNull()) && (! pObj2.notNull()) ||
         (pJto.mapping1.containsKey(pObj1) && pJto.mapping2.containsKey(pObj2) && pJto.mapping1.get(pObj1) == pJto.mapping2.get(pObj2))) {
       SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(pJto.inputSMG1, pJto.inputSMG2, pJto.destSMG,
@@ -81,7 +80,7 @@ final class SMGJoinTargetObjects {
   }
 
   public SMGJoinTargetObjects(SMGJoinStatus pStatus,
-                              ReadableSMG pSMG1, ReadableSMG pSMG2, WritableSMG pDestSMG,
+                              SMG pSMG1, SMG pSMG2, SMG pDestSMG,
                               SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
                               Integer pAddress1, Integer pAddress2) throws SMGInconsistentException {
 
@@ -111,10 +110,7 @@ final class SMGJoinTargetObjects {
     }
 
     SMGObject newObject = target1.join(target2);
-
-    // BUG: In order to actually use a joint SMG, we need this object to be properly
-    //      put into stack or global
-    destSMG.addHeapObject(newObject);
+    destSMG.addObject(newObject);
 
     if (mapping1.containsKey(target1)) {
       throw new UnsupportedOperationException("Delayed join not yet implemented");
@@ -146,11 +142,11 @@ final class SMGJoinTargetObjects {
     return status;
   }
 
-  public ReadableSMG getInputSMG1() {
+  public SMG getInputSMG1() {
     return inputSMG1;
   }
 
-  public WritableSMG getDestinationSMG() {
+  public SMG getDestinationSMG() {
     return destSMG;
   }
 
@@ -166,7 +162,7 @@ final class SMGJoinTargetObjects {
     return recoverable;
   }
 
-  public ReadableSMG getInputSMG2() {
+  public SMG getInputSMG2() {
     return inputSMG2;
   }
 

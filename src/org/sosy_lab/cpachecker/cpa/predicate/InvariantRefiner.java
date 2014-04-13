@@ -38,7 +38,6 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
@@ -67,7 +66,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 
 import com.google.common.collect.Lists;
 
-@Options(prefix="cpa.predicate.refinement")
 public class InvariantRefiner extends AbstractARGBasedRefiner {
 
   private final PredicateAbstractionRefinementStrategy predicateRefinementStrategy;
@@ -92,7 +90,6 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
     }
 
     config = predicateCpa.getConfiguration();
-    config.inject(this, InvariantRefiner.class);
     logger = predicateCpa.getLogger();
 
     amgr = predicateCpa.getPredicateManager();

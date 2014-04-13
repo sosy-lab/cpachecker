@@ -56,6 +56,7 @@ def substituteVars(oldList, runSet, sourcefile=None):
     # list with tuples (key, value): 'key' is replaced by 'value'
     keyValueList = [('${benchmark_name}',     benchmark.name),
                     ('${benchmark_date}',     benchmark.date),
+                    ('${benchmark_instance}', benchmark.instance),
                     ('${benchmark_path}',     benchmark.baseDir),
                     ('${benchmark_path_abs}', os.path.abspath(benchmark.baseDir)),
                     ('${benchmark_file}',     os.path.basename(benchmark.benchmarkFile)),
@@ -114,6 +115,15 @@ class Benchmark:
         currentTime = time.localtime()
         self.date = time.strftime("%y-%m-%d_%H%M", currentTime)
         self.dateISO = time.strftime("%y-%m-%d %H:%M", currentTime)
+        self.instance = self.date
+        if not config.benchmarkInstanceIdent is None:
+            self.instance = config.benchmarkInstanceIdent
+
+        self.outputBase = OUTPUT_PATH + self.name + "." + self.instance
+        self.logFolder = self.outputBase + ".logfiles" + os.path.sep
+        if not config.reprocessResults and os.path.exists(self.logFolder):
+            # we refuse to overwrite existing results
+            sys.exit('Output directory {0} already exists, will not overwrite existing results.'.format(self.logFolder))
 
         # parse XML
         rootTag = ET.ElementTree().parse(benchmarkFile)
@@ -180,11 +190,7 @@ class Benchmark:
             sys.exit()
 
         # create folder for file-specific log-files.
-        # existing files (with the same name) will be OVERWRITTEN!
-        self.outputBase = OUTPUT_PATH + self.name + "." + self.date
-        self.logFolder = self.outputBase + ".logfiles" + os.path.sep
-        if not os.path.isdir(self.logFolder):
-            os.makedirs(self.logFolder)
+        os.makedirs(self.logFolder)
 
         # get global options and propertyFiles
         self.options = Util.getListFromXML(rootTag)
@@ -549,13 +555,13 @@ class Run():
         # (we need this for storing the results in them).
         self.columns = [Column(c.text, c.title, c.numberOfDigits) for c in self.runSet.benchmark.columns]
 
+        # here we store the optional result values, e.g. memory usage, energy, host name
+        self.values = {}
+
         # dummy values, for output in case of interrupt
         self.status = ""
         self.cpuTime = None
         self.wallTime = None
-        self.memUsage = None
-        self.host = None
-        self.energy = None
         self.category = result.CATEGORY_UNKNOWN
 
 
@@ -593,8 +599,8 @@ class Run():
         if returnvalue is not None \
                 and returnsignal == 9 \
                 and MEMLIMIT in rlimits \
-                and self.memUsage \
-                and int(self.memUsage) >= (rlimits[MEMLIMIT] * 1024 * 1024 * 0.999):
+                and 'memUsage' in self.values \
+                and int(self.values['memUsage']) >= (rlimits[MEMLIMIT] * 1024 * 1024 * 0.999):
             self.status = 'OUT OF MEMORY'
             self.category = result.CATEGORY_ERROR
 
