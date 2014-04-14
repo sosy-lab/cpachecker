@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.*;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Scanner;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -42,6 +43,7 @@ import org.sosy_lab.common.LazyFutureTask;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -105,9 +107,9 @@ public class CPAInvariantGenerator implements InvariantGenerator {
 
     Configuration invariantConfig;
     try {
-      invariantConfig = Configuration.builder()
-                            .loadFromFile(configFile)
-                            .build();
+      ConfigurationBuilder configBuilder = extractOptionFrom(config, "specification");
+      configBuilder.loadFromFile(configFile);
+      invariantConfig = configBuilder.build();
     } catch (IOException e) {
       throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
     }
@@ -186,13 +188,8 @@ public class CPAInvariantGenerator implements InvariantGenerator {
       logger.log(Level.INFO, "Finding invariants");
 
       try {
-        assert invariantAlgorithm != null;
-        invariantAlgorithm.run(taskReached);
-
-        if (taskReached.hasWaitingState()) {
-          // We may not return the reached set in this case
-          // because the invariants may be incomplete
-          throw new CPAException("Invariant generation algorithm did not finish processing the reached set, invariants not available.");
+        while (!taskReached.getWaitlist().isEmpty()) {
+          invariantAlgorithm.run(taskReached);
         }
 
         return new UnmodifiableReachedSetWrapper(taskReached);
@@ -326,6 +323,26 @@ public class CPAInvariantGenerator implements InvariantGenerator {
       return true;
     }
 
+  }
+
+  private static ConfigurationBuilder extractOptionFrom(Configuration pConfiguration, String pKey) {
+    ConfigurationBuilder builder = Configuration.builder().copyFrom(pConfiguration);
+    try (Scanner pairScanner = new Scanner(pConfiguration.asPropertiesString())) {
+      pairScanner.useDelimiter("\\s+");
+      while (pairScanner.hasNext()) {
+        String pair = pairScanner.next();
+        try (Scanner keyScanner = new Scanner(pair)) {
+          keyScanner.useDelimiter("\\s*=\\s*.*");
+          if (keyScanner.hasNext()) {
+            String key = keyScanner.next();
+            if (!key.equals(pKey)) {
+              builder.clearOption(key);
+            }
+          }
+        }
+      }
+    }
+    return builder;
   }
 
 }

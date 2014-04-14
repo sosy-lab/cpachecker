@@ -34,6 +34,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Scanner;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
@@ -93,6 +94,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
@@ -181,6 +183,8 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
 
   private final ConditionAdjuster conditionAdjuster;
 
+  private Optional<Set<CFANode>> targetLocations = Optional.absent();
+
   /**
    * Gets a factory for creating InvariantCPAs.
    *
@@ -223,34 +227,39 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
     // Determine the target locations
     boolean determineTargetLocations = options.analyzeTargetPathsOnly || options.interestingPredicatesLimit != 0 || options.interestingVariableLimit != 0;
     if (determineTargetLocations) {
-      try {
-        // Create new configuration based on existing config but with default set of CPAs
-        ConfigurationBuilder configurationBuilder = Configuration.builder();
-        configurationBuilder.setOption("output.disable", "true");
-        configurationBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPA");
-        String specification = config.getProperty("specification");
-        if (specification == null) {
-          specification = "config/specification/default.spc";
-        }
-        configurationBuilder.setOption("specification", specification);
-        Configuration configuration = configurationBuilder.build();
-        ConfigurableProgramAnalysis cpa = new CPABuilder(configuration, logManager, shutdownNotifier, reachedSetFactory).buildCPAs(cfa);
-        ReachedSet reached = reachedSetFactory.create();
-        reached.add(cpa.getInitialState(pNode), cpa.getInitialPrecision(pNode));
-        CPAAlgorithm targetFindingAlgorithm = CPAAlgorithm.create(cpa, logManager, config, shutdownNotifier);
+      if (this.targetLocations.isPresent()) {
+        targetLocations = this.targetLocations.get();
+      } else {
+        try {
+          // Create new configuration based on existing config but with default set of CPAs
+          String specificationPropertyName = "specification";
+          ConfigurationBuilder configurationBuilder = extractOptionFrom(config, specificationPropertyName);
+          configurationBuilder.setOption("output.disable", "true");
+          configurationBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPA");
+          if (config.getProperty(specificationPropertyName) == null) {
+            String specification = "config/specification/default.spc";
+            configurationBuilder.setOption(specificationPropertyName, specification);
+          }
+          Configuration configuration = configurationBuilder.build();
+          ConfigurableProgramAnalysis cpa = new CPABuilder(configuration, logManager, shutdownNotifier, reachedSetFactory).buildCPAs(cfa);
+          ReachedSet reached = reachedSetFactory.create();
+          reached.add(cpa.getInitialState(pNode), cpa.getInitialPrecision(pNode));
+          CPAAlgorithm targetFindingAlgorithm = CPAAlgorithm.create(cpa, logManager, configuration, shutdownNotifier);
 
-        boolean changed = true;
-        while (changed) {
-          targetFindingAlgorithm.run(reached);
-          changed = targetLocations.addAll(FluentIterable.from(reached).filter(AbstractStates.IS_TARGET_STATE).transform(AbstractStates.EXTRACT_LOCATION).toList());
+          boolean changed = true;
+          while (changed) {
+            targetFindingAlgorithm.run(reached);
+            changed = targetLocations.addAll(FluentIterable.from(reached).filter(AbstractStates.IS_TARGET_STATE).transform(AbstractStates.EXTRACT_LOCATION).toList());
+          }
+          CPAs.closeCpaIfPossible(cpa, logManager);
+          CPAs.closeIfPossible(targetFindingAlgorithm, logManager);
+          this.targetLocations = Optional.of(targetLocations);
+        } catch (InvalidConfigurationException | CPAException | InterruptedException e) {
+          if (!shutdownNotifier.shouldShutdown()) {
+            logManager.logException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations.");
+          }
+          determineTargetLocations = false;
         }
-        CPAs.closeCpaIfPossible(cpa, logManager);
-        CPAs.closeIfPossible(targetFindingAlgorithm, logManager);
-      } catch (InvalidConfigurationException | CPAException | InterruptedException e) {
-        if (!shutdownNotifier.shouldShutdown()) {
-          logManager.logException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations.");
-        }
-        determineTargetLocations = false;
       }
     }
     if (shutdownNotifier.shouldShutdown()) {
@@ -865,6 +874,26 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
       pReachedSet.clear();
     }
 
+  }
+
+  private static ConfigurationBuilder extractOptionFrom(Configuration pConfiguration, String pKey) {
+    ConfigurationBuilder builder = Configuration.builder().copyFrom(pConfiguration);
+    try (Scanner pairScanner = new Scanner(pConfiguration.asPropertiesString())) {
+      pairScanner.useDelimiter("\\s+");
+      while (pairScanner.hasNext()) {
+        String pair = pairScanner.next();
+        try (Scanner keyScanner = new Scanner(pair)) {
+          keyScanner.useDelimiter("\\s*=\\s*.*");
+          if (keyScanner.hasNext()) {
+            String key = keyScanner.next();
+            if (!key.equals(pKey)) {
+              builder.clearOption(key);
+            }
+          }
+        }
+      }
+    }
+    return builder;
   }
 
 }
