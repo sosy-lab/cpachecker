@@ -23,18 +23,24 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Sets;
-import org.sosy_lab.cpachecker.cfa.ast.c.*;
+import java.math.BigInteger;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
-import java.math.BigInteger;
-import java.util.HashMap;
-import java.util.Map;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 
 /**
  * This Visitor implements evaluation of expressions,

@@ -33,9 +33,9 @@ import java.util.logging.Level;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 import com.google.common.io.CharStreams;

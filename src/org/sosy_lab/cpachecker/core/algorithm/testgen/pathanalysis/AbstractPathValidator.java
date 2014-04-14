@@ -25,8 +25,8 @@ package org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis;
 
 import java.util.List;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.BasicPathSelector.PathInfo;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;

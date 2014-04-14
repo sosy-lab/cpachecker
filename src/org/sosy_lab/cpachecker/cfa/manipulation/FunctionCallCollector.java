@@ -1,13 +1,13 @@
 package org.sosy_lab.cpachecker.cfa.manipulation;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 
 /** This Visitor collects all functioncalls.
  *  It should visit the CFA of each functions BEFORE creating super-edges (functioncall- and return-edges). */

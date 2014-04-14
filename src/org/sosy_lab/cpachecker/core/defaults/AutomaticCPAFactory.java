@@ -37,10 +37,10 @@ import java.util.List;
 import org.sosy_lab.common.ChildFirstPatternClassLoader;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -187,7 +187,6 @@ public class AutomaticCPAFactory implements CPAFactory {
 
   @Override
   public CPAFactory setLogger(LogManager pLogger) {
-    set(pLogger, org.sosy_lab.common.log.LogManager.class);
     set(pLogger, LogManager.class);
     return this;
   }
