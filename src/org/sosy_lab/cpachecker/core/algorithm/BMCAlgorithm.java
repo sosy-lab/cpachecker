@@ -249,7 +249,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   private final Iterable<CFAEdge> ignorableEdges;
 
-  private BooleanFormulaManagerView bfmgr;
+  private final BooleanFormulaManagerView bfmgr;
 
   public BMCAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
                       Configuration pConfig, LogManager pLogger,
@@ -573,7 +573,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     private UnmodifiableReachedSet invariantsReachedSet;
 
+    private BooleanFormula currentInvariants = bfmgr.makeBoolean(true);
+
     private int stackDepth = 0;
+
+    private Set<CFANode> targetLocations = null;
 
     public KInductionProver() {
       List<CFAEdge> incomingEdges = null;
@@ -684,12 +688,12 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     private ProverEnvironment getProver() throws CPAException, InterruptedException {
-      // get global invariants
-      CFANode loopHead = Iterables.getOnlyElement(getLoop().getLoopHeads());
       UnmodifiableReachedSet currentInvariantsReachedSet = invariantGenerator.get();
       if (currentInvariantsReachedSet != invariantsReachedSet) {
+        CFANode loopHead = Iterables.getOnlyElement(getLoop().getLoopHeads());
         invariantsReachedSet = currentInvariantsReachedSet;
-        BooleanFormula invariants = extractInvariantsAt(currentInvariantsReachedSet, loopHead);
+        // get global invariants
+        BooleanFormula invariants = getCurrentInvariants();
         injectInvariants(currentInvariantsReachedSet, loopHead);
         if (isProverInitialized()) {
           pop();
@@ -701,6 +705,17 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       }
       assert isProverInitialized();
       return prover;
+    }
+
+    private BooleanFormula getCurrentInvariants() throws CPAException, InterruptedException {
+      if (!bfmgr.isFalse(currentInvariants)) {
+        UnmodifiableReachedSet currentInvariantsReachedSet = invariantGenerator.get();
+        if (currentInvariantsReachedSet != invariantsReachedSet) {
+          CFANode loopHead = Iterables.getOnlyElement(getLoop().getLoopHeads());
+          currentInvariants = extractInvariantsAt(currentInvariantsReachedSet, loopHead);
+        }
+      }
+      return currentInvariants;
     }
 
     private void injectInvariants(UnmodifiableReachedSet pReachedSet, CFANode pLocation) {
@@ -750,11 +765,18 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     private BooleanFormula extractInvariantsAt(UnmodifiableReachedSet pReachedSet, CFANode pLocation) throws CPAException, InterruptedException {
-      BooleanFormula invariant = bfmgr.makeBoolean(false);
 
       if (pReachedSet.isEmpty()) {
         return bfmgr.makeBoolean(true); // no invariants available
       }
+
+      if (targetLocations != null && AbstractStates.filterLocations(pReachedSet, targetLocations).isEmpty()) {
+        logger.log(Level.INFO, "Invariant generation found no target states.");
+        invariantGenerator.cancel();
+        return bfmgr.makeBoolean(false);
+      }
+
+      BooleanFormula invariant = bfmgr.makeBoolean(false);
 
       for (AbstractState locState : AbstractStates.filterLocation(pReachedSet, pLocation)) {
         BooleanFormula f = AbstractStates.extractReportedFormulas(fmgr, locState);
@@ -768,6 +790,10 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     public final boolean check() throws CPAException, InterruptedException {
       if (isTrivial()) {
         return getTrivialResult();
+      }
+
+      if (bfmgr.isFalse(getCurrentInvariants())) {
+        return true;
       }
 
       stats.inductionPreparation.start();
@@ -847,6 +873,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
       // Create formula
       BooleanFormula inductions = bfmgr.makeBoolean(true);
+
+      targetLocations = from(reached).filter(IS_TARGET_STATE).transform(AbstractStates.EXTRACT_LOCATION).toSet();
 
       final Iterable<CFAEdge> cutPointEdges = getCutPointEdges(reachedPerLocation, loopStates);
 
