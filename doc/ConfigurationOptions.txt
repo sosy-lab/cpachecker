@@ -1573,10 +1573,6 @@ pcc.certificateType = HEURISTIC
 
 pcc.checkPropertyPerElement = false
 
-# Enable interleaved proof reading and writing, may not be supported by every
-# strategy.
-pcc.interleaved = false
-
 # file in which proof representation needed for proof checking is stored
 pcc.proofFile = "arg.obj"
 

@@ -102,10 +102,16 @@ public class ARGReachedSet {
    * @param e The root of the removed subtree, may not be the initial element.
    */
   public void removeSubtree(ARGState e) {
+    removeSubtree(e, true);
+  }
+
+  public void removeSubtree(ARGState e, boolean readdToWaitlist) {
     Set<ARGState> toWaitlist = removeSubtree0(e);
 
-    for (ARGState ae : toWaitlist) {
-      mReached.reAddToWaitlist(ae);
+    if(readdToWaitlist) {
+      for (ARGState ae : toWaitlist) {
+        mReached.reAddToWaitlist(ae);
+      }
     }
   }
 
@@ -204,7 +210,7 @@ public class ARGReachedSet {
     return Precisions.replaceByType(pOldPrecision, pNewPrecision, pPrecisionType);
   }
 
-  private Set<ARGState> removeSubtree0(ARGState e) {
+  private Set<ARGState> removeSubtree0(ARGState e, boolean readdToWaitlist) {
     Preconditions.checkNotNull(e);
     Preconditions.checkArgument(!e.getParents().isEmpty(), "May not remove the initial element from the ARG/reached set");
 
@@ -213,16 +219,21 @@ public class ARGReachedSet {
     Set<ARGState> toUnreach = e.getSubgraph();
 
     // collect all elements covered by the subtree
-    List<ARGState> newToUnreach = new ArrayList<>();
-
-    for (ARGState ae : toUnreach) {
-      newToUnreach.addAll(ae.getCoveredByThis());
+    if(readdToWaitlist) {
+      List<ARGState> newToUnreach = new ArrayList<>();
+      for (ARGState ae : toUnreach) {
+        newToUnreach.addAll(ae.getCoveredByThis());
+      }
+      toUnreach.addAll(newToUnreach);
     }
-    toUnreach.addAll(newToUnreach);
 
     Set<ARGState> toWaitlist = removeSet(toUnreach);
 
     return toWaitlist;
+  }
+
+  private Set<ARGState> removeSubtree0(ARGState e) {
+    return removeSubtree0(e, true);
   }
 
   private void dumpSubgraph(ARGState e) {

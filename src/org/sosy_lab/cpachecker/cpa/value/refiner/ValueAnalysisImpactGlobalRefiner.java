@@ -43,7 +43,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -51,11 +50,13 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -112,7 +113,7 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
   private int totalTargetsFound = 0;
   private final Timer totalTime = new Timer();
 
-  private ValueAnalysisPrecision singletonPrec = null;
+  private ValueAnalysisPrecision globalPrecision = null;
 
   public static ValueAnalysisImpactGlobalRefiner create(final ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     final ValueAnalysisCPA valueAnalysisCpa = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
@@ -145,6 +146,7 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
   @Override
   public boolean performRefinement(final ReachedSet pReached) throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "performing global refinement ...");
+
     totalTime.start();
     totalRefinements++;
 
@@ -164,7 +166,6 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
       i++;
 
       ARGPath errorPath = interpolationTree.getNextPathForInterpolation();
-
       if(errorPath.isEmpty()) {
         logger.log(Level.FINEST, "skipping interpolation, error path is empty, because initial interpolant is already false");
         continue;
@@ -193,38 +194,55 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
     }
 
     Map<ARGState, ValueAnalysisPrecision> refinementInformation = new HashMap<>();
-    for(ARGState root : interpolationTree.obtainRefinementRoots()) {
+    for (ARGState root : interpolationTree.obtainRefinementRoots()) {
       Collection<ARGState> targetsReachableFromRoot = interpolationTree.getTargetsInSubtree(root);
 
       // join the precisions of the subtree of this roots into a single precision
       final ValueAnalysisPrecision subTreePrecision = joinSubtreePrecisions(pReached, targetsReachableFromRoot);
 
-      ValueAnalysisPrecision prec = new ValueAnalysisPrecision(subTreePrecision, interpolationTree.extractPrecisionIncrement(root));
+      Multimap<CFANode, MemoryLocation> extractPrecisionIncrement = interpolationTree.extractPrecisionIncrement(root);
+      ValueAnalysisPrecision currentPrecision = new ValueAnalysisPrecision(subTreePrecision, extractPrecisionIncrement);
 
-      if(singletonPrec != null) {
-        prec.getRefinablePrecision().join(singletonPrec.getRefinablePrecision());
+      if (globalPrecision != null) {
+        currentPrecision.getRefinablePrecision().join(globalPrecision.getRefinablePrecision());
       }
 
-      singletonPrec = prec;
+      globalPrecision = currentPrecision;
 
-      refinementInformation.put(root, prec);
+      refinementInformation.put(root, currentPrecision);
     }
 
     ARGReachedSet reached = new ARGReachedSet(pReached);
 
-    for(ARGState root : interpolationTree.obtainCutOffRoots()) {
-      reached.removeSubtree(root);
+    for (ARGState root : interpolationTree.obtainCutOffRoots()) {
+      reached.removeSubtree(root, false);
     }
 
-    for(Map.Entry<ARGState, ValueAnalysisPrecision> info : refinementInformation.entrySet()) {
+    for (Map.Entry<ARGState, ValueAnalysisPrecision> info : refinementInformation.entrySet()) {
       reached.updatePrecisionGlobally(info.getValue(), ValueAnalysisPrecision.class);
     }
 
-    for(Map.Entry<ARGState, ValueAnalysisInterpolant> entry : interpolationTree.interpolants.entrySet()) {
-      if(!entry.getValue().isTrivial()) {
+    Collection<AbstractState> waitlist = reached.asReachedSet().getWaitlist();
+    for (Map.Entry<ARGState, ValueAnalysisInterpolant> entry : interpolationTree.interpolants.entrySet()) {
+      if (!entry.getValue().isTrivial()) {
         ValueAnalysisState valueState = AbstractStates.extractStateByType(entry.getKey(), ValueAnalysisState.class);
 
         entry.getValue().strengthen(valueState);
+
+        ARGState state = entry.getKey();
+
+        if (state.isDestroyed()) {
+          continue;
+        }
+
+        boolean contains = false;
+        for (ARGState kid : state.getChildren()) {
+          contains = contains || waitlist.contains(kid);
+        }
+
+        if (contains) {
+          reached.removeSubtree(state);
+        }
       }
     }
 
@@ -738,7 +756,7 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
       @Override
       public ValueAnalysisInterpolant getInitialInterpolantForRoot(ARGState root) {
 
-        ValueAnalysisInterpolant initialInterpolant = interpolants.get(predecessorRelation.get(root));
+        ValueAnalysisInterpolant initialInterpolant = interpolants.get(root);
 
         if(initialInterpolant == null) {
           initialInterpolant = ValueAnalysisInterpolant.createInitial();
