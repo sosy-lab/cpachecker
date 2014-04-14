@@ -1152,6 +1152,10 @@ cpa.predicate.satCheck = 0
 # are correct
 cpa.predicate.smtinterpol.checkResults = false
 
+# List of further options which will be set to true for SMTInterpol in
+# addition to the default options. Format is 'option1,option2,option3'
+cpa.predicate.smtinterpol.furtherOptions = []
+
 # Export solver queries in Smtlib format into a file.
 cpa.predicate.smtinterpol.logAllQueries = false
 
@@ -1572,10 +1576,6 @@ pcc.certificateType = HEURISTIC
   enum:     [HEURISTIC, ARG, MONOTONESTOPARG]
 
 pcc.checkPropertyPerElement = false
-
-# Enable interleaved proof reading and writing, may not be supported by every
-# strategy.
-pcc.interleaved = false
 
 # file in which proof representation needed for proof checking is stored
 pcc.proofFile = "arg.obj"
