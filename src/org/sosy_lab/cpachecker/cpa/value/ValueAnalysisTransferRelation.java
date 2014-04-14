@@ -123,8 +123,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   private static final Map<String, String> UNSUPPORTED_FUNCTIONS
       = ImmutableMap.of("pthread_create", "threads");
 
-  @Option(name="symbolicValues", description="enables generation of symbolic values")
-  private boolean symbolicValues = false;
+  private boolean symbolicValues = new SymbolicValuesOption().areSymbolicValuesEnabled();
 
   @Option(description = "if there is an assumption like (x!=0), "
       + "this option sets unknown (uninitialized) variables to 1L, "
