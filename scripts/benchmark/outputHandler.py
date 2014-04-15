@@ -391,6 +391,8 @@ class OutputHandler:
         The method outputAfterRunSet() stores the times of a run set in XML.
         @params cpuTime, wallTime: accumulated times of the run set
         """
+        
+        self.addValuesToRunSetXML(runSet, cpuTime, wallTime, energy)
 
         # write results to files
         self.XMLFile.replace(Util.XMLtoString(runSet.xml))
@@ -454,30 +456,52 @@ class OutputHandler:
         runElem = run.xml
         for elem in list(runElem):
             runElem.remove(elem)
-        runElem.append(ET.Element("column", {"title": "status", "value": run.status}))
-        runElem.append(ET.Element("column", {"title": "category", "value": run.category}))
-        runElem.append(ET.Element("column", {"title": "cputime", "value": cpuTimeStr}))
-        runElem.append(ET.Element("column", {"title": "walltime", "value": wallTimeStr}))
-        for key, value in run.values.items():
-            if value is None:
-                continue
-            elif isinstance(value, dict): # TODO support several levels of nesting?
-                for key2, value2 in value.items():
-                    if key[0] == '@':
-                        attributes = {"title": key[1:] + '_' + key2, "value": str(value2), "hidden": "true"}
-                    else:
-                        attributes = {"title": key + '_' + key2, "value": str(value2)}
-                    runElem.append(ET.Element("column", attributes))
-            else:
-                if key[0] == '@':
-                    attributes = {"title": key[1:], "value": str(value), "hidden": "true"}
-                else:
-                    attributes = {"title": key, "value": str(value)}
-                runElem.append(ET.Element("column", attributes))
+        self.addColumnToXML(runElem, 'cputime',   cpuTimeStr)
+        self.addColumnToXML(runElem, 'walltime',  wallTimeStr)
+        self.addColumnToXML(runElem, 'status',    run.status)
+        self.addColumnToXML(runElem, '@category', run.category) # hidden
+        self.addColumnToXML(runElem, '',          run.values)
 
         for column in run.columns:
-            runElem.append(ET.Element("column",
-                        {"title": column.title, "value": column.value}))
+            self.addColumnToXML(runElem, column.title, column.value)
+
+
+    def addValuesToRunSetXML(self, runSet, cpuTime, wallTime, energy):
+        """
+        This function adds the result values to the XML representation of a runSet.
+        """
+        cpuTimeStr = Util.formatNumber(cpuTime, TIME_PRECISION)
+        wallTimeStr = Util.formatNumber(wallTime, TIME_PRECISION)
+        self.addColumnToXML(runSet.xml, 'cputime', cpuTimeStr)
+        self.addColumnToXML(runSet.xml, 'walltime', wallTimeStr)
+        self.addColumnToXML(runSet.xml, 'energy', energy)
+
+
+    def addColumnToXML(self, xml, title, value, prefix=""):
+        if value is None:
+            return
+
+        if isinstance(value, dict):
+            for key, value in value.items():
+                if prefix:
+                    commonPrefix = prefix + '_' + title
+                else:
+                    commonPrefix = title
+                self.addColumnToXML(xml, key, value, prefix=commonPrefix)
+            return
+
+        # default case: add columns
+        if prefix:
+            if prefix.startswith('@'):
+                attributes = {"title": prefix[1:] + '_' + title, "value": str(value), "hidden": "true"}
+            else:
+                attributes = {"title": prefix + '_' + title, "value": str(value)}
+        else:
+            if title.startswith('@'):
+                attributes = {"title": title[1:], "value": str(value), "hidden": "true"}
+            else:
+                attributes = {"title": title, "value": str(value)}
+        xml.append(ET.Element("column", attributes))
 
 
     def createOutputLine(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, host, energies, columns, isFirstLine=False):
