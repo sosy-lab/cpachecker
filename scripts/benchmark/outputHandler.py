@@ -463,9 +463,17 @@ class OutputHandler:
                 continue
             elif isinstance(value, dict): # TODO support several levels of nesting?
                 for key2, value2 in value.items():
-                    runElem.append(ET.Element("column", {"title": key + '_' + key2, "value": str(value2)}))
+                    if key[0] == '@':
+                        attributes = {"title": key[1:] + '_' + key2, "value": str(value2), "hidden": "true"}
+                    else:
+                        attributes = {"title": key + '_' + key2, "value": str(value2)}
+                    runElem.append(ET.Element("column", attributes))
             else:
-                runElem.append(ET.Element("column", {"title": key, "value": str(value)}))
+                if key[0] == '@':
+                    attributes = {"title": key[1:], "value": str(value), "hidden": "true"}
+                else:
+                    attributes = {"title": key, "value": str(value)}
+                runElem.append(ET.Element("column", attributes))
 
         for column in run.columns:
             runElem.append(ET.Element("column",

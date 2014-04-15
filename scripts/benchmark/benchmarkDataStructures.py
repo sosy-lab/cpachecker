@@ -556,6 +556,7 @@ class Run():
         self.columns = [Column(c.text, c.title, c.numberOfDigits) for c in self.runSet.benchmark.columns]
 
         # here we store the optional result values, e.g. memory usage, energy, host name
+        # keys need to be strings, if first character is "@" the value is marked as hidden (e.g., debug info)
         self.values = {}
 
         # dummy values, for output in case of interrupt
