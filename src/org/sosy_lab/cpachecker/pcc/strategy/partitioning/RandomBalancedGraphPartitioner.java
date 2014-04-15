@@ -23,9 +23,27 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 import org.sosy_lab.cpachecker.core.interfaces.pcc.BalancedGraphPartitioner;
+import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
 
 
 public class RandomBalancedGraphPartitioner implements BalancedGraphPartitioner{
 
+  @Override
+  public List<Set<Integer>> computePartitioning(int pNumPartitions, PartialReachedSetDirectedGraph pGraph) {
+    if (pNumPartitions <= 0 || pGraph == null) {
+      new IllegalArgumentException("Partitioniong must contain at most 1 partition. Graph may not be null.");
+    }
+    List<Set<Integer>> partitioning =  new ArrayList<>(pNumPartitions);
+
+    for (int i = 0; i < pGraph.getNumNodes(); i++) {
+      partitioning.get((int) (Math.random() * pNumPartitions)).add(i);
+    }
+
+    return partitioning;
+  }
 }
