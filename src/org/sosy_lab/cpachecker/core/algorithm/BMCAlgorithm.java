@@ -1045,6 +1045,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
       for (CFAEdge cutPointEdge : cutPointEdges) {
 
+        // Early return if the invariant generation proved the program correct
+        if (bfmgr.isFalse(getCurrentInvariants())) {
+          return true;
+        }
+
         inductionCutPoints++;
         logger.log(Level.FINEST, "Considering cut point edge", cutPointEdge);
 
