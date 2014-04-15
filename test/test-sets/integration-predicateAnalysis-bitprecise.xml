@@ -14,7 +14,7 @@
     <sourcefiles>
       <includesfile>../programs/benchmarks/Simple.set</includesfile>
       <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
-      <exclude>../programs/benchmarks/ntdrivers/diskperf_true-unreach-label.i.cil.c</exclude>
+      <exclude>../programs/benchmarks/ntdrivers/diskperf_true-unreach-call.i.cil.c</exclude>
     </sourcefiles>
     <sourcefiles>
       <includesfile>../programs/simple/simple.set</includesfile>
@@ -24,13 +24,13 @@
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
       <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
-      <exclude>../programs/benchmarks/systemc/mem_slave_tlm.2_true-unreach-label_false-termination.cil.c</exclude>
+      <exclude>../programs/benchmarks/systemc/mem_slave_tlm.2_true-unreach-call_false-termination.cil.c</exclude>
     </sourcefiles>
     <sourcefiles>
       <includesfile>integration-DeviceDrivers64.set</includesfile>
       <option name="-skipRecursion"/>
       <option name="-64"/>
-      <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-hwmon-it87.ko_true-unreach-label.cil.out.i.pp.cil.c</exclude>
+      <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-hwmon-it87.ko_true-unreach-call.cil.out.i.pp.cil.c</exclude>
     </sourcefiles>
     <option name="-predicateAnalysis-bitprecise"/>
   </rundefinition>

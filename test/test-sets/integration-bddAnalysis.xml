@@ -49,7 +49,7 @@
       <include>../programs/benchmarks/ssh-simplified/*srvr*1*</include>
       <include>../programs/benchmarks/product-lines/*product3*</include>
       <exclude>../programs/benchmarks/product-lines/email*</exclude>
-      <exclude>../programs/benchmarks/product-lines/elevator_spec3_product30_true-unreach-label.cil.c</exclude>
+      <exclude>../programs/benchmarks/product-lines/elevator_spec3_product30_true-unreach-call.cil.c</exclude>
     </sourcefiles>
   
     <sourcefiles name="Loops">

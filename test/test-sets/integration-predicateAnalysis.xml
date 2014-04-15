@@ -22,12 +22,12 @@
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
       <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
-      <exclude>../programs/benchmarks/eca/Problem03_40_true-unreach-label.c</exclude>
-      <exclude>../programs/benchmarks/eca/Problem04_30_true-unreach-label.c</exclude>
-      <exclude>../programs/benchmarks/eca/Problem18_00_false-unreach-label.c</exclude>
-      <exclude>../programs/benchmarks/eca/Problem18_10_false-unreach-label.c</exclude>
-      <exclude>../programs/benchmarks/eca/Problem19_38_false-unreach-label.c</exclude>
-      <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_11_false-unreach-label.cil.c</exclude>
+      <exclude>../programs/benchmarks/eca/Problem03_40_true-unreach-call.c</exclude>
+      <exclude>../programs/benchmarks/eca/Problem04_30_true-unreach-call.c</exclude>
+      <exclude>../programs/benchmarks/eca/Problem18_00_false-unreach-call.c</exclude>
+      <exclude>../programs/benchmarks/eca/Problem18_10_false-unreach-call.c</exclude>
+      <exclude>../programs/benchmarks/eca/Problem19_38_false-unreach-call.c</exclude>
+      <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_11_false-unreach-call.cil.c</exclude>
     </sourcefiles>
     <sourcefiles>
       <includesfile>integration-DeviceDrivers64.set</includesfile>
