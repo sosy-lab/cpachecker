@@ -24,8 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
-import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
+import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
 import java.io.PrintStream;
@@ -54,6 +53,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisImpactGlobalRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -237,6 +238,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
         // if there is any target state do refinement
         if (refinementNecessary(reached)) {
+//System.out.println("refining ...");
           refinementSuccessful = refine(reached);
           refinedInPreviousIteration = true;
           // assert that reached set is free of target states,
@@ -247,10 +249,12 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         } else {
 
           if(!refinedInPreviousIteration) {
+//System.out.println("... done!");
             break;
           }
-
-          new ARGReachedSet(reached).removeSubtree(((ARGState)reached.getFirstState()).getChildren().iterator().next());
+//System.out.println("restarting ...");
+          new ARGReachedSet(reached).removeSubtree(((ARGState)reached.getFirstState()).getChildren().iterator().next(),
+              ValueAnalysisImpactGlobalRefiner.globalPrecision, ValueAnalysisPrecision.class);
 
           refinementSuccessful        = true;
           refinedInPreviousIteration  = false;

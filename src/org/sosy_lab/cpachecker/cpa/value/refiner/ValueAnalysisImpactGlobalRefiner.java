@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Writer;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,6 +37,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -113,7 +115,7 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
   private int totalTargetsFound = 0;
   private final Timer totalTime = new Timer();
 
-  private ValueAnalysisPrecision globalPrecision = null;
+  public static ValueAnalysisPrecision globalPrecision = null;
 
   public static ValueAnalysisImpactGlobalRefiner create(final ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     final ValueAnalysisCPA valueAnalysisCpa = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
@@ -166,6 +168,7 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
       i++;
 
       ARGPath errorPath = interpolationTree.getNextPathForInterpolation();
+//System.out.println("errorPath: " + errorPath.toString().hashCode());
       if(errorPath.isEmpty()) {
         logger.log(Level.FINEST, "skipping interpolation, error path is empty, because initial interpolant is already false");
         continue;
@@ -214,35 +217,118 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
 
     ARGReachedSet reached = new ARGReachedSet(pReached);
 
+    if(exportInterpolationTree.equals("ALWAYS")) {
+      try (Writer w = Files.openOutputFile(Paths.get("before_" + totalRefinements + ".dot"))) {
+        ARGUtils.writeARGAsDot(w, (ARGState)pReached.getFirstState());
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+      }
+    }
+
     for (ARGState root : interpolationTree.obtainCutOffRoots()) {
       reached.removeSubtree(root, false);
     }
 
     for (Map.Entry<ARGState, ValueAnalysisPrecision> info : refinementInformation.entrySet()) {
-      reached.updatePrecisionGlobally(info.getValue(), ValueAnalysisPrecision.class);
+      //reached.updatePrecisionGlobally(info.getValue(), ValueAnalysisPrecision.class);
     }
 
-    Collection<AbstractState> waitlist = reached.asReachedSet().getWaitlist();
+    if(exportInterpolationTree.equals("ALWAYS")) {
+      try (Writer w = Files.openOutputFile(Paths.get("middle_" + totalRefinements + ".dot"))) {
+        ARGUtils.writeARGAsDot(w, (ARGState)pReached.getFirstState());
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+      }
+    }
+
+
     for (Map.Entry<ARGState, ValueAnalysisInterpolant> entry : interpolationTree.interpolants.entrySet()) {
       if (!entry.getValue().isTrivial()) {
-        ValueAnalysisState valueState = AbstractStates.extractStateByType(entry.getKey(), ValueAnalysisState.class);
 
-        entry.getValue().strengthen(valueState);
+        ARGState state                = entry.getKey();
+        ValueAnalysisInterpolant itp  = entry.getValue();
+        ValueAnalysisState valueState = AbstractStates.extractStateByType(state, ValueAnalysisState.class);
 
-        ARGState state = entry.getKey();
+        itp.strengthen(valueState);
 
+/*
         if (state.isDestroyed()) {
           continue;
         }
 
-        boolean contains = false;
+        boolean hasChildrenWaiting = false;
         for (ARGState kid : state.getChildren()) {
-          contains = contains || waitlist.contains(kid);
+          if (waitlist.contains(kid)) {
+            hasChildrenWaiting = true;
+            break;
+          }
         }
 
-        if (contains) {
-          reached.removeSubtree(state);
+        if (hasChildrenWaiting) {
+
+          ValueAnalysisPrecision existing = extractPrecision(pReached, state);
+          Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
+
+          for (MemoryLocation ml : valueState.getConstantsMapView().keySet()) {
+            increment.put(new CFANode("dummy"), ml);
+          }
+
+System.out.println("waitlist1: " + reached.asReachedSet().getWaitlist().size());
+System.out.println("update prec - removing " + state.getStateId());
+          ValueAnalysisPrecision newPrecision = new ValueAnalysisPrecision(existing, increment);
+          reached.removeSubtree(state, newPrecision, ValueAnalysisPrecision.class);
+
+System.out.println("waitlist2: " + reached.asReachedSet().getWaitlist().size());
+System.out.println("waitlist: " + reached.asReachedSet().getWaitlist());
+          //reached.removeSubtree(state);
         }
+*/
+      }
+    }
+    
+    
+    Collection<ARGPath> paths = getErrorPaths(targets);
+    ARGPath path = Iterables.getLast(paths);
+
+    Collection<AbstractState> waitlist = reached.asReachedSet().getWaitlist();
+    boolean done = false;
+    for (int j = path.size() - 1; j >= 0 && !done; j--) {
+      ARGState currentState = path.get(j).getFirst();
+      
+      if(currentState.isDestroyed()) {
+        continue;
+      }
+
+      for (ARGState kid : currentState.getChildren()) {
+        if (waitlist.contains(kid)) {
+          
+          ValueAnalysisPrecision existing = extractPrecision(pReached, currentState);
+          Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
+          
+          ValueAnalysisState valueState = AbstractStates.extractStateByType(currentState, ValueAnalysisState.class);
+          
+          for (MemoryLocation ml : valueState.getConstantsMapView().keySet()) {
+            increment.put(new CFANode("dummy"), ml);
+          }
+
+          ValueAnalysisPrecision newPrecision = new ValueAnalysisPrecision(existing, increment);
+          reached.removeSubtree(currentState, newPrecision, ValueAnalysisPrecision.class);
+          
+          done = true;
+        }
+        
+        if(done) {
+          break;
+        }
+      }
+    }
+    
+
+    if(exportInterpolationTree.equals("ALWAYS")) {
+      try (Writer w = Files.openOutputFile(Paths.get("after_" + totalRefinements + ".dot"))) {
+        ARGUtils.writeARGAsDot(w, (ARGState)pReached.getFirstState());
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
       }
     }
 
@@ -417,7 +503,7 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
     /**
      * the mapping from state to the identified interpolants
      */
-    private final Map<ARGState, ValueAnalysisInterpolant> interpolants = new HashMap<>();
+    private final Map<ARGState, ValueAnalysisInterpolant> interpolants = new LinkedHashMap<>();
 
     /**
      * the root of the tree
