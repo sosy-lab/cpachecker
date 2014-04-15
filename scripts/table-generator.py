@@ -322,8 +322,7 @@ class RunSetResult():
             for s in resultElem.findall('sourcefile'):
                 for c in s.findall('column'):
                     title = c.get('title')
-                    if title != 'category' \
-                            and not title in columnNames \
+                    if not title in columnNames \
                             and (allColumns or c.get('hidden') != 'true'):
                         columnNames.add(title)
                         columns.append(Column(title, None, None))
