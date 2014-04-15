@@ -47,7 +47,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 @Options
 public class ARG_CPAStrategy extends AbstractARGStrategy {
 
-  @Option(name = "pcc.checkPropertyPerElement", description = "")
+  @Option(
+      name = "pcc.checkPropertyPerElement",
+      description = "Enable if used property checker implements satisfiesProperty(AbstractState) and checked property is violated for a set iff an element in this set exists for which violates the property")
   private boolean singleCheck = false;
   private List<AbstractState> visitedStates;
   private final StopOperator stop;
