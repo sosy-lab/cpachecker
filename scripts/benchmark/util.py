@@ -37,6 +37,8 @@ import xml.etree.ElementTree as ET
 This module contains some useful functions for Strings, XML or Lists.
 """
 
+ENERGY_TYPES = ['cpu', 'core', 'uncore', 'external']
+
 def isWindows():
     return os.name == 'nt'
 
@@ -288,23 +290,40 @@ def addFilesToGitRepository(baseDir, files, description):
 
 
 
-def getEnergy():
+def getEnergy(oldEnergy=None):
     '''
-    returns a current value of energy consumption (like a time-stamp)
-    or None, if measurement is not available.
+    returns a dictionary with the currently available values of energy consumptions (like a time-stamp).
+    If oldEnergy is not None, the difference (currentValue - oldEnergy) is returned.
     '''
+    newEnergy = {}
+
     executable = findExecutable('read-energy.sh', exitOnError=False)
     if executable is None: # not availableon current system
-        return None
+        return newEnergy
 
-    # TODO support more ids like CPU, CORE, UNCORE, EXTERNAL, ...
-    energysh = subprocess.Popen([executable, 'cpu'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    (stdout, stderr) = energysh.communicate()
-    if energysh.returncode:
-        logging.warning('error while reading energy: out={0}, err={1}, retval={2}'.format(stdout, stderr, energysh.returncode))
-    try:
-        energyVal = int(stdout)
-    except ValueError:
-        return None
+    for energyType in ENERGY_TYPES:
+        energysh = subprocess.Popen([executable, energyType], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (stdout, stderr) = energysh.communicate()
+        if energysh.returncode:
+            logging.warning('error while reading energy: out={0}, err={1}, retval={2}'.format(stdout, stderr, energysh.returncode))
+        try:
+            newEnergy[energyType] = int(stdout)
+        except ValueError:
+            pass # do nothing
 
-    return energyVal
+    if oldEnergy is None:
+        return newEnergy
+    else:
+        return _energyDiff(newEnergy, oldEnergy)
+
+
+def _energyDiff(newEnergy, oldEnergy):
+    '''
+    returns a dict with (newEnergy - oldEnergy) for each type (=key) of energy,
+    but only, if both values exist
+    '''
+    diff = {}
+    for key in newEnergy:
+        if key in oldEnergy:
+            diff[key] = newEnergy[key] - oldEnergy[key]
+    return diff

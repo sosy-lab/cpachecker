@@ -290,7 +290,7 @@ class OutputHandler:
                 " ".join(runSet.propertyFiles))
 
         titleLine = self.createOutputLine("sourcefile", "status", "cpu time",
-                            "wall time", "host", "energy", self.benchmark.columns, True)
+                            "wall time", "host", ["energy_" + t for t in Util.ENERGY_TYPES], self.benchmark.columns, True)
 
         runSet.simpleLine = "-" * (len(titleLine))
 
@@ -350,7 +350,8 @@ class OutputHandler:
 
         # store information in run
         run.resultline = self.createOutputLine(run.identifier, run.status,
-                cpuTimeStr, wallTimeStr, run.values.get('host'), run.values.get('energy'),
+                cpuTimeStr, wallTimeStr, run.values.get('host'), 
+                [run.values.get('energy', {}).get(t, '-') for t in Util.ENERGY_TYPES],
                 run.columns)
         self.addValuesToRunXML(run, cpuTimeStr, wallTimeStr)
 
@@ -385,7 +386,7 @@ class OutputHandler:
             OutputHandler.printLock.release()
 
 
-    def outputAfterRunSet(self, runSet, cpuTime=None, wallTime=None, energy=None):
+    def outputAfterRunSet(self, runSet, cpuTime=None, wallTime=None, energy={}):
         """
         The method outputAfterRunSet() stores the times of a run set in XML.
         @params cpuTime, wallTime: accumulated times of the run set
@@ -406,7 +407,7 @@ class OutputHandler:
         self.TXTFile.append(self.runSetToTXT(runSet, True, cpuTime, wallTime, energy))
 
 
-    def runSetToTXT(self, runSet, finished=False, cpuTime=0, wallTime=0, energy=None):
+    def runSetToTXT(self, runSet, finished=False, cpuTime=0, wallTime=0, energy={}):
         lines = []
 
         # store values of each run
@@ -422,7 +423,7 @@ class OutputHandler:
             cpuTimeStr  = "None" if cpuTime  is None else Util.formatNumber(cpuTime, TIME_PRECISION)
             wallTimeStr = "None" if wallTime is None else Util.formatNumber(wallTime, TIME_PRECISION)
             lines.append(self.createOutputLine(endline, "done", cpuTimeStr,
-                             wallTimeStr, "-", energy, []))
+                             wallTimeStr, "-", [energy.get(t, '-') for t in Util.ENERGY_TYPES], []))
 
         return "\n".join(lines) + "\n"
 
@@ -458,7 +459,12 @@ class OutputHandler:
         runElem.append(ET.Element("column", {"title": "cputime", "value": cpuTimeStr}))
         runElem.append(ET.Element("column", {"title": "walltime", "value": wallTimeStr}))
         for key, value in run.values.items():
-            if value is not None:
+            if value is None:
+                continue
+            elif isinstance(value, dict): # TODO support several levels of nesting?
+                for key2, value2 in value.items():
+                    runElem.append(ET.Element("column", {"title": key + '_' + key2, "value": str(value2)}))
+            else:
                 runElem.append(ET.Element("column", {"title": key, "value": str(value)}))
 
         for column in run.columns:
@@ -466,7 +472,7 @@ class OutputHandler:
                         {"title": column.title, "value": column.value}))
 
 
-    def createOutputLine(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, host, energy, columns, isFirstLine=False):
+    def createOutputLine(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, host, energies, columns, isFirstLine=False):
         """
         @param sourcefile: title of a sourcefile
         @param status: status of programm
@@ -477,15 +483,18 @@ class OutputHandler:
         @return: a line for the outputFile
         """
 
-        lengthOfTime = 11
+        lengthOfTime = 12
+        lengthOfEnergy = 18
         minLengthOfColumns = 8
 
         outputLine = self.formatSourceFileName(sourcefile) + \
                      status.ljust(LEN_OF_STATUS) + \
                      cpuTimeDelta.rjust(lengthOfTime) + \
                      wallTimeDelta.rjust(lengthOfTime) + \
-                     str(host).rjust(lengthOfTime) + \
-                     str(energy).rjust(lengthOfTime)
+                     str(host).rjust(lengthOfTime)
+
+        for energy in energies:
+            outputLine += str(energy).rjust(lengthOfEnergy)
 
         for column in columns:
             columnLength = max(minLengthOfColumns, len(column.title)) + 2
