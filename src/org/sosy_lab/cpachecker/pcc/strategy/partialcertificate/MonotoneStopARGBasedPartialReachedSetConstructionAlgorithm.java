@@ -39,8 +39,8 @@ public class MonotoneStopARGBasedPartialReachedSetConstructionAlgorithm implemen
   @Override
   public AbstractState[] computePartialReachedSet(final UnmodifiableReachedSet pReached)
       throws InvalidConfigurationException {
-    if (!(pReached.getFirstState() instanceof ARGState)) { throw new InvalidConfigurationException("");// TODO
-    }
+    if (!(pReached.getFirstState() instanceof ARGState)) { throw new InvalidConfigurationException(
+        "May only compute partial reached set with this algorithm if an ARG is constructed and ARG is top level state."); }
     ARGState root = (ARGState) pReached.getFirstState();
 
     NodeSelectionARGPass argPass = getARGPass(pReached.getPrecision(root));
