@@ -211,7 +211,8 @@ public class BAMTransferRelation implements TransferRelation {
       for (Triple<AbstractState, Precision, Block> level : stack) {
         if (level.getThird() == currentLevel.getThird()
                 && bamCPA.isCoveredBy(currentLevel.getFirst(), level.getFirst())) {
-          // previously reached state contains 'more' information,
+          // previously reached state contains 'less' information, it is a super-state of the current state.
+          // Thus we would have an endless recursion (with current ).
           // TODO how to compare precisions? equality would be enough
           return true;
         }
@@ -376,7 +377,7 @@ public class BAMTransferRelation implements TransferRelation {
         logger.log(Level.ALL, "recursion will cause endless unrolling, skipping function and analysing summary-edge.");
 
         // cleanup function-call-state, that was needed to determine the reduced state of currentLevel
-        ((ARGState)initialState).removeFromARG();
+        //((ARGState)initialState).removeFromARG();
 
         // skip function-call
         FunctionSummaryEdge summaryEdge = rootNode.getLeavingSummaryEdge();
