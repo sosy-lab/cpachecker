@@ -875,7 +875,7 @@ def getSummary(runSetResults):
     available = False
     for runSetResult in runSetResults:
         for column in runSetResult.columns:
-            if column.title in runSetResult.summary:
+            if column.title in runSetResult.summary and runSetResult.summary[column.title] != '':
                 available = True
                 value = runSetResult.summary[column.title]
             else:
