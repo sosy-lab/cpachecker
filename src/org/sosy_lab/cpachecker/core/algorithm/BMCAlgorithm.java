@@ -113,7 +113,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -371,6 +370,14 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
+  /**
+   * Adjusts the conditions of the CPAs which support the adjusting of
+   * conditions.
+   *
+   * @return {@code true} if all CPAs supporting the feature agreed on
+   * adjusting their conditions, {@code false} if one of the CPAs does not
+   * support any further adjustment of conditions.
+   */
   private boolean adjustConditions() {
     for (AdjustableConditionCPA condCpa : conditionCPAs) {
       if (!condCpa.adjustPrecision()) {
@@ -481,6 +488,18 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
+  /**
+   * Checks the reachability of the target states contained in the given
+   * reached set by performing a satisfiability check with the given prover.
+   *
+   * @param pReachedSet the reached set containing the target states.
+   * @param prover the prover to be used.
+   *
+   * @return {@code true} if no target states are reachable, {@code false}
+   * otherwise.
+   *
+   * @throws InterruptedException if the satisfiability check was interrupted.
+   */
   private boolean checkTargetStates(final ReachedSet pReachedSet, final ProverEnvironment prover) throws InterruptedException {
     List<AbstractState> targetStates = from(pReachedSet)
                                             .filter(IS_TARGET_STATE)
@@ -510,6 +529,25 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
+  /**
+   * Checks if the bounded unrolling completely unrolled all reachable loop
+   * iterations by performing a satisfiablity check on the formulas encoding
+   * the reachability of the states where the bounded model check stopped due
+   * to reaching the bound.
+   *
+   * If this is is the case, then the bounded model check is guaranteed to be
+   * sound.
+   *
+   * @param pReachedSet the reached set containing the frontier of the bounded
+   * model check, i.e. where the bounded model check stopped.
+   * @param prover the prover to be used to prove that the stop states are
+   * unreachable.
+   *
+   * @return {@code true} if the bounded model check covered all reachable
+   * states and was thus sound, {@code false} otherwise.
+   *
+   * @throws InterruptedException if the satisfiability check is interrupted.
+   */
   private boolean checkBoundingAssertions(final ReachedSet pReachedSet, final ProverEnvironment prover) throws InterruptedException {
     FluentIterable<AbstractState> stopStates = from(pReachedSet)
                                                     .filter(IS_STOP_STATE);
@@ -557,6 +595,10 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     pStatsCollection.add(stats);
   }
 
+  /**
+   * Instances of this class are used to prove the safety of a program by
+   * applying an inductive approach based on k-induction.
+   */
   private class KInductionProver implements AutoCloseable {
 
     private ProverEnvironment prover = null;
@@ -579,6 +621,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     private Set<CFANode> targetLocations = null;
 
+    /**
+     * Creates an instance of the KInductionProver.
+     */
     public KInductionProver() {
       List<CFAEdge> incomingEdges = null;
       FluentIterable<CFAEdge> outgoingEdges = null;
@@ -650,43 +695,110 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       this.loop = loop;
     }
 
+    /**
+     * Checks if the result of the k-induction check has been determined to
+     * be trivial by the constructor.
+     *
+     * @return {@code true} if the constructor was able to determine a constant
+     * result for the k-induction check, {@code false} otherwise.
+     */
     private boolean isTrivial() {
       return this.trivialResult != null;
     }
 
+    /**
+     * If available, gets the constant result of the k-induction check as
+     * determined by the constructor. Do not call this function if there is no
+     * such trivial constant result. This can be checked by calling
+     * {@link isTrivial}.
+     *
+     * @return the trivial constant result of the k-induction check.
+     */
     private boolean getTrivialResult() {
       Preconditions.checkState(isTrivial(), "The proof is non-trivial.");
       return trivialResult;
     }
 
+    /**
+     * Gets the edges incoming into the single loop of the program to be
+     * checked. These incoming edges are only available if no trivial constant
+     * result for the k-induction check was determined by the constructor, as
+     * can be checked by calling {@link isTrivial}.
+     *
+     * @return the edges incoming into the single loop of the program.
+     */
     private Iterable<CFAEdge> getIncomingEdges() {
       Preconditions.checkState(!isTrivial(), "No incoming edges computed, because the proof is trivial.");
       assert incomingEdges != null;
       return incomingEdges;
     }
 
+    /**
+     * Gets the edges going out of the single loop of the program to be
+     * checked. These outgoing edges are only available if no trivial constant
+     * result for the k-induction check was determined by the constructor, as
+     * can be checked by calling {@link isTrivial}.
+     *
+     * @return the edges going out of the single loop of the program.
+     */
     private Iterable<CFAEdge> getOutgoingEdges() {
       Preconditions.checkState(!isTrivial(), "No outgoing edges computed, because the proof is trivial.");
       assert outgoingEdges != null;
       return outgoingEdges;
     }
 
+    /**
+     * Gets the current reached set describing the loop iterations unrolled for
+     * the inductive step. The reached set is only available if no trivial
+     * constant result for the k-induction check was determined by the
+     * constructor, as can be checked by calling {@link isTrivial}.
+     *
+     * @return the current reached set describing the loop iterations unrolled
+     * for the inductive step.
+     */
     private ReachedSet getCurrentReachedSet() {
       Preconditions.checkState(!isTrivial(), "No reached set created, because the proof is trivial.");
       assert reachedSet != null;
       return reachedSet;
     }
 
+    /**
+     * Gets the single loop of the program. This loop is only available if no
+     * trivial constant result for the k-induction check was determined by the
+     * constructor, as can be checked by calling {@link isTrivial}.
+     *
+     * @return the single loop of the program.
+     */
     private Loop getLoop() {
       Preconditions.checkState(!isTrivial(), "No loop computed, because the proof is trivial.");
       assert loop != null;
       return loop;
     }
 
+    /**
+     * Checks if the prover is already initialized.
+     *
+     * @return {@code true} if the prover is initialized, {@code false}
+     * otherwise.
+     */
     private boolean isProverInitialized() {
       return prover != null;
     }
 
+    /**
+     * Gets the prover environment to be used within the KInductionProver.
+     *
+     * This prover may be preinitialized with additional supporting invariants.
+     * The presence of these invariants, including pushing them onto and
+     * popping them off of the prover stack, is taken care of automatically.
+     *
+     * @return the prover environment to be used within the KInductionProver.
+     *
+     * @throws CPAException if the supporting invariant generation encountered
+     * an exception.
+     * @throws InterruptedException if the supporting invariant generation is
+     * interrupted.
+     */
     private ProverEnvironment getProver() throws CPAException, InterruptedException {
       UnmodifiableReachedSet currentInvariantsReachedSet = invariantGenerator.get();
       if (currentInvariantsReachedSet != invariantsReachedSet) {
@@ -707,6 +819,14 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       return prover;
     }
 
+    /**
+     * Gets the most current invariants generated by the invariant generator.
+     *
+     * @return the most current invariants generated by the invariant generator.
+     *
+     * @throws CPAException if the invariant generation encountered an exception.
+     * @throws InterruptedException if the invariant generation is interrupted.
+     */
     private BooleanFormula getCurrentInvariants() throws CPAException, InterruptedException {
       if (!bfmgr.isFalse(currentInvariants)) {
         UnmodifiableReachedSet currentInvariantsReachedSet = invariantGenerator.get();
@@ -718,6 +838,18 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       return currentInvariants;
     }
 
+    /**
+     * Attempts to inject the generated invariants into the bounded analysis
+     * CPAs to improve their performance.
+     *
+     * Currently, this is only supported for the InvariantsCPA. If the
+     * InvariantsCPA is not activated for both the bounded analysis as well as
+     * the invariant generation, this function does nothing.
+     *
+     * @param pReachedSet the invariant generation reached set.
+     * @param pLocation the location for which to extract and re-inject the
+     * invariants.
+     */
     private void injectInvariants(UnmodifiableReachedSet pReachedSet, CFANode pLocation) {
       InvariantsCPA invariantsCPA = CPAs.retrieveCPA(cpa, InvariantsCPA.class);
       if (invariantsCPA == null) {
@@ -751,6 +883,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
 
+    /**
+     * Pops the last formula from the prover stack.
+     */
     private void pop() {
       Preconditions.checkState(isProverInitialized());
       Preconditions.checkState(stackDepth > 0);
@@ -758,18 +893,33 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       --stackDepth;
     }
 
+    /**
+     * Pushes the given formula to the prover stack.
+     *
+     * @param pFormula the formula to be pushed.
+     */
     private void push(BooleanFormula pFormula) {
       Preconditions.checkState(isProverInitialized());
       prover.push(pFormula);
       ++stackDepth;
     }
 
-    private BooleanFormula extractInvariantsAt(UnmodifiableReachedSet pReachedSet, CFANode pLocation) throws CPAException, InterruptedException {
+    /**
+     * Extracts the generated invariants for the given location from the
+     * given reached set produced by the invariant generator.
+     *
+     * @param pReachedSet the reached set produced by the invariant generator.
+     * @param pLocation the location to extract the invariants for.
+     *
+     * @return the extracted invariants as a boolean formula.
+     */
+    private BooleanFormula extractInvariantsAt(UnmodifiableReachedSet pReachedSet, CFANode pLocation) {
 
       if (pReachedSet.isEmpty()) {
         return bfmgr.makeBoolean(true); // no invariants available
       }
 
+      // Check if the invariant generation was able to prove correctness for the program
       if (targetLocations != null && AbstractStates.filterLocations(pReachedSet, targetLocations).isEmpty()) {
         logger.log(Level.INFO, "Invariant generation found no target states.");
         invariantGenerator.cancel();
@@ -787,11 +937,24 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       return invariant;
     }
 
+    /**
+     * Attempts to perform the inductive check.
+     *
+     * @return <code>true</code> if k-induction successfully proved the
+     * correctness, <code>false</code> if the attempt was inconclusive.
+     *
+     * @throws CPAException if the bounded analysis constructing the step case
+     * encountered an exception.
+     * @throws InterruptedException if the bounded analysis constructing the
+     * step case was interrupted.
+     */
     public final boolean check() throws CPAException, InterruptedException {
+      // Early return if there is a trivial result for the inductive approach
       if (isTrivial()) {
         return getTrivialResult();
       }
 
+      // Early return if the invariant generation proved the program correct
       if (bfmgr.isFalse(getCurrentInvariants())) {
         return true;
       }
@@ -1070,11 +1233,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
    *
    * @return {@code true} if the unrolling was sound, {@code false} otherwise.
    *
-   * @throws PredicatedAnalysisPropertyViolationException
-   * @throws CPAException
-   * @throws InterruptedException
+   * @throws CPAException if an exception occurred during unrolling the reached
+   * set.
+   * @throws InterruptedException if the unrolling is interrupted.
    */
-  private boolean unroll(ReachedSet pReachedSet) throws PredicatedAnalysisPropertyViolationException, CPAException, InterruptedException {
+  private boolean unroll(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     return unroll(pReachedSet, Collections.<CFAEdge>emptySet());
   }
 
@@ -1088,15 +1251,25 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
    *
    * @return {@code true} if the unrolling was sound, {@code false} otherwise.
    *
-   * @throws PredicatedAnalysisPropertyViolationException
    * @throws CPAException
    * @throws InterruptedException
    */
-  private boolean unroll(ReachedSet pReachedSet, Iterable<CFAEdge> pExcludedEdges) throws PredicatedAnalysisPropertyViolationException, CPAException, InterruptedException {
+  private boolean unroll(ReachedSet pReachedSet, Iterable<CFAEdge> pExcludedEdges) throws CPAException, InterruptedException {
     adjustReachedSet(pReachedSet, pExcludedEdges);
     return algorithm.run(pReachedSet);
   }
 
+  /**
+   * Adjusts the given reached set so that the involved adjustable condition
+   * CPAs are able to operate properly without being negatively influenced by
+   * states generated earlier under different conditions while trying to
+   * retain as many states as possible.
+   *
+   * @param pReachedSet the reached set to be adjusted.
+   * @param pExcludedEdges the edges that were excluded and should also be
+   * excluded in the future in case the reached set needs to be cleared and
+   * reinitialized.
+   */
   private void adjustReachedSet(ReachedSet pReachedSet, Iterable<CFAEdge> pExcludedEdges) {
     Preconditions.checkArgument(!pReachedSet.isEmpty());
     CFANode initialLocation = extractLocation(pReachedSet.getFirstState());
@@ -1118,10 +1291,24 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
+  /**
+   * Excludes the collected ignorable edges from the given precision.
+   *
+   * @param pPrecision the precision to exclude the edges from.
+   * @return the new precision.
+   */
   private Precision excludeIgnorableEdges(Precision pPrecision) {
     return excludeEdges(pPrecision, ignorableEdges);
   }
 
+  /**
+   * Excludes the given edges from the given precision if the EdgeExclusionCPA
+   * is activated to allow for such edge exclusions.
+   *
+   * @param pPrecision the precision to exclude the edges from.
+   * @param pEdgesToIgnore the edges to be excluded.
+   * @return the new precision.
+   */
   private Precision excludeEdges(Precision pPrecision, Iterable<CFAEdge> pEdgesToIgnore) {
     EdgeExclusionPrecision oldPrecision = Precisions.extractPrecisionByType(pPrecision, EdgeExclusionPrecision.class);
     if (oldPrecision != null) {
@@ -1254,6 +1441,30 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     return ignorableEdges;
   }
 
+  /**
+   * Checks if the given assume edge succeeding the given assignment edge is
+   * ignorable. See {@link getIgnorableEdges} for details on why such an edge
+   * may be deemed ignorable.
+   *
+   * This is a helper function only meant to be called by
+   * {@link getIgnorableEdges}.
+   *
+   * @param pAssumeEdge the assume edge containing an assumption about the
+   * given variable {@code pVariable}.
+   * @param pAssignmentEdge the assignment edge preceding the assume edge
+   * {@code pAssumeEdge} and assigning a value to the variable
+   * {@code pVariable}.
+   * @param pIgnorableEdges the edges already found to be ignorable. This set
+   * is not modified by this function.
+   * @param pVariableClassification the variable classification information
+   * about the control flow automaton.
+   * @param pLoop the loop containing the given edges.
+   * @param pVariable the variable assigned to by the assignment edge
+   * {@code pAssignmentEdge}.
+   *
+   * @return {@code true} if the edge may be ignored by k-induction,
+   * {@code false} if it should not be ignored.
+   */
   private static boolean isIgnorable(CFAEdge pAssumeEdge, CFAEdge pAssignmentEdge, Set<CFAEdge> pIgnorableEdges,
       VariableClassification pVariableClassification, Loop pLoop, String pVariable) {
     Preconditions.checkArgument(pLoop.getLoopHeads().size() == 1);
@@ -1307,6 +1518,14 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     return assignmentReached && assumptionReached;
   }
 
+  /**
+   * Checks if the given CFA edge is free of side effects.
+   *
+   * @param pEdge the edge to be checked.
+   *
+   * @return {@code true} if the edge is considered to be free of side effects,
+   * {@code false} if it might cause side effects.
+   */
   private static boolean isFreeOfSideEffects(CFAEdge pEdge) {
     if (pEdge == null
         || pEdge.getEdgeType() != CFAEdgeType.StatementEdge
@@ -1333,6 +1552,14 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     return false;
   }
 
+  /**
+   * Gets the variables involved in the given edge.
+   *
+   * @param pCfaEdge the edge to be analyzed.
+   * @param pVariableClassification the variable classification.
+   *
+   * @return the variables involved in the given edge.
+   */
   private static Set<String> getInvolvedVariables(CFAEdge pCfaEdge, VariableClassification pVariableClassification) {
     switch (pCfaEdge.getEdgeType()) {
     case AssumeEdge: {
@@ -1427,6 +1654,14 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
+  /**
+   * Gets the variables involved in the given CInitializer.
+   *
+   * @param pCInitializer the CInitializer to be analyzed.
+   * @param pVariableClassification the variable classification.
+   *
+   * @return the variables involved in the given CInitializer.
+   */
   private static Set<String> getInvolvedVariables(CInitializer pCInitializer, VariableClassification pVariableClassification) {
     if (pCInitializer instanceof CDesignatedInitializer) {
       return getInvolvedVariables(((CDesignatedInitializer) pCInitializer).getRightHandSide(), pVariableClassification);
@@ -1443,6 +1678,14 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     return Collections.emptySet();
   }
 
+  /**
+   * Gets the variables involved in the given expression.
+   *
+   * @param pExpression the expression to be analyzed.
+   * @param pVariableClassification the variable classification.
+   *
+   * @return the variables involved in the given expression.
+   */
   private static Set<String> getInvolvedVariables(IAExpression pExpression, VariableClassification pVariableClassification) {
     if (pExpression == null) {
       return Collections.emptySet();
