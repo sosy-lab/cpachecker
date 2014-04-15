@@ -678,14 +678,14 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
             trivialResult = false;
           } else {
             trivialResult = null;
+            reachedSet = reachedSetFactory.create();
+            CFANode loopHead = Iterables.getOnlyElement(loop.getLoopHeads());
+            Precision precision = cpa.getInitialPrecision(loopHead);
+            if (trivialResult == null) {
+              precision = excludeIgnorableEdges(precision);
+            }
+            reachedSet.add(cpa.getInitialState(loopHead), precision);
           }
-          reachedSet = reachedSetFactory.create();
-          CFANode loopHead = Iterables.getOnlyElement(loop.getLoopHeads());
-          Precision precision = cpa.getInitialPrecision(loopHead);
-          if (trivialResult == null) {
-            precision = excludeIgnorableEdges(precision);
-          }
-          reachedSet.add(cpa.getInitialState(loopHead), precision);
           stats.inductionPreparation.stop();
         }
       }
