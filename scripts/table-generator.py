@@ -198,7 +198,7 @@ class Util:
         return uniqueList[0] if len(uniqueList) == 1 \
             else '[' + '; '.join(uniqueList) + ']'
 
-def parseTableDefinitionFile(file):
+def parseTableDefinitionFile(file, allColumns):
     '''
     This function parses the input to get run sets and columns.
     The param 'file' is an XML file defining the result files and columns.
@@ -244,7 +244,7 @@ def parseTableDefinitionFile(file):
     for resultTag in getResultTags(tableGenFile):
         columnsToShow = extractColumnsFromTableDefinitionFile(resultTag) or defaultColumnsToShow
         filelist = Util.getFileList(os.path.join(baseDir, resultTag.get('filename'))) # expand wildcards
-        runSetResults += [RunSetResult.createFromXML(resultsFile, parseResultsFile(resultsFile), columnsToShow) for resultsFile in filelist]
+        runSetResults += [RunSetResult.createFromXML(resultsFile, parseResultsFile(resultsFile), columnsToShow, allColumns) for resultsFile in filelist]
 
     for unionTag in tableGenFile.findall('union'):
         columnsToShow = extractColumnsFromTableDefinitionFile(unionTag) or defaultColumnsToShow
@@ -253,7 +253,7 @@ def parseTableDefinitionFile(file):
         for resultTag in getResultTags(unionTag):
             filelist = Util.getFileList(os.path.join(baseDir, resultTag.get('filename'))) # expand wildcards
             for resultsFile in filelist:
-                result.append(resultsFile, parseResultsFile(resultsFile))
+                result.append(resultsFile, parseResultsFile(resultsFile), allColumns)
 
         if result.filelist:
             result.attributes['name'] = [unionTag.get('title', unionTag.get('name', result.attributes['name']))]
@@ -288,16 +288,16 @@ class RunSetResult():
     def getSourceFileNames(self):
         return [file.get('name') for file in self.filelist]
 
-    def append(self, resultFile, resultElem):
+    def append(self, resultFile, resultElem, allColumns=False):
         self.filelist += resultElem.findall('sourcefile')
         for attrib, values in RunSetResult._extractAttributesFromResult(resultFile, resultElem).items():
             self.attributes[attrib].extend(values)
 
         if not self.columns:
-            self.columns = RunSetResult._extractExistingColumnsFromResult(resultFile, resultElem)
+            self.columns = RunSetResult._extractExistingColumnsFromResult(resultFile, resultElem, allColumns)
 
     @staticmethod
-    def createFromXML(resultFile, resultElem, columns=None):
+    def createFromXML(resultFile, resultElem, columns=None, allColumns=False):
         '''
         This function extracts everything necessary for creating a RunSetResult object
         from the "result" XML tag of a benchmark result file.
@@ -306,13 +306,13 @@ class RunSetResult():
         attributes = RunSetResult._extractAttributesFromResult(resultFile, resultElem)
 
         if not columns:
-            columns = RunSetResult._extractExistingColumnsFromResult(resultFile, resultElem)
+            columns = RunSetResult._extractExistingColumnsFromResult(resultFile, resultElem, allColumns)
 
         return RunSetResult(resultElem.findall('sourcefile'),
                 attributes, columns)
 
     @staticmethod
-    def _extractExistingColumnsFromResult(resultFile, resultElem):
+    def _extractExistingColumnsFromResult(resultFile, resultElem, allColumns):
         if resultElem.find('sourcefile') is None:
             print("Empty resultfile found: " + resultFile)
             return []
@@ -322,7 +322,9 @@ class RunSetResult():
             for s in resultElem.findall('sourcefile'):
                 for c in s.findall('column'):
                     title = c.get('title')
-                    if title != 'category' and not title in columnNames:
+                    if title != 'category' \
+                            and not title in columnNames \
+                            and (allColumns or c.get('hidden') != 'true'):
                         columnNames.add(title)
                         columns.append(Column(title, None, None))
             return columns
@@ -968,6 +970,10 @@ def main(args=None):
         action="store_true", dest="correctOnly",
         help="Clear all results (e.g., time) in cases where the result was not correct."
     )
+    parser.add_argument("--all-columns",
+        action="store_true", dest="allColumns",
+        help="Show all columns in tables, including those that are normally hidden."
+    )
     parser.add_argument("--offline",
         action="store_const", dest="libUrl",
         const=LIB_URL_OFFLINE,
@@ -989,7 +995,7 @@ def main(args=None):
         if options.tables:
             print ("Invalid additional arguments '{}'".format(" ".join(options.tables)))
             exit()
-        runSetResults = parseTableDefinitionFile(options.xmltablefile)
+        runSetResults = parseTableDefinitionFile(options.xmltablefile, options.allColumns)
         if not name:
             name = basenameWithoutEnding(options.xmltablefile)
 
@@ -1005,7 +1011,7 @@ def main(args=None):
             inputFiles = [os.path.join(searchDir, '*.results*.xml')]
 
         inputFiles = Util.extendFileList(inputFiles) # expand wildcards
-        runSetResults = [RunSetResult.createFromXML(file, parseResultsFile(file)) for file in inputFiles]
+        runSetResults = [RunSetResult.createFromXML(file, parseResultsFile(file), allColumns=options.allColumns) for file in inputFiles]
 
         if len(inputFiles) == 1:
             if not name:
