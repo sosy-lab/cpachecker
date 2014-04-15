@@ -233,6 +233,14 @@ class Benchmark:
             else:
                 logging.warning("Benchmark file {0} specifies no runs to execute (no <rundefinition> tags found).".format(benchmarkFile))
 
+        if not any(runSet.shouldBeExecuted() for runSet in self.runSets):
+            logging.warning("No runSet selected, nothing will be executed.")
+            if config.selectedRunDefinitions:
+                logging.warning("The selection {0} does not match any runSet of {1}".format(
+                    str(config.selectedRunDefinitions),
+                    str([runSet.realName for runSet in self.runSets])
+                    ))
+
 
     def requiredFiles(self):
         return self._requiredFiles.union(self.tool.getProgrammFiles(self.executable))

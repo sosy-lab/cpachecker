@@ -305,7 +305,7 @@ def getEnergy(oldEnergy=None):
         energysh = subprocess.Popen([executable, energyType], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (stdout, stderr) = energysh.communicate()
         if energysh.returncode:
-            logging.warning('error while reading energy: out={0}, err={1}, retval={2}'.format(stdout, stderr, energysh.returncode))
+            logging.debug('error while reading energy: out={0}, err={1}, retval={2}'.format(stdout, stderr, energysh.returncode))
         try:
             newEnergy[energyType] = int(stdout)
         except ValueError:
