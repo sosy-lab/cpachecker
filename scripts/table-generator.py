@@ -280,10 +280,11 @@ class RunSetResult():
     the sourcefiles tags (with sourcefiles + values), the columns to show
     and the benchmark attributes.
     """
-    def __init__(self, filelist, attributes, columns):
+    def __init__(self, filelist, attributes, columns, summary={}):
         self.filelist = filelist
         self.attributes = attributes
         self.columns = columns
+        self.summary = summary
 
     def getSourceFileNames(self):
         return [file.get('name') for file in self.filelist]
@@ -308,8 +309,10 @@ class RunSetResult():
         if not columns:
             columns = RunSetResult._extractExistingColumnsFromResult(resultFile, resultElem, allColumns)
 
+        summary = RunSetResult._extractSummaryFromResult(resultElem, columns)
+
         return RunSetResult(resultElem.findall('sourcefile'),
-                attributes, columns)
+                attributes, columns, summary)
 
     @staticmethod
     def _extractExistingColumnsFromResult(resultFile, resultElem, allColumns):
@@ -327,6 +330,7 @@ class RunSetResult():
                         columnNames.add(title)
                         columns.append(Column(title, None, None))
             return columns
+
 
     @staticmethod
     def _extractAttributesFromResult(resultFile, resultTag):
@@ -351,6 +355,18 @@ class RunSetResult():
             attributes['host' ].append(systemTag.get('hostname', 'unknown'))
 
         return attributes
+    
+    @staticmethod
+    def _extractSummaryFromResult(resultTag, columns):
+        summary = collections.defaultdict(list)
+
+        # Add summary for columns if present
+        for column in resultTag.findall('column'):
+            title = column.get('title')
+            if title in (c.title for c in columns):
+                summary[title] = column.get('value')
+
+        return summary
 
 
 def parseResultsFile(resultFile):
@@ -694,6 +710,7 @@ def getStats(rows):
             tempita.bunch(default=None, title='score ({0} files, max score: {1})'.format(len(rows), maxScore), id='score', description='{0} true files, {1} false files'.format(countTrue, countFalse), content=rowsForStats[5])
             ]
 
+
 def getStatsOfRunSet(runResults):
     """
     This function returns the numbers of the statistics.
@@ -853,6 +870,26 @@ def getCounts(rows): # for options.dumpCounts
     return countsList
 
 
+def getSummary(runSetResults):
+    summaryStats = []
+    available = False
+    for runSetResult in runSetResults:
+        for column in runSetResult.columns:
+            if column.title in runSetResult.summary:
+                available = True
+                value = runSetResult.summary[column.title]
+            else:
+                value = ''
+            summaryStats.append(StatValue(value))
+
+    if available:
+        return tempita.bunch(default=None, title='local summary', 
+            description='(This line contains some statistics from local execution. Only trust those values, if you use your own computer.)',
+            content=summaryStats)
+    else:
+        return None
+
+
 def createTables(name, runSetResults, fileNames, rows, rowsDiff, outputPath, outputFilePattern, options):
     '''
     create tables and write them to files
@@ -874,6 +911,10 @@ def createTables(name, runSetResults, fileNames, rows, rowsDiff, outputPath, out
 
     def writeTable(type, title, rows):
         stats = getStats(rows)
+
+        summary = getSummary(runSetResults)
+        if summary and type != 'diff' and not options.correctOnly and not options.common:
+            stats.insert(1, summary)
 
         for format in TEMPLATE_FORMATS:
             outfile = os.path.join(outputPath, outputFilePattern.format(name=name, type=type, ext=format))
