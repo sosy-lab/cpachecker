@@ -358,6 +358,7 @@ def parseCloudRunResultFile(filePath):
     with open(filePath, 'rt') as file:
         for line in file:
             (key, value) = line.split("=", 2)
+            value = value.strip()
             if key == "host":
                 values[key] = value
             else:
