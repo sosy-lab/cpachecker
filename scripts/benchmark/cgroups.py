@@ -175,4 +175,8 @@ def removeCgroup(cgroup):
             os.rmdir(cgroup)
         except OSError:
             # sometimes this fails because the cgroup is still busy, we try again once
-            os.rmdir(cgroup)
+            try:
+                os.rmdir(cgroup)
+            except OSError as e:
+                logging.warning("Failed to remove cgroup {0}: error {1} ({2})"
+                                .format(cgroup, e.errno, e.strerror))
