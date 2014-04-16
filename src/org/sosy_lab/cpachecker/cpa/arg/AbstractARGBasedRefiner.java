@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
@@ -46,7 +43,6 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.ImmutableList;
 
 public abstract class AbstractARGBasedRefiner implements Refiner {
 
@@ -55,8 +51,6 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
   private final ARGCPA argCpa;
   private final LogManager logger;
 
-  // All found error traces if they should be printed throughout the analysis.
-  private final Set<List<CFAEdge>> allFoundCounterexamples = new HashSet<>();
   private int counterexamplesCounter = 0;
 
   protected AbstractARGBasedRefiner(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
@@ -145,14 +139,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
       logger.log(Level.FINEST, "Counterexample", counterexamplesCounter, "has been found.");
 
       // Print error trace if cpa.arg.printErrorPath = true
-      if (argCpa.shouldPrintErrorPathImmediately()) {
-        List<CFAEdge> edges = ImmutableList.copyOf(counterexample.getTargetPath().asEdgesList());
-        if (allFoundCounterexamples.add(edges)) {
-          argCpa.exportCounterexample(pReached, lastElement, counterexample, counterexamplesCounter);
-        } else {
-          logger.log(Level.FINEST, "Skipping counterexample printing because it is equal to one of already printed.");
-        }
-      }
+      argCpa.exportCounterexampleOnTheFly(pReached, lastElement, counterexample, counterexamplesCounter);
       counterexamplesCounter++;
     }
 

@@ -260,9 +260,9 @@ cbmc.options.nuaf = false
 # specify the limit for unwindings (0 is infinite)
 cbmc.options.unwindings = 0
 
-# maximum time limit for CBMC (0 is infinite)
 # maximum time limit for CBMC (use milliseconds or specify a unit; 0 for
 # infinite)
+# maximum time limit for CBMC (0 is infinite)
 cbmc.timelimit = 0
 
 # Whether to do refinement immediately after finding an error state, or
@@ -427,6 +427,15 @@ cpa.arg.errorPath.exportImmediately = false
 
 # export error path to file, if one is found
 cpa.arg.errorPath.file = "ErrorPath.%d.txt"
+
+# Filter for irrelevant counterexamples to reduce the number of similar
+# counterexamples reported. Only relevant with analysis.stopAfterErrors=false
+# and cpa.arg.errorPath.exportImmediately=true. Put the weakest and cheapest
+# filter first, e.g., PathEqualityCounterexampleFilter.
+cpa.arg.errorPath.filters = ImmutableList.<Class<? extends CounterexampleFilter>>of(
+          PathEqualityCounterexampleFilter.class)
+
+# export error path to file, if one is found
 cpa.arg.errorPath.graph = "ErrorPath.%d.dot"
 
 # export error path to file as an automaton to a graphml file
@@ -1575,6 +1584,9 @@ parser.usePreprocessor = false
 pcc.certificateType = HEURISTIC
   enum:     [HEURISTIC, ARG, MONOTONESTOPARG]
 
+# Enable if used property checker implements satisfiesProperty(AbstractState)
+# and checked property is violated for a set iff an element in this set
+# exists for which violates the property
 pcc.checkPropertyPerElement = false
 
 # file in which proof representation needed for proof checking is stored
