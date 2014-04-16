@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
@@ -46,8 +47,9 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.collect.Multimap;
 
-class ARGToDotWriter {
+public class ARGToDotWriter {
 
   private final Appendable sb;
 
@@ -85,6 +87,42 @@ class ARGToDotWriter {
 
   /**
    * Create String with ARG in the DOT format of Graphviz.
+   * @param sb Where to write the ARG into.
+   * @param rootStates the root elements of the ARGs
+   * @param connections start- and end-points of edges between separate graphs
+   * @param successorFunction A function giving all successors of an ARGState. Only states reachable from root by iteratively applying this function will be dumped.
+   * @param displayedElements A predicate for selecting states that should be displayed. States which are only reachable via non-displayed states are ignored, too.
+   * @param highlightEdge Which edges to highlight in the graph?
+   * @throws IOException
+   */
+  public static void write(final Appendable sb,
+      final Set<ARGState> rootStates,
+      final Multimap<ARGState, ARGState> connections,
+      final Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction,
+      final Predicate<? super ARGState> displayedElements,
+      final Predicate<? super Pair<ARGState, ARGState>> highlightEdge)
+          throws IOException {
+
+    ARGToDotWriter toDotWriter = new ARGToDotWriter(sb);
+    for (ARGState rootState : rootStates) {
+      toDotWriter.enterSubgraph("cluster_" + rootState.getStateId(), "reachedset_" + rootState.getStateId());
+      toDotWriter.writeSubgraph(rootState,
+              successorFunction,
+              displayedElements,
+              highlightEdge);
+      toDotWriter.leaveSubgraph();
+    }
+
+    for (Map.Entry<ARGState,ARGState> connection : connections.entries()) {
+      sb.append(connection.getKey().getStateId() + " -> " + connection.getValue().getStateId());
+      sb.append(" [color=green style=bold]\n");
+    }
+
+    toDotWriter.finish();
+  }
+
+  /**
+   * Create String with ARG in the DOT format of Graphviz.
    * Only the states and edges are written, no surrounding graph definition.
    * @param sb Where to write the ARG into.
    * @param rootState the root element of the ARG
@@ -113,18 +151,7 @@ class ARGToDotWriter {
         continue;
       }
 
-      String label = determineLabel(currentElement);
-
-      sb.append(""+currentElement.getStateId());
-      sb.append(" [");
-      String color = determineColor(currentElement);
-      if (color != null) {
-        sb.append("fillcolor=\"" + color + "\" ");
-      }
-      sb.append("label=\"" + label +"\" ");
-      sb.append("id=\"" + currentElement.getStateId() + "\"");
-      sb.append("]");
-      sb.append("\n");
+      sb.append(determineNode(currentElement));
 
       for (ARGState covered : currentElement.getCoveredByThis()) {
         edges.append(covered.getStateId());
@@ -134,40 +161,46 @@ class ARGToDotWriter {
       }
 
       for (ARGState child : successorFunction.apply(currentElement)) {
-        edges.append(currentElement.getStateId());
-        edges.append(" -> ");
-        edges.append(child.getStateId());
-        edges.append(" [");
-
-        boolean colored = highlightEdge.apply(Pair.of(currentElement, child));
-        if (colored) {
-          edges.append("color=\"red\"");
-        }
-
-        if (currentElement.getChildren().contains(child)) {
-          CFAEdge edge = currentElement.getEdgeToChild(child);
-          assert edge != null;
-          if (colored) {
-            edges.append(" ");
-          }
-          edges.append("label=\"");
-          edges.append("Line ");
-          edges.append(edge.getLineNumber());
-          edges.append(": ");
-          edges.append(edge.getDescription().replaceAll("\n", " ").replace('"', '\''));
-          edges.append("\"");
-          edges.append(" id=\"");
-          edges.append(currentElement.getStateId());
-          edges.append(" -> ");
-          edges.append(child.getStateId());
-          edges.append("\"");
-        }
-
-        edges.append("]\n");
+        edges.append(determineEdge(highlightEdge, currentElement, child));
         worklist.add(child);
       }
     }
     sb.append(edges);
+  }
+
+  private static String determineEdge(final Predicate<? super Pair<ARGState, ARGState>> highlightEdge,
+                                      final ARGState currentElement, final ARGState child) {
+    final StringBuilder builder = new StringBuilder();
+    builder.append(currentElement.getStateId()).append(" -> ").append(child.getStateId());
+    builder.append(" [");
+
+    if (currentElement.getChildren().contains(child)) {
+      final CFAEdge edge = currentElement.getEdgeToChild(child);
+      if (edge == null) {
+        // there is no direct edge between the nodes, use a dummy-edge
+        builder.append("style=\"bold\" color=\"blue\" label=\"dummy edge\"");
+      } else {
+        // edge exists, use info from edge
+        boolean colored = highlightEdge.apply(Pair.of(currentElement, child));
+        if (colored) {
+          builder.append("color=\"red\" ");
+        }
+        builder.append("label=\"");
+        builder.append("Line ");
+        builder.append(edge.getLineNumber());
+        builder.append(": ");
+        builder.append(edge.getDescription().replaceAll("\n", " ").replace('"', '\''));
+        builder.append("\"");
+      }
+      builder.append(" id=\"");
+      builder.append(currentElement.getStateId());
+      builder.append(" -> ");
+      builder.append(child.getStateId());
+      builder.append("\"");
+    }
+
+    builder.append("]\n");
+    return builder.toString();
   }
 
   void writeEdge(ARGState start, ARGState end) throws IOException {
@@ -193,6 +226,20 @@ class ARGToDotWriter {
 
   void finish() throws IOException {
     sb.append("}\n");
+  }
+
+
+  private static String determineNode(final ARGState currentElement) {
+    final StringBuilder builder = new StringBuilder();
+    builder.append(currentElement.getStateId());
+    builder.append(" [");
+    final String color = determineColor(currentElement);
+    if (color != null) {
+      builder.append("fillcolor=\"").append(color).append("\" ");
+    }
+    builder.append("label=\"").append(determineLabel(currentElement)).append("\" ");
+    builder.append("id=\"").append(currentElement.getStateId()).append("\"]\n");
+    return builder.toString();
   }
 
   private static String determineLabel(ARGState currentElement) {

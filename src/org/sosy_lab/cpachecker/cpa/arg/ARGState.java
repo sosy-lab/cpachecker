@@ -37,6 +37,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -116,13 +117,22 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     return Collections.unmodifiableCollection(children);
   }
 
+  /** Returns the edge from current state to child or Null, if there is no edge. */
+  @Nullable
   public CFAEdge getEdgeToChild(ARGState pChild) {
     checkArgument(children.contains(pChild));
 
     CFANode currentLoc = extractLocation(this);
     CFANode childNode = extractLocation(pChild);
 
-    return currentLoc.getEdgeTo(childNode);
+    if (currentLoc.getLeavingSummaryEdge() != null
+            && currentLoc.getLeavingSummaryEdge().getSuccessor().equals(childNode)) {
+      return currentLoc.getLeavingSummaryEdge();
+    } else if (currentLoc.hasEdgeTo(childNode)) {
+      return currentLoc.getEdgeTo(childNode);
+    } else {
+      return null;
+    }
   }
 
   public Set<ARGState> getSubgraph() {

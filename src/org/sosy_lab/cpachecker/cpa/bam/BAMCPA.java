@@ -124,7 +124,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     merge = new BAMMergeOperator(pCpa.getMergeOperator(), transfer);
     stop = new BAMStopOperator(pCpa.getStopOperator(), transfer);
 
-    stats = new BAMCPAStatistics(this, cache);
+    stats = new BAMCPAStatistics(this, cache, config);
     heuristic = getPartitioningHeuristic();
   }
 

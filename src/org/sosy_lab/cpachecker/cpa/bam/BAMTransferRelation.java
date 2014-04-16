@@ -96,8 +96,8 @@ public class BAMTransferRelation implements TransferRelation {
 
   private final BAMCache argCache;
 
-  private final Map<AbstractState, ReachedSet> abstractStateToReachedSet = new HashMap<>();
-  private final Map<AbstractState, AbstractState> expandedToReducedCache = new HashMap<>();
+  final Map<AbstractState, ReachedSet> abstractStateToReachedSet = new HashMap<>();
+  final Map<AbstractState, AbstractState> expandedToReducedCache = new HashMap<>();
 
   private Block currentBlock;
   private BlockPartitioning partitioning;
