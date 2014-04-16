@@ -24,25 +24,15 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
+
 public class ValueAnalysisReducer implements Reducer {
-
-  final MachineModel machineModel;
-  final LogManagerWithoutDuplicates logger;
-
-  ValueAnalysisReducer(MachineModel pMachineModel, LogManager pLogger) {
-    this.machineModel = pMachineModel;
-    this.logger = new LogManagerWithoutDuplicates(pLogger);
-  }
 
   private boolean occursInBlock(Block pBlock, String pVar) {
     // TODO could be more efficient (avoid linear runtime)
