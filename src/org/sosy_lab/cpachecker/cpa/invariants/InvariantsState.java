@@ -252,9 +252,18 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   }
 
   public InvariantsState assign(String pVarName, InvariantsFormula<CompoundInterval> pValue, CFAEdge pEdge) {
+    InvariantsState result = this;
+    for (Map.Entry<String, InvariantsFormula<CompoundInterval>> entry : this.environment.entrySet()) {
+      String varName = entry.getKey();
+      if (varName.startsWith(pVarName + "->") || varName.startsWith(pVarName + ".")) {
+        result = result.assign(varName, TOP, pEdge);
+      }
+    }
     if (pValue instanceof Variable<?>) {
-      InvariantsState result = this;
       String valueVarName = ((Variable<?>) pValue).getName();
+      if (valueVarName.startsWith(pVarName + "->") || valueVarName.startsWith(pVarName + ".")) {
+        return assign(pVarName, TOP, pEdge);
+      }
       String pointerDerefPrefix = valueVarName + "->";
       String nonPointerDerefPrefix = valueVarName + ".";
       for (Map.Entry<String, InvariantsFormula<CompoundInterval>> entry : this.environment.entrySet()) {
@@ -268,7 +277,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       }
       return result.assign(pVarName, pValue, pEdge, false);
     }
-    return assign(pVarName, pValue, pEdge, false);
+    return result.assign(pVarName, pValue, pEdge, false);
   }
 
   /**

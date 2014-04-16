@@ -233,6 +233,14 @@ class Benchmark:
             else:
                 logging.warning("Benchmark file {0} specifies no runs to execute (no <rundefinition> tags found).".format(benchmarkFile))
 
+        if not any(runSet.shouldBeExecuted() for runSet in self.runSets):
+            logging.warning("No runSet selected, nothing will be executed.")
+            if config.selectedRunDefinitions:
+                logging.warning("The selection {0} does not match any runSet of {1}".format(
+                    str(config.selectedRunDefinitions),
+                    str([runSet.realName for runSet in self.runSets])
+                    ))
+
 
     def requiredFiles(self):
         return self._requiredFiles.union(self.tool.getProgrammFiles(self.executable))
@@ -556,6 +564,7 @@ class Run():
         self.columns = [Column(c.text, c.title, c.numberOfDigits) for c in self.runSet.benchmark.columns]
 
         # here we store the optional result values, e.g. memory usage, energy, host name
+        # keys need to be strings, if first character is "@" the value is marked as hidden (e.g., debug info)
         self.values = {}
 
         # dummy values, for output in case of interrupt

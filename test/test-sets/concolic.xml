@@ -19,7 +19,7 @@
   </sourcefiles>
   <sourcefiles name="Loops">
     <includesfile>../programs/benchmarks/Loops.set</includesfile>
-    <exclude>../programs/benchmarks/loops/eureka_01_false-unreach-label.i</exclude>  for_infinite_loop_1_true-unreach-label_false-termination.i 
+    <exclude>../programs/benchmarks/loops/eureka_01_false-unreach-call.i</exclude>  for_infinite_loop_1_true-unreach-label_false-termination.i 
   </sourcefiles>
   -->
  <!-- 

@@ -295,8 +295,7 @@ class RunExecutor():
                 killAllTasksInCgroup(cgroup)
 
         wallTimeAfter = time.time()
-        energyAfter = Util.getEnergy()
-        energy = (energyAfter - energyBefore) if (energyAfter and energyBefore) else None
+        energy = Util.getEnergy(energyBefore)
         wallTime = wallTimeAfter - wallTimeBefore
         cpuTime = ru_child.ru_utime + ru_child.ru_stime if ru_child else 0
         return (returnvalue, wallTime, cpuTime, energy)

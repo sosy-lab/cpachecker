@@ -456,13 +456,16 @@ public enum InvariantsTransferRelation implements TransferRelation {
           final boolean hasDot = lastIndexOfDot >= 0;
           final boolean hasArrow = lastIndexOfArrow >= 0;
           if (hasArrow || hasDot) {
+            if (hasArrow) {
+              ++lastIndexOfArrow;
+            }
             int lastIndexOfSep = Math.max(lastIndexOfDot, lastIndexOfArrow);
-            final String end = location.substring(lastIndexOfSep);
+            final String end = location.substring(lastIndexOfSep + 1);
             Iterable<? extends String> targets = FluentIterable.from(result.getEnvironment().keySet()).filter(new Predicate<String>() {
 
               @Override
               public boolean apply(String pVar) {
-                return pVar != null && pVar.endsWith(end);
+                return pVar != null && (pVar.endsWith("." + end) || pVar.endsWith("->" + end));
               }
 
             });
@@ -471,8 +474,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
                 result = result.assign(variableName, top, edge);
               }
             }
-          }
-          if (moreThanOneLocation) {
+          } else if (moreThanOneLocation) {
             result = result.assign(location, top, edge);
           }
         }

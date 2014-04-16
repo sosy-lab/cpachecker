@@ -30,8 +30,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.IOctCoefficients;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctEmptyCoefficients;
@@ -48,7 +48,6 @@ import com.google.common.collect.HashBiMap;
  * An element of octagon abstract domain. This element contains an {@link Octagon} which
  * is the concrete representation of the octagon and a map which
  * provides a mapping from variable names to variables.
- * see {@link Variable}.
  *
  */
 public class OctState implements AbstractState {

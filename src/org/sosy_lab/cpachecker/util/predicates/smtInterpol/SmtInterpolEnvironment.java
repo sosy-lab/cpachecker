@@ -50,6 +50,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 
 import de.uni_freiburg.informatik.ultimate.logic.Annotation;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
@@ -110,6 +111,10 @@ class SmtInterpolEnvironment {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path smtLogfile = Paths.get("smtinterpol.%03d.smt2");
 
+  @Option(description = "List of further options which will be set to true for SMTInterpol in addition to the default options. "
+      + "Format is 'option1,option2,option3'")
+  private List<String> furtherOptions = ImmutableList.of();
+
   /** this is a counter to get distinct logfiles for distinct environments. */
   private static int logfileCounter = 0;
 
@@ -160,6 +165,14 @@ class SmtInterpolEnvironment {
       script.setLogic(Logics.QF_UFLIRA);
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
+    }
+
+    for (String option : furtherOptions) {
+      try {
+        script.setOption(":" + option, true);
+      } catch (SMTLIBException | UnsupportedOperationException e) {
+        throw new InvalidConfigurationException("Invalid option \"" + option + "\" for SMTInterpol.", e);
+      }
     }
 
     theory = smtInterpol.getTheory();

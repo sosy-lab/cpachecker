@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -56,8 +55,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
  */
 public class ValueAnalysisSMGCommunicator {
 
-  @Option(name="cpa.value.symbolicValues", description="enables generation of symbolic values")
-  private boolean symbolicValues = false;
+  private boolean symbolicValues = new SymbolicValuesOption().areSymbolicValuesEnabled();
 
   private final CFAEdge cfaEdge;
   private final LogManagerWithoutDuplicates logger;

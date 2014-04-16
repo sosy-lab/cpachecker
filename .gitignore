@@ -11,6 +11,7 @@
 /FindBugs.diff.html
 /FindBugs.diff.xml
 /JUnit.html
+/.factorypath
 
 # /META-INF/
 /META-INF/.hg*

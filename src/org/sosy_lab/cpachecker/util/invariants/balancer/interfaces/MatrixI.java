@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.balancer.interfaces;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.invariants.balancer.AssumptionSet;
 import org.sosy_lab.cpachecker.util.invariants.balancer.RationalFunction;
 

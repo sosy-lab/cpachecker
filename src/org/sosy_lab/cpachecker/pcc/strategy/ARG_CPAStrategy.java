@@ -29,11 +29,11 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -47,7 +47,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 @Options
 public class ARG_CPAStrategy extends AbstractARGStrategy {
 
-  @Option(name = "pcc.checkPropertyPerElement", description = "")
+  @Option(
+      name = "pcc.checkPropertyPerElement",
+      description = "Enable if used property checker implements satisfiesProperty(AbstractState) and checked property is violated for a set iff an element in this set exists for which violates the property")
   private boolean singleCheck = false;
   private List<AbstractState> visitedStates;
   private final StopOperator stop;

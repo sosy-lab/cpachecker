@@ -23,14 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
-import com.google.common.base.Preconditions;
+import java.util.Set;
+
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 
-import java.util.Set;
+import com.google.common.base.Preconditions;
 
 
 /**
