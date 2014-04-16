@@ -305,7 +305,7 @@ public class BAMTransferRelation implements TransferRelation {
     // in the ARG of the outer block we have now the connection "rootState <-> expandedState"
     assert ((ARGState)expandedState).getChildren().isEmpty() && ((ARGState)expandedState).getParents().size() == 1:
         "unexpected expanded state: " + expandedState;
-    assert ((ARGState)entryState).getChildren().size() == 1 && ((ARGState)entryState).getChildren().contains(expandedState):
+    assert ((ARGState)entryState).getChildren().contains(expandedState):
         "successor of entry state " +  entryState + " must be expanded state " + expandedState;
 
     // we replace this connection with "rootState <-> rebuildState"

@@ -431,7 +431,8 @@ public class BAMPredicateReducer implements Reducer {
 
   @Override
   public AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState expandedState) {
-    throw new UnsupportedOperationException("not implemented");
+    // TODO implement rebuilding, just returning the expanded state is only SAFE, if there is no recursion.
+    return expandedState;
   }
 
 }
