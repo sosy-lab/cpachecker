@@ -93,7 +93,7 @@ class BAMCPAStatistics implements Statistics {
   private AbstractBAMBasedRefiner refiner = null;
 
   public BAMCPAStatistics(BAMCPA cpa, BAMCache cache, Configuration config)
-  throws InvalidConfigurationException {
+          throws InvalidConfigurationException {
     config.inject(this);
 
     this.cpa = cpa;

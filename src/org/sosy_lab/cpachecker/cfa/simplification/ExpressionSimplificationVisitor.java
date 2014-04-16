@@ -191,6 +191,10 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
       final int result = machineModel.getSizeof(expr.getOperand().getExpressionType());
       return new CIntegerLiteralExpression(expr.getFileLocation(),
               expr.getExpressionType(), BigInteger.valueOf(result));
+    } else if (unaryOperator == UnaryOperator.ALIGNOF) {
+      final int result = machineModel.getAlignof(expr.getOperand().getExpressionType());
+      return new CIntegerLiteralExpression(expr.getFileLocation(),
+          expr.getExpressionType(), BigInteger.valueOf(result));
     }
 
     final CExpression op = expr.getOperand().accept(this);

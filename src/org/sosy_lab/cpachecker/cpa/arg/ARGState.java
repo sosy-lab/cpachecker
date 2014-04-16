@@ -118,14 +118,15 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   }
 
   /** Returns the edge from current state to child or Null, if there is no edge. */
-  public @Nullable CFAEdge getEdgeToChild(ARGState pChild) {
+  @Nullable
+  public CFAEdge getEdgeToChild(ARGState pChild) {
     checkArgument(children.contains(pChild));
 
     CFANode currentLoc = extractLocation(this);
     CFANode childNode = extractLocation(pChild);
 
     if (currentLoc.getLeavingSummaryEdge() != null
-        && currentLoc.getLeavingSummaryEdge().getSuccessor().equals(childNode)) {
+            && currentLoc.getLeavingSummaryEdge().getSuccessor().equals(childNode)) {
       return currentLoc.getLeavingSummaryEdge();
     } else if (currentLoc.hasEdgeTo(childNode)) {
       return currentLoc.getEdgeTo(childNode);

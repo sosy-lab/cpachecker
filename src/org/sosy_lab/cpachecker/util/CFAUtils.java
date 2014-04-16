@@ -182,7 +182,7 @@ public class CFAUtils {
     };
   }
 
-  static final Function<CFAEdge,  CFANode> TO_PREDECESSOR = new Function<CFAEdge,  CFANode>() {
+  public static final Function<CFAEdge,  CFANode> TO_PREDECESSOR = new Function<CFAEdge,  CFANode>() {
       @Override
       public CFANode apply(CFAEdge pInput) {
         return pInput.getPredecessor();
@@ -190,7 +190,7 @@ public class CFAUtils {
     };
 
 
-  static final Function<CFAEdge,  CFANode> TO_SUCCESSOR = new Function<CFAEdge,  CFANode>() {
+  public static final Function<CFAEdge,  CFANode> TO_SUCCESSOR = new Function<CFAEdge,  CFANode>() {
     @Override
     public CFANode apply(CFAEdge pInput) {
       return pInput.getSuccessor();

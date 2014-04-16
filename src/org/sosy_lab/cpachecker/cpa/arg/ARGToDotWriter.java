@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.collect.Multimap;
 
 public class ARGToDotWriter {
 
@@ -95,21 +96,21 @@ public class ARGToDotWriter {
    * @param highlightEdge Which edges to highlight in the graph?
    * @throws IOException
    */
-  public static void write(Appendable sb,
+  public static void write(final Appendable sb,
       final Set<ARGState> rootStates,
       final Multimap<ARGState, ARGState> connections,
       final Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction,
       final Predicate<? super ARGState> displayedElements,
       final Predicate<? super Pair<ARGState, ARGState>> highlightEdge)
-      throws IOException {
+          throws IOException {
 
     ARGToDotWriter toDotWriter = new ARGToDotWriter(sb);
     for (ARGState rootState : rootStates) {
       toDotWriter.enterSubgraph("cluster_" + rootState.getStateId(), "reachedset_" + rootState.getStateId());
       toDotWriter.writeSubgraph(rootState,
-        successorFunction,
-        displayedElements,
-        highlightEdge);
+              successorFunction,
+              displayedElements,
+              highlightEdge);
       toDotWriter.leaveSubgraph();
     }
 
@@ -178,7 +179,7 @@ public class ARGToDotWriter {
       final CFAEdge edge = currentElement.getEdgeToChild(child);
       if (edge == null) {
         // there is no direct edge between the nodes, use a dummy-edge
-        builder.append("style=\"bold\" color=\"blue\" label=\"indirect edge\"");
+        builder.append("style=\"bold\" color=\"blue\" label=\"dummy edge\"");
       } else {
         // edge exists, use info from edge
         boolean colored = highlightEdge.apply(Pair.of(currentElement, child));
