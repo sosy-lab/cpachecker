@@ -151,14 +151,14 @@ public class FormulaManagerFactory {
     return fmgr;
   }
 
-  public ProverEnvironment newProverEnvironment(boolean generateModels) {
+  public ProverEnvironment newProverEnvironment(boolean generateModels, boolean generateUnsatCore) {
     ProverEnvironment pe;
     switch (solver) {
     case SMTINTERPOL:
       pe = loadSmtInterpol().createProver(fmgr);
       break;
     case MATHSAT5:
-      pe = new Mathsat5TheoremProver((Mathsat5FormulaManager) fmgr, generateModels);
+      pe = new Mathsat5TheoremProver((Mathsat5FormulaManager) fmgr, generateModels, generateUnsatCore);
       break;
     case Z3:
       pe = new Z3TheoremProver((Z3FormulaManager) fmgr);

@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
 import java.util.Collection;
+import java.util.List;
 
 import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.Timer;
@@ -102,6 +103,11 @@ public class Z3TheoremProver implements ProverEnvironment {
     Z3Model model = new Z3Model(mgr, z3context, z3solver);
     Model m = model.createZ3Model();
     return m;
+  }
+
+  @Override
+  public List<BooleanFormula> getUnsatCore() {
+    throw new UnsupportedOperationException();
   }
 
   @Override

@@ -355,7 +355,7 @@ class Mathsat5NativeApi {
    * Unsat core computation
    */
   public static native long[] msat_get_unsat_assumptions(long e);
-  public static native long msat_get_unsat_core(long e);
+  public static native long[] msat_get_unsat_core(long e);
 
 
   /*

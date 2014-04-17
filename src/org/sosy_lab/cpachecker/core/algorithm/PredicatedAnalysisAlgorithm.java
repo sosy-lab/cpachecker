@@ -385,7 +385,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       fMore = predCPA.getFormulaManager().makeAnd(fLess, fMore);
 
       // check if conjunction of less precise does not imply conjunction of more precise
-      ProverEnvironment prover = predCPA.getFormulaManagerFactory().newProverEnvironment(false);
+      ProverEnvironment prover = predCPA.getFormulaManagerFactory().newProverEnvironment(false, false);
       prover.push(fMore);
       boolean result = prover.isUnsat();
       prover.close();

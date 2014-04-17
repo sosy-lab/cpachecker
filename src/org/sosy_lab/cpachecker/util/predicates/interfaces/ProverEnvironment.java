@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.util.Collection;
+import java.util.List;
 
 import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.Timer;
@@ -63,6 +64,12 @@ public interface ProverEnvironment extends AutoCloseable {
    * This should be called only immediately after an {@link #isUnsat()} call that returned <code>false</code>.
    */
   Model getModel() throws SolverException;
+
+  /**
+   * Get an unsat core.
+   * This should be called only immediately after an {@link #isUnsat()} call that returned <code>false</code>.
+   */
+  List<BooleanFormula> getUnsatCore();
 
   /**
    * Get all satisfying assignments of the current environment with regards
