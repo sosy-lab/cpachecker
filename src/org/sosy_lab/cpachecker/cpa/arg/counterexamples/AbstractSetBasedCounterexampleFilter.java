@@ -33,6 +33,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
+import com.google.common.base.Optional;
+
 /**
  * Abstract base implementation of {@link CounterexampleFilter}.
  * This implementation stores a representation of each previously found counterexample
@@ -67,10 +69,13 @@ public abstract class AbstractSetBasedCounterexampleFilter<T> implements Counter
   }
 
   @Override
-  public boolean isRelevant(CounterexampleInfo counterexample) {
-    T representation = getCounterexampleRepresentation(checkNotNull(counterexample));
+  public boolean isRelevant(CounterexampleInfo counterexample) throws InterruptedException {
+    Optional<T> representation = getCounterexampleRepresentation(checkNotNull(counterexample));
+    if (!representation.isPresent()) {
+      return true;
+    }
 
-    boolean setChanged = foundCounterexamples.add(checkNotNull(representation));
+    boolean setChanged = foundCounterexamples.add(representation.get());
     return setChanged; // relevant <=> new cex <=> set changed
   }
 
@@ -78,10 +83,14 @@ public abstract class AbstractSetBasedCounterexampleFilter<T> implements Counter
    * This method needs to produce an immutable representation of each counterexample.
    * The more abstract it is, the more "similar" counterexamples are reported
    * as irrelevant.
+   * If this filter does not manage to produce a meaningful representation of the current path,
+   * it may return {@link Optional#absent()}. In this case, the counterexample
+   * is considered relevant.
+   *
    * @param counterexample A counterexample, guaranteed to be not null.
-   * @return An immutable representation of the counterexample, needs to be not null,
-   * and have proper implementations of {@link Object#equals(Object)}
-   * and {@link Object#hashCode()}.
+   * @return An immutable representation of the counterexample, needs to
+   * have proper implementations of {@link Object#equals(Object)}
+   * and {@link Object#hashCode()}, or {@link Optional#absent()}.
    */
-  protected abstract T getCounterexampleRepresentation(CounterexampleInfo counterexample);
+  protected abstract Optional<T> getCounterexampleRepresentation(CounterexampleInfo counterexample) throws InterruptedException;
 }

@@ -49,7 +49,7 @@ public class ConjunctiveCounterexampleFilter implements CounterexampleFilter {
   }
 
   @Override
-  public boolean isRelevant(CounterexampleInfo counterexample) {
+  public boolean isRelevant(CounterexampleInfo counterexample) throws InterruptedException {
     for (CounterexampleFilter filter : filters) {
       if (!filter.isRelevant(counterexample)) {
         return false;

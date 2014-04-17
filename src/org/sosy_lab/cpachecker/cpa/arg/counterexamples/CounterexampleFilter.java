@@ -59,5 +59,5 @@ import org.sosy_lab.cpachecker.core.CounterexampleInfo;
  */
 public interface CounterexampleFilter {
 
-  boolean isRelevant(CounterexampleInfo counterexample);
+  boolean isRelevant(CounterexampleInfo counterexample) throws InterruptedException;
 }

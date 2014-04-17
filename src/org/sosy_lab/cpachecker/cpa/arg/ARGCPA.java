@@ -270,7 +270,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   }
 
   void exportCounterexampleOnTheFly(ReachedSet pReached, ARGState pTargetState,
-    CounterexampleInfo pCounterexampleInfo, int cexIndex) {
+    CounterexampleInfo pCounterexampleInfo, int cexIndex) throws InterruptedException {
     if (stats.shouldDumpErrorPathImmediately()) {
       if (cexFilter.isRelevant(pCounterexampleInfo)) {
         stats.exportCounterexample(pReached, pTargetState, pCounterexampleInfo, cexIndex, null, true);
