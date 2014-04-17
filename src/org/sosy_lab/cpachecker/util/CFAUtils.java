@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Predicates.not;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,6 +38,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -48,10 +50,12 @@ import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.primitives.Ints;
@@ -245,6 +249,17 @@ public class CFAUtils {
       return Ints.compare(pO1.getNodeNumber(), pO2.getNodeNumber());
     }
   };
+
+  /**
+   * Returns the other AssumeEdge (with the negated condition)
+   * of a given AssumeEdge.
+   */
+  public static AssumeEdge getComplimentaryAssumeEdge(AssumeEdge edge) {
+    checkArgument(edge.getPredecessor().getNumLeavingEdges() == 2);
+    return (AssumeEdge)Iterables.getOnlyElement(
+        CFAUtils.leavingEdges(edge.getPredecessor())
+                .filter(not(Predicates.<CFAEdge>equalTo(edge))));
+  }
 
 
   // wrapper class for Set<CFANode> because Java arrays don't like generics
