@@ -27,32 +27,22 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.cpa.arg.counterexamples.AbstractSetBasedCounterexampleFilter;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CounterexampleFilter;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 
 /**
  * A {@link CounterexampleFilter} that defines counterexamples as similar,
@@ -65,11 +55,8 @@ import com.google.common.collect.Lists;
  * The location of the inteprolant predicates along the path is ignored,
  * all predicates are merged into a single set.
  */
-public class InterpolantPredicatesCounterexampleFilter extends AbstractSetBasedCounterexampleFilter<Set<AbstractionPredicate>> {
+public class InterpolantPredicatesCounterexampleFilter extends AbstractNegatedPathCounterexampleFilter<ImmutableSet<AbstractionPredicate>> {
 
-  private final LogManager logger;
-
-  private final PathFormulaManager pfmgr;
   private final FormulaManagerFactory solverFactory;
   private final PredicateAbstractionManager predAbsMgr;
 
@@ -82,52 +69,17 @@ public class InterpolantPredicatesCounterexampleFilter extends AbstractSetBasedC
       throw new InvalidConfigurationException(InterpolantPredicatesCounterexampleFilter.class.getSimpleName() + " needs a PredicateCPA");
     }
 
-    logger = pLogger;
-    pfmgr = predicateCpa.getPathFormulaManager();
     solverFactory = predicateCpa.getFormulaManagerFactory();
     predAbsMgr = predicateCpa.getPredicateManager();
   }
 
   @Override
-  protected Optional<Set<AbstractionPredicate>> getCounterexampleRepresentation(CounterexampleInfo counterexample) throws InterruptedException {
-    List<CFAEdge> edges = counterexample.getTargetPath().asEdgesList();
-
-    int cutPoint = edges.size() - 1; // Position of last AssumeEdge in path
-    for (CFAEdge edge : Lists.reverse(edges)) {
-      if (edge instanceof AssumeEdge) {
-        break;
-      }
-      cutPoint--;
-    }
-    if (cutPoint < 0) {
-      // no AssumEdge in path, cannot use this filter
-      return Optional.absent();
-    }
-
-    AssumeEdge lastAssumeEdge = (AssumeEdge)edges.get(cutPoint);
-    List<CFAEdge> prefix = edges.subList(0, cutPoint);
-
-    PathFormula pf = pfmgr.makeEmptyPathFormula();
-    List<BooleanFormula> formulas = new ArrayList<>(prefix.size() + 1);
-
-    try {
-      for (CFAEdge edge : prefix) {
-        pf = pfmgr.makeAnd(pf, edge);
-        formulas.add(pf.getFormula());
-        pf = pfmgr.makeEmptyPathFormula(pf);
-      }
-      pf = pfmgr.makeAnd(pf, CFAUtils.getComplimentaryAssumeEdge(lastAssumeEdge));
-      formulas.add(pf.getFormula());
-
-    } catch (CPATransferException e) {
-      logger.logUserException(Level.WARNING, e, "Failed to filter counterexample");
-      return Optional.absent();
-    }
-
-    return Optional.fromNullable(getInterpolantPredicates(formulas));
+  protected Optional<ImmutableSet<AbstractionPredicate>> getCounterexampleRepresentation(List<BooleanFormula> pFormulas)
+      throws InterruptedException {
+    return getCounterexampleRepresentation0(pFormulas);
   }
 
-  private <T> Set<AbstractionPredicate> getInterpolantPredicates(List<BooleanFormula> formulas) throws InterruptedException {
+  private <T> Optional<ImmutableSet<AbstractionPredicate>> getCounterexampleRepresentation0(List<BooleanFormula> formulas) throws InterruptedException {
 
     try (@SuppressWarnings("unchecked")
          InterpolatingProverEnvironment<T> itpProver =
@@ -141,7 +93,7 @@ public class InterpolantPredicatesCounterexampleFilter extends AbstractSetBasedC
       if (!itpProver.isUnsat()) {
         // Negated path is not infeasible, cannot produce interpolants.
         // No filtering possible.
-        return null;
+        return Optional.absent();
       }
 
       Set<AbstractionPredicate> predicates = new HashSet<>();
@@ -149,7 +101,7 @@ public class InterpolantPredicatesCounterexampleFilter extends AbstractSetBasedC
         BooleanFormula itp = itpProver.getInterpolant(itpGroupIds.subList(0, i));
         predicates.addAll(predAbsMgr.extractPredicates(itp));
       }
-      return ImmutableSet.copyOf(predicates);
+      return Optional.of(ImmutableSet.copyOf(predicates));
     }
   }
 }
