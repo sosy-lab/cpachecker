@@ -14,6 +14,7 @@
       <includesfile>../programs/benchmarks/Simple.set</includesfile>
       <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
       <exclude>../programs/benchmarks/ssh/s3_srvr.blast.10_true-unreach-call.i.cil.c</exclude>
+      <exclude>../programs/benchmarks/ssh/s3_srvr.blast.11_true-unreach-call.i.cil.c</exclude>
     </sourcefiles>
     <sourcefiles>
       <includesfile>../programs/simple/simple.set</includesfile>
@@ -28,6 +29,7 @@
       <exclude>../programs/benchmarks/eca/Problem11_50_false-unreach-call.c</exclude>
       <exclude>../programs/benchmarks/eca/Problem12_60_false-unreach-call.c</exclude>
       <exclude>../programs/benchmarks/eca/Problem13_60_false-unreach-call.c</exclude>
+      <exclude>../programs/benchmarks/eca/Problem15_00_false-unreach-call.c</exclude>
       <exclude>../programs/benchmarks/systemc/token_ring.10_false-unreach-call_false-termination.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/toy1_false-unreach-call_false-termination.cil.c</exclude>
     </sourcefiles>

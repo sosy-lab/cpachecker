@@ -24,6 +24,7 @@
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
       <exclude>../programs/benchmarks/eca/Problem03_40_true-unreach-call.c</exclude>
       <exclude>../programs/benchmarks/eca/Problem04_30_true-unreach-call.c</exclude>
+      <exclude>../programs/benchmarks/eca/Problem06_00_false-unreach-call.c</exclude>
       <exclude>../programs/benchmarks/eca/Problem18_00_false-unreach-call.c</exclude>
       <exclude>../programs/benchmarks/eca/Problem18_10_false-unreach-call.c</exclude>
       <exclude>../programs/benchmarks/eca/Problem19_38_false-unreach-call.c</exclude>
