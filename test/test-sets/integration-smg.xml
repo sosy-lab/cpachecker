@@ -9,14 +9,14 @@
 
   <sourcefiles name="cpalien-okay">
     <includesfile>../programs/cpalien/cpalien.set</includesfile>
-    <option name="-CPAlien"/>
+    <option name="-smg"/>
     <option name="-preprocess" />
     <propertyfile>../programs/benchmarks/PropertyMemSafety.prp</propertyfile>
   </sourcefiles>
 
   <sourcefiles name="cpalien-label-okay">
     <includesfile>../programs/cpalien/cpalien-label.set</includesfile>
-    <option name="-CPAlien-label"/>
+    <option name="-smg-label"/>
     <option name="-preprocess" />
     <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
   </sourcefiles>
