@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
+import static com.google.common.base.Objects.firstNonNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.util.Collections;
@@ -75,7 +76,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeH
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.pointerTarget.PointerTarget;
 
 import com.google.common.base.Function;
-import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
@@ -306,8 +306,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     for (final Triple<String, Integer, Integer> symbolDifference : symbolDifferences) {
       shutdownNotifier.shutdownIfNecessary();
       final String symbolName = symbolDifference.getFirst();
-      final int index1 = Objects.firstNonNull(symbolDifference.getSecond(), 1);
-      final int index2 = Objects.firstNonNull(symbolDifference.getThird(), 1);
+      final int index1 = firstNonNull(symbolDifference.getSecond(), 1);
+      final int index2 = firstNonNull(symbolDifference.getThird(), 1);
 
       BooleanFormula mergeFormula;
       if (index1 > index2 && index1 > 1) {

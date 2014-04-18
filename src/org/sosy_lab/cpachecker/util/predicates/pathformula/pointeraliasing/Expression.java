@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static com.google.common.base.Objects.toStringHelper;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
-
-import com.google.common.base.Objects;
 
 abstract class Expression {
   static abstract class Location extends Expression {
@@ -51,7 +51,7 @@ abstract class Expression {
 
       @Override
       public String toString() {
-        return Objects.toStringHelper(this)
+        return toStringHelper(this)
                       .add("address", address)
                       .toString();
       }
@@ -76,7 +76,7 @@ abstract class Expression {
 
       @Override
       public String toString() {
-        return Objects.toStringHelper(this)
+        return toStringHelper(this)
                       .add("variable", variableName)
                       .toString();
       }
@@ -136,7 +136,7 @@ abstract class Expression {
 
       @Override
       public String toString() {
-        return Objects.toStringHelper(this)
+        return toStringHelper(this)
                       .toString();
       }
     }
@@ -160,7 +160,7 @@ abstract class Expression {
 
     @Override
     public String toString() {
-      return Objects.toStringHelper(this)
+      return toStringHelper(this)
                     .add("value", value)
                     .toString();
     }

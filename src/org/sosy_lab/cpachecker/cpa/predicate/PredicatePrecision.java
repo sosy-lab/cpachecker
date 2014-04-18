@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
@@ -36,7 +37,6 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.google.common.base.Objects;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -305,7 +305,7 @@ public class PredicatePrecision implements Precision {
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(getGlobalPredicates(),
+    return Objects.hash(getGlobalPredicates(),
                              getFunctionPredicates(),
                              getLocalPredicates(),
                              getLocationInstancePredicates());

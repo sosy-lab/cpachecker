@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.conditions.path;
 
+import static com.google.common.base.Objects.firstNonNull;
+
 import java.io.PrintStream;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -45,7 +47,6 @@ import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
@@ -95,7 +96,7 @@ public class RepetitionsInPathCondition implements PathCondition, Statistics {
       return element;
     }
 
-    Integer repetitions = Objects.firstNonNull(element.frequencyMap.get(pEdge), 0);
+    Integer repetitions = firstNonNull(element.frequencyMap.get(pEdge), 0);
     repetitions++;
 
     boolean thresholdReached = (threshold >= 0) && (repetitions >= threshold);

@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import static com.google.common.base.Objects.equal;
 import static org.sosy_lab.common.Pair.zipList;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -483,7 +483,7 @@ class AutomatonASTComparator {
 
     @Override
     protected boolean matches2(T pSource, AutomatonExpressionArguments pArg) {
-      return equal(field, getFieldValueFrom(pSource));
+      return Objects.equals(field, getFieldValueFrom(pSource));
     }
 
     protected F getFieldValueFrom(T pSource) {
@@ -504,7 +504,7 @@ class AutomatonASTComparator {
 
     @Override
     protected boolean matches2(T pSource, AutomatonExpressionArguments pArg) {
-      return equal(field1, getFieldValue1From(pSource)) && equal(field2, getFieldValue2From(pSource));
+      return Objects.equals(field1, getFieldValue1From(pSource)) && Objects.equals(field2, getFieldValue2From(pSource));
     }
 
     protected F getFieldValue1From(T pSource) {
@@ -761,7 +761,7 @@ class AutomatonASTComparator {
 
     @Override
     protected boolean matches2(CTypeIdExpression pSource, AutomatonExpressionArguments pArg) {
-      return equal(operator, pSource.getOperator())
+      return Objects.equals(operator, pSource.getOperator())
           && super.matches2(pSource, pArg);
     }
 

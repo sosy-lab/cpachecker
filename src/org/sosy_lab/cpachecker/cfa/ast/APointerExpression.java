@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.types.Type;
-
-import com.google.common.base.Objects;
-
 
 public abstract class APointerExpression extends ALeftHandSide {
 
@@ -53,7 +52,7 @@ public abstract class APointerExpression extends ALeftHandSide {
   public int hashCode() {
     final int prime = 31;
     int result = 7;
-    result = prime * result + Objects.hashCode(operand);
+    result = prime * result + Objects.hash(operand);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -74,7 +73,7 @@ public abstract class APointerExpression extends ALeftHandSide {
 
     APointerExpression other = (APointerExpression) obj;
 
-    return Objects.equal(other.operand, operand);
+    return Objects.equals(other.operand, operand);
   }
 
 }
