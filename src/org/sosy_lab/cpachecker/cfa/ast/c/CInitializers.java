@@ -28,6 +28,7 @@ import static com.google.common.collect.FluentIterable.from;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
@@ -49,7 +50,6 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ContiguousSet;
 import com.google.common.collect.DiscreteDomain;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Range;
 
 /**
@@ -455,7 +455,7 @@ public final class CInitializers {
       break;
     case UNION:
       // unions only have their first field initialized, ignore the rest
-      nextSubobjects.push(Iterators.<CExpression>emptyIterator());
+      nextSubobjects.push(Collections.<CExpression>emptyIterator());
       break;
     default:
       throw new AssertionError();

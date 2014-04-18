@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -140,7 +141,7 @@ public class CUTEPathValidator extends AbstractPathValidator{
 
 
     public BranchingHistory() {
-      descendingEdgePath = Iterators.emptyIterator();
+      descendingEdgePath = Collections.emptyIterator();
       visitedEdges = Maps.newHashMap();
       edgeHistory = Iterators.transform(descendingEdgePath, new Function<CFAEdge, Pair<CFAEdge, Boolean>>() {
 
