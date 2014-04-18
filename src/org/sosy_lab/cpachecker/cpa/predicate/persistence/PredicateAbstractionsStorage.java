@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -39,7 +40,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUti
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -119,7 +119,7 @@ public class PredicateAbstractionsStorage {
     Set<Integer> abstractionsWithParents = Sets.newTreeSet();
 
     String source = abstractionsFile.getName();
-    try (BufferedReader reader = abstractionsFile.asCharSource(Charsets.US_ASCII).openBufferedStream()) {
+    try (BufferedReader reader = abstractionsFile.asCharSource(StandardCharsets.US_ASCII).openBufferedStream()) {
 
       // first, read first section with initial set of function definitions
       Pair<Integer, String> defParsingResult = PredicatePersistenceUtils.parseCommonDefinitions(reader, abstractionsFile.toString());

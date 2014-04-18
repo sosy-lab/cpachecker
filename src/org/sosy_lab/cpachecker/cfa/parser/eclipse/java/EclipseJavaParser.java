@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -57,7 +58,6 @@ import org.sosy_lab.cpachecker.cfa.Parser;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Splitter;
 
 
@@ -70,7 +70,7 @@ public class EclipseJavaParser implements Parser {
 
   @Option(name ="java.encoding",
       description="use the following encoding for java files")
-  private Charset encoding = Charsets.UTF_8;
+  private Charset encoding = StandardCharsets.UTF_8;
 
   @Option(name ="java.version",
       description="Specifies the java version of source code accepted")
@@ -165,7 +165,7 @@ public class EclipseJavaParser implements Parser {
 
     // write CFA to file
     if (exportTypeHierarchy && exportTypeHierarchyFile != null) {
-      try (Writer w = exportTypeHierarchyFile.asCharSink(Charsets.UTF_8).openBufferedStream()) {
+      try (Writer w = exportTypeHierarchyFile.asCharSink(StandardCharsets.UTF_8).openBufferedStream()) {
         THDotBuilder.generateDOT(w, pScope);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
