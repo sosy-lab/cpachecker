@@ -65,10 +65,10 @@ enum SMGRuntimeCheck {
 }
 
 @Options(prefix="cpa.smgfork")
-public class SMGCPA_NG implements ConfigurableProgramAnalysis {
+public class SplittingSMGCPA implements ConfigurableProgramAnalysis {
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(SMGCPA_NG.class);
+    return AutomaticCPAFactory.forType(SplittingSMGCPA.class);
   }
 
   @Option(name="runtimeCheck", description = "Sets the level of runtime checking: NONE, HALF, FULL")
@@ -89,7 +89,7 @@ public class SMGCPA_NG implements ConfigurableProgramAnalysis {
 
   private final LogManager logger;
 
-  private SMGCPA_NG(Configuration config, LogManager pLogger, CFA cfa) throws InvalidConfigurationException {
+  private SplittingSMGCPA(Configuration config, LogManager pLogger, CFA cfa) throws InvalidConfigurationException {
     config.inject(this);
     machineModel = cfa.getMachineModel();
     logger = pLogger;
