@@ -60,8 +60,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 
-import javax.annotation.Nullable;
-
 /**
  * Prints some BAM related statistics
  */

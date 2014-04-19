@@ -77,7 +77,7 @@ class BAMARGUtils {
       processed.add(currentElement);
 
       for (ARGState child : currentElement.getChildren()) {
-        CFAEdge edge = getEdgeToChild(currentElement, child);
+        CFAEdge edge = currentElement.getEdgeToChild(child);
         if (edge == null) {
           //this is a summary edge
           Pair<Block, ReachedSet> pair = cpa.getTransferRelation().getCachedReachedSet(currentElement, reachedSet.getPrecision(currentElement));
@@ -90,22 +90,6 @@ class BAMARGUtils {
         }
       }
     }
-  }
-
-  public static CFAEdge getEdgeToChild(ARGState parent, ARGState child) {
-    CFANode currentLoc = extractLocation(parent);
-    CFANode childNode = extractLocation(child);
-
-    return getEdgeTo(currentLoc, childNode);
-  }
-
-  public static CFAEdge getEdgeTo(CFANode node1, CFANode node2) {
-    for (CFAEdge edge : leavingEdges(node1)) {
-      if (edge.getSuccessor() == node2) {
-        return edge;
-      }
-    }
-    return null;
   }
 
   public static ARGState copyARG(ARGState pRoot) {

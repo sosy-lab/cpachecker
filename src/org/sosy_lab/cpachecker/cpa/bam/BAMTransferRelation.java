@@ -628,7 +628,7 @@ public class BAMTransferRelation implements TransferRelation {
           //and remember to explore the parent later
           openElements.push(parent);
         }
-        CFAEdge edge = BAMARGUtils.getEdgeToChild(parent, currentElement);
+        CFAEdge edge = parent.getEdgeToChild(currentElement);
         if (edge == null) {
           //this is a summarized call and thus an direct edge could not be found
           //we have the transfer function to handle this case, as our reachSet is wrong

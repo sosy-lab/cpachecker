@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -109,7 +110,10 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
 
       computeCounterexampleTimer.start();
       try {
-        return computeCounterexample(subgraph);
+        logger.log(Level.SEVERE, "root of subgraph", subgraph);
+        final ARGPath path = computeCounterexample(subgraph);
+        logger.log(Level.SEVERE, "computed path from subgraph", path);
+        return path;
       } finally {
         computeCounterexampleTimer.stop();
       }
