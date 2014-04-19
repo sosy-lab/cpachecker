@@ -47,12 +47,12 @@
     </condition>
     <target name="init" depends="create-version-file">
         <echo message="Building ${ant.project.name} ${version.base}"/>
-        <mkdir dir="${class.dir}/org/sosy_lab/cpachecker"/>
     </target>
-        <target name="create-version-file">
-            <!-- Here we only write the imprecise base version. Exact version is only used for JAR files. -->
-            <echo message="${version.base}" file="${version.file}"/>
-        </target>
+    <target name="create-version-file">
+        <mkdir dir="${class.dir}/org/sosy_lab/cpachecker"/>
+        <!-- Here we only write the imprecise base version. Exact version is only used for JAR files. -->
+        <echo message="${version.base}" file="${version.file}"/>
+    </target>
     <target name="clean">
         <delete includeEmptyDirs="true">
             <fileset dir="." includes="${class.dir}/** war/WEB-INF/classes war/WEB-INF/lib cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
