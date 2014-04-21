@@ -23,13 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import java.math.BigDecimal;
 import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
 
-import org.eclipse.cdt.internal.core.dom.parser.c.CArrayType;
-import org.eclipse.cdt.internal.core.dom.parser.c.CPointerType;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -80,10 +77,11 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -127,7 +125,6 @@ public abstract class AbstractExpressionValueVisitor
   private boolean missingEnumComparisonInformation = false;
 
   /** This Visitor returns the numeral value for an expression.
-   * @param pState where to get the values for variables (identifiers)
    * @param pFunctionName current scope, used only for variable-names
    * @param pMachineModel where to get info about types, for casting and overflows
    * @param pLogger logging
@@ -161,22 +158,19 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(final CBinaryExpression pE) throws UnrecognizedCCodeException {
-
     final Value lVal = pE.getOperand1().accept(this);
-    if (lVal.isUnknown()) { return lVal; }
+    if (lVal.isUnknown()) { return Value.UnknownValue.getInstance(); }
     final Value rVal = pE.getOperand2().accept(this);
-    if (rVal.isUnknown()) { return rVal; }
-    Value result = calculateBinaryOperation(lVal, rVal, pE, machineModel, logger);
-    return result;
+    if (rVal.isUnknown()) { return Value.UnknownValue.getInstance(); }
+    return calculateBinaryOperation(lVal, rVal, pE, machineModel, logger);
   }
 
   /**
    * This method calculates the exact result for a binary operation.
    *
-   * @param lVal first operand
-   * @param rVal second operand
-   * @param binaryOperator this operation willbe performed
-   * @param resultType the result will be casted to this type
+   * @param lVal evaluated first operand of binaryExpr
+   * @param rVal evaluated second operand of binaryExpr
+   * @param binaryExpr will be evaluated
    * @param machineModel information about types
    * @param logger for logging
    */
@@ -241,10 +235,8 @@ public abstract class AbstractExpressionValueVisitor
         return Value.UnknownValue.getInstance();
       }
 
-      final boolean tmp = booleanOperation((NumericValue) lVal,
-          (NumericValue) rVal, binaryOperator, calculationType, machineModel);
-      // return 1 if expression holds, 0 otherwise
-      result = new NumericValue(tmp ? 1L : 0L);
+      result = booleanOperation((NumericValue) lVal,
+          (NumericValue) rVal, binaryOperator, calculationType, machineModel, logger);
       // we do not cast here, because 0 and 1 should be small enough for every type.
 
       break;
@@ -346,7 +338,7 @@ public abstract class AbstractExpressionValueVisitor
       }
       return l / r;
     case MODULO:
-      return l % r; // TODO in C always sign of first operand?
+      return l % r;
     case MULTIPLY:
       return l * r;
     case SHIFT_LEFT:
@@ -404,19 +396,15 @@ public abstract class AbstractExpressionValueVisitor
       }
       return l / r;
     case MODULO:
-      return l % r; // TODO in C always sign of first operand?
+      return l % r;
     case MULTIPLY:
       return l * r;
     case SHIFT_LEFT:
-      throw new AssertionError("trying to perform shift on floating point operands");
     case SHIFT_RIGHT:
-      throw new AssertionError("trying to perform shift on floating point operands");
     case BINARY_AND:
-      throw new AssertionError("trying to perform binary and on floating point operands");
     case BINARY_OR:
-      throw new AssertionError("trying to perform binary or on floating point operands");
     case BINARY_XOR:
-      throw new AssertionError("trying to perform binary xor on floating point operands");
+      throw new AssertionError("trying to perform " + op + " on floating point operands");
     default:
       throw new AssertionError("unknown binary operation: " + op);
     }
@@ -450,19 +438,15 @@ public abstract class AbstractExpressionValueVisitor
       }
       return l / r;
     case MODULO:
-      return l % r; // TODO in C always sign of first operand?
+      return l % r;
     case MULTIPLY:
       return l * r;
     case SHIFT_LEFT:
-      throw new AssertionError("trying to perform shift on floating point operands");
     case SHIFT_RIGHT:
-      throw new AssertionError("trying to perform shift on floating point operands");
     case BINARY_AND:
-      throw new AssertionError("trying to perform binary and on floating point operands");
     case BINARY_OR:
-      throw new AssertionError("trying to perform binary or on floating point operands");
     case BINARY_XOR:
-      throw new AssertionError("trying to perform binary xor on floating point operands");
+      throw new AssertionError("trying to perform " + op + " on floating point operands");
     default:
       throw new AssertionError("unknown binary operation: " + op);
     }
@@ -485,49 +469,82 @@ public abstract class AbstractExpressionValueVisitor
       final MachineModel machineModel, final LogManager logger) {
 
     // At this point we're only handling values of simple types.
-    CSimpleType type = getArithmeticType(calculationType);
-    if(type == null) {
-      logger.logf(Level.INFO, "unsupported type for result of binary operation %s", calculationType.toString());
+    final CSimpleType type = getArithmeticType(calculationType);
+    if (type == null) {
+      logger.logf(Level.FINE, "unsupported type %s for result of binary operation %s", calculationType, op);
       return Value.UnknownValue.getInstance();
     }
 
     // TODO explicitfloat: give a better debug message if lNum or rNum are not numeric
 
     // arithmetic operations are currently only supported for numeric values
-    NumericValue lNum = (NumericValue) l;
-    NumericValue rNum = (NumericValue) r;
+    final NumericValue lNum = (NumericValue) l;
+    final NumericValue rNum = (NumericValue) r;
 
-    if (type.getType() == CBasicType.INT) {
-      // Both l and r must be of the same type, which in this case is INT, so we can cast to long.
-      long lVal = lNum.getNumber().longValue();
-      long rVal = rNum.getNumber().longValue();
-      long result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
-      return new NumericValue(result);
-    } else if (type.getType() == CBasicType.DOUBLE) {
-      double lVal = lNum.doubleValue();
-      double rVal = rNum.doubleValue();
-      double result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
-      return new NumericValue(result);
-    } else if (type.getType() == CBasicType.FLOAT) {
-      float lVal = lNum.floatValue();
-      float rVal = rNum.floatValue();
-      float result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
-      return new NumericValue(result);
-    } else {
-      logger.logf(Level.FINE, "unsupported type for result of binary operation %s", type.toString());
-      return Value.UnknownValue.getInstance();
+    switch(type.getType()) {
+      case INT: {
+        // Both l and r must be of the same type, which in this case is INT, so we can cast to long.
+        long lVal = lNum.getNumber().longValue();
+        long rVal = rNum.getNumber().longValue();
+        long result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
+        return new NumericValue(result);
+      }
+      case DOUBLE: {
+        double lVal = lNum.doubleValue();
+        double rVal = rNum.doubleValue();
+        double result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
+        return new NumericValue(result);
+      }
+      case FLOAT: {
+        float lVal = lNum.floatValue();
+        float rVal = rNum.floatValue();
+        float result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
+        return new NumericValue(result);
+      }
+      default: {
+        logger.logf(Level.FINE, "unsupported type for result of binary operation %s", type.toString());
+        return Value.UnknownValue.getInstance();
+      }
     }
   }
 
-  private static boolean booleanOperation(final NumericValue l, final NumericValue r,
+  private static Value booleanOperation(final NumericValue l, final NumericValue r,
       final BinaryOperator op, final CType calculationType,
-      final MachineModel machineModel) {
+      final MachineModel machineModel, final LogManager logger) {
 
-    // TODO explicitfloat: is BigDecimal accurate enough?
-    BigDecimal lVal = l.bigDecimalValue();
-    BigDecimal rVal = r.bigDecimalValue();
+    // At this point we're only handling values of simple types.
+    final CSimpleType type = getArithmeticType(calculationType);
+    if (type == null) {
+      logger.logf(Level.FINE, "unsupported type %s for result of binary operation %s", calculationType, op);
+      return Value.UnknownValue.getInstance();
+    }
 
-    final int cmp = lVal.compareTo(rVal);
+    final int cmp;
+    switch (type.getType()) {
+      case INT: {
+        cmp = Long.compare(l.longValue(), r.longValue());
+        break;
+      }
+      case FLOAT: {
+        cmp = Float.compare(l.floatValue(), r.floatValue());
+        break;
+      }
+      case DOUBLE: {
+        cmp = Double.compare(l.doubleValue(),r.doubleValue());
+        break;
+      }
+      default: {
+        logger.logf(Level.FINE, "unsupported type %s for result of binary operation %s", type.toString(), op);
+        return Value.UnknownValue.getInstance();
+      }
+    }
+
+    // return 1 if expression holds, 0 otherwise
+    return new NumericValue(matchBooleanOperation(op, cmp) ? 1L : 0L);
+  }
+
+  /** returns True, iff cmp fulfills the boolean operation. */
+  private static boolean matchBooleanOperation(final BinaryOperator op, final int cmp) {
     switch (op) {
     case GREATER_THAN:
       return cmp > 0;
@@ -627,7 +644,6 @@ public abstract class AbstractExpressionValueVisitor
       return new NumericValue(machineModel.getSizeof(unaryOperand.getExpressionType()));
     }
     if (unaryOperator == UnaryOperator.AMPER) {
-      // valid expression, but it's a pointer value
       return Value.UnknownValue.getInstance();
     }
 
@@ -638,21 +654,20 @@ public abstract class AbstractExpressionValueVisitor
     }
 
     if (!value.isNumericValue()) {
-      logger.logf(Level.FINE, "Invalid argument for unary operator %s: %s", unaryOperator.toString(), value.toString());
+      logger.logf(Level.FINE, "Invalid argument %s for unary operator %s.", value, unaryOperator);
       return Value.UnknownValue.getInstance();
     }
-    NumericValue numericValue = (NumericValue) value;
 
+    final NumericValue numericValue = (NumericValue) value;
     switch (unaryOperator) {
     case MINUS:
       return numericValue.negate();
 
     case TILDE:
-      // TODO handle unimplemented operator
-      return Value.UnknownValue.getInstance();
+      return new NumericValue(~(numericValue).longValue());
 
     default:
-      throw new AssertionError();
+      throw new AssertionError("unknown operator: " + unaryOperator);
     }
   }
 
@@ -1083,6 +1098,7 @@ public abstract class AbstractExpressionValueVisitor
         // TODO: look more closely at the INT/CHAR cases, especially at the loggedEdges stuff
         // TODO: check for overflow(source larger than the highest number we can store in target etc.)
 
+        // casting to FLOAT, if value is INT or DOUBLE. This is sound, if we would also do this cast in C.
         float floatValue = numericValue.floatValue();
         Value result = null;
 
@@ -1106,6 +1122,7 @@ public abstract class AbstractExpressionValueVisitor
         // TODO: look more closely at the INT/CHAR cases, especially at the loggedEdges stuff
         // TODO: check for overflow(source larger than the highest number we can store in target etc.)
 
+        // casting to DOUBLE, if value is INT or FLOAT. This is sound, if we would also do this cast in C.
         double doubleValue = numericValue.doubleValue();
         Value result = null;
 
@@ -1146,10 +1163,10 @@ public abstract class AbstractExpressionValueVisitor
    */
   public static CSimpleType getArithmeticType(CType type) {
     type = type.getCanonicalType();
-    if(type instanceof org.sosy_lab.cpachecker.cfa.types.c.CPointerType) {
+    if (type instanceof CPointerType) {
       // TODO: introduce an integer type of the right size, similar to intptr_t
       return CNumericTypes.INT;
-    } else if(type instanceof CSimpleType) {
+    } else if (type instanceof CSimpleType) {
       return (CSimpleType) type;
     } else {
       return null;

@@ -220,7 +220,7 @@ public class CBinaryExpressionBuilder {
     if (shiftOperators.contains(pBinOperator)) {
       checkIntegerType(pType1, pBinOperator, op1);
       checkIntegerType(pType2, pBinOperator, op2);
-      return getPromotedCType((CSimpleType) pType1);
+      return machineModel.getPromotedCType((CSimpleType) pType1);
     }
 
     if (bitwiseOperators.contains(pBinOperator)) {
@@ -229,24 +229,6 @@ public class CBinaryExpressionBuilder {
     }
 
     return getCalculationTypeForBinaryOperation(pType1, pType2, pBinOperator, op1, op2);
-  }
-
-
-  /** returns INT, if the type is smaller than INT, else the type itself. */
-  private CSimpleType getPromotedCType(CSimpleType pType) {
-
-    /*
-     * ISO-C99 (6.3.1.1 #2):
-     * If an int can represent all values of the original type, the value is
-     * converted to an int; otherwise, it is converted to an unsigned int.
-     * These are called the integer promotions.
-     */
-    // TODO when do we really need unsigned_int?
-    if (machineModel.getSizeof(pType) < machineModel.getSizeofInt()) {
-      return CNumericTypes.SIGNED_INT;
-    } else {
-      return pType;
-    }
   }
 
   /**
@@ -279,7 +261,7 @@ public class CBinaryExpressionBuilder {
     if (shiftOperators.contains(pBinOperator)) {
       checkIntegerType(pType1, pBinOperator, op1);
       checkIntegerType(pType2, pBinOperator, op2);
-      return getPromotedCType((CSimpleType) pType1);
+      return machineModel.getPromotedCType((CSimpleType) pType1);
     }
 
     // both are simple types, we need a common simple type --> USUAL ARITHMETIC CONVERSIONS
@@ -448,8 +430,8 @@ public class CBinaryExpressionBuilder {
     /* Otherwise, the integer promotions are performed on both operands.
      * Then the following rules are applied to the promoted operands: */
 
-    t1 = getPromotedCType(t1);
-    t2 = getPromotedCType(t2);
+    t1 = machineModel.getPromotedCType(t1);
+    t2 = machineModel.getPromotedCType(t2);
 
     final int rank1 = getConversionRank(t1);
     final int rank2 = getConversionRank(t2);
