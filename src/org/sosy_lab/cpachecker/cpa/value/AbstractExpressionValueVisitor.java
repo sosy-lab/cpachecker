@@ -202,6 +202,11 @@ public abstract class AbstractExpressionValueVisitor
       return calculateSymbolicBinaryExpression(lVal, rVal, binaryExpr, logger);
     }
 
+    if (!lVal.isNumericValue() || !rVal.isNumericValue()) {
+      logger.logf(Level.FINE, "Parameters to binary operation '%s %s %s' are no numeric values.", lVal, binaryOperator, rVal);
+      return Value.UnknownValue.getInstance();
+    }
+
     Value result;
 
     switch (binaryOperator) {
@@ -215,7 +220,7 @@ public abstract class AbstractExpressionValueVisitor
     case BINARY_AND:
     case BINARY_OR:
     case BINARY_XOR: {
-      result = arithmeticOperation(lVal, rVal, binaryOperator, calculationType, machineModel, logger);
+      result = arithmeticOperation((NumericValue)lVal, (NumericValue)rVal, binaryOperator, calculationType, machineModel, logger);
       result = castCValue(result, calculationType, binaryExpr.getExpressionType(), machineModel, logger, binaryExpr.getFileLocation());
 
       break;
@@ -227,14 +232,6 @@ public abstract class AbstractExpressionValueVisitor
     case GREATER_EQUAL:
     case LESS_THAN:
     case LESS_EQUAL: {
-
-      // TODO explicitfloat: handle values other than numeric ones
-      if (!lVal.isNumericValue() || !rVal.isNumericValue()) {
-        logger.logf(Level.FINE, "Parameter to boolean operation %s %s %s is not a numeric value.", lVal.toString(),
-            binaryOperator.toString(), rVal.toString());
-        return Value.UnknownValue.getInstance();
-      }
-
       result = booleanOperation((NumericValue) lVal,
           (NumericValue) rVal, binaryOperator, calculationType, machineModel, logger);
       // we do not cast here, because 0 and 1 should be small enough for every type.
@@ -456,15 +453,15 @@ public abstract class AbstractExpressionValueVisitor
   /**
    * Calculate an arithmetic operation on two Value types.
    *
-   * @param l left hand side value
-   * @param r right hand side value
+   * @param lNum left hand side value
+   * @param rNum right hand side value
    * @param op the binary operator
    * @param calculationType The type the result of the calculation should have
    * @param machineModel the machine model
    * @param logger logging
    * @return the resulting values
    */
-  private static Value arithmeticOperation(final Value l, final Value r,
+  private static Value arithmeticOperation(final NumericValue lNum, final NumericValue rNum,
       final BinaryOperator op, final CType calculationType,
       final MachineModel machineModel, final LogManager logger) {
 
@@ -475,13 +472,7 @@ public abstract class AbstractExpressionValueVisitor
       return Value.UnknownValue.getInstance();
     }
 
-    // TODO explicitfloat: give a better debug message if lNum or rNum are not numeric
-
-    // arithmetic operations are currently only supported for numeric values
-    final NumericValue lNum = (NumericValue) l;
-    final NumericValue rNum = (NumericValue) r;
-
-    switch(type.getType()) {
+    switch (type.getType()) {
       case INT: {
         // Both l and r must be of the same type, which in this case is INT, so we can cast to long.
         long lVal = lNum.getNumber().longValue();
@@ -709,6 +700,12 @@ public abstract class AbstractExpressionValueVisitor
     JExpression lVarInBinaryExp = pE.getOperand1();
     JExpression rVarInBinaryExp = pE.getOperand2();
 
+    final Long lVal = lVarInBinaryExp.accept(this);
+    if (lVal == null) { return null; }
+
+    final Long rVal = rVarInBinaryExp.accept(this);
+    if (rVal == null) { return null; }
+
     switch (binaryOperator) {
     case PLUS:
     case MINUS:
@@ -721,11 +718,6 @@ public abstract class AbstractExpressionValueVisitor
     case MODULO:
     case SHIFT_RIGHT_SIGNED:
     case SHIFT_RIGHT_UNSIGNED: {
-      Long lVal = lVarInBinaryExp.accept(this);
-      if (lVal == null) { return null; }
-
-      Long rVal = rVarInBinaryExp.accept(this);
-      if (rVal == null) { return null; }
 
       switch (binaryOperator) {
       case PLUS:
@@ -735,9 +727,10 @@ public abstract class AbstractExpressionValueVisitor
         return lVal - rVal;
 
       case DIVIDE:
-        // TODO maybe we should signal a division by zero error?
-        if (rVal == 0) { return null; }
-
+        if (rVal == 0) {
+          logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", lVal, rVal);
+          return null;
+        }
         return lVal / rVal;
 
       case MULTIPLY:
@@ -775,14 +768,10 @@ public abstract class AbstractExpressionValueVisitor
     case LESS_THAN:
     case LESS_EQUAL: {
 
-      Long lVal = lVarInBinaryExp.accept(this);
-      Long rVal = rVarInBinaryExp.accept(this);
-      if (lVal == null || rVal == null) { return null; }
+      final long l = lVal;
+      final long r = rVal;
 
-      long l = lVal;
-      long r = rVal;
-
-      boolean result;
+      final boolean result;
       switch (binaryOperator) {
       case EQUALS:
         result = (l == r);
@@ -838,33 +827,24 @@ public abstract class AbstractExpressionValueVisitor
 
     JUnaryExpression.UnaryOperator unaryOperator = unaryExpression.getOperator();
     JExpression unaryOperand = unaryExpression.getOperand();
+    final Long value = unaryOperand.accept(this);
 
-    Long value = null;
+    if (value == null) {
+      return null;
+    }
 
     switch (unaryOperator) {
-    case MINUS:
-      value = unaryOperand.accept(this);
-      return (value != null) ? -value : null;
-
-    case NOT:
-      value = unaryOperand.accept(this);
-
-      if (value == null) {
-        return null;
-      } else {
+      case MINUS:
+        return -value;
+      case NOT:
         // if the value is 0, return 1, if it is anything other than 0, return 0
         return (value == 0L) ? 1L : 0L;
-      }
-
-    case COMPLEMENT:
-      value = unaryOperand.accept(this);
-      return (value != null) ? ~value : null;
-
-    case PLUS:
-      value = unaryOperand.accept(this);
-      return value;
-    default:
-      return null;
+      case COMPLEMENT:
+        return ~value;
+      case PLUS:
+        return value;
+      default:
+        throw new AssertionError("unhandled operator: " + unaryOperator);
     }
   }
 
