@@ -86,6 +86,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -357,6 +358,27 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     newElement.forget(returnVarName);
     return newElement;
+  }
+
+  @Override
+  protected ValueAnalysisState handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge) throws CPATransferException {
+    ValueAnalysisState newState = state.clone();
+    AFunctionCall functionCall  = cfaEdge.getExpression();
+
+    if (functionCall instanceof AFunctionCallAssignmentStatement) {
+      AFunctionCallAssignmentStatement assignment = ((AFunctionCallAssignmentStatement)functionCall);
+      IAExpression leftHandSide = assignment.getLeftHandSide();
+
+      if (leftHandSide instanceof CLeftHandSide) {
+        MemoryLocation assignedMemoryLocation = getVisitor().evaluateMemoryLocation((CLeftHandSide) leftHandSide);
+
+        if (newState.contains(assignedMemoryLocation)) {
+          newState.forget(assignedMemoryLocation);
+        }
+      }
+    }
+
+    return newState;
   }
 
   @Override
