@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 
@@ -143,10 +144,12 @@ public class ValueAnalysisFeasibilityChecker {
 
         if (edge instanceof FunctionReturnEdge) {
           // rebuild states with info from previous state
+          Collection<ValueAnalysisState> rebuildSuccessors = new ArrayList<>();
           final ValueAnalysisState callState = callstack.removeLast();
           for (final ValueAnalysisState returnState : successors) {
-            rebuildStateAfterFunctionCall(callState, returnState);
+            rebuildSuccessors.add(returnState.rebuildStateAfterFunctionCall(callState));
           }
+          successors = rebuildSuccessors;
         }
 
         prefix.addLast(pathElement);
@@ -164,23 +167,5 @@ public class ValueAnalysisFeasibilityChecker {
     } catch (CPATransferException e) {
       throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
     }
-  }
-
-  /** If there was a recursive function, we have wrong values for scoped variables in the returnState.
-   * This function rebuilds the correct values with information from the previous callState.
-   * We override the wrong values (or insert new values, if the variable is not tracked). */
-  private ValueAnalysisState rebuildStateAfterFunctionCall(ValueAnalysisState callState, ValueAnalysisState returnState) {
-
-    // we build the returnState with all local variables from callState
-    for (ValueAnalysisState.MemoryLocation trackedVar : callState.getTrackedMemoryLocations()) {
-      if (trackedVar.isOnFunctionStack()) {
-        // not global, but scoped
-        // -> copy/assign value, because there could have been an recursive assignment.
-        // this will assign too much values, but should not be unsound
-        returnState.assignConstant(trackedVar, callState.getValueFor(trackedVar));
-      }
-    }
-
-    return returnState;
   }
 }

@@ -804,4 +804,47 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   public String getTargetVariableName() {
     return checker== null?"":checker.getTargetVariableName();
   }
+
+  /** If there was a recursive function, we have wrong values for scoped variables in the returnState.
+   * This function rebuilds a new state with the correct values from the previous callState.
+   * We delete the wrong values and insert new values, if necessary. */
+  public ValueAnalysisState rebuildStateAfterFunctionCall(final ValueAnalysisState callState) {
+
+    // we build a new state from:
+    // - local variables from callState,
+    // - global variables from THIS,
+    // - the local return variable from THIS.
+    // we copy callState and override all global values and the return variable.
+
+    final ValueAnalysisState rebuildState = callState.clone();
+
+    // first forget all global information
+    for (final ValueAnalysisState.MemoryLocation trackedVar : callState.getTrackedMemoryLocations()) {
+      if (!trackedVar.isOnFunctionStack()) { // global -> delete
+        rebuildState.forget(trackedVar);
+      }
+    }
+
+    // second: learn new information
+    for (final ValueAnalysisState.MemoryLocation trackedVar : this.getTrackedMemoryLocations()) {
+
+      if (!trackedVar.isOnFunctionStack()) { // global -> override deleted value
+        rebuildState.assignConstant(trackedVar, this.getValueFor(trackedVar));
+
+      } else if (ValueAnalysisTransferRelation.FUNCTION_RETURN_VAR.equals(trackedVar.getIdentifier())) {
+        // lets assume, that RETURN_VAR is only tracked along one edge, which is the ReturnEdge.
+        // so that we can ignore the functionname for this condition.
+        assert (!rebuildState.contains(trackedVar)) :
+                "calling function should not contain return-variable of called function: " + trackedVar;
+        if (this.contains(trackedVar)) {
+          rebuildState.assignConstant(trackedVar, this.getValueFor(trackedVar));
+        }
+      }
+    }
+
+    // set difference to avoid null pointer exception due to precision adaption of omniscient composite precision adjustment
+    // to avoid that due to precision adaption in BAM ART which is not yet propagated tracked variable information is deleted
+    rebuildState.addToDelta(rebuildState);
+    return rebuildState;
+  }
 }

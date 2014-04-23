@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
 import static com.google.common.collect.Iterables.skip;
 
+import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -42,6 +44,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
@@ -281,9 +285,15 @@ public class ValueAnalysisInterpolator {
       throws CPATransferException {
     numberOfInterpolationQueries++;
 
+    final Deque<ValueAnalysisState> callstack = new ArrayDeque<>();
+
     for(CFAEdge currentEdge : remainingErrorPath) {
       if(loopExitAssumes.contains(currentEdge)) {
         continue;
+      }
+
+      if (currentEdge instanceof FunctionCallEdge) {
+        callstack.addLast(state);
       }
 
       Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessors(
@@ -296,6 +306,13 @@ public class ValueAnalysisInterpolator {
       }
 
       state = extractSingletonSuccessor(state, currentEdge, ignoreAssumptions, successors);
+
+      if (currentEdge instanceof FunctionReturnEdge) {
+        // rebuild states with info from previous state
+        final ValueAnalysisState callState = callstack.removeLast();
+        state = state.rebuildStateAfterFunctionCall(callState);
+      }
+
     }
     return true;
   }
