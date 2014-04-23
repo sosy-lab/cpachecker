@@ -292,8 +292,20 @@ public class ValueAnalysisInterpolator {
         continue;
       }
 
+      // we enter a function, so lets add the previous state to the stack
       if (currentEdge instanceof FunctionCallEdge) {
         callstack.addLast(state);
+      }
+
+      // TODO revisit code for empty callStack?
+      // --> remainingErrorPath begins somewhere in the middle and is started with an empty state,
+      // --> rebuilding would be useless, because without information it changes nothing.
+
+      // we leave a function, so rebuild return-state before assigning the return-value.
+      if (currentEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge && !callstack.isEmpty()) {
+        // rebuild states with info from previous state
+        final ValueAnalysisState callState = callstack.removeLast();
+        state = state.rebuildStateAfterFunctionCall(callState);
       }
 
       Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessors(
@@ -306,13 +318,6 @@ public class ValueAnalysisInterpolator {
       }
 
       state = extractSingletonSuccessor(state, currentEdge, ignoreAssumptions, successors);
-
-      if (currentEdge instanceof FunctionReturnEdge) {
-        // rebuild states with info from previous state
-        final ValueAnalysisState callState = callstack.removeLast();
-        state = state.rebuildStateAfterFunctionCall(callState);
-      }
-
     }
     return true;
   }
