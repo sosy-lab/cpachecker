@@ -377,7 +377,8 @@ public class BAMTransferRelation implements TransferRelation {
         // if level is twice in stack, we have endless recursion.
         // with current knowledge we would never abort unrolling the recursion.
         // lets skip the function and return only a short "summary" of the function.
-        logger.log(Level.INFO, "recursion will cause endless unrolling, skipping function and analysing summary-edge.");
+        logger.logf(Level.INFO, "recursion will cause endless unrolling (with current precision), " +
+                "aborting call of function '%s'", rootNode.getFunctionName());
 
         // cleanup function-call-state, that was needed to determine the reduced state of currentLevel
         //((ARGState)initialState).removeFromARG();
