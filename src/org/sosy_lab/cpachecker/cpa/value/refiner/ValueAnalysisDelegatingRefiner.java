@@ -53,11 +53,13 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDPrecision;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateStaticRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
+import org.sosy_lab.cpachecker.cpa.value.ComponentAwarePrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
@@ -129,9 +131,15 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       throw new InvalidConfigurationException(ValueAnalysisDelegatingRefiner.class.getSimpleName() + " could not find the ValueAnalysisCPA");
     }
 
-    ValueAnalysisCPA valueAnalysisCpa = ((WrapperCPA)cpa).retrieveWrappedCpa(ValueAnalysisCPA.class);
+    WrapperCPA wrapperCpa = ((WrapperCPA)cpa);
+
+    ValueAnalysisCPA valueAnalysisCpa = wrapperCpa.retrieveWrappedCpa(ValueAnalysisCPA.class);
     if (valueAnalysisCpa == null) {
       throw new InvalidConfigurationException(ValueAnalysisDelegatingRefiner.class.getSimpleName() + " needs a ValueAnalysisCPA");
+    }
+
+    if(!(wrapperCpa.retrieveWrappedCpa(CompositeCPA.class).getPrecisionAdjustment() instanceof ComponentAwarePrecisionAdjustment)) {
+      throw new InvalidConfigurationException(ValueAnalysisDelegatingRefiner.class.getSimpleName() + " needs a ComponentAwarePrecisionAdjustment operator");
     }
 
     ValueAnalysisDelegatingRefiner refiner = initialiseValueAnalysisRefiner(cpa, valueAnalysisCpa);

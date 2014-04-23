@@ -182,27 +182,11 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   }
 
   private ValueAnalysisPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
-    if(refinementWithoutAbstraction(config) && !useInPredicatedAnalysisWithoutRefinement) {
-      logger.log(Level.WARNING, "ValueAnalysis with refinement needs " +
-            "ComponentAwarePrecisionAdjustment. Please set option cpa.composite.precAdjust to 'COMPONENT'");
-    }
-
     // create default (empty) precision
     ValueAnalysisPrecision precision = new ValueAnalysisPrecision(variableBlacklist, config, cfa.getVarClassification());
 
     // refine it with precision from file
     return new ValueAnalysisPrecision(precision, restoreMappingFromFile(cfa));
-  }
-
-  /**
-   * This method checks if refinement is enabled, but the proper precision adjustment operator is not in use.
-   *
-   * @param config the current configuration
-   * @return true, if refinement is enabled, but abstraction is not available, else false
-   */
-  private boolean refinementWithoutAbstraction(Configuration config) {
-    return Boolean.parseBoolean(config.getProperty("analysis.algorithm.CEGAR")) &&
-            !"COMPONENT".equals(config.getProperty("cpa.composite.precAdjust"));
   }
 
   private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA cfa) throws InvalidConfigurationException {
