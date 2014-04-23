@@ -9,13 +9,12 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import java.io.FileNotFoundException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
-
-import com.google.common.base.Charsets;
 
 @javax.annotation.Generated("JFlex")
 @SuppressWarnings(value = { "all", "unchecked", "fallthrough" })
@@ -115,7 +114,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
         "#include" {InputCharacter}+ 
         { Path file = getFile(yytext()); 
           if (file != null) {
-            yypushStream(file.asCharSource(Charsets.US_ASCII).openBufferedStream());
+            yypushStream(file.asCharSource(StandardCharsets.US_ASCII).openBufferedStream());
           }
         }
 <YYINITIAL> ";"                 { return symbol(";", AutomatonSym.SEMICOLON); }

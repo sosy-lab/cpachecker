@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="300" hardtimelimit="350" memlimit="6000" cpuCores="2">
+  <!-- This file contains regression tests from the LDV project.
+       It expects the git repository git@bitbucket.org:dbeyer/ldv-benchmarks.git
+       to be checked out at test/programs/ldv-benchmarks. -->
+
+  <option name="-setprop">cpa.predicate.mathsat5.furtherOptions=random_seed=42</option>
+  <option name="-noout"/>
+  <option name="-setprop">statistics.memory=true</option>
+  <option name="-heap">1500M</option>
+  <option name="-timelimit">5min</option>
+  <option name="-ldv"/>
+
+  <propertyfile>../programs/ldv-benchmarks/PropertyERROR.prp</propertyfile>
+
+  <rundefinition>
+    <sourcefiles>
+      <include>../programs/ldv-benchmarks/unsafes/*/*/*.c</include>
+    </sourcefiles>
+  </rundefinition>
+</benchmark>

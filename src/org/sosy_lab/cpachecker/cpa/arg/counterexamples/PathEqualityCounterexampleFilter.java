@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -42,7 +43,7 @@ public class PathEqualityCounterexampleFilter extends AbstractSetBasedCounterexa
   }
 
   @Override
-  protected ImmutableList<CFAEdge> getCounterexampleRepresentation(CounterexampleInfo counterexample) {
-    return ImmutableList.copyOf(counterexample.getTargetPath().asEdgesList());
+  protected Optional<ImmutableList<CFAEdge>> getCounterexampleRepresentation(CounterexampleInfo counterexample) {
+    return Optional.of(ImmutableList.copyOf(counterexample.getTargetPath().asEdgesList()));
   }
 }

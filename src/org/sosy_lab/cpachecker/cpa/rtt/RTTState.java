@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.rtt;
 
-import static com.google.common.base.Objects.equal;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
@@ -31,6 +30,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.Stack;
 
@@ -226,7 +226,7 @@ public class RTTState extends AbstractAppender implements AbstractState {
     for (Map.Entry<String, String> otherEntry : other.constantsMap.entrySet()) {
       String key = otherEntry.getKey();
 
-      if (equal(otherEntry.getValue(), constantsMap.get(key))) {
+      if (Objects.equals(otherEntry.getValue(), constantsMap.get(key))) {
         newConstantsMap.put(key, otherEntry.getValue());
       }
     }
@@ -234,7 +234,7 @@ public class RTTState extends AbstractAppender implements AbstractState {
     for (Map.Entry<String, String> otherEntry : other.identificationMap.entrySet()) {
       String key = otherEntry.getKey();
 
-      if (equal(otherEntry.getValue(), identificationMap.get(key))) {
+      if (Objects.equals(otherEntry.getValue(), identificationMap.get(key))) {
         newConstantsMap.put(key, otherEntry.getValue());
       }
     }
@@ -242,7 +242,7 @@ public class RTTState extends AbstractAppender implements AbstractState {
     for (Map.Entry<String, String> otherEntry : other.classTypeMap.entrySet()) {
       String key = otherEntry.getKey();
 
-      if (equal(otherEntry.getValue(), classTypeMap.get(key))) {
+      if (Objects.equals(otherEntry.getValue(), classTypeMap.get(key))) {
         newConstantsMap.put(key, otherEntry.getValue());
       }
     }

@@ -63,7 +63,7 @@ public class Solver {
    * It is recommended to use the try-with-resources syntax.
    */
   public ProverEnvironment newProverEnvironment() {
-    return factory.newProverEnvironment(false);
+    return factory.newProverEnvironment(false, false);
   }
 
   /**
@@ -75,7 +75,19 @@ public class Solver {
    * The solver is told to enable model generation.
    */
   public ProverEnvironment newProverEnvironmentWithModelGeneration() {
-    return factory.newProverEnvironment(true);
+    return factory.newProverEnvironment(true, false);
+  }
+
+  /**
+   * Direct reference to the underlying SMT solver for more complicated queries.
+   * This creates a fresh, new, environment in the solver.
+   * This environment needs to be closed after it is used by calling {@link ProverEnvironment#close()}.
+   * It is recommended to use the try-with-resources syntax.
+   *
+   * The solver is told to enable unsat-core generation.
+   */
+  public ProverEnvironment newProverEnvironmentWithUnsatCoreGeneration() {
+    return factory.newProverEnvironment(false, true);
   }
 
   /**

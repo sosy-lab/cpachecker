@@ -33,6 +33,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
@@ -64,7 +65,6 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 
@@ -296,7 +296,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
     Iterator<?> it1 = i1.iterator();
     Iterator<?> it2 = i2.iterator();
     while (it1.hasNext() && it2.hasNext()) {
-      if (!Objects.equal(it1.next(), it2.next())) {
+      if (!Objects.equals(it1.next(), it2.next())) {
         break;
       }
       i++;

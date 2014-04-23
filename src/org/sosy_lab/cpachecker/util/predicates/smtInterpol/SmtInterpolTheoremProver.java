@@ -95,6 +95,17 @@ class SmtInterpolTheoremProver implements ProverEnvironment {
   }
 
   @Override
+  public List<BooleanFormula> getUnsatCore() {
+    Preconditions.checkNotNull(env);
+    Term[] terms = env.getUnsatCore();
+    List<BooleanFormula> result = new ArrayList<>(terms.length);
+    for (Term t : terms) {
+      result.add(mgr.encapsulateBooleanFormula(t));
+    }
+    return result;
+  }
+
+  @Override
   public AllSatResult allSat(Collection<BooleanFormula> formulas,
                              RegionCreator rmgr, Timer solveTime, NestedTimer enumTime) throws InterruptedException {
     checkNotNull(rmgr);

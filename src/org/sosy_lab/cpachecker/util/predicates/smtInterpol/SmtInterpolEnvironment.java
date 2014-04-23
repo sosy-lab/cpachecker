@@ -157,6 +157,7 @@ class SmtInterpolEnvironment {
     try {
       script.setOption(":produce-interpolants", true);
       script.setOption(":produce-models", true);
+      script.setOption(":produce-unsat-cores", true);
       if (checkResults) {
         script.setOption(":interpolant-check-mode", true);
         script.setOption(":unsat-core-check-mode", true);
@@ -259,6 +260,7 @@ class SmtInterpolEnvironment {
 
         out.println("(set-option :produce-interpolants true)");
         out.println("(set-option :produce-models true)");
+        out.println("(set-option :produce-unsat-cores true)");
         if (checkResults) {
           out.println("(set-option :interpolant-check-mode true)");
           out.println("(set-option :unsat-core-check-mode true)");
@@ -560,6 +562,15 @@ class SmtInterpolEnvironment {
     assert stack.size() > 0 : "interpolants should be on higher levels";
     try {
       return script.getInterpolants(partition);
+    } catch (SMTLIBException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  public Term[] getUnsatCore() {
+    assert stack.size() > 0 : "unsat core should be on higher levels";
+    try {
+      return script.getUnsatCore();
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
     }

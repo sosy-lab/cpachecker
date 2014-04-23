@@ -81,6 +81,7 @@ public class GlobalConditionsCPA implements ConfigurableProgramAnalysisWithBAM, 
       }
 
     } else {
+      logger.log(Level.WARNING, "GlobalConditionsCPA used without any limits, you can remove it from the list of CPAs.");
       precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     }
 

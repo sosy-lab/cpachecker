@@ -18,15 +18,15 @@
   <rundefinition>
     
     <sourcefiles name ="label">
-      <option name="-CPAlien-label"/>
+      <option name="-smg-label"/>
       <option name="-setprop">cpa.smg.handleUnknownFunctions=assume_safe</option>
       
       <include>../programs/smg_Explicity_Test/lists/*.c</include>
     </sourcefiles>
   
     <sourcefiles name="memsafety">
-      <option name="-CPAlien"/>
-      <option name="-setprop">memorysafety.config=config/CPAlien.properties</option>
+      <option name="-smg"/>
+      <option name="-setprop">memorysafety.config=config/smg.properties</option>
       
       <include>../programs/smg_Explicity_Test/heap-memory/*.c</include>
     </sourcefiles>

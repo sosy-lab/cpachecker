@@ -269,6 +269,23 @@ public enum MachineModel {
     }
   }
 
+  /** returns INT, if the type is smaller than INT, else the type itself. */
+  public CSimpleType getPromotedCType(CSimpleType pType) {
+
+    /*
+     * ISO-C99 (6.3.1.1 #2):
+     * If an int can represent all values of the original type, the value is
+     * converted to an int; otherwise, it is converted to an unsigned int.
+     * These are called the integer promotions.
+     */
+    // TODO when do we really need unsigned_int?
+    if (getSizeof(pType) < getSizeofInt()) {
+      return CNumericTypes.SIGNED_INT;
+    } else {
+      return pType;
+    }
+  }
+
   private final CTypeVisitor<Integer, IllegalArgumentException> sizeofVisitor = new BaseSizeofVisitor(this);
 
   public static class BaseSizeofVisitor implements CTypeVisitor<Integer, IllegalArgumentException> {

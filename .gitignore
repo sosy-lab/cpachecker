@@ -168,6 +168,7 @@
 /test/original-sources/blasting_linux/*.o
 
 # /test/programs/
+/test/programs/ldv-benchmarks
 
 # /test/programs/blasting_linux/
 /test/programs/blasting_linux/*.log

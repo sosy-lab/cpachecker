@@ -26,10 +26,9 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 import static com.google.common.base.Preconditions.*;
 
 import java.math.BigInteger;
+import java.util.Objects;
 
 import javax.annotation.Nullable;
-
-import com.google.common.base.Objects;
 
 /**
  * This class represents simple convex ranges of BigIntegers.
@@ -298,13 +297,13 @@ public class SimpleInterval {
     }
 
     SimpleInterval other = (SimpleInterval) pObj;
-    return Objects.equal(this.lowerBound, other.lowerBound)
-        && Objects.equal(this.upperBound, other.upperBound);
+    return Objects.equals(this.lowerBound, other.lowerBound)
+        && Objects.equals(this.upperBound, other.upperBound);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(lowerBound, upperBound);
+    return Objects.hash(lowerBound, upperBound);
   }
 
   @Override

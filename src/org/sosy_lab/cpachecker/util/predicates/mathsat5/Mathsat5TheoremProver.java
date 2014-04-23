@@ -27,7 +27,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager.getMsatTerm;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.Timer;
@@ -45,14 +47,18 @@ public class Mathsat5TheoremProver extends Mathsat5AbstractProver implements Pro
   private static final boolean USE_SHARED_ENV = true;
 
   public Mathsat5TheoremProver(Mathsat5FormulaManager pMgr,
-      boolean generateModels) {
-    super(pMgr, createConfig(pMgr, generateModels), USE_SHARED_ENV, true);
+      boolean generateModels, boolean generateUnsatCore) {
+    super(pMgr, createConfig(pMgr, generateModels, generateUnsatCore), USE_SHARED_ENV, true);
   }
 
-  private static long createConfig(Mathsat5FormulaManager mgr, boolean generateModels) {
+  private static long createConfig(Mathsat5FormulaManager mgr,
+      boolean generateModels, boolean generateUnsatCore) {
     long cfg = msat_create_config();
     if (generateModels) {
       msat_set_option_checked(cfg, "model_generation", "true");
+    }
+    if (generateUnsatCore) {
+      msat_set_option_checked(cfg, "unsat_core_generation", "1");
     }
     return cfg;
   }
@@ -62,6 +68,17 @@ public class Mathsat5TheoremProver extends Mathsat5AbstractProver implements Pro
     Preconditions.checkState(curEnv != 0);
     msat_push_backtrack_point(curEnv);
     msat_assert_formula(curEnv, getMsatTerm(f));
+  }
+
+  @Override
+  public List<BooleanFormula> getUnsatCore() {
+    Preconditions.checkState(curEnv != 0);
+    long[] terms = msat_get_unsat_core(curEnv);
+    List<BooleanFormula> result = new ArrayList<>(terms.length);
+    for (long t : terms) {
+      result.add(new Mathsat5BooleanFormula(t));
+    }
+    return result;
   }
 
   @Override

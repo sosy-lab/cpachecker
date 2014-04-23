@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
@@ -51,7 +52,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Maps;
@@ -128,7 +128,7 @@ public class PredicateMapParser {
 
     Files.checkReadableFile(file);
 
-    try (BufferedReader reader = file.asCharSource(Charsets.US_ASCII).openBufferedStream()) {
+    try (BufferedReader reader = file.asCharSource(StandardCharsets.US_ASCII).openBufferedStream()) {
       return parsePredicates(reader, file.getName());
     }
   }

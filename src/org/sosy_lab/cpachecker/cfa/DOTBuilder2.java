@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.successorsOf;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +47,6 @@ import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -156,7 +156,7 @@ public final class DOTBuilder2 {
 
     void writeFunctionFile(String funcname, Path outdir) throws IOException {
 
-        try (Writer out = outdir.resolve("cfa__" + funcname + ".dot").asCharSink(Charsets.UTF_8).openBufferedStream()) {
+        try (Writer out = outdir.resolve("cfa__" + funcname + ".dot").asCharSink(StandardCharsets.UTF_8).openBufferedStream()) {
           out.write("digraph " + funcname + " {\n");
           StringBuilder outb = new StringBuilder();
           //write comboedges

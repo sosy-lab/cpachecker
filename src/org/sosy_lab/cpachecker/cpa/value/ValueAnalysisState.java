@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import static com.google.common.base.Objects.equal;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serializable;
@@ -249,7 +248,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     for (Map.Entry<MemoryLocation, Value> otherEntry : reachedState.constantsMap.entrySet()) {
       MemoryLocation key = otherEntry.getKey();
 
-      if (equal(otherEntry.getValue(), constantsMap.get(key))) {
+      if (Objects.equals(otherEntry.getValue(), constantsMap.get(key))) {
         newConstantsMap = newConstantsMap.putAndCopy(key, otherEntry.getValue());
       }
     }

@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.logging;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
@@ -72,6 +73,13 @@ public class LoggingProverEnvironment implements ProverEnvironment {
     Model m = wrapped.getModel();
     logger.log(Level.FINE, "model", m);
     return m;
+  }
+
+  @Override
+  public List<BooleanFormula> getUnsatCore() {
+    List<BooleanFormula> unsatCore = wrapped.getUnsatCore();
+    logger.log(Level.FINE, "unsat-core", unsatCore);
+    return unsatCore;
   }
 
   @Override
