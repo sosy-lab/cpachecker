@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
@@ -378,14 +377,20 @@ public class BAMTransferRelation implements TransferRelation {
         // if level is twice in stack, we have endless recursion.
         // with current knowledge we would never abort unrolling the recursion.
         // lets skip the function and return only a short "summary" of the function.
-        logger.log(Level.ALL, "recursion will cause endless unrolling, skipping function and analysing summary-edge.");
+        logger.log(Level.INFO, "recursion will cause endless unrolling, skipping function and analysing summary-edge.");
 
         // cleanup function-call-state, that was needed to determine the reduced state of currentLevel
         //((ARGState)initialState).removeFromARG();
 
         // skip function-call
-        FunctionSummaryEdge summaryEdge = rootNode.getLeavingSummaryEdge();
-        resultStates = wrappedTransfer.getAbstractSuccessors(rootState, pPrecision, summaryEdge);
+        //FunctionSummaryEdge summaryEdge = rootNode.getLeavingSummaryEdge();
+        //resultStates = wrappedTransfer.getAbstractSuccessors(rootState, pPrecision, summaryEdge);
+
+        // if we have recursion, lets try the non-recursive path first.
+        // either we prove the error and exit,
+        // or we get a new refinement, that would not cause a covering stack-level.
+        // TODO unroll at least once for special programs?
+        resultStates = Collections.EMPTY_SET;
 
         // current location is "after" the function-return-edge.
 
@@ -652,6 +657,7 @@ public class BAMTransferRelation implements TransferRelation {
         }
       }
       if (currentElement.getParents().isEmpty()) {
+        assert root == null : "subgraph should not have multiple roots.";
         root = elementsMap.get(currentElement);
       }
     }
