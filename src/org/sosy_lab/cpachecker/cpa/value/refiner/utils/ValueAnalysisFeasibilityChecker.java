@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 
@@ -34,8 +33,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
@@ -133,8 +131,16 @@ public class ValueAnalysisFeasibilityChecker {
       for (Pair<ARGState, CFAEdge> pathElement : path) {
         final CFAEdge edge = pathElement.getSecond();
 
-        if (edge instanceof FunctionCallEdge) {
+        // we enter a function, so lets add the previous state to the stack
+        if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
           callstack.addLast(next);
+        }
+
+        // we leave a function, so rebuild return-state before assigning the return-value.
+        if (edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+          // rebuild states with info from previous state
+          final ValueAnalysisState callState = callstack.removeLast();
+          next = next.rebuildStateAfterFunctionCall(callState);
         }
 
         Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessors(
@@ -142,15 +148,6 @@ public class ValueAnalysisFeasibilityChecker {
             pPrecision,
             edge);
 
-        if (edge instanceof FunctionReturnEdge) {
-          // rebuild states with info from previous state
-          Collection<ValueAnalysisState> rebuildSuccessors = new ArrayList<>();
-          final ValueAnalysisState callState = callstack.removeLast();
-          for (final ValueAnalysisState returnState : successors) {
-            rebuildSuccessors.add(returnState.rebuildStateAfterFunctionCall(callState));
-          }
-          successors = rebuildSuccessors;
-        }
 
         prefix.addLast(pathElement);
 

@@ -44,8 +44,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
@@ -293,7 +291,7 @@ public class ValueAnalysisInterpolator {
       }
 
       // we enter a function, so lets add the previous state to the stack
-      if (currentEdge instanceof FunctionCallEdge) {
+      if (currentEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
         callstack.addLast(state);
       }
 
