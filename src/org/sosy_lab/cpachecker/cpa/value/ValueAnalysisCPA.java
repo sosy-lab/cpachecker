@@ -202,7 +202,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
    */
   private boolean refinementWithoutAbstraction(Configuration config) {
     return Boolean.parseBoolean(config.getProperty("analysis.algorithm.CEGAR")) &&
-            !config.getProperty("cpa.composite.precAdjust").equals("COMPONENT");
+            !"COMPONENT".equals(config.getProperty("cpa.composite.precAdjust"));
   }
 
   private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA cfa) throws InvalidConfigurationException {
