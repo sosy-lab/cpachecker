@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
+import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Deque;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -31,6 +33,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
@@ -120,12 +124,30 @@ public class ValueAnalysisFeasibilityChecker {
 
       ARGPath prefix = new ARGPath();
 
+      // we need a callstack to handle recursive functioncalls,
+      // because they override variables of current scope and we have to rebuild them.
+      // TODO optimisation: use only for recursion, currently every functioncall is rebuild
+      final Deque<ValueAnalysisState> callstack = new ArrayDeque<>();
 
       for (Pair<ARGState, CFAEdge> pathElement : path) {
+        final CFAEdge edge = pathElement.getSecond();
+
+        if (edge instanceof FunctionCallEdge) {
+          callstack.addLast(next);
+        }
+
         Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessors(
             next,
             pPrecision,
-            pathElement.getSecond());
+            edge);
+
+        if (edge instanceof FunctionReturnEdge) {
+          // rebuild states with info from previous state
+          final ValueAnalysisState callState = callstack.removeLast();
+          for (final ValueAnalysisState returnState : successors) {
+            rebuildStateAfterFunctionCall(callState, returnState);
+          }
+        }
 
         prefix.addLast(pathElement);
 
@@ -142,5 +164,23 @@ public class ValueAnalysisFeasibilityChecker {
     } catch (CPATransferException e) {
       throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
     }
+  }
+
+  /** If there was a recursive function, we have wrong values for scoped variables in the returnState.
+   * This function rebuilds the correct values with information from the previous callState.
+   * We override the wrong values (or insert new values, if the variable is not tracked). */
+  private ValueAnalysisState rebuildStateAfterFunctionCall(ValueAnalysisState callState, ValueAnalysisState returnState) {
+
+    // we build the returnState with all local variables from callState
+    for (ValueAnalysisState.MemoryLocation trackedVar : callState.getTrackedMemoryLocations()) {
+      if (trackedVar.isOnFunctionStack()) {
+        // not global, but scoped
+        // -> copy/assign value, because there could have been an recursive assignment.
+        // this will assign too much values, but should not be unsound
+        returnState.assignConstant(trackedVar, callState.getValueFor(trackedVar));
+      }
+    }
+
+    return returnState;
   }
 }
