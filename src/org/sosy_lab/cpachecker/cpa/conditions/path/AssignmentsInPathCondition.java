@@ -117,6 +117,11 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   public class UniqueAssignmentsInPathConditionState implements AbstractState, AvoidanceReportingState {
 
     /**
+     * the mapping from variable name to the set of assigned values to this variable
+     */
+    private Multimap<MemoryLocation, Value> mapping = HashMultimap.create();
+
+    /**
      * the maximal number of assignments over all variables
      */
     private int maximum;
@@ -165,11 +170,6 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
       int increment = mapping.containsEntry(memoryLocation, state.getValueFor(memoryLocation)) ? 0 : 1;
       return (mapping.get(memoryLocation).size() + increment) > softThreshold;
     }
-
-    /**
-     * the mapping from variable name to the set of assigned values to this variable
-     */
-    private Multimap<MemoryLocation, Value> mapping = HashMultimap.create();
 
     /**
     * This method decides if the number of assignments for the given memory location exceeds the hard threshold.
