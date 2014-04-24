@@ -308,18 +308,18 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
 
       // forget the value for all variables that exceed their threshold
       for (MemoryLocation memoryLocation: state.getDelta()) {
-        // current memory location is already in (refineable) precision, so check against hard threshold
+
+        // if memory location is being tracked, check against hard threshold
         if(precision.isTracking(memoryLocation)) {
-          if(assignments.wouldExceedHardThreshold(state, memoryLocation)) {
+          assignments.updateAssignmentInformation(memoryLocation, state.getValueFor(memoryLocation));
+
+          if(assignments.exceedsHardThreshold(memoryLocation)) {
             state.forget(memoryLocation);
-          }
-          else {
-            assignments.updateAssignmentInformation(memoryLocation, state.getValueFor(memoryLocation));
           }
         }
 
-        // otherwise, check against soft threshold
         else {
+          // otherwise, check against soft threshold, including the pending assignment
           if(assignments.wouldExceedSoftThreshold(state, memoryLocation)) {
             state.forget(memoryLocation);
           }
