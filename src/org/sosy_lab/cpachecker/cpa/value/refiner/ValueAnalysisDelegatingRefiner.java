@@ -203,6 +203,8 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     LogManager logger                 = pValueAnalysisCpa.getLogger();
     PredicateCPARefiner backupRefiner = createBackupRefiner(config, logger, cpa);
 
+    pValueAnalysisCpa.injectRefinablePrecision();
+
     return new ValueAnalysisDelegatingRefiner(
         config,
         logger,

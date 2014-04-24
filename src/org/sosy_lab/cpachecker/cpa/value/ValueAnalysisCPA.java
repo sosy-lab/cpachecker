@@ -182,18 +182,22 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   }
 
   private ValueAnalysisPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
-    // create default (empty) precision
-    ValueAnalysisPrecision precision = new ValueAnalysisPrecision(variableBlacklist, config, cfa.getVarClassification());
 
-    // refine it with precision from file
-    return new ValueAnalysisPrecision(precision, restoreMappingFromFile(cfa));
+    if (initialPrecisionFile == null) {
+      return new ValueAnalysisPrecision(variableBlacklist, config, cfa.getVarClassification(), new ValueAnalysisPrecision.FullPrecision());
+    }
+
+    else {
+      // create precision with empty, refinable component precision
+      ValueAnalysisPrecision precision = new ValueAnalysisPrecision(variableBlacklist, config, cfa.getVarClassification());
+
+      // refine the refinable component precision with increment from file
+      return new ValueAnalysisPrecision(precision, restoreMappingFromFile(cfa));
+    }
   }
 
   private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA cfa) throws InvalidConfigurationException {
     Multimap<CFANode, MemoryLocation> mapping = HashMultimap.create();
-    if (initialPrecisionFile == null) {
-      return mapping;
-    }
 
     List<String> contents = null;
     try {
@@ -238,6 +242,14 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
       idToNodeMap.put(n.getNodeNumber(), n);
     }
     return idToNodeMap;
+  }
+
+  public void injectRefinablePrecision() throws InvalidConfigurationException {
+
+    // replace the full precision with an empty, refinable precision
+    if (initialPrecisionFile == null) {
+      precision = new ValueAnalysisPrecision(variableBlacklist, config, cfa.getVarClassification());
+    }
   }
 
   @Override

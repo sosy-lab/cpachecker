@@ -77,7 +77,10 @@ public class ValueAnalysisFeasibilityChecker {
   public boolean isFeasible(final ARGPath path) throws CPAException, InterruptedException {
     try {
       return isFeasible(path,
-          new ValueAnalysisPrecision("", config, Optional.<VariableClassification>absent()),
+          new ValueAnalysisPrecision("",
+              config,
+              Optional.<VariableClassification>absent(),
+              new ValueAnalysisPrecision.FullPrecision()),
           new ValueAnalysisState());
     }
     catch (InvalidConfigurationException e) {
