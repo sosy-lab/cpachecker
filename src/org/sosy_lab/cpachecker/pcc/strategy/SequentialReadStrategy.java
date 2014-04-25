@@ -37,7 +37,6 @@ public abstract class SequentialReadStrategy extends AbstractStrategy {
 
   public SequentialReadStrategy(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     super(pConfig, pLogger);
-    // TODO Auto-generated constructor stub
   }
 
   @Override
