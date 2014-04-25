@@ -147,7 +147,9 @@ public abstract class AbstractParallelReadingStrategy implements PCCStrategy {
 
 
     return Pair.of(graph,
-        partitioner.computePartitioning((int) Math.ceil(pReached.size() / (double) maxNumElemsPerPartition), graph));
+        partitioner.computePartitioning(
+            maxNumElemsPerPartition <= 0 ? 1 : (int) Math.ceil(pReached.size() / (double) maxNumElemsPerPartition),
+            graph));
   }
 
   protected void readPartition(final ObjectInputStream pIn)
