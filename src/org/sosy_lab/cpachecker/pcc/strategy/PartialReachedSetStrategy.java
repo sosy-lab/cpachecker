@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.ARGBasedPartialReachedSetConstructionAlgorithm;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.HeuristicPartialReachedSetConstructionAlgorithm;
-import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.MonotoneStopARGBasedPartialReachedSetConstructionAlgorithm;
+import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialCertificateTypeProvider;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -77,7 +77,7 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
       certificateConstructor = new ARGBasedPartialReachedSetConstructionAlgorithm(cpa.getWrappedCPAs().get(0), false);
       break;
     case MONOTONESTOPARG:
-      certificateConstructor = new MonotoneStopARGBasedPartialReachedSetConstructionAlgorithm(false);
+      certificateConstructor = new MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm(false);
       break;
     default:
       certificateConstructor = new HeuristicPartialReachedSetConstructionAlgorithm();

@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.ARGBasedPartialReachedSetConstructionAlgorithm;
-import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.MonotoneStopARGBasedPartialReachedSetConstructionAlgorithm;
+import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialCertificateTypeProvider;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.ExponentialOptimalBalancedGraphPartitioner;
@@ -82,7 +82,7 @@ public abstract class AbstractParallelReadingStrategy implements PCCStrategy {
 
     switch (new PartialCertificateTypeProvider(pConfig, false).getCertificateType()) {
     case MONOTONESTOPARG:
-      partialConstructor = new MonotoneStopARGBasedPartialReachedSetConstructionAlgorithm(true);
+      partialConstructor = new MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm(true);
       break;
     default: // ARG
       ARGCPA cpa = pCpa.retrieveWrappedCpa(ARGCPA.class);

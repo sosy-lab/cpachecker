@@ -34,11 +34,11 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 // TODO rename transfer must be monotone or?
-public class MonotoneStopARGBasedPartialReachedSetConstructionAlgorithm implements PartialReachedConstructionAlgorithm {
+public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm implements PartialReachedConstructionAlgorithm {
 
   private final boolean returnARGStates;
 
-  public MonotoneStopARGBasedPartialReachedSetConstructionAlgorithm(final boolean pReturnARGStatesInsteadOfWrappedStates){
+  public MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm(final boolean pReturnARGStatesInsteadOfWrappedStates){
     returnARGStates = pReturnARGStatesInsteadOfWrappedStates;
   }
 
