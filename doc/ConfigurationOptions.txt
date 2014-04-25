@@ -1630,15 +1630,30 @@ pcc.certificateType = HEURISTIC
 # exists for which violates the property
 pcc.checkPropertyPerElement = false
 
+# Enable interleaved proof reading and writing, may not be supported by every
+# strategy.
+pcc.interleaved = false
+
+# Specifies the maximum size of the partition. This size is used to compute
+# the number of partitions if a proof (reached set) should be written.
+# Default value 0 means always a single partition.
+pcc.maxNumElemsPerPartition = 0
+
+# Heuristic for computing partitioning of proof (partial reached set).
+pcc.partitioning = RANDOM
+  enum:     [RANDOM, OPTIMAL]
+
 # file in which proof representation needed for proof checking is stored
 pcc.proofFile = "arg.obj"
 
 # Generate and dump a proof
 pcc.proofgen.doPCC = false
 
-# Set to true if certificate contains not only abstract states but also the
-# size of reached set, enables proper PCC
-pcc.reachedSizeInCertificate = false
+# Enables proper PCC but may not work correctly for heuristics. Stops adding
+# newly computed elements to reached set if size saved in proof is reached.
+# If another element must be added, stops certificate checking and returns
+# false.
+pcc.stopAddingAtReachedSetSize = false
 
 # Qualified name for class which implements certification strategy, hence
 # proof writing, to be used.
