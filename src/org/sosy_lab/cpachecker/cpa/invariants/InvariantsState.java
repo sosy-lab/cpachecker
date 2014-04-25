@@ -328,6 +328,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
     CompoundIntervalFormulaManager ifm = CompoundIntervalFormulaManager.INSTANCE;
     Variable<CompoundInterval> variable = ifm.asVariable(pVarName);
+    ContainsVarVisitor<CompoundInterval> containsVarVisitor = new ContainsVarVisitor<>();
 
     // Optimization: If the value being assigned is equivalent to the value already stored, do nothing
     if (getEnvironmentValue(pVarName).equals(pValue)
@@ -337,13 +338,16 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     }
 
     // Avoid self-assignments if an equivalent alternative is available
-    if (pValue.accept(new ContainsVarVisitor<CompoundInterval>(), pVarName)) {
-      InvariantsFormula<CompoundInterval> alternative = environment.get(variable);
+    if (pValue.accept(containsVarVisitor, pVarName)) {
+      InvariantsFormula<CompoundInterval> varValue = environment.get(pVarName);
+      boolean isVarValueConstant = varValue instanceof Constant && ((Constant<CompoundInterval>) varValue).getValue().isSingleton();
+      InvariantsFormula<CompoundInterval> alternative = varValue;
       if (!(alternative instanceof Variable)) {
         alternative = null;
         for (Map.Entry<String, InvariantsFormula<CompoundInterval>> entry : environment.entrySet()) {
           InvariantsFormula<CompoundInterval> value = entry.getValue();
-          if (value.equals(variable)) {
+          if (!entry.getKey().equals(pVarName)
+              && (value.equals(variable) || isVarValueConstant && value.equals(varValue))) {
             alternative = CompoundIntervalFormulaManager.INSTANCE.asVariable(entry.getKey());
             break;
           }
@@ -352,16 +356,19 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       if (alternative != null) {
         pValue = pValue.accept(new ReplaceVisitor<>(variable, alternative));
       }
+      CompoundInterval value = pValue.accept(EVALUATION_VISITOR, environment);
+      if (value.isSingleton()) {
+        for (Map.Entry<String, InvariantsFormula<CompoundInterval>> entry : environment.entrySet()) {
+          InvariantsFormula<CompoundInterval> v = entry.getValue();
+          if (v instanceof Constant && value.equals(((Constant<CompoundInterval>) v).getValue())) {
+            pValue = CompoundIntervalFormulaManager.INSTANCE.asVariable(entry.getKey());
+            break;
+          }
+        }
+      }
     }
 
-    final InvariantsState result = new InvariantsState(useBitvectors, newVariableSelection, edgeBasedAbstractionStrategy.addVisitedEdge(pEdge), precision);
 
-    /*
-     * A variable is newly assigned, so the appearances of this variable
-     * in any previously collected assumptions (including its new value)
-     * have to be resolved with the variable's previous value.
-     */
-    ReplaceVisitor<CompoundInterval> replaceVisitor;
     InvariantsFormula<CompoundInterval> previousValue = getEnvironmentValue(pVarName);
     FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor = getFormulaResolver(pEdge);
     if (!mayEvaluate(pEdge) && previousValue instanceof Union<?>) {
@@ -371,30 +378,67 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
         previousValue = CompoundIntervalFormulaManager.INSTANCE.asConstant(previousValue.accept(evaluationVisitor, environment));
       }
     }
-    replaceVisitor = new ReplaceVisitor<>(variable, previousValue);
-    final InvariantsFormula<CompoundInterval> newSubstitutedValue =
-        pValue.accept(replaceVisitor).accept(this.partialEvaluator, evaluationVisitor);
 
-    for (Map.Entry<String, InvariantsFormula<CompoundInterval>> environmentEntry : this.environment.entrySet()) {
-      if (!environmentEntry.getKey().equals(pVarName)) {
-        InvariantsFormula<CompoundInterval> newEnvValue =
-            environmentEntry.getValue().accept(replaceVisitor);
-        InvariantsFormula<CompoundInterval> newEnvValueSimplified = newEnvValue.accept(this.partialEvaluator, evaluationVisitor);
-        result.environment.put(environmentEntry.getKey(), trim(newEnvValueSimplified));
+    /*
+     * A variable is newly assigned, so the appearances of this variable
+     * in any previously collected assumptions (including its new value)
+     * have to be resolved with the variable's previous value.
+     */
+    ReplaceVisitor<CompoundInterval> replaceVisitor = new ReplaceVisitor<>(variable, previousValue);
+
+    // Try without widening first
+    InvariantsState unwidened =
+        assignInternal(pVarName, pValue, pEdge, newVariableSelection, EVALUATION_VISITOR, replaceVisitor);
+    InvariantsState result = unwidened;
+
+    // Try to add the assumptions for the unwidened result; if it turns out that they are false, the state is bottom
+    if (!updateAssumptions(result, replaceVisitor, pValue, pVarName, pEdge)) { return null; }
+
+    // If widening is required, do so
+    if (!evaluationVisitor.equals(EVALUATION_VISITOR)) {
+      result = assignInternal(pVarName, pValue, pEdge, newVariableSelection, evaluationVisitor, replaceVisitor);
+
+      // Try to add the assumptions for the widened result; if it turns out that they are false, the state is bottom
+      if (!updateAssumptions(result, replaceVisitor, pValue, pVarName, pEdge)) { return null; }
+
+      // If this state covers the unwidened result, use this state as widening
+      if (unwidened.isLessThanOrEqualTo(this) && !result.isLessThanOrEqualTo(this)) {
+        return this;
       }
     }
-    result.environment.put(pVarName, trim(newSubstitutedValue));
-
-    // Try to add the assumptions; if it turns out that they are false, the state is bottom
-    if (!updateAssumptions(result, replaceVisitor, pValue, pVarName, pEdge)) { return null; }
 
     if (!result.collectInterestingAssumptions(CompoundIntervalFormulaManager.INSTANCE.equal(variable, pValue.accept(replaceVisitor)))) {
       return null;
     }
 
-    if (equalsState(result)) {
+    if (equals(result)) {
       return this;
     }
+    return result;
+  }
+
+  /**
+   * @param pVarName
+   * @param pValue
+   * @param pEdge
+   * @param newVariableSelection
+   * @param evaluationVisitor
+   * @param replaceVisitor
+   * @return
+   */
+  private InvariantsState assignInternal(String pVarName, InvariantsFormula<CompoundInterval> pValue, CFAEdge pEdge,
+      VariableSelection<CompoundInterval> newVariableSelection,
+      FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor, ReplaceVisitor<CompoundInterval> replaceVisitor) {
+    final InvariantsState result = new InvariantsState(useBitvectors, newVariableSelection, edgeBasedAbstractionStrategy.addVisitedEdge(pEdge), precision);
+
+    for (Map.Entry<String, InvariantsFormula<CompoundInterval>> environmentEntry : this.environment.entrySet()) {
+      if (!environmentEntry.getKey().equals(pVarName)) {
+        InvariantsFormula<CompoundInterval> newEnvValue =
+            environmentEntry.getValue().accept(replaceVisitor);
+        result.environment.put(environmentEntry.getKey(), trim(newEnvValue, evaluationVisitor));
+      }
+    }
+    result.environment.put(pVarName, trim(pValue.accept(replaceVisitor), evaluationVisitor));
     return result;
   }
 
@@ -412,10 +456,14 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     return new InvariantsState(useBitvectors, variableSelection, edgeBasedAbstractionStrategy, precision);
   }
 
-  private InvariantsFormula<CompoundInterval> trim(InvariantsFormula<CompoundInterval> pFormula) {
+  private InvariantsFormula<CompoundInterval> trim(InvariantsFormula<CompoundInterval> pFormula, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
     if (pFormula.accept(FORMULA_DEPTH_COUNT_VISITOR) > this.precision.getMaximumFormulaDepth()) {
-      return CompoundIntervalFormulaManager.INSTANCE.asConstant(
-          pFormula.accept(ABSTRACTION_VISITOR, environment));
+      InvariantsFormula<CompoundInterval> result = pFormula.accept(this.partialEvaluator, pEvaluationVisitor);
+      if (result.accept(FORMULA_DEPTH_COUNT_VISITOR) > this.precision.getMaximumFormulaDepth()) {
+        result = CompoundIntervalFormulaManager.INSTANCE.asConstant(
+            pFormula.accept(pEvaluationVisitor, environment));
+      }
+      return result;
     }
     return pFormula;
   }
