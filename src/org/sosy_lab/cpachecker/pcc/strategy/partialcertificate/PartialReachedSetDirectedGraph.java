@@ -24,52 +24,147 @@
 package org.sosy_lab.cpachecker.pcc.strategy.partialcertificate;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+
+import com.google.common.collect.ImmutableList;
 
 public class PartialReachedSetDirectedGraph {
 
-  // TODO set final if possible
   /* index of node is its position in <code>nodes</code>*/
-  private AbstractState[] nodes;
-  private int[][] adjacencyMatrix;
-  private List<Integer>[] adjacencyList;
+  private final AbstractState[] nodes;
+  private final int numNodes;
+  private final int[][] adjacencyMatrix;
+  private final ImmutableList<ImmutableList<Integer>> adjacencyList;
 
+  public PartialReachedSetDirectedGraph(final ARGState[] pNodes) {
+    List<List<Integer>> adjacencyList;
+    if (pNodes == null) {
+      nodes = new AbstractState[0];
+      numNodes = 0;
+      adjacencyMatrix = new int[nodes.length][nodes.length];
+      adjacencyList = new ArrayList<>(0);
+    } else {
+      nodes = pNodes;
+      numNodes = nodes.length;
+      adjacencyMatrix = new int[nodes.length][nodes.length];
+      adjacencyList = new ArrayList<>(nodes.length);
+
+      SuccessorEdgeConstructor edgeConstructor = new SuccessorEdgeConstructor(adjacencyList);
+      for (ARGState node : pNodes) {
+        edgeConstructor.setPredecessorBeforeARGPass(node);
+        edgeConstructor.passARG(node);
+      }
+    }
+
+    List<ImmutableList<Integer>> newList = new ArrayList<>(adjacencyList.size());
+    for (int i = 0; i < adjacencyList.size(); i++) {
+      newList.add(ImmutableList.copyOf(adjacencyList.get(i)));
+    }
+    this.adjacencyList = ImmutableList.copyOf(newList);
+  }
 
   public int getNumNodes(){
-    return nodes.length; // TODO more efficient way?
+    return numNodes;
   }
-  public AbstractState[] getNodes() {
-    return nodes;
+  public List<AbstractState> getNodes() {
+    return ImmutableList.copyOf(nodes);
   }
 
   public int[][] getAdjacencyMatrix() {
-    return adjacencyMatrix;
+    int[][] returnMatrix = new int[nodes.length][nodes.length];
+    for (int i = 0; i < nodes.length; i++) {
+      for (int j = 0; j < nodes.length; j++) {
+        returnMatrix[i][j] = adjacencyMatrix[i][j];
+      }
+    }
+    return returnMatrix;
   }
 
-  public List<Integer>[] getAdjacencyList() {
+  public ImmutableList<ImmutableList<Integer>> getAdjacencyList() {
     return adjacencyList;
   }
 
-  public AbstractState[] getAdjacentNodesOutsideSet(Set<Integer> pNodeSetIndices) {
+  public AbstractState[] getAdjacentNodesOutsideSet(final Set<Integer> pNodeSetIndices, final boolean pAsARGState) {
     List<AbstractState> listRes = new ArrayList<>();
 
-    try {
+   try {
       List<Integer> successors;
       for (Integer predecessor : pNodeSetIndices) {
-        successors = adjacencyList[predecessor];
+        successors = adjacencyList.get(predecessor);
         for (int successor : successors) {
           if (!pNodeSetIndices.contains(successor)) {
-            listRes.add(nodes[successor]);
+            if (pAsARGState) {
+              listRes.add(nodes[successor]);
+            } else {
+              listRes.add(((ARGState) nodes[successor]).getWrappedState());
+            }
           }
         }
       }
     } catch (ArrayIndexOutOfBoundsException | NullPointerException e) {
-      // TODO Eingabe falsch
+      throw new IllegalArgumentException("Wrong index set must not be null and all indices be within [0;" + numNodes + "-1].");
     }
     return listRes.toArray(new AbstractState[listRes.size()]);
+  }
+
+  public AbstractState[] getSetNodes(final Set<Integer> pNodeSetIndices, final boolean pAsARGState){
+    List<AbstractState> listRes = new ArrayList<>();
+
+    try {
+      for (Integer node : pNodeSetIndices) {
+
+        if (pAsARGState) {
+          listRes.add(nodes[node]);
+        } else {
+          listRes.add(((ARGState) nodes[node]).getWrappedState());
+        }
+      }
+    } catch (ArrayIndexOutOfBoundsException | NullPointerException e) {
+      throw new IllegalArgumentException("Wrong index set must not be null and all indices must be within [0;" + numNodes + "-1].");
+    }
+     return listRes.toArray(new AbstractState[listRes.size()]);
+  }
+
+  private class SuccessorEdgeConstructor extends AbstractARGPass{
+
+    private ARGState predecessor;
+    private int indexPredecessor;
+    private final HashMap<AbstractState, Integer> nodeToIndex;
+    private final List<List<Integer>> changeableAdjacencyList;
+
+    public SuccessorEdgeConstructor(List<List<Integer>> pAdjacencyList) {
+      super(false);
+      nodeToIndex = new HashMap<>();
+      for (int i = 0; i < nodes.length; i++) {
+        nodeToIndex.put(nodes[i], i);
+      }
+      changeableAdjacencyList = pAdjacencyList;
+    }
+
+    public void setPredecessorBeforeARGPass(ARGState pNewPredecessor){
+      predecessor = pNewPredecessor;
+      indexPredecessor = nodeToIndex.get(predecessor);
+    }
+
+    @Override
+    public void visitARGNode(ARGState pNode) {
+      if(stopPathDiscovery(pNode)){
+         int indexSuccessor = nodeToIndex.get(pNode);
+         adjacencyMatrix[indexPredecessor][indexSuccessor] = 1;
+         changeableAdjacencyList.get(indexPredecessor).add(indexSuccessor);
+      }
+    }
+
+    @Override
+    public boolean stopPathDiscovery(ARGState pNode) {
+      return pNode!=predecessor && nodeToIndex.containsKey(pNode);
+    }
+
   }
 
 }

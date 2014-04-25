@@ -23,11 +23,155 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.parallel.io;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.BalancedGraphPartitioner;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.PartialReachedConstructionAlgorithm;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.ARGBasedPartialReachedSetConstructionAlgorithm;
+import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.MonotoneStopARGBasedPartialReachedSetConstructionAlgorithm;
+import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialCertificateTypeProvider;
+import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
+import org.sosy_lab.cpachecker.pcc.strategy.partitioning.ExponentialOptimalBalancedGraphPartitioner;
+import org.sosy_lab.cpachecker.pcc.strategy.partitioning.RandomBalancedGraphPartitioner;
+
+@Options(prefix = "pcc")
+public abstract class AbstractParallelReadingStrategy implements PCCStrategy {
+
+  @Option(
+      description = "Specifies the maximum size of the partition. This size is used to compute the number of partitions if a proof (reached set) should be written. Default value 0 means always a single partition.")
+  private int maxNumElemsPerPartition = 0;
+
+  @Option(description = "Heuristic for computing partitioning of proof (partial reached set).")
+  private PartitioningHeuristics partitioning = PartitioningHeuristics.RANDOM;
+
+  public enum PartitioningHeuristics {
+    RANDOM,
+    OPTIMAL
+  }
+
+  protected LogManager logger;
+  private final PartialReachedConstructionAlgorithm partialConstructor;
+  private final BalancedGraphPartitioner partitioner;
+  private int savedReachedSetSize;
+  private int numPartitions;
+  private List<Pair<AbstractState[], AbstractState[]>> partitions;
+
+  public AbstractParallelReadingStrategy(final Configuration pConfig, final LogManager pLogger, PropertyCheckerCPA pCpa)
+      throws InvalidConfigurationException {
+    pConfig.inject(this, AbstractParallelReadingStrategy.class);
+    logger = pLogger;
+
+    switch (new PartialCertificateTypeProvider(pConfig, false).getCertificateType()) {
+    case MONOTONESTOPARG:
+      partialConstructor = new MonotoneStopARGBasedPartialReachedSetConstructionAlgorithm(true);
+      break;
+    default: // ARG
+      ARGCPA cpa = pCpa.retrieveWrappedCpa(ARGCPA.class);
+      if (cpa == null) { throw new InvalidConfigurationException(
+          "Require ARCPA and PropertyCheckerCPA must be a top level CPA of ARGCPA"); }
+      partialConstructor = new ARGBasedPartialReachedSetConstructionAlgorithm(cpa.getWrappedCPAs().get(0), true);
+    }
+
+    switch (partitioning) {
+    case OPTIMAL:
+      partitioner = new ExponentialOptimalBalancedGraphPartitioner();
+      break;
+    default: // RANDOM
+      partitioner = new RandomBalancedGraphPartitioner();
+    }
+  }
+
+  public int getSavedReachedSetSize() {
+    return savedReachedSetSize;
+  }
+
+  public int getNumPartitions() {
+    return numPartitions;
+  }
+
+  public @Nullable Pair<AbstractState[], AbstractState[]> getPartition(int pIndex) {
+    if(0<=pIndex && pIndex<numPartitions){
+      return partitions.get(pIndex);
+    }
+    return null;
+  }
+
+  // TODO add writing method?
+
+  @Override
+  public void constructInternalProofRepresentation(final UnmodifiableReachedSet pReached)
+      throws InvalidConfigurationException {
+    savedReachedSetSize = pReached.size();
+
+    Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> partitionDescription =
+        computePartialReachedSetAndPartition(pReached);
+
+    numPartitions = partitionDescription.getSecond().size();
+    partitions = new ArrayList<>(numPartitions);
+
+    for (Set<Integer> partition : partitionDescription.getSecond()) {
+      partitions.add(Pair.of(partitionDescription.getFirst().getSetNodes(partition, false), partitionDescription
+          .getFirst()
+          .getAdjacentNodesOutsideSet(partition, false)));
+    }
+  }
+
+  public Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> computePartialReachedSetAndPartition(
+      final UnmodifiableReachedSet pReached) throws InvalidConfigurationException {
+    AbstractState[] partialCertificate = partialConstructor.computePartialReachedSet(pReached);
+    ARGState[] argNodes = new ARGState[partialCertificate.length];
+    for (int i = 0; i < partialCertificate.length; i++) {
+      argNodes[i] = (ARGState) partialCertificate[i];
+    }
+
+    PartialReachedSetDirectedGraph graph = new PartialReachedSetDirectedGraph(argNodes);
 
 
-public abstract class AbstractParallelReadingStrategy implements PCCStrategy{
+    return Pair.of(graph,
+        partitioner.computePartitioning((int) Math.ceil(pReached.size() / (double) maxNumElemsPerPartition), graph));
+  }
 
-  // TODO add writing method, balanced partitioning computation, etc.
+  protected void readPartition(final ObjectInputStream pIn)
+      throws ClassNotFoundException, IOException {
+    partitions.add(Pair.of((AbstractState[]) pIn.readObject(), (AbstractState[]) pIn.readObject()));
+  }
+
+  protected void readMetadata(final ObjectInputStream pIn) throws IOException {
+    savedReachedSetSize = pIn.readInt();
+    numPartitions = pIn.readInt();
+    partitions = new ArrayList<>(numPartitions);
+  }
+
+
+  protected void writeMetadata(final ObjectOutputStream pOut, final int pReachedSetSize, final int pNumPartitions)
+      throws IOException {
+    pOut.write(pReachedSetSize);
+    pOut.write(pNumPartitions);
+  }
+
+  protected void writePartition(final ObjectOutputStream pOut, final Set<Integer> pPartition,
+      final PartialReachedSetDirectedGraph pPartialReachedSetDirectedGraph) throws IOException {
+    pOut.writeObject(pPartialReachedSetDirectedGraph.getSetNodes(pPartition, false));
+    pOut.writeObject(pPartialReachedSetDirectedGraph.getAdjacentNodesOutsideSet(pPartition, false));
+  }
 
 }

@@ -33,8 +33,14 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.PartialReachedConstructionAlg
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-
+// TODO rename transfer must be monotone or?
 public class MonotoneStopARGBasedPartialReachedSetConstructionAlgorithm implements PartialReachedConstructionAlgorithm {
+
+  private final boolean returnARGStates;
+
+  public MonotoneStopARGBasedPartialReachedSetConstructionAlgorithm(final boolean pReturnARGStatesInsteadOfWrappedStates){
+    returnARGStates = pReturnARGStatesInsteadOfWrappedStates;
+  }
 
   @Override
   public AbstractState[] computePartialReachedSet(final UnmodifiableReachedSet pReached)
@@ -62,11 +68,16 @@ public class MonotoneStopARGBasedPartialReachedSetConstructionAlgorithm implemen
     }
 
     private List<AbstractState> wrappedARGStates = new ArrayList<>();
+    private List<ARGState> argStates = new ArrayList<>();
 
     @Override
     public void visitARGNode(final ARGState pNode) {
       if (isToAdd(pNode)) {
-        wrappedARGStates.add(pNode.getWrappedState());
+        if (returnARGStates) {
+          argStates.add(pNode);
+        } else {
+          wrappedARGStates.add(pNode.getWrappedState());
+        }
       }
     }
 
