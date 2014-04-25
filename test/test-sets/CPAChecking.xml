@@ -6,8 +6,7 @@
 <option name="-spec">sv-comp</option>
 <option name="-disable-java-assertions"/>
 <option name="-setprop">statistics.memory=false</option>
-<option name="-setprop">pcc.proofType = SET</option>
-<option name="-setprop">pcc.proofcheck.precision=false</option>
+<option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
 <option name="-setprop">pcc.proofFile=arg.obj</option>
 
 <rundefinition name="PureReachDef">
