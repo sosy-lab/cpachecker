@@ -75,7 +75,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
   @Option(name = "cbmc.dumpCBMCfile",
       description = "File name where to put the path program that is generated "
       + "as input for CBMC. A temporary file is used if this is unspecified. "
-      + "If specified, the file name should end with '.i'.")
+      + "If specified, the file name should end with '.i' because otherwise CBMC runs the pre-processor on the file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path cbmcFile;
 
@@ -109,6 +109,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
     } else {
 
       // This temp file will be automatically deleted when the try block terminates.
+      // Suffix .i tells CBMC to not call the pre-processor on this file.
       try (DeleteOnCloseFile tempFile = Files.createTempFile("path", ".i")) {
         return checkCounterexample(pRootState, pErrorPathStates, tempFile.toPath());
 
@@ -189,12 +190,21 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
   private List<String> getParamForMachineModel() {
     switch (machineModel) {
+    // CBMC provides --32 and --64 to specify the machine model,
+    // but some parameters are not specified by them (e.g., endianess)
+    // and are taken from the current system.
+    // For 32bit code, there is the additional switch --i386-linux
+    // that sets these additional parameters.
+    // However, using --i386-linux lets CBMC call the C pre-processor
+    // (not for the program but for its internal C library)
+    // and the libc 32bit development headers need to be installed,
+    // so maybe this is not what we always want (e.g., on Windows)?
+    // For --64 there is no switch similar to --i386-linux,
+    // because it would require the 64bit headers, and we cannot expect
+    // them on a 32bit system.
     case LINUX32:
-      // The second parameter was recommended by Michael Tautschnig because
-      // --32 doesn't force everything we assume (e.g., endianess).
       return ImmutableList.of("--32", "--i386-linux");
     case LINUX64:
-      // Unfortunately there is no similar switch for --64
       return ImmutableList.of("--64");
     default:
       throw new AssertionError("Unknown machine model value " + machineModel);

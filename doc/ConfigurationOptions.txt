@@ -245,7 +245,8 @@ bmc.useInvariantsForInduction = false
 
 # File name where to put the path program that is generated as input for
 # CBMC. A temporary file is used if this is unspecified. If specified, the
-# file name should end with '.i'.
+# file name should end with '.i' because otherwise CBMC runs the
+# pre-processor on the file.
 cbmc.dumpCBMCfile = no default value
 
 # specify the name of the error label
