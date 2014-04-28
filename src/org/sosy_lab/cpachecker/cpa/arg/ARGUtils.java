@@ -227,6 +227,18 @@ public class ARGUtils {
         Predicates.alwaysFalse());
   }
 
+
+  /**
+   * Writes the ARG with the root state pRootState to pSb as a graphviz dot file
+   *
+   */
+  public static void writeARGAsDot(Appendable pSb, ARGState pRootState, final Predicate<? super Pair<ARGState, ARGState>> edgesToHighlight) throws IOException {
+    ARGToDotWriter.write(pSb, pRootState,
+        ARGUtils.CHILDREN_OF_STATE,
+        Predicates.alwaysTrue(),
+        edgesToHighlight);
+  }
+
   /**
    * Find a path in the ARG. The necessary information to find the path is a
    * boolean value for each branching situation that indicates which of the two

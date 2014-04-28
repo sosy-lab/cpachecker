@@ -238,7 +238,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
         // if there is any target state do refinement
         if (refinementNecessary(reached)) {
-//System.out.println("refining ...");
           refinementSuccessful = refine(reached);
           refinedInPreviousIteration = true;
           // assert that reached set is free of target states,
@@ -249,10 +248,9 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         } else {
 
           if(!refinedInPreviousIteration) {
-//System.out.println("... done!");
             break;
           }
-//System.out.println("restarting ...");
+
           new ARGReachedSet(reached).removeSubtree(((ARGState)reached.getFirstState()).getChildren().iterator().next(),
               ValueAnalysisImpactGlobalRefiner.globalPrecision, ValueAnalysisPrecision.class);
 

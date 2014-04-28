@@ -129,6 +129,11 @@ public class ARGReachedSet {
     }
   }
 
+  public void readdToWaitlist(ARGState e, Precision p, Class<? extends Precision> pPrecisionType) {
+    mReached.updatePrecision(e, adaptPrecision(mReached.getPrecision(e), p, pPrecisionType));
+    mReached.reAddToWaitlist(e);
+  }
+
   /**
    * Like {@link #removeSubtree(ARGState)}, but when re-adding elements to the
    * waitlist adapts precisions with respect to the supplied precision p (see

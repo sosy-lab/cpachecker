@@ -38,13 +38,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
@@ -565,14 +565,11 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
       for (Map.Entry<MemoryLocation, Value> itp : assignment.entrySet()) {
         if(!valueState.contains(itp.getKey())) {
           valueState.assignConstant(itp.getKey(), itp.getValue());
-
           strengthened = true;
         }
 
-        else if(valueState.contains(itp.getKey()) && !valueState.getValueFor(itp.getKey()).equals(itp.getValue())) {
-          valueState.assignConstant(itp.getKey(), itp.getValue());
-
-          strengthened = true;
+        else if(valueState.contains(itp.getKey()) && valueState.getValueFor(itp.getKey()).asNumericValue().longValue() != itp.getValue().asNumericValue().longValue()) {
+          assert false : "state and interpolant do not match in value for variable " + itp.getKey() + "[" + valueState.getValueFor(itp.getKey()).asNumericValue().longValue() + " != " + itp.getValue() + "]";
         }
       }
 
