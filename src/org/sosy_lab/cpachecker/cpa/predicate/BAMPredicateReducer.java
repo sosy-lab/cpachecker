@@ -43,9 +43,12 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -66,11 +69,13 @@ public class BAMPredicateReducer implements Reducer {
   private final RelevantPredicatesComputer relevantComputer;
   private final LogManager logger;
   private final BooleanFormulaManager bfmgr;
+  private final FormulaManagerView fmgr;
 
-  public BAMPredicateReducer(BooleanFormulaManager bfmgr, BAMPredicateCPA cpa, RelevantPredicatesComputer pRelevantPredicatesComputer) {
+  public BAMPredicateReducer(FormulaManagerView fmgr, BAMPredicateCPA cpa, RelevantPredicatesComputer pRelevantPredicatesComputer) {
     this.pmgr = cpa.getPathFormulaManager();
     this.pamgr = cpa.getPredicateManager();
-    this.bfmgr = bfmgr;
+    this.bfmgr = fmgr.getBooleanFormulaManager();
+    this.fmgr = fmgr;
     this.logger = cpa.getLogger();
     this.relevantComputer = pRelevantPredicatesComputer;
   }
@@ -430,9 +435,69 @@ public class BAMPredicateReducer implements Reducer {
   }
 
   @Override
-  public AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState expandedState) {
-    // TODO implement rebuilding, just returning the expanded state is only SAFE, if there is no recursion.
-    return expandedState;
-  }
+  public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState pExpandedState) {
+    final PredicateAbstractState rootState = (PredicateAbstractState) pRootState;
+    final PredicateAbstractState expandedState = (PredicateAbstractState) pExpandedState;
 
+    // TODO why did I copy the next if-statement? when is it used?
+    if (!expandedState.isAbstractionState()) {
+      return expandedState;
+    }
+
+    // we build a new state from:
+    // - local variables from rootState,               -> update indizes & assign for equality
+    // - local variables from expandedState,           -> delete indizes
+    // - global variables from expandedState,          -> ignore them
+    // - the local return variable from expandedState. -> ignore it // TODO check for non-existance in rootState?
+    // we copy expandedState and override all local values.
+
+    final SSAMap rootSSA = rootState.getPathFormula().getSsa();
+    PathFormula expandedPathFormula = expandedState.getPathFormula();
+    final SSAMap expandedSSA = expandedPathFormula.getSsa();
+
+    final SSAMapBuilder builder = expandedSSA.builder();
+
+    // we do not need inner variables after this point,so lets 'delete' them
+    // -> local variables from expandedState, -> delete indizes
+    for (Map.Entry<String, CType> var : expandedSSA.allVariablesWithTypes()) {
+      if (var.getKey().contains("::")) { // var is scoped -> not global
+        final int newIndex = expandedSSA.getIndex(var.getKey());
+        if (newIndex != SSAMap.INDEX_NOT_CONTAINED) { // if variable is used
+          builder.setIndex(var.getKey(), var.getValue(), newIndex + 1); // increment index to have a new variable
+        }
+      }
+    }
+
+    // oldSSA might not contain correct indices for the local variables of calling function-scope,
+    // -> local variables from rootState -> update indizes & assign for equality
+    for (Map.Entry<String, CType> var : rootSSA.allVariablesWithTypes()) {
+      if (var.getKey().contains("::")) { // var is scoped -> not global
+
+        final int oldIndex = rootSSA.getIndex(var.getKey());
+        assert oldIndex != SSAMap.INDEX_NOT_CONTAINED : "iteration uses variable, that should not exist";
+        final int newIndex = expandedSSA.getIndex(var.getKey());
+        if (newIndex != SSAMap.INDEX_NOT_CONTAINED) { // if variable is used
+          builder.setIndex(var.getKey(), var.getValue(), newIndex + 1); // increment index to have a new variable
+        }
+
+        final NumeralFormula oldVarFormula = fmgr.makeVariable(
+                fmgr.getRationalFormulaManager().getFormulaType(), var.getKey(), oldIndex);
+        final NumeralFormula newVarFormula = fmgr.makeVariable(
+                fmgr.getRationalFormulaManager().getFormulaType(), var.getKey(), newIndex);
+
+        final BooleanFormula equality = fmgr.getRationalFormulaManager().equal(oldVarFormula, newVarFormula);
+        expandedPathFormula = pmgr.makeAnd(expandedPathFormula, equality);
+      }
+    }
+
+    final SSAMap newSSA = builder.build();
+
+    final PathFormula newPathFormula = pmgr.makeNewPathFormula(expandedPathFormula, newSSA);
+
+    final PersistentMap<CFANode, Integer> abstractionLocations = expandedState.getAbstractionLocationsOnPath();
+    final AbstractionFormula abstractionFormula = expandedState.getAbstractionFormula();
+
+    return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
+            abstractionFormula, abstractionLocations, expandedState.getViolatedProperty());
+  }
 }
