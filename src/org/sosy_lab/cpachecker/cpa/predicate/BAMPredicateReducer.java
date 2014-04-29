@@ -45,7 +45,8 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -137,7 +138,7 @@ public class BAMPredicateReducer implements Reducer {
       //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedStates region
 
       PathFormula oldPathFormula = reducedState.getPathFormula();
-      assert bfmgr.isTrue(oldPathFormula.getFormula());
+      assert bfmgr.isTrue(oldPathFormula.getFormula()) : "Formula should be TRUE, but formula is " + oldPathFormula.getFormula();
       SSAMap oldSSA = oldPathFormula.getSsa();
 
       //pathFormula.getSSa() might not contain index for the newly added variables in predicates; while the actual index is not really important at this point,
@@ -461,9 +462,11 @@ public class BAMPredicateReducer implements Reducer {
     // -> local variables from expandedState, -> delete indizes
     for (Map.Entry<String, CType> var : expandedSSA.allVariablesWithTypes()) {
       if (var.getKey().contains("::")) { // var is scoped -> not global
-        final int newIndex = expandedSSA.getIndex(var.getKey());
-        if (newIndex != SSAMap.INDEX_NOT_CONTAINED) { // if variable is used
-          builder.setIndex(var.getKey(), var.getValue(), newIndex + 1); // increment index to have a new variable
+        final int rootIndex = rootSSA.getIndex(var.getKey());
+        final int expandedIndex = expandedSSA.getIndex(var.getKey());
+        assert expandedIndex != SSAMap.INDEX_NOT_CONTAINED : "iteration uses variable, that does not exist";
+        if (rootIndex != expandedIndex) { // variable was changed during block-traversal
+          builder.setIndex(var.getKey(), var.getValue(), expandedIndex + 1); // increment index to have a new variable
         }
       }
     }
@@ -473,20 +476,26 @@ public class BAMPredicateReducer implements Reducer {
     for (Map.Entry<String, CType> var : rootSSA.allVariablesWithTypes()) {
       if (var.getKey().contains("::")) { // var is scoped -> not global
 
-        final int oldIndex = rootSSA.getIndex(var.getKey());
-        assert oldIndex != SSAMap.INDEX_NOT_CONTAINED : "iteration uses variable, that should not exist";
-        final int newIndex = expandedSSA.getIndex(var.getKey());
-        if (newIndex != SSAMap.INDEX_NOT_CONTAINED) { // if variable is used
-          builder.setIndex(var.getKey(), var.getValue(), newIndex + 1); // increment index to have a new variable
+        final int rootIndex = rootSSA.getIndex(var.getKey());
+        assert rootIndex != SSAMap.INDEX_NOT_CONTAINED : "iteration uses variable, that does not exist";
+        final int expandedIndex = expandedSSA.getIndex(var.getKey());
+
+        if (rootIndex != expandedIndex) { // variable was changed during block-traversal
+
+          final int incrementedIndex = expandedIndex + 1;
+
+          if (expandedIndex != SSAMap.INDEX_NOT_CONTAINED) { // if variable is used
+            builder.setIndex(var.getKey(), var.getValue(), incrementedIndex); // increment index to have a new variable
+          }
+
+          // TODO get correct formulatype: rational, integer, bv
+          final FormulaType type = fmgr.getIntegerFormulaManager().getFormulaType();
+          final Formula oldVarFormula = fmgr.makeVariable(type, var.getKey(), rootIndex);
+          final Formula newVarFormula = fmgr.makeVariable(type, var.getKey(), incrementedIndex);
+
+          final BooleanFormula equality = fmgr.assignment(oldVarFormula, newVarFormula);
+          expandedPathFormula = pmgr.makeAnd(expandedPathFormula, equality);
         }
-
-        final NumeralFormula oldVarFormula = fmgr.makeVariable(
-                fmgr.getRationalFormulaManager().getFormulaType(), var.getKey(), oldIndex);
-        final NumeralFormula newVarFormula = fmgr.makeVariable(
-                fmgr.getRationalFormulaManager().getFormulaType(), var.getKey(), newIndex);
-
-        final BooleanFormula equality = fmgr.getRationalFormulaManager().equal(oldVarFormula, newVarFormula);
-        expandedPathFormula = pmgr.makeAnd(expandedPathFormula, equality);
       }
     }
 
