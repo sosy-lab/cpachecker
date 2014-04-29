@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.pcc.strategy.parallel.io;
+package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -50,11 +50,9 @@ import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.ARGBasedPartialRe
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialCertificateTypeProvider;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
-import org.sosy_lab.cpachecker.pcc.strategy.partitioning.ExponentialOptimalBalancedGraphPartitioner;
-import org.sosy_lab.cpachecker.pcc.strategy.partitioning.RandomBalancedGraphPartitioner;
 
 @Options(prefix = "pcc")
-public abstract class AbstractParallelReadingStrategy implements PCCStrategy {
+public abstract class PartitioningIOHelper implements PCCStrategy {
 
   @Option(
       description = "Specifies the maximum size of the partition. This size is used to compute the number of partitions if a proof (reached set) should be written. Default value 0 means always a single partition.")
@@ -75,9 +73,9 @@ public abstract class AbstractParallelReadingStrategy implements PCCStrategy {
   private int numPartitions;
   private List<Pair<AbstractState[], AbstractState[]>> partitions;
 
-  public AbstractParallelReadingStrategy(final Configuration pConfig, final LogManager pLogger, PropertyCheckerCPA pCpa)
+  public PartitioningIOHelper(final Configuration pConfig, final LogManager pLogger, PropertyCheckerCPA pCpa)
       throws InvalidConfigurationException {
-    pConfig.inject(this, AbstractParallelReadingStrategy.class);
+    pConfig.inject(this, PartitioningIOHelper.class);
     logger = pLogger;
 
     switch (new PartialCertificateTypeProvider(pConfig, false).getCertificateType()) {
