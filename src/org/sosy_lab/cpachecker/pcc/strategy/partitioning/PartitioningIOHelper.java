@@ -39,17 +39,18 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.BalancedGraphPartitioner;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PartialReachedConstructionAlgorithm;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.ARGBasedPartialReachedSetConstructionAlgorithm;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialCertificateTypeProvider;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
+import org.sosy_lab.cpachecker.util.CPAs;
 
 @Options(prefix = "pcc")
 public abstract class PartitioningIOHelper implements PCCStrategy {
@@ -73,7 +74,7 @@ public abstract class PartitioningIOHelper implements PCCStrategy {
   private int numPartitions;
   private List<Pair<AbstractState[], AbstractState[]>> partitions;
 
-  public PartitioningIOHelper(final Configuration pConfig, final LogManager pLogger, PropertyCheckerCPA pCpa)
+  public PartitioningIOHelper(final Configuration pConfig, final LogManager pLogger, ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     pConfig.inject(this, PartitioningIOHelper.class);
     logger = pLogger;
@@ -83,9 +84,9 @@ public abstract class PartitioningIOHelper implements PCCStrategy {
       partialConstructor = new MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm(true);
       break;
     default: // ARG
-      ARGCPA cpa = pCpa.retrieveWrappedCpa(ARGCPA.class);
+      ARGCPA cpa = CPAs.retrieveCPA(pCpa, ARGCPA.class);
       if (cpa == null) { throw new InvalidConfigurationException(
-          "Require ARCPA and PropertyCheckerCPA must be a top level CPA of ARGCPA"); }
+          "Require ARCPA"); }
       partialConstructor = new ARGBasedPartialReachedSetConstructionAlgorithm(cpa.getWrappedCPAs().get(0), true);
     }
 
