@@ -84,6 +84,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.value.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 import com.google.common.primitives.UnsignedLongs;
@@ -107,8 +108,8 @@ import com.google.common.primitives.UnsignedLongs;
 public abstract class AbstractExpressionValueVisitor
     extends DefaultCExpressionVisitor<Value, UnrecognizedCCodeException>
     implements CRightHandSideVisitor<Value, UnrecognizedCCodeException>,
-    JRightHandSideVisitor<Long, RuntimeException>,
-    JExpressionVisitor<Long, RuntimeException> {
+    JRightHandSideVisitor<Value, RuntimeException>,
+    JExpressionVisitor<Value, RuntimeException> {
 
   /** length of type LONG in Java. */
   private final static int SIZE_OF_JAVA_LONG = 64;
@@ -679,32 +680,29 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   @Override
-  public Long visit(JCharLiteralExpression pE) {
-    return (long) pE.getCharacter();
+  public Value visit(JCharLiteralExpression pE) {
+    return new NumericValue((long) pE.getCharacter());
   }
 
   @Override
-  public Long visit(JThisExpression thisExpression) {
-    return null;
-  }
-
-  @Override
-  public Long visit(JStringLiteralExpression pPaStringLiteralExpression) {
-    return null;
-  }
-
-  @Override
-  public Long visit(JBinaryExpression pE) {
+  public Value visit(JBinaryExpression pE) {
 
     org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator binaryOperator = pE.getOperator();
     JExpression lVarInBinaryExp = pE.getOperand1();
     JExpression rVarInBinaryExp = pE.getOperand2();
 
-    final Long lVal = lVarInBinaryExp.accept(this);
-    if (lVal == null) { return null; }
+    final Value lValue = lVarInBinaryExp.accept(this);
+    if (lValue.isUnknown() || !lValue.isNumericValue()) {
+      return UnknownValue.getInstance();
+    }
 
-    final Long rVal = rVarInBinaryExp.accept(this);
-    if (rVal == null) { return null; }
+    final Value rValue = rVarInBinaryExp.accept(this);
+    if (rValue.isUnknown() || !rValue.isNumericValue()) {
+      return UnknownValue.getInstance();
+    }
+
+    final long lVal = ((NumericValue) lValue).longValue();
+    final long rVal = ((NumericValue) rValue).longValue();
 
     switch (binaryOperator) {
     case PLUS:
@@ -721,40 +719,40 @@ public abstract class AbstractExpressionValueVisitor
 
       switch (binaryOperator) {
       case PLUS:
-        return lVal + rVal;
+        return new NumericValue(lVal + rVal);
 
       case MINUS:
-        return lVal - rVal;
+        return new NumericValue(lVal - rVal);
 
       case DIVIDE:
         if (rVal == 0) {
           logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", lVal, rVal);
-          return null;
+          return UnknownValue.getInstance();
         }
-        return lVal / rVal;
+        return new NumericValue(lVal / rVal);
 
       case MULTIPLY:
-        return lVal * rVal;
+        return new NumericValue(lVal * rVal);
 
       case SHIFT_LEFT:
-        return lVal << rVal;
+        return new NumericValue(lVal << rVal);
 
       case BINARY_AND:
-        return lVal & rVal;
+        return new NumericValue(lVal & rVal);
 
       case BINARY_OR:
-        return lVal | rVal;
+        return new NumericValue(lVal | rVal);
 
       case BINARY_XOR:
-        return lVal ^ rVal;
+        return new NumericValue(lVal ^ rVal);
 
       case MODULO:
-        return lVal % rVal;
+        return new NumericValue(lVal % rVal);
 
       case SHIFT_RIGHT_SIGNED:
-        return lVal >> rVal;
+        return new NumericValue(lVal >> rVal);
       case SHIFT_RIGHT_UNSIGNED:
-        return lVal >>> rVal;
+        return new NumericValue(lVal >>> rVal);
 
       default:
         throw new AssertionError();
@@ -797,22 +795,22 @@ public abstract class AbstractExpressionValueVisitor
       }
 
       // return 1 if expression holds, 0 otherwise
-      return (result ? 1L : 0L);
+      return (result ? new NumericValue(1L) : new NumericValue(0L));
     }
     default:
       // TODO check which cases can be handled
-      return null;
+      return UnknownValue.getInstance();
     }
   }
 
   @Override
-  public Long visit(JIdExpression idExp) {
+  public Value visit(JIdExpression idExp) {
 
 
     IASimpleDeclaration decl = idExp.getDeclaration();
 
     // Java IdExpression could not be resolved
-    if (decl == null) { return null; }
+    if (decl == null) { return UnknownValue.getInstance(); }
 
     if (decl instanceof JFieldDeclaration
         && !((JFieldDeclaration) decl).isStatic()) {
@@ -823,95 +821,107 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   @Override
-  public Long visit(JUnaryExpression unaryExpression) {
+  public Value visit(JUnaryExpression unaryExpression) {
 
     JUnaryExpression.UnaryOperator unaryOperator = unaryExpression.getOperator();
     JExpression unaryOperand = unaryExpression.getOperand();
-    final Long value = unaryOperand.accept(this);
+    final Value valueObject = unaryOperand.accept(this);
 
-    if (value == null) {
-      return null;
+    if (valueObject.isUnknown() || !valueObject.isNumericValue()) {
+      return UnknownValue.getInstance();
     }
+
+    long value = ((NumericValue) valueObject).longValue();
 
     switch (unaryOperator) {
       case MINUS:
-        return -value;
+        return new NumericValue(-value);
       case NOT:
         // if the value is 0, return 1, if it is anything other than 0, return 0
-        return (value == 0L) ? 1L : 0L;
+        return (value == 0L) ? new NumericValue(1L) : new NumericValue(0L);
       case COMPLEMENT:
-        return ~value;
+        return new NumericValue(~value);
       case PLUS:
-        return value;
+        return new NumericValue(value);
       default:
         throw new AssertionError("unhandled operator: " + unaryOperator);
     }
   }
 
   @Override
-  public Long visit(JIntegerLiteralExpression pE) {
-    return pE.asLong();
+  public Value visit(JIntegerLiteralExpression pE) {
+    return new NumericValue(pE.asLong());
   }
 
   @Override
-  public Long visit(JBooleanLiteralExpression pE) {
-    return ((pE.getValue()) ? 1l : 0l);
+  public Value visit(JBooleanLiteralExpression pE) {
+    return ((pE.getValue()) ? new NumericValue(1l) : new NumericValue(0l));
   }
 
   @Override
-  public Long visit(JFloatLiteralExpression pJBooleanLiteralExpression) {
-    return null;
-  }
-
-  @Override
-  public Long visit(JMethodInvocationExpression pAFunctionCallExpression) {
-    return null;
-  }
-
-  @Override
-  public Long visit(JArrayCreationExpression aCE) {
-    return null;
-  }
-
-  @Override
-  public Long visit(JArrayInitializer pJArrayInitializer) {
-    return null;
-  }
-
-  @Override
-  public Long visit(JArraySubscriptExpression pAArraySubscriptExpression) {
+  public Value visit(JArraySubscriptExpression pAArraySubscriptExpression) {
     return pAArraySubscriptExpression.getSubscriptExpression().accept(this);
   }
 
   @Override
-  public Long visit(JClassInstanceCreation pJClassInstanzeCreation) {
-    return null;
-  }
-
-  @Override
-  public Long visit(JVariableRunTimeType pJThisRunTimeType) {
-    return null;
-  }
-
-  @Override
-  public Long visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) {
-    return null;
-  }
-
-  @Override
-  public Long visit(JNullLiteralExpression pJNullLiteralExpression) {
-    return null;
-  }
-
-  @Override
-  public Long visit(JEnumConstantExpression pJEnumConstantExpression) {
+  public Value visit(JEnumConstantExpression pJEnumConstantExpression) {
     missingEnumComparisonInformation = true;
-    return null;
+    return UnknownValue.getInstance();
   }
 
   @Override
-  public Long visit(JCastExpression pJCastExpression) {
+  public Value visit(JCastExpression pJCastExpression) {
     return pJCastExpression.getOperand().accept(this);
+  }
+
+  @Override
+  public Value visit(JMethodInvocationExpression pAFunctionCallExpression) throws RuntimeException {
+    return UnknownValue.getInstance();
+  }
+
+  @Override
+  public Value visit(JClassInstanceCreation pJClassInstanzeCreation) throws RuntimeException {
+    return UnknownValue.getInstance();
+  }
+
+  @Override
+  public Value visit(JStringLiteralExpression pPaStringLiteralExpression) throws RuntimeException {
+    return UnknownValue.getInstance();
+  }
+
+  @Override
+  public Value visit(JFloatLiteralExpression pJBooleanLiteralExpression) throws RuntimeException {
+    return UnknownValue.getInstance();
+  }
+
+  @Override
+  public Value visit(JArrayCreationExpression pJBooleanLiteralExpression) throws RuntimeException {
+    return UnknownValue.getInstance();
+  }
+
+  @Override
+  public Value visit(JArrayInitializer pJArrayInitializer) throws RuntimeException {
+    return UnknownValue.getInstance();
+  }
+
+  @Override
+  public Value visit(JVariableRunTimeType pJThisRunTimeType) throws RuntimeException {
+    return UnknownValue.getInstance();
+  }
+
+  @Override
+  public Value visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) throws RuntimeException {
+    return UnknownValue.getInstance();
+  }
+
+  @Override
+  public Value visit(JNullLiteralExpression pJNullLiteralExpression) throws RuntimeException {
+    return UnknownValue.getInstance();
+  }
+
+  @Override
+  public Value visit(JThisExpression pThisExpression) throws RuntimeException {
+    return UnknownValue.getInstance();
   }
 
   /* abstract methods */
@@ -922,7 +932,7 @@ public abstract class AbstractExpressionValueVisitor
   protected abstract Value evaluateCIdExpression(CIdExpression pCIdExpression)
       throws UnrecognizedCCodeException;
 
-  protected abstract Long evaluateJIdExpression(JIdExpression varName);
+  protected abstract Value evaluateJIdExpression(JIdExpression varName);
 
   protected abstract Value evaluateCFieldReference(CFieldReference pLValue)
       throws UnrecognizedCCodeException;

@@ -108,6 +108,7 @@ import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.value.SymbolicValueFormula.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.Value.UnknownValue;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -804,7 +805,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
 
     @Override
-    public Long visit(JBinaryExpression pE) {
+    public Value visit(JBinaryExpression pE) {
       JBinaryExpression.BinaryOperator binaryOperator   = pE.getOperator();
 
       JExpression lVarInBinaryExp  = pE.getOperand1();
@@ -813,19 +814,22 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
       JExpression rVarInBinaryExp  = pE.getOperand2();
 
-      Long leftValue                  = lVarInBinaryExp.accept(this);
-      Long rightValue                 = rVarInBinaryExp.accept(this);
+      Value leftValueV  = lVarInBinaryExp.accept(this);
+      Value rightValueV = rVarInBinaryExp.accept(this);
+
+      Long leftValue  = leftValueV.isUnknown() || !leftValueV.isNumericValue() ? null : ((NumericValue) leftValueV).longValue();
+      Long rightValue = rightValueV.isUnknown() || !leftValueV.isNumericValue() ? null : ((NumericValue) leftValueV).longValue();
 
       if ((binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && truthValue) || (binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS && !truthValue)) {
         if (leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp)) {
 
           @SuppressWarnings("unused")
           String leftVariableName = getScopedVariableName(lVarInBinaryExp, functionName);
-          //assignableState.assignConstant(leftVariableName, rightValue); TODO
+          assignableState.assignConstant(leftVariableName, rightValueV);
         } else if (rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp)) {
           @SuppressWarnings("unused")
           String rightVariableName = getScopedVariableName(rVarInBinaryExp, functionName);
-          //assignableState.assignConstant(rightVariableName, leftValue); TODO
+          assignableState.assignConstant(rightVariableName, leftValueV);
 
         }
       }
@@ -941,7 +945,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
 
     @Override
-    public Long visit(JBinaryExpression binaryExpression) {
+    public Value visit(JBinaryExpression binaryExpression) {
 
       if ((binaryExpression.getOperator() == JBinaryExpression.BinaryOperator.EQUALS
           || binaryExpression.getOperator() == JBinaryExpression.BinaryOperator.NOT_EQUALS)
@@ -955,7 +959,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       return super.visit(binaryExpression);
     }
 
-    private Long handleEnumComparison(JExpression operand1, JExpression operand2,
+    private Value handleEnumComparison(JExpression operand1, JExpression operand2,
         JBinaryExpression.BinaryOperator operator) {
 
       String value1;
@@ -972,13 +976,13 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
           if (jortState.getConstantsMap().containsValue(uniqueObject)) {
             value1 = jortState.getRunTimeClassOfUniqueObject(uniqueObject);
           } else {
-            return null;
+            return UnknownValue.getInstance();
           }
         } else {
-          return null;
+          return UnknownValue.getInstance();
         }
       } else {
-        return null;
+        return UnknownValue.getInstance();
       }
 
 
@@ -993,13 +997,13 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
           if (jortState.getConstantsMap().containsValue(uniqueObject)) {
             value2 = jortState.getRunTimeClassOfUniqueObject(uniqueObject);
           } else {
-            return null;
+            return UnknownValue.getInstance();
           }
         } else {
-          return null;
+          return UnknownValue.getInstance();
         }
       } else {
-        return null;
+        return UnknownValue.getInstance();
       }
 
       boolean result = value1.equals(value2);
@@ -1009,7 +1013,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       case NOT_EQUALS: result = !result;
       }
 
-      return  result ? 1L : 0L;
+      return  result ? new NumericValue(1L) : new NumericValue(0L);
     }
 
     private String handleIdExpression(JIdExpression expr) {
@@ -1027,15 +1031,14 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
 
     @Override
-    public Long visit(JIdExpression idExp) {
+    public Value visit(JIdExpression idExp) {
 
       String varName = handleIdExpression(idExp);
 
       if (state.contains(varName)) {
-        //return state.getValueFor(varName); TODO
-        return null;
+        return state.getValueFor(varName);
       } else {
-        return null;
+        return Value.UnknownValue.getInstance();
       }
     }
   }
@@ -1045,11 +1048,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     if (expression instanceof JRightHandSide) {
 
-      final Value value = Value.UnknownValue.getInstance(); // TODO ((JRightHandSide) expression).accept(evv);
+      final Value value = ((JRightHandSide) expression).accept(evv);
 
       if (evv.hasMissingFieldAccessInformation() || evv.hasMissingEnumComparisonInformation()) {
         missingInformationRightJExpression = (JRightHandSide) expression;
-        return null;
+        return Value.UnknownValue.getInstance();
       } else {
         return value;
       }
@@ -1414,36 +1417,36 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         return null;
       }
     } else if (missingAssumeInformation && missingInformationRightJExpression != null) {
-      Long value = handleMissingInformationRightJExpression(rttState);
+      Value value = handleMissingInformationRightJExpression(rttState);
 
       missingAssumeInformation = false;
       missingInformationRightJExpression = null;
 
       if (value == null) {
         return null;
-      } else if ((((AssumeEdge) edge).getTruthAssumption() && value == 1L)
-          || (!((AssumeEdge) edge).getTruthAssumption() && value == 0L)) {
+      } else if ((((AssumeEdge) edge).getTruthAssumption() && value.equals(new NumericValue(1L)))
+          || (!((AssumeEdge) edge).getTruthAssumption() && value.equals(new NumericValue(1L)))) {
         return Collections.singleton(newElement);
       } else {
         return new HashSet<>();
       }
     } else if (missingInformationRightJExpression != null) {
 
-      //Value value = null; // TODO handleMissingInformationRightJExpression(rttState);
-      //
-      //if (value != null) {
-        //newElement.assignConstant(missingInformationLeftJVariable, value);
-        //missingInformationRightJExpression = null;
-        //missingInformationLeftJVariable = null;
-        //return Collections.singleton(newElement);
-      //} else {
+      Value value = handleMissingInformationRightJExpression(rttState);
+
+      if (value.isNumericValue() && !value.isUnknown()) {
+        newElement.assignConstant(missingInformationLeftJVariable, value);
+        missingInformationRightJExpression = null;
+        missingInformationLeftJVariable = null;
+        return Collections.singleton(newElement);
+      } else {
         missingInformationRightJExpression = null;
         missingInformationLeftJVariable = null;
         if (missingInformationLeftJVariable != null) { // TODO why check this???
           newElement.forget(missingInformationLeftJVariable);
         }
         return Collections.singleton(newElement);
-      //}
+      }
     }
     return null;
   }
@@ -1452,7 +1455,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     return  uniqueObject + "::"+ fieldName;
   }
 
-  private Long handleMissingInformationRightJExpression(RTTState pJortState)
+  private Value handleMissingInformationRightJExpression(RTTState pJortState)
       throws UnrecognizedCCodeException {
     return missingInformationRightJExpression.accept(
         new FieldAccessExpressionValueVisitor(pJortState));

@@ -125,9 +125,8 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   }
 
   @Override
-  protected Long evaluateJIdExpression(JIdExpression varName) {
-    // return evaluateAIdExpression(varName); TODO implement
-    return null;
+  protected Value evaluateJIdExpression(JIdExpression varName) {
+    return evaluateAIdExpression(varName);
   }
 
   /** This method returns the value of a variable from the current state. */
