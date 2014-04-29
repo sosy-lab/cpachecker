@@ -55,7 +55,6 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -145,7 +144,7 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
     interpolatingRefiner  = new ValueAnalysisInterpolationBasedRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
     checker               = new ValueAnalysisFeasibilityChecker(pLogger, pCfa);
   }
-private ARGPath lastPath = null;
+
   @Override
   public boolean performRefinement(final ReachedSet pReached) throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "performing global refinement ...");
@@ -153,24 +152,29 @@ private ARGPath lastPath = null;
     totalTime.start();
     totalRefinements++;
 
+    timerErrors.start();
     List<ARGState> targets  = getErrorStates(pReached);
     totalTargetsFound       = totalTargetsFound + targets.size();
-
+    timerErrors.stop();
+//System.out.println("number of targets: " + targets.size());
     // stop once any feasible counterexample is found
     if(isAnyPathFeasible(new ARGReachedSet(pReached), getErrorPaths(targets))) {
       totalTime.stop();
       return false;
     }
 //System.out.println("-------------------------------- new refinement --------------------------------");
+    timerItpTree.start();
     InterpolationTree interpolationTree = new InterpolationTree(logger, targets, useTopDownInterpolationStrategy);
+    timerItpTree.stop();
 
+    timerItp.start();
     int i = 0;
     while(interpolationTree.hasNextPathForInterpolation()) {
       i++;
 
       ARGPath errorPath = interpolationTree.getNextPathForInterpolation();
-      lastPath = errorPath;
-//System.out.println("errorPath: " + errorPath.toString().hashCode());
+
+//System.out.println("errorPath |" + errorPath.size() + "|: " + errorPath.toString().hashCode());
       if(errorPath.isEmpty()) {
         logger.log(Level.FINEST, "skipping interpolation, error path is empty, because initial interpolant is already false");
         continue;
@@ -194,38 +198,45 @@ private ARGPath lastPath = null;
       logger.log(Level.FINEST, "finished interpolation #", i);
     }
 
+    timerItp.stop();
+
     if(exportInterpolationTree.equals("FINAL") && !exportInterpolationTree.equals("ALWAYS")) {
       interpolationTree.exportToDot(totalRefinements, i);
     }
 
     // construct a global precision, needed for full restart at initial node
+    timerGlobalPrec.start();
     createGlobalPrecision(pReached, interpolationTree);
+    timerGlobalPrec.stop();
 
     // debugging only
-    dumpArgToDot(pReached, "before");
+    dumpArgToDot(pReached, "before", interpolationTree.getErrorPathEdges());
 
+    timerRemoveInfeasible.start();
     ARGReachedSet reached = new ARGReachedSet(pReached);
     removeInfeasiblePartsOfArg(interpolationTree, reached);
+    timerRemoveInfeasible.stop();
 
     // debugging only
-    dumpArgToDot(pReached, "middle");
+    dumpArgToDot(pReached, "middle", interpolationTree.getErrorPathEdges());
 
+    timerStrengthen.start();
     strengthenArg(interpolationTree);
+    timerStrengthen.stop();
 
     // walk up the path in reverse order, all states along the path are already refined
     // however, we need to readd all states that are branching nodes back to the waitlist
     // with a new precision (equal to what memlocs are contained in state ... might be too weak, better join precisions)
-
+    timerObtainPrecision.start();
     HashMap<ARGState, ValueAnalysisPrecision> refinementInfo = new LinkedHashMap<>();
-    ARGState previousState = null;
-    for (int j = lastPath.size() - 1; j >= 0; j--) {
-      ARGState currentState = lastPath.get(j).getFirst();
+    for (Map.Entry<ARGState, ValueAnalysisInterpolant> itp : interpolationTree.interpolants.entrySet()) {
+      ARGState currentState = itp.getKey();
 //System.out.println("inspecting state " + currentState.getStateId());
 
       if(currentState.isDestroyed()) {
-//System.out.println("state " + currentState.getStateId() + " at offset " + j + " (of " + (lastPath.size() - 1) + ") is already destroyed, because itp is false, so continue ...");
-        assert(interpolationTree.interpolants.containsKey(currentState) && interpolationTree.interpolants.get(currentState).isFalse())
-        : "interpolant is not false but should be";
+      //System.out.println("state " + currentState.getStateId() + " at offset " + j + " (of " + (lastPath.size() - 1) + ") is already destroyed, because itp is false, so continue ...");
+        /*assert(interpolationTree.interpolants.containsKey(currentState) && interpolationTree.interpolants.get(currentState).isFalse())
+        : "interpolant is not false but should be";*/
         continue;
       }
 
@@ -236,41 +247,49 @@ private ARGPath lastPath = null;
 
       if(currentState.getChildren().size() > 1) {
 //System.out.print(currentState.getStateId() + " is a branching node:");
-        for(ARGState child : currentState.getChildren()) {
-          if(child != previousState) {
-//System.out.println("\t" + child.getStateId() + " needs to be rediscovered ... ");
-            ValueAnalysisPrecision currentPrecision = extractPrecision(pReached, currentState);
 
-            Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
-            for (MemoryLocation memoryLocation : interpolationTree.interpolants.get(currentState).getMemoryLocations()) {
-              increment.put(new CFANode("dummy"), memoryLocation);
-            }
+//System.out.println("\t" + child.getStateId() + " needs to be rediscovered ... ");
+        ValueAnalysisPrecision currentPrecision = extractPrecision(pReached, currentState);
+
+        Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
+        for (MemoryLocation memoryLocation : interpolationTree.interpolants.get(currentState).getMemoryLocations()) {
+          increment.put(new CFANode("dummy"), memoryLocation);
+        }
 
 //System.out.println("\thence, remove " + currentState.getStateId() + " and apply new precision " + increment);
-            ValueAnalysisPrecision newPrecision = new ValueAnalysisPrecision(currentPrecision, increment);
-            refinementInfo.put(currentState, newPrecision);
-          }
-        }
+        ValueAnalysisPrecision newPrecision = new ValueAnalysisPrecision(currentPrecision, increment);
+        refinementInfo.put(currentState, newPrecision);
       }
-
-      previousState = currentState;
     }
+    timerObtainPrecision.stop();
 
+    timerReaddToWaitlist.start();
     for(Map.Entry<ARGState, ValueAnalysisPrecision> entry : refinementInfo.entrySet()) {
       reached.readdToWaitlist(entry.getKey(), entry.getValue(), ValueAnalysisPrecision.class);
     }
+    timerReaddToWaitlist.stop();
 
     // debugging only
-    dumpArgToDot(pReached, "after");
+    dumpArgToDot(pReached, "after", interpolationTree.getErrorPathEdges());
 
     totalTime.stop();
     return true;
   }
+  Timer timerItp = new Timer();
+  Timer timerGlobalPrec = new Timer();
+  Timer timerRemoveInfeasible = new Timer();
+  Timer timerStrengthen = new Timer();
+  Timer timerObtainPrecision = new Timer();
+  Timer timerReaddToWaitlist = new Timer();
+  Timer timerItpTree = new Timer();
+  Timer timerErrors = new Timer();
 
-  private void dumpArgToDot(final ReachedSet pReached, String currentState) {
+
+
+  private void dumpArgToDot(final ReachedSet pReached, String currentPhase, Collection<Pair<ARGState, ARGState>> errorPaths) {
     if(exportInterpolationTree.equals("ALWAYS")) {
-      try (Writer w = Files.openOutputFile(Paths.get(currentState + "_" + totalRefinements + ".dot"))) {
-        ARGUtils.writeARGAsDot(w, (ARGState)pReached.getFirstState(), Predicates.in(getEdgesOfPath(lastPath)));
+      try (Writer w = Files.openOutputFile(Paths.get(currentPhase + "_" + totalRefinements + ".dot"))) {
+        ARGUtils.writeARGAsDot(w, (ARGState)pReached.getFirstState(), Predicates.in(errorPaths));
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
       }
@@ -285,7 +304,7 @@ private ARGPath lastPath = null;
         ValueAnalysisInterpolant itp  = entry.getValue();
         ValueAnalysisState valueState = AbstractStates.extractStateByType(state, ValueAnalysisState.class);
 
-        itp.strengthen(valueState);
+        itp.strengthen(valueState, state);
       }
     }
   }
@@ -406,19 +425,6 @@ private ARGPath lastPath = null;
     return errorPaths;
   }
 
-  private static Set<Pair<ARGState, ARGState>> getEdgesOfPath(ARGPath pPath) {
-    Set<Pair<ARGState, ARGState>> result = new HashSet<>(pPath.size());
-    Iterator<Pair<ARGState, CFAEdge>> it = pPath.iterator();
-    assert it.hasNext();
-    ARGState lastElement = it.next().getFirst();
-    while (it.hasNext()) {
-      ARGState currentElement = it.next().getFirst();
-      result.add(Pair.of(lastElement, currentElement));
-      lastElement = currentElement;
-    }
-    return result;
-  }
-
   private List<ARGState> getErrorStates(final ReachedSet pReached) {
     List<ARGState> targets = from(pReached)
         .transform(AbstractStates.toState(ARGState.class))
@@ -453,6 +459,15 @@ private ARGPath lastPath = null;
       out.println("Total number of targets found:    " + String.format(Locale.US, "%9d", totalTargetsFound));
       out.println("Total time for global refinement:     " + totalTime);
 
+      out.println("timerItp: " + timerItp);
+      out.println("timerGlobalPrec: " + timerGlobalPrec);
+      out.println("timerRemoveInfeasible: " + timerRemoveInfeasible);
+      out.println("timerStrengthen: " + timerStrengthen);
+      out.println("timerObtainPrecision: " + timerObtainPrecision);
+      out.println("timerReaddToWaitlist: " + timerReaddToWaitlist);
+
+      out.println("timerItpTree: " + timerItpTree);
+      out.println("timerErrors: " + timerErrors);
       interpolatingRefiner.printStatistics(out, pResult, pReached);
     }
   }
@@ -532,6 +547,16 @@ private ARGPath lastPath = null;
       }
     }
 
+    public Collection<Pair<ARGState, ARGState>> getErrorPathEdges() {
+      Set<Pair<ARGState, ARGState>> edges = new HashSet<>();
+
+      for(Map.Entry<ARGState, ARGState> entry : successorRelation.entries()) {
+        edges.add(Pair.<ARGState, ARGState>getPairFomMapEntry().apply(entry));
+      }
+
+      return edges;
+    }
+
     /**
      * This method decides whether or not there are more paths left for interpolation.
      *
@@ -582,15 +607,15 @@ private ARGPath lastPath = null;
         if(interpolants.containsKey(current.getKey())) {
           StringBuilder sb = new StringBuilder();
 
-          sb.append("itp is " + interpolants.get(current.getKey()));
+          sb.append(interpolants.get(current.getKey()));
 
           result.append(current.getKey().getStateId() + " [label=\"" + (current.getKey().getStateId() + " / " + AbstractStates.extractLocation(current.getKey())) + " has itp " + (sb.toString()) + "\"]" + "\n");
-          result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");// + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
+          result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
         }
 
         else {
           result.append(current.getKey().getStateId() + " [label=\"" + current.getKey().getStateId() + " has itp NA\"]" + "\n");
-          result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");// + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
+          result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
         }
 
         if(current.getValue().isTarget()) {
@@ -636,13 +661,16 @@ private ARGPath lastPath = null;
      * @param newItps the new mapping to add
      */
     private void addInterpolants(Map<ARGState, ValueAnalysisInterpolant> newItps) {
+
       for (Map.Entry<ARGState, ValueAnalysisInterpolant> entry : newItps.entrySet()) {
         ARGState state                = entry.getKey();
         ValueAnalysisInterpolant itp  = entry.getValue();
 
         if(interpolants.containsKey(state)) {
           interpolants.put(state, interpolants.get(state).join(itp));
-        } else {
+        }
+
+        else {
           interpolants.put(state, itp);
         }
       }

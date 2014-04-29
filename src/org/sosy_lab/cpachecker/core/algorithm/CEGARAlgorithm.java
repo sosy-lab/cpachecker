@@ -245,7 +245,9 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
           if (refinementSuccessful && initialReachedSetSize == 1) {
             assert !from(reached).anyMatch(IS_TARGET_STATE);
           }
-        } else {
+        }
+
+        else if(mRefiner instanceof ValueAnalysisImpactGlobalRefiner) {
 
           if(!refinedInPreviousIteration) {
             break;
@@ -253,7 +255,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
           new ARGReachedSet(reached).removeSubtree(((ARGState)reached.getFirstState()).getChildren().iterator().next(),
               ValueAnalysisImpactGlobalRefiner.globalPrecision, ValueAnalysisPrecision.class);
-
           refinementSuccessful        = true;
           refinedInPreviousIteration  = false;
         }
