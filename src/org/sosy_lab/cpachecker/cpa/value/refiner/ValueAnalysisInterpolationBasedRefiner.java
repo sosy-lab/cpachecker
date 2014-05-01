@@ -445,15 +445,22 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      */
     public ValueAnalysisInterpolant join(ValueAnalysisInterpolant other) {
 
-      Map<MemoryLocation, Value> newAssignment = new HashMap<>();
-
-      if(assignment != null) {
-        newAssignment.putAll(assignment);
+      if(assignment == null || other.assignment == null) {
+        return ValueAnalysisInterpolant.FALSE;
       }
 
-      if(other.assignment != null) {
-        newAssignment.putAll(other.assignment);
+      Map<MemoryLocation, Value> newAssignment = new HashMap<>(assignment);
+
+      // add other itp mapping - one by one for now, to check for correctness
+      // newAssignment.putAll(other.assignment);
+      for(Map.Entry<MemoryLocation, Value> entry : other.assignment.entrySet()) {
+        if(newAssignment.containsKey(entry.getKey())) {
+          assert(entry.getValue().equals(other.assignment.get(entry.getKey()))) : "interpolants mismatch in " + entry.getKey();
+        }
+
+        newAssignment.put(entry.getKey(), entry.getValue());
       }
+
 
       return new ValueAnalysisInterpolant(newAssignment);
     }
@@ -555,7 +562,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
       return assignment.toString();
     }
 
-    public boolean strengthen(ValueAnalysisState valueState) {
+    public boolean strengthen(ValueAnalysisState valueState, ARGState argState) {
       if (isTrivial()) {
         return false;
       }
@@ -565,14 +572,11 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
       for (Map.Entry<MemoryLocation, Value> itp : assignment.entrySet()) {
         if(!valueState.contains(itp.getKey())) {
           valueState.assignConstant(itp.getKey(), itp.getValue());
-
           strengthened = true;
         }
 
-        else if(valueState.contains(itp.getKey()) && !valueState.getValueFor(itp.getKey()).equals(itp.getValue())) {
-          valueState.assignConstant(itp.getKey(), itp.getValue());
-
-          strengthened = true;
+        else if(valueState.contains(itp.getKey()) && valueState.getValueFor(itp.getKey()).asNumericValue().longValue() != itp.getValue().asNumericValue().longValue()) {
+          assert false : "state and interpolant do not match in value for variable " + itp.getKey() + "[state = " + valueState.getValueFor(itp.getKey()).asNumericValue().longValue() + " != " + itp.getValue() + " = itp] for state " + argState.getStateId();
         }
       }
 

@@ -179,9 +179,9 @@ public class ValueAnalysisInterpolator {
       return pInputInterpolant;
     }
 
-    // check if input-interpolant is still strong enough
+    // check if the input-interpolant, after the initial transition, is still strong enough
     if(applyUseDefInformation && !isUseDefInformationAffected(pErrorPath, initialState, initialSuccessor)) {
-      return pInputInterpolant;
+      return new ValueAnalysisInterpolant(new HashMap<>(initialSuccessor.getConstantsMapView()));
     }
 
     // if the current edge just changes the names of variables (e.g. function arguments, returned variables)

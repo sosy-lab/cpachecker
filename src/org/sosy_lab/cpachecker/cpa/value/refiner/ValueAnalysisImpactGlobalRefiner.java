@@ -224,7 +224,7 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
       if(!entry.getValue().isTrivial()) {
         ValueAnalysisState valueState = AbstractStates.extractStateByType(entry.getKey(), ValueAnalysisState.class);
 
-        entry.getValue().strengthen(valueState);
+        entry.getValue().strengthen(valueState, entry.getKey());
       }
     }
 
