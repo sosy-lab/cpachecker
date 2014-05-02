@@ -80,7 +80,8 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
   @Override
   public void constructInternalProofRepresentation(final UnmodifiableReachedSet pReached)
       throws InvalidConfigurationException {
-    ioHelper.constructInternalProofRepresentation(pReached);
+    throw new InvalidConfigurationException(
+        "Interleaved proof reading and checking strategies do not  support internal PCC with result check algorithm");
   }
 
   @Override
