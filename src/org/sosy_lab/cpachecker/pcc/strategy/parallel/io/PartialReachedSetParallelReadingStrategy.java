@@ -27,12 +27,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Level;
 import java.util.zip.ZipInputStream;
 
 import org.sosy_lab.common.Triple;
@@ -42,11 +46,14 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
+import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
 
 @Options(prefix = "pcc")
@@ -80,8 +87,50 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
 
   @Override
   public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    // TODO Auto-generated method stub
-    return false;
+    AtomicBoolean checkResult = new AtomicBoolean(true);
+    Semaphore partitionChecked = new Semaphore(0);
+    Collection<AbstractState> certificate = new HashSet<>(ioHelper.getSavedReachedSetSize());
+    Collection<AbstractState> inOtherPartition = new ArrayList<>();
+    Precision initPrec = pReachedSet.getPrecision(pReachedSet.getFirstState());
+
+    logger.log(Level.INFO, "Create and start threads");
+    ExecutorService executor = Executors.newFixedThreadPool(enableParallelCheck ? numThreads : 1);
+    for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
+      executor.execute(new PartitionChecker(i, checkResult, partitionChecked, certificate, inOtherPartition, initPrec,
+          cpa, lock, ioHelper, shutdownNotifier, logger));
+    }
+
+    partitionChecked.acquire(ioHelper.getNumPartitions());
+
+    if(!checkResult.get()){
+      return false;
+    }
+
+    logger.log(Level.INFO, "Check if all are checked");
+    if (!certificate.containsAll(inOtherPartition)) {
+      logger.log(Level.SEVERE, "Initial state not covered.");
+      return false;
+    }
+
+    logger.log(Level.INFO, "Check if initial state is covered.");
+    // TODO probably more efficient do not use certificate?
+    if (!cpa.getStopOperator().stop(pReachedSet.getFirstState(), certificate, initPrec)) {
+      logger.log(Level.SEVERE, "Initial state not covered.");
+      return false;
+    }
+
+    logger.log(Level.INFO, "Check property.");
+    stats.getPropertyCheckingTimer().start();
+    try {
+      if (!cpa.getPropChecker().satisfiesProperty(certificate)) {
+        logger.log(Level.SEVERE, "Property violated");
+        return false;
+      }
+    } finally {
+      stats.getPropertyCheckingTimer().stop();
+    }
+
+    return true;
   }
 
   @Override
