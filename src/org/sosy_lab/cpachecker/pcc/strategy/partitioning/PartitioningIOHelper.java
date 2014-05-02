@@ -29,6 +29,7 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
@@ -152,7 +153,23 @@ public class PartitioningIOHelper {
 
   public void readPartition(final ObjectInputStream pIn)
       throws ClassNotFoundException, IOException {
-    partitions.add(Pair.of((AbstractState[]) pIn.readObject(), (AbstractState[]) pIn.readObject()));
+    partitions.add(readPartitionContent(pIn));
+  }
+
+  private Pair<AbstractState[], AbstractState[]> readPartitionContent(final ObjectInputStream pIn)
+      throws ClassNotFoundException, IOException {
+    return Pair.of((AbstractState[]) pIn.readObject(), (AbstractState[]) pIn.readObject());
+  }
+
+  public void readPartition(final ObjectInputStream pIn, final Lock pLock) throws ClassNotFoundException, IOException {
+    if (pLock == null) { throw new IllegalArgumentException("Cannot protect against parallel access"); }
+    Pair<AbstractState[], AbstractState[]> result = readPartitionContent(pIn);
+    pLock.lock();
+    try {
+      partitions.add(result);
+    } finally {
+      pLock.unlock();
+    }
   }
 
   public void readMetadata(final ObjectInputStream pIn, final boolean pSave) throws IOException {
@@ -176,9 +193,21 @@ public class PartitioningIOHelper {
 
   public void writePartition(final ObjectOutputStream pOut, final Set<Integer> pPartition,
       final PartialReachedSetDirectedGraph pPartialReachedSetDirectedGraph) throws IOException {
-    logger.log(Level.FINER,"Write partition");
-    pOut.writeObject(pPartialReachedSetDirectedGraph.getSetNodes(pPartition, false));
-    pOut.writeObject(pPartialReachedSetDirectedGraph.getAdjacentNodesOutsideSet(pPartition, false));
+    logger.log(Level.FINER, "Write partition");
+    writePartition(pOut, pPartialReachedSetDirectedGraph.getSetNodes(pPartition, false),
+        pPartialReachedSetDirectedGraph.getAdjacentNodesOutsideSet(pPartition, false));
+  }
+
+  public void writePartition(ObjectOutputStream pOut, Pair<AbstractState[], AbstractState[]> pPartition)
+      throws IOException {
+    writePartition(pOut, pPartition.getFirst(), pPartition.getSecond());
+  }
+
+  private void writePartition(final ObjectOutputStream pOut, final AbstractState[] pPartitionNodes,
+      AbstractState[] pAdjacentNodesOutside) throws IOException {
+    pOut.writeObject(pPartitionNodes);
+    pOut.writeObject(pAdjacentNodesOutside);
+
   }
 
   public void writeProof(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached)
@@ -190,5 +219,4 @@ public class PartitioningIOHelper {
       writePartition(pOut, partition, partitionDescription.getFirst());
     }
   }
-
 }

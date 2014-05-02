@@ -111,6 +111,19 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
 
       o.flush();
       zos.closeEntry();
+
+
+      // write additional proof information
+      int index = 0;
+      boolean continueWriting;
+      do{
+        ze = new ZipEntry("Additional "+index);
+        zos.putNextEntry(ze);
+        o = new ObjectOutputStream(zos);
+        continueWriting = writeAdditionalProofStream(o);
+        o.flush();
+      }while(continueWriting);
+
       zos.close();
     } catch (NotSerializableException eS) {
       logger.log(Level.SEVERE, "Proof cannot be written. Class " + eS.getMessage() + " does not implement Serializable interface");
@@ -169,11 +182,29 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     }
   }
 
+  protected boolean writeAdditionalProofStream(final ObjectOutputStream pOut) throws IOException {
+    return false;
+  }
+
   protected Triple<InputStream, ZipInputStream, ObjectInputStream> openProofStream() throws IOException {
     InputStream fis = file.asByteSource().openStream();
     ZipInputStream zis = new ZipInputStream(fis);
     ZipEntry entry = zis.getNextEntry();
     assert entry.getName().equals("Proof");
+    return Triple.of(fis, zis, new ObjectInputStream(zis));
+  }
+
+  protected Triple<InputStream, ZipInputStream, ObjectInputStream> openAdditionalProofStream(final int index)
+      throws IOException {
+    if (index < 0) { throw new IllegalArgumentException("Not a valid index. Indices must be at least zero."); }
+    InputStream fis = file.asByteSource().openStream();
+    ZipInputStream zis = new ZipInputStream(fis);
+    ZipEntry entry = null;
+    for (int i = 0; i < 2 + index; i++) {
+      entry = zis.getNextEntry();
+    }
+
+    assert entry.getName().equals("Additional " + index);
     return Triple.of(fis, zis, new ObjectInputStream(zis));
   }
 
