@@ -27,10 +27,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -49,26 +47,17 @@ import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
+import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
-import org.sosy_lab.cpachecker.util.AbstractStates;
-
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 
 
 public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStrategy {
@@ -107,7 +96,7 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
     executor.execute(new PartitionReader(checkResult, partitionChecked));
     for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
       executor.execute(new PartitionChecker(i, checkResult, partitionChecked, certificate, inOtherPartition, initPrec,
-          cpa));
+          cpa, lock, partitionReady, ioHelper, shutdownNotifier, logger));
     }
 
     partitionChecked.acquire(ioHelper.getNumPartitions());
@@ -220,141 +209,6 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
       giveSignalAndPrepareAbortion(checkResult, mainSemaphore);
     }
 
-  }
-
-  // TODO put in own class?
-  private class PartitionChecker implements Runnable {
-
-    private final int partitionNumber;
-
-    private final AtomicBoolean checkResult;
-    private final Semaphore mainSemaphore;
-
-    private final Collection<AbstractState> certificate;
-    private final Collection<AbstractState> mustBeContainedInCertificate;
-    private final List<AbstractState> addToCertificate = new ArrayList<>();
-    private final List<AbstractState> addToContainedInCertificate = new ArrayList<>();
-
-    private final Precision initPrec;
-    private final StopOperator stop;
-    private final TransferRelation transfer;
-
-    private final Deque<AbstractState> waitlist = new ArrayDeque<>();
-    private final Multimap<CFANode, AbstractState> statesPerLocation = HashMultimap.create();
-
-
-
-    PartitionChecker(final int pNumber, final AtomicBoolean pCheckResult, final Semaphore pPartitionChecked,
-        final Collection<AbstractState> pCertificate, final Collection<AbstractState> pInOtherPartition,
-        final Precision pInitPrec, final ConfigurableProgramAnalysis pCpa) {
-      partitionNumber = pNumber;
-      checkResult = pCheckResult;
-      mainSemaphore = pPartitionChecked;
-      certificate = pCertificate;
-      mustBeContainedInCertificate = pInOtherPartition;
-      initPrec = pInitPrec;
-      if (pCpa instanceof ARGCPA) {
-        stop = ((ARGCPA) pCpa).getWrappedCPAs().get(0).getStopOperator();
-        transfer = ((ARGCPA) pCpa).getWrappedCPAs().get(0).getTransferRelation();
-      } else {
-        stop = pCpa.getStopOperator();
-        transfer = pCpa.getTransferRelation();
-      }
-    }
-
-    @Override
-    public void run() {
-      Pair<AbstractState[], AbstractState[]> partition = null;
-      lock.lock();
-      try {
-        while (partition == null) {
-          if (!checkResult.get()) { return; }
-          partition = ioHelper.getPartition(partitionNumber);
-          partitionReady.await();
-        }
-      } catch (InterruptedException e) {
-        abortPreparation();
-        return;
-      } finally {
-        lock.unlock();
-      }
-
-
-      // add nodes of partition
-      for(AbstractState internalNode:partition.getFirst()){
-        addElement(internalNode, true);
-      }
-
-      // add adjacent nodes of other partition
-      for(AbstractState internalNode:partition.getSecond()){
-        addElement(internalNode, false);
-      }
-
-      AbstractState checkedState;
-      Collection<? extends AbstractState> successors;
-
-
-      while(!waitlist.isEmpty()){
-        if(shutdownNotifier.shouldShutdown()){
-          abortPreparation();
-          return;
-        }
-
-        if (addToCertificate.size() + certificate.size() > ioHelper.getSavedReachedSetSize()) {
-          logger.log(Level.SEVERE, "Checking failed, recomputed certificate bigger than original reached set.");
-          abortPreparation();
-          return;
-        }
-
-        checkedState = waitlist.pop();
-
-        // compute successors
-        try {
-          successors = transfer.getAbstractSuccessors(checkedState, initPrec, null);
-
-
-          for (AbstractState successor : successors) {
-            // check if covered
-            if (!stop.stop(successor, statesPerLocation.get(AbstractStates.extractLocation(successor)), initPrec)) {
-              addElement(successor, true);
-            }
-          }
-        } catch (CPATransferException | InterruptedException e) {
-          logger.log(Level.SEVERE, "Checking failed, successor computation failed");
-          abortPreparation();
-          return;
-        } catch (CPAException e) {
-          logger.log(Level.SEVERE, "Checking failed, checking successor coverage failed");
-          abortPreparation();
-          return;
-        }
-      }
-
-      lock.lock();
-      try {
-        certificate.addAll(addToCertificate);
-        mustBeContainedInCertificate.addAll(addToContainedInCertificate);
-      } finally {
-        lock.unlock();
-      }
-
-      mainSemaphore.release();
-    }
-
-    private void addElement(final AbstractState element, final boolean inCertificate) {
-      CFANode node = AbstractStates.extractLocation(element);
-      statesPerLocation.put(node, element);
-      if (inCertificate) {
-        addToCertificate.add(element);
-        waitlist.push(element);
-      } else {
-        addToContainedInCertificate.add(element);
-      }
-    }
-
-    private void abortPreparation(){
-      giveSignalAndPrepareAbortion(checkResult, mainSemaphore);
-    }
   }
 
 }
