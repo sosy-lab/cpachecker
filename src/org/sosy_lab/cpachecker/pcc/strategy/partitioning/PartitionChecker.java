@@ -120,6 +120,8 @@ public class PartitionChecker implements Runnable {
         partition = ioHelper.getPartition(partitionNumber);
         if (partitionReady == null) {
           logger.log(Level.SEVERE, "Not configured for interleaved proof reading and checking");
+          abortPreparation();
+          return;
         }
         partitionReady.await();
       }
@@ -205,11 +207,13 @@ public class PartitionChecker implements Runnable {
 
   private void abortPreparation() {
     checkResult.set(false);
-    lock.lock();
-    try {
-      partitionReady.signalAll();
-    } finally {
-      lock.unlock();
+    if (partitionReady != null) {
+      lock.lock();
+      try {
+        partitionReady.signalAll();
+      } finally {
+        lock.unlock();
+      }
     }
     mainSemaphore.release(ioHelper.getNumPartitions());
   }
