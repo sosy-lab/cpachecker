@@ -61,7 +61,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
         ReachedSet pReached) {
       out.println();
       out.println("Total time for proof check algorithm:     " + totalTimer);
-      out.println("  Time for reading in proof:              " + readTimer);
+      out.println("  Time for reading in proof (not complete time in interleaved modes):  " + readTimer);
     }
   }
 
