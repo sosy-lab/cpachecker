@@ -77,8 +77,8 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
   private final Lock lock = new ReentrantLock();
   private final Condition partitionReady = lock.newCondition();
 
-  public PartialReachedSetIOCheckingInterleavedStrategy(Configuration pConfig, LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier, PropertyCheckerCPA pCpa)
+  public PartialReachedSetIOCheckingInterleavedStrategy(final Configuration pConfig, final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier, final PropertyCheckerCPA pCpa)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
     ioHelper = new PartitioningIOHelper(pConfig, pLogger, pShutdownNotifier, pCpa);
@@ -87,13 +87,13 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
   }
 
   @Override
-  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached)
+  public void constructInternalProofRepresentation(final UnmodifiableReachedSet pReached)
       throws InvalidConfigurationException {
     ioHelper.constructInternalProofRepresentation(pReached);
   }
 
   @Override
-  public boolean checkCertificate(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+  public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
     AtomicBoolean checkResult = new AtomicBoolean(true);
     Semaphore partitionChecked = new Semaphore(0);
     Collection<AbstractState> certificate = new HashSet<>(ioHelper.getSavedReachedSetSize());
@@ -142,13 +142,14 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
   }
 
   @Override
-  protected void writeProofToStream(ObjectOutputStream pOut, UnmodifiableReachedSet pReached) throws IOException,
+  protected void writeProofToStream(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached)
+      throws IOException,
       InvalidConfigurationException {
     ioHelper.constructInternalProofRepresentation(pReached);
   }
 
   @Override
-  protected void readProofFromStream(ObjectInputStream pIn) throws ClassNotFoundException,
+  protected void readProofFromStream(final ObjectInputStream pIn) throws ClassNotFoundException,
       InvalidConfigurationException, IOException {
     ioHelper.readMetadata(pIn, true);
   }
@@ -162,7 +163,7 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
     }
   }
 
-  private void giveSignalAndPrepareAbortion(AtomicBoolean pValue, Semaphore pForRelease) {
+  private void giveSignalAndPrepareAbortion(final AtomicBoolean pValue, final Semaphore pForRelease) {
     pValue.set(false);
     giveSignal();
     pForRelease.release(ioHelper.getNumPartitions());
@@ -173,7 +174,7 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
     private final AtomicBoolean checkResult;
     private final Semaphore mainSemaphore;
 
-    public PartitionReader(AtomicBoolean pCheckResult, Semaphore pPartitionChecked) {
+    public PartitionReader(final AtomicBoolean pCheckResult, final Semaphore pPartitionChecked) {
       checkResult = pCheckResult;
       mainSemaphore = pPartitionChecked;
     }
