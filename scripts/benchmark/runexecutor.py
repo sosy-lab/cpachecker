@@ -332,15 +332,18 @@ class RunExecutor():
             memUsageFile = 'memory.memsw.max_usage_in_bytes'
             if not os.path.exists(os.path.join(cgroups[MEMORY], memUsageFile)):
                 memUsageFile = 'memory.max_usage_in_bytes'
-            try:
-                memUsage = readFile(cgroups[MEMORY], memUsageFile)
-                memUsage = int(memUsage)
-            except IOError as e:
-                if e.errno == 95: # kernel responds with error 95 (operation unsupported) if this is disabled
-                    logging.critical("Kernel does not track swap memory usage, cannot measure memory usage. "
-                          + "Please set swapaccount=1 on your kernel command line.")
-                else:
-                    raise e
+            if not os.path.exists(os.path.join(cgroups[MEMORY], memUsageFile)):
+                logging.warning('Memory-usage is not available due to missing files.')
+            else:
+                try:
+                    memUsage = readFile(cgroups[MEMORY], memUsageFile)
+                    memUsage = int(memUsage)
+                except IOError as e:
+                    if e.errno == 95: # kernel responds with error 95 (operation unsupported) if this is disabled
+                        logging.critical("Kernel does not track swap memory usage, cannot measure memory usage. "
+                              + "Please set swapaccount=1 on your kernel command line.")
+                    else:
+                        raise e
 
         logging.debug('Run exited with code {0}, walltime={1}, cputime={2}, cgroup-cputime={3}, memory={4}'
                       .format(returnvalue, wallTime, cpuTime, cpuTime2, memUsage))
@@ -465,7 +468,11 @@ def getDebugOutputAfterCrash(output, outputFileName):
 
 
 def _readCpuTime(cgroupCpuacct):
-    return float(readFile(cgroupCpuacct, 'cpuacct.usage'))/1000000000 # nano-seconds to seconds
+    cputimeFile = os.path.join(cgroupCpuacct, 'cpuacct.usage')
+    if not os.path.exists(cputimeFile):
+        logging.warning('Could not read cputime. File {0} does not exist.'.format(cputimeFile))
+        return 0 # dummy value, if cputime is not available
+    return float(readFile(cputimeFile))/1000000000 # nano-seconds to seconds
 
 
 class _TimelimitThread(threading.Thread):
