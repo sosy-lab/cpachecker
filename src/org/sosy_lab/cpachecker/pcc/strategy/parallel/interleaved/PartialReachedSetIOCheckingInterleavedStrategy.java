@@ -115,7 +115,7 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
     }
 
     logger.log(Level.INFO, "Check if all are checked");
-    if (!certificate.contains(inOtherPartition)) {
+    if (!certificate.containsAll(inOtherPartition)) {
       logger.log(Level.SEVERE, "Initial state not covered.");
       return false;
     }
@@ -256,12 +256,12 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
 
     @Override
     public void run() {
-      Pair<AbstractState[], AbstractState[]> partition;
+      Pair<AbstractState[], AbstractState[]> partition = null;
       lock.lock();
       try {
-        if (!checkResult.get()) { return; }
-        partition = ioHelper.getPartition(partitionNumber);
         while (partition == null) {
+          if (!checkResult.get()) { return; }
+          partition = ioHelper.getPartition(partitionNumber);
           partitionReady.await();
         }
       } catch (InterruptedException e) {

@@ -163,7 +163,7 @@ public class PartialReachedSetDirectedGraph {
     }
   }
 
-  private class CountingOutsideSuccessorVisitor implements OutsideSuccessorVisitor {
+  private static class CountingOutsideSuccessorVisitor implements OutsideSuccessorVisitor {
 
     private long numOutside = 0;
 
