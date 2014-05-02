@@ -609,6 +609,7 @@ class Run():
                 and returnsignal == 9 \
                 and MEMLIMIT in rlimits \
                 and 'memUsage' in self.values \
+                and not self.values['memUsage'] is None \
                 and int(self.values['memUsage']) >= (rlimits[MEMLIMIT] * 1024 * 1024 * 0.999):
             self.status = 'OUT OF MEMORY'
             self.category = result.CATEGORY_ERROR

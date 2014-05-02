@@ -324,7 +324,7 @@ class RunExecutor():
                 tmp = _readCpuTime(cgroupCpuacct)
             cpuTime2 = tmp
 
-        memUsage = 0
+        memUsage = None
         if MEMORY in cgroups:
             # This measurement reads the maximum number of bytes of RAM+Swap the process used.
             # For more details, c.f. the kernel documentation:
