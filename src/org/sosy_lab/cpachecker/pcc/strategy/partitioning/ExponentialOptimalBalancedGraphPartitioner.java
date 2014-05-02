@@ -26,21 +26,50 @@ package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.BalancedGraphPartitioner;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
 
 
 public class ExponentialOptimalBalancedGraphPartitioner implements BalancedGraphPartitioner{
 
+  public ExponentialOptimalBalancedGraphPartitioner(ShutdownNotifier pShutdownNotifier) {
+    // TODO Auto-generated constructor stub
+  }
+
   @Override
   public List<Set<Integer>> computePartitioning(int pNumPartitions, PartialReachedSetDirectedGraph pGraph) {
+    long currentNumCrossingEdges, minNumCrossingEdges = -1;
+    List<Set<Integer>> currentPartitioning, bestPartitioning = null;
 
-    // TODO Auto-generated method stub
+    while (hasNextPermutation()) {
+      currentPartitioning = computeNextPermutation();
+      currentNumCrossingEdges = getNumberOfPartitionCrossingEdges(pGraph, currentPartitioning);
+
+      if (minNumCrossingEdges >= currentNumCrossingEdges || minNumCrossingEdges == -1) {
+        bestPartitioning = currentPartitioning;
+      }
+    }
+
+    return bestPartitioning;
+  }
+
+  private boolean hasNextPermutation(){
+    // TODO implement
+    return false;
+  }
+
+  private List<Set<Integer>> computeNextPermutation(){
+    // TODO implement or replace
     return null;
   }
 
-  private void computeNextPermutation(){
-
+  private long getNumberOfPartitionCrossingEdges(final PartialReachedSetDirectedGraph pGraph,
+      final List<Set<Integer>> partitioning) {
+    long result = 0;
+    for (Set<Integer> partition : partitioning) {
+      result += pGraph.getNumAdjacentNodesOutsideSet(partition);
+    }
+    return result;
   }
-
 }

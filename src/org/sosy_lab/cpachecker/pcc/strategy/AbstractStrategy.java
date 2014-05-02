@@ -37,6 +37,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -156,14 +157,11 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       zis.close();
       fis.close();
 
-      fis = file.asByteSource().openStream();
-      zis = new ZipInputStream(fis);
-      entry = zis.getNextEntry();
-      assert entry.getName().equals("Proof");
-      o = new ObjectInputStream(zis);
-      readProofFromStream(o);
-      o.close();
-      zis.close();
+      Triple<InputStream, ZipInputStream, ObjectInputStream> proofStream = openProofStream();
+      readProofFromStream(proofStream.getThird());
+      proofStream.getThird().close();
+      proofStream.getSecond().close();
+      proofStream.getFirst().close();
     } finally {
       if (fis != null) {
         fis.close();
@@ -171,7 +169,13 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     }
   }
 
-
+  protected Triple<InputStream, ZipInputStream, ObjectInputStream> openProofStream() throws IOException {
+    InputStream fis = file.asByteSource().openStream();
+    ZipInputStream zis = new ZipInputStream(fis);
+    ZipEntry entry = zis.getNextEntry();
+    assert entry.getName().equals("Proof");
+    return Triple.of(fis, zis, new ObjectInputStream(zis));
+  }
 
   protected abstract void readProofFromStream(ObjectInputStream in) throws ClassNotFoundException, InvalidConfigurationException, IOException;
 

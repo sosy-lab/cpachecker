@@ -29,6 +29,7 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
@@ -38,10 +39,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.BalancedGraphPartitioner;
-import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PartialReachedConstructionAlgorithm;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
@@ -53,7 +54,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSet
 import org.sosy_lab.cpachecker.util.CPAs;
 
 @Options(prefix = "pcc")
-public abstract class PartitioningIOHelper implements PCCStrategy {
+public class PartitioningIOHelper {
 
   @Option(
       description = "Specifies the maximum size of the partition. This size is used to compute the number of partitions if a proof (reached set) should be written. Default value 0 means always a single partition.")
@@ -67,14 +68,15 @@ public abstract class PartitioningIOHelper implements PCCStrategy {
     OPTIMAL
   }
 
-  protected LogManager logger;
+  private final LogManager logger;
   private final PartialReachedConstructionAlgorithm partialConstructor;
   private final BalancedGraphPartitioner partitioner;
   private int savedReachedSetSize;
   private int numPartitions;
   private List<Pair<AbstractState[], AbstractState[]>> partitions;
 
-  public PartitioningIOHelper(final Configuration pConfig, final LogManager pLogger, ConfigurableProgramAnalysis pCpa)
+  public PartitioningIOHelper(final Configuration pConfig, final LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier, ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     pConfig.inject(this, PartitioningIOHelper.class);
     logger = pLogger;
@@ -92,7 +94,7 @@ public abstract class PartitioningIOHelper implements PCCStrategy {
 
     switch (partitioning) {
     case OPTIMAL:
-      partitioner = new ExponentialOptimalBalancedGraphPartitioner();
+      partitioner = new ExponentialOptimalBalancedGraphPartitioner(pShutdownNotifier);
       break;
     default: // RANDOM
       partitioner = new RandomBalancedGraphPartitioner();
@@ -114,9 +116,6 @@ public abstract class PartitioningIOHelper implements PCCStrategy {
     return null;
   }
 
-  // TODO add writing method?
-
-  @Override
   public void constructInternalProofRepresentation(final UnmodifiableReachedSet pReached)
       throws InvalidConfigurationException {
     savedReachedSetSize = pReached.size();
@@ -151,28 +150,45 @@ public abstract class PartitioningIOHelper implements PCCStrategy {
             graph));
   }
 
-  protected void readPartition(final ObjectInputStream pIn)
+  public void readPartition(final ObjectInputStream pIn)
       throws ClassNotFoundException, IOException {
     partitions.add(Pair.of((AbstractState[]) pIn.readObject(), (AbstractState[]) pIn.readObject()));
   }
 
-  protected void readMetadata(final ObjectInputStream pIn) throws IOException {
-    savedReachedSetSize = pIn.readInt();
-    numPartitions = pIn.readInt();
-    partitions = new ArrayList<>(numPartitions);
+  public void readMetadata(final ObjectInputStream pIn, final boolean pSave) throws IOException {
+    if (pSave) {
+      savedReachedSetSize = pIn.readInt();
+      numPartitions = pIn.readInt();
+      partitions = new ArrayList<>(numPartitions);
+    } else {
+      pIn.readInt();
+      pIn.readInt();
+    }
   }
 
 
-  protected void writeMetadata(final ObjectOutputStream pOut, final int pReachedSetSize, final int pNumPartitions)
+  public void writeMetadata(final ObjectOutputStream pOut, final int pReachedSetSize, final int pNumPartitions)
       throws IOException {
+    logger.log(Level.FINER,"Write metadata of partition");
     pOut.write(pReachedSetSize);
     pOut.write(pNumPartitions);
   }
 
-  protected void writePartition(final ObjectOutputStream pOut, final Set<Integer> pPartition,
+  public void writePartition(final ObjectOutputStream pOut, final Set<Integer> pPartition,
       final PartialReachedSetDirectedGraph pPartialReachedSetDirectedGraph) throws IOException {
+    logger.log(Level.FINER,"Write partition");
     pOut.writeObject(pPartialReachedSetDirectedGraph.getSetNodes(pPartition, false));
     pOut.writeObject(pPartialReachedSetDirectedGraph.getAdjacentNodesOutsideSet(pPartition, false));
+  }
+
+  public void writeProof(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached)
+      throws InvalidConfigurationException, IOException {
+    Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> partitionDescription =
+        computePartialReachedSetAndPartition(pReached);
+    writeMetadata(pOut, pReached.size(), partitionDescription.getSecond().size());
+    for (Set<Integer> partition : partitionDescription.getSecond()) {
+      writePartition(pOut, partition, partitionDescription.getFirst());
+    }
   }
 
 }

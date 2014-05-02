@@ -90,26 +90,17 @@ public class PartialReachedSetDirectedGraph {
   }
 
   public AbstractState[] getAdjacentNodesOutsideSet(final Set<Integer> pNodeSetIndices, final boolean pAsARGState) {
-    List<AbstractState> listRes = new ArrayList<>();
+    CollectingOutsideSuccessorVisitor visitor = new CollectingOutsideSuccessorVisitor(pAsARGState);
+    visitOutsideSuccessors(pNodeSetIndices, visitor);
 
-   try {
-      List<Integer> successors;
-      for (Integer predecessor : pNodeSetIndices) {
-        successors = adjacencyList.get(predecessor);
-        for (int successor : successors) {
-          if (!pNodeSetIndices.contains(successor)) {
-            if (pAsARGState) {
-              listRes.add(nodes[successor]);
-            } else {
-              listRes.add(((ARGState) nodes[successor]).getWrappedState());
-            }
-          }
-        }
-      }
-    } catch (ArrayIndexOutOfBoundsException | NullPointerException e) {
-      throw new IllegalArgumentException("Wrong index set must not be null and all indices be within [0;" + numNodes + "-1].");
-    }
-    return listRes.toArray(new AbstractState[listRes.size()]);
+    return visitor.listRes.toArray(new AbstractState[visitor.listRes.size()]);
+  }
+
+  public long getNumAdjacentNodesOutsideSet(final Set<Integer> pNodeSetIndices) {
+    CountingOutsideSuccessorVisitor visitor = new CountingOutsideSuccessorVisitor();
+    visitOutsideSuccessors(pNodeSetIndices, visitor);
+
+    return visitor.numOutside;
   }
 
   public AbstractState[] getSetNodes(final Set<Integer> pNodeSetIndices, final boolean pAsARGState){
@@ -129,6 +120,59 @@ public class PartialReachedSetDirectedGraph {
     }
      return listRes.toArray(new AbstractState[listRes.size()]);
   }
+
+  private void visitOutsideSuccessors(final Set<Integer> pNodeSetIndices, final OutsideSuccessorVisitor pVisitor) {
+    try {
+      List<Integer> successors;
+      for (Integer predecessor : pNodeSetIndices) {
+        successors = adjacencyList.get(predecessor);
+        for (int successor : successors) {
+          if (!pNodeSetIndices.contains(successor)) {
+            pVisitor.visit(successor);
+          }
+        }
+      }
+    } catch (ArrayIndexOutOfBoundsException | NullPointerException e) {
+      throw new IllegalArgumentException("Wrong index set must not be null and all indices be within [0;" + numNodes
+          + "-1].");
+    }
+  }
+
+  private interface OutsideSuccessorVisitor {
+
+    void visit(int pSuccessor);
+
+  }
+
+  private class CollectingOutsideSuccessorVisitor implements OutsideSuccessorVisitor {
+
+    private final List<AbstractState> listRes = new ArrayList<>();
+    private final boolean collectAsARGState;
+
+    public CollectingOutsideSuccessorVisitor(final boolean pCollectAsARGState) {
+      collectAsARGState = pCollectAsARGState;
+    }
+
+    @Override
+    public void visit(int pSuccessor) {
+      if (collectAsARGState) {
+        listRes.add(nodes[pSuccessor]);
+      } else {
+        listRes.add(((ARGState) nodes[pSuccessor]).getWrappedState());
+      }
+    }
+  }
+
+  private class CountingOutsideSuccessorVisitor implements OutsideSuccessorVisitor {
+
+    private long numOutside = 0;
+
+    @Override
+    public void visit(int pSuccessor) {
+      numOutside++;
+    }
+  }
+
 
   private class SuccessorEdgeConstructor extends AbstractARGPass{
 
