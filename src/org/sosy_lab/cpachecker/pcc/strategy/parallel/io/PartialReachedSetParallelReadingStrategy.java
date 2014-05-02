@@ -76,7 +76,6 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
     ioHelper = new PartitioningIOHelper(pConfig, pLogger, pShutdownNotifier, pCpa);
     shutdownNotifier = pShutdownNotifier;
     cpa = pCpa;
-    // TODO Auto-generated constructor stub, all elements needed?
   }
 
   @Override
@@ -192,7 +191,7 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
     }
 
     private void prepareAbortion() {
-      // TODO logging?
+      logger.log(Level.SEVERE, "Reading partition from proof failed.");
       success.set(false);
       waitRead.release(numPartitions);
     }
