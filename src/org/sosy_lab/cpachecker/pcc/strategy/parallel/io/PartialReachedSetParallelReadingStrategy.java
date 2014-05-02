@@ -68,8 +68,8 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
   private boolean enableParallelCheck = false;
   private int nextPartition;
 
-  public PartialReachedSetParallelReadingStrategy(Configuration pConfig, LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier, PropertyCheckerCPA pCpa)
+  public PartialReachedSetParallelReadingStrategy(final Configuration pConfig, final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier, final PropertyCheckerCPA pCpa)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
     pConfig.inject(this);
