@@ -1023,60 +1023,41 @@ public abstract class AbstractExpressionValueVisitor
         final long longValue = numericValue.longValue();
         final boolean targetIsSigned = machineModel.isSigned(st);
 
-        if ((size < SIZE_OF_JAVA_LONG) || (size == SIZE_OF_JAVA_LONG && targetIsSigned)) {
-          // we can handle this with java-type "long"
+        if (size < SIZE_OF_JAVA_LONG) {
+          // we can handle this with java-type "long" as normal number
 
           final long maxValue = 1L << size; // 2^size
+          long result = longValue % maxValue; // shrink to number of bits
 
-          long result = longValue;
-
-          if (size < SIZE_OF_JAVA_LONG) { // otherwise modulo is useless, because result would be 1
-            result = longValue % maxValue; // shrink to number of bits
-
-            if (targetIsSigned) {
-              if (result > (maxValue / 2) - 1) {
-                result -= maxValue;
-              } else if (result < -(maxValue / 2)) {
-                result += maxValue;
-              }
+          if (targetIsSigned) {
+            // signed value must be put in interval [-(maxValue/2), (maxValue/2)-1]
+            if (result > (maxValue / 2) - 1) {
+              result -= maxValue;
+            } else if (result < -(maxValue / 2)) {
+              result += maxValue;
             }
-          }
-
-          if (result != longValue) {
-            logger.logfOnce(Level.INFO,
-                "%s: overflow, value %d is to big for type '%s', casting to %d.",
-                fileLocation,
-                longValue, targetType, result);
-          }
-
-          if (!targetIsSigned && longValue < 0) {
-
-            if (size < SIZE_OF_JAVA_LONG) {
+          } else {
+            // unsigned value must be put in interval [0, maxValue-1]
+            if (longValue < 0) {
               // value is negative, so adding maxValue makes it positive
-              result = maxValue + result;
-
-              logger.logfOnce(Level.INFO,
-                  "%s: overflow, target-type is '%s', value %d is changed to %d.",
-                  fileLocation,
-                  targetType, longValue, result);
-
-            } else {
-              // java-type "long" is too small for big types like UNSIGNED_LONGLONG,
-              // so we do nothing here and trust the analysis, that handles it later
-              logger.logfOnce(Level.INFO,
-                  "%s: overflow, value %s of c-type '%s' may be too big for java-type 'long'.",
-                  fileLocation,
-                  longValue, targetType);
+              result += maxValue;
             }
           }
 
           return new NumericValue(result);
 
+        } else if (size == SIZE_OF_JAVA_LONG) {
+          // we can handle this with java-type "long", because the bitwise representation is correct.
+          // we must look for unsigned numbers in later analysis
+          return new NumericValue(longValue);
+
         } else {
-          // java-type "long" is too small for big types like UNSIGNED_LONGLONG,
+          // java-type "long" is too small for really big types like 'int128',
+          // however we do currently not support such types.
           // so we do nothing here and trust the analysis, that handles it later
-          logger.logfOnce(Level.FINEST,
-              "%s: overflow, value %s of c-type '%s' may be too big for java-type 'long'.",
+          // TODO should we handle it as BigInteger?
+          logger.logfOnce(Level.INFO,
+              "%s: value %s of c-type '%s' is too big for java-type 'long'.",
               fileLocation,
               value, targetType);
 
