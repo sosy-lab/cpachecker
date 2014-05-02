@@ -170,6 +170,9 @@ def killAllTasksInCgroup(cgroup):
 
 def removeCgroup(cgroup):
     if cgroup:
+        if not os.path.exists(cgroup):
+            logging.warning('Cannot remove CGroup {0}, because it does not exist.'.format(cgroup))
+            return
         assert os.path.getsize(os.path.join(cgroup, 'tasks')) == 0
         try:
             os.rmdir(cgroup)
