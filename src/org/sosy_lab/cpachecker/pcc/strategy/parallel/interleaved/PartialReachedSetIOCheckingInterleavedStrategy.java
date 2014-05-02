@@ -33,6 +33,7 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
@@ -62,6 +63,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
+import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -145,7 +147,12 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
   protected void writeProofToStream(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached)
       throws IOException,
       InvalidConfigurationException {
-    ioHelper.constructInternalProofRepresentation(pReached);
+    Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> partitioning =
+        ioHelper.computePartialReachedSetAndPartition(pReached);
+    ioHelper.writeMetadata(pOut, pReached.size(), partitioning.getSecond().size());
+    for (Set<Integer> partition : partitioning.getSecond()) {
+      ioHelper.writePartition(pOut, partition, partitioning.getFirst());
+    }
   }
 
   @Override
