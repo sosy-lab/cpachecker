@@ -64,24 +64,22 @@ public class ValueAnalysisReducer implements Reducer {
     ValueAnalysisState rootState = (ValueAnalysisState)pRootState;
     ValueAnalysisState reducedState = (ValueAnalysisState)pReducedState;
 
-    ValueAnalysisState diffElement = rootState.clone();
-    for (String trackedVar : reducedState.getTrackedVariableNames()) {
-      diffElement.forget(trackedVar);
-    }
-    //TODO: following is needed with threshold != inf
-  /*  for (String trackedVar : diffElement.getTrackedVariableNames()) {
-      if (occursInBlock(pReducedContext, trackedVar)) {
-        diffElement.deleteValue(trackedVar);
-      }
-    }*/
-    for (String trackedVar : reducedState.getTrackedVariableNames()) {
-      Value value = reducedState.getValueFor(trackedVar);
-      if (!value.isUnknown()) {
-        diffElement.assignConstant(trackedVar, reducedState.getValueFor(trackedVar));
-      } else {
-        diffElement.forget(trackedVar);
+    // the expanded state will contain:
+    // - all variables of the reduced state -> copy the state
+    // - all non-block variables of the rootState -> copy those values
+    // - not the variables of rootState used in the block -> just ignore those values
+    ValueAnalysisState diffElement = reducedState.clone();
+
+    for (String trackedVar : rootState.getTrackedVariableNames()) {
+      if (!occursInBlock(pReducedContext, trackedVar)) {
+        diffElement.assignConstant(trackedVar, rootState.getValueFor(trackedVar));
+
+      //} else {
+        // ignore this case, the variables are part of the reduced state
+        // (or might even be deleted, then they must stay unknown)
       }
     }
+
     // set difference to avoid null pointer exception due to precision adaption of omniscient composite precision adjustment
     // to avoid that due to precision adaption in BAM ART which is not yet propagated tracked variable information is deleted
     diffElement.addToDelta(diffElement);
