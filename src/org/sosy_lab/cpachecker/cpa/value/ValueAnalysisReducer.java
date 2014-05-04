@@ -70,6 +70,8 @@ public class ValueAnalysisReducer implements Reducer {
     // - not the variables of rootState used in the block -> just ignore those values
     ValueAnalysisState diffElement = reducedState.clone();
 
+    // TODO: We ignore Offsets of MemoryLocations and only match VariableName. This might be unsound.
+
     for (String trackedVar : rootState.getTrackedVariableNames()) {
       if (!occursInBlock(pReducedContext, trackedVar)) {
         diffElement.assignConstant(trackedVar, rootState.getValueFor(trackedVar));
