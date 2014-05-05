@@ -49,8 +49,10 @@ public class ValueAnalysisReducer implements Reducer {
     ValueAnalysisState expandedState = (ValueAnalysisState)pExpandedState;
 
     ValueAnalysisState clonedElement = expandedState.clone();
-    for (String trackedVar : expandedState.getTrackedVariableNames()) {
-      if (!occursInBlock(pContext, trackedVar)) {
+    for (ValueAnalysisState.MemoryLocation trackedVar : expandedState.getTrackedMemoryLocations()) {
+      // ignore offset (like "3" from "array[3]") to match assignments in loops ("array[i]=12;")
+      final String simpleName = trackedVar.getAsSimpleString();
+      if (!occursInBlock(pContext, simpleName)) {
         clonedElement.forget(trackedVar);
       }
     }
@@ -70,10 +72,10 @@ public class ValueAnalysisReducer implements Reducer {
     // - not the variables of rootState used in the block -> just ignore those values
     ValueAnalysisState diffElement = reducedState.clone();
 
-    // TODO: We ignore Offsets of MemoryLocations and only match VariableName. This might be unsound.
-
-    for (String trackedVar : rootState.getTrackedVariableNames()) {
-      if (!occursInBlock(pReducedContext, trackedVar)) {
+    for (ValueAnalysisState.MemoryLocation trackedVar : rootState.getTrackedMemoryLocations()) {
+      // ignore offset ("3" from "array[3]") to match assignments in loops ("array[i]=12;")
+      final String simpleName = trackedVar.getAsSimpleString();
+      if (!occursInBlock(pReducedContext, simpleName)) {
         diffElement.assignConstant(trackedVar, rootState.getValueFor(trackedVar));
 
       //} else {
