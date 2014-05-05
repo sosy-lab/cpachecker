@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.pcc.strategy.parallel.io;
+package org.sosy_lab.cpachecker.pcc.strategy.parallel.interleaved;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -33,6 +33,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
@@ -50,35 +51,42 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
+import org.sosy_lab.cpachecker.pcc.strategy.parallel.io.ParallelPartitionReader;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
 
 @Options(prefix = "pcc")
-public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
+public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends AbstractStrategy {
 
-  private final PartitioningIOHelper ioHelper;
-  private final PropertyCheckerCPA cpa;
-  private final ShutdownNotifier shutdownNotifier;
-  private final Lock lock = new ReentrantLock();
+  @Option(
+      name = "pcc.useReadCores",
+      description = "The number of cores used exclusively for proof reading. Must be less than pcc.useCores and may not be negative. Value 0 means that the cores used for reading and checking are shared")
+  private int numReadThreads = 0;
 
-  @Option(description = "enables parallel checking of partial certificate")
-  private boolean enableParallelCheck = false;
   private int nextPartition;
+  private final PartitioningIOHelper ioHelper;
+  private final ShutdownNotifier shutdown;
+  private final PropertyCheckerCPA cpa;
 
-  public PartialReachedSetParallelReadingStrategy(final Configuration pConfig, final LogManager pLogger,
+  public PartialReachedSetParallelIOCheckingInterleavedStrategy(final Configuration pConfig, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final PropertyCheckerCPA pCpa)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
     pConfig.inject(this);
-    ioHelper = new PartitioningIOHelper(pConfig, pLogger, pShutdownNotifier, pCpa);
-    shutdownNotifier = pShutdownNotifier;
+
+    shutdown = pShutdownNotifier;
     cpa = pCpa;
+
+    ioHelper = new PartitioningIOHelper(pConfig, pLogger, pShutdownNotifier, pCpa);
+    numReadThreads = Math.min(numReadThreads, numThreads - 1);
+    numReadThreads = Math.max(0, numReadThreads);
   }
 
   @Override
   public void constructInternalProofRepresentation(final UnmodifiableReachedSet pReached)
       throws InvalidConfigurationException {
-    ioHelper.constructInternalProofRepresentation(pReached);
+    throw new InvalidConfigurationException(
+        "Interleaved proof reading and checking strategies do not  support internal PCC with result check algorithm");
   }
 
   @Override
@@ -88,19 +96,26 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
     Collection<AbstractState> certificate = new HashSet<>(ioHelper.getSavedReachedSetSize());
     Collection<AbstractState> inOtherPartition = new ArrayList<>();
     Precision initPrec = pReachedSet.getPrecision(pReachedSet.getFirstState());
+    Lock lock = new ReentrantLock();
+    Condition partitionReady = lock.newCondition();
 
     logger.log(Level.INFO, "Create and start threads");
-    ExecutorService executor = Executors.newFixedThreadPool(enableParallelCheck ? numThreads : 1);
-    for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
-      executor.execute(new PartitionChecker(i, checkResult, partitionChecked, certificate, inOtherPartition, initPrec,
-          cpa, lock, ioHelper, shutdownNotifier, logger));
+    if (numReadThreads == 0) {
+      ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+      startReadingThreads(executor, checkResult, partitionChecked, lock, partitionReady);
+      startCheckingThreads(executor, checkResult, partitionChecked, certificate, inOtherPartition, initPrec, lock,
+          partitionReady);
+    } else {
+      ExecutorService readExecutor = Executors.newFixedThreadPool(numReadThreads);
+      startReadingThreads(readExecutor, checkResult, partitionChecked, lock, partitionReady);
+      ExecutorService checkExecutor = Executors.newFixedThreadPool(numThreads - numReadThreads);
+      startCheckingThreads(checkExecutor, checkResult, partitionChecked, certificate, inOtherPartition, initPrec, lock,
+          partitionReady);
     }
 
     partitionChecked.acquire(ioHelper.getNumPartitions());
 
-    if(!checkResult.get()){
-      return false;
-    }
+    if (!checkResult.get()) { return false; }
 
     logger.log(Level.INFO, "Check if all are checked");
     if (!certificate.containsAll(inOtherPartition)) {
@@ -129,12 +144,31 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
     return true;
   }
 
+  private void startReadingThreads(final ExecutorService pReadingExecutor, final AtomicBoolean pCheckResult,
+      final Semaphore pPartitionChecked,
+      final Lock pLock, final Condition pPartitionReady) {
+    for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
+      pReadingExecutor.execute(new ParallelPartitionReader(i, pCheckResult, pPartitionChecked, this, ioHelper,
+          pPartitionReady, pLock));
+    }
+  }
+
+  private void startCheckingThreads(final ExecutorService pCheckingExecutor, final AtomicBoolean pCheckResult,
+      final Semaphore pPartitionChecked, final Collection<AbstractState> pCertificate,
+      final Collection<AbstractState> pInOtherPartition,
+      final Precision pInitialPrecision, final Lock pLock, final Condition pPartitionReady) {
+    for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
+      pCheckingExecutor.execute(new PartitionChecker(i, pCheckResult, pPartitionChecked, pCertificate,
+          pInOtherPartition, pInitialPrecision,
+          cpa, pLock, pPartitionReady, ioHelper, shutdown, logger));
+    }
+  }
+
   @Override
   protected void writeProofToStream(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached)
-      throws IOException,
-      InvalidConfigurationException {
+      throws IOException, InvalidConfigurationException {
     ioHelper.constructInternalProofRepresentation(pReached);
-    // write metadata
+    // write meta data
     ioHelper.writeMetadata(pOut, pReached.size(), ioHelper.getNumPartitions());
     nextPartition = 0;
   }
@@ -148,31 +182,10 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
   }
 
   @Override
-  protected void readProofFromStream(final ObjectInputStream pIn) throws ClassNotFoundException,
+  protected void readProofFromStream(ObjectInputStream pIn) throws ClassNotFoundException,
       InvalidConfigurationException, IOException {
     // read metadata
     ioHelper.readMetadata(pIn, true);
-    // read partitions in parallel
-    ExecutorService executor = Executors.newFixedThreadPool(numThreads);
-    AtomicBoolean success = new AtomicBoolean(true);
-    Semaphore waitRead = new Semaphore(0);
-    int numPartition = ioHelper.getNumPartitions();
-    for (int i = 0; i < numPartition; i++) {
-      executor.execute(new ParallelPartitionReader(i, success, waitRead, this, ioHelper));
-    }
-
-    try {
-      waitRead.acquire(numPartition);
-    } catch (InterruptedException e) {
-      throw new IOException("Proof reading failed.");
-    }
-
-    if (!success.get()) {
-      logger.log(Level.SEVERE, "Reading partition from proof failed.");
-      throw new IOException("Reading one of the partitions failed");
-    }
-
-    executor.shutdown();
   }
 
 }
