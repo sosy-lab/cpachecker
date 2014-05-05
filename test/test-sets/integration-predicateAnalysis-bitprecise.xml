@@ -15,6 +15,7 @@
       <includesfile>../programs/benchmarks/Simple.set</includesfile>
       <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
       <exclude>../programs/benchmarks/ntdrivers/diskperf_true-unreach-call.i.cil.c</exclude>
+      <exclude>../programs/benchmarks/ssh/s3_srvr.blast.01_false-unreach-call.i.cil.c</exclude>
       <exclude>../programs/benchmarks/ssh/s3_srvr.blast.04_false-unreach-call.i.cil.c</exclude>
     </sourcefiles>
     <sourcefiles>
@@ -27,6 +28,7 @@
       <exclude>../programs/benchmarks/eca/Problem16_50_true-unreach-call.c</exclude>
       <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
+      <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_6_true-unreach-call.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/mem_slave_tlm.2_true-unreach-call_false-termination.cil.c</exclude>
     </sourcefiles>
     <sourcefiles>

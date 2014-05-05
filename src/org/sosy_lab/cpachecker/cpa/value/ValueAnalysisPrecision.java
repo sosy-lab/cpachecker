@@ -92,17 +92,34 @@ public class ValueAnalysisPrecision implements Precision {
   private final Optional<VariableClassification> varClass;
 
   public ValueAnalysisPrecision(String variableBlacklist, Configuration config,
-      Optional<VariableClassification> vc) throws InvalidConfigurationException {
+      Optional<VariableClassification> vc, RefinablePrecision pRefinablePrecision)
+          throws InvalidConfigurationException {
     config.inject(this);
 
-    blackListPattern = Pattern.compile(variableBlacklist);
-    this.varClass = vc;
+    blackListPattern    = Pattern.compile(variableBlacklist);
+    varClass            = vc;
+    refinablePrecision  = pRefinablePrecision;
+  }
 
-    if (Boolean.parseBoolean(config.getProperty("analysis.algorithm.CEGAR"))) {
-      refinablePrecision = createInstance();
+  public ValueAnalysisPrecision(String variableBlacklist, Configuration config,
+      Optional<VariableClassification> vc)
+          throws InvalidConfigurationException {
+    config.inject(this);
+
+    blackListPattern    = Pattern.compile(variableBlacklist);
+    varClass            = vc;
+
+    if(sharing.equals("scope")) {
+      refinablePrecision = new ScopedRefinablePrecision();
     }
+
+    else if(sharing.equals("location")) {
+      refinablePrecision = new LocalizedRefinablePrecision();
+    }
+
     else {
-      refinablePrecision = new FullPrecision();
+      throw new InternalError("Wrong value for precison sharing strategy given (was " + sharing + ")," +
+          "or allowed options out-dated.");
     }
   }
 
@@ -200,21 +217,6 @@ public class ValueAnalysisPrecision implements Precision {
     final boolean isIgnoredIntAdd = ignoreIntAdd && isIntAdd;
 
     return isIgnoredBoolean || isIgnoredIntEqual || isIgnoredIntAdd;
-  }
-
-  private RefinablePrecision createInstance() {
-    if(sharing.equals("scope")) {
-      return new ScopedRefinablePrecision();
-    }
-
-    else if(sharing.equals("location")) {
-      return new LocalizedRefinablePrecision();
-    }
-
-    else {
-      throw new InternalError("Wrong value for precison sharing strategy given (was " + sharing + ")," +
-          "or allowed options out-dated.");
-    }
   }
 
   abstract public static class RefinablePrecision {

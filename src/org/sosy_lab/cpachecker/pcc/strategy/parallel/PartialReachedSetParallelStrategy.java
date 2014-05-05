@@ -56,6 +56,7 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
     /* TODO parallelize, currently non-parallelized version,
      *  consider how to integrate shutdown notifier in here and
      *  avoid unprotected access to stats*/
+ // TODO for parallelization use Runtime.getRuntime().availableProcessors(); to identify maximal number of parallel threads
     List<AbstractState> certificate = new ArrayList<>(reachedSet.length);
     for (AbstractState elem : reachedSet) {
       certificate.add(elem);
@@ -105,9 +106,7 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
               logger.log(Level.FINE, "Successor ", succ, " not in partial reached set.",
                   "Add to elements whose successors ",
                   "must be computed.");
-              if (AbstractStates.extractLocation(succ).getNumEnteringEdges() > 1) {
-                stop.stop(succ, statesPerLocation.get(AbstractStates.extractLocation(succ)), initialPrec);
-              }
+
               addElement(succ, certificate);
             }
           } finally {

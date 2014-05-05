@@ -24,8 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.conditions.path;
 
 import java.io.PrintStream;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -119,6 +117,11 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   public class UniqueAssignmentsInPathConditionState implements AbstractState, AvoidanceReportingState {
 
     /**
+     * the mapping from variable name to the set of assigned values to this variable
+     */
+    private Multimap<MemoryLocation, Value> mapping = HashMultimap.create();
+
+    /**
      * the maximal number of assignments over all variables
      */
     private int maximum;
@@ -164,46 +167,8 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
         return false;
       }
 
-      Set<Value> values = new HashSet<>(mapping.get(memoryLocation));
-      values.add(state.getValueFor(memoryLocation));
-
-      return values.size() > softThreshold;
-    }
-
-    /**
-    * This method decides if the number of assignments for the given memory location exceeds the soft threshold.
-    *
-    * @param memoryLocation the memory location to check
-    * @return true, if the number of assignments for the given memory location exceeds the soft threshold, else false
-    */
-    public boolean exceedsSoftThreshold(MemoryLocation memoryLocation) {
-      return softThreshold > -1
-          && mapping.containsKey(memoryLocation)
-          && mapping.get(memoryLocation).size() > softThreshold;
-    }
-
-    /**
-     * the mapping from variable name to the set of assigned values to this variable
-     */
-    private Multimap<MemoryLocation, Value> mapping = HashMultimap.create();
-
-    /*
-    * This method decides if the number of assignments for the given variable would exceed the hard threshold, taking
-    * into account the current assignment from the given explicit-value state.
-    *
-    * @param state the current assignment in form of a explicit-value state
-    * @param memoryLocation the variable to check
-    * @return true, if the number of assignments for the given variable would exceed the hard threshold, else false
-    */
-    public boolean wouldExceedHardThreshold(ValueAnalysisState state, MemoryLocation memoryLocation) {
-      if(hardThreshold == -1) {
-        return false;
-      }
-
-      Set<Value> values = new HashSet<>(mapping.get(memoryLocation));
-      values.add(state.getValueFor(memoryLocation));
-
-      return values.size() > hardThreshold;
+      int increment = mapping.containsEntry(memoryLocation, state.getValueFor(memoryLocation)) ? 0 : 1;
+      return (mapping.get(memoryLocation).size() + increment) > softThreshold;
     }
 
     /**

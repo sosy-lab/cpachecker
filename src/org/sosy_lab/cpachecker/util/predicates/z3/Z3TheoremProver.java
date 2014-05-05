@@ -114,7 +114,7 @@ public class Z3TheoremProver implements ProverEnvironment {
   public void close() {
     Preconditions.checkArgument(z3context != 0);
     Preconditions.checkArgument(z3solver != 0);
-    Preconditions.checkArgument(solver_get_num_scopes(z3context, z3solver) >= 1);
+    Preconditions.checkArgument(solver_get_num_scopes(z3context, z3solver) >= 0, "a negative number of scopes is not allowed");
 
     while (level > 0) { // TODO do we need this?
       pop();

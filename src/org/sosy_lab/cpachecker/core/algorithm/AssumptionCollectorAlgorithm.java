@@ -301,11 +301,11 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
     sb.append("INITIAL STATE ARG" + initialState.getStateId() + ";\n\n");
     sb.append("STATE __TRUE :\n");
-    sb.append("    TRUE -> ASSUME \"true\" GOTO __TRUE;\n\n");
+    sb.append("    TRUE -> ASSUME {true} GOTO __TRUE;\n\n");
 
     if (!falseAssumptionStates.isEmpty()) {
       sb.append("STATE __FALSE :\n");
-      sb.append("    TRUE -> ASSUME \"false\" GOTO __FALSE;\n\n");
+      sb.append("    TRUE -> ASSUME {false} GOTO __FALSE;\n\n");
     }
 
     for (final ARGState s : relevantStates) {
@@ -335,9 +335,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
         AssumptionStorageState assumptionChild = AbstractStates.extractStateByType(child, AssumptionStorageState.class);
         BooleanFormula assumption = bfmgr.and(assumptionChild.getAssumption(), assumptionChild.getStopFormula());
-        sb.append("ASSUME \"");
+        sb.append("ASSUME {");
         escape(assumption.toString(), sb);
-        sb.append("\" ");
+        sb.append("} ");
 
         if (falseAssumptionStates.contains(child)) {
           sb.append(actionOnFinalEdges + "GOTO __FALSE");
@@ -399,6 +399,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         break;
       case '\\':
         appendTo.append("\\\\");
+        break;
+      case '`':
         break;
       default:
         appendTo.append(c);

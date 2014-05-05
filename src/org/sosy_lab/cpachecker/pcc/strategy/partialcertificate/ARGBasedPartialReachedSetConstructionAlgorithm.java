@@ -34,11 +34,13 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 
 public class ARGBasedPartialReachedSetConstructionAlgorithm extends
-    MonotoneStopARGBasedPartialReachedSetConstructionAlgorithm {
+    MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm {
 
   private final ConfigurableProgramAnalysis cpa;
 
-  public ARGBasedPartialReachedSetConstructionAlgorithm(final ConfigurableProgramAnalysis pCpa) {
+  public ARGBasedPartialReachedSetConstructionAlgorithm(final ConfigurableProgramAnalysis pCpa,
+      final boolean pReturnARGStatesInsteadOfWrappedStates) {
+    super(pReturnARGStatesInsteadOfWrappedStates);
     cpa = pCpa;
   }
 

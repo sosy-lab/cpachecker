@@ -243,6 +243,7 @@ public class BAMTransferRelation implements TransferRelation {
       return Collections.singleton(Iterables.getOnlyElement(reducedResult).getFirst());
     }
 
+    logger.log(Level.FINEST, "Expanding states with initial state", entryState);
     logger.log(Level.FINEST, "Expanding states", reducedResult);
     final Collection<AbstractState> expandedReturnStates = expandResultStates(reducedResult, outerSubtree, entryState, precision);
     logger.log(Level.ALL, "Expanded results:", expandedReturnStates);

@@ -117,6 +117,8 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
       throw new InvalidConfigurationException(ValueAnalysisGlobalRefiner.class.getSimpleName() + " needs a ValueAnalysisCPA");
     }
 
+    valueAnalysisCpa.injectRefinablePrecision();
+
     ValueAnalysisGlobalRefiner refiner = new ValueAnalysisGlobalRefiner(valueAnalysisCpa.getConfiguration(),
                                     valueAnalysisCpa.getLogger(),
                                     valueAnalysisCpa.getShutdownNotifier(),

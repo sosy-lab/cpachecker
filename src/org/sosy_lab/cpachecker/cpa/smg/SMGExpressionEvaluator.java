@@ -1584,7 +1584,7 @@ public class SMGExpressionEvaluator {
     }
 
     @Override
-    protected Long evaluateJIdExpression(JIdExpression pVarName) {
+    protected Value evaluateJIdExpression(JIdExpression pVarName) {
       return null;
     }
 
