@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.pcc.strategy.parallel.io;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
@@ -37,9 +36,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
-import java.util.zip.ZipInputStream;
 
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -161,7 +158,7 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
     Semaphore waitRead = new Semaphore(0);
     int numPartition = ioHelper.getNumPartitions();
     for (int i = 0; i < numPartition; i++) {
-      executor.execute(new ParallelPartitionReader(i, success, waitRead, numPartition));
+      executor.execute(new ParallelPartitionReader(i, success, waitRead, numPartition, logger, this, ioHelper));
     }
 
     try {
@@ -173,49 +170,6 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
     if (!success.get()) { throw new IOException("Reading one of the partitions failed"); }
 
     executor.shutdown();
-  }
-
-  // TODO put in own file as public class
-  private class ParallelPartitionReader implements Runnable {
-
-    private final int partitionIndex;
-    private final AtomicBoolean success;
-    private final Semaphore waitRead;
-    private final int numPartitions;
-
-    public ParallelPartitionReader(final int index, AtomicBoolean pSuccess, Semaphore pWaitRead, int pNumPartition) {
-      partitionIndex = index;
-      success = pSuccess;
-      waitRead = pWaitRead;
-      numPartitions = pNumPartition;
-    }
-
-    private void prepareAbortion() {
-      logger.log(Level.SEVERE, "Reading partition from proof failed.");
-      success.set(false);
-      waitRead.release(numPartitions);
-    }
-
-    @Override
-    public void run() {
-      Triple<InputStream, ZipInputStream, ObjectInputStream> streams = null;
-      try {
-        streams = openAdditionalProofStream(partitionIndex);
-        ioHelper.readPartition(streams.getThird(), lock);
-      } catch (IOException | ClassNotFoundException e) {
-        prepareAbortion();
-      } finally {
-        if (streams != null) {
-          try {
-            streams.getThird().close();
-            streams.getSecond().close();
-            streams.getFirst().close();
-          } catch (IOException e) {
-          }
-        }
-      }
-    }
-
   }
 
 }
