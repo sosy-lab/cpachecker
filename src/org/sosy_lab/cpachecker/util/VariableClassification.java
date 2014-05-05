@@ -1084,8 +1084,7 @@ public class VariableClassification {
     return exp.getDeclaration().getQualifiedName();
   }
 
-  @Deprecated // for uses outside of this class, use getQualifiedName() of declarations
-  public static String scopeVar(@Nullable final String function, final String var) {
+  private static String scopeVar(@Nullable final String function, final String var) {
     return (function == null) ? (var) : (function + SCOPE_SEPARATOR + var);
   }
 
