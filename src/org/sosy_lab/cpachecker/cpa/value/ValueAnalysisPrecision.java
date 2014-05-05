@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import static org.sosy_lab.cpachecker.util.VariableClassification.scopeVar;
-
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
@@ -205,12 +203,9 @@ public class ValueAnalysisPrecision implements Precision {
   private boolean isInIgnoredVarClass(final MemoryLocation variable) {
     if (varClass==null || !varClass.isPresent()) { return false; }
 
-    final String functionName = variable.isOnFunctionStack() ? variable.getFunctionName() : null;
-    final String varName = variable.getIdentifier();
-
-    final boolean isBoolean = varClass.get().getIntBoolVars().contains(scopeVar(functionName, varName));
-    final boolean isIntEqual = varClass.get().getIntEqualVars().contains(scopeVar(functionName, varName));
-    final boolean isIntAdd = varClass.get().getIntAddVars().contains(scopeVar(functionName, varName));
+    final boolean isBoolean = varClass.get().getIntBoolVars().contains(variable.getAsSimpleString());
+    final boolean isIntEqual = varClass.get().getIntEqualVars().contains(variable.getAsSimpleString());
+    final boolean isIntAdd = varClass.get().getIntAddVars().contains(variable.getAsSimpleString());
 
     final boolean isIgnoredBoolean = ignoreBoolean && isBoolean;
     final boolean isIgnoredIntEqual = ignoreIntEqual && isIntEqual;
