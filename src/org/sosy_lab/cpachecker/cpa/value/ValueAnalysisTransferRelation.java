@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -172,6 +173,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   private final MachineModel machineModel;
   private final LogManagerWithoutDuplicates logger;
   private final Collection<String> addressedVariables;
+  private final Collection<String> booleanVariables;
 
   public ValueAnalysisTransferRelation(Configuration config, LogManager pLogger, CFA pCfa) throws InvalidConfigurationException {
     config.inject(this);
@@ -180,8 +182,10 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     if (pCfa.getVarClassification().isPresent()) {
       addressedVariables = pCfa.getVarClassification().get().getAddressedVariables();
+      booleanVariables   = pCfa.getVarClassification().get().getIntBoolVars();
     } else {
       addressedVariables = ImmutableSet.of();
+      booleanVariables   = ImmutableSet.of();
     }
   }
 
@@ -412,7 +416,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         }
       }
 
-      AssigningValueVisitor avv = new AssigningValueVisitor(element, truthValue);
+      AssigningValueVisitor avv = new AssigningValueVisitor(element, truthValue, booleanVariables);
 
       if (expression instanceof JExpression && ! (expression instanceof CExpression)) {
 
@@ -739,12 +743,16 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   private class AssigningValueVisitor extends ExpressionValueVisitor {
 
     private ValueAnalysisState assignableState;
+
+    private Collection<String> booleans;
+
     protected boolean truthValue = false;
 
-    public AssigningValueVisitor(ValueAnalysisState assignableState, boolean truthValue) {
+    public AssigningValueVisitor(ValueAnalysisState assignableState, boolean truthValue, Collection<String> booleanVariables) {
       super(state, functionName, machineModel, logger, symbolicValues);
-      this.assignableState = assignableState;
-      this.truthValue = truthValue;
+      this.assignableState  = assignableState;
+      this.booleans         = booleanVariables;
+      this.truthValue       = truthValue;
     }
 
     private IAExpression unwrap(IAExpression expression) {
@@ -762,46 +770,58 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     @Override
     public Value visit(CBinaryExpression pE) throws UnrecognizedCCodeException {
-      BinaryOperator binaryOperator   = pE.getOperator();
+      BinaryOperator binaryOperator = pE.getOperator();
+      CExpression lVarInBinaryExp   = pE.getOperand1();
+      CExpression rVarInBinaryExp   = pE.getOperand2();
 
-      CExpression lVarInBinaryExp  = pE.getOperand1();
+      lVarInBinaryExp = (CExpression) unwrap(pE.getOperand1());
 
-      lVarInBinaryExp = (CExpression) unwrap(lVarInBinaryExp);
+      Value leftValue   = lVarInBinaryExp.accept(this);
+      Value rightValue  = rVarInBinaryExp.accept(this);
 
-      CExpression rVarInBinaryExp  = pE.getOperand2();
-
-      Value leftValue                  = lVarInBinaryExp.accept(this);
-      Value rightValue                 = rVarInBinaryExp.accept(this);
-
-      if ((binaryOperator == BinaryOperator.EQUALS && truthValue) || (binaryOperator == BinaryOperator.NOT_EQUALS && !truthValue)) {
+      if (isEqualityAssumption(binaryOperator)) {
         if (leftValue.isUnknown() && !rightValue.isUnknown() && isAssignable(lVarInBinaryExp)) {
-          MemoryLocation leftVariableLocation = getMemoryLocation(lVarInBinaryExp);
-          assignableState.assignConstant(leftVariableLocation, rightValue);
+          assignableState.assignConstant(getMemoryLocation(lVarInBinaryExp), rightValue);
         }
 
         else if (rightValue.isUnknown() && !leftValue.isUnknown() && isAssignable(rVarInBinaryExp)) {
-          MemoryLocation rightVariableName = getMemoryLocation(rVarInBinaryExp);
-          assignableState.assignConstant(rightVariableName, leftValue);
+          assignableState.assignConstant(getMemoryLocation(rVarInBinaryExp), leftValue);
         }
       }
 
-      if (initAssumptionVars) {
-        // x is unknown, a binaryOperation (x!=0), true-branch: set x=1L
-        // x is unknown, a binaryOperation (x==0), false-branch: set x=1L
-        if ((binaryOperator == BinaryOperator.NOT_EQUALS && truthValue)
-            || (binaryOperator == BinaryOperator.EQUALS && !truthValue)) {
-          if (leftValue.isUnknown() && rightValue.equals(new NumericValue(0L)) && isAssignable(lVarInBinaryExp)) {
-            MemoryLocation leftVariableName = getMemoryLocation(lVarInBinaryExp);
-            assignableState.assignConstant(leftVariableName, new NumericValue(1L));
-          }
+      if (isNonEqualityAssumption(binaryOperator)) {
+        if (assumingUnknownToBeZero(leftValue, rightValue) && isAssignable(lVarInBinaryExp)) {
+          MemoryLocation leftMemLoc = getMemoryLocation(lVarInBinaryExp);
 
-          else if (rightValue.isUnknown() && leftValue.equals(new NumericValue(0L)) && isAssignable(rVarInBinaryExp)) {
-            MemoryLocation rightVariableName = getMemoryLocation(rVarInBinaryExp);
-            assignableState.assignConstant(rightVariableName, new NumericValue(1L));
+          if(booleans.contains(leftMemLoc.getAsSimpleString()) || initAssumptionVars) {
+            assignableState.assignConstant(leftMemLoc, new NumericValue(1L));
+          }
+        }
+
+        else if (assumingUnknownToBeZero(rightValue, leftValue) && isAssignable(rVarInBinaryExp)) {
+          MemoryLocation rightMemLoc = getMemoryLocation(rVarInBinaryExp);
+
+          if(booleans.contains(rightMemLoc.getAsSimpleString()) || initAssumptionVars) {
+            assignableState.assignConstant(rightMemLoc, new NumericValue(1L));
           }
         }
       }
+
       return super.visit(pE);
+    }
+
+    private boolean assumingUnknownToBeZero(Value value1, Value value2) {
+      return value1.isUnknown() && value2.equals(new NumericValue(BigInteger.ZERO));
+    }
+
+    private boolean isEqualityAssumption(BinaryOperator binaryOperator) {
+      return (binaryOperator == BinaryOperator.EQUALS && truthValue)
+          || (binaryOperator == BinaryOperator.NOT_EQUALS && !truthValue);
+    }
+
+    private boolean isNonEqualityAssumption(BinaryOperator binaryOperator) {
+      return (binaryOperator == BinaryOperator.EQUALS && !truthValue)
+          || (binaryOperator == BinaryOperator.NOT_EQUALS && truthValue);
     }
 
     @Override
@@ -907,9 +927,10 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     public SMGAssigningValueVisitor(
         ValueAnalysisState pAssignableState,
         boolean pTruthValue,
+        Collection<String> booleanVariables,
         SMGState pSmgState) {
 
-      super(pAssignableState, pTruthValue);
+      super(pAssignableState, pTruthValue, booleanVariables);
       checkNotNull(pSmgState);
       expressionEvaluator = new ValueAnalysisSMGCommunicator(pAssignableState, functionName,
           pSmgState, machineModel, logger, edge);
@@ -1378,7 +1399,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
         // Try deriving further Information
         ValueAnalysisState element = pNewElement.clone();
-        SMGAssigningValueVisitor avv = new SMGAssigningValueVisitor(element, bTruthValue, pSmgState);
+        SMGAssigningValueVisitor avv = new SMGAssigningValueVisitor(element, bTruthValue, booleanVariables, pSmgState);
         pMissingInformation.getMissingCExpressionInformation().accept(avv);
 
         return element;
