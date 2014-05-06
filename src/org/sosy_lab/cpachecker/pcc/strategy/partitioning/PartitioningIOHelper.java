@@ -89,7 +89,7 @@ public class PartitioningIOHelper {
     default: // ARG
       ARGCPA cpa = CPAs.retrieveCPA(pCpa, ARGCPA.class);
       if (cpa == null) { throw new InvalidConfigurationException(
-          "Require ARCPA"); }
+          "Require ARGCPA"); }
       partialConstructor = new ARGBasedPartialReachedSetConstructionAlgorithm(cpa.getWrappedCPAs().get(0), true);
     }
 
