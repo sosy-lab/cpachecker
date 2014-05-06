@@ -23,9 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates;
 
-import java.util.ArrayList;
+import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashSet;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
@@ -40,35 +42,29 @@ public class AuxiliaryComputer extends AbstractRelevantPredicatesComputer<Collec
   @Override
   protected Collection<String> precompute(Block pContext, Collection<AbstractionPredicate> pPredicates) {
     // compute relevant variables
-    Collection<String> relevantVars = new HashSet<>();
-    Collection<ReferencedVariable> unknownVars = new ArrayList<>();
+    Deque<ReferencedVariable> waitlist = new ArrayDeque<>();
 
     for (ReferencedVariable var : pContext.getReferencedVariables()) {
       if (var.occursInCondition()) {
-        relevantVars.add(var.getName());
-      } else if (var.occursOnLhs()) {
-        if (occursInPredicate(var, pPredicates)) {
-          relevantVars.add(var.getName());
-        }
-      } else {
-        unknownVars.add(var);
+        // var is important for branching
+        waitlist.add(var);
+      } else if (!var.getInfluencingVariables().isEmpty() && occursInPredicate(var, pPredicates)) {
+        // var is important, because it is assigned in current block.
+        waitlist.add(var);
       }
     }
 
-    boolean changed = true;
-    while (changed) {
-      changed = false;
-      Collection<ReferencedVariable> yetUnknownVars = new ArrayList<>();
+    Set<String> relevantVars = new HashSet<>();
 
-      for (ReferencedVariable var : unknownVars) {
-        if (relevantVars.contains(var.getLhsVariable().getName())) {
-          relevantVars.add(var.getName());
-          changed = true;
-        } else {
-          yetUnknownVars.add(var);
-        }
+    // get transitive closure over relevant vars.
+    // note: at this point, all relevant vars are in the waitlist, but will be copied into it later.
+    while(!waitlist.isEmpty()) {
+      ReferencedVariable var = waitlist.pop();
+      if (!relevantVars.add(var.getName())) {
+        // important: here each var is copied into relevant vars.
+        continue;
       }
-      unknownVars = yetUnknownVars;
+      waitlist.addAll(var.getInfluencingVariables());
     }
 
     return relevantVars;

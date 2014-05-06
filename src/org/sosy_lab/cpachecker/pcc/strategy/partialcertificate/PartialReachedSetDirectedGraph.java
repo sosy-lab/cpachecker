@@ -53,6 +53,9 @@ public class PartialReachedSetDirectedGraph {
       numNodes = nodes.length;
       adjacencyMatrix = new int[nodes.length][nodes.length];
       adjacencyList = new ArrayList<>(nodes.length);
+      for(int i=0;i<nodes.length;i++){
+        adjacencyList.add(new ArrayList<Integer>());
+      }
 
       SuccessorEdgeConstructor edgeConstructor = new SuccessorEdgeConstructor(adjacencyList);
       for (ARGState node : pNodes) {

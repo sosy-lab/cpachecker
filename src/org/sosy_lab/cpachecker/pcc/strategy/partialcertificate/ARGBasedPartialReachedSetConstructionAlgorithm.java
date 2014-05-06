@@ -41,19 +41,20 @@ public class ARGBasedPartialReachedSetConstructionAlgorithm extends
   public ARGBasedPartialReachedSetConstructionAlgorithm(final ConfigurableProgramAnalysis pCpa,
       final boolean pReturnARGStatesInsteadOfWrappedStates) {
     super(pReturnARGStatesInsteadOfWrappedStates);
-    cpa = pCpa;
+    cpa = pCpa; // TODO must possibly be built, funktioniert aber nicht
   }
 
   @Override
-  protected NodeSelectionARGPass getARGPass(Precision pRootPrecision) {
-    return new ExtendedNodeSelectionARGPass(pRootPrecision);
+  protected NodeSelectionARGPass getARGPass(final Precision pRootPrecision, final ARGState pRoot) {
+    return new ExtendedNodeSelectionARGPass(pRootPrecision, pRoot);
   }
 
   private class ExtendedNodeSelectionARGPass extends NodeSelectionARGPass {
 
-    private Precision precision;
+    private final Precision precision;
 
-    public ExtendedNodeSelectionARGPass(Precision pRootPrecision) {
+    public ExtendedNodeSelectionARGPass(final Precision pRootPrecision, final ARGState pRoot) {
+      super(pRoot);
       precision = pRootPrecision;
     }
 

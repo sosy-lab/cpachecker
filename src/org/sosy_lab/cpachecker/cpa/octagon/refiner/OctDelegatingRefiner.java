@@ -262,8 +262,7 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
    * @return true, if the current refinement is found to be similar to the previous one, else false
    */
   private boolean isRepeatedRefinement(Multimap<CFANode, MemoryLocation> increment, Pair<ARGState, CFAEdge> refinementRoot) {
-    // TODO line numbers are not unique when we have multiple input files!
-    int currentRefinementId = refinementRoot.getSecond().getLineNumber();
+    int currentRefinementId = refinementRoot.getSecond().getSuccessor().getNodeNumber();
     boolean result          = (previousRefinementId == currentRefinementId);
     previousRefinementId    = currentRefinementId;
 

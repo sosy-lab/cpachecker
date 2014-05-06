@@ -122,6 +122,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
         o = new ObjectOutputStream(zos);
         continueWriting = writeAdditionalProofStream(o);
         o.flush();
+        index++;
       }while(continueWriting);
 
       zos.close();
@@ -194,7 +195,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     return Triple.of(fis, zis, new ObjectInputStream(zis));
   }
 
-  protected Triple<InputStream, ZipInputStream, ObjectInputStream> openAdditionalProofStream(final int index)
+  public Triple<InputStream, ZipInputStream, ObjectInputStream> openAdditionalProofStream(final int index)
       throws IOException {
     if (index < 0) { throw new IllegalArgumentException("Not a valid index. Indices must be at least zero."); }
     InputStream fis = file.asByteSource().openStream();

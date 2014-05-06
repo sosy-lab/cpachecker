@@ -2,7 +2,7 @@
 
 # For building libJOct.so, you need the compiled octagon library.
 # To create this, download octagon library from http://www.di.ens.fr/~mine/oct/ and run
-# ./configure --with-num=float --enable-debug=no --disable-gmp
+# ./configure --with-num=int --disable-debug --disable-gmp --disable-prof --disable-ocaml
 # make
 
 JNI_HEADERS="$(../get_jni_headers.sh)"
@@ -23,7 +23,7 @@ fi
 echo "Compiling the C wrapper code and creating the \"libJOct.so\" library"
 
 # This will compile the JNI wrapper part, given the JNI and the octagon header files
-gcc -g -O2 $JNI_HEADERS -I$OCT_SRC_DIR -I$OCT_SRC_DIR/clib versions.c -DOCT_NUM_FLOAT -DOCT_PREFIX=CAT\(octfao_ org_sosy_lab_cpachecker_util_octagon_OctWrapper.c -fPIC -c
+gcc -g -O2 $JNI_HEADERS -I$OCT_SRC_DIR -I$OCT_SRC_DIR/clib versions.c -DOCT_NUM_INT -DOCT_PREFIX=CAT\(octiao_ org_sosy_lab_cpachecker_util_octagon_OctWrapper.c -fPIC -c
 
 # This will link together the file produced above, the octagon library, and the standard libraries.
 # Everything except the standard libraries is included statically.
@@ -39,7 +39,7 @@ fi
 
 MISSING_SYMBOLS="$(readelf -Ws libJOct.so | grep NOTYPE | grep GLOBAL | grep UND)"
 if [ ! -z "$MISSING_SYMBOLS" ]; then
-	echo "Warning: There are the following unresolved dependencies in libmathsatj.so:"
+	echo "Warning: There are the following unresolved dependencies in libJOct.so:"
 	readelf -Ws libJOct.so | grep NOTYPE | grep GLOBAL | grep UND
 	exit 1
 fi

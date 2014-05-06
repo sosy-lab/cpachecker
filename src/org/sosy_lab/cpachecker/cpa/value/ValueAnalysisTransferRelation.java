@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -82,8 +83,10 @@ import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
@@ -137,8 +140,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       + " assumtions.")
   private boolean automatonAssumesAsStatements = false;
 
-  private final Set<String> globalVariables = new HashSet<>();
-
   private final Set<String> javaNonStaticVariables = new HashSet<>();
 
   /**
@@ -173,6 +174,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   private final MachineModel machineModel;
   private final LogManagerWithoutDuplicates logger;
   private final Collection<String> addressedVariables;
+  private final Collection<String> booleanVariables;
 
   public ValueAnalysisTransferRelation(Configuration config, LogManager pLogger, CFA pCfa) throws InvalidConfigurationException {
     config.inject(this);
@@ -181,8 +183,10 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     if (pCfa.getVarClassification().isPresent()) {
       addressedVariables = pCfa.getVarClassification().get().getAddressedVariables();
+      booleanVariables   = pCfa.getVarClassification().get().getIntBoolVars();
     } else {
       addressedVariables = ImmutableSet.of();
+      booleanVariables   = ImmutableSet.of();
     }
   }
 
@@ -295,6 +299,20 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   }
 
   @Override
+  protected ValueAnalysisState handleBlankEdge(BlankEdge cfaEdge) {
+    if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
+      assert "default return".equals(cfaEdge.getDescription())
+              || "skipped uneccesary edges".equals(cfaEdge.getDescription());
+
+      // clone state, because will be changed through removing all variables of current function's scope
+      state = state.clone();
+      state.dropFrame(functionName);
+    }
+
+    return state;
+  }
+
+  @Override
   protected ValueAnalysisState handleReturnStatementEdge(AReturnStatementEdge returnEdge, IAExpression expression)
           throws UnrecognizedCCodeException {
 
@@ -363,7 +381,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         }
 
       } else if ((op1 instanceof AIdExpression)) {
-        String assignedVarName = getScopedVariableName(op1, callerFunctionName);
+        String assignedVarName = ((AIdExpression) op1).getDeclaration().getQualifiedName();
 
         if (!state.contains(returnVarName)) {
           newElement.forget(assignedVarName);
@@ -418,7 +436,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         }
       }
 
-      AssigningValueVisitor avv = new AssigningValueVisitor(element, truthValue);
+      AssigningValueVisitor avv = new AssigningValueVisitor(element, truthValue, booleanVariables);
 
       if (expression instanceof JExpression && ! (expression instanceof CExpression)) {
 
@@ -474,9 +492,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     // handle global variables
     if (decl.isGlobal()) {
-      // if this is a global variable, add to the list of global variables
-      globalVariables.add(varName);
-
       if (decl instanceof JFieldDeclaration && !((JFieldDeclaration)decl).isStatic()) {
         missingFieldVariableObject = true;
         javaNonStaticVariables.add(varName);
@@ -745,12 +760,16 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   private class AssigningValueVisitor extends ExpressionValueVisitor {
 
     private ValueAnalysisState assignableState;
+
+    private Collection<String> booleans;
+
     protected boolean truthValue = false;
 
-    public AssigningValueVisitor(ValueAnalysisState assignableState, boolean truthValue) {
+    public AssigningValueVisitor(ValueAnalysisState assignableState, boolean truthValue, Collection<String> booleanVariables) {
       super(state, functionName, machineModel, logger, symbolicValues);
-      this.assignableState = assignableState;
-      this.truthValue = truthValue;
+      this.assignableState  = assignableState;
+      this.booleans         = booleanVariables;
+      this.truthValue       = truthValue;
     }
 
     private IAExpression unwrap(IAExpression expression) {
@@ -768,46 +787,58 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     @Override
     public Value visit(CBinaryExpression pE) throws UnrecognizedCCodeException {
-      BinaryOperator binaryOperator   = pE.getOperator();
+      BinaryOperator binaryOperator = pE.getOperator();
+      CExpression lVarInBinaryExp   = pE.getOperand1();
+      CExpression rVarInBinaryExp   = pE.getOperand2();
 
-      CExpression lVarInBinaryExp  = pE.getOperand1();
+      lVarInBinaryExp = (CExpression) unwrap(pE.getOperand1());
 
-      lVarInBinaryExp = (CExpression) unwrap(lVarInBinaryExp);
+      Value leftValue   = lVarInBinaryExp.accept(this);
+      Value rightValue  = rVarInBinaryExp.accept(this);
 
-      CExpression rVarInBinaryExp  = pE.getOperand2();
-
-      Value leftValue                  = lVarInBinaryExp.accept(this);
-      Value rightValue                 = rVarInBinaryExp.accept(this);
-
-      if ((binaryOperator == BinaryOperator.EQUALS && truthValue) || (binaryOperator == BinaryOperator.NOT_EQUALS && !truthValue)) {
+      if (isEqualityAssumption(binaryOperator)) {
         if (leftValue.isUnknown() && !rightValue.isUnknown() && isAssignable(lVarInBinaryExp)) {
-          MemoryLocation leftVariableLocation = getMemoryLocation(lVarInBinaryExp);
-          assignableState.assignConstant(leftVariableLocation, rightValue);
+          assignableState.assignConstant(getMemoryLocation(lVarInBinaryExp), rightValue);
         }
 
         else if (rightValue.isUnknown() && !leftValue.isUnknown() && isAssignable(rVarInBinaryExp)) {
-          MemoryLocation rightVariableName = getMemoryLocation(rVarInBinaryExp);
-          assignableState.assignConstant(rightVariableName, leftValue);
+          assignableState.assignConstant(getMemoryLocation(rVarInBinaryExp), leftValue);
         }
       }
 
-      if (initAssumptionVars) {
-        // x is unknown, a binaryOperation (x!=0), true-branch: set x=1L
-        // x is unknown, a binaryOperation (x==0), false-branch: set x=1L
-        if ((binaryOperator == BinaryOperator.NOT_EQUALS && truthValue)
-            || (binaryOperator == BinaryOperator.EQUALS && !truthValue)) {
-          if (leftValue.isUnknown() && rightValue.equals(new NumericValue(0L)) && isAssignable(lVarInBinaryExp)) {
-            MemoryLocation leftVariableName = getMemoryLocation(lVarInBinaryExp);
-            assignableState.assignConstant(leftVariableName, new NumericValue(1L));
-          }
+      if (isNonEqualityAssumption(binaryOperator)) {
+        if (assumingUnknownToBeZero(leftValue, rightValue) && isAssignable(lVarInBinaryExp)) {
+          MemoryLocation leftMemLoc = getMemoryLocation(lVarInBinaryExp);
 
-          else if (rightValue.isUnknown() && leftValue.equals(new NumericValue(0L)) && isAssignable(rVarInBinaryExp)) {
-            MemoryLocation rightVariableName = getMemoryLocation(rVarInBinaryExp);
-            assignableState.assignConstant(rightVariableName, new NumericValue(1L));
+          if(booleans.contains(leftMemLoc.getAsSimpleString()) || initAssumptionVars) {
+            assignableState.assignConstant(leftMemLoc, new NumericValue(1L));
+          }
+        }
+
+        else if (assumingUnknownToBeZero(rightValue, leftValue) && isAssignable(rVarInBinaryExp)) {
+          MemoryLocation rightMemLoc = getMemoryLocation(rVarInBinaryExp);
+
+          if(booleans.contains(rightMemLoc.getAsSimpleString()) || initAssumptionVars) {
+            assignableState.assignConstant(rightMemLoc, new NumericValue(1L));
           }
         }
       }
+
       return super.visit(pE);
+    }
+
+    private boolean assumingUnknownToBeZero(Value value1, Value value2) {
+      return value1.isUnknown() && value2.equals(new NumericValue(BigInteger.ZERO));
+    }
+
+    private boolean isEqualityAssumption(BinaryOperator binaryOperator) {
+      return (binaryOperator == BinaryOperator.EQUALS && truthValue)
+          || (binaryOperator == BinaryOperator.NOT_EQUALS && !truthValue);
+    }
+
+    private boolean isNonEqualityAssumption(BinaryOperator binaryOperator) {
+      return (binaryOperator == BinaryOperator.EQUALS && !truthValue)
+          || (binaryOperator == BinaryOperator.NOT_EQUALS && truthValue);
     }
 
     @Override
@@ -830,11 +861,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         if (leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp)) {
 
           @SuppressWarnings("unused")
-          String leftVariableName = getScopedVariableName(lVarInBinaryExp, functionName);
+          String leftVariableName = ((AIdExpression) lVarInBinaryExp).getDeclaration().getQualifiedName();
           assignableState.assignConstant(leftVariableName, rightValueV);
         } else if (rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp)) {
           @SuppressWarnings("unused")
-          String rightVariableName = getScopedVariableName(rVarInBinaryExp, functionName);
+          String rightVariableName = ((AIdExpression) rVarInBinaryExp).getDeclaration().getQualifiedName();
           assignableState.assignConstant(rightVariableName, leftValueV);
 
         }
@@ -846,13 +877,12 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         if ((binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS && truthValue)
             || (binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && !truthValue)) {
           if (leftValue == null && rightValue == 0L && isAssignable(lVarInBinaryExp)) {
-            String leftVariableName = getScopedVariableName(lVarInBinaryExp, functionName);
+            String leftVariableName = ((AIdExpression) lVarInBinaryExp).getDeclaration().getQualifiedName();
             assignableState.assignConstant(leftVariableName, new NumericValue(1L));
-
           }
 
           else if (rightValue == null && leftValue == 0L && isAssignable(rVarInBinaryExp)) {
-            String rightVariableName = getScopedVariableName(rVarInBinaryExp, functionName);
+            String rightVariableName = ((AIdExpression) rVarInBinaryExp).getDeclaration().getQualifiedName();
             assignableState.assignConstant(rightVariableName, new NumericValue(1L));
           }
         }
@@ -913,9 +943,10 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     public SMGAssigningValueVisitor(
         ValueAnalysisState pAssignableState,
         boolean pTruthValue,
+        Collection<String> booleanVariables,
         SMGState pSmgState) {
 
-      super(pAssignableState, pTruthValue);
+      super(pAssignableState, pTruthValue, booleanVariables);
       checkNotNull(pSmgState);
       expressionEvaluator = new ValueAnalysisSMGCommunicator(pAssignableState, functionName,
           pSmgState, machineModel, logger, edge);
@@ -1067,24 +1098,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     } else {
       throw new AssertionError("unhandled righthandside-expression: " + expression);
     }
-  }
-
-  public String getScopedVariableName(String variableName, String functionName) {
-
-    if (globalVariables.contains(variableName)) {
-      return variableName;
-    }
-
-    return functionName + "::" + variableName;
-  }
-
-  public String getScopedVariableName(IAExpression variableName, String functionName) {
-
-    if (isGlobal(variableName)) {
-      return variableName.toASTString();
-    }
-
-    return functionName + "::" + variableName.toASTString();
   }
 
   @Override
@@ -1384,7 +1397,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
         // Try deriving further Information
         ValueAnalysisState element = pNewElement.clone();
-        SMGAssigningValueVisitor avv = new SMGAssigningValueVisitor(element, bTruthValue, pSmgState);
+        SMGAssigningValueVisitor avv = new SMGAssigningValueVisitor(element, bTruthValue, booleanVariables, pSmgState);
         pMissingInformation.getMissingCExpressionInformation().accept(avv);
 
         return element;
