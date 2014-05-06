@@ -54,8 +54,7 @@ public class BlockPartitioningBuilder {
   private final Map<CFANode, Set<FunctionEntryNode>> innerFunctionCallsMap = new HashMap<>();
   private final Map<CFANode, Set<CFANode>> blockNodesMap = new HashMap<>();
 
-  public BlockPartitioningBuilder(Set<CFANode> mainFunctionBody) {
-  }
+  public BlockPartitioningBuilder() {}
 
   public BlockPartitioning build(CFANode mainFunction) {
     //fixpoint iteration to take inner function calls into account for referencedVariables and callNodesMap
