@@ -48,8 +48,6 @@ public class BlockPartitioningBuilder {
 
   private static final CFATraversal TRAVERSE_CFA_INSIDE_FUNCTION = CFATraversal.dfs().ignoreFunctionCalls();
 
-  private final ReferencedVariablesCollector referenceCollector;
-
   private final Map<CFANode, Set<ReferencedVariable>> referencedVariablesMap = new HashMap<>();
   private final Map<CFANode, Set<CFANode>> callNodesMap = new HashMap<>();
   private final Map<CFANode, Set<CFANode>> returnNodesMap = new HashMap<>();
@@ -57,7 +55,6 @@ public class BlockPartitioningBuilder {
   private final Map<CFANode, Set<CFANode>> blockNodesMap = new HashMap<>();
 
   public BlockPartitioningBuilder(Set<CFANode> mainFunctionBody) {
-    referenceCollector = new ReferencedVariablesCollector(mainFunctionBody);
   }
 
   public BlockPartitioning build(CFANode mainFunction) {
@@ -203,6 +200,6 @@ public class BlockPartitioningBuilder {
   }
 
   private Set<ReferencedVariable> collectReferencedVariables(Set<CFANode> nodes) {
-    return referenceCollector.collectVars(nodes);
+    return (new ReferencedVariablesCollector(nodes)).getVars();
   }
 }
