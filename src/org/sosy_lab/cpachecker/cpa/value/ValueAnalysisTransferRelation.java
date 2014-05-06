@@ -137,8 +137,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       + " assumtions.")
   private boolean automatonAssumesAsStatements = false;
 
-  private final Set<String> globalVariables = new HashSet<>();
-
   private final Set<String> javaNonStaticVariables = new HashSet<>();
 
   /**
@@ -340,7 +338,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         }
 
       } else if ((op1 instanceof AIdExpression)) {
-        String assignedVarName = getScopedVariableName(op1, callerFunctionName);
+        String assignedVarName = ((AIdExpression) op1).getDeclaration().getQualifiedName();
 
         if (!state.contains(returnVarName)) {
           newElement.forget(assignedVarName);
@@ -472,9 +470,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     // handle global variables
     if (decl.isGlobal()) {
-      // if this is a global variable, add to the list of global variables
-      globalVariables.add(varName);
-
       if (decl instanceof JFieldDeclaration && !((JFieldDeclaration)decl).isStatic()) {
         missingFieldVariableObject = true;
         javaNonStaticVariables.add(varName);
@@ -844,11 +839,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         if (leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp)) {
 
           @SuppressWarnings("unused")
-          String leftVariableName = getScopedVariableName(lVarInBinaryExp, functionName);
+          String leftVariableName = ((AIdExpression) lVarInBinaryExp).getDeclaration().getQualifiedName();
           assignableState.assignConstant(leftVariableName, rightValueV);
         } else if (rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp)) {
           @SuppressWarnings("unused")
-          String rightVariableName = getScopedVariableName(rVarInBinaryExp, functionName);
+          String rightVariableName = ((AIdExpression) rVarInBinaryExp).getDeclaration().getQualifiedName();
           assignableState.assignConstant(rightVariableName, leftValueV);
 
         }
@@ -860,13 +855,12 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         if ((binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS && truthValue)
             || (binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && !truthValue)) {
           if (leftValue == null && rightValue == 0L && isAssignable(lVarInBinaryExp)) {
-            String leftVariableName = getScopedVariableName(lVarInBinaryExp, functionName);
+            String leftVariableName = ((AIdExpression) lVarInBinaryExp).getDeclaration().getQualifiedName();
             assignableState.assignConstant(leftVariableName, new NumericValue(1L));
-
           }
 
           else if (rightValue == null && leftValue == 0L && isAssignable(rVarInBinaryExp)) {
-            String rightVariableName = getScopedVariableName(rVarInBinaryExp, functionName);
+            String rightVariableName = ((AIdExpression) rVarInBinaryExp).getDeclaration().getQualifiedName();
             assignableState.assignConstant(rightVariableName, new NumericValue(1L));
           }
         }
@@ -1082,24 +1076,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     } else {
       throw new AssertionError("unhandled righthandside-expression: " + expression);
     }
-  }
-
-  public String getScopedVariableName(String variableName, String functionName) {
-
-    if (globalVariables.contains(variableName)) {
-      return variableName;
-    }
-
-    return functionName + "::" + variableName;
-  }
-
-  public String getScopedVariableName(IAExpression variableName, String functionName) {
-
-    if (isGlobal(variableName)) {
-      return variableName.toASTString();
-    }
-
-    return functionName + "::" + variableName.toASTString();
   }
 
   @Override
