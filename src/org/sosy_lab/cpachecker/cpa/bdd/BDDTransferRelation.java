@@ -72,7 +72,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -400,6 +402,26 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     }
 
     return newState;
+  }
+
+  @Override
+  protected BDDState handleBlankEdge(BlankEdge cfaEdge) {
+    if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
+      assert "default return".equals(cfaEdge.getDescription());
+
+      // delete variables from returning function,
+      // we do not need them after this location, because the next edge is the functionReturnEdge.
+      // this results in a smaller BDD and allows to call a function twice.
+      BDDState newState = state;
+      for (String var : predmgr.getTrackedVars().keySet()) {
+        if (isLocalVariableForFunction(var, functionName)) {
+          newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var, predmgr.getTrackedVars().get(var)));
+        }
+      }
+      return newState;
+    }
+
+    return state;
   }
 
   /** This function handles assumptions like "if(a==b)" and "if(a!=0)".

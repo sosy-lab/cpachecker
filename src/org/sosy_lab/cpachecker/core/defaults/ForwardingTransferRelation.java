@@ -437,7 +437,9 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
 
 
   /** This function handles blank edges, that are used for plain connectors
-   *  in the CFA. This default implementation returns the input-state. */
+   *  in the CFA. This default implementation returns the input-state.
+   *  A blank edge can also be a default-return-edge for a function "void f()".
+   *  In that case the successor-node is a FunctionExitNode. */
   protected S handleBlankEdge(BlankEdge cfaEdge) throws CPATransferException {
     return state;
   }
