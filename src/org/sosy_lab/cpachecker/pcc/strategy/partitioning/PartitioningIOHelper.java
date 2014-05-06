@@ -111,7 +111,7 @@ public class PartitioningIOHelper {
   }
 
   public @Nullable Pair<AbstractState[], AbstractState[]> getPartition(int pIndex) {
-    if(0<=pIndex && pIndex<numPartitions){
+    if(0<=pIndex && pIndex<numPartitions && pIndex<partitions.size()){
       return partitions.get(pIndex);
     }
     return null;
@@ -214,7 +214,7 @@ public class PartitioningIOHelper {
   private void writePartition(final ObjectOutputStream pOut, final AbstractState[] pPartitionNodes,
       AbstractState[] pAdjacentNodesOutside) throws IOException {
     writeArray(pOut, pPartitionNodes);
-    writeArray(pOut, pAdjacentNodesOutside);
+    writeArray(pOut, pAdjacentNodesOutside); // TODO possibly return to previous version with object, general problem with writing
     /*pOut.writeObject(pPartitionNodes);
     pOut.writeObject(pAdjacentNodesOutside);*/
   }
