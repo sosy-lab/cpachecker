@@ -122,6 +122,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
         o = new ObjectOutputStream(zos);
         continueWriting = writeAdditionalProofStream(o);
         o.flush();
+        index++;
       }while(continueWriting);
 
       zos.close();

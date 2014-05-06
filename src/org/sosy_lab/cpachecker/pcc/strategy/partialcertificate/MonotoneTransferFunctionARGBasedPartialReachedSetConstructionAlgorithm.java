@@ -49,22 +49,25 @@ public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgori
         "May only compute partial reached set with this algorithm if an ARG is constructed and ARG is top level state."); }
     ARGState root = (ARGState) pReached.getFirstState();
 
-    NodeSelectionARGPass argPass = getARGPass(pReached.getPrecision(root));
+    NodeSelectionARGPass argPass = getARGPass(pReached.getPrecision(root), root);
     argPass.passARG(root);
 
-    List<AbstractState> reachedSetSubset = argPass.getSelectedNodes();
+    List<? extends AbstractState> reachedSetSubset = argPass.getSelectedNodes();
     return reachedSetSubset.toArray(new AbstractState[reachedSetSubset.size()]);
   }
 
-  protected NodeSelectionARGPass getARGPass(Precision pRootPrecision){
-    return new NodeSelectionARGPass();
+  protected NodeSelectionARGPass getARGPass(final Precision pRootPrecision, final ARGState pRoot) {
+    return new NodeSelectionARGPass(pRoot);
   }
 
 
   protected class NodeSelectionARGPass extends AbstractARGPass {
 
-    public NodeSelectionARGPass() {
+    private final ARGState root;
+
+    public NodeSelectionARGPass(final ARGState pRoot) {
       super(false);
+      root = pRoot;
     }
 
     private List<AbstractState> wrappedARGStates = new ArrayList<>();
@@ -82,7 +85,8 @@ public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgori
     }
 
     protected boolean isToAdd(final ARGState pNode) {
-      return pNode.getParents().size() > 1 || pNode.getCoveredByThis().size() > 0 && !pNode.isCovered();
+      return pNode == root || pNode.getParents().size() > 1 || pNode.getCoveredByThis().size() > 0
+          && !pNode.isCovered();
     }
 
     @Override
@@ -90,8 +94,12 @@ public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgori
       return false;
     }
 
-    public List<AbstractState> getSelectedNodes(){
-      return wrappedARGStates;
+    public List<? extends AbstractState> getSelectedNodes(){
+      if (returnARGStates) {
+        return argStates;
+      } else {
+        return wrappedARGStates;
+      }
     }
 
   }

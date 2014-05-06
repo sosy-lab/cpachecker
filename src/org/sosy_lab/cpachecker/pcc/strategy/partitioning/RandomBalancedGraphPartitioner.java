@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -40,6 +41,9 @@ public class RandomBalancedGraphPartitioner implements BalancedGraphPartitioner{
       throw new IllegalArgumentException("Partitioniong must contain at most 1 partition. Graph may not be null.");
     }
     List<Set<Integer>> partitioning =  new ArrayList<>(pNumPartitions);
+    for(int i=0;i<pNumPartitions;i++){
+      partitioning.add(new HashSet<Integer>());
+    }
 
     Random randomGen = new Random();
 

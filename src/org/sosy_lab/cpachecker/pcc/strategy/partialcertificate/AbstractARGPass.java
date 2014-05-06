@@ -45,6 +45,9 @@ public abstract class AbstractARGPass {
     ARGState currentNode;
     boolean childKnown;
 
+    toVisit.add(root);
+    seen.add(root);
+
     while (!toVisit.isEmpty()) {
       currentNode = toVisit.pollLast();
       visitARGNode(currentNode);
@@ -54,6 +57,7 @@ public abstract class AbstractARGPass {
           childKnown = seen.contains(child);
           if (!childKnown) {
             toVisit.addLast(child);
+            seen.add(child);
           }
           if (visitMultipleTimes && childKnown) {
             visitARGNode(child);
