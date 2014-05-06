@@ -95,6 +95,7 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
 
     logger.log(Level.INFO, "Create and start threads");
     ExecutorService executor = Executors.newFixedThreadPool(enableParallelCheck ? numThreads : 1);
+    try{
     for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
       executor.execute(new PartitionChecker(i, checkResult, partitionChecked, certificate, inOtherPartition, initPrec,
           cpa, lock, ioHelper, shutdownNotifier, logger));
@@ -131,6 +132,9 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
     }
 
     return true;
+    }finally{
+      executor.shutdown();
+    }
   }
 
   @Override
@@ -161,9 +165,11 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
     ioHelper.readMetadata(pIn, true);
     // read partitions in parallel
     ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+    try{
     AtomicBoolean success = new AtomicBoolean(true);
     Semaphore waitRead = new Semaphore(0);
     int numPartition = ioHelper.getNumPartitions();
+
     for (int i = 0; i < numPartition; i++) {
       executor.execute(new ParallelPartitionReader(i, success, waitRead, this, ioHelper));
     }
@@ -178,8 +184,9 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
       logger.log(Level.SEVERE, "Reading partition from proof failed.");
       throw new IOException("Reading one of the partitions failed");
     }
-
+    }finally{
     executor.shutdown();
+    }
   }
 
 }

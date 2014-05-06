@@ -94,6 +94,7 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
 
     logger.log(Level.INFO, "Create and start threads");
     ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+    try{
     executor.execute(new PartitionReader(checkResult, partitionChecked));
     for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
       executor.execute(new PartitionChecker(i, checkResult, partitionChecked, certificate, inOtherPartition, initPrec,
@@ -131,6 +132,9 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
     }
 
     return true;
+    }finally{
+      executor.shutdown();
+    }
   }
 
   @Override

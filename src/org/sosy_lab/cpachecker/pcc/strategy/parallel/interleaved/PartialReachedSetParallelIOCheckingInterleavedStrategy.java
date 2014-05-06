@@ -99,16 +99,18 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
     Lock lock = new ReentrantLock();
     Condition partitionReady = lock.newCondition();
 
+    ExecutorService executor = null, readExecutor = null, checkExecutor = null;
     logger.log(Level.INFO, "Create and start threads");
+    try{
     if (numReadThreads == 0) {
-      ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+      executor = Executors.newFixedThreadPool(numThreads);
       startReadingThreads(executor, checkResult, partitionChecked, lock, partitionReady);
       startCheckingThreads(executor, checkResult, partitionChecked, certificate, inOtherPartition, initPrec, lock,
           partitionReady);
     } else {
-      ExecutorService readExecutor = Executors.newFixedThreadPool(numReadThreads);
+      readExecutor = Executors.newFixedThreadPool(numReadThreads);
       startReadingThreads(readExecutor, checkResult, partitionChecked, lock, partitionReady);
-      ExecutorService checkExecutor = Executors.newFixedThreadPool(numThreads - numReadThreads);
+      checkExecutor = Executors.newFixedThreadPool(numThreads - numReadThreads);
       startCheckingThreads(checkExecutor, checkResult, partitionChecked, certificate, inOtherPartition, initPrec, lock,
           partitionReady);
     }
@@ -142,6 +144,17 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
     }
 
     return true;
+    }finally{
+      if(executor!=null){
+        executor.shutdown();
+      }
+      if(readExecutor!=null){
+        readExecutor.shutdown();
+      }
+      if(checkExecutor!=null){
+        checkExecutor.shutdown();
+      }
+    }
   }
 
   private void startReadingThreads(final ExecutorService pReadingExecutor, final AtomicBoolean pCheckResult,

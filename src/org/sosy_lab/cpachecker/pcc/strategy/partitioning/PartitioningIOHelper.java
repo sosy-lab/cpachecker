@@ -158,7 +158,15 @@ public class PartitioningIOHelper {
 
   private Pair<AbstractState[], AbstractState[]> readPartitionContent(final ObjectInputStream pIn)
       throws ClassNotFoundException, IOException {
-    return Pair.of((AbstractState[]) pIn.readObject(), (AbstractState[]) pIn.readObject());
+    return Pair.of(readArray(pIn), readArray(pIn));
+  }
+
+  private AbstractState[] readArray(final ObjectInputStream pIn) throws IOException, ClassNotFoundException {
+    AbstractState[] result = new AbstractState[pIn.readInt()];
+    for (int i = 0; i < result.length; i++) {
+      result[i] = (AbstractState) pIn.readObject();
+    }
+    return result;
   }
 
   public void readPartition(final ObjectInputStream pIn, final Lock pLock) throws ClassNotFoundException, IOException {
@@ -187,8 +195,8 @@ public class PartitioningIOHelper {
   public void writeMetadata(final ObjectOutputStream pOut, final int pReachedSetSize, final int pNumPartitions)
       throws IOException {
     logger.log(Level.FINER,"Write metadata of partition");
-    pOut.write(pReachedSetSize);
-    pOut.write(pNumPartitions);
+    pOut.writeInt(pReachedSetSize);
+    pOut.writeInt(pNumPartitions);
   }
 
   public void writePartition(final ObjectOutputStream pOut, final Set<Integer> pPartition,
@@ -205,9 +213,17 @@ public class PartitioningIOHelper {
 
   private void writePartition(final ObjectOutputStream pOut, final AbstractState[] pPartitionNodes,
       AbstractState[] pAdjacentNodesOutside) throws IOException {
-    pOut.writeObject(pPartitionNodes);
-    pOut.writeObject(pAdjacentNodesOutside);
+    writeArray(pOut, pPartitionNodes);
+    writeArray(pOut, pAdjacentNodesOutside);
+    /*pOut.writeObject(pPartitionNodes);
+    pOut.writeObject(pAdjacentNodesOutside);*/
+  }
 
+  private void writeArray(final ObjectOutputStream pOut, final AbstractState[] pArray) throws IOException{
+    pOut.write(pArray.length);
+    for(AbstractState state: pArray){
+      pOut.writeObject(state);
+    }
   }
 
   public void writeProof(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached)

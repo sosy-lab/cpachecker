@@ -97,6 +97,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       //TODO might also want to write used configuration to the file so that proof checker does not need to get it as an argument
       //write ARG
       writeProofToStream(o, pReached);
+      o.flush();
       zos.closeEntry();
 
       ze = new ZipEntry("Helper");
@@ -122,6 +123,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
         o = new ObjectOutputStream(zos);
         continueWriting = writeAdditionalProofStream(o);
         o.flush();
+        zos.closeEntry();
         index++;
       }while(continueWriting);
 
@@ -201,7 +203,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     InputStream fis = file.asByteSource().openStream();
     ZipInputStream zis = new ZipInputStream(fis);
     ZipEntry entry = null;
-    for (int i = 0; i < 2 + index; i++) {
+    for (int i = 0; i <= 2 + index; i++) {
       entry = zis.getNextEntry();
     }
 
