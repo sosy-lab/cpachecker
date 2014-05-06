@@ -118,7 +118,7 @@ public class PartitioningIOHelper {
   }
 
   public void constructInternalProofRepresentation(final UnmodifiableReachedSet pReached)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, InterruptedException {
     savedReachedSetSize = pReached.size();
 
     Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> partitionDescription =
@@ -135,7 +135,7 @@ public class PartitioningIOHelper {
   }
 
   public Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> computePartialReachedSetAndPartition(
-      final UnmodifiableReachedSet pReached) throws InvalidConfigurationException {
+      final UnmodifiableReachedSet pReached) throws InvalidConfigurationException, InterruptedException {
     AbstractState[] partialCertificate = partialConstructor.computePartialReachedSet(pReached);
     ARGState[] argNodes = new ARGState[partialCertificate.length];
     for (int i = 0; i < partialCertificate.length; i++) {
@@ -212,8 +212,12 @@ public class PartitioningIOHelper {
 
   public void writeProof(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached)
       throws InvalidConfigurationException, IOException {
-    Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> partitionDescription =
-        computePartialReachedSetAndPartition(pReached);
+    Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> partitionDescription;
+    try {
+      partitionDescription = computePartialReachedSetAndPartition(pReached);
+    } catch (InterruptedException e) {
+      throw new IOException("Write prepartion took too long", e);
+    }
     writeMetadata(pOut, pReached.size(), partitionDescription.getSecond().size());
     for (Set<Integer> partition : partitionDescription.getSecond()) {
       writePartition(pOut, partition, partitionDescription.getFirst());
