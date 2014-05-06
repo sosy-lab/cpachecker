@@ -101,57 +101,58 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
 
     ExecutorService executor = null, readExecutor = null, checkExecutor = null;
     logger.log(Level.INFO, "Create and start threads");
-    try{
-    if (numReadThreads == 0) {
-      executor = Executors.newFixedThreadPool(numThreads);
-      startReadingThreads(executor, checkResult, partitionChecked, lock, partitionReady);
-      startCheckingThreads(executor, checkResult, partitionChecked, certificate, inOtherPartition, initPrec, lock,
-          partitionReady);
-    } else {
-      readExecutor = Executors.newFixedThreadPool(numReadThreads);
-      startReadingThreads(readExecutor, checkResult, partitionChecked, lock, partitionReady);
-      checkExecutor = Executors.newFixedThreadPool(numThreads - numReadThreads);
-      startCheckingThreads(checkExecutor, checkResult, partitionChecked, certificate, inOtherPartition, initPrec, lock,
-          partitionReady);
-    }
-
-    partitionChecked.acquire(ioHelper.getNumPartitions());
-
-    if (!checkResult.get()) { return false; }
-
-    logger.log(Level.INFO, "Check if all are checked");
-    if (!certificate.containsAll(inOtherPartition)) {
-      logger.log(Level.SEVERE, "Initial state not covered.");
-      return false;
-    }
-
-    logger.log(Level.INFO, "Check if initial state is covered.");
-    // TODO probably more efficient do not use certificate?
-    if (!cpa.getStopOperator().stop(pReachedSet.getFirstState(), certificate, initPrec)) {
-      logger.log(Level.SEVERE, "Initial state not covered.");
-      return false;
-    }
-
-    logger.log(Level.INFO, "Check property.");
-    stats.getPropertyCheckingTimer().start();
     try {
-      if (!cpa.getPropChecker().satisfiesProperty(certificate)) {
-        logger.log(Level.SEVERE, "Property violated");
+      if (numReadThreads == 0) {
+        executor = Executors.newFixedThreadPool(numThreads);
+        startReadingThreads(executor, checkResult, partitionChecked, lock, partitionReady);
+        startCheckingThreads(executor, checkResult, partitionChecked, certificate, inOtherPartition, initPrec, lock,
+            partitionReady);
+      } else {
+        readExecutor = Executors.newFixedThreadPool(numReadThreads);
+        startReadingThreads(readExecutor, checkResult, partitionChecked, lock, partitionReady);
+        checkExecutor = Executors.newFixedThreadPool(numThreads - numReadThreads);
+        startCheckingThreads(checkExecutor, checkResult, partitionChecked, certificate, inOtherPartition, initPrec,
+            lock,
+            partitionReady);
+      }
+
+      partitionChecked.acquire(ioHelper.getNumPartitions());
+
+      if (!checkResult.get()) { return false; }
+
+      logger.log(Level.INFO, "Check if all are checked");
+      if (!certificate.containsAll(inOtherPartition)) {
+        logger.log(Level.SEVERE, "Initial state not covered.");
         return false;
       }
-    } finally {
-      stats.getPropertyCheckingTimer().stop();
-    }
 
-    return true;
-    }finally{
-      if(executor!=null){
+      logger.log(Level.INFO, "Check if initial state is covered.");
+      // TODO probably more efficient do not use certificate?
+      if (!cpa.getStopOperator().stop(pReachedSet.getFirstState(), certificate, initPrec)) {
+        logger.log(Level.SEVERE, "Initial state not covered.");
+        return false;
+      }
+
+      logger.log(Level.INFO, "Check property.");
+      stats.getPropertyCheckingTimer().start();
+      try {
+        if (!cpa.getPropChecker().satisfiesProperty(certificate)) {
+          logger.log(Level.SEVERE, "Property violated");
+          return false;
+        }
+      } finally {
+        stats.getPropertyCheckingTimer().stop();
+      }
+
+      return true;
+    } finally {
+      if (executor != null) {
         executor.shutdown();
       }
-      if(readExecutor!=null){
+      if (readExecutor != null) {
         readExecutor.shutdown();
       }
-      if(checkExecutor!=null){
+      if (checkExecutor != null) {
         checkExecutor.shutdown();
       }
     }

@@ -94,45 +94,44 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
 
     logger.log(Level.INFO, "Create and start threads");
     ExecutorService executor = Executors.newFixedThreadPool(numThreads);
-    try{
-    executor.execute(new PartitionReader(checkResult, partitionChecked));
-    for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
-      executor.execute(new PartitionChecker(i, checkResult, partitionChecked, certificate, inOtherPartition, initPrec,
-          cpa, lock, partitionReady, ioHelper, shutdownNotifier, logger));
-    }
-
-    partitionChecked.acquire(ioHelper.getNumPartitions());
-
-    if(!checkResult.get()){
-      return false;
-    }
-
-    logger.log(Level.INFO, "Check if all are checked");
-    if (!certificate.containsAll(inOtherPartition)) {
-      logger.log(Level.SEVERE, "Initial state not covered.");
-      return false;
-    }
-
-    logger.log(Level.INFO, "Check if initial state is covered.");
-    // TODO probably more efficient do not use certificate?
-    if (!cpa.getStopOperator().stop(pReachedSet.getFirstState(), certificate, initPrec)) {
-      logger.log(Level.SEVERE, "Initial state not covered.");
-      return false;
-    }
-
-    logger.log(Level.INFO, "Check property.");
-    stats.getPropertyCheckingTimer().start();
     try {
-      if (!cpa.getPropChecker().satisfiesProperty(certificate)) {
-        logger.log(Level.SEVERE, "Property violated");
+      executor.execute(new PartitionReader(checkResult, partitionChecked));
+      for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
+        executor.execute(new PartitionChecker(i, checkResult, partitionChecked, certificate, inOtherPartition,
+            initPrec,
+            cpa, lock, partitionReady, ioHelper, shutdownNotifier, logger));
+      }
+
+      partitionChecked.acquire(ioHelper.getNumPartitions());
+
+      if (!checkResult.get()) { return false; }
+
+      logger.log(Level.INFO, "Check if all are checked");
+      if (!certificate.containsAll(inOtherPartition)) {
+        logger.log(Level.SEVERE, "Initial state not covered.");
         return false;
       }
-    } finally {
-      stats.getPropertyCheckingTimer().stop();
-    }
 
-    return true;
-    }finally{
+      logger.log(Level.INFO, "Check if initial state is covered.");
+      // TODO probably more efficient do not use certificate?
+      if (!cpa.getStopOperator().stop(pReachedSet.getFirstState(), certificate, initPrec)) {
+        logger.log(Level.SEVERE, "Initial state not covered.");
+        return false;
+      }
+
+      logger.log(Level.INFO, "Check property.");
+      stats.getPropertyCheckingTimer().start();
+      try {
+        if (!cpa.getPropChecker().satisfiesProperty(certificate)) {
+          logger.log(Level.SEVERE, "Property violated");
+          return false;
+        }
+      } finally {
+        stats.getPropertyCheckingTimer().stop();
+      }
+
+      return true;
+    } finally {
       executor.shutdown();
     }
   }

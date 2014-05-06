@@ -95,44 +95,43 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
 
     logger.log(Level.INFO, "Create and start threads");
     ExecutorService executor = Executors.newFixedThreadPool(enableParallelCheck ? numThreads : 1);
-    try{
-    for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
-      executor.execute(new PartitionChecker(i, checkResult, partitionChecked, certificate, inOtherPartition, initPrec,
-          cpa, lock, ioHelper, shutdownNotifier, logger));
-    }
-
-    partitionChecked.acquire(ioHelper.getNumPartitions());
-
-    if(!checkResult.get()){
-      return false;
-    }
-
-    logger.log(Level.INFO, "Check if all are checked");
-    if (!certificate.containsAll(inOtherPartition)) {
-      logger.log(Level.SEVERE, "Initial state not covered.");
-      return false;
-    }
-
-    logger.log(Level.INFO, "Check if initial state is covered.");
-    // TODO probably more efficient do not use certificate?
-    if (!cpa.getStopOperator().stop(pReachedSet.getFirstState(), certificate, initPrec)) {
-      logger.log(Level.SEVERE, "Initial state not covered.");
-      return false;
-    }
-
-    logger.log(Level.INFO, "Check property.");
-    stats.getPropertyCheckingTimer().start();
     try {
-      if (!cpa.getPropChecker().satisfiesProperty(certificate)) {
-        logger.log(Level.SEVERE, "Property violated");
+      for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
+        executor.execute(new PartitionChecker(i, checkResult, partitionChecked, certificate, inOtherPartition,
+            initPrec,
+            cpa, lock, ioHelper, shutdownNotifier, logger));
+      }
+
+      partitionChecked.acquire(ioHelper.getNumPartitions());
+
+      if (!checkResult.get()) { return false; }
+
+      logger.log(Level.INFO, "Check if all are checked");
+      if (!certificate.containsAll(inOtherPartition)) {
+        logger.log(Level.SEVERE, "Initial state not covered.");
         return false;
       }
-    } finally {
-      stats.getPropertyCheckingTimer().stop();
-    }
 
-    return true;
-    }finally{
+      logger.log(Level.INFO, "Check if initial state is covered.");
+      // TODO probably more efficient do not use certificate?
+      if (!cpa.getStopOperator().stop(pReachedSet.getFirstState(), certificate, initPrec)) {
+        logger.log(Level.SEVERE, "Initial state not covered.");
+        return false;
+      }
+
+      logger.log(Level.INFO, "Check property.");
+      stats.getPropertyCheckingTimer().start();
+      try {
+        if (!cpa.getPropChecker().satisfiesProperty(certificate)) {
+          logger.log(Level.SEVERE, "Property violated");
+          return false;
+        }
+      } finally {
+        stats.getPropertyCheckingTimer().stop();
+      }
+
+      return true;
+    } finally {
       executor.shutdown();
     }
   }
@@ -165,27 +164,27 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
     ioHelper.readMetadata(pIn, true);
     // read partitions in parallel
     ExecutorService executor = Executors.newFixedThreadPool(numThreads);
-    try{
-    AtomicBoolean success = new AtomicBoolean(true);
-    Semaphore waitRead = new Semaphore(0);
-    int numPartition = ioHelper.getNumPartitions();
-
-    for (int i = 0; i < numPartition; i++) {
-      executor.execute(new ParallelPartitionReader(i, success, waitRead, this, ioHelper));
-    }
-
     try {
-      waitRead.acquire(numPartition);
-    } catch (InterruptedException e) {
-      throw new IOException("Proof reading failed.");
-    }
+      AtomicBoolean success = new AtomicBoolean(true);
+      Semaphore waitRead = new Semaphore(0);
+      int numPartition = ioHelper.getNumPartitions();
 
-    if (!success.get()) {
-      logger.log(Level.SEVERE, "Reading partition from proof failed.");
-      throw new IOException("Reading one of the partitions failed");
-    }
-    }finally{
-    executor.shutdown();
+      for (int i = 0; i < numPartition; i++) {
+        executor.execute(new ParallelPartitionReader(i, success, waitRead, this, ioHelper));
+      }
+
+      try {
+        waitRead.acquire(numPartition);
+      } catch (InterruptedException e) {
+        throw new IOException("Proof reading failed.");
+      }
+
+      if (!success.get()) {
+        logger.log(Level.SEVERE, "Reading partition from proof failed.");
+        throw new IOException("Reading one of the partitions failed");
+      }
+    } finally {
+      executor.shutdown();
     }
   }
 
