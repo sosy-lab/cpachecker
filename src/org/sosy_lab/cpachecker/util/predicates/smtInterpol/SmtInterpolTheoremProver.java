@@ -89,8 +89,10 @@ class SmtInterpolTheoremProver implements ProverEnvironment {
   @Override
   public void close() {
     Preconditions.checkNotNull(env);
-    env.pop(assertedTerms.size());
-    assertedTerms.clear();
+    if (!assertedTerms.isEmpty()) {
+      env.pop(assertedTerms.size());
+      assertedTerms.clear();
+    }
     env = null;
   }
 
