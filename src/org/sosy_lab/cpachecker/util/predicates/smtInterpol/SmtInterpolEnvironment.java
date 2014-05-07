@@ -184,7 +184,7 @@ class SmtInterpolEnvironment {
     try {
       // create a thin wrapper around Benchmark,
       // this allows to write most formulas of the solver to outputfile
-      return new LoggingScript(smtInterpol, filename, true);
+      return new LoggingScript(smtInterpol, filename, true, true);
     } catch (FileNotFoundException e) {
       logger.logUserException(Level.WARNING, e, "Coud not open log file for SMTInterpol queries");
       // go on without logging
