@@ -57,6 +57,10 @@ public class OctPrecision implements Precision {
     trackedVars = new HashSet<>();
   }
 
+  /**
+   * A constructor which increments the included ValueAnalysisPrecision and the
+   * OctPrecision.
+   */
   public OctPrecision(OctPrecision pOctPrecision, Multimap<CFANode, MemoryLocation> pIncrement) {
     valuePrecision = new ValueAnalysisPrecision(pOctPrecision.valuePrecision, pIncrement);
     config = pOctPrecision.config;
@@ -66,6 +70,19 @@ public class OctPrecision implements Precision {
     for (MemoryLocation mem : pIncrement.values()) {
       trackedVars.add(mem.getAsSimpleString());
     }
+  }
+
+  /**
+   * A constructor which only increments the OctPrecision, and lets the included
+   * ValueAnalysisPrecision as it was.
+   */
+  public OctPrecision(OctPrecision pOctPrecision, Set<String> pIncrement) {
+    valuePrecision = pOctPrecision.valuePrecision;
+    config = pOctPrecision.config;
+    refiner = pOctPrecision.refiner;
+    trackedVars = new HashSet<>();
+    trackedVars.addAll(pOctPrecision.trackedVars);
+    trackedVars.addAll(pIncrement);
   }
 
   public Set<String> getTrackedVars() {

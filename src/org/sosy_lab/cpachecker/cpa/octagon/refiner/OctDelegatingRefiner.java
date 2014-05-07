@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
@@ -92,9 +93,6 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
   @Option(description="whether or not to check for repeated refinements, to then reset the refinement root")
   private boolean checkForRepeatedRefinements = true;
 
-  @Option(description="whether or not to restart the analysis without refinement instead of throwing an exception")
-  private boolean restartWithoutRefinementOnFailedRefinement = true;
-
   @Option(description="Timelimit (in seconds) for the backup feasibility check with the octagon analysis."
       + " Zero means there is no timelimit.")
   private int timeForOctagonFeasibilityCheck = 0;
@@ -107,6 +105,12 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
    * the identifier which is used to identify repeated refinements
    */
   private int previousRefinementId = 0;
+
+  /** if this variable is toggled, only octagon refinements will be done as
+   * value analysis refinements will make no sense any more because they are too
+   * imprecise
+   */
+  private boolean existsExplicitOctagonRefinement = false;
 
   private final CFA cfa;
 
@@ -162,20 +166,20 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
       throws CPAException, InterruptedException {
 
     // if path is infeasible, try to refine the precision
-    if (!isPathFeasable(errorPath)) {
+    if (!isPathFeasable(errorPath) && !existsExplicitOctagonRefinement) {
       if (performValueAnalysisRefinement(reached, errorPath)) {
         return CounterexampleInfo.spurious();
       }
     }
 
-    if (!isPathFeasableOct(errorPath)) {
-      if (restartWithoutRefinementOnFailedRefinement) {
-        trackWithFullPrecision(reached, errorPath);
-        logger.log(Level.INFO, "Refinement with ValueAnalysis failed, restarting OctagonAnalysis with full precision.");
+    // if the path is infeasible, try to refine the precision, this time
+    // only with octagons, this is more precise than only using the value analysis
+    // refinement
+    OctagonAnalysisFeasabilityChecker octChecker = createOctagonFeasibilityChecker(errorPath);
+    if (!octChecker.isFeasible()) {
+      if (performOctagonAnalysisRefinement(reached, octChecker)) {
+        existsExplicitOctagonRefinement = true;
         return CounterexampleInfo.spurious();
-
-      } else {
-        throw new CPAException("Refinement failed");
       }
     }
 
@@ -225,12 +229,40 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
     if (valueAnalysisRefinementWasSuccessful(errorPath, octPrecision.getValueAnalysisPrecision(), refinedOctPrecision.getValueAnalysisPrecision())) {
       numberOfSuccessfulValueAnalysisRefinements++;
       reached.removeSubtree(refinementRoot.getFirst(), refinedPrecisions, newPrecisionTypes);
-      logger.log(Level.INFO, "Refinement successful, precision incremented, following variables are now tracked additionally:\n" + Sets.difference(refinedOctPrecision.getTrackedVars(), octPrecision.getTrackedVars()));
+      Set<String> strIncrement = Sets.difference(refinedOctPrecision.getTrackedVars(), octPrecision.getTrackedVars());
+      if (strIncrement.isEmpty()) {
+        logger.log(Level.INFO, "Refinement successful, additional variables were not found, but a new error path.");
+      } else {
+        logger.log(Level.INFO, "Refinement successful, precision incremented, following variables are now tracked additionally:\n" + strIncrement);
+      }
+
       return true;
     }
     else {
       return false;
     }
+  }
+
+  private boolean performOctagonAnalysisRefinement(final ARGReachedSet reached, final OctagonAnalysisFeasabilityChecker checker) {
+    UnmodifiableReachedSet reachedSet = reached.asReachedSet();
+    Precision precision               = reachedSet.getPrecision(reachedSet.getLastState());
+    OctPrecision octPrecision         = Precisions.extractPrecisionByType(precision, OctPrecision.class);
+
+    Set<String> increment = checker.getPrecisionIncrement(octPrecision);
+    // no newly tracked variables, so the refinement was not successful
+    if (increment.isEmpty()) {
+    //  return false;
+    }
+
+    ArrayList<Precision> refinedPrecisions = new ArrayList<>(1);
+    ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(1);
+    refinedPrecisions.add(new OctPrecision(octPrecision, increment));
+    newPrecisionTypes.add(OctPrecision.class);
+
+    reached.removeSubtree(((ARGState)reachedSet.getFirstState()).getChildren().iterator().next(), refinedPrecisions, newPrecisionTypes);
+    logger.log(Level.INFO, "Refinement successful, precision incremented, following variables are now tracked additionally:\n" + increment);
+
+    return true;
   }
 
   private void trackWithFullPrecision(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException, InterruptedException {
@@ -330,26 +362,26 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
   /**
    * Creates a new OctagonAnalysisPathChecker, which checks the given path at full precision.
    */
-  boolean isPathFeasableOct(ARGPath path) throws CPAException {
+  private OctagonAnalysisFeasabilityChecker createOctagonFeasibilityChecker(ARGPath path) throws CPAException {
     try {
+      OctagonAnalysisFeasabilityChecker checker;
+
       // no specific timelimit set for octagon feasibility check
       if (timeForOctagonFeasibilityCheck == 0) {
-        OctagonAnalysisFeasabilityChecker checker = new OctagonAnalysisFeasabilityChecker(cfa, logger, shutdownNotifier);
-        return checker.isFeasible(path);
+        checker = new OctagonAnalysisFeasabilityChecker(cfa, logger, shutdownNotifier, path);
+
+      } else {
+        ShutdownNotifier notifier = ShutdownNotifier.createWithParent(shutdownNotifier);
+        FeasabilityCheckTimeLimit l = new FeasabilityCheckTimeLimit(timeForOctagonFeasibilityCheck*(long)1000000);
+        ResourceLimitChecker limits = new ResourceLimitChecker(notifier, Lists.newArrayList((ResourceLimit)l));
+
+        limits.start();
+        checker = new OctagonAnalysisFeasabilityChecker(cfa, logger, notifier, path);
+        limits.cancel();
       }
 
-      ShutdownNotifier notifier = ShutdownNotifier.createWithParent(shutdownNotifier);
-      FeasabilityCheckTimeLimit l = new FeasabilityCheckTimeLimit(timeForOctagonFeasibilityCheck*(long)1000000);
-      ResourceLimitChecker limits = new ResourceLimitChecker(notifier, Lists.newArrayList((ResourceLimit)l));
-
-      OctagonAnalysisFeasabilityChecker checker = new OctagonAnalysisFeasabilityChecker(cfa, logger, notifier);
-      limits.start();
-      boolean retVal = checker.isFeasible(path);
-      limits.cancel();
-
-      return retVal;
-    }
-    catch (InterruptedException | InvalidConfigurationException e) {
+      return checker;
+    } catch (InterruptedException | InvalidConfigurationException e) {
       throw new CPAException("counterexample-check failed: ", e);
     }
   }
