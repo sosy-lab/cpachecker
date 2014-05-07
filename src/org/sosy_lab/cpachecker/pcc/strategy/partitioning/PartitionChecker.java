@@ -59,7 +59,7 @@ public class PartitionChecker implements Runnable {
   private final AtomicBoolean checkResult;
   private final Semaphore mainSemaphore;
   private final Lock lock;
-  private final Condition partitionReady;
+  private Condition partitionReady;
 
   private final Collection<AbstractState> certificate;
   private final Collection<AbstractState> mustBeContainedInCertificate;
@@ -108,6 +108,7 @@ public class PartitionChecker implements Runnable {
       final LogManager pLogger) {
     this(pNumber, pCheckResult, pPartitionChecked, pCertificate, pInOtherPartition, pInitPrec, pCpa, pLock, pHelper,
         pShutdown, pLogger);
+    partitionReady = pPartitionReady;
   }
 
   @Override
