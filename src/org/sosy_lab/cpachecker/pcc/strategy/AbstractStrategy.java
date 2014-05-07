@@ -113,7 +113,6 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       o.flush();
       zos.closeEntry();
 
-
       // write additional proof information
       int index = 0;
       boolean continueWriting;
