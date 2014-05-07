@@ -90,7 +90,8 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
     Semaphore partitionChecked = new Semaphore(0);
     Collection<AbstractState> certificate = new HashSet<>(ioHelper.getSavedReachedSetSize());
     Collection<AbstractState> inOtherPartition = new ArrayList<>();
-    Precision initPrec = pReachedSet.getPrecision(pReachedSet.getFirstState());
+    AbstractState initialState = pReachedSet.popFromWaitlist();
+    Precision initPrec = pReachedSet.getPrecision(initialState);
 
     logger.log(Level.INFO, "Create and start threads");
     ExecutorService executor = Executors.newFixedThreadPool(numThreads);
@@ -114,7 +115,7 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
 
       logger.log(Level.INFO, "Check if initial state is covered.");
       // TODO probably more efficient do not use certificate?
-      if (!cpa.getStopOperator().stop(pReachedSet.getFirstState(), certificate, initPrec)) {
+      if (!cpa.getStopOperator().stop(initialState, certificate, initPrec)) {
         logger.log(Level.SEVERE, "Initial state not covered.");
         return false;
       }
