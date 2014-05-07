@@ -93,8 +93,8 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
     AbstractState initialState = pReachedSet.popFromWaitlist();
     Precision initPrec = pReachedSet.getPrecision(initialState);
 
-    logger.log(Level.INFO, "Create and start threads");
-    ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+   logger.log(Level.INFO, "Create and start threads");
+    ExecutorService executor = Executors.newFixedThreadPool(Math.max(1, numThreads-1));
     try {
       executor.execute(new PartitionReader(checkResult, partitionChecked));
       for (int i = 0; i < ioHelper.getNumPartitions(); i++) {

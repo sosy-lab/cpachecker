@@ -158,15 +158,7 @@ public class PartitioningIOHelper {
 
   private Pair<AbstractState[], AbstractState[]> readPartitionContent(final ObjectInputStream pIn)
       throws ClassNotFoundException, IOException {
-    return Pair.of(readArray(pIn), readArray(pIn));
-  }
-
-  private AbstractState[] readArray(final ObjectInputStream pIn) throws IOException, ClassNotFoundException {
-    AbstractState[] result = new AbstractState[pIn.readInt()];
-    for (int i = 0; i < result.length; i++) {
-      result[i] = (AbstractState) pIn.readObject();
-    }
-    return result;
+    return Pair.of((AbstractState[]) pIn.readObject(), (AbstractState[]) pIn.readObject());
   }
 
   public void readPartition(final ObjectInputStream pIn, final Lock pLock) throws ClassNotFoundException, IOException {
@@ -197,6 +189,7 @@ public class PartitioningIOHelper {
     logger.log(Level.FINER,"Write metadata of partition");
     pOut.writeInt(pReachedSetSize);
     pOut.writeInt(pNumPartitions);
+    pOut.reset();
   }
 
   public void writePartition(final ObjectOutputStream pOut, final Set<Integer> pPartition,
@@ -213,17 +206,8 @@ public class PartitioningIOHelper {
 
   private void writePartition(final ObjectOutputStream pOut, final AbstractState[] pPartitionNodes,
       AbstractState[] pAdjacentNodesOutside) throws IOException {
-    writeArray(pOut, pPartitionNodes);
-    writeArray(pOut, pAdjacentNodesOutside); // TODO possibly return to previous version with object, general problem with writing
-    /*pOut.writeObject(pPartitionNodes);
-    pOut.writeObject(pAdjacentNodesOutside);*/
-  }
-
-  private void writeArray(final ObjectOutputStream pOut, final AbstractState[] pArray) throws IOException{
-    pOut.write(pArray.length);
-    for(AbstractState state: pArray){
-      pOut.writeObject(state);
-    }
+    pOut.writeObject(pPartitionNodes);
+    pOut.writeObject(pAdjacentNodesOutside);
   }
 
   public void writeProof(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached)
