@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -1358,7 +1359,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       return Collections.emptySet();
     }
 
-    CFANode loopHead = Iterables.getOnlyElement(loop.getLoopHeads());
+    final CFANode loopHead = Iterables.getOnlyElement(loop.getLoopHeads());
     Set<CFANode> loopNodes = loop.getLoopNodes();
     VariableClassification variableClassification = pCFA.getVarClassification().get();
 
@@ -1409,7 +1410,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     // Filter for all edges that actually may be ignored for induction
-    Set<CFAEdge> ignorableEdges = new HashSet<>();
+    final Set<CFAEdge> ignorableEdges = new HashSet<>();
 
     for (Map.Entry<CFAEdge, String> entry : candidateAssignments.entrySet()) {
       assert waitlist.isEmpty();
@@ -1432,7 +1433,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
                 waitlist.add(successor);
               }
               if (variableIsInvolved && isAssumeEdge && isIgnorable(leavingEdge, candidateAssignmentEdge, ignorableEdges, variableClassification, loop, variable)) {
-                ignorableEdges.add(leavingEdge);
+                if (isReachableWithout(loopHead, loopHead, Iterables.concat(ignorableEdges, Collections.singleton(leavingEdge)), true)) {
+                  ignorableEdges.add(leavingEdge);
+                }
               }
             }
           }
@@ -1444,6 +1447,29 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     return ignorableEdges;
+  }
+
+  private static boolean isReachableWithout(CFANode pSource, CFANode pTarget, Iterable<CFAEdge> pExcludedEdges, boolean ignoreStartMatch) {
+    Set<CFANode> visited = new HashSet<>();
+    Queue<CFANode> waitlist = new ArrayDeque<>();
+    waitlist.offer(pSource);
+    boolean started = false;
+    while (!waitlist.isEmpty()) {
+      CFANode current = waitlist.poll();
+      if (started && current.equals(pTarget)) {
+        return true;
+      }
+      started = true;
+      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
+        if (!Iterables.contains(pExcludedEdges, leavingEdge)) {
+          CFANode successor = leavingEdge.getSuccessor();
+          if (visited.add(successor)) {
+            waitlist.add(successor);
+          }
+        }
+      }
+    }
+    return false;
   }
 
   /**
