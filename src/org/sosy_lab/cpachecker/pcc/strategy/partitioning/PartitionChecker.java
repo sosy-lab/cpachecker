@@ -116,9 +116,8 @@ public class PartitionChecker implements Runnable {
     Pair<AbstractState[], AbstractState[]> partition = null;
     lock.lock();
     try {
-      while (partition == null) {
+      while ((partition=ioHelper.getPartition(partitionNumber)) == null) {
         if (!checkResult.get()) { return; }
-        partition = ioHelper.getPartition(partitionNumber);
         if (partitionReady == null) {
           logger.log(Level.SEVERE, "Not configured for interleaved proof reading and checking");
           abortPreparation();
