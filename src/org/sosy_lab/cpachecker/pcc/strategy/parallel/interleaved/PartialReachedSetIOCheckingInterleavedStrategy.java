@@ -202,7 +202,11 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
       } catch (IOException | ClassNotFoundException e) {
         logger.log(Level.SEVERE, "Partition reading failed. Stop checking");
         abortPreparation();
-      }finally{
+      } catch (Exception e2) {
+        logger.log(Level.SEVERE, "Unexpected failure during proof reading");
+        e2.printStackTrace();
+        abortPreparation();
+      } finally{
         if (streams != null) {
           try {
             streams.getThird().close();

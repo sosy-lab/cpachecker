@@ -113,7 +113,8 @@ public class PartitionChecker implements Runnable {
 
   @Override
   public void run() {
-    Pair<AbstractState[], AbstractState[]> partition = null;
+    try{ // TODO formatting
+      Pair<AbstractState[], AbstractState[]> partition = null;
     lock.lock();
     try {
       while ((partition=ioHelper.getPartition(partitionNumber)) == null) {
@@ -192,6 +193,11 @@ public class PartitionChecker implements Runnable {
     }
 
     mainSemaphore.release();
+    } catch (Exception e2) {
+      logger.log(Level.SEVERE, "Unexpected failure during proof reading");
+      e2.printStackTrace();
+      abortPreparation();
+    }
   }
 
   private void addElement(final AbstractState element, final boolean inCertificate) {

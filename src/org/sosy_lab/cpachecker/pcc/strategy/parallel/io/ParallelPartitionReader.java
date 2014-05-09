@@ -87,6 +87,10 @@ public class ParallelPartitionReader implements Runnable {
       giveSignal();
     } catch (IOException | ClassNotFoundException e) {
       prepareAbortion();
+    } catch (Exception e2) {
+      System.out.println("Unexptected failure");
+      e2.printStackTrace();
+      prepareAbortion();
     } finally {
       if (streams != null) {
         try {
