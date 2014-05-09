@@ -47,13 +47,14 @@ public class ParallelPartitionReader implements Runnable {
   private Condition partitionReady;
   private final int numPartitions;
 
+  private final boolean releaseSemaphoreIfReadFinished;
   private final AbstractStrategy strategy;
   private final PartitioningIOHelper ioHelper;
 
   private static final Lock lock = new ReentrantLock();
 
   public ParallelPartitionReader(final int index, final AtomicBoolean pSuccess, final Semaphore pWaitRead,
-      final AbstractStrategy pStrategy, final PartitioningIOHelper pIOHelper) {
+      final AbstractStrategy pStrategy, final PartitioningIOHelper pIOHelper, final boolean pReleaseSemaphoreIfRead) {
     partitionIndex = index;
     success = pSuccess;
     waitRead = pWaitRead;
@@ -62,12 +63,13 @@ public class ParallelPartitionReader implements Runnable {
     numPartitions = ioHelper.getNumPartitions();
     checkingReadingLock = null;
     partitionReady = null;
+    releaseSemaphoreIfReadFinished = pReleaseSemaphoreIfRead;
   }
 
   public ParallelPartitionReader(final int index, final AtomicBoolean pSuccess, final Semaphore pWaitRead,
       final AbstractStrategy pStrategy, final PartitioningIOHelper pIOHelper, final Condition pPartitionReady,
-      final Lock pCoordination) {
-    this(index, pSuccess, pWaitRead, pStrategy, pIOHelper);
+      final Lock pCoordination, final boolean pReleaseSemaphoreIfRead) {
+    this(index, pSuccess, pWaitRead, pStrategy, pIOHelper, pReleaseSemaphoreIfRead);
     checkingReadingLock = pCoordination;
     partitionReady = pPartitionReady;
   }
@@ -85,6 +87,9 @@ public class ParallelPartitionReader implements Runnable {
       streams = strategy.openAdditionalProofStream(partitionIndex);
       ioHelper.readPartition(streams.getThird(), lock);
       giveSignal();
+      if (partitionReady == null) {
+        waitRead.release();
+      }
     } catch (IOException | ClassNotFoundException e) {
       prepareAbortion();
     } catch (Exception e2) {
