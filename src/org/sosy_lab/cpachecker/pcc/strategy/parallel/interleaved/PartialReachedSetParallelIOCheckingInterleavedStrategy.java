@@ -59,7 +59,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
 public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends AbstractStrategy {
 
   @Option(
-      name = "pcc.useReadCores",
+      name = "useReadCores",
       description = "The number of cores used exclusively for proof reading. Must be less than pcc.useCores and may not be negative. Value 0 means that the cores used for reading and checking are shared")
   private int numReadThreads = 0;
 
@@ -123,7 +123,7 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
 
       logger.log(Level.INFO, "Check if all are checked");
       if (!certificate.containsAll(inOtherPartition)) {
-        logger.log(Level.SEVERE, "Initial state not covered.");
+        logger.log(Level.SEVERE, "Not all nodes supposed to be in other partitions are outside.");
         return false;
       }
 

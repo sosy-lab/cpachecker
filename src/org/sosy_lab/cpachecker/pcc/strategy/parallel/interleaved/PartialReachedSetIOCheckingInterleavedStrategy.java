@@ -109,7 +109,7 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
 
       logger.log(Level.INFO, "Check if all are checked");
       if (!certificate.containsAll(inOtherPartition)) {
-        logger.log(Level.SEVERE, "Initial state not covered.");
+        logger.log(Level.SEVERE, "Not all nodes supposed to be in other partitions are outside.");
         return false;
       }
 
