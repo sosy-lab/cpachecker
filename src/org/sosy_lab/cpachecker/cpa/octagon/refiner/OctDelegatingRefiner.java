@@ -113,6 +113,7 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
   private boolean existsExplicitOctagonRefinement = false;
 
   private final CFA cfa;
+  private final Configuration config;
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -159,6 +160,7 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
     cfa                   = pCfa;
     logger                = pLogger;
     shutdownNotifier      = pShutdownNotifier;
+    config                = pConfig;
   }
 
   @Override
@@ -265,27 +267,6 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
     return true;
   }
 
-  private void trackWithFullPrecision(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException, InterruptedException {
-    numberOfValueAnalysisRefinements++;
-
-    UnmodifiableReachedSet reachedSet = reached.asReachedSet();
-
-    ArrayList<Precision> refinedPrecisions = new ArrayList<>(1);
-    ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(1);
-
-    try {
-      refinedPrecisions.add(new OctPrecision(Configuration.builder().build()));
-    } catch (InvalidConfigurationException e) {
-      // this never happens
-      e.printStackTrace();
-    }
-    newPrecisionTypes.add(OctPrecision.class);
-
-
-    numberOfSuccessfulValueAnalysisRefinements++;
-    reached.removeSubtree(((ARGState)reachedSet.getFirstState()).getChildren().iterator().next(), refinedPrecisions, newPrecisionTypes);
-  }
-
   /**
    * The not-so-fancy heuristic to determine if two subsequent refinements are similar
    *
@@ -368,7 +349,7 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
 
       // no specific timelimit set for octagon feasibility check
       if (timeForOctagonFeasibilityCheck == 0) {
-        checker = new OctagonAnalysisFeasabilityChecker(cfa, logger, shutdownNotifier, path);
+        checker = new OctagonAnalysisFeasabilityChecker(cfa, logger, shutdownNotifier, path, config);
 
       } else {
         ShutdownNotifier notifier = ShutdownNotifier.createWithParent(shutdownNotifier);
@@ -376,7 +357,7 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
         ResourceLimitChecker limits = new ResourceLimitChecker(notifier, Lists.newArrayList((ResourceLimit)l));
 
         limits.start();
-        checker = new OctagonAnalysisFeasabilityChecker(cfa, logger, notifier, path);
+        checker = new OctagonAnalysisFeasabilityChecker(cfa, logger, notifier, path, config);
         limits.cancel();
       }
 

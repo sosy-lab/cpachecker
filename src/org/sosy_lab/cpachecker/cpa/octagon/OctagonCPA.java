@@ -76,7 +76,7 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
     logger = log;
     OctDomain octagonDomain = new OctDomain(logger, config);
 
-    this.transferRelation = new OctTransferRelation(logger, cfa);
+    this.transferRelation = new OctTransferRelation(logger, cfa, config);
 
     MergeOperator octagonMergeOp = null;
     if (mergeType.equals("SEP")) {
@@ -99,7 +99,7 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
     this.cfa = cfa;
     precision = new OctPrecision(config);
 
-    assert OctagonManager.init();
+    assert OctagonManager.init(config);
   }
 
   @Override

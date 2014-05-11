@@ -23,15 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon.coefficients;
 
-import java.math.BigInteger;
-
 import org.sosy_lab.cpachecker.cpa.octagon.OctState;
 
 
 
 public abstract class AOctCoefficients implements IOctCoefficients {
 
-  protected BigInteger[] coefficients;
+  protected OctNumericValue[] coefficients;
   protected int size;
   protected OctState oct;
 

@@ -25,8 +25,8 @@ package org.sosy_lab.cpachecker.cpa.octagon;
 
 import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.Iterables.filter;
+import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.*;
 
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -41,6 +41,10 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -95,6 +99,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
@@ -103,6 +108,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.IOctCoefficients;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctEmptyCoefficients;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctIntervalCoefficients;
+import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctNumericValue;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctSimpleCoefficients;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
@@ -113,7 +119,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 
-
+@Options(prefix="cpa.octagon")
 public class OctTransferRelation extends ForwardingTransferRelation<OctState, OctPrecision> {
 
   private static final String FUNCTION_RETURN_VAR = "___cpa_temp_result_var_";
@@ -132,6 +138,12 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
   private static final Map<String, String> UNSUPPORTED_FUNCTIONS
       = ImmutableMap.of("pthread_create", "threads");
 
+  @Option(name="handleFloats",
+      description="with this option one can toggle the ability of handling floats"
+          + " note that this does some over-approximation if the wrong underlying"
+          + " numerical domain in the library is chosen")
+  private boolean handleFloats = false;
+
   private Collection<OctState> possibleStates = new ArrayList<>();
 
   private final LogManager logger;
@@ -141,8 +153,10 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
   /**
    * Class constructor.
    * @throws InvalidCFAException
+   * @throws InvalidConfigurationException
    */
-  public OctTransferRelation(LogManager log, CFA cfa) throws InvalidCFAException {
+  public OctTransferRelation(LogManager log, CFA cfa, Configuration config) throws InvalidCFAException, InvalidConfigurationException {
+    config.inject(this);
     logger = log;
 
     if (!cfa.getLoopStructure().isPresent()) {
@@ -287,8 +301,14 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
     } else if (expression instanceof CLiteralExpression) {
       if (expression instanceof CIntegerLiteralExpression) {
         return handleLiteralBooleanExpression(((CIntegerLiteralExpression) expression).asLong(), truthAssumption, state);
+
       } else if (expression instanceof CCharLiteralExpression) {
         return handleLiteralBooleanExpression(((CCharLiteralExpression) expression).getCharacter(), truthAssumption, state);
+
+      } else if (expression instanceof CFloatLiteralExpression) {
+        // only when the float is exactly zero the condition is wrong, for all other float values it is true
+        int val = Math.abs(((CFloatLiteralExpression)expression).getValue().signum());
+        return handleLiteralBooleanExpression(val, truthAssumption, state);
       } else {
         return state;
       }
@@ -399,8 +419,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
 
     // we cannot cope with string literals so we do not know anything about the assumption
     // => just return the previous state
-    if (left instanceof CStringLiteralExpression || right instanceof CStringLiteralExpression
-        || left instanceof CFloatLiteralExpression || right instanceof CFloatLiteralExpression) { return state; }
+    if (left instanceof CStringLiteralExpression || right instanceof CStringLiteralExpression) { return state; }
 
     // both are literals
     if (left instanceof CLiteralExpression && right instanceof CLiteralExpression) {
@@ -435,7 +454,8 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
   private boolean isHandleableVariable(CExpression var) {
     if (var instanceof CArraySubscriptExpression
         || var instanceof CFieldReference
-        || var instanceof CPointerExpression) {
+        || var instanceof CPointerExpression
+        || (!handleFloats && var instanceof CFloatLiteralExpression)) {
       return false;
     }
     return isHandleAbleType(var.getExpressionType());
@@ -443,17 +463,18 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
 
   private boolean isHandleAbleType(CType type) {
     type = type.getCanonicalType();
+    while (type instanceof CTypedefType) {
+      type = ((CTypedefType) type).getRealType();
+    }
     if (type instanceof CPointerType
         || type instanceof CCompositeType
-        || type instanceof CArrayType) {
+        || type instanceof CArrayType
+        || (!handleFloats && type instanceof CSimpleType
+                          && (((CSimpleType)type).getType() == FLOAT
+                                 || ((CSimpleType)type).getType() == DOUBLE))) {
       return false;
-    } else if (type instanceof CTypedefType) {
-      type = ((CTypedefType) type).getRealType();
-      if (type instanceof CPointerType
-          || type instanceof CCompositeType) {
-        return false;
-      }
     }
+
     return true;
   }
 
@@ -499,11 +520,13 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
       }
     }
 
-    long rightVal = 0;
+    OctNumericValue rightVal = OctNumericValue.ZERO;
     if (right instanceof CIntegerLiteralExpression) {
-      rightVal = ((CIntegerLiteralExpression) right).asLong();
+      rightVal = new OctNumericValue(((CIntegerLiteralExpression) right).asLong());
     } else if (right instanceof CCharLiteralExpression) {
-      rightVal = ((CCharLiteralExpression) right).getCharacter();
+      rightVal = new OctNumericValue(((CCharLiteralExpression) right).getCharacter());
+    } else if (right instanceof CFloatLiteralExpression) {
+      rightVal = new OctNumericValue(((CFloatLiteralExpression) right).getValue());
     }
 
     for (OctState actState : states) {
@@ -572,29 +595,34 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
    */
   private OctState handleBinaryAssumptionWithTwoLiterals(CLiteralExpression left, CLiteralExpression right, BinaryOperator op,
       boolean truthAssumption) throws CPATransferException {
-    long leftVal = 0;
+    OctNumericValue leftVal = OctNumericValue.ZERO;
     if (left instanceof CIntegerLiteralExpression) {
-      leftVal = ((CIntegerLiteralExpression) left).asLong();
+      leftVal = new OctNumericValue(((CIntegerLiteralExpression) left).asLong());
     } else if (left instanceof CCharLiteralExpression) {
-      leftVal = ((CCharLiteralExpression) left).getCharacter();
+      leftVal = new OctNumericValue(((CCharLiteralExpression) left).getCharacter());
+    } else if (left instanceof CFloatLiteralExpression) {
+      leftVal = new OctNumericValue(((CFloatLiteralExpression)left).getValue());
     }
-    long rightVal = 0;
+
+    OctNumericValue rightVal = OctNumericValue.ZERO;
     if (right instanceof CIntegerLiteralExpression) {
-      rightVal = ((CIntegerLiteralExpression) right).asLong();
+      rightVal = new OctNumericValue(((CIntegerLiteralExpression) right).asLong());
     } else if (right instanceof CCharLiteralExpression) {
-      rightVal = ((CCharLiteralExpression) right).getCharacter();
+      rightVal = new OctNumericValue(((CCharLiteralExpression) right).getCharacter());
+    } else if (right instanceof CFloatLiteralExpression) {
+      rightVal = new OctNumericValue(((CFloatLiteralExpression)right).getValue());
     }
 
     switch (op) {
     case EQUALS:
       if (truthAssumption) {
-        if (leftVal == rightVal) {
+        if (leftVal.equals(rightVal)) {
           return state;
         } else {
           return null;
         }
       } else {
-        if (leftVal == rightVal) {
+        if (leftVal.equals(rightVal)) {
           return null;
         } else {
           return state;
@@ -602,13 +630,13 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
       }
     case GREATER_EQUAL:
       if (truthAssumption) {
-        if (leftVal >= rightVal) {
+        if (leftVal.greaterEqual(rightVal)) {
           return state;
         } else {
           return null;
         }
       } else {
-        if (leftVal >= rightVal) {
+        if (leftVal.greaterEqual(rightVal)) {
           return null;
         } else {
           return state;
@@ -616,13 +644,13 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
       }
     case GREATER_THAN:
       if (truthAssumption) {
-        if (leftVal > rightVal) {
+        if (leftVal.greaterThan(rightVal)) {
           return state;
         } else {
           return null;
         }
       } else {
-        if (leftVal > rightVal) {
+        if (leftVal.greaterThan(rightVal)) {
           return null;
         } else {
           return state;
@@ -630,13 +658,13 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
       }
     case LESS_EQUAL:
       if (truthAssumption) {
-        if (leftVal <= rightVal) {
+        if (leftVal.lessEqual(rightVal)) {
           return state;
         } else {
           return null;
         }
       } else {
-        if (leftVal <= rightVal) {
+        if (leftVal.lessEqual(rightVal)) {
           return null;
         } else {
           return state;
@@ -644,13 +672,13 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
       }
     case LESS_THAN:
       if (truthAssumption) {
-        if (leftVal < rightVal) {
+        if (leftVal.lessThan(rightVal)) {
           return state;
         } else {
           return null;
         }
       } else {
-        if (leftVal < rightVal) {
+        if (leftVal.lessThan(rightVal)) {
           return null;
         } else {
           return state;
@@ -658,16 +686,16 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
       }
     case NOT_EQUALS:
       if (truthAssumption) {
-        if (leftVal != rightVal) {
-          return state;
-        } else {
+        if (leftVal.equals(rightVal)) {
           return null;
+        } else {
+          return state;
         }
       } else {
-        if (leftVal != rightVal) {
-          return null;
-        } else {
+        if (leftVal.equals(rightVal)) {
           return state;
+        } else {
+          return null;
         }
       }
     default:
@@ -810,12 +838,12 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
   private OctState handleSingleBooleanExpression(String variableName, boolean truthAssumption, OctState state) {
     // if (a)
     if (truthAssumption) {
-      possibleStates.addAll(state.addIneqConstraint(variableName, 0));
+      possibleStates.addAll(state.addIneqConstraint(variableName, OctNumericValue.ZERO));
       return null;
 
       // if (!a)
     } else {
-      return state.addEqConstraint(variableName, 0);
+      return state.addEqConstraint(variableName, OctNumericValue.ZERO);
     }
   }
 
@@ -888,7 +916,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
       String returnVarName = buildVarName(calledFunctionName, FUNCTION_RETURN_VAR);
 
       String assignedVarName = buildVarName(op1, callerFunctionName);
-      IOctCoefficients right = new OctSimpleCoefficients(state.sizeOfVariables(), state.getVariableIndexFor(returnVarName), 1, state);
+      IOctCoefficients right = new OctSimpleCoefficients(state.sizeOfVariables(), state.getVariableIndexFor(returnVarName), OctNumericValue.ONE, state);
 
       state = state.makeAssignment(assignedVarName, right);
 
@@ -1276,26 +1304,27 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
       String varName = buildVarName(e, functionName);
       Integer varIndex = state.getVariableIndexFor(varName);
       if (varIndex == -1) { return Collections.singleton((IOctCoefficients)OctEmptyCoefficients.INSTANCE); }
-      return Collections.singleton((IOctCoefficients)new OctSimpleCoefficients(state.sizeOfVariables(), varIndex, 1, state));
+      return Collections.singleton((IOctCoefficients)new OctSimpleCoefficients(state.sizeOfVariables(), varIndex, OctNumericValue.ONE, state));
     }
 
     @Override
     public Set<IOctCoefficients> visit(CCharLiteralExpression e) throws CPATransferException {
-      return Collections.singleton((IOctCoefficients)new OctSimpleCoefficients(state.sizeOfVariables(), e.getValue(), state));
+      return Collections.singleton((IOctCoefficients)new OctSimpleCoefficients(state.sizeOfVariables(), new OctNumericValue(e.getValue()), state));
     }
 
-    /**
-     * Floats can currently not be handled
-     */
     @Override
     public Set<IOctCoefficients> visit(CFloatLiteralExpression e) throws CPATransferException {
-      // TODO check if we can handle floats, too
-      return Collections.singleton((IOctCoefficients)OctEmptyCoefficients.INSTANCE);
+      // only handle floats when specified in the configuration
+      if (handleFloats) {
+        return Collections.singleton((IOctCoefficients)new OctSimpleCoefficients(state.sizeOfVariables(), new OctNumericValue(e.getValue()), state));
+      } else {
+        return Collections.singleton((IOctCoefficients)OctEmptyCoefficients.INSTANCE);
+      }
     }
 
     @Override
     public Set<IOctCoefficients> visit(CIntegerLiteralExpression e) throws CPATransferException {
-      return Collections.singleton((IOctCoefficients)new OctSimpleCoefficients(state.sizeOfVariables(), (int) e.asLong(), state));
+      return Collections.singleton((IOctCoefficients)new OctSimpleCoefficients(state.sizeOfVariables(), new OctNumericValue(e.asLong()), state));
     }
 
     @SuppressWarnings("deprecation")
@@ -1315,13 +1344,13 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
         for (IOctCoefficients coeffs : operand) {
           if (coeffs.hasOnlyConstantValue()) {
             if (coeffs instanceof OctSimpleCoefficients) {
-              returnCoefficients.add(new OctSimpleCoefficients(coeffs.size(), ((OctSimpleCoefficients) coeffs).getConstantValue().longValue()*-1, state));
+              returnCoefficients.add(new OctSimpleCoefficients(coeffs.size(), ((OctSimpleCoefficients) coeffs).getConstantValue().mul(-1), state));
               continue;
             } else if (coeffs instanceof OctIntervalCoefficients) {
-              Pair<Pair<BigInteger, Boolean>, Pair<BigInteger, Boolean>> bounds = ((OctIntervalCoefficients) coeffs).getConstantValue();
+              Pair<Pair<OctNumericValue, Boolean>, Pair<OctNumericValue, Boolean>> bounds = ((OctIntervalCoefficients) coeffs).getConstantValue();
               returnCoefficients.add(new OctIntervalCoefficients(coeffs.size(),
-                                                                 bounds.getSecond().getFirst().longValue()*-1,
-                                                                 bounds.getFirst().getFirst().longValue()*-1,
+                                                                 bounds.getSecond().getFirst().mul(-1),
+                                                                 bounds.getFirst().getFirst().mul(-1),
                                                                  bounds.getSecond().getSecond(),
                                                                  bounds.getFirst().getSecond(),
                                                                  state));
@@ -1333,10 +1362,10 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
           state = state.declareVariable(tempVar).makeAssignment(tempVar, coeffs.expandToSize(state.sizeOfVariables()+1, state));
 
           if (e.getOperator() == UnaryOperator.MINUS) {
-            returnCoefficients.add(new OctSimpleCoefficients(state.sizeOfVariables(), state.getVariableIndexFor(tempVar), -1, state));
+            returnCoefficients.add(new OctSimpleCoefficients(state.sizeOfVariables(), state.getVariableIndexFor(tempVar), new OctNumericValue(-1), state));
           } else {
 
-            OctState tmpState = state.addEqConstraint(tempVar, 0);
+            OctState tmpState = state.addEqConstraint(tempVar, OctNumericValue.ZERO);
             if (tmpState.isEmpty()) {
               returnCoefficients.add(OctSimpleCoefficients.getBoolFALSECoeffs(state.sizeOfVariables(), state));
             } else {
@@ -1345,7 +1374,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
               // and eventually return more states
               // TODO loss of information as we do not save the state with the assignment
               returnCoefficients.add(OctSimpleCoefficients.getBoolTRUECoeffs(state.sizeOfVariables(), state));
-              if (!state.addSmallerConstraint(tempVar, 0).isEmpty() || !state.addGreaterConstraint(tempVar, 0).isEmpty()) {
+              if (!state.addSmallerConstraint(tempVar, OctNumericValue.ZERO).isEmpty() || !state.addGreaterConstraint(tempVar, OctNumericValue.ZERO).isEmpty()) {
                 returnCoefficients.add(OctSimpleCoefficients.getBoolFALSECoeffs(state.sizeOfVariables(), state));
               }
             }

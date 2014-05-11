@@ -55,18 +55,21 @@ public class OctagonAnalysisFeasabilityChecker {
   private final OctTransferRelation transfer;
 
   private final LogManager logger;
-  private final Configuration config;
   private final ShutdownNotifier shutdownNotifier;
   private final ARGPath checkedPath;
   private final ARGPath foundPath;
 
-  public OctagonAnalysisFeasabilityChecker(CFA cfa, LogManager log, ShutdownNotifier pShutdownNotifier, ARGPath path) throws InvalidConfigurationException, CPAException, InterruptedException {
+  public OctagonAnalysisFeasabilityChecker(CFA cfa, LogManager log, ShutdownNotifier pShutdownNotifier, ARGPath path, Configuration config) throws InvalidConfigurationException, CPAException, InterruptedException {
     logger = log;
-    config = Configuration.builder().build();
     shutdownNotifier = pShutdownNotifier;
-    transfer  = new OctTransferRelation(logger, cfa);
+
+    // use the normal configuration for creating the transferrelation
+    transfer  = new OctTransferRelation(logger, cfa, config);
     checkedPath = path;
-    foundPath = getInfeasiblePrefix(new OctPrecision(config),
+
+    // use a new configuration which only has the default values for the precision
+    // we do not want any special options to be set there
+    foundPath = getInfeasiblePrefix(new OctPrecision(Configuration.defaultConfiguration()),
                                     new OctState(logger));
   }
 
@@ -94,7 +97,7 @@ public class OctagonAnalysisFeasabilityChecker {
         varNames = Sets.difference(new AssumptionUseDefinitionCollector().obtainUseDefInformation(edgesList),
                                    precision.getTrackedVars());
         edgesList.removeLast();
-        while (!(edgesList.getLast() instanceof AssumeEdge)) {
+        while (!edgesList.isEmpty() && !(edgesList.getLast() instanceof AssumeEdge)) {
           edgesList.removeLast();
         }
       } while (varNames.isEmpty() && !edgesList.isEmpty());

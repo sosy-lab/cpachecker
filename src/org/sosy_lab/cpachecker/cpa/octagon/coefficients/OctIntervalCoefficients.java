@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon.coefficients;
 
-import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -47,9 +46,9 @@ public class OctIntervalCoefficients extends AOctCoefficients {
    */
   public OctIntervalCoefficients(int size, OctState oct) {
     super(size, oct);
-    coefficients = new BigInteger[(size+1)*2];
+    coefficients = new OctNumericValue[(size+1)*2];
     isInfite = new boolean[(size+1)*2];
-    Arrays.fill(coefficients, BigInteger.ZERO);
+    Arrays.fill(coefficients, OctNumericValue.ZERO);
     Arrays.fill(isInfite, false);
   }
 
@@ -60,15 +59,15 @@ public class OctIntervalCoefficients extends AOctCoefficients {
    * @param index The index of the variable which should be set by default to a given value
    * @param value The value to which the variable should be set
    */
-  public OctIntervalCoefficients(int size, int index, long lowerBound, long upperBound, boolean lowerInfinite, boolean upperInfinite, OctState oct) {
+  public OctIntervalCoefficients(int size, int index, OctNumericValue lowerBound, OctNumericValue upperBound, boolean lowerInfinite, boolean upperInfinite, OctState oct) {
     super(size, oct);
     Preconditions.checkArgument(index < size, "Index too big");
-    coefficients = new BigInteger[(size+1)*2];
+    coefficients = new OctNumericValue[(size+1)*2];
     isInfite = new boolean[(size+1)*2];
-    Arrays.fill(coefficients, BigInteger.ZERO);
+    Arrays.fill(coefficients, OctNumericValue.ZERO);
     Arrays.fill(isInfite, false);
-    coefficients[index*2] = BigInteger.valueOf(upperBound);
-    coefficients[index*2+1] = BigInteger.valueOf(lowerBound);
+    coefficients[index*2] = upperBound;
+    coefficients[index*2+1] = lowerBound;
     isInfite[index*2] = upperInfinite;
     isInfite[index*2 +1] = lowerInfinite;
   }
@@ -81,14 +80,14 @@ public class OctIntervalCoefficients extends AOctCoefficients {
    * @param index The index of the variable which should be set by default to a given value
    * @param value The value to which the variable should be set
    */
-  public OctIntervalCoefficients(int size, long lowerBound, long upperBound, boolean lowerInfinite, boolean upperInfinite, OctState oct) {
+  public OctIntervalCoefficients(int size, OctNumericValue lowerBound, OctNumericValue upperBound, boolean lowerInfinite, boolean upperInfinite, OctState oct) {
     super(size, oct);
-    coefficients = new BigInteger[(size+1)*2];
+    coefficients = new OctNumericValue[(size+1)*2];
     isInfite = new boolean[(size+1)*2];
-    Arrays.fill(coefficients, BigInteger.ZERO);
+    Arrays.fill(coefficients, OctNumericValue.ZERO);
     Arrays.fill(isInfite, false);
-    coefficients[size*2] = BigInteger.valueOf(upperBound);
-    coefficients[size*2 +1] = BigInteger.valueOf(lowerBound);
+    coefficients[size*2] = upperBound;
+    coefficients[size*2 +1] = lowerBound;
     isInfite[size*2] = upperInfinite;
     isInfite[size*2 +1] = lowerInfinite;
   }
@@ -194,22 +193,22 @@ public class OctIntervalCoefficients extends AOctCoefficients {
   /**
    * Returns the coefficients (lowerBount, upperBound) at the given index.
    */
-  public Pair<Pair<BigInteger, Boolean>, Pair<BigInteger, Boolean>> get(int index) {
+  public Pair<Pair<OctNumericValue, Boolean>, Pair<OctNumericValue, Boolean>> get(int index) {
     Preconditions.checkArgument(index < size, "Index too big");
     return Pair.of(Pair.of(coefficients[index+1], isInfite[index+1]), Pair.of(coefficients[index], isInfite[index]));
   }
 
-  public Pair<Pair<BigInteger, Boolean>, Pair<BigInteger, Boolean>> getConstantValue() {
+  public Pair<Pair<OctNumericValue, Boolean>, Pair<OctNumericValue, Boolean>> getConstantValue() {
     return Pair.of(Pair.of(coefficients[coefficients.length-1], isInfite[coefficients.length-1]), Pair.of(coefficients[coefficients.length-2], isInfite[coefficients.length-2]));
   }
 
-  public OctIntervalCoefficients withConstantValue(long lowerBound, long upperBound, boolean lowerInfinite, boolean upperInfinite) {
+  public OctIntervalCoefficients withConstantValue(OctNumericValue lowerBound, OctNumericValue upperBound, boolean lowerInfinite, boolean upperInfinite) {
     OctIntervalCoefficients ret = new OctIntervalCoefficients(size, oct);
     ret.coefficients = Arrays.copyOf(coefficients, coefficients.length);
     ret.isInfite = Arrays.copyOf(isInfite, isInfite.length);
-    ret.coefficients[coefficients.length-2] = BigInteger.valueOf(upperBound);
+    ret.coefficients[coefficients.length-2] = upperBound;
     ret.isInfite[isInfite.length-2] = upperInfinite;
-    ret.coefficients[coefficients.length-1] = BigInteger.valueOf(lowerBound);
+    ret.coefficients[coefficients.length-1] = lowerBound;
     ret.isInfite[isInfite.length-1] = lowerInfinite;
     return ret;
   }
@@ -220,7 +219,7 @@ public class OctIntervalCoefficients extends AOctCoefficients {
   @Override
   public boolean hasOnlyConstantValue() {
     for (int i = 0; i < coefficients.length - 2; i++) {
-      if (!coefficients[i].equals(BigInteger.ZERO)) { return false; }
+      if (!coefficients[i].equals(OctNumericValue.ZERO)) { return false; }
     }
     return true;
   }
@@ -228,14 +227,14 @@ public class OctIntervalCoefficients extends AOctCoefficients {
   public static OctIntervalCoefficients getNondetUIntCoeffs(int size, OctState oct) {
     OctIntervalCoefficients result = new OctIntervalCoefficients(size, oct);
     result.isInfite[result.coefficients.length-2] = true;
-    result.coefficients[result.coefficients.length-1] = BigInteger.ZERO;
+    result.coefficients[result.coefficients.length-1] = OctNumericValue.ZERO;
     return result;
   }
 
   public static OctIntervalCoefficients getNondetBoolCoeffs(int size, OctState oct) {
     OctIntervalCoefficients result = new OctIntervalCoefficients(size, oct);
-    result.coefficients[result.coefficients.length-2] = BigInteger.ONE;
-    result.coefficients[result.coefficients.length-1] = BigInteger.ZERO;
+    result.coefficients[result.coefficients.length-2] = OctNumericValue.ONE;
+    result.coefficients[result.coefficients.length-1] = OctNumericValue.ZERO;
     return result;
   }
 
@@ -298,13 +297,21 @@ public class OctIntervalCoefficients extends AOctCoefficients {
         if (isInfite[i]) {
           OctagonManager.num_set_inf(arr, i);
         } else {
-          OctagonManager.num_set_int(arr, i, coefficients[i].intValue());
+          if (coefficients[i].isFloat()) {
+            OctagonManager.num_set_float(arr, i, coefficients[i].getFloatVal().doubleValue());
+          } else {
+            OctagonManager.num_set_int(arr, i, coefficients[i].getIntVal().intValue());
+          }
         }
       } else {
         if (isInfite[i]) {
           OctagonManager.num_set_inf(arr, i);
         } else {
-          OctagonManager.num_set_int(arr, i, coefficients[i].intValue()*-1);
+          if (coefficients[i].isFloat()) {
+            OctagonManager.num_set_float(arr, i, coefficients[i].getFloatVal().doubleValue()*-1);
+          } else {
+            OctagonManager.num_set_int(arr, i, coefficients[i].getIntVal().intValue()*-1);
+          }
         }
       }
     }

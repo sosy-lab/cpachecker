@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon.coefficients;
 
-import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -43,8 +42,8 @@ public class OctSimpleCoefficients extends AOctCoefficients {
    */
   public OctSimpleCoefficients(int size, OctState oct) {
     super(size, oct);
-    coefficients = new BigInteger[size+1];
-    Arrays.fill(coefficients, BigInteger.ZERO);
+    coefficients = new OctNumericValue[size+1];
+    Arrays.fill(coefficients, OctNumericValue.ZERO);
   }
 
   /**
@@ -54,12 +53,12 @@ public class OctSimpleCoefficients extends AOctCoefficients {
    * @param index The index of the variable which should be set by default to a given value
    * @param value The value to which the variable should be set
    */
-  public OctSimpleCoefficients(int size, int index, long value, OctState oct) {
+  public OctSimpleCoefficients(int size, int index, OctNumericValue value, OctState oct) {
     super(size, oct);
     Preconditions.checkArgument(index < size, "Index too big");
-    coefficients = new BigInteger[size+1];
-    Arrays.fill(coefficients, BigInteger.ZERO);
-    coefficients[index] = BigInteger.valueOf(value);
+    coefficients = new OctNumericValue[size+1];
+    Arrays.fill(coefficients, OctNumericValue.ZERO);
+    coefficients[index] = value;
   }
 
   /**
@@ -69,11 +68,11 @@ public class OctSimpleCoefficients extends AOctCoefficients {
    * @param index The index of the variable which should be set by default to a given value
    * @param value The value to which the variable should be set
    */
-  public OctSimpleCoefficients(int size, long value, OctState oct) {
+  public OctSimpleCoefficients(int size, OctNumericValue value, OctState oct) {
     super(size, oct);
-    coefficients = new BigInteger[size+1];
-    Arrays.fill(coefficients, BigInteger.ZERO);
-    coefficients[size] = BigInteger.valueOf(value);
+    coefficients = new OctNumericValue[size+1];
+    Arrays.fill(coefficients, OctNumericValue.ZERO);
+    coefficients[size] = value;
   }
 
   @Override
@@ -178,12 +177,12 @@ public class OctSimpleCoefficients extends AOctCoefficients {
   /**
    * Returns the coefficient at the given index.
    */
-  public BigInteger get(int index) {
+  public OctNumericValue get(int index) {
     Preconditions.checkArgument(index < size, "Index too big");
     return coefficients[index];
   }
 
-  public BigInteger getConstantValue() {
+  public OctNumericValue getConstantValue() {
     return coefficients[size];
   }
 
@@ -193,21 +192,21 @@ public class OctSimpleCoefficients extends AOctCoefficients {
   @Override
   public boolean hasOnlyConstantValue() {
     for (int i = 0; i < coefficients.length - 1; i++) {
-      if (!coefficients[i].equals(BigInteger.ZERO)) { return false; }
+      if (!coefficients[i].equals(OctNumericValue.ZERO)) { return false; }
     }
     return true;
   }
 
   public boolean isVariable() {
     int counter = 0;
-    while (counter < size && coefficients[counter].equals(BigInteger.ZERO)) {
+    while (counter < size && coefficients[counter].equals(OctNumericValue.ZERO)) {
       counter++;
     }
     counter++;
-    while (counter < size && coefficients[counter].equals(BigInteger.ZERO)) {
+    while (counter < size && coefficients[counter].equals(OctNumericValue.ZERO)) {
       counter++;
     }
-    if (counter == size && coefficients[counter].equals(BigInteger.ZERO)) {
+    if (counter == size && coefficients[counter].equals(OctNumericValue.ZERO)) {
       return true;
     } else {
       return false;
@@ -217,7 +216,7 @@ public class OctSimpleCoefficients extends AOctCoefficients {
   public int getVariableIndex() {
     assert isVariable() : "is no variable!";
     int counter = 0;
-    while (counter < size && coefficients[counter].equals(BigInteger.ZERO)) {
+    while (counter < size && coefficients[counter].equals(OctNumericValue.ZERO)) {
       counter++;
     }
     return counter;
@@ -234,13 +233,13 @@ public class OctSimpleCoefficients extends AOctCoefficients {
 
   public static OctSimpleCoefficients getBoolTRUECoeffs(int size, OctState oct) {
     OctSimpleCoefficients result = new OctSimpleCoefficients(size, oct);
-    result.coefficients[size] = BigInteger.ONE;
+    result.coefficients[size] = OctNumericValue.ONE;
     return result;
   }
 
   public static OctSimpleCoefficients getBoolFALSECoeffs(int size, OctState oct) {
     OctSimpleCoefficients result = new OctSimpleCoefficients(size, oct);
-    result.coefficients[size] = BigInteger.ZERO;
+    result.coefficients[size] = OctNumericValue.ZERO;
     return result;
   }
 
@@ -280,7 +279,11 @@ public class OctSimpleCoefficients extends AOctCoefficients {
   public NumArray getNumArray() {
     NumArray arr = OctagonManager.init_num_t(coefficients.length);
     for (int i = 0; i < coefficients.length; i++) {
-      OctagonManager.num_set_int(arr, i, coefficients[i].intValue());
+      if (coefficients[i].isFloat()) {
+        OctagonManager.num_set_float(arr, i, coefficients[i].getFloatVal().doubleValue());
+      } else {
+        OctagonManager.num_set_int(arr, i, coefficients[i].getIntVal().intValue());
+      }
     }
     return arr;
   }
