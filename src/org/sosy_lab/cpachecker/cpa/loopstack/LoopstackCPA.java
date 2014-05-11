@@ -355,7 +355,7 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-    pOut.print("k:" + this.maxLoopIterations);
+    pOut.print("Bound k:" + this.maxLoopIterations);
   }
 
   @Override
