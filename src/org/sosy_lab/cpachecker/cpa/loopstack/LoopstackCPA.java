@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.loopstack;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -47,10 +48,13 @@ import org.sosy_lab.cpachecker.cfa.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -66,7 +70,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableCollection;
 
 @Options(prefix="cpa.loopstack")
-public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA {
+public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA, StatisticsProvider, Statistics {
 
   private final LogManager logger;
 
@@ -342,5 +346,20 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA 
       return this.delegate.strengthen(pState, pOtherStates, pCfaEdge, pPrecision);
     }
 
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(this);
+  }
+
+  @Override
+  public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+    pOut.print("k:" + this.maxLoopIterations);
+  }
+
+  @Override
+  public String getName() {
+    return "Loopstack CPA";
   }
 }
