@@ -311,27 +311,6 @@ public class OctState implements AbstractState {
     return newState;
   }
 
-  public OctState declareVariable(String varName, Pair<Long, Long> bounds) {
-    return declareVariable(varName, bounds.getFirst().intValue(), bounds.getSecond().intValue());
-  }
-
-  public OctState declareVariable(String varName, int lowerBound, int upperBound) {
-    assert !variableToIndexMap.containsKey(varName);
-    OctState newState = new OctState(OctagonManager.addDimensionAndEmbed(octagon, 1),
-                                     HashBiMap.create(variableToIndexMap),
-                                     block,
-                                     logger);
-    newState.variableToIndexMap.put(varName, sizeOfVariables());
-    NumArray lower = OctagonManager.init_num_t(1);
-    NumArray upper = OctagonManager.init_num_t(1);
-    OctagonManager.num_set_int(lower, 0, lowerBound);
-    OctagonManager.num_set_int(upper, 0, upperBound);
-    newState.octagon = OctagonManager.set_bounds(newState.octagon, newState.getVariableIndexFor(varName), lower, upper);
-    OctagonManager.num_clear_n(lower, 1);
-    OctagonManager.num_clear_n(upper, 1);
-    return newState;
-  }
-
   public OctState makeAssignment(String leftVarName, IOctCoefficients oct) {
     if (getVariableIndexFor(leftVarName) == -1) {
       return this;
