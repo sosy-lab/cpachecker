@@ -26,8 +26,10 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.io.PrintStream;
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -140,12 +142,13 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
     List<CFAEdge> errorTrace = obtainErrorTrace(errorPath, interpolant);
     Map<ARGState, ValueAnalysisInterpolant> pathInterpolants = new LinkedHashMap<>(errorPath.size());
+    final Deque<ValueAnalysisState> callstack = new ArrayDeque<>();
 
     for (int i = 0; i < errorPath.size() - 1; i++) {
       shutdownNotifier.shutdownIfNecessary();
 
       if(!interpolant.isFalse()) {
-        interpolant = interpolator.deriveInterpolant(errorTrace, i, interpolant);
+        interpolant = interpolator.deriveInterpolant(errorTrace, i, interpolant, callstack);
       }
 
       totalInterpolationQueries = totalInterpolationQueries + interpolator.getNumberOfInterpolationQueries();
@@ -157,7 +160,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
       pathInterpolants.put(errorPath.get(i + 1).getFirst(), interpolant);
     }
 
-    assert interpolant.isFalse() : "final interpolant is not false";
+    assert interpolant.isFalse() : "final interpolant is not false: " + interpolant;
 
     timerInterpolation.stop();
     return pathInterpolants;

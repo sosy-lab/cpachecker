@@ -154,24 +154,29 @@ public class ValueAnalysisInterpolator {
    * @param pErrorPath the path to check
    * @param pOffset offset of the state at where to start the current interpolation
    * @param pInputInterpolant the input interpolant
+   * @param callStack the stack at where to start interpolation
    * @throws CPAException
    * @throws InterruptedException
    */
   public ValueAnalysisInterpolant deriveInterpolant(
       final List<CFAEdge> pErrorPath,
       final int pOffset,
-      final ValueAnalysisInterpolant pInputInterpolant) throws CPAException, InterruptedException {
+      final ValueAnalysisInterpolant pInputInterpolant,
+      final Deque<ValueAnalysisState> callStack) throws CPAException, InterruptedException {
     numberOfInterpolationQueries = 0;
 
     // on initial iteration
     if(pOffset == 0) {
-      assumptionsAreRelevant  = isRemainingPathFeasible(pErrorPath, new ValueAnalysisState(), false);
+      assumptionsAreRelevant  = isRemainingPathFeasible(pErrorPath, new ValueAnalysisState(), false, new ArrayDeque<>(callStack));
       relevantVariables       = assumeCollector.obtainUseDefInformation(pErrorPath);
     }
 
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
     ValueAnalysisState initialState      = pInputInterpolant.createValueAnalysisState();
-    ValueAnalysisState initialSuccessor  = getInitialSuccessor(initialState, pErrorPath.get(pOffset));
+
+    // get successor and update callstack
+    ValueAnalysisState initialSuccessor  = getInitialSuccessor(initialState, pErrorPath.get(pOffset), callStack);
+
     if (initialSuccessor == null) {
       return ValueAnalysisInterpolant.FALSE;
     }
@@ -194,7 +199,8 @@ public class ValueAnalysisInterpolator {
 
     // if the remaining path is infeasible by itself, i.e., contradicting by itself, skip interpolation
     Iterable<CFAEdge> remainingErrorPath = skip(pErrorPath, pOffset + 1);
-    if (initialSuccessor.getSize() > 1 && !isRemainingPathFeasible(remainingErrorPath, new ValueAnalysisState(), assumptionsAreRelevant)) {
+    if (initialSuccessor.getSize() > 1 && !isRemainingPathFeasible(
+            remainingErrorPath, new ValueAnalysisState(), assumptionsAreRelevant, new ArrayDeque<ValueAnalysisState>(/*empty*/))) {
       return ValueAnalysisInterpolant.TRUE;
     }
 
@@ -203,19 +209,34 @@ public class ValueAnalysisInterpolator {
       //return new ValueAnalysisInterpolant(initialSuccessor.getConstantsMapView());
     //}
 
-    for (MemoryLocation currentMemoryLocation : determineInterpolationCandidates(initialSuccessor)) {
+
+    // try to forget a variable:
+    // first search such a variable in all callstack-states, then the current initialState
+
+    // TODO disabled, because the stack contains too much information,
+    //      and it is not changed during analysis of functioncall
+    //for (ValueAnalysisState stackState : callStack) {
+    //  checkPathWithoutVariable(remainingErrorPath, new ArrayDeque<>(callStack), initialSuccessor, stackState);
+    //}
+    checkPathWithoutVariable(remainingErrorPath, new ArrayDeque<>(callStack), initialSuccessor, initialSuccessor);
+
+    return new ValueAnalysisInterpolant(new HashMap<>(initialSuccessor.getConstantsMapView()));
+  }
+
+  private void checkPathWithoutVariable( Iterable<CFAEdge> remainingErrorPath, ArrayDeque<ValueAnalysisState> callStack,
+          ValueAnalysisState initialSuccessor, ValueAnalysisState modifiableState)
+          throws InterruptedException, CPATransferException {
+    for (MemoryLocation currentMemoryLocation : determineInterpolationCandidates(modifiableState)) {
       shutdownNotifier.shutdownIfNecessary();
 
       // temporarily remove the value of the current memory location from the rawInterpolant
-      Value value = initialSuccessor.forget(currentMemoryLocation);
+      Value value = modifiableState.forget(currentMemoryLocation);
 
       // check if the remaining path now becomes feasible,
-      if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor, assumptionsAreRelevant)) {
-        initialSuccessor.assignConstant(currentMemoryLocation, value);
+      if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor, assumptionsAreRelevant, callStack)) {
+        modifiableState.assignConstant(currentMemoryLocation, value);
       }
     }
-
-    return new ValueAnalysisInterpolant(new HashMap<>(initialSuccessor.getConstantsMapView()));
   }
 
   /**
@@ -259,8 +280,25 @@ public class ValueAnalysisInterpolator {
    * @return the initial successor
    * @throws CPATransferException
    */
-  private ValueAnalysisState getInitialSuccessor(ValueAnalysisState initialState, CFAEdge initialEdge)
+  private ValueAnalysisState getInitialSuccessor(ValueAnalysisState initialState, CFAEdge initialEdge, Deque<ValueAnalysisState> callstack)
       throws CPATransferException {
+
+      // we enter a function, so lets add the previous state to the stack
+      if (initialEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+        callstack.addLast(initialState);
+      }
+
+      // TODO revisit code for empty callStack?
+      // --> remainingErrorPath begins somewhere in the middle and is started with an empty state,
+      // --> rebuilding would be useless, because without information it changes nothing.
+
+      // we leave a function, so rebuild return-state before assigning the return-value.
+      if (initialEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+        assert !callstack.isEmpty() : "callstack should not be empty, because the path starts at root node.";
+        // rebuild states with info from previous state
+        final ValueAnalysisState callState = callstack.removeLast();
+        initialState = initialState.rebuildStateAfterFunctionCall(callState);
+      }
 
     Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessors(
         initialState,
@@ -279,11 +317,10 @@ public class ValueAnalysisInterpolator {
    * @return true, it the path is feasible, else false
    * @throws CPATransferException
    */
-  private boolean isRemainingPathFeasible(Iterable<CFAEdge> remainingErrorPath, ValueAnalysisState state, boolean ignoreAssumptions)
+  private boolean isRemainingPathFeasible(Iterable<CFAEdge> remainingErrorPath, ValueAnalysisState state,
+                                          boolean ignoreAssumptions, final Deque<ValueAnalysisState> callstack)
       throws CPATransferException {
     numberOfInterpolationQueries++;
-
-    final Deque<ValueAnalysisState> callstack = new ArrayDeque<>();
 
     for(CFAEdge currentEdge : remainingErrorPath) {
       if(loopExitAssumes.contains(currentEdge)) {
