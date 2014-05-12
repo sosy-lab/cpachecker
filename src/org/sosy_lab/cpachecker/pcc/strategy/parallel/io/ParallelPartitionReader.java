@@ -87,7 +87,7 @@ public class ParallelPartitionReader implements Runnable {
       streams = strategy.openAdditionalProofStream(partitionIndex);
       ioHelper.readPartition(streams.getThird(), lock);
       giveSignal();
-      if (partitionReady == null) {
+      if (releaseSemaphoreIfReadFinished) {
         waitRead.release();
       }
     } catch (IOException | ClassNotFoundException e) {
