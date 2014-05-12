@@ -109,8 +109,9 @@ public class ValueAnalysisFeasibilityChecker {
   }
 
   /**
-   * This method obtains the prefix of the path, that is infeasible by itself. If the path is feasible, the whole path
-   * is returned
+   * This method obtains the prefix of the path, that is infeasible by itself.
+   * If the path is feasible, the whole path is returned.
+   * We assume that the path starts at the CFA-root-node and does not skip any edge on its way.
    *
    * @param path the path to check
    * @param pPrecision the precision to use
