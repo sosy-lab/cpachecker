@@ -58,7 +58,6 @@ import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.UnmodifiableIterator;
-import com.google.common.primitives.Ints;
 
 public class CFAUtils {
 
@@ -246,7 +245,7 @@ public class CFAUtils {
   public static final Comparator<CFANode> NODE_NUMBER_COMPARATOR = new Comparator<CFANode>() {
     @Override
     public int compare(CFANode pO1, CFANode pO2) {
-      return Ints.compare(pO1.getNodeNumber(), pO2.getNodeNumber());
+      return Integer.compare(pO1.getNodeNumber(), pO2.getNodeNumber());
     }
   };
 

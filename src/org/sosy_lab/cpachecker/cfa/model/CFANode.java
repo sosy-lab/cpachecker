@@ -28,8 +28,6 @@ import static com.google.common.base.Preconditions.*;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.common.primitives.Ints;
-
 public class CFANode implements Comparable<CFANode> {
 
   private static int nextNodeNumber = 0;
@@ -184,6 +182,6 @@ public class CFANode implements Comparable<CFANode> {
 
   @Override
   public int compareTo(CFANode pOther) {
-    return Ints.compare(this.nodeNumber, pOther.nodeNumber);
+    return Integer.compare(this.nodeNumber, pOther.nodeNumber);
   }
 }
