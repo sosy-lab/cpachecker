@@ -33,7 +33,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -113,7 +112,7 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
   private boolean existsExplicitOctagonRefinement = false;
 
   private final CFA cfa;
-  private final Configuration config;
+  private final OctagonCPA octagonCPA;
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -136,31 +135,28 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
   private static OctDelegatingRefiner initialiseValueAnalysisRefiner(
       ConfigurableProgramAnalysis cpa, OctagonCPA pOctagonCPA)
           throws CPAException, InvalidConfigurationException {
-    Configuration config              = pOctagonCPA.getConfiguration();
     LogManager logger                 = pOctagonCPA.getLogger();
 
     return new OctDelegatingRefiner(
-        config,
         logger,
         pOctagonCPA.getShutdownNotifier(),
         cpa,
-        pOctagonCPA.getCFA());
+        pOctagonCPA);
   }
 
   protected OctDelegatingRefiner(
-      final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final ConfigurableProgramAnalysis pCpa,
-      final CFA pCfa) throws CPAException, InvalidConfigurationException {
+      final OctagonCPA pOctagonCPA) throws CPAException, InvalidConfigurationException {
     super(pCpa);
-    pConfig.inject(this);
+    pOctagonCPA.getConfiguration().inject(this);
 
-    interpolatingRefiner  = new OctInterpolationBasedRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
-    cfa                   = pCfa;
+    cfa                   = pOctagonCPA.getCFA();
     logger                = pLogger;
     shutdownNotifier      = pShutdownNotifier;
-    config                = pConfig;
+    octagonCPA            = pOctagonCPA;
+    interpolatingRefiner  = new OctInterpolationBasedRefiner(pOctagonCPA.getConfiguration(), pLogger, pShutdownNotifier, cfa);
   }
 
   @Override
@@ -349,7 +345,7 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
 
       // no specific timelimit set for octagon feasibility check
       if (timeForOctagonFeasibilityCheck == 0) {
-        checker = new OctagonAnalysisFeasabilityChecker(cfa, logger, shutdownNotifier, path, config);
+        checker = new OctagonAnalysisFeasabilityChecker(cfa, logger, shutdownNotifier, path, octagonCPA.handleFloats());
 
       } else {
         ShutdownNotifier notifier = ShutdownNotifier.createWithParent(shutdownNotifier);
@@ -357,7 +353,7 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
         ResourceLimitChecker limits = new ResourceLimitChecker(notifier, Lists.newArrayList((ResourceLimit)l));
 
         limits.start();
-        checker = new OctagonAnalysisFeasabilityChecker(cfa, logger, notifier, path, config);
+        checker = new OctagonAnalysisFeasabilityChecker(cfa, logger, notifier, path, octagonCPA.handleFloats());
         limits.cancel();
       }
 

@@ -58,6 +58,12 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
       description="which merge operator to use for OctagonCPA?")
   private String mergeType = "SEP";
 
+  @Option(name="handleFloats",
+      description="with this option the evaluation of float variables can be toggled."
+          + " Additionally the used number representation in the"
+          + " library will be changed between floats and ints.")
+  private boolean handleFloats = false;
+
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
@@ -74,14 +80,12 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
                      throws InvalidConfigurationException, InvalidCFAException {
     config.inject(this);
     logger = log;
-    OctDomain octagonDomain = new OctDomain(logger, config);
+    OctDomain octagonDomain = new OctDomain(logger, handleFloats);
 
-    this.transferRelation = new OctTransferRelation(logger, cfa, config);
+    this.transferRelation = new OctTransferRelation(logger, cfa, handleFloats);
 
     MergeOperator octagonMergeOp = null;
-    if (mergeType.equals("SEP")) {
-      octagonMergeOp = MergeSepOperator.getInstance();
-    } else if (mergeType.equals("JOIN")) {
+    if (mergeType.equals("JOIN")) {
       octagonMergeOp = new OctMergeJoinOperator(octagonDomain, config);
     } else {
       // default is sep
@@ -99,7 +103,8 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
     this.cfa = cfa;
     precision = new OctPrecision(config);
 
-    assert OctagonManager.init(config);
+    boolean initializingLibrarySuccessful = OctagonManager.init(handleFloats, log);
+    assert initializingLibrarySuccessful;
   }
 
   @Override
@@ -129,7 +134,7 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractState getInitialState(CFANode node) {
-    return new OctState(logger);
+    return new OctState(logger, handleFloats);
   }
 
   @Override
@@ -151,5 +156,9 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
 
   public CFA getCFA() {
     return cfa;
+  }
+
+  public boolean handleFloats() {
+    return handleFloats;
   }
 }

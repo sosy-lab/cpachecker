@@ -41,9 +41,7 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -138,11 +136,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
   private static final Map<String, String> UNSUPPORTED_FUNCTIONS
       = ImmutableMap.of("pthread_create", "threads");
 
-  @Option(name="handleFloats",
-      description="with this option one can toggle the ability of handling floats"
-          + " note that this does some over-approximation if the wrong underlying"
-          + " numerical domain in the library is chosen")
-  private boolean handleFloats = false;
+  private final boolean handleFloats;
 
   private Collection<OctState> possibleStates = new ArrayList<>();
 
@@ -155,8 +149,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
    * @throws InvalidCFAException
    * @throws InvalidConfigurationException
    */
-  public OctTransferRelation(LogManager log, CFA cfa, Configuration config) throws InvalidCFAException, InvalidConfigurationException {
-    config.inject(this);
+  public OctTransferRelation(LogManager log, CFA cfa, boolean handleFloats) throws InvalidCFAException {
     logger = log;
 
     if (!cfa.getLoopStructure().isPresent()) {
@@ -176,6 +169,8 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
       }
     }
     loopEntryEdges = Collections.unmodifiableMap(entryEdges);
+
+    this.handleFloats = handleFloats;
   }
 
   @Override
@@ -248,7 +243,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
     if (loopEntryEdges.get(cfaEdge) != null) {
       Set<OctState> newStates = new HashSet<>();
       for (OctState s : cleanedUpStates) {
-        newStates.add(new OctState(s.getOctagon(), s.getVariableToIndexMap(), new OctState.Block(), logger));
+        newStates.add(new OctState(s.getOctagon(), s.getVariableToIndexMap(), new OctState.Block(), logger, handleFloats));
       }
       cleanedUpStates = newStates;
     }

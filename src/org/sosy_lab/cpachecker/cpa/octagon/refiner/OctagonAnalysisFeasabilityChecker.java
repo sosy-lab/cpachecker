@@ -59,18 +59,18 @@ public class OctagonAnalysisFeasabilityChecker {
   private final ARGPath checkedPath;
   private final ARGPath foundPath;
 
-  public OctagonAnalysisFeasabilityChecker(CFA cfa, LogManager log, ShutdownNotifier pShutdownNotifier, ARGPath path, Configuration config) throws InvalidConfigurationException, CPAException, InterruptedException {
+  public OctagonAnalysisFeasabilityChecker(CFA cfa, LogManager log, ShutdownNotifier pShutdownNotifier, ARGPath path, boolean handleFloats) throws InvalidConfigurationException, CPAException, InterruptedException {
     logger = log;
     shutdownNotifier = pShutdownNotifier;
 
     // use the normal configuration for creating the transferrelation
-    transfer  = new OctTransferRelation(logger, cfa, config);
+    transfer  = new OctTransferRelation(logger, cfa, handleFloats);
     checkedPath = path;
 
     // use a new configuration which only has the default values for the precision
     // we do not want any special options to be set there
     foundPath = getInfeasiblePrefix(new OctPrecision(Configuration.defaultConfiguration()),
-                                    new OctState(logger));
+                                    new OctState(logger, handleFloats));
   }
 
   /**
