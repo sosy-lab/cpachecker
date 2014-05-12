@@ -126,7 +126,8 @@ public class ReachingDefState implements AbstractState, Serializable {
     if (superset == this || superset == topElement) {
       return true;
     }
-    if (stateOnLastFunctionCall != superset.stateOnLastFunctionCall && !compareStackStates(this, superset)) {
+    if (stateOnLastFunctionCall != superset.stateOnLastFunctionCall
+        && !compareStackStates(stateOnLastFunctionCall, superset.stateOnLastFunctionCall)) {
       return false;
     }
     boolean isLocalSubset;
@@ -137,7 +138,7 @@ public class ReachingDefState implements AbstractState, Serializable {
   private boolean compareStackStates(ReachingDefState sub, ReachingDefState sup) {
     boolean result;
     do {
-      if (sub.stateOnLastFunctionCall == null || sup.stateOnLastFunctionCall == null) {
+      if (sub == null || sup == null) {
         return false;
       }
       result = isSubsetOf(sub.getLocalReachingDefinitions(), sup.getLocalReachingDefinitions());
@@ -150,7 +151,7 @@ public class ReachingDefState implements AbstractState, Serializable {
 
   private boolean isSubsetOf(Map<String, Set<DefinitionPoint>> subset, Map<String, Set<DefinitionPoint>> superset) {
     Set<DefinitionPoint> setSub, setSuper;
-    if (subset == superset || superset == topElement) {
+    if (subset == superset) {
       return true;
     }
     for (String var : subset.keySet()) {
