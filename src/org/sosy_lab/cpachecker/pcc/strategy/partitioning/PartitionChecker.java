@@ -153,7 +153,8 @@ public class PartitionChecker implements Runnable {
           return;
         }
 
-        if (statesPerLocation.size() + certificate.size() > ioHelper.getSavedReachedSetSize()) {
+        if (statesPerLocation.size() - addToContainedInCertificate.size() + certificate.size() > ioHelper
+            .getSavedReachedSetSize()) {
           logger.log(Level.SEVERE, "Checking failed, recomputed certificate bigger than original reached set.");
           abortPreparation();
           return;
