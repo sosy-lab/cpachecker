@@ -30,7 +30,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -150,12 +149,6 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
       }
 
       totalInterpolationQueries = totalInterpolationQueries + interpolator.getNumberOfInterpolationQueries();
-
-      // remove variables from the interpolant that belong to the scope of the returning function
-      // this is done one iteration after returning from the function, as the special FUNCTION_RETURN_VAR is needed that long
-      if (i > 0 && errorPath.get(i - 1).getSecond().getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
-        interpolant.clearScope(errorPath.get(i - 1).getSecond().getSuccessor().getFunctionName());
-      }
 
       if(!interpolant.isTrivial() && interpolationOffset == -1) {
         interpolationOffset = i + 1;
@@ -521,23 +514,6 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      */
     boolean isTrivial() {
       return isFalse() || isTrue();
-    }
-
-    /**
-     * This method clears memory locations from the assignment that belong to the given function.
-     *
-     * @param functionName the name of the function for which to remove assignments
-     */
-    private void clearScope(String functionName) {
-      if(isTrivial()) {
-        return;
-      }
-
-      for (Iterator<MemoryLocation> variableNames = assignment.keySet().iterator(); variableNames.hasNext(); ) {
-        if (variableNames.next().isOnFunctionStack(functionName)) {
-          variableNames.remove();
-        }
-      }
     }
 
     /**
