@@ -28,7 +28,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
@@ -43,6 +42,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -54,6 +54,10 @@ import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
 import org.sosy_lab.cpachecker.pcc.strategy.parallel.io.ParallelPartitionReader;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 @Options(prefix = "pcc")
 public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends AbstractStrategy {
@@ -93,7 +97,7 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
   public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
     AtomicBoolean checkResult = new AtomicBoolean(true);
     Semaphore partitionChecked = new Semaphore(0);
-    Collection<AbstractState> certificate = new HashSet<>(ioHelper.getSavedReachedSetSize());
+    Multimap<CFANode, AbstractState> certificate = HashMultimap.create();
     Collection<AbstractState> inOtherPartition = new ArrayList<>();
     AbstractState initialState = pReachedSet.popFromWaitlist();
     Precision initPrec = pReachedSet.getPrecision(initialState);
@@ -122,9 +126,8 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
       if (!checkResult.get()) { return false; }
 
       logger.log(Level.INFO, "Check if all are checked");
-      for(AbstractState outState: inOtherPartition){
-        // TODO probably more efficient do not use certificate?
-        if (!cpa.getStopOperator().stop(outState, certificate, initPrec)) {
+      for (AbstractState outState : inOtherPartition) {
+        if (!cpa.getStopOperator().stop(outState, certificate.get(AbstractStates.extractLocation(outState)), initPrec)) {
           logger
               .log(Level.SEVERE,
                   "Not all outer partition nodes are in other partitions. Following state not contained: ",
@@ -134,8 +137,8 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
       }
 
       logger.log(Level.INFO, "Check if initial state is covered.");
-      // TODO probably more efficient do not use certificate?
-      if (!cpa.getStopOperator().stop(initialState, certificate, initPrec)) {
+      if (!cpa.getStopOperator().stop(initialState, certificate.get(AbstractStates.extractLocation(initialState)),
+          initPrec)) {
         logger.log(Level.SEVERE, "Initial state not covered.");
         return false;
       }
@@ -143,7 +146,7 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
       logger.log(Level.INFO, "Check property.");
       stats.getPropertyCheckingTimer().start();
       try {
-        if (!cpa.getPropChecker().satisfiesProperty(certificate)) {
+        if (!cpa.getPropChecker().satisfiesProperty(certificate.values())) {
           logger.log(Level.SEVERE, "Property violated");
           return false;
         }
@@ -174,7 +177,7 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
   }
 
   private void startCheckingThreads(final ExecutorService pCheckingExecutor, final AtomicBoolean pCheckResult,
-      final Semaphore pPartitionChecked, final Collection<AbstractState> pCertificate,
+      final Semaphore pPartitionChecked, final Multimap<CFANode, AbstractState> pCertificate,
       final Collection<AbstractState> pInOtherPartition,
       final Precision pInitialPrecision, final Lock pLock, final Condition pPartitionReady) {
     for (int i = 0; i < ioHelper.getNumPartitions(); i++) {

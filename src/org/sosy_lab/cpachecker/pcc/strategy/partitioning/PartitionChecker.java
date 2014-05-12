@@ -61,9 +61,8 @@ public class PartitionChecker implements Runnable {
   private final Lock lock;
   private Condition partitionReady;
 
-  private final Collection<AbstractState> certificate;
+  private final Multimap<CFANode, AbstractState> certificate;
   private final Collection<AbstractState> mustBeContainedInCertificate;
-  private final List<AbstractState> addToCertificate = new ArrayList<>();
   private final List<AbstractState> addToContainedInCertificate = new ArrayList<>();
 
   private final PartitioningIOHelper ioHelper;
@@ -78,7 +77,7 @@ public class PartitionChecker implements Runnable {
   private final LogManager logger;
 
   public PartitionChecker(final int pNumber, final AtomicBoolean pCheckResult, final Semaphore pPartitionChecked,
-      final Collection<AbstractState> pCertificate, final Collection<AbstractState> pInOtherPartition,
+      final Multimap<CFANode, AbstractState> pCertificate, final Collection<AbstractState> pInOtherPartition,
       final Precision pInitPrec, final ConfigurableProgramAnalysis pCpa, final Lock pLock,
       final PartitioningIOHelper pHelper, final ShutdownNotifier pShutdown, final LogManager pLogger) {
     partitionNumber = pNumber;
@@ -102,7 +101,7 @@ public class PartitionChecker implements Runnable {
   }
 
   public PartitionChecker(final int pNumber, final AtomicBoolean pCheckResult, final Semaphore pPartitionChecked,
-      final Collection<AbstractState> pCertificate, final Collection<AbstractState> pInOtherPartition,
+      final Multimap<CFANode, AbstractState> pCertificate, final Collection<AbstractState> pInOtherPartition,
       final Precision pInitPrec, final ConfigurableProgramAnalysis pCpa, final Lock pLock,
       final Condition pPartitionReady, final PartitioningIOHelper pHelper, final ShutdownNotifier pShutdown,
       final LogManager pLogger) {
@@ -154,7 +153,7 @@ public class PartitionChecker implements Runnable {
           return;
         }
 
-        if (addToCertificate.size() + certificate.size() > ioHelper.getSavedReachedSetSize()) {
+        if (statesPerLocation.size() + certificate.size() > ioHelper.getSavedReachedSetSize()) {
           logger.log(Level.SEVERE, "Checking failed, recomputed certificate bigger than original reached set.");
           abortPreparation();
           return;
@@ -186,7 +185,7 @@ public class PartitionChecker implements Runnable {
 
       lock.lock();
       try {
-        certificate.addAll(addToCertificate);
+        certificate.putAll(statesPerLocation);
         mustBeContainedInCertificate.addAll(addToContainedInCertificate);
       } finally {
         lock.unlock();
@@ -204,7 +203,6 @@ public class PartitionChecker implements Runnable {
     CFANode node = AbstractStates.extractLocation(element);
     statesPerLocation.put(node, element);
     if (inCertificate) {
-      addToCertificate.add(element);
       waitlist.push(element);
     } else {
       addToContainedInCertificate.add(element);
