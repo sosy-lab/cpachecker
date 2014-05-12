@@ -28,6 +28,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
@@ -93,7 +94,8 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
   public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
     AtomicBoolean checkResult = new AtomicBoolean(true);
     Semaphore partitionChecked = new Semaphore(0);
-    Multimap<CFANode, AbstractState> certificate = HashMultimap.create();
+    Collection<AbstractState> certificate = new HashSet<>(ioHelper.getNumPartitions());
+    Multimap<CFANode, AbstractState> partitionNodes = HashMultimap.create();
     Collection<AbstractState> inOtherPartition = new ArrayList<>();
     AbstractState initialState = pReachedSet.popFromWaitlist();
     Precision initPrec = pReachedSet.getPrecision(initialState);
@@ -103,8 +105,7 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
     try {
       for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
         executor.execute(new PartitionChecker(i, checkResult, partitionChecked, certificate, inOtherPartition,
-            initPrec,
-            cpa, lock, ioHelper, shutdownNotifier, logger));
+            partitionNodes, initPrec, cpa, lock, ioHelper, shutdownNotifier, logger));
       }
 
       partitionChecked.acquire(ioHelper.getNumPartitions());
@@ -113,7 +114,7 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
 
       logger.log(Level.INFO, "Check if all are checked");
       for (AbstractState outState : inOtherPartition) {
-        if (!cpa.getStopOperator().stop(outState, certificate.get(AbstractStates.extractLocation(outState)), initPrec)) {
+        if (!cpa.getStopOperator().stop(outState, partitionNodes.get(AbstractStates.extractLocation(outState)), initPrec)) {
           logger
               .log(Level.SEVERE,
                   "Not all outer partition nodes are in other partitions. Following state not contained: ",
@@ -123,7 +124,7 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
       }
 
       logger.log(Level.INFO, "Check if initial state is covered.");
-      if (!cpa.getStopOperator().stop(initialState, certificate.get(AbstractStates.extractLocation(initialState)),
+      if (!cpa.getStopOperator().stop(initialState, partitionNodes.get(AbstractStates.extractLocation(initialState)),
           initPrec)) {
         logger.log(Level.SEVERE, "Initial state not covered.");
         return false;
@@ -132,7 +133,7 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
       logger.log(Level.INFO, "Check property.");
       stats.getPropertyCheckingTimer().start();
       try {
-        if (!cpa.getPropChecker().satisfiesProperty(certificate.values())) {
+        if (!cpa.getPropChecker().satisfiesProperty(certificate)) {
           logger.log(Level.SEVERE, "Property violated");
           return false;
         }

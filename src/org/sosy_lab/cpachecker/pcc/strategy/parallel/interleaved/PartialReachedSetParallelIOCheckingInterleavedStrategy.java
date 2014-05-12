@@ -28,6 +28,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
@@ -97,7 +98,8 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
   public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
     AtomicBoolean checkResult = new AtomicBoolean(true);
     Semaphore partitionChecked = new Semaphore(0);
-    Multimap<CFANode, AbstractState> certificate = HashMultimap.create();
+    Collection<AbstractState> certificate = new HashSet<>(ioHelper.getNumPartitions());
+    Multimap<CFANode, AbstractState> partitionNodes = HashMultimap.create();
     Collection<AbstractState> inOtherPartition = new ArrayList<>();
     AbstractState initialState = pReachedSet.popFromWaitlist();
     Precision initPrec = pReachedSet.getPrecision(initialState);
@@ -110,15 +112,14 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
       if (numReadThreads == 0) {
         executor = Executors.newFixedThreadPool(numThreads);
         startReadingThreads(executor, checkResult, partitionChecked, lock, partitionReady);
-        startCheckingThreads(executor, checkResult, partitionChecked, certificate, inOtherPartition, initPrec, lock,
-            partitionReady);
+        startCheckingThreads(executor, checkResult, partitionChecked, certificate, partitionNodes, inOtherPartition,
+            initPrec, lock, partitionReady);
       } else {
         readExecutor = Executors.newFixedThreadPool(numReadThreads);
         startReadingThreads(readExecutor, checkResult, partitionChecked, lock, partitionReady);
         checkExecutor = Executors.newFixedThreadPool(numThreads - numReadThreads);
-        startCheckingThreads(checkExecutor, checkResult, partitionChecked, certificate, inOtherPartition, initPrec,
-            lock,
-            partitionReady);
+        startCheckingThreads(checkExecutor, checkResult, partitionChecked, certificate, partitionNodes, inOtherPartition,
+            initPrec, lock, partitionReady);
       }
 
       partitionChecked.acquire(ioHelper.getNumPartitions());
@@ -127,7 +128,7 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
 
       logger.log(Level.INFO, "Check if all are checked");
       for (AbstractState outState : inOtherPartition) {
-        if (!cpa.getStopOperator().stop(outState, certificate.get(AbstractStates.extractLocation(outState)), initPrec)) {
+        if (!cpa.getStopOperator().stop(outState, partitionNodes.get(AbstractStates.extractLocation(outState)), initPrec)) {
           logger
               .log(Level.SEVERE,
                   "Not all outer partition nodes are in other partitions. Following state not contained: ",
@@ -137,7 +138,7 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
       }
 
       logger.log(Level.INFO, "Check if initial state is covered.");
-      if (!cpa.getStopOperator().stop(initialState, certificate.get(AbstractStates.extractLocation(initialState)),
+      if (!cpa.getStopOperator().stop(initialState, partitionNodes.get(AbstractStates.extractLocation(initialState)),
           initPrec)) {
         logger.log(Level.SEVERE, "Initial state not covered.");
         return false;
@@ -146,7 +147,7 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
       logger.log(Level.INFO, "Check property.");
       stats.getPropertyCheckingTimer().start();
       try {
-        if (!cpa.getPropChecker().satisfiesProperty(certificate.values())) {
+        if (!cpa.getPropChecker().satisfiesProperty(certificate)) {
           logger.log(Level.SEVERE, "Property violated");
           return false;
         }
@@ -177,13 +178,12 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
   }
 
   private void startCheckingThreads(final ExecutorService pCheckingExecutor, final AtomicBoolean pCheckResult,
-      final Semaphore pPartitionChecked, final Multimap<CFANode, AbstractState> pCertificate,
-      final Collection<AbstractState> pInOtherPartition,
+      final Semaphore pPartitionChecked, final Collection<AbstractState> pCertificate,
+      final Multimap<CFANode, AbstractState> pInPartition, final Collection<AbstractState> pInOtherPartition,
       final Precision pInitialPrecision, final Lock pLock, final Condition pPartitionReady) {
     for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
       pCheckingExecutor.execute(new PartitionChecker(i, pCheckResult, pPartitionChecked, pCertificate,
-          pInOtherPartition, pInitialPrecision,
-          cpa, pLock, pPartitionReady, ioHelper, shutdown, logger));
+          pInOtherPartition, pInPartition, pInitialPrecision, cpa, pLock, pPartitionReady, ioHelper, shutdown, logger));
     }
   }
 

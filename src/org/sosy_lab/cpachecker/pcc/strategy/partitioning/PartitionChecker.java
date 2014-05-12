@@ -61,8 +61,10 @@ public class PartitionChecker implements Runnable {
   private final Lock lock;
   private Condition partitionReady;
 
-  private final Multimap<CFANode, AbstractState> certificate;
+  private final Collection<AbstractState> certificate;
+  private final Multimap<CFANode, AbstractState> isInPartition;
   private final Collection<AbstractState> mustBeContainedInCertificate;
+  private final List<AbstractState> addToCertificate = new ArrayList<>();
   private final List<AbstractState> addToContainedInCertificate = new ArrayList<>();
 
   private final PartitioningIOHelper ioHelper;
@@ -76,15 +78,18 @@ public class PartitionChecker implements Runnable {
   private final ShutdownNotifier shutdownNotifier;
   private final LogManager logger;
 
+
   public PartitionChecker(final int pNumber, final AtomicBoolean pCheckResult, final Semaphore pPartitionChecked,
-      final Multimap<CFANode, AbstractState> pCertificate, final Collection<AbstractState> pInOtherPartition,
-      final Precision pInitPrec, final ConfigurableProgramAnalysis pCpa, final Lock pLock,
-      final PartitioningIOHelper pHelper, final ShutdownNotifier pShutdown, final LogManager pLogger) {
+      final Collection<AbstractState> pCertificate, final Collection<AbstractState> pInOtherPartition,
+      final Multimap<CFANode, AbstractState> pInPartition, final Precision pInitPrec,
+      final ConfigurableProgramAnalysis pCpa, final Lock pLock, final PartitioningIOHelper pHelper,
+      final ShutdownNotifier pShutdown, final LogManager pLogger) {
     partitionNumber = pNumber;
     checkResult = pCheckResult;
     mainSemaphore = pPartitionChecked;
     certificate = pCertificate;
     mustBeContainedInCertificate = pInOtherPartition;
+    isInPartition = pInPartition;
     initPrec = pInitPrec;
     if (pCpa instanceof ARGCPA) {
       stop = ((ARGCPA) pCpa).getWrappedCPAs().get(0).getStopOperator();
@@ -101,12 +106,12 @@ public class PartitionChecker implements Runnable {
   }
 
   public PartitionChecker(final int pNumber, final AtomicBoolean pCheckResult, final Semaphore pPartitionChecked,
-      final Multimap<CFANode, AbstractState> pCertificate, final Collection<AbstractState> pInOtherPartition,
-      final Precision pInitPrec, final ConfigurableProgramAnalysis pCpa, final Lock pLock,
-      final Condition pPartitionReady, final PartitioningIOHelper pHelper, final ShutdownNotifier pShutdown,
-      final LogManager pLogger) {
-    this(pNumber, pCheckResult, pPartitionChecked, pCertificate, pInOtherPartition, pInitPrec, pCpa, pLock, pHelper,
-        pShutdown, pLogger);
+      final Collection<AbstractState> pCertificate, final Collection<AbstractState> pInOtherPartition,
+      final Multimap<CFANode, AbstractState> pInPartition, final Precision pInitPrec,
+      final ConfigurableProgramAnalysis pCpa, final Lock pLock, final Condition pPartitionReady,
+      final PartitioningIOHelper pHelper, final ShutdownNotifier pShutdown, final LogManager pLogger) {
+    this(pNumber, pCheckResult, pPartitionChecked, pCertificate, pInOtherPartition, pInPartition, pInitPrec, pCpa,
+        pLock, pHelper, pShutdown, pLogger);
     partitionReady = pPartitionReady;
   }
 
@@ -153,7 +158,7 @@ public class PartitionChecker implements Runnable {
           return;
         }
 
-        if (statesPerLocation.size() - addToContainedInCertificate.size() + certificate.size() > ioHelper
+        if (addToCertificate.size() + certificate.size() > ioHelper
             .getSavedReachedSetSize()) {
           logger.log(Level.SEVERE, "Checking failed, recomputed certificate bigger than original reached set.");
           abortPreparation();
@@ -186,8 +191,11 @@ public class PartitionChecker implements Runnable {
 
       lock.lock();
       try {
-        certificate.putAll(statesPerLocation);
+        certificate.addAll(addToCertificate);
         mustBeContainedInCertificate.addAll(addToContainedInCertificate);
+        for (AbstractState internalNode : partition.getFirst()) {
+          isInPartition.put(AbstractStates.extractLocation(internalNode), internalNode);
+        }
       } finally {
         lock.unlock();
       }
@@ -204,6 +212,7 @@ public class PartitionChecker implements Runnable {
     CFANode node = AbstractStates.extractLocation(element);
     statesPerLocation.put(node, element);
     if (inCertificate) {
+      addToCertificate.add(element);
       waitlist.push(element);
     } else {
       addToContainedInCertificate.add(element);
