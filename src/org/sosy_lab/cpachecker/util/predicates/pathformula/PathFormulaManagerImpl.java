@@ -459,7 +459,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             // We expect this situation of one of the children is a target state created by PredicateCPA.
             continue;
           } else {
-            logger.log(Level.WARNING, "ARG branching with more than two outgoing edges");
+            logger.log(Level.WARNING, "ARG branching with more than two outgoing edges at ARG node " + pathElement.getStateId() + ".");
             return bfmgr.makeBoolean(true);
           }
         }
@@ -476,7 +476,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             // We expect this situation of one of the children is a target state created by PredicateCPA.
             continue;
           } else {
-            logger.log(Level.WARNING, "ARG branching without AssumeEdge");
+            logger.log(Level.WARNING, "ARG branching without AssumeEdge at ARG node " + pathElement.getStateId() + ".");
             return bfmgr.makeBoolean(true);
           }
         }

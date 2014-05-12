@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.pcc.strategy.partialcertificate;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -96,7 +97,7 @@ public class PartialReachedSetDirectedGraph {
     CollectingOutsideSuccessorVisitor visitor = new CollectingOutsideSuccessorVisitor(pAsARGState);
     visitOutsideSuccessors(pNodeSetIndices, visitor);
 
-    return visitor.listRes.toArray(new AbstractState[visitor.listRes.size()]);
+    return visitor.setRes.toArray(new AbstractState[visitor.setRes.size()]);
   }
 
   public long getNumAdjacentNodesOutsideSet(final Set<Integer> pNodeSetIndices) {
@@ -149,7 +150,7 @@ public class PartialReachedSetDirectedGraph {
 
   private class CollectingOutsideSuccessorVisitor implements OutsideSuccessorVisitor {
 
-    private final List<AbstractState> listRes = new ArrayList<>();
+    private final Set<AbstractState> setRes = new HashSet<>();
     private final boolean collectAsARGState;
 
     public CollectingOutsideSuccessorVisitor(final boolean pCollectAsARGState) {
@@ -159,9 +160,9 @@ public class PartialReachedSetDirectedGraph {
     @Override
     public void visit(int pSuccessor) {
       if (collectAsARGState) {
-        listRes.add(nodes[pSuccessor]);
+        setRes.add(nodes[pSuccessor]);
       } else {
-        listRes.add(((ARGState) nodes[pSuccessor]).getWrappedState());
+        setRes.add(((ARGState) nodes[pSuccessor]).getWrappedState());
       }
     }
   }

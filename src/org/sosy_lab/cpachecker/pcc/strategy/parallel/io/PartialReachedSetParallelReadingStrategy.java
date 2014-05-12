@@ -42,6 +42,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -52,6 +53,10 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 @Options(prefix = "pcc")
 public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
@@ -89,48 +94,57 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
   public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
     AtomicBoolean checkResult = new AtomicBoolean(true);
     Semaphore partitionChecked = new Semaphore(0);
-    Collection<AbstractState> certificate = new HashSet<>(ioHelper.getSavedReachedSetSize());
+    Collection<AbstractState> certificate = new HashSet<>(ioHelper.getNumPartitions());
+    Multimap<CFANode, AbstractState> partitionNodes = HashMultimap.create();
     Collection<AbstractState> inOtherPartition = new ArrayList<>();
-    Precision initPrec = pReachedSet.getPrecision(pReachedSet.getFirstState());
+    AbstractState initialState = pReachedSet.popFromWaitlist();
+    Precision initPrec = pReachedSet.getPrecision(initialState);
 
     logger.log(Level.INFO, "Create and start threads");
     ExecutorService executor = Executors.newFixedThreadPool(enableParallelCheck ? numThreads : 1);
-    for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
-      executor.execute(new PartitionChecker(i, checkResult, partitionChecked, certificate, inOtherPartition, initPrec,
-          cpa, lock, ioHelper, shutdownNotifier, logger));
-    }
-
-    partitionChecked.acquire(ioHelper.getNumPartitions());
-
-    if(!checkResult.get()){
-      return false;
-    }
-
-    logger.log(Level.INFO, "Check if all are checked");
-    if (!certificate.containsAll(inOtherPartition)) {
-      logger.log(Level.SEVERE, "Initial state not covered.");
-      return false;
-    }
-
-    logger.log(Level.INFO, "Check if initial state is covered.");
-    // TODO probably more efficient do not use certificate?
-    if (!cpa.getStopOperator().stop(pReachedSet.getFirstState(), certificate, initPrec)) {
-      logger.log(Level.SEVERE, "Initial state not covered.");
-      return false;
-    }
-
-    logger.log(Level.INFO, "Check property.");
-    stats.getPropertyCheckingTimer().start();
     try {
-      if (!cpa.getPropChecker().satisfiesProperty(certificate)) {
-        logger.log(Level.SEVERE, "Property violated");
+      for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
+        executor.execute(new PartitionChecker(i, checkResult, partitionChecked, certificate, inOtherPartition,
+            partitionNodes, initPrec, cpa, lock, ioHelper, shutdownNotifier, logger));
+      }
+
+      partitionChecked.acquire(ioHelper.getNumPartitions());
+
+      if (!checkResult.get()) { return false; }
+
+      logger.log(Level.INFO, "Check if all are checked");
+      for (AbstractState outState : inOtherPartition) {
+        if (!cpa.getStopOperator().stop(outState, partitionNodes.get(AbstractStates.extractLocation(outState)), initPrec)) {
+          logger
+              .log(Level.SEVERE,
+                  "Not all outer partition nodes are in other partitions. Following state not contained: ",
+                  outState);
+          return false;
+        }
+      }
+
+      logger.log(Level.INFO, "Check if initial state is covered.");
+      if (!cpa.getStopOperator().stop(initialState, partitionNodes.get(AbstractStates.extractLocation(initialState)),
+          initPrec)) {
+        logger.log(Level.SEVERE, "Initial state not covered.");
         return false;
       }
-    } finally {
-      stats.getPropertyCheckingTimer().stop();
-    }
 
-    return true;
+      logger.log(Level.INFO, "Check property.");
+      stats.getPropertyCheckingTimer().start();
+      try {
+        if (!cpa.getPropChecker().satisfiesProperty(certificate)) {
+          logger.log(Level.SEVERE, "Property violated");
+          return false;
+        }
+      } finally {
+        stats.getPropertyCheckingTimer().stop();
+      }
+
+      return true;
+    } finally {
+      executor.shutdown();
+    }
   }
 
   @Override
@@ -161,25 +175,28 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
     ioHelper.readMetadata(pIn, true);
     // read partitions in parallel
     ExecutorService executor = Executors.newFixedThreadPool(numThreads);
-    AtomicBoolean success = new AtomicBoolean(true);
-    Semaphore waitRead = new Semaphore(0);
-    int numPartition = ioHelper.getNumPartitions();
-    for (int i = 0; i < numPartition; i++) {
-      executor.execute(new ParallelPartitionReader(i, success, waitRead, this, ioHelper));
-    }
-
     try {
-      waitRead.acquire(numPartition);
-    } catch (InterruptedException e) {
-      throw new IOException("Proof reading failed.");
-    }
+      AtomicBoolean success = new AtomicBoolean(true);
+      Semaphore waitRead = new Semaphore(0);
+      int numPartition = ioHelper.getNumPartitions();
 
-    if (!success.get()) {
-      logger.log(Level.SEVERE, "Reading partition from proof failed.");
-      throw new IOException("Reading one of the partitions failed");
-    }
+      for (int i = 0; i < numPartition; i++) {
+        executor.execute(new ParallelPartitionReader(i, success, waitRead, this, ioHelper, true));
+      }
 
-    executor.shutdown();
+      try {
+        waitRead.acquire(numPartition);
+      } catch (InterruptedException e) {
+        throw new IOException("Proof reading failed.");
+      }
+
+      if (!success.get()) {
+        logger.log(Level.SEVERE, "Reading partition from proof failed.");
+        throw new IOException("Reading one of the partitions failed");
+      }
+    } finally {
+      executor.shutdown();
+    }
   }
 
 }

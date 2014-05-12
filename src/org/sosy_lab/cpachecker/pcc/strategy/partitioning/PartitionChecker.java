@@ -59,9 +59,10 @@ public class PartitionChecker implements Runnable {
   private final AtomicBoolean checkResult;
   private final Semaphore mainSemaphore;
   private final Lock lock;
-  private final Condition partitionReady;
+  private Condition partitionReady;
 
   private final Collection<AbstractState> certificate;
+  private final Multimap<CFANode, AbstractState> isInPartition;
   private final Collection<AbstractState> mustBeContainedInCertificate;
   private final List<AbstractState> addToCertificate = new ArrayList<>();
   private final List<AbstractState> addToContainedInCertificate = new ArrayList<>();
@@ -77,15 +78,18 @@ public class PartitionChecker implements Runnable {
   private final ShutdownNotifier shutdownNotifier;
   private final LogManager logger;
 
+
   public PartitionChecker(final int pNumber, final AtomicBoolean pCheckResult, final Semaphore pPartitionChecked,
       final Collection<AbstractState> pCertificate, final Collection<AbstractState> pInOtherPartition,
-      final Precision pInitPrec, final ConfigurableProgramAnalysis pCpa, final Lock pLock,
-      final PartitioningIOHelper pHelper, final ShutdownNotifier pShutdown, final LogManager pLogger) {
+      final Multimap<CFANode, AbstractState> pInPartition, final Precision pInitPrec,
+      final ConfigurableProgramAnalysis pCpa, final Lock pLock, final PartitioningIOHelper pHelper,
+      final ShutdownNotifier pShutdown, final LogManager pLogger) {
     partitionNumber = pNumber;
     checkResult = pCheckResult;
     mainSemaphore = pPartitionChecked;
     certificate = pCertificate;
     mustBeContainedInCertificate = pInOtherPartition;
+    isInPartition = pInPartition;
     initPrec = pInitPrec;
     if (pCpa instanceof ARGCPA) {
       stop = ((ARGCPA) pCpa).getWrappedCPAs().get(0).getStopOperator();
@@ -103,95 +107,105 @@ public class PartitionChecker implements Runnable {
 
   public PartitionChecker(final int pNumber, final AtomicBoolean pCheckResult, final Semaphore pPartitionChecked,
       final Collection<AbstractState> pCertificate, final Collection<AbstractState> pInOtherPartition,
-      final Precision pInitPrec, final ConfigurableProgramAnalysis pCpa, final Lock pLock,
-      final Condition pPartitionReady, final PartitioningIOHelper pHelper, final ShutdownNotifier pShutdown,
-      final LogManager pLogger) {
-    this(pNumber, pCheckResult, pPartitionChecked, pCertificate, pInOtherPartition, pInitPrec, pCpa, pLock, pHelper,
-        pShutdown, pLogger);
+      final Multimap<CFANode, AbstractState> pInPartition, final Precision pInitPrec,
+      final ConfigurableProgramAnalysis pCpa, final Lock pLock, final Condition pPartitionReady,
+      final PartitioningIOHelper pHelper, final ShutdownNotifier pShutdown, final LogManager pLogger) {
+    this(pNumber, pCheckResult, pPartitionChecked, pCertificate, pInOtherPartition, pInPartition, pInitPrec, pCpa,
+        pLock, pHelper, pShutdown, pLogger);
+    partitionReady = pPartitionReady;
   }
 
   @Override
   public void run() {
-    Pair<AbstractState[], AbstractState[]> partition = null;
-    lock.lock();
     try {
-      while (partition == null) {
-        if (!checkResult.get()) { return; }
-        partition = ioHelper.getPartition(partitionNumber);
-        if (partitionReady == null) {
-          logger.log(Level.SEVERE, "Not configured for interleaved proof reading and checking");
+      Pair<AbstractState[], AbstractState[]> partition = null;
+      lock.lock();
+      try {
+        while ((partition = ioHelper.getPartition(partitionNumber)) == null) {
+          if (!checkResult.get()) { return; }
+          if (partitionReady == null) {
+            logger.log(Level.SEVERE, "Not configured for interleaved proof reading and checking");
+            abortPreparation();
+            return;
+          }
+          partitionReady.await();
+        }
+      } catch (InterruptedException e) {
+        abortPreparation();
+        return;
+      } finally {
+        lock.unlock();
+      }
+
+
+      // add nodes of partition
+      for (AbstractState internalNode : partition.getFirst()) {
+        addElement(internalNode, true);
+      }
+
+      // add adjacent nodes of other partition
+      for (AbstractState internalNode : partition.getSecond()) {
+        addElement(internalNode, false);
+      }
+
+      AbstractState checkedState;
+      Collection<? extends AbstractState> successors;
+
+
+      while (!waitlist.isEmpty()) {
+        if (shutdownNotifier.shouldShutdown()) {
           abortPreparation();
           return;
         }
-        partitionReady.await();
-      }
-    } catch (InterruptedException e) {
-      abortPreparation();
-      return;
-    } finally {
-      lock.unlock();
-    }
 
-
-    // add nodes of partition
-    for (AbstractState internalNode : partition.getFirst()) {
-      addElement(internalNode, true);
-    }
-
-    // add adjacent nodes of other partition
-    for (AbstractState internalNode : partition.getSecond()) {
-      addElement(internalNode, false);
-    }
-
-    AbstractState checkedState;
-    Collection<? extends AbstractState> successors;
-
-
-    while (!waitlist.isEmpty()) {
-      if (shutdownNotifier.shouldShutdown()) {
-        abortPreparation();
-        return;
-      }
-
-      if (addToCertificate.size() + certificate.size() > ioHelper.getSavedReachedSetSize()) {
-        logger.log(Level.SEVERE, "Checking failed, recomputed certificate bigger than original reached set.");
-        abortPreparation();
-        return;
-      }
-
-      checkedState = waitlist.pop();
-
-      // compute successors
-      try {
-        successors = transfer.getAbstractSuccessors(checkedState, initPrec, null);
-
-
-        for (AbstractState successor : successors) {
-          // check if covered
-          if (!stop.stop(successor, statesPerLocation.get(AbstractStates.extractLocation(successor)), initPrec)) {
-            addElement(successor, true);
-          }
+        if (addToCertificate.size() + certificate.size() > ioHelper
+            .getSavedReachedSetSize()) {
+          logger.log(Level.SEVERE, "Checking failed, recomputed certificate bigger than original reached set.");
+          abortPreparation();
+          return;
         }
-      } catch (CPATransferException | InterruptedException e) {
-        logger.log(Level.SEVERE, "Checking failed, successor computation failed");
-        abortPreparation();
-        return;
-      } catch (CPAException e) {
-        logger.log(Level.SEVERE, "Checking failed, checking successor coverage failed");
-        abortPreparation();
-        return;
+
+        checkedState = waitlist.pop();
+
+        // compute successors
+        try {
+          successors = transfer.getAbstractSuccessors(checkedState, initPrec, null);
+
+
+          for (AbstractState successor : successors) {
+            // check if covered
+            if (!stop.stop(successor, statesPerLocation.get(AbstractStates.extractLocation(successor)), initPrec)) {
+              addElement(successor, true);
+            }
+          }
+        } catch (CPATransferException | InterruptedException e) {
+          logger.log(Level.SEVERE, "Checking failed, successor computation failed");
+          abortPreparation();
+          return;
+        } catch (CPAException e) {
+          logger.log(Level.SEVERE, "Checking failed, checking successor coverage failed");
+          abortPreparation();
+          return;
+        }
       }
-    }
 
-    lock.lock();
-    try {
-      certificate.addAll(addToCertificate);
-      mustBeContainedInCertificate.addAll(addToContainedInCertificate);
-    } finally {
-      lock.unlock();
-    }
+      lock.lock();
+      try {
+        certificate.addAll(addToCertificate);
+        mustBeContainedInCertificate.addAll(addToContainedInCertificate);
+        for (AbstractState internalNode : partition.getFirst()) {
+          isInPartition.put(AbstractStates.extractLocation(internalNode), internalNode);
+        }
+      } finally {
+        lock.unlock();
+      }
 
-    mainSemaphore.release();
+      mainSemaphore.release();
+    } catch (Exception e2) {
+      logger.log(Level.SEVERE, "Unexpected failure during proof reading");
+      e2.printStackTrace();
+      abortPreparation();
+    }
   }
 
   private void addElement(final AbstractState element, final boolean inCertificate) {

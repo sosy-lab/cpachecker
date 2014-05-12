@@ -97,7 +97,21 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       //TODO might also want to write used configuration to the file so that proof checker does not need to get it as an argument
       //write ARG
       writeProofToStream(o, pReached);
+      o.flush();
       zos.closeEntry();
+
+   // write additional proof information
+      int index = 0;
+      boolean continueWriting;
+      do{
+        ze = new ZipEntry("Additional "+index);
+        zos.putNextEntry(ze);
+        o = new ObjectOutputStream(zos);
+        continueWriting = writeAdditionalProofStream(o);
+        o.flush();
+        zos.closeEntry();
+        index++;
+      }while(continueWriting);
 
       ze = new ZipEntry("Helper");
       zos.putNextEntry(ze);
@@ -111,20 +125,6 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
 
       o.flush();
       zos.closeEntry();
-
-
-      // write additional proof information
-      int index = 0;
-      boolean continueWriting;
-      do{
-        ze = new ZipEntry("Additional "+index);
-        zos.putNextEntry(ze);
-        o = new ObjectOutputStream(zos);
-        continueWriting = writeAdditionalProofStream(o);
-        o.flush();
-        index++;
-      }while(continueWriting);
-
       zos.close();
     } catch (NotSerializableException eS) {
       logger.log(Level.SEVERE, "Proof cannot be written. Class " + eS.getMessage() + " does not implement Serializable interface");
@@ -154,9 +154,12 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
 
       ZipEntry entry = zis.getNextEntry();
       assert entry.getName().equals("Proof");
-      zis.closeEntry();
 
-      entry = zis.getNextEntry();
+      do {
+        zis.closeEntry();
+        entry = zis.getNextEntry();
+      } while (entry.getName().startsWith("Additional "));
+
       assert entry.getName().equals("Helper");
       ObjectInputStream o = new ObjectInputStream(zis);
       //read helper storages
@@ -201,7 +204,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     InputStream fis = file.asByteSource().openStream();
     ZipInputStream zis = new ZipInputStream(fis);
     ZipEntry entry = null;
-    for (int i = 0; i < 2 + index; i++) {
+    for (int i = 0; i <= 1 + index; i++) {
       entry = zis.getNextEntry();
     }
 

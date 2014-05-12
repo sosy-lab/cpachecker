@@ -30,6 +30,7 @@ import os
 import shutil
 import signal
 import tempfile
+import time
 
 from . import util as Util
 
@@ -154,19 +155,25 @@ def addTaskToCgroup(cgroup, pid):
 
 def killAllTasksInCgroup(cgroup):
     tasksFile = os.path.join(cgroup, 'tasks')
-    i = 1
-    while i <= 2: # Do two triess of killing processes
+
+    for i, sig in enumerate([signal.SIGINT, signal.SIGTERM, signal.SIGKILL]): # Do several tries of killing processes
         with open(tasksFile, 'rt') as tasks:
             task = None
             for task in tasks:
-                logging.warning('Run has left-over process with pid {0}, killing it (try {1}).'.format(task, i))
-                Util.killProcess(int(task), signal.SIGKILL)
+                logging.warning('Run has left-over process with pid {0}, sending signal {1} (try {2}).'.format(task, sig, i+1))
+                Util.killProcess(int(task), sig)
 
             if task is None:
                 return # No process was hanging, exit
-            elif i == 2:
-                logging.warning('Run still has left over processes after second try of killing them, giving up.')
-            i += 1
+            elif sig == signal.SIGKILL:
+                logging.warning('Run still has left over processes after third try of killing them, giving up.')
+            
+            time.sleep(0.5) # wait for the process to exit, this might take some time
+    
+    with open(tasksFile, 'rt') as tasks:
+        for task in tasks:
+            logging.warning('Run has left-over process with pid {0}, we could not kill it.'.format(task))
+
 
 def removeCgroup(cgroup):
     if cgroup:

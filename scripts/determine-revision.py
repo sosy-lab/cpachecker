@@ -44,7 +44,7 @@ def determineRevision(dir):
         svnProcess = subprocess.Popen(['svnversion', dir], env={'LANG': 'C'}, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (stdout, stderr) = svnProcess.communicate()
         stdout = Util.decodeToString(stdout).strip()
-        if not (svnProcess.returncode or stderr or (stdout == 'exported')):
+        if not (svnProcess.returncode or stderr or (stdout == 'exported') or (stdout == 'Unversioned directory')):
             return stdout
     except OSError:
         pass

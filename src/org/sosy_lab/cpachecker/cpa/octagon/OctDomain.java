@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -40,10 +39,12 @@ import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 class OctDomain implements AbstractDomain {
 
   private static long totaltime = 0;
-  private LogManager logger;
+  private final LogManager logger;
+  private final boolean handleFloats;
 
-  public OctDomain(LogManager log, Configuration config) throws InvalidConfigurationException {
+  public OctDomain(LogManager log, boolean pHandleFloats) throws InvalidConfigurationException {
     logger = log;
+    handleFloats = pHandleFloats;
   }
 
   @Override
@@ -89,7 +90,7 @@ class OctDomain implements AbstractDomain {
     Pair<OctState, OctState> shrinkedStates = getShrinkedStates((OctState)successor, (OctState)reached);
     Octagon newOctagon = OctagonManager.union(shrinkedStates.getFirst().getOctagon(), shrinkedStates.getSecond().getOctagon());
 
-    OctState newState = new OctState(newOctagon, shrinkedStates.getFirst().getVariableToIndexMap(), ((OctState)successor).getBlock(), logger);
+    OctState newState = new OctState(newOctagon, shrinkedStates.getFirst().getVariableToIndexMap(), ((OctState)successor).getBlock(), logger, handleFloats);
     if (newState.equals(reached)) {
       return reached;
     } else if (newState.equals(successor)) {
@@ -106,7 +107,7 @@ class OctDomain implements AbstractDomain {
 
     Octagon newOctagon = OctagonManager.widening(reachedOct.getOctagon(), successorOct.getOctagon());
 
-    OctState newState = new OctState(newOctagon, successorOct.getVariableToIndexMap(), successorOct.getBlock(), logger);
+    OctState newState = new OctState(newOctagon, successorOct.getVariableToIndexMap(), successorOct.getBlock(), logger, handleFloats);
     if (newState.equals(successorOct)) {
       return successorOct;
     } else if (newState.equals(reachedOct)) {

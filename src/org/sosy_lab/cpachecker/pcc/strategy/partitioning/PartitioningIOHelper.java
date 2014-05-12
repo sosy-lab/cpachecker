@@ -57,6 +57,8 @@ import org.sosy_lab.cpachecker.util.CPAs;
 @Options(prefix = "pcc")
 public class PartitioningIOHelper {
 
+  @Option(description = "If enabled uses the number of nodes saved in certificate size to compute partition number otherwise the size of certificate")
+  private boolean useGraphSizeToComputePartitionNumber = false;
   @Option(
       description = "Specifies the maximum size of the partition. This size is used to compute the number of partitions if a proof (reached set) should be written. Default value 0 means always a single partition.")
   private int maxNumElemsPerPartition = 0;
@@ -111,7 +113,7 @@ public class PartitioningIOHelper {
   }
 
   public @Nullable Pair<AbstractState[], AbstractState[]> getPartition(int pIndex) {
-    if(0<=pIndex && pIndex<numPartitions){
+    if(0<=pIndex && pIndex<numPartitions && pIndex<partitions.size()){
       return partitions.get(pIndex);
     }
     return null;
@@ -145,10 +147,17 @@ public class PartitioningIOHelper {
     PartialReachedSetDirectedGraph graph = new PartialReachedSetDirectedGraph(argNodes);
 
 
-    return Pair.of(graph,
-        partitioner.computePartitioning(
-            maxNumElemsPerPartition <= 0 ? 1 : (int) Math.ceil(pReached.size() / (double) maxNumElemsPerPartition),
-            graph));
+    if (useGraphSizeToComputePartitionNumber) {
+      return Pair.of(graph,
+          partitioner.computePartitioning(
+              maxNumElemsPerPartition <= 0 ? 1
+                  : (int) Math.ceil(graph.getNumNodes() / (double) maxNumElemsPerPartition), graph));
+    } else {
+      return Pair.of(graph,
+          partitioner.computePartitioning(
+              maxNumElemsPerPartition <= 0 ? 1 : (int) Math.ceil(pReached.size() / (double) maxNumElemsPerPartition),
+              graph));
+    }
   }
 
   public void readPartition(final ObjectInputStream pIn)
@@ -187,8 +196,9 @@ public class PartitioningIOHelper {
   public void writeMetadata(final ObjectOutputStream pOut, final int pReachedSetSize, final int pNumPartitions)
       throws IOException {
     logger.log(Level.FINER,"Write metadata of partition");
-    pOut.write(pReachedSetSize);
-    pOut.write(pNumPartitions);
+    pOut.writeInt(pReachedSetSize);
+    pOut.writeInt(pNumPartitions);
+    pOut.reset();
   }
 
   public void writePartition(final ObjectOutputStream pOut, final Set<Integer> pPartition,
@@ -207,7 +217,6 @@ public class PartitioningIOHelper {
       AbstractState[] pAdjacentNodesOutside) throws IOException {
     pOut.writeObject(pPartitionNodes);
     pOut.writeObject(pAdjacentNodesOutside);
-
   }
 
   public void writeProof(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached)

@@ -138,10 +138,12 @@ class SmtInterpolInterpolatingProver implements InterpolatingProverEnvironment<S
   @Override
   public void close() {
     Preconditions.checkNotNull(env);
-    env.pop(assertedFormulas.size());
-    assertedFormulas.clear();
-    annotatedTerms.clear();
     assert assertedFormulas.size() == annotatedTerms.size();
+    if (!assertedFormulas.isEmpty()) {
+      env.pop(assertedFormulas.size());
+      assertedFormulas.clear();
+      annotatedTerms.clear();
+    }
     env = null;
   }
 

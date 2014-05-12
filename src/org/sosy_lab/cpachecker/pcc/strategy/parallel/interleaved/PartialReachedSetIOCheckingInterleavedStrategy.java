@@ -47,6 +47,7 @@ import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -58,6 +59,10 @@ import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 
 public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStrategy {
@@ -88,49 +93,58 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
   public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
     AtomicBoolean checkResult = new AtomicBoolean(true);
     Semaphore partitionChecked = new Semaphore(0);
-    Collection<AbstractState> certificate = new HashSet<>(ioHelper.getSavedReachedSetSize());
+    Collection<AbstractState> certificate = new HashSet<>(ioHelper.getNumPartitions());
+    Multimap<CFANode, AbstractState> inPartition = HashMultimap.create();
     Collection<AbstractState> inOtherPartition = new ArrayList<>();
-    Precision initPrec = pReachedSet.getPrecision(pReachedSet.getFirstState());
+    AbstractState initialState = pReachedSet.popFromWaitlist();
+    Precision initPrec = pReachedSet.getPrecision(initialState);
 
-    logger.log(Level.INFO, "Create and start threads");
-    ExecutorService executor = Executors.newFixedThreadPool(numThreads);
-    executor.execute(new PartitionReader(checkResult, partitionChecked));
-    for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
-      executor.execute(new PartitionChecker(i, checkResult, partitionChecked, certificate, inOtherPartition, initPrec,
-          cpa, lock, partitionReady, ioHelper, shutdownNotifier, logger));
-    }
-
-    partitionChecked.acquire(ioHelper.getNumPartitions());
-
-    if(!checkResult.get()){
-      return false;
-    }
-
-    logger.log(Level.INFO, "Check if all are checked");
-    if (!certificate.containsAll(inOtherPartition)) {
-      logger.log(Level.SEVERE, "Initial state not covered.");
-      return false;
-    }
-
-    logger.log(Level.INFO, "Check if initial state is covered.");
-    // TODO probably more efficient do not use certificate?
-    if (!cpa.getStopOperator().stop(pReachedSet.getFirstState(), certificate, initPrec)) {
-      logger.log(Level.SEVERE, "Initial state not covered.");
-      return false;
-    }
-
-    logger.log(Level.INFO, "Check property.");
-    stats.getPropertyCheckingTimer().start();
+   logger.log(Level.INFO, "Create and start threads");
+    ExecutorService executor = Executors.newFixedThreadPool(Math.max(1, numThreads-1));
     try {
-      if (!cpa.getPropChecker().satisfiesProperty(certificate)) {
-        logger.log(Level.SEVERE, "Property violated");
+      executor.execute(new PartitionReader(checkResult, partitionChecked));
+      for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
+        executor.execute(new PartitionChecker(i, checkResult, partitionChecked, certificate, inOtherPartition,
+            inPartition, initPrec, cpa, lock, partitionReady, ioHelper, shutdownNotifier, logger));
+      }
+
+      partitionChecked.acquire(ioHelper.getNumPartitions());
+
+      if (!checkResult.get()) { return false; }
+
+      logger.log(Level.INFO, "Check if all are checked");
+      for (AbstractState outState : inOtherPartition) {
+        if (!cpa.getStopOperator().stop(outState, inPartition.get(AbstractStates.extractLocation(outState)), initPrec)) {
+          logger
+              .log(Level.SEVERE,
+                  "Not all outer partition nodes are in other partitions. Following state not contained: ",
+                  outState);
+          return false;
+        }
+      }
+
+      logger.log(Level.INFO, "Check if initial state is covered.");
+      if (!cpa.getStopOperator().stop(initialState, inPartition.get(AbstractStates.extractLocation(initialState)),
+          initPrec)) {
+        logger.log(Level.SEVERE, "Initial state not covered.");
         return false;
       }
-    } finally {
-      stats.getPropertyCheckingTimer().stop();
-    }
 
-    return true;
+      logger.log(Level.INFO, "Check property.");
+      stats.getPropertyCheckingTimer().start();
+      try {
+        if (!cpa.getPropChecker().satisfiesProperty(certificate)) {
+          logger.log(Level.SEVERE, "Property violated");
+          return false;
+        }
+      } finally {
+        stats.getPropertyCheckingTimer().stop();
+      }
+
+      return true;
+    } finally {
+      executor.shutdown();
+    }
   }
 
   @Override
@@ -187,7 +201,7 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
         streams = openProofStream();
         ObjectInputStream o = streams.getThird();
         ioHelper.readMetadata(o, false);
-        for (int i = 0; i < ioHelper.getNumPartitions() && !checkResult.get(); i++) {
+        for (int i = 0; i < ioHelper.getNumPartitions() && checkResult.get(); i++) {
           ioHelper.readPartition(o);
           if (shutdownNotifier.shouldShutdown()) {
             abortPreparation();
@@ -198,7 +212,11 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
       } catch (IOException | ClassNotFoundException e) {
         logger.log(Level.SEVERE, "Partition reading failed. Stop checking");
         abortPreparation();
-      }finally{
+      } catch (Exception e2) {
+        logger.log(Level.SEVERE, "Unexpected failure during proof reading");
+        e2.printStackTrace();
+        abortPreparation();
+      } finally{
         if (streams != null) {
           try {
             streams.getThird().close();

@@ -43,6 +43,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -54,12 +55,16 @@ import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
 import org.sosy_lab.cpachecker.pcc.strategy.parallel.io.ParallelPartitionReader;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 @Options(prefix = "pcc")
 public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends AbstractStrategy {
 
   @Option(
-      name = "pcc.useReadCores",
+      name = "useReadCores",
       description = "The number of cores used exclusively for proof reading. Must be less than pcc.useCores and may not be negative. Value 0 means that the cores used for reading and checking are shared")
   private int numReadThreads = 0;
 
@@ -93,74 +98,92 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
   public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
     AtomicBoolean checkResult = new AtomicBoolean(true);
     Semaphore partitionChecked = new Semaphore(0);
-    Collection<AbstractState> certificate = new HashSet<>(ioHelper.getSavedReachedSetSize());
+    Collection<AbstractState> certificate = new HashSet<>(ioHelper.getNumPartitions());
+    Multimap<CFANode, AbstractState> partitionNodes = HashMultimap.create();
     Collection<AbstractState> inOtherPartition = new ArrayList<>();
-    Precision initPrec = pReachedSet.getPrecision(pReachedSet.getFirstState());
+    AbstractState initialState = pReachedSet.popFromWaitlist();
+    Precision initPrec = pReachedSet.getPrecision(initialState);
     Lock lock = new ReentrantLock();
     Condition partitionReady = lock.newCondition();
 
+    ExecutorService executor = null, readExecutor = null, checkExecutor = null;
     logger.log(Level.INFO, "Create and start threads");
-    if (numReadThreads == 0) {
-      ExecutorService executor = Executors.newFixedThreadPool(numThreads);
-      startReadingThreads(executor, checkResult, partitionChecked, lock, partitionReady);
-      startCheckingThreads(executor, checkResult, partitionChecked, certificate, inOtherPartition, initPrec, lock,
-          partitionReady);
-    } else {
-      ExecutorService readExecutor = Executors.newFixedThreadPool(numReadThreads);
-      startReadingThreads(readExecutor, checkResult, partitionChecked, lock, partitionReady);
-      ExecutorService checkExecutor = Executors.newFixedThreadPool(numThreads - numReadThreads);
-      startCheckingThreads(checkExecutor, checkResult, partitionChecked, certificate, inOtherPartition, initPrec, lock,
-          partitionReady);
-    }
-
-    partitionChecked.acquire(ioHelper.getNumPartitions());
-
-    if (!checkResult.get()) { return false; }
-
-    logger.log(Level.INFO, "Check if all are checked");
-    if (!certificate.containsAll(inOtherPartition)) {
-      logger.log(Level.SEVERE, "Initial state not covered.");
-      return false;
-    }
-
-    logger.log(Level.INFO, "Check if initial state is covered.");
-    // TODO probably more efficient do not use certificate?
-    if (!cpa.getStopOperator().stop(pReachedSet.getFirstState(), certificate, initPrec)) {
-      logger.log(Level.SEVERE, "Initial state not covered.");
-      return false;
-    }
-
-    logger.log(Level.INFO, "Check property.");
-    stats.getPropertyCheckingTimer().start();
     try {
-      if (!cpa.getPropChecker().satisfiesProperty(certificate)) {
-        logger.log(Level.SEVERE, "Property violated");
+      if (numReadThreads == 0) {
+        executor = Executors.newFixedThreadPool(numThreads);
+        startReadingThreads(executor, checkResult, partitionChecked, lock, partitionReady);
+        startCheckingThreads(executor, checkResult, partitionChecked, certificate, partitionNodes, inOtherPartition,
+            initPrec, lock, partitionReady);
+      } else {
+        readExecutor = Executors.newFixedThreadPool(numReadThreads);
+        startReadingThreads(readExecutor, checkResult, partitionChecked, lock, partitionReady);
+        checkExecutor = Executors.newFixedThreadPool(numThreads - numReadThreads);
+        startCheckingThreads(checkExecutor, checkResult, partitionChecked, certificate, partitionNodes, inOtherPartition,
+            initPrec, lock, partitionReady);
+      }
+
+      partitionChecked.acquire(ioHelper.getNumPartitions());
+
+      if (!checkResult.get()) { return false; }
+
+      logger.log(Level.INFO, "Check if all are checked");
+      for (AbstractState outState : inOtherPartition) {
+        if (!cpa.getStopOperator().stop(outState, partitionNodes.get(AbstractStates.extractLocation(outState)), initPrec)) {
+          logger
+              .log(Level.SEVERE,
+                  "Not all outer partition nodes are in other partitions. Following state not contained: ",
+                  outState);
+          return false;
+        }
+      }
+
+      logger.log(Level.INFO, "Check if initial state is covered.");
+      if (!cpa.getStopOperator().stop(initialState, partitionNodes.get(AbstractStates.extractLocation(initialState)),
+          initPrec)) {
+        logger.log(Level.SEVERE, "Initial state not covered.");
         return false;
       }
-    } finally {
-      stats.getPropertyCheckingTimer().stop();
-    }
 
-    return true;
+      logger.log(Level.INFO, "Check property.");
+      stats.getPropertyCheckingTimer().start();
+      try {
+        if (!cpa.getPropChecker().satisfiesProperty(certificate)) {
+          logger.log(Level.SEVERE, "Property violated");
+          return false;
+        }
+      } finally {
+        stats.getPropertyCheckingTimer().stop();
+      }
+
+      return true;
+    } finally {
+      if (executor != null) {
+        executor.shutdown();
+      }
+      if (readExecutor != null) {
+        readExecutor.shutdown();
+      }
+      if (checkExecutor != null) {
+        checkExecutor.shutdown();
+      }
+    }
   }
 
   private void startReadingThreads(final ExecutorService pReadingExecutor, final AtomicBoolean pCheckResult,
-      final Semaphore pPartitionChecked,
-      final Lock pLock, final Condition pPartitionReady) {
+      final Semaphore pPartitionChecked, final Lock pLock, final Condition pPartitionReady) {
     for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
       pReadingExecutor.execute(new ParallelPartitionReader(i, pCheckResult, pPartitionChecked, this, ioHelper,
-          pPartitionReady, pLock));
+          pPartitionReady, pLock, false));
     }
   }
 
   private void startCheckingThreads(final ExecutorService pCheckingExecutor, final AtomicBoolean pCheckResult,
       final Semaphore pPartitionChecked, final Collection<AbstractState> pCertificate,
-      final Collection<AbstractState> pInOtherPartition,
+      final Multimap<CFANode, AbstractState> pInPartition, final Collection<AbstractState> pInOtherPartition,
       final Precision pInitialPrecision, final Lock pLock, final Condition pPartitionReady) {
     for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
       pCheckingExecutor.execute(new PartitionChecker(i, pCheckResult, pPartitionChecked, pCertificate,
-          pInOtherPartition, pInitialPrecision,
-          cpa, pLock, pPartitionReady, ioHelper, shutdown, logger));
+          pInOtherPartition, pInPartition, pInitialPrecision, cpa, pLock, pPartitionReady, ioHelper, shutdown, logger));
     }
   }
 
