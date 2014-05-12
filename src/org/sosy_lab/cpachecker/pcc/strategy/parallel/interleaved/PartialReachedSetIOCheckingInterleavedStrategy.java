@@ -108,9 +108,15 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
       if (!checkResult.get()) { return false; }
 
       logger.log(Level.INFO, "Check if all are checked");
-      if (!certificate.containsAll(inOtherPartition)) {
-        logger.log(Level.SEVERE, "Not all nodes supposed to be in other partitions are outside.");
-        return false;
+      for (AbstractState outState : inOtherPartition) {
+        // TODO probably more efficient do not use certificate?
+        if (!cpa.getStopOperator().stop(outState, certificate, initPrec)) {
+          logger
+              .log(Level.SEVERE,
+                  "Not all outer partition nodes are in other partitions. Following state not contained: ",
+                  outState);
+          return false;
+        }
       }
 
       logger.log(Level.INFO, "Check if initial state is covered.");
