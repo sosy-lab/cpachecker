@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
 import static com.google.common.collect.Iterables.skip;
 
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -58,7 +59,6 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 
 @Options(prefix="cpa.value.interpolation")
 public class ValueAnalysisInterpolator {
@@ -196,12 +196,7 @@ public class ValueAnalysisInterpolator {
       return ValueAnalysisInterpolant.TRUE;
     }
 
-    // optimization, which however, leads to too strong interpolants, as the successor is used directly as interpolant
-    //if (!isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
-      //return new ValueAnalysisInterpolant(initialSuccessor.getConstantsMapView());
-    //}
-
-    for (MemoryLocation currentMemoryLocation : determineInterpolationCandidates(initialSuccessor)) {
+    for (MemoryLocation currentMemoryLocation : optimizeForInterpolation(initialSuccessor)) {
       shutdownNotifier.shutdownIfNecessary();
 
       // temporarily remove the value of the current memory location from the rawInterpolant
@@ -223,17 +218,17 @@ public class ValueAnalysisInterpolator {
    * @param valueAnalysisState the collection of interpolation candidates, encoded in an value-analysis state
    * @return a (possibly) reordered collection of interpolation candidates
    */
-  private Collection<MemoryLocation> determineInterpolationCandidates(ValueAnalysisState valueAnalysisState) {
+  private Collection<MemoryLocation> optimizeForInterpolation(ValueAnalysisState valueAnalysisState) {
     Set<MemoryLocation> trackedMemoryLocations = valueAnalysisState.getTrackedMemoryLocations();
 
-    List<MemoryLocation> reOrderedMemoryLocations = Lists.newArrayListWithCapacity(trackedMemoryLocations.size());
+    ArrayDeque<MemoryLocation> reOrderedMemoryLocations = new ArrayDeque<>();
 
     // move loop-variables to the front - being checked for relevance earlier minimizes their impact on feasibility
     for(MemoryLocation currentMemoryLocation : trackedMemoryLocations) {
       if(loopExitMemoryLocations.contains(currentMemoryLocation)) {
-        reOrderedMemoryLocations.add(0, currentMemoryLocation);
+        reOrderedMemoryLocations.addFirst(currentMemoryLocation);
       } else {
-        reOrderedMemoryLocations.add(currentMemoryLocation);
+        reOrderedMemoryLocations.addLast(currentMemoryLocation);
       }
     }
 
