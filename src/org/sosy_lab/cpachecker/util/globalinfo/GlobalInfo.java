@@ -27,6 +27,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -38,6 +39,7 @@ public class GlobalInfo {
   private static GlobalInfo instance;
   private CFAInfo cfaInfo;
   private AutomatonInfo automatonInfo = new AutomatonInfo();
+  private ConfigurableProgramAnalysis cpa;
   private FormulaManagerView formulaManager;
   private ArrayList<Serializable> helperStorages = new ArrayList<>();
 
@@ -67,6 +69,14 @@ public class GlobalInfo {
   public AutomatonInfo getAutomatonInfo() {
     Preconditions.checkState(automatonInfo != null);
     return automatonInfo;
+  }
+
+  public void storeCPA(ConfigurableProgramAnalysis cpa) {
+    this.cpa = cpa;
+  }
+
+  public Optional<ConfigurableProgramAnalysis> getCPA() {
+    return Optional.fromNullable(cpa);
   }
 
   public void storeFormulaManager(FormulaManagerView formulaManager) {
