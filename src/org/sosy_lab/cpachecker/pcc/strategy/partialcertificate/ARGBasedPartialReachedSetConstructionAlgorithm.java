@@ -23,29 +23,41 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partialcertificate;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 
 public class ARGBasedPartialReachedSetConstructionAlgorithm extends
     MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm {
 
-  private final ConfigurableProgramAnalysis cpa;
+  private ConfigurableProgramAnalysis cpa;
 
-  public ARGBasedPartialReachedSetConstructionAlgorithm(final ConfigurableProgramAnalysis pCpa,
-      final boolean pReturnARGStatesInsteadOfWrappedStates) {
+  public ARGBasedPartialReachedSetConstructionAlgorithm(final boolean pReturnARGStatesInsteadOfWrappedStates) {
     super(pReturnARGStatesInsteadOfWrappedStates);
-    cpa = pCpa; // TODO must possibly be built, funktioniert aber nicht
   }
 
   @Override
-  protected NodeSelectionARGPass getARGPass(final Precision pRootPrecision, final ARGState pRoot) {
+  protected NodeSelectionARGPass getARGPass(final Precision pRootPrecision, final ARGState pRoot)
+      throws InvalidConfigurationException {
+    if (!GlobalInfo.getInstance().getCPA().isPresent()) {
+      throw new InvalidConfigurationException("No CPA specified.");
+    } else {
+      ARGCPA cpa = CPAs.retrieveCPA(GlobalInfo.getInstance().getCPA().get(), ARGCPA.class);
+      if (cpa == null) { throw new InvalidConfigurationException("Require ARGCPA"); }
+      this.cpa = cpa.getWrappedCPAs().get(0);
+    }
     return new ExtendedNodeSelectionARGPass(pRootPrecision, pRoot);
   }
 
@@ -61,10 +73,9 @@ public class ARGBasedPartialReachedSetConstructionAlgorithm extends
     @Override
     protected boolean isToAdd(final ARGState pNode) {
       boolean isToAdd = super.isToAdd(pNode);
-      if (!isToAdd) {
-        ARGState graphElem = getNonCoveredElem(pNode);
+      if (!isToAdd && !pNode.isCovered()) {
         for (ARGState parent : pNode.getParents()) {
-          if (!isTransferSuccessor(parent, graphElem)) {
+          if (!isTransferSuccessor(parent, pNode)) {
             isToAdd = true;
           }
           break;
@@ -73,23 +84,28 @@ public class ARGBasedPartialReachedSetConstructionAlgorithm extends
       return isToAdd;
     }
 
-    private boolean isTransferSuccessor(ARGState pPredecessor, ARGState pSuccessor) {
-      CFAEdge edge = pPredecessor.getEdgeToChild(pSuccessor);
+    private boolean isTransferSuccessor(ARGState pPredecessor, ARGState pChild) {
+      CFAEdge edge = pPredecessor.getEdgeToChild(pChild);
       try {
-        Collection<? extends AbstractState> successors =
-            cpa.getTransferRelation().getAbstractSuccessors(pPredecessor.getWrappedState(), precision, edge);
-        if (successors.contains(pSuccessor)) { return true; }
-      } catch (CPATransferException | InterruptedException e) {
+        Collection<AbstractState> successors = new ArrayList<>(
+            cpa.getTransferRelation().getAbstractSuccessors(pPredecessor.getWrappedState(), precision, edge));
+        // check if child is the successor computed by transfer relation
+        if(successors.contains(pChild.getWrappedState())) { return true; }
+        // check if check only failed because it is not the same object
+        if (!cpa.getStopOperator().stop(pChild.getWrappedState(), successors, precision)){
+          return false;
+        }
+        Collection<AbstractState> childCollection = Collections.singleton(pChild.getWrappedState());
+        for (AbstractState state : successors) {
+          if (cpa.getStopOperator().stop(state, childCollection, precision)) {
+            return true;
+          }
+        }
+      } catch (InterruptedException | CPAException e) {
       }
       return false;
     }
 
-    protected ARGState getNonCoveredElem(ARGState pNode) {
-      while (pNode.isCovered()) {
-        pNode = pNode.getCoveringState();
-      }
-      return pNode;
-    }
   }
 
 }

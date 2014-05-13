@@ -46,13 +46,11 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.BalancedGraphPartitioner;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PartialReachedConstructionAlgorithm;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.ARGBasedPartialReachedSetConstructionAlgorithm;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialCertificateTypeProvider;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
-import org.sosy_lab.cpachecker.util.CPAs;
 
 @Options(prefix = "pcc")
 public class PartitioningIOHelper {
@@ -89,10 +87,7 @@ public class PartitioningIOHelper {
       partialConstructor = new MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm(true);
       break;
     default: // ARG
-      ARGCPA cpa = CPAs.retrieveCPA(pCpa, ARGCPA.class);
-      if (cpa == null) { throw new InvalidConfigurationException(
-          "Require ARGCPA"); }
-      partialConstructor = new ARGBasedPartialReachedSetConstructionAlgorithm(cpa.getWrappedCPAs().get(0), true);
+      partialConstructor = new ARGBasedPartialReachedSetConstructionAlgorithm(true);
     }
 
     switch (partitioning) {

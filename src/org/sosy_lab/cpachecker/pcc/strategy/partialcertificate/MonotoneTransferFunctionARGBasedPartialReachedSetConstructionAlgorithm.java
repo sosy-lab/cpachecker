@@ -55,7 +55,8 @@ public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgori
     return reachedSetSubset.toArray(new AbstractState[reachedSetSubset.size()]);
   }
 
-  protected NodeSelectionARGPass getARGPass(final Precision pRootPrecision, final ARGState pRoot) {
+  protected NodeSelectionARGPass getARGPass(final Precision pRootPrecision, final ARGState pRoot)
+      throws InvalidConfigurationException {
     return new NodeSelectionARGPass(pRoot);
   }
 
