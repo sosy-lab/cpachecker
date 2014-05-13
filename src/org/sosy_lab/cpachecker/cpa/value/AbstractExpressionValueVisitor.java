@@ -389,7 +389,7 @@ public abstract class AbstractExpressionValueVisitor
       return l - r;
     case DIVIDE:
       if (r == 0) {
-        logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", l, r);
+        logger.logf(Level.SEVERE, "Division by Zero (%f / %f)", l, r);
         return 0;
       }
       return l / r;
@@ -431,7 +431,7 @@ public abstract class AbstractExpressionValueVisitor
       return l - r;
     case DIVIDE:
       if (r == 0) {
-        logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", l, r);
+        logger.logf(Level.SEVERE, "Division by Zero (%f / %f)", l, r);
         return 0;
       }
       return l / r;
