@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.concrete_counterexample;
 
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -60,7 +61,9 @@ public class ModelAtCFAEdge {
     variableModel = pVariableModel;
   }
 
-  public Object getValueFromUF(CType type, Address address) {
+  public Object getValueFromUF(CType pType, Address address) {
+
+    CType type = pType.getCanonicalType();
 
     String ufName = getUFName(type);
 
@@ -68,7 +71,9 @@ public class ModelAtCFAEdge {
       return null;
     }
 
-    for (Assignment assignment : uFModel.get(ufName)) {
+    Collection<Assignment> assignments = uFModel.get(ufName);
+
+    for (Assignment assignment : assignments) {
       Function function = (Function) assignment.getTerm();
 
       if (function.getArity() != 1) {
@@ -85,7 +90,10 @@ public class ModelAtCFAEdge {
   private String getUFName(CType pType) {
     CType type = pType.getCanonicalType();
 
-    String name = type.accept(new TypeUFNameVisitor());
+    //TODO Seems to work, for now
+    String name = type.toString().replace(" ", "_");
+
+//    String name = type.accept(new TypeUFNameVisitor());
 
     if (name == null) {
       return null;

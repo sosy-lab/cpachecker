@@ -122,10 +122,6 @@ public class AssignmentToEdgeAllocator {
   @Nullable
   private String createEdgeCode(CFAEdge pCFAEdge) {
 
-    if(cfaEdge.toString().contains("line 722")) {
-      System.out.println();
-    }
-
     if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
       return handleDeclaration(((ADeclarationEdge) pCFAEdge).getDeclaration());
     } else if (cfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
@@ -603,23 +599,33 @@ public class AssignmentToEdgeAllocator {
 
     private Object handleSimpleVariableDeclaration(CSimpleDeclaration pVarDcl) {
 
+      /* The variable might not exist anymore in the variable environment,
+         search in the address space of the function environment*/
+
+      Address address = addressVisitor.getAddress(pVarDcl);
+
+      if (address == null) {
+        return lookupVariable(pVarDcl);
+      }
+
+      CType type = pVarDcl.getType().getCanonicalType();
+
+      Object value = modelAtEdge.getValueFromUF(type, address);
+
+      if (value == null) {
+        return lookupVariable(pVarDcl);
+      }
+
+      return value;
+    }
+
+    private Object lookupVariable(CSimpleDeclaration pVarDcl) {
       String varName = getVarName(pVarDcl);
 
       if (modelAtEdge.containsVariableName(varName)) {
         return modelAtEdge.getVariableValue(varName);
       } else {
-        /* The variable might not exist anymore in the variable environment,
-           search in the address space of the function environment*/
-
-        Address address = addressVisitor.getAddress(pVarDcl);
-
-        if(address == null) {
-          return null;
-        }
-
-        CType type = pVarDcl.getType();
-
-        return modelAtEdge.getValueFromUF(type, address);
+        return null;
       }
     }
 
