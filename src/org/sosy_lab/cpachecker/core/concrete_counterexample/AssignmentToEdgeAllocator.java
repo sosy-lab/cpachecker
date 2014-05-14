@@ -413,7 +413,8 @@ public class AssignmentToEdgeAllocator {
         return null;
       }
 
-      return BigDecimal.valueOf(addressV.asNumericValue().longValue());
+      //TODO More specific evaluation, don't just get double value
+      return BigDecimal.valueOf(addressV.asNumericValue().doubleValue());
     }
 
     /*This method evaluates the address of the lValue, not the address the expression evaluates to*/
@@ -838,13 +839,14 @@ public class AssignmentToEdgeAllocator {
               .getInstance();
           }
 
-          long addressValue = addressValueV.asNumericValue().longValue();
+          double addressValue = addressValueV.asNumericValue().doubleValue();
 
-          long offsetValue = offsetValueV.asNumericValue().longValue();
+          // Because address and offset value may be interchanged, use double for offsets
+          double offsetValue = offsetValueV.asNumericValue().doubleValue();
 
-          long typeSize = getSizeof(elementType);
+          double typeSize = getSizeof(elementType);
 
-          long pointerOffsetValue = offsetValue * typeSize;
+          double pointerOffsetValue = offsetValue * typeSize;
 
           switch (binaryOperator) {
           case PLUS:
