@@ -224,7 +224,7 @@ public class ARGStatistics implements Statistics {
     int cexIndex = 0;
 
     for (Map.Entry<ARGState, CounterexampleInfo> cex : getAllCounterexamples(pReached).entrySet()) {
-      exportCounterexample(pReached, cex.getKey(), cex.getValue(), cexIndex++, allTargetPathEdges,
+      exportCounterexample((ARGState)pReached.getFirstState(), cex.getKey(), cex.getValue(), cexIndex++, allTargetPathEdges,
           !shouldDumpErrorPathImmediately());
     }
 
@@ -235,13 +235,12 @@ public class ARGStatistics implements Statistics {
   }
 
   // Print error trace and increment counter cexIndex.
-  void exportCounterexample(ReachedSet pReached, ARGState pTargetState,
+  void exportCounterexample(ARGState pRootState, ARGState pTargetState,
       @Nullable final CounterexampleInfo pCounterexampleInfo,
       int cexIndex, @Nullable final Set<Pair<ARGState, ARGState>> allTargetPathEdges,
       boolean reallyWriteToDisk) {
     checkNotNull(pTargetState);
 
-    final ARGState rootState = (ARGState)pReached.getFirstState();
     final ARGPath targetPath = checkNotNull(getTargetPath(pTargetState, pCounterexampleInfo));
 
     final Set<Pair<ARGState, ARGState>> targetPathEdges = getEdgesOfPath(targetPath);
@@ -250,13 +249,12 @@ public class ARGStatistics implements Statistics {
     }
 
     if (reallyWriteToDisk && exportErrorPath && pCounterexampleInfo != null) {
-      exportCounterexample(pReached, rootState, cexIndex, pCounterexampleInfo,
+      exportCounterexample(pRootState, pTargetState, cexIndex, pCounterexampleInfo,
           targetPath, Predicates.in(targetPathEdges));
     }
   }
 
-  private void exportCounterexample(ReachedSet pReached,
-      final ARGState rootState,
+  private void exportCounterexample(final ARGState rootState, final ARGState targetState,
       final int cexIndex,
       final CounterexampleInfo counterexample,
       final ARGPath targetPath,
@@ -297,8 +295,7 @@ public class ARGStatistics implements Statistics {
       // For the text export, we have no other chance,
       // but for the C code and graph export we use all existing paths
       // to avoid this problem.
-      ARGState lastElement = (ARGState)pReached.getLastState();
-      pathElements = ARGUtils.getAllStatesOnPathsTo(lastElement);
+      pathElements = ARGUtils.getAllStatesOnPathsTo(targetState);
 
       if (errorPathSourceFile != null) {
         pathProgram = PathToCTranslator.translatePaths(rootState, pathElements);

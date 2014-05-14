@@ -270,11 +270,11 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     return stopOperator.isCoveredBy(pElement, pOtherElement, wrappedProofChecker);
   }
 
-  void exportCounterexampleOnTheFly(ReachedSet pReached, ARGState pTargetState,
+  void exportCounterexampleOnTheFly(ARGState pRootState, ARGState pTargetState,
     CounterexampleInfo pCounterexampleInfo, int cexIndex) throws InterruptedException {
     if (stats.shouldDumpErrorPathImmediately()) {
       if (cexFilter.isRelevant(pCounterexampleInfo)) {
-        stats.exportCounterexample(pReached, pTargetState, pCounterexampleInfo, cexIndex, null, true);
+        stats.exportCounterexample(pRootState, pTargetState, pCounterexampleInfo, cexIndex, null, true);
       } else {
         logger.log(Level.FINEST, "Skipping counterexample printing because it is similar to one of already printed.");
       }
