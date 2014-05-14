@@ -37,12 +37,14 @@ public class CFAEdgeWithAssignments {
   private final CFAEdge edge;
   private final Set<Assignment> assignments;
   private final String edgeCode;
+  private final String comment;
 
   public CFAEdgeWithAssignments(CFAEdge pEdge, Set<Assignment> pAssignments,
-      @Nullable String pEdgeCode) {
+      @Nullable String pEdgeCode, @Nullable String pComment) {
     edge = pEdge;
     assignments = ImmutableSet.copyOf(pAssignments);
     edgeCode = pEdgeCode;
+    comment = pComment;
   }
 
   public Set<Assignment> getAssignments() {
@@ -60,5 +62,9 @@ public class CFAEdgeWithAssignments {
   @Override
   public String toString() {
     return edge.toString() + " " + assignments.toString();
+  }
+
+  public String getComment() {
+    return comment;
   }
 }

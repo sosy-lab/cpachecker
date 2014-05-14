@@ -38,8 +38,8 @@ public final class CFAMultiEdgeWithAssignments extends CFAEdgeWithAssignments im
   private final List<CFAEdgeWithAssignments> edgesWithAssignment;
 
   private CFAMultiEdgeWithAssignments(MultiEdge pEdge, Set<Assignment> pAssignments,
-      String pEdgeCode, List<CFAEdgeWithAssignments> pEdges) {
-    super(pEdge, pAssignments, pEdgeCode);
+      String pEdgeCode, List<CFAEdgeWithAssignments> pEdges, String pComments) {
+    super(pEdge, pAssignments, pEdgeCode, pComments);
     edgesWithAssignment = ImmutableList.copyOf(pEdges);
   }
 
@@ -77,6 +77,7 @@ public final class CFAMultiEdgeWithAssignments extends CFAEdgeWithAssignments im
       edgeCode = edgeCodeBuilder.deleteCharAt(edgeCodeBuilder.length() - 1).toString();
     }
 
-    return new CFAMultiEdgeWithAssignments(pEdge, assignments, edgeCode, pEdges);
+    /*Comments only make sense in the exact location of an path*/
+    return new CFAMultiEdgeWithAssignments(pEdge, assignments, edgeCode, pEdges, null);
   }
 }

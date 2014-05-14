@@ -415,6 +415,14 @@ public class ARGStatistics implements Statistics {
           out.append(cCode);
           out.append(System.lineSeparator());
         }
+
+        String comment = edgeWithAssignments.getComment();
+
+        if (comment != null) {
+          out.append('\t');
+          out.append(comment);
+          out.append(System.lineSeparator());
+        }
       }
     };
   }

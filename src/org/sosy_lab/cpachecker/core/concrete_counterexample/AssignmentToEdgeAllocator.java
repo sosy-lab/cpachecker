@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -58,10 +59,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -115,12 +118,25 @@ public class AssignmentToEdgeAllocator {
   public CFAEdgeWithAssignments allocateAssignmentsToEdge() {
 
     String codeAtEdge = createEdgeCode(cfaEdge);
+    String comment = createComment(cfaEdge);
 
-    return new CFAEdgeWithAssignments(cfaEdge, newAssignmentsAtEdge, codeAtEdge);
+    return new CFAEdgeWithAssignments(cfaEdge, newAssignmentsAtEdge, codeAtEdge, comment);
+  }
+
+  private String createComment(CFAEdge pCfaEdge) {
+    if (cfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+      return handleAssume((AssumeEdge) cfaEdge);
+    }
+
+    return null;
   }
 
   @Nullable
   private String createEdgeCode(CFAEdge pCFAEdge) {
+
+    if(pCFAEdge.toString().contains("line 722")) {
+      System.out.println();
+    }
 
     if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
       return handleDeclaration(((ADeclarationEdge) pCFAEdge).getDeclaration());
@@ -129,11 +145,77 @@ public class AssignmentToEdgeAllocator {
     } else if (cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
       return handleFunctionCall(((FunctionCallEdge) pCFAEdge));
     } else if (cfaEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
-
       throw new AssertionError("Multi-edges should be resolved by this point.");
     }
 
     return null;
+  }
+
+  private String handleAssume(AssumeEdge pCfaEdge) {
+
+    if (pCfaEdge instanceof CAssumeEdge) {
+      return handleAssume((CAssumeEdge)pCfaEdge);
+    }
+
+    return null;
+  }
+
+  private String handleAssume(CAssumeEdge pCfaEdge) {
+
+    CExpression pCExpression = pCfaEdge.getExpression();
+
+    String functionName = cfaEdge.getPredecessor().getFunctionName();
+
+    if(pCExpression instanceof CBinaryExpression) {
+
+      CBinaryExpression binExp = ((CBinaryExpression) pCExpression);
+
+      CExpression op1 = binExp.getOperand1();
+      CExpression op2 = binExp.getOperand2();
+
+      String result1 = handleAssumeOp(op1, functionName);
+
+      String result2 = handleAssumeOp(op2, functionName);
+
+      if (result1 != null && result2 != null) {
+        return result1 + System.lineSeparator() + result2;
+      } else if (result1 != null) {
+        return result1;
+      } else if (result2 != null) {
+        return result2;
+      }
+
+      return null;
+    }
+
+    return null;
+  }
+
+  private String handleAssumeOp(CExpression op, String functionName) {
+
+    if(op instanceof CLiteralExpression) {
+      /*boring expression*/
+      return null;
+    }
+
+    if (op instanceof CLeftHandSide) {
+      return handleAssignment((CLeftHandSide) op);
+    } else {
+      Object value = getValueObject(op, functionName);
+
+      if (value != null) {
+        return op.toASTString() + " == " + value.toString();
+      } else {
+        return null;
+      }
+    }
+  }
+
+  private Object getValueObject(CExpression pOp1, String pFunctionName) {
+
+    LModelValueVisitor v = new LModelValueVisitor(pFunctionName);
+
+    return v.evaluateNumericalValue(pOp1);
   }
 
   private  String handleFunctionCall(FunctionCallEdge pFunctionCallEdge) {
@@ -214,9 +296,7 @@ public class AssignmentToEdgeAllocator {
   }
 
   @Nullable
-  private String handleAssignment(IAssignment assignment) {
-
-    IALeftHandSide leftHandSide = assignment.getLeftHandSide();
+  private String handleAssignment(IALeftHandSide leftHandSide) {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
 
@@ -230,6 +310,12 @@ public class AssignmentToEdgeAllocator {
     ValueCodes valueAsCode = getValueAsCode(value, expectedType, leftHandSide.toASTString(), functionName);
 
     return handleSimpleValueCodesAssignments(valueAsCode, leftHandSide.toASTString());
+  }
+
+  @Nullable
+  private String handleAssignment(IAssignment assignment) {
+    IALeftHandSide leftHandSide = assignment.getLeftHandSide();
+    return handleAssignment(leftHandSide);
   }
 
   private Object getValueObject(IALeftHandSide pLeftHandSide, String pFunctionName) {
@@ -332,7 +418,7 @@ public class AssignmentToEdgeAllocator {
       return null;
     }
 
-    Joiner joiner = Joiner.on("\n");
+    Joiner joiner = Joiner.on(System.lineSeparator());
 
     return joiner.join(statements);
   }
