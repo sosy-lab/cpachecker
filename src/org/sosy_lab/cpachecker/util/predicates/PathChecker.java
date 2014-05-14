@@ -33,6 +33,8 @@ import java.util.logging.Level;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.core.concrete_counterexample.AssignmentToPathAllocator;
@@ -99,8 +101,16 @@ public class PathChecker {
     PathFormula pathFormula = pmgr.makeEmptyPathFormula();
 
     for (CFAEdge edge : from(pPath).filter(notNull())) {
-      pathFormula = pmgr.makeAnd(pathFormula, edge);
-      ssaMaps.add(pathFormula.getSsa());
+
+      if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
+        for (CFAEdge singleEdge : (MultiEdge) edge) {
+          pathFormula = pmgr.makeAnd(pathFormula, singleEdge);
+          ssaMaps.add(pathFormula.getSsa());
+        }
+      } else {
+        pathFormula = pmgr.makeAnd(pathFormula, edge);
+        ssaMaps.add(pathFormula.getSsa());
+      }
     }
 
     return Pair.of(pathFormula, ssaMaps);

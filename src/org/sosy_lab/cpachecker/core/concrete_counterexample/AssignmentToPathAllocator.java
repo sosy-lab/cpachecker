@@ -33,6 +33,8 @@ import java.util.Set;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
@@ -60,119 +62,177 @@ public class AssignmentToPathAllocator {
   public CFAPathWithAssignments allocateAssignmentsToPath(List<CFAEdge> pPath,
       Model pModel, List<SSAMap> pSSAMaps, MachineModel pMachineModel) {
 
-    assert pSSAMaps.size() == pPath.size();
-
     AssignableTermsInPath assignableTerms = assignTermsToPathPosition(pSSAMaps, pModel);
 
     List<CFAEdgeWithAssignments> pathWithAssignments = new ArrayList<>(pPath.size());
 
-    Multimap<CFAEdge, AssignableTerm> multimap = HashMultimap.create();
+    Multimap<CFAEdge, AssignableTerm> usedAssignableTerms = HashMultimap.create();
 
-    Map<String, Object> addressMap = new HashMap<>();
+    Map<String, Object> addressOfVariables = getVariableAddresses(assignableTerms, pModel);
+
+    Map<String, Assignment> variableEnvoirment = new HashMap<>();
+    Multimap<String, Assignment> functionEnvoirment = HashMultimap.create();
+
+    for (int unprecisePathIndex = 0; unprecisePathIndex < pPath.size(); unprecisePathIndex++) {
+
+      /*We always look at the precise path, with resolved multi edges*/
+      CFAEdge cfaEdge = pPath.get(unprecisePathIndex);
+
+      int precisePathIndex = unprecisePathIndex;
+
+      if(cfaEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
+
+        MultiEdge multiEdge = (MultiEdge) cfaEdge;
+
+        List<CFAEdgeWithAssignments> singleEdges = new ArrayList<>();
+
+        for (CFAEdge singleCfaEdge : multiEdge) {
+
+          variableEnvoirment = new HashMap<>(variableEnvoirment);
+          functionEnvoirment = HashMultimap.create(functionEnvoirment);
+          Collection<AssignableTerm> terms = assignableTerms.getAssignableTermsAtPosition().get(precisePathIndex);
+
+          SSAMap ssaMap = pSSAMaps.get(precisePathIndex);
+
+          CFAEdgeWithAssignments cfaEdgeWithAssignments =
+              createCFAEdgeWithAssignments(singleCfaEdge, ssaMap, variableEnvoirment,
+                  functionEnvoirment, addressOfVariables,
+                  terms, pModel, pMachineModel, usedAssignableTerms);
+
+          singleEdges.add(cfaEdgeWithAssignments);
+          precisePathIndex++;
+        }
+
+        CFAMultiEdgeWithAssignments edge = CFAMultiEdgeWithAssignments.valueOf(multiEdge, singleEdges);
+        pathWithAssignments.add(edge);
+      } else {
+        variableEnvoirment = new HashMap<>(variableEnvoirment);
+        functionEnvoirment = HashMultimap.create(functionEnvoirment);
+        Collection<AssignableTerm> terms = assignableTerms.getAssignableTermsAtPosition().get(precisePathIndex);
+
+        SSAMap ssaMap = pSSAMaps.get(precisePathIndex);
+
+        CFAEdgeWithAssignments cfaEdgeWithAssignments =
+            createCFAEdgeWithAssignments(cfaEdge, ssaMap, variableEnvoirment,
+                functionEnvoirment, addressOfVariables,
+                terms, pModel, pMachineModel, usedAssignableTerms);
+
+        pathWithAssignments.add(cfaEdgeWithAssignments);
+      }
+    }
+
+    return new CFAPathWithAssignments(pathWithAssignments, usedAssignableTerms);
+  }
+
+  private CFAEdgeWithAssignments createCFAEdgeWithAssignments(
+      CFAEdge cfaEdge, SSAMap ssaMap,
+      Map<String, Assignment> variableEnvoirment,
+      Multimap<String, Assignment> functionEnvoirment,
+      Map<String, Object> addressOfVariables,
+      Collection<AssignableTerm> terms, Model pModel,
+      MachineModel pMachineModel,
+      Multimap<CFAEdge, AssignableTerm> usedAssignableTerms) {
+
+    Set<Assignment> termSet = new HashSet<>();
+
+    createAssignments(pModel, terms, termSet, variableEnvoirment, functionEnvoirment);
+
+    removeDeallocatedVariables(ssaMap, variableEnvoirment);
+
+    ModelAtCFAEdge modelAtEdge = new ModelAtCFAEdge(variableEnvoirment, functionEnvoirment, addressOfVariables);
+
+    AssignmentToEdgeAllocator allocator =
+        new AssignmentToEdgeAllocator(logger, cfaEdge, termSet, modelAtEdge, pMachineModel);
+
+    CFAEdgeWithAssignments cfaEdgeWithAssignment = allocator.allocateAssignmentsToEdge();
+    usedAssignableTerms.putAll(cfaEdge, terms);
+    return cfaEdgeWithAssignment;
+  }
+
+  private void removeDeallocatedVariables(SSAMap pMap, Map<String, Assignment> variableEnvoirment) {
+
+    Set<String> variableNames = new HashSet<>(variableEnvoirment.keySet());
+
+    for (String name : variableNames) {
+      if (pMap.getIndex(name) < 0) {
+        variableEnvoirment.remove(name);
+      }
+    }
+  }
+
+  private void createAssignments(Model pModel,
+      Collection<AssignableTerm> terms,
+      Set<Assignment> termSet,
+      Map<String, Assignment> variableEnvoirment,
+      Multimap<String, Assignment> functionEnvoirment) {
+
+    for (AssignableTerm term : terms) {
+      Assignment assignment = new Assignment(term, pModel.get(term));
+
+      if (term instanceof Variable) {
+
+        Variable variable = (Variable) term;
+        String name = variable.getName();
+
+        if (variableEnvoirment.containsKey(name)) {
+          Variable oldVariable = (Variable) variableEnvoirment.get(name).getTerm();
+          int oldIndex = oldVariable.getSSAIndex();
+          int newIndex = variable.getSSAIndex();
+          if (oldIndex < newIndex) {
+            variableEnvoirment.remove(name);
+            variableEnvoirment.put(name, assignment);
+          }
+        } else {
+          variableEnvoirment.put(name, assignment);
+        }
+
+      } else if (term instanceof Function) {
+        Function function = (Function) term;
+        String name = getName(function);
+
+        if(functionEnvoirment.containsKey(name)) {
+
+          boolean replaced = false;
+
+          Set<Assignment> assignments = new HashSet<>(functionEnvoirment.get(name));
+
+          for(Assignment oldAssignment : assignments) {
+            Function oldFunction = (Function) oldAssignment.getTerm();
+
+            if(isLessSSA(oldFunction, function)) {
+
+              functionEnvoirment.remove(name, oldAssignment);
+              functionEnvoirment.put(name, assignment);
+              replaced = true;
+            }
+          }
+
+          if(!replaced) {
+            functionEnvoirment.put(name, assignment);
+          }
+        } else {
+          functionEnvoirment.put(name, assignment);
+        }
+      }
+      termSet.add(assignment);
+    }
+  }
+
+  private Map<String, Object> getVariableAddresses(
+      AssignableTermsInPath assignableTerms, Model pModel) {
+
+    Map<String, Object> addressOfVariables = new HashMap<>();
 
     for (Constant constant : assignableTerms.getConstants()) {
       String name = constant.getName();
       if (name.startsWith(ModelAtCFAEdge.getAddressPrefix())
           && pModel.containsKey(constant)) {
 
-        addressMap.put(name, pModel.get(constant));
+        addressOfVariables.put(name, pModel.get(constant));
       }
     }
 
-    Map<Function, Object> functionMap = new HashMap<>();
-
-    for (Function function : assignableTerms.getUfFunctionsWithoutSSAIndex()) {
-      functionMap.put(function, pModel.get(function));
-    }
-
-    Map<String, Object> imAddressMap = ImmutableMap.copyOf(addressMap);
-
-    Map<String, Assignment> variableEnvoirment = new HashMap<>();
-    Multimap<String, Assignment> functionEnvoirment = HashMultimap.create();
-
-    for (int index = 0; index < pPath.size(); index++) {
-
-      variableEnvoirment = new HashMap<>(variableEnvoirment);
-      functionEnvoirment = HashMultimap.create(functionEnvoirment);
-
-      CFAEdge cfaEdge = pPath.get(index);
-      Collection<AssignableTerm> terms = assignableTerms.getAssignableTermsAtPosition().get(index);
-
-      Set<Assignment> termSet = new HashSet<>();
-
-      for (AssignableTerm term : terms) {
-        Assignment assignment = new Assignment(term, pModel.get(term));
-
-        if (term instanceof Variable) {
-
-          Variable variable = (Variable) term;
-          String name = variable.getName();
-
-          if (variableEnvoirment.containsKey(name)) {
-            Variable oldVariable = (Variable) variableEnvoirment.get(name).getTerm();
-            int oldIndex = oldVariable.getSSAIndex();
-            int newIndex = variable.getSSAIndex();
-            if (oldIndex < newIndex) {
-              variableEnvoirment.remove(name);
-              variableEnvoirment.put(name, assignment);
-            }
-          } else {
-            variableEnvoirment.put(name, assignment);
-          }
-
-        } else if (term instanceof Function) {
-          Function function = (Function) term;
-          String name = getName(function);
-
-          if(functionEnvoirment.containsKey(name)) {
-
-            boolean replaced = false;
-
-            Set<Assignment> assignments = new HashSet<>(functionEnvoirment.get(name));
-
-            for(Assignment oldAssignment : assignments) {
-              Function oldFunction = (Function) oldAssignment.getTerm();
-
-              if(isLessSSA(oldFunction, function)) {
-
-                functionEnvoirment.remove(name, oldAssignment);
-                functionEnvoirment.put(name, assignment);
-                replaced = true;
-              }
-            }
-
-            if(!replaced) {
-              functionEnvoirment.put(name, assignment);
-            }
-          } else {
-            functionEnvoirment.put(name, assignment);
-          }
-        }
-        termSet.add(assignment);
-      }
-
-      SSAMap map = pSSAMaps.get(index);
-
-      Set<String> variableNames = new HashSet<>(variableEnvoirment.keySet());
-
-      for(String name : variableNames) {
-        if(map.getIndex(name) < 0) {
-          variableEnvoirment.remove(name);
-        }
-      }
-
-      ModelAtCFAEdge modelAtEdge = new ModelAtCFAEdge(variableEnvoirment, functionEnvoirment, imAddressMap);
-
-      AssignmentToEdgeAllocator allocator =
-          new AssignmentToEdgeAllocator(logger, cfaEdge, termSet, modelAtEdge, pMachineModel);
-
-      CFAEdgeWithAssignments cfaEdgeWithAssignment = allocator.allocateAssignmentsToEdge();
-
-      pathWithAssignments.add(cfaEdgeWithAssignment);
-      multimap.putAll(cfaEdge, terms);
-    }
-
-    return new CFAPathWithAssignments(pathWithAssignments, multimap);
+    return ImmutableMap.copyOf(addressOfVariables);
   }
 
   private boolean isLessSSA(Function pOldFunction, Function pFunction) {
@@ -216,8 +276,8 @@ public class AssignmentToPathAllocator {
    */
   private AssignableTermsInPath assignTermsToPathPosition(List<SSAMap> pSsaMaps, Model pModel) {
 
-    // Create a map that holds all AssignableTerms that occured
-    // in the given path.
+    // Create a map that holds all AssignableTerms that occurred
+    // in the given path. The referenced path is the precise path, with multi edges resolved.
     Multimap<Integer, AssignableTerm> assignedTermsPosition = HashMultimap.create();
 
     Set<Constant> constants = new HashSet<>();
@@ -408,6 +468,7 @@ public class AssignmentToPathAllocator {
       return constants;
     }
 
+    @SuppressWarnings("unused")
     public Set<Function> getUfFunctionsWithoutSSAIndex() {
       return ufFunctionsWithoutSSAIndex;
     }
