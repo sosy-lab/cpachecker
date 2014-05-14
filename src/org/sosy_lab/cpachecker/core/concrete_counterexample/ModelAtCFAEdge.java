@@ -102,6 +102,7 @@ public class ModelAtCFAEdge {
     return "*" + name;
   }
 
+  @SuppressWarnings("unused")
   private class TypeUFNameVisitor implements CTypeVisitor<String, RuntimeException> {
 
     @Override
@@ -271,6 +272,10 @@ public class ModelAtCFAEdge {
 
     public Object getSymbolicValue() {
       return symbolicAddress;
+    }
+
+    public Number getAsNumber() {
+      return addressAsNumber;
     }
   }
 }

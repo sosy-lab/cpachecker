@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -55,6 +56,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
@@ -472,7 +475,8 @@ public class AssignmentToEdgeAllocator {
 
       Value addressV;
       try {
-        addressV = exp.accept(new ModelExpressionValueVisitor(functionName, machineModel, new LogManagerWithoutDuplicates(logger)));
+        ModelExpressionValueVisitor v = new ModelExpressionValueVisitor(functionName, machineModel, new LogManagerWithoutDuplicates(logger));
+        addressV = exp.accept(v);
       } catch (UnrecognizedCCodeException e1) {
         throw new IllegalArgumentException(e1);
       }
@@ -706,7 +710,7 @@ public class AssignmentToEdgeAllocator {
     }
 
     private Object lookupVariable(CSimpleDeclaration pVarDcl) {
-      String varName = getVarName(pVarDcl);
+      String varName = getName(pVarDcl);
 
       if (modelAtEdge.containsVariableName(varName)) {
         return modelAtEdge.getVariableValue(varName);
@@ -715,15 +719,16 @@ public class AssignmentToEdgeAllocator {
       }
     }
 
-    private String getVarName(CSimpleDeclaration pVarDcl) {
+    private String getName(CSimpleDeclaration pDcl) {
 
-      String varName = pVarDcl.getName();
+      String name = pDcl.getName();
 
-      if (pVarDcl instanceof CParameterDeclaration ||
-          (!((CVariableDeclaration) pVarDcl).isGlobal())) {
-        return functionName + "::" + varName;
+      if (pDcl instanceof CParameterDeclaration ||
+          (pDcl instanceof CVariableDeclaration
+              && !((CVariableDeclaration) pDcl).isGlobal())) {
+        return functionName + "::" + name;
       } else {
-        return varName;
+        return name;
       }
     }
 
@@ -778,12 +783,12 @@ public class AssignmentToEdgeAllocator {
         valueVisitor = pValueVisitor;
       }
 
-      public Address getAddress(CSimpleDeclaration varDecl) {
+      public Address getAddress(CSimpleDeclaration dcl) {
 
-        String varName = getVarName(varDecl);
+        String name = getName(dcl);
 
-        if (modelAtEdge.containsVariableAddress(varName)) {
-          return modelAtEdge.getVariableAddress(varName);
+        if (modelAtEdge.containsVariableAddress(name)) {
+          return modelAtEdge.getVariableAddress(name);
         }
 
         return null;
@@ -990,6 +995,27 @@ public class AssignmentToEdgeAllocator {
         default:
           return Value.UnknownValue.getInstance();
         }
+      }
+
+      @Override
+      public Value visit(CUnaryExpression pUnaryExpression) throws UnrecognizedCCodeException {
+
+        if (pUnaryExpression.getOperator() == UnaryOperator.AMPER) {
+
+          CExpression operand = pUnaryExpression.getOperand();
+
+          if (operand instanceof CLeftHandSide) {
+            //TODO assumed?
+
+            Address address = evaluateAddress((CLeftHandSide) operand);
+
+            if(address != null && address.isNumericalType()) {
+              return new NumericValue(address.getAsNumber());
+            }
+          }
+        }
+
+        return super.visit(pUnaryExpression);
       }
 
       @Override
