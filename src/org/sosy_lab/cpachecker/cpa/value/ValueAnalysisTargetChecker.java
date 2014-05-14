@@ -54,7 +54,7 @@ public class ValueAnalysisTargetChecker {
 
   public boolean isTarget(PersistentMap<MemoryLocation, Value> pConstantsMap) {
     Value value = pConstantsMap.get(errorVarRep);
-    if (!value.isExplicitlyKnown() || !value.equals(new NumericValue(allowedValue))) { return true; }
+    if (value == null || !value.isExplicitlyKnown() || !value.equals(new NumericValue(allowedValue))) { return true; }
     return false;
   }
 
