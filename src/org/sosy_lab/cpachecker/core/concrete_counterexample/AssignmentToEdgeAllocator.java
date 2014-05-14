@@ -61,7 +61,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -129,29 +128,11 @@ public class AssignmentToEdgeAllocator {
     } else if (cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
       return handleFunctionCall(((FunctionCallEdge) pCFAEdge));
     } else if (cfaEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
-      return handleMultiEdge((MultiEdge) pCFAEdge);
+
+      throw new AssertionError("Multi-edges should be resolved by this point.");
     }
 
     return null;
-  }
-
-  private String handleMultiEdge(MultiEdge pEdge) {
-
-    Set<String> result = new HashSet<>(pEdge.getEdges().size());
-
-    for (CFAEdge edge : pEdge) {
-      String code = createEdgeCode(edge);
-
-      if (code != null && !result.contains(code)) {
-        result.add(code);
-      }
-    }
-
-    if(result.size() < 1) {
-      return null;
-    } else {
-      return Joiner.on(" ").join(result);
-    }
   }
 
   private  String handleFunctionCall(FunctionCallEdge pFunctionCallEdge) {
