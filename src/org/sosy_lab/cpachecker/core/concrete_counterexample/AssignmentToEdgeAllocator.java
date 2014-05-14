@@ -31,6 +31,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
@@ -1089,9 +1090,15 @@ public class AssignmentToEdgeAllocator {
       }
     }
 
+    /**
+     * Resolves all subexpressions that can be resolved.
+     * Stops at duplicate memory location.
+     */
     private class ValueCodeVisitor extends DefaultCTypeVisitor<Void, RuntimeException> {
 
-      //TODO Don't let this visitor unroll indefinitely
+      /*Contains references already visited, to avoid descending indefinitely.
+       *Shares a reference with all instanced Visitors resolving the given type.*/
+      private final Set<Pair<CType, Object>> visited;
 
       /*
        * Contains the address of the super type of the visited type.
@@ -1114,6 +1121,16 @@ public class AssignmentToEdgeAllocator {
         valueCodes = pValueCodes;
         prefix = pPrefix;
         postfix = pPostfix;
+        visited = new HashSet<>();
+      }
+
+      private ValueCodeVisitor(Object pAddress, ValueCodes pValueCodes,
+          String pPrefix, String pPostfix, Set<Pair<CType, Object>> pVisited) {
+        address = pAddress;
+        valueCodes = pValueCodes;
+        prefix = pPrefix;
+        postfix = pPostfix;
+        visited = pVisited;
       }
 
       @Override
@@ -1199,13 +1216,22 @@ public class AssignmentToEdgeAllocator {
           return;
         }
 
-        String fieldPrefix = "(" + prefix;
-        String fieldPostfix = postfix +"." + pType.getName() + ")";
+        Object fieldAddressObject = fieldAddress;
+        Pair<CType, Object> visits = Pair.of(realType, fieldAddressObject);
 
-        SubExpressionValueCode subExpression = SubExpressionValueCode.valueOf(valueCode.getValueCode(), fieldPrefix, fieldPostfix);
-        valueCodes.addSubExpressionValueCode(subExpression);
+        if (!visited.contains(visits)) {
 
-        realType.accept(new ValueCodeVisitor(fieldValue, valueCodes, fieldPrefix, fieldPostfix));
+          visited.add(visits);
+
+          String fieldPrefix = "(" + prefix;
+          String fieldPostfix = postfix + "." + pType.getName() + ")";
+
+          SubExpressionValueCode subExpression =
+              SubExpressionValueCode.valueOf(valueCode.getValueCode(), fieldPrefix, fieldPostfix);
+          valueCodes.addSubExpressionValueCode(subExpression);
+
+          realType.accept(new ValueCodeVisitor(fieldValue, valueCodes, fieldPrefix, fieldPostfix, visited));
+        }
       }
 
       @Override
@@ -1261,17 +1287,25 @@ public class AssignmentToEdgeAllocator {
           return false;
         }
 
-        String lValuePrefix = "(" + prefix;
-        String lValuePostfix = postfix + "[" + pSubscript + "])";
+        Object arrayAddressO = pArrayAddress;
+        Pair<CType, Object> visits = Pair.of(pExpectedType, arrayAddressO);
 
-        SubExpressionValueCode subExpressionValueCode =
-            new SubExpressionValueCode(valueCode.getValueCode(), lValuePrefix, lValuePostfix);
+        if (visited.contains(visits)) {
 
-        valueCodes.addSubExpressionValueCode(subExpressionValueCode);
+          visited.add(visits);
 
-        ValueCodeVisitor v = new ValueCodeVisitor(value, valueCodes, lValuePrefix, lValuePostfix);
+          String lValuePrefix = "(" + prefix;
+          String lValuePostfix = postfix + "[" + pSubscript + "])";
 
-        pExpectedType.accept(v);
+          SubExpressionValueCode subExpressionValueCode =
+              new SubExpressionValueCode(valueCode.getValueCode(), lValuePrefix, lValuePostfix);
+
+          valueCodes.addSubExpressionValueCode(subExpressionValueCode);
+
+          ValueCodeVisitor v = new ValueCodeVisitor(value, valueCodes, lValuePrefix, lValuePostfix, visited);
+
+          pExpectedType.accept(v);
+        }
 
         return true;
       }
@@ -1305,14 +1339,21 @@ public class AssignmentToEdgeAllocator {
         String lValuePrefix = "(*" + prefix;
         String lValuePostfix = postfix + ")";
 
-        SubExpressionValueCode subExpressionValueCode =
-            new SubExpressionValueCode(valueCode.getValueCode(), lValuePrefix, lValuePostfix);
+        Pair<CType, Object> visits = Pair.of(expectedType, address);
 
-        valueCodes.addSubExpressionValueCode(subExpressionValueCode);
+        if (visited.contains(visits)) {
+          SubExpressionValueCode subExpressionValueCode =
+              new SubExpressionValueCode(valueCode.getValueCode(), lValuePrefix, lValuePostfix);
 
-        ValueCodeVisitor v = new ValueCodeVisitor(value, valueCodes, lValuePrefix, lValuePostfix);
+          valueCodes.addSubExpressionValueCode(subExpressionValueCode);
 
-        expectedType.accept(v);
+          /*Tell all instanced visitors that you visited this memory location*/
+          visited.add(visits);
+
+          ValueCodeVisitor v = new ValueCodeVisitor(value, valueCodes, lValuePrefix, lValuePostfix, visited);
+
+          expectedType.accept(v);
+        }
 
         return null;
       }
@@ -1322,7 +1363,7 @@ public class AssignmentToEdgeAllocator {
 
         String newPrefix = "*(" + prefix;
         String newPostfix = ")";
-        pExpectedType.accept(new ValueCodeVisitor(address, valueCodes, newPrefix, newPostfix));
+        pExpectedType.accept(new ValueCodeVisitor(address, valueCodes, newPrefix, newPostfix, visited));
       }
 
       private Object getPointerValue(CType expectedType) {
