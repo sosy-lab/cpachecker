@@ -390,9 +390,11 @@ public class CFAEdgeWithAssignments {
   private class LModelValueVisitor implements CLeftHandSideVisitor<Object, RuntimeException> {
 
     private final String functionName;
+    private final AddressValueVisitor addressVisitor;
 
     public LModelValueVisitor(String pFunctionName) {
       functionName = pFunctionName;
+      addressVisitor = new AddressValueVisitor(this);
     }
 
     private final BigDecimal evaluateNumericalValue(CExpression exp) {
@@ -411,30 +413,32 @@ public class CFAEdgeWithAssignments {
       return BigDecimal.valueOf(addressV.asNumericValue().longValue());
     }
 
+    /*This method evaluates the address of the lValue, not the address the expression evaluates to*/
+    private final BigDecimal evaluateNumericalAddress(CLeftHandSide exp) {
+
+      Object addressV = evaluateAddress(exp);
+
+      if (addressV == null) {
+        return null;
+      }
+
+      try {
+        return new BigDecimal(addressV.toString());
+      } catch (NumberFormatException e) {
+        //TODO Ugly Refactor
+        return null;
+      }
+    }
+
+    /*This method evaluates the address of the lValue, not the address the expression evaluates to*/
+    private Object evaluateAddress(CLeftHandSide pExp) {
+      return pExp.accept(addressVisitor);
+    }
+
     @Override
     public Object visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
 
-      CExpression arrayExpression = pIastArraySubscriptExpression.getArrayExpression();
-
-      BigDecimal address = evaluateNumericalValue(arrayExpression);
-
-      if(address == null) {
-        return null;
-      }
-
-      CExpression subscriptCExpression = pIastArraySubscriptExpression.getSubscriptExpression();
-
-      BigDecimal subscriptValue = evaluateNumericalValue(subscriptCExpression);
-
-      if(subscriptValue == null) {
-        return null;
-      }
-
-      BigDecimal typeSize = BigDecimal.valueOf(getSizeof(pIastArraySubscriptExpression.getExpressionType()));
-
-      BigDecimal subscriptOffset = subscriptValue.multiply(typeSize);
-
-      Object valueAddress = address.add(subscriptOffset);
+      Object valueAddress = evaluateAddress(pIastArraySubscriptExpression);
 
       String ufName = TypeUFNameVisitor.getUFName(pIastArraySubscriptExpression.getExpressionType());
 
@@ -464,21 +468,27 @@ public class CFAEdgeWithAssignments {
         }
       }
 
-      BigDecimal fieldOwneraddress = evaluateNumericalValue(fieldowner);
 
-      if (fieldOwneraddress == null) {
+      if(pIastFieldReference.isPointerDereference()) {
+
+        BigDecimal fieldOwneraddress = evaluateNumericalValue(fieldowner);
+
+        if (fieldOwneraddress == null) {
+          return null;
+        }
+
+        BigDecimal fieldOffset = getFieldOffset(pIastFieldReference);
+
+        if(fieldOffset == null) {
+          return null;
+        }
+
+        BigDecimal address = fieldOwneraddress.add(fieldOffset);
+
+        return TypeUFNameVisitor.getValueFromUF(TypeUFNameVisitor.getUFName(pIastFieldReference.getExpressionType()), address, functionEnvoirment);
+      } else {
         return null;
       }
-
-      BigDecimal fieldOffset = getFieldOffset(pIastFieldReference);
-
-      if(fieldOffset == null) {
-        return null;
-      }
-
-      BigDecimal address = fieldOwneraddress.add(fieldOffset);
-
-      return TypeUFNameVisitor.getValueFromUF(TypeUFNameVisitor.getUFName(pIastFieldReference.getExpressionType()), address, functionEnvoirment);
     }
 
     private BigDecimal getFieldOffset(CFieldReference fieldReference) {
@@ -565,19 +575,7 @@ public class CFAEdgeWithAssignments {
       }
 
       if(type instanceof CArrayType) {
-        return getAddress(pCIdExpression.getDeclaration());
-      }
-
-      return null;
-    }
-
-    private Object getAddress(CSimpleDeclaration varDecl) {
-
-      String varName = getVarName(varDecl);
-      String addressName = CFAPathWithAssignments.getAddressPrefix() + varName;
-
-      if (addressMap.containsKey(addressName)) {
-        return addressMap.get(addressName);
+        return evaluateAddress(pCIdExpression);
       }
 
       return null;
@@ -615,7 +613,7 @@ public class CFAEdgeWithAssignments {
         /* The variable might not exist anymore in the variable environment,
            search in the address space of the function environment*/
 
-        Object address = getAddress(pVarDcl);
+        Object address = addressVisitor.getAddress(pVarDcl);
 
         if(address == null) {
           return null;
@@ -680,6 +678,75 @@ public class CFAEdgeWithAssignments {
       }
 
       return false;
+    }
+
+    private class AddressValueVisitor implements CLeftHandSideVisitor<Object, RuntimeException> {
+
+      private final LModelValueVisitor valueVisitor;
+
+      public AddressValueVisitor(LModelValueVisitor pValueVisitor) {
+        valueVisitor = pValueVisitor;
+      }
+
+      public Object getAddress(CSimpleDeclaration varDecl) {
+
+        String varName = getVarName(varDecl);
+        String addressName = CFAPathWithAssignments.getAddressPrefix() + varName;
+
+        if (addressMap.containsKey(addressName)) {
+          return addressMap.get(addressName);
+        }
+
+        return null;
+      }
+
+      @Override
+      public Object visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
+        CExpression arrayExpression = pIastArraySubscriptExpression.getArrayExpression();
+
+        BigDecimal address = evaluateNumericalValue(arrayExpression);
+
+        if(address == null) {
+          return null;
+        }
+
+        CExpression subscriptCExpression = pIastArraySubscriptExpression.getSubscriptExpression();
+
+        BigDecimal subscriptValue = evaluateNumericalValue(subscriptCExpression);
+
+        if(subscriptValue == null) {
+          return null;
+        }
+
+        BigDecimal typeSize = BigDecimal.valueOf(getSizeof(pIastArraySubscriptExpression.getExpressionType()));
+
+        BigDecimal subscriptOffset = subscriptValue.multiply(typeSize);
+
+        return address.add(subscriptOffset);
+      }
+
+      @Override
+      public Object visit(CFieldReference pIastFieldReference) {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      @Override
+      public Object visit(CIdExpression pIastIdExpression) {
+        return getAddress(pIastIdExpression.getDeclaration());
+      }
+
+      @Override
+      public Object visit(CPointerExpression pPointerExpression) {
+        /*The address of a pointer dereference is its evaluation*/
+        return valueVisitor.visit(pPointerExpression);
+      }
+
+      @Override
+      public Object visit(CComplexCastExpression pComplexCastExpression) {
+        // TODO Implement complex Cast Expression when predicate models it.
+        return null;
+      }
     }
 
     private class ModelExpressionValueVisitor extends AbstractExpressionValueVisitor {
