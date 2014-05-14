@@ -88,10 +88,11 @@ public class ModelAtCFAEdge {
   }
 
   private String getUFName(CType pType) {
-    CType type = pType.getCanonicalType();
+    CType type = pType.getCanonicalType(false, false);
 
     //TODO Seems to work, for now
-    String name = type.toString().replace(" ", "_");
+    //TODO ugly ... rewrite
+    String name = type.toString().replace("volatile ", "").replace("const ", "").replace(" ", "_");
 
 //    String name = type.accept(new TypeUFNameVisitor());
 

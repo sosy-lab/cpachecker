@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -131,6 +132,34 @@ public class AssignmentToEdgeAllocator {
       return handleAssume((AssumeEdge) cfaEdge);
     } else if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
       return handleDclComment((ADeclarationEdge)cfaEdge);
+    } else if(cfaEdge.getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
+      return handleReturnStatementComment((AReturnStatementEdge) cfaEdge);
+    }
+
+    return null;
+  }
+
+  private String handleReturnStatementComment(AReturnStatementEdge pCfaEdge) {
+
+    if (pCfaEdge.getExpression() instanceof CExpression) {
+      CExpression returnExp = (CExpression) pCfaEdge.getExpression();
+
+      if(returnExp instanceof CLiteralExpression) {
+        /*boring expression*/
+        return null;
+      }
+
+      String functionname = pCfaEdge.getPredecessor().getFunctionName();
+
+      LModelValueVisitor v = new LModelValueVisitor(functionname);
+
+      Number value = v.evaluateNumericalValue(returnExp);
+
+      if(value == null) {
+        return null;
+      }
+
+      return returnExp.toASTString() + " = " + value.toString();
     }
 
     return null;
@@ -163,10 +192,6 @@ public class AssignmentToEdgeAllocator {
 
   @Nullable
   private String createEdgeCode(CFAEdge pCFAEdge) {
-
-    if(pCFAEdge.toString().contains("line 722")) {
-      System.out.println();
-    }
 
     if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
       return handleDeclaration(((ADeclarationEdge) pCFAEdge).getDeclaration());
