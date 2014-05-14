@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.core.concrete_counterexample.CFAEdgeWithAssignments;
+import org.sosy_lab.cpachecker.core.concrete_counterexample.CFAMultiEdgeWithAssignments;
 import org.sosy_lab.cpachecker.core.concrete_counterexample.CFAPathWithAssignments;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -394,15 +395,25 @@ public class ARGStatistics implements Statistics {
 
         for (CFAEdgeWithAssignments edgeWithAssignments : from(pExactValuePath).filter(notNull())) {
 
-          out.append(edgeWithAssignments.getCFAEdge().toString());
-          out.append(System.lineSeparator());
-
-          String cCode = edgeWithAssignments.getAsCode();
-          if (cCode != null) {
-            out.append('\t');
-            out.append(cCode);
-            out.append(System.lineSeparator());
+          if (edgeWithAssignments instanceof CFAMultiEdgeWithAssignments) {
+            for (CFAEdgeWithAssignments singleEdge : (CFAMultiEdgeWithAssignments) edgeWithAssignments) {
+              printPreciseValues(out, singleEdge);
+            }
+          } else {
+            printPreciseValues(out, edgeWithAssignments);
           }
+        }
+      }
+
+      private void printPreciseValues(Appendable out, CFAEdgeWithAssignments edgeWithAssignments) throws IOException {
+        out.append(edgeWithAssignments.getCFAEdge().toString());
+        out.append(System.lineSeparator());
+
+        String cCode = edgeWithAssignments.getAsCode();
+        if (cCode != null) {
+          out.append('\t');
+          out.append(cCode);
+          out.append(System.lineSeparator());
         }
       }
     };
