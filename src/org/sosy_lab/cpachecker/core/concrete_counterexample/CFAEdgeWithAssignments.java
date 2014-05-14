@@ -805,7 +805,7 @@ public class CFAEdgeWithAssignments {
 
       String value = this.value.toString();
 
-      return value.matches("((-)?)(\\d*)|(.(\\d*))|((\\d*).)|((\\d*).(\\d*))") ? value : null;
+      return value.matches("((-)?)((\\d*)|(.(\\d*))|((\\d*).)|((\\d*).(\\d*)))") ? value : null;
     }
 
     private String handleIntegerNumbers(CSimpleType pSimpleType) {
