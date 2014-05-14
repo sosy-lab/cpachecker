@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.concrete_counterexample;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -39,6 +40,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.Model.Function;
+
+import apache.harmony.math.BigInteger;
 
 import com.google.common.collect.Multimap;
 
@@ -59,7 +62,7 @@ public class ModelAtCFAEdge {
     variableModel = pVariableModel;
   }
 
-  public Object getValueFromUF(CType type, Object address) {
+  public Object getValueFromUF(CType type, Address address) {
 
     String ufName = getUFName(type);
 
@@ -74,7 +77,7 @@ public class ModelAtCFAEdge {
         break;
       }
 
-      if (function.getArgument(0).equals(address)) {
+      if (address.comparesToUFArgument(function.getArgument(0))) {
         return assignment.getValue();
       }
     }
@@ -181,11 +184,12 @@ public class ModelAtCFAEdge {
     return variableAddressMap.containsKey(addressName);
   }
 
-  public Object getVariableAddress(String varName) {
+  public Address getVariableAddress(String varName) {
     String addressName = getAddressPrefix() + varName;
 
     if (variableAddressMap.containsKey(addressName)) {
-      return variableAddressMap.get(addressName);
+      Object addressO = variableAddressMap.get(addressName);
+      return Address.valueOf(addressO);
     } else {
       throw new IllegalArgumentException();
     }
@@ -201,5 +205,66 @@ public class ModelAtCFAEdge {
         + variableAddressMap;
   }
 
+  public static class Address {
+
+    private final Object address;
+
+    private Address(Object pAddress) {
+      address = pAddress;
+    }
+
+    public boolean comparesToUFArgument(Object pArgument) {
+
+      if(address instanceof BigDecimal) {
+        if(pArgument instanceof BigDecimal) {
+          return ((BigDecimal) address).compareTo((BigDecimal) pArgument) == 0;
+        } else if(pArgument instanceof BigInteger) {
+          return ((BigDecimal) address).compareTo(BigDecimal.valueOf(((BigInteger) pArgument).longValue())) == 0;
+        }
+      }
+
+      if(pArgument instanceof BigDecimal && address instanceof BigInteger) {
+        return ((BigDecimal) pArgument).compareTo(BigDecimal.valueOf(((BigInteger) address).longValue())) == 0;
+      }
+
+      return pArgument.equals(address);
+    }
+
+    public boolean isNumericalType() {
+      return address instanceof BigDecimal || address instanceof BigInteger;
+    }
+
+    public Address addOffset(BigDecimal offset) {
+
+      if (address instanceof BigDecimal) {
+        BigDecimal result = ((BigDecimal) address).add(offset);
+        return Address.valueOf(result);
+      }
+
+      if (address instanceof BigInteger) {
+        long offsetL = offset.longValue();
+
+        if (offset.compareTo(BigDecimal.valueOf(offsetL)) == 0) {
+          BigInteger result = ((BigInteger) address).add(offsetL);
+          return Address.valueOf(result);
+        } else {
+          /*BigInteger will be casted to BigDecimal*/
+          BigDecimal result = BigDecimal.valueOf(((BigInteger) address).longValue()).add(offset);
+          return Address.valueOf(result);
+        }
+      }
+
+      throw new IllegalStateException("Can't add offsets to a non numerical type of address");
+    }
+
+    @Override
+    public String toString() {
+      return "Address = [" + address + "]";
+    }
+
+    public static Address valueOf(Object address) {
+      return new Address(address);
+    }
+  }
 
 }

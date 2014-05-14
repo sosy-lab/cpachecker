@@ -78,6 +78,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
+import org.sosy_lab.cpachecker.core.concrete_counterexample.ModelAtCFAEdge.Address;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.Value;
@@ -398,32 +399,26 @@ public class AssignmentToEdgeAllocator {
       return BigDecimal.valueOf(addressV.asNumericValue().doubleValue());
     }
 
-    /*This method evaluates the address of the lValue, not the address the expression evaluates to*/
-    private final BigDecimal evaluateNumericalAddress(CLeftHandSide exp) {
+    private final Address evaluateNumericalValueAsAddress(CExpression exp) {
 
-      Object addressV = evaluateAddress(exp);
+      BigDecimal result = evaluateNumericalValue(exp);
 
-      if (addressV == null) {
+      if (result == null) {
         return null;
       }
 
-      try {
-        return new BigDecimal(addressV.toString());
-      } catch (NumberFormatException e) {
-        //TODO Ugly Refactor
-        return null;
-      }
+      return Address.valueOf(result);
     }
 
     /*This method evaluates the address of the lValue, not the address the expression evaluates to*/
-    private Object evaluateAddress(CLeftHandSide pExp) {
+    private Address evaluateAddress(CLeftHandSide pExp) {
       return pExp.accept(addressVisitor);
     }
 
     @Override
     public Object visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
 
-      Object valueAddress = evaluateAddress(pIastArraySubscriptExpression);
+      Address valueAddress = evaluateAddress(pIastArraySubscriptExpression);
 
       CType type = pIastArraySubscriptExpression.getExpressionType();
 
@@ -435,7 +430,7 @@ public class AssignmentToEdgeAllocator {
     @Override
     public Object visit(CFieldReference pIastFieldReference) {
 
-      BigDecimal address = evaluateNumericalAddress(pIastFieldReference);
+      Address address = evaluateAddress(pIastFieldReference);
 
       CType type = pIastFieldReference.getExpressionType();
 
@@ -580,7 +575,7 @@ public class AssignmentToEdgeAllocator {
         /* The variable might not exist anymore in the variable environment,
            search in the address space of the function environment*/
 
-        Object address = addressVisitor.getAddress(pVarDcl);
+        Address address = addressVisitor.getAddress(pVarDcl);
 
         if(address == null) {
           return null;
@@ -611,7 +606,7 @@ public class AssignmentToEdgeAllocator {
 
       /*Quick jump to the necessary method.
        * the address of a dereference is the evaluation of its operand*/
-      BigDecimal address = evaluateNumericalValue(exp);
+      Address address = evaluateNumericalValueAsAddress(exp);
 
       CType type = exp.getExpressionType();
 
@@ -643,7 +638,7 @@ public class AssignmentToEdgeAllocator {
       return false;
     }
 
-    private class AddressValueVisitor implements CLeftHandSideVisitor<Object, RuntimeException> {
+    private class AddressValueVisitor implements CLeftHandSideVisitor<Address, RuntimeException> {
 
       private final LModelValueVisitor valueVisitor;
 
@@ -651,7 +646,7 @@ public class AssignmentToEdgeAllocator {
         valueVisitor = pValueVisitor;
       }
 
-      public Object getAddress(CSimpleDeclaration varDecl) {
+      public Address getAddress(CSimpleDeclaration varDecl) {
 
         String varName = getVarName(varDecl);
 
@@ -663,10 +658,11 @@ public class AssignmentToEdgeAllocator {
       }
 
       @Override
-      public Object visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
+      public Address visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
         CExpression arrayExpression = pIastArraySubscriptExpression.getArrayExpression();
 
-        BigDecimal address = evaluateNumericalValue(arrayExpression);
+        //TODO Is this call correct?
+        Address address = evaluateNumericalValueAsAddress(arrayExpression);
 
         if(address == null) {
           return null;
@@ -684,17 +680,17 @@ public class AssignmentToEdgeAllocator {
 
         BigDecimal subscriptOffset = subscriptValue.multiply(typeSize);
 
-        return address.add(subscriptOffset);
+        return address.addOffset(subscriptOffset);
       }
 
       @Override
-      public Object visit(CFieldReference pIastFieldReference) {
+      public Address visit(CFieldReference pIastFieldReference) {
 
         CExpression fieldOwner = pIastFieldReference.getFieldOwner();
 
         if (pIastFieldReference.isPointerDereference()) {
 
-          BigDecimal fieldOwneraddress = evaluateNumericalValue(fieldOwner);
+          Address fieldOwneraddress = evaluateNumericalValueAsAddress(fieldOwner);
 
           if (fieldOwneraddress == null) {
             return null;
@@ -706,7 +702,7 @@ public class AssignmentToEdgeAllocator {
             return null;
           }
 
-          return fieldOwneraddress.add(fieldOffset);
+          return fieldOwneraddress.addOffset(fieldOffset);
         }
 
         if (!(fieldOwner instanceof CLeftHandSide)) {
@@ -714,7 +710,7 @@ public class AssignmentToEdgeAllocator {
           return null;
         }
 
-        BigDecimal fieldOwnerAddress = evaluateNumericalAddress((CLeftHandSide) fieldOwner);
+        Address fieldOwnerAddress = evaluateAddress((CLeftHandSide) fieldOwner);
 
         if (fieldOwnerAddress == null) {
           return null;
@@ -722,14 +718,14 @@ public class AssignmentToEdgeAllocator {
 
         BigDecimal fieldOffset = getFieldOffset(pIastFieldReference);
 
-        if(fieldOffset == null) {
+        if(fieldOffset == null && !fieldOwnerAddress.isNumericalType()) {
           return null;
         }
 
-        Object value = fieldOwnerAddress.add(fieldOffset);
+        Address address = fieldOwnerAddress.addOffset(fieldOffset);
 
-        if (value != null) {
-          return value;
+        if (address != null) {
+          return address;
         }
 
         /* Fieldreferences are sometimes represented as variables,
@@ -737,26 +733,27 @@ public class AssignmentToEdgeAllocator {
         String fieldReferenceVariableName = getFieldReferenceVariableName(pIastFieldReference);
 
         if (fieldReferenceVariableName != null) {
-          if (modelAtEdge.containsVariableAddress(fieldReferenceVariableName)) { return modelAtEdge
-              .getVariableAddress(fieldReferenceVariableName); }
+          if (modelAtEdge.containsVariableAddress(fieldReferenceVariableName)) {
+            return modelAtEdge.getVariableAddress(fieldReferenceVariableName);
+          }
         }
 
         return null;
       }
 
       @Override
-      public Object visit(CIdExpression pIastIdExpression) {
+      public Address visit(CIdExpression pIastIdExpression) {
         return getAddress(pIastIdExpression.getDeclaration());
       }
 
       @Override
-      public Object visit(CPointerExpression pPointerExpression) {
+      public Address visit(CPointerExpression pPointerExpression) {
         /*The address of a pointer dereference is the evaluation of its operand*/
-        return valueVisitor.evaluateNumericalValue(pPointerExpression.getOperand());
+        return valueVisitor.evaluateNumericalValueAsAddress(pPointerExpression.getOperand());
       }
 
       @Override
-      public Object visit(CComplexCastExpression pComplexCastExpression) {
+      public Address visit(CComplexCastExpression pComplexCastExpression) {
         // TODO Implement complex Cast Expression when predicate models it.
         return null;
       }
@@ -1169,17 +1166,17 @@ public class AssignmentToEdgeAllocator {
           return;
         }
 
-        BigDecimal fieldAddress = new BigDecimal(addressCode.getValueCode());
+        Address fieldAddress = Address.valueOf(new BigDecimal(addressCode.getValueCode()));
 
         for (CCompositeType.CCompositeTypeMemberDeclaration memberType : pCompType.getMembers()) {
 
           handleMemberField(memberType, fieldAddress);
           int offsetToNextField = machineModel.getSizeof(memberType.getType());
-          fieldAddress = fieldAddress.add(BigDecimal.valueOf(offsetToNextField));
+          fieldAddress = fieldAddress.addOffset(BigDecimal.valueOf(offsetToNextField));
         }
       }
 
-      private void handleMemberField(CCompositeTypeMemberDeclaration pType, BigDecimal fieldAddress) {
+      private void handleMemberField(CCompositeTypeMemberDeclaration pType, Address fieldAddress) {
         CType realType = pType.getType().getCanonicalType();
         Object fieldValue = modelAtEdge.getValueFromUF(realType, fieldAddress);
 
@@ -1231,7 +1228,7 @@ public class AssignmentToEdgeAllocator {
         }
 
 
-        BigDecimal arrayAddress = new BigDecimal(arrayAddressCode.getValueCode());
+        Address arrayAddress = Address.valueOf(new BigDecimal(arrayAddressCode.getValueCode()));
 
         boolean memoryHasValue = true;
         while (memoryHasValue) {
@@ -1242,11 +1239,11 @@ public class AssignmentToEdgeAllocator {
         return null;
       }
 
-      private boolean handleArraySubscript(BigDecimal pArrayAddress, int pSubscript, CType pExpectedType) {
+      private boolean handleArraySubscript(Address pArrayAddress, int pSubscript, CType pExpectedType) {
 
         int typeSize = machineModel.getSizeof(pExpectedType);
         int subscriptOffset = pSubscript * typeSize;
-        BigDecimal address = pArrayAddress.add(BigDecimal.valueOf(subscriptOffset));
+        Address address = pArrayAddress.addOffset(BigDecimal.valueOf(subscriptOffset));
 
         Object value = modelAtEdge.getValueFromUF(pExpectedType, address);
 
@@ -1357,7 +1354,7 @@ public class AssignmentToEdgeAllocator {
           return null;
         }
 
-        BigDecimal address = new BigDecimal(addressCode.getValueCode());
+        Address address = Address.valueOf(new BigDecimal(addressCode.getValueCode()));
 
         return modelAtEdge.getValueFromUF(expectedType, address);
       }
