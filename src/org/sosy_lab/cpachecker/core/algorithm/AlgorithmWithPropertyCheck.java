@@ -62,7 +62,9 @@ public class AlgorithmWithPropertyCheck implements Algorithm, StatisticsProvider
       logger.log(Level.INFO, "Start property checking.");
       result = cpa.getPropChecker().satisfiesProperty(pReachedSet.asCollection());
       // add dummy error state to get verification result FALSE instead of UNKNOWN
-      pReachedSet.add(new DummyErrorState(pReachedSet.getLastState()), SingletonPrecision.getInstance());
+      if (!result) {
+        pReachedSet.add(new DummyErrorState(pReachedSet.getLastState()), SingletonPrecision.getInstance());
+      }
     }
 
     logger.log(Level.INFO, "Finished analysis");
