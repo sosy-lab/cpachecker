@@ -1287,10 +1287,10 @@ public class AssignmentToEdgeAllocator {
           return false;
         }
 
-        Object arrayAddressO = pArrayAddress;
-        Pair<CType, Object> visits = Pair.of(pExpectedType, arrayAddressO);
+        Object addressO = address;
+        Pair<CType, Object> visits = Pair.of(pExpectedType, addressO);
 
-        if (visited.contains(visits)) {
+        if (!visited.contains(visits)) {
 
           visited.add(visits);
 
@@ -1341,7 +1341,7 @@ public class AssignmentToEdgeAllocator {
 
         Pair<CType, Object> visits = Pair.of(expectedType, address);
 
-        if (visited.contains(visits)) {
+        if (!visited.contains(visits)) {
           SubExpressionValueCode subExpressionValueCode =
               new SubExpressionValueCode(valueCode.getValueCode(), lValuePrefix, lValuePostfix);
 
