@@ -194,4 +194,12 @@ public class ModelAtCFAEdge {
   public static String getAddressPrefix() {
     return ADDRESS_PREFIX;
   }
+
+  @Override
+  public String toString() {
+    return "ModelAtCFAEdge\n variableModel=" + variableModel + "\n uFModel=" + uFModel + "\n variableAddressMap="
+        + variableAddressMap;
+  }
+
+
 }
