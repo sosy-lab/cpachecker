@@ -402,9 +402,9 @@ public class CFAEdgeWithAssignments {
 
       Object valueAddress = address.add(subscriptOffset);
 
-      String ufMemoryName = TypeUFNameVisitor.getUFName(pIastArraySubscriptExpression.getExpressionType());
+      String ufName = TypeUFNameVisitor.getUFName(pIastArraySubscriptExpression.getExpressionType());
 
-      Object value = getValueFromUF(ufMemoryName, valueAddress);
+      Object value = TypeUFNameVisitor.getValueFromUF(ufName, valueAddress, functionEnvoirment);
 
       return value;
     }
@@ -444,7 +444,7 @@ public class CFAEdgeWithAssignments {
 
       BigDecimal address = fieldOwneraddress.add(fieldOffset);
 
-      return getValueFromUF(TypeUFNameVisitor.getUFName(pIastFieldReference.getExpressionType()), address);
+      return TypeUFNameVisitor.getValueFromUF(TypeUFNameVisitor.getUFName(pIastFieldReference.getExpressionType()), address, functionEnvoirment);
     }
 
     private BigDecimal getFieldOffset(CFieldReference fieldReference) {
@@ -588,9 +588,9 @@ public class CFAEdgeWithAssignments {
         }
 
         CType type = pVarDcl.getType();
-        String ufMemoryName = TypeUFNameVisitor.getUFName(type);
+        String ufName = TypeUFNameVisitor.getUFName(type);
 
-        return getValueFromUF(ufMemoryName, address);
+        return TypeUFNameVisitor.getValueFromUF(ufName, address, functionEnvoirment);
       }
     }
 
@@ -623,9 +623,9 @@ public class CFAEdgeWithAssignments {
         return null;
       }
 
-      String ufMemoryName = TypeUFNameVisitor.getUFName(type);
+      String ufName = TypeUFNameVisitor.getUFName(type);
 
-      Object value = getValueFromUF(ufMemoryName, address);
+      Object value = TypeUFNameVisitor.getValueFromUF(ufName, address, functionEnvoirment);
 
       return value;
     }
@@ -646,26 +646,6 @@ public class CFAEdgeWithAssignments {
       }
 
       return false;
-    }
-
-    private Object getValueFromUF(String ufMemoryName, Object address) {
-
-      if (ufMemoryName == null) {
-        return null;
-      }
-
-      for (Assignment assignment : functionEnvoirment.get(ufMemoryName)) {
-        Function function = (Function) assignment.getTerm();
-
-        if (function.getArity() != 1) {
-          break;
-        }
-
-        if (function.getArgument(0).equals(address)) {
-          return assignment.getValue();
-        }
-      }
-      return null;
     }
 
     private class ModelExpressionValueVisitor extends AbstractExpressionValueVisitor {
@@ -946,7 +926,7 @@ public class CFAEdgeWithAssignments {
       }
 
       @Override
-      public Void visit(CPointerType pT) throws RuntimeException {
+      public Void visit(CPointerType pointerType) throws RuntimeException {
 
         ValueCode addressCode = handleAddress(address);
 
@@ -956,7 +936,9 @@ public class CFAEdgeWithAssignments {
 
         BigDecimal address = new BigDecimal(addressCode.getValueCode());
 
-        return super.visit(pT);
+        TypeUFNameVisitor.getUFName(pointerType);
+
+        return super.visit(pointerType);
       }
     }
   }
@@ -1151,13 +1133,34 @@ public class CFAEdgeWithAssignments {
   private static class TypeUFNameVisitor implements CTypeVisitor<String, RuntimeException>{
 
     public static String getUFName(CType pType) {
-      String name = pType.accept(new TypeUFNameVisitor());
+      String name = pType.getCanonicalType().accept(new TypeUFNameVisitor());
 
       if(name == null) {
         return null;
       }
 
       return "*" + name;
+    }
+
+    //TODO Move to Utility
+    private static Object getValueFromUF(String pUfName, Object address, Multimap<String, Assignment> functionEnvoirment) {
+
+      if (pUfName == null) {
+        return null;
+      }
+
+      for (Assignment assignment : functionEnvoirment.get(pUfName)) {
+        Function function = (Function) assignment.getTerm();
+
+        if (function.getArity() != 1) {
+          break;
+        }
+
+        if (function.getArgument(0).equals(address)) {
+          return assignment.getValue();
+        }
+      }
+      return null;
     }
 
     @Override
