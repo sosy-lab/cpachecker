@@ -85,14 +85,6 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
 
   @Override
   public final boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
-    return performRefinementWithInfo(pReached).isSpurious();
-  }
-
-  /**
-   * This method does the same as {@link #performRefinement(ReachedSet)},
-   * but it returns some more information about the refinement.
-   */
-  public final CounterexampleInfo performRefinementWithInfo(ReachedSet pReached) throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "Starting ARG based refinement");
 
     assert ARGUtils.checkARG(pReached) : "ARG and reached set do not match before refinement";
@@ -101,7 +93,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
     assert lastElement.isTarget() : "Last element in reached is not a target state before refinement";
     ARGReachedSet reached = new ARGReachedSet(pReached, argCpa, refinementNumber++);
 
-    ARGPath path = computePath(lastElement, reached);
+    final ARGPath path = computePath(lastElement, reached);
 
     if (logger.wouldBeLogged(Level.ALL) && path != null) {
       logger.log(Level.ALL, "Error path:\n", path);
@@ -109,7 +101,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
           Joiner.on("\n ").skipNulls().join(Collections2.transform(path, pathToFunctionCalls)));
     }
 
-    CounterexampleInfo counterexample;
+    final CounterexampleInfo counterexample;
     try {
       counterexample = performRefinement(reached, path);
     } catch (RefinementFailedException e) {
@@ -146,7 +138,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
 
     logger.log(Level.FINEST, "ARG based refinement finished, result is", counterexample.isSpurious());
 
-    return counterexample;
+    return counterexample.isSpurious();
   }
 
 
