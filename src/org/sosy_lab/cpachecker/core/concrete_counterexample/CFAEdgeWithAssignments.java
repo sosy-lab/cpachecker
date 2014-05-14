@@ -961,7 +961,7 @@ public class CFAEdgeWithAssignments {
       CType realType = pT.getRealType();
 
       if (realType != null) {
-        realType.accept(this);
+        return realType.accept(this);
       }
 
       return createUnknownValueCodes();
@@ -1144,7 +1144,7 @@ public class CFAEdgeWithAssignments {
 
         CType expectedType = pointerType.getType().getCanonicalType();
 
-        Object value = getPointerOrArrayValue(expectedType);
+        Object value = getPointerValue(expectedType);
 
         if (value == null) {
           return null;
@@ -1177,7 +1177,7 @@ public class CFAEdgeWithAssignments {
         return null;
       }
 
-      private Object getPointerOrArrayValue(CType expectedType) {
+      private Object getPointerValue(CType expectedType) {
 
         ValueCode addressCode = handleAddress(address);
 
