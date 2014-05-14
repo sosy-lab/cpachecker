@@ -73,12 +73,12 @@ public class AssignmentToPathAllocator {
     Map<String, Assignment> variableEnvoirment = new HashMap<>();
     Multimap<String, Assignment> functionEnvoirment = HashMultimap.create();
 
-    for (int unprecisePathIndex = 0; unprecisePathIndex < pPath.size(); unprecisePathIndex++) {
+    int ssaMapIndex = 0;
+
+    for (int pathIndex = 0; pathIndex < pPath.size(); pathIndex++) {
 
       /*We always look at the precise path, with resolved multi edges*/
-      CFAEdge cfaEdge = pPath.get(unprecisePathIndex);
-
-      int precisePathIndex = unprecisePathIndex;
+      CFAEdge cfaEdge = pPath.get(pathIndex);
 
       if(cfaEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
 
@@ -90,9 +90,9 @@ public class AssignmentToPathAllocator {
 
           variableEnvoirment = new HashMap<>(variableEnvoirment);
           functionEnvoirment = HashMultimap.create(functionEnvoirment);
-          Collection<AssignableTerm> terms = assignableTerms.getAssignableTermsAtPosition().get(precisePathIndex);
+          Collection<AssignableTerm> terms = assignableTerms.getAssignableTermsAtPosition().get(ssaMapIndex);
 
-          SSAMap ssaMap = pSSAMaps.get(precisePathIndex);
+          SSAMap ssaMap = pSSAMaps.get(ssaMapIndex);
 
           CFAEdgeWithAssignments cfaEdgeWithAssignments =
               createCFAEdgeWithAssignments(singleCfaEdge, ssaMap, variableEnvoirment,
@@ -100,7 +100,7 @@ public class AssignmentToPathAllocator {
                   terms, pModel, pMachineModel, usedAssignableTerms);
 
           singleEdges.add(cfaEdgeWithAssignments);
-          precisePathIndex++;
+          ssaMapIndex++;
         }
 
         CFAMultiEdgeWithAssignments edge = CFAMultiEdgeWithAssignments.valueOf(multiEdge, singleEdges);
@@ -108,9 +108,9 @@ public class AssignmentToPathAllocator {
       } else {
         variableEnvoirment = new HashMap<>(variableEnvoirment);
         functionEnvoirment = HashMultimap.create(functionEnvoirment);
-        Collection<AssignableTerm> terms = assignableTerms.getAssignableTermsAtPosition().get(precisePathIndex);
+        Collection<AssignableTerm> terms = assignableTerms.getAssignableTermsAtPosition().get(ssaMapIndex);
 
-        SSAMap ssaMap = pSSAMaps.get(precisePathIndex);
+        SSAMap ssaMap = pSSAMaps.get(ssaMapIndex);
 
         CFAEdgeWithAssignments cfaEdgeWithAssignments =
             createCFAEdgeWithAssignments(cfaEdge, ssaMap, variableEnvoirment,
@@ -118,6 +118,7 @@ public class AssignmentToPathAllocator {
                 terms, pModel, pMachineModel, usedAssignableTerms);
 
         pathWithAssignments.add(cfaEdgeWithAssignments);
+        ssaMapIndex++;
       }
     }
 
@@ -471,6 +472,14 @@ public class AssignmentToPathAllocator {
     @SuppressWarnings("unused")
     public Set<Function> getUfFunctionsWithoutSSAIndex() {
       return ufFunctionsWithoutSSAIndex;
+    }
+
+    @Override
+    public String toString() {
+      return "AssignableTermsInPath\n"
+          + "assignableTermsAtPosition=" + assignableTermsAtPosition + "\n "
+          + "constants=" + constants + "\n"
+          + "ufFunctionsWithoutSSAIndex=" + ufFunctionsWithoutSSAIndex;
     }
   }
 }
