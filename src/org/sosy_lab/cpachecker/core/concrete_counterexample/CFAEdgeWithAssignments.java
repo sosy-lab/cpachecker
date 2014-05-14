@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.concrete_counterexample;
 
+import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
@@ -38,6 +40,8 @@ import org.sosy_lab.cpachecker.cfa.ast.IALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -48,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -55,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -69,6 +75,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.core.Model.Function;
+import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
+import org.sosy_lab.cpachecker.cpa.value.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.Value;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.base.Joiner;
@@ -84,6 +94,9 @@ public class CFAEdgeWithAssignments {
   private final SSAMap map;
   private final Map<String, Assignment> variableEnvironment;
   private final Multimap<String, Assignment> functionEnvoirment;
+
+  // TODO Get correct machine Model.
+  private final MachineModel machineModel = MachineModel.LINUX32;
 
   public CFAEdgeWithAssignments(CFAEdge pEdge, Set<Assignment> pAssignments,
       Map<String, Object> pAddressMap, Map<Function, Object> pFunctionMap,
@@ -339,8 +352,51 @@ public class CFAEdgeWithAssignments {
 
     @Override
     public Object visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
-      // TODO Auto-generated method stub
-      return null;
+
+      CExpression arrayExpression = pIastArraySubscriptExpression.getArrayExpression();
+
+      Value addressV;
+      try {
+        addressV = arrayExpression.accept(new ModelExpressionValueVisitor(functionName, machineModel, null));
+      } catch (UnrecognizedCCodeException e1) {
+        throw new IllegalArgumentException(e1);
+      }
+
+      if(addressV.isUnknown() && !addressV.isNumericValue()) {
+        return null;
+      }
+
+      BigDecimal address = BigDecimal.valueOf(addressV.asNumericValue().longValue());
+
+      CExpression subscriptCExpression = pIastArraySubscriptExpression.getSubscriptExpression();
+
+      Value subscriptValue;
+
+      try {
+        subscriptValue = subscriptCExpression.accept(new ModelExpressionValueVisitor(functionName, machineModel, null));
+      } catch (UnrecognizedCCodeException e) {
+        throw new IllegalArgumentException(e);
+      }
+
+      if (subscriptValue.isUnknown() && !subscriptValue.isNumericValue()) {
+        return null;
+      }
+
+      long subscriptValueL = subscriptValue.asNumericValue().longValue();
+
+      int typeSize = getSizeof(pIastArraySubscriptExpression.getExpressionType());
+
+      long subscriptOffset = typeSize * subscriptValueL;
+
+      Object valueAddress = address.add(BigDecimal.valueOf(subscriptOffset));
+
+      return getValueFromUF(getUFMemoryName(pIastArraySubscriptExpression.getExpressionType()),
+          valueAddress);
+    }
+
+    private int getSizeof(CType pExpressionType) {
+
+      return machineModel.getSizeof(pExpressionType);
     }
 
     @Override
@@ -358,6 +414,22 @@ public class CFAEdgeWithAssignments {
         // CIdExpression of simple types or pointer types
         // can be handled the same way as declarations.
         return handleSimpleVariableDeclaration(pCIdExpression.getDeclaration());
+      }
+
+      if(type instanceof CArrayType) {
+        return getAddress(pCIdExpression.getDeclaration());
+      }
+
+      return null;
+    }
+
+    private Object getAddress(CSimpleDeclaration varDecl) {
+
+      String varName = getVarName(varDecl);
+      String addressName = CFAPathWithAssignments.getAddressPrefix() + varName;
+
+      if (addressMap.containsKey(addressName)) {
+        return addressMap.get(addressName);
       }
 
       return null;
@@ -387,31 +459,37 @@ public class CFAEdgeWithAssignments {
 
     private Object handleSimpleVariableDeclaration(CSimpleDeclaration pVarDcl) {
 
-      String varName = pVarDcl.getName();
-      String assignableTermVarName;
+      String varName = getVarName(pVarDcl);
 
-      if (pVarDcl instanceof CParameterDeclaration ||
-          (!((CVariableDeclaration) pVarDcl).isGlobal())) {
-        assignableTermVarName = functionName + "::" + varName;
+      if (variableEnvironment.containsKey(varName)) {
+        return variableEnvironment.get(varName).getValue();
       } else {
-        assignableTermVarName = varName;
-      }
-
-      if (variableEnvironment.containsKey(assignableTermVarName)) {
-        return variableEnvironment.get(assignableTermVarName).getValue();
-      } else if (addressMap.containsKey(CFAPathWithAssignments.getAddressPrefix() + assignableTermVarName)) {
         /* The variable might not exist anymore in the variable environment,
            search in the address space of the function environment*/
 
-        Object address = addressMap.get(CFAPathWithAssignments.getAddressPrefix() + assignableTermVarName);
+        Object address = getAddress(pVarDcl);
+
+        if(address == null) {
+          return null;
+        }
 
         CType type = pVarDcl.getType();
         String ufMemoryName = getUFMemoryName(type);
 
         return getValueFromUF(ufMemoryName, address);
       }
+    }
 
-      return null;
+    private String getVarName(CSimpleDeclaration pVarDcl) {
+
+      String varName = pVarDcl.getName();
+
+      if (pVarDcl instanceof CParameterDeclaration ||
+          (!((CVariableDeclaration) pVarDcl).isGlobal())) {
+        return functionName + "::" + varName;
+      } else {
+        return varName;
+      }
     }
 
     @Override
@@ -419,27 +497,34 @@ public class CFAEdgeWithAssignments {
 
       CExpression exp = pPointerExpression.getOperand();
 
-      if (exp instanceof CLeftHandSide) {
-        Object address = ((CLeftHandSide) exp).accept(this);
+      Value addressV;
 
-        if (address == null) {
-          return null;
-        }
-
-        CType type = exp.getExpressionType();
-
-        if(type instanceof CPointerType) {
-          type = ((CPointerType) type).getType();
-        } else {
-          return null;
-        }
-
-        String ufMemoryName = getUFMemoryName(type);
-
-        return getValueFromUF(ufMemoryName, address);
+      try {
+        addressV = exp.accept(new ModelExpressionValueVisitor(functionName, machineModel, null));
+      } catch (UnrecognizedCCodeException e) {
+        // TODO Auto-generated catch block
+        throw new IllegalArgumentException(e);
       }
 
-      return null;
+      if (addressV.isUnknown() && !addressV.isNumericValue()) {
+        return null;
+      }
+
+      BigDecimal address = BigDecimal.valueOf(addressV.asNumericValue().longValue());
+
+      CType type = exp.getExpressionType();
+
+      if (type instanceof CPointerType) {
+        type = ((CPointerType) type).getType();
+      } else if (type instanceof CArrayType) {
+        type = ((CArrayType) type).getType();
+      } else {
+        return null;
+      }
+
+      String ufMemoryName = getUFMemoryName(type);
+
+      return getValueFromUF(ufMemoryName, address);
     }
 
     private Object getValueFromUF(String ufMemoryName, Object address) {
@@ -470,6 +555,141 @@ public class CFAEdgeWithAssignments {
       }
 
       return "*" + name;
+    }
+
+    private class ModelExpressionValueVisitor extends AbstractExpressionValueVisitor {
+
+      public ModelExpressionValueVisitor(String pFunctionName, MachineModel pMachineModel,
+          LogManagerWithoutDuplicates pLogger) {
+        super(pFunctionName, pMachineModel, pLogger);
+      }
+
+      @Override
+      public Value visit(CBinaryExpression binaryExp) throws UnrecognizedCCodeException {
+
+        CExpression lVarInBinaryExp = binaryExp.getOperand1();
+        CExpression rVarInBinaryExp = binaryExp.getOperand2();
+        CType lVarInBinaryExpType = lVarInBinaryExp.getExpressionType().getCanonicalType();
+        CType rVarInBinaryExpType = rVarInBinaryExp.getExpressionType().getCanonicalType();
+
+        boolean lVarIsAddress = lVarInBinaryExpType instanceof CPointerType
+            || lVarInBinaryExpType instanceof CArrayType;
+        boolean rVarIsAddress = rVarInBinaryExpType instanceof CPointerType
+            || rVarInBinaryExpType instanceof CArrayType;
+
+        CExpression address = null;
+        CExpression pointerOffset = null;
+        CType addressType = null;
+
+        if (lVarIsAddress && rVarIsAddress) {
+          return Value.UnknownValue.getInstance();
+        } else if (lVarIsAddress) {
+          address = lVarInBinaryExp;
+          pointerOffset = rVarInBinaryExp;
+          addressType = lVarInBinaryExpType;
+        } else if (rVarIsAddress) {
+          address = rVarInBinaryExp;
+          pointerOffset = lVarInBinaryExp;
+          addressType = rVarInBinaryExpType;
+        } else {
+          return super.visit(binaryExp);
+        }
+
+        BinaryOperator binaryOperator = binaryExp.getOperator();
+
+        CType elementType = addressType instanceof CPointerType ?
+            ((CPointerType)addressType).getType().getCanonicalType() :
+                            ((CArrayType)addressType).getType().getCanonicalType();
+
+        switch (binaryOperator) {
+        case PLUS:
+        case MINUS: {
+
+          Value addressValueV = address.accept(this);
+
+          Value offsetValueV = pointerOffset.accept(this);
+
+          if (addressValueV.isUnknown() || offsetValueV.isUnknown()
+              || !addressValueV.isNumericValue() || !offsetValueV.isNumericValue()) {
+            return Value.UnknownValue
+              .getInstance();
+          }
+
+          long addressValue = addressValueV.asNumericValue().longValue();
+
+          long offsetValue = offsetValueV.asNumericValue().longValue();
+
+          long typeSize = getSizeof(elementType);
+
+          long pointerOffsetValue = offsetValue * typeSize;
+
+          switch (binaryOperator) {
+          case PLUS:
+            return new NumericValue(addressValue + pointerOffsetValue);
+          case MINUS:
+            if (lVarIsAddress) {
+              return new NumericValue(addressValue - pointerOffsetValue);
+            } else {
+              throw new UnrecognizedCCodeException("Expected pointer arithmetic "
+                  + " with + or - but found " + binaryExp.toASTString(), binaryExp);
+            }
+          default:
+            throw new AssertionError();
+          }
+        }
+
+        default:
+          return Value.UnknownValue.getInstance();
+        }
+      }
+
+      @Override
+      protected Value evaluateCPointerExpression(CPointerExpression pCPointerExpression)
+          throws UnrecognizedCCodeException {
+        Object value = LModelValueVisitor.this.visit(pCPointerExpression);
+
+        if (value == null || !(value instanceof BigDecimal)) {
+          return Value.UnknownValue.getInstance();
+        }
+
+        return new NumericValue((BigDecimal) value);
+      }
+
+      @Override
+      protected Value evaluateCIdExpression(CIdExpression pCIdExpression) throws UnrecognizedCCodeException {
+
+        Object value = LModelValueVisitor.this.visit(pCIdExpression);
+
+        if(value == null || !(value instanceof BigDecimal)) {
+          return Value.UnknownValue.getInstance();
+        }
+
+        return new NumericValue((BigDecimal)value);
+      }
+
+      @Override
+      protected Long evaluateJIdExpression(JIdExpression pVarName) {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      @Override
+      protected Value evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
+        // TODO Auto-generated method stub
+        return Value.UnknownValue.getInstance();
+      }
+
+      @Override
+      protected Value evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue)
+          throws UnrecognizedCCodeException {
+        Object value = LModelValueVisitor.this.visit(pLValue);
+
+        if (value == null || !(value instanceof BigDecimal)) {
+          return Value.UnknownValue.getInstance();
+        }
+
+        return new NumericValue((BigDecimal) value);
+      }
     }
 
     private class UFMemoryNameVisitor implements CTypeVisitor<String, RuntimeException>{
