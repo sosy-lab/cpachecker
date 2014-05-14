@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
+import java.math.BigInteger;
+
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -46,15 +48,17 @@ public class ValueAnalysisTargetChecker {
 
   private BooleanFormula errorF;
   private MemoryLocation errorVarRep;
+  private final NumericValue allowedNumericValue;
 
   public ValueAnalysisTargetChecker(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
     errorVarRep = MemoryLocation.valueOf(errorVar);
+    allowedNumericValue = new NumericValue(new BigInteger(Long.toString(allowedValue)));
   }
 
   public boolean isTarget(PersistentMap<MemoryLocation, Value> pConstantsMap) {
     Value value = pConstantsMap.get(errorVarRep);
-    if (value == null || !value.isExplicitlyKnown() || !value.equals(new NumericValue(allowedValue))) { return true; }
+    if (value == null || !value.isExplicitlyKnown() || !value.equals(allowedNumericValue)) { return true; }
     return false;
   }
 

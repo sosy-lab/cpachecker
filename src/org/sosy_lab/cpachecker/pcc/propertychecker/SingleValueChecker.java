@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.pcc.propertychecker;
 
+import java.math.BigInteger;
 import java.util.Collection;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -47,7 +48,7 @@ public class SingleValueChecker implements PropertyChecker {
   public SingleValueChecker(String varWithSingleValue, String varValue, String labelForLocationWithSingleValue) {
     varValRep = MemoryLocation.valueOf(varWithSingleValue);
     labelLocVarVal = labelForLocationWithSingleValue;
-    varVal = new NumericValue(Long.parseLong(varValue));
+    varVal = new NumericValue(new BigInteger(varValue));
   }
 
   @Override
@@ -58,7 +59,7 @@ public class SingleValueChecker implements PropertyChecker {
       Value value =
           AbstractStates.extractStateByType(pElemToCheck, ValueAnalysisState.class).getConstantsMapView()
               .get(varValRep);
-      if (value == null || !value.isExplicitlyKnown() || !value.equals(varVal)) { return false; }
+      if (value == null || !value.isExplicitlyKnown() || !value.equals(varVal)) { System.out.println(value.equals(varVal));return false; }
     }
     return true;
   }
