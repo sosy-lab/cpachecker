@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -70,14 +71,14 @@ public class PathChecker {
     solver = pSolver;
   }
 
-  public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath, MachineModel machineModel) throws CPATransferException, InterruptedException {
-    List<SSAMap> ssaMaps = new ArrayList<>(pPath.size());
+  public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath, MachineModel machineModel)
+      throws CPATransferException, InterruptedException {
 
-    PathFormula pathFormula = pmgr.makeEmptyPathFormula();
-    for (CFAEdge edge : from(pPath).filter(notNull())) {
-      pathFormula = pmgr.makeAnd(pathFormula, edge);
-      ssaMaps.add(pathFormula.getSsa());
-    }
+    Pair<PathFormula, List<SSAMap>> result = createPrecisePathFormula(pPath);
+
+    List<SSAMap> ssaMaps = result.getSecond();
+
+    PathFormula pathFormula = result.getFirst();
 
     BooleanFormula f = pathFormula.getFormula();
 
@@ -92,6 +93,37 @@ public class PathChecker {
         return CounterexampleTraceInfo.feasible(ImmutableList.of(f), model, ImmutableMap.<Integer, Boolean>of());
       }
     }
+  }
+
+  private Pair<PathFormula, List<SSAMap>> createPrecisePathFormula(List<CFAEdge> pPath)
+      throws CPATransferException, InterruptedException {
+
+    List<SSAMap> ssaMaps = new ArrayList<>(pPath.size());
+
+    PathFormula pathFormula = pmgr.makeEmptyPathFormula();
+
+    for (CFAEdge edge : from(pPath).filter(notNull())) {
+      pathFormula = pmgr.makeAnd(pathFormula, edge);
+      ssaMaps.add(pathFormula.getSsa());
+    }
+
+    return Pair.of(pathFormula, ssaMaps);
+  }
+
+  /**
+   * Calculate the precise SSAMaps for the given path.
+   * Multi-edges will be resolved. The resulting list of SSAMaps
+   * need not be the same size as the given path.
+   *
+   * @param pPath calculate the precise list of SSAMaps for this path.
+   * @return the precise list of SSAMaps for the given path.
+   * @throws CPATransferException
+   * @throws InterruptedException
+   */
+  public List<SSAMap> calculatePreciseSSAMaps(List<CFAEdge> pPath)
+      throws CPATransferException, InterruptedException {
+
+    return createPrecisePathFormula(pPath).getSecond();
   }
 
   /**
