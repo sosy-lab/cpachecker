@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.concrete_counterexample;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -40,8 +41,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.Model.Function;
-
-import apache.harmony.math.BigInteger;
 
 import com.google.common.collect.Multimap;
 
@@ -245,7 +244,7 @@ public class ModelAtCFAEdge {
         long offsetL = offset.longValue();
 
         if (offset.compareTo(BigDecimal.valueOf(offsetL)) == 0) {
-          BigInteger result = ((BigInteger) address).add(offsetL);
+          BigInteger result = ((BigInteger) address).add(BigInteger.valueOf(offsetL));
           return Address.valueOf(result);
         } else {
           /*BigInteger will be casted to BigDecimal*/
@@ -265,6 +264,9 @@ public class ModelAtCFAEdge {
     public static Address valueOf(Object address) {
       return new Address(address);
     }
-  }
 
+    public Object getSymbolicValue() {
+      return address;
+    }
+  }
 }

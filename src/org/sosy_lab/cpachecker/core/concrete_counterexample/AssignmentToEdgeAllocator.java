@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.concrete_counterexample;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -83,8 +84,6 @@ import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-
-import apache.harmony.math.BigInteger;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
@@ -386,7 +385,7 @@ public class AssignmentToEdgeAllocator {
 
       Value addressV;
       try {
-        addressV = exp.accept(new ModelExpressionValueVisitor(functionName, machineModel, null));
+        addressV = exp.accept(new ModelExpressionValueVisitor(functionName, machineModel, new LogManagerWithoutDuplicates(logger)));
       } catch (UnrecognizedCCodeException e1) {
         throw new IllegalArgumentException(e1);
       }
@@ -545,7 +544,7 @@ public class AssignmentToEdgeAllocator {
 
       if(type instanceof CArrayType || isStructOrUnionType(type)) {
         /*The evaluation of an array is its address*/
-        return evaluateAddress(pCIdExpression);
+        return evaluateAddress(pCIdExpression).getSymbolicValue();
       }
 
       return null;
@@ -567,7 +566,7 @@ public class AssignmentToEdgeAllocator {
 
       if (type instanceof CArrayType || isStructOrUnionType(type)) {
         /*The evaluation of an array or a struct is its address*/
-        return addressVisitor.getAddress(pVarDcl);
+        return addressVisitor.getAddress(pVarDcl).getSymbolicValue();
       }
 
       return null;
@@ -863,11 +862,11 @@ public class AssignmentToEdgeAllocator {
           throws UnrecognizedCCodeException {
         Object value = LModelValueVisitor.this.visit(pCPointerExpression);
 
-        if (value == null || !(value instanceof BigDecimal)) {
+        if (value == null || !(value instanceof Number)) {
           return Value.UnknownValue.getInstance();
         }
 
-        return new NumericValue((BigDecimal) value);
+        return new NumericValue((Number) value);
       }
 
       @Override
@@ -875,11 +874,11 @@ public class AssignmentToEdgeAllocator {
 
         Object value = LModelValueVisitor.this.visit(pCIdExpression);
 
-        if(value == null || !(value instanceof BigDecimal)) {
+        if(value == null || !(value instanceof Number)) {
           return Value.UnknownValue.getInstance();
         }
 
-        return new NumericValue((BigDecimal)value);
+        return new NumericValue((Number)value);
       }
 
       @Override
@@ -891,11 +890,11 @@ public class AssignmentToEdgeAllocator {
       protected Value evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
         Object value = LModelValueVisitor.this.visit(pLValue);
 
-        if(value == null || !(value instanceof BigDecimal)) {
+        if(value == null || !(value instanceof Number)) {
           return Value.UnknownValue.getInstance();
         }
 
-        return new NumericValue((BigDecimal)value);
+        return new NumericValue((Number)value);
       }
 
       @Override
@@ -903,11 +902,11 @@ public class AssignmentToEdgeAllocator {
           throws UnrecognizedCCodeException {
         Object value = LModelValueVisitor.this.visit(pLValue);
 
-        if (value == null || !(value instanceof BigDecimal)) {
+        if (value == null || !(value instanceof Number)) {
           return Value.UnknownValue.getInstance();
         }
 
-        return new NumericValue((BigDecimal) value);
+        return new NumericValue((Number) value);
       }
     }
 
@@ -1208,7 +1207,7 @@ public class AssignmentToEdgeAllocator {
           return;
         }
 
-        Object fieldAddressObject = fieldAddress;
+        Object fieldAddressObject = fieldAddress.getSymbolicValue();
         Pair<CType, Object> visits = Pair.of(realType, fieldAddressObject);
 
         if (!visited.contains(visits)) {
@@ -1279,7 +1278,7 @@ public class AssignmentToEdgeAllocator {
           return false;
         }
 
-        Object addressO = address;
+        Object addressO = address.getSymbolicValue();
         Pair<CType, Object> visits = Pair.of(pExpectedType, addressO);
 
         if (!visited.contains(visits)) {
