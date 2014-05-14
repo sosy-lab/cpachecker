@@ -83,7 +83,9 @@ public class ModelAtCFAEdge {
   }
 
   private String getUFName(CType pType) {
-    String name = pType.getCanonicalType().accept(new TypeUFNameVisitor());
+    CType type = pType.getCanonicalType();
+
+    String name = type.accept(new TypeUFNameVisitor());
 
     if (name == null) {
       return null;
@@ -123,7 +125,7 @@ public class ModelAtCFAEdge {
 
     @Override
     public String visit(CEnumType pEnumType) throws RuntimeException {
-      return pEnumType.getName();
+      return "enum_" + pEnumType.getName();
     }
 
     @Override
@@ -134,7 +136,9 @@ public class ModelAtCFAEdge {
     @Override
     public String visit(CPointerType pPointerType) throws RuntimeException {
 
-      String ufName = pPointerType.getType().getCanonicalType().accept(this);
+      CType type = pPointerType.getType().getCanonicalType();
+
+      String ufName = type.accept(this);
 
       if(ufName == null) {
         return null;

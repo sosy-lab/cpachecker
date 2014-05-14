@@ -122,7 +122,7 @@ public class AssignmentToEdgeAllocator {
   @Nullable
   private String createEdgeCode(CFAEdge pCFAEdge) {
 
-    if(cfaEdge.toString().contains("1018")) {
+    if(cfaEdge.toString().contains("line 722")) {
       System.out.println();
     }
 
@@ -259,7 +259,7 @@ public class AssignmentToEdgeAllocator {
 
     // TODO processing for other languages
     if (pExpectedType instanceof CType) {
-      CType cType = ((CType) pExpectedType);
+      CType cType = ((CType) pExpectedType).getCanonicalType();
 
       ValueCodesVisitor v = new ValueCodesVisitor(pValue);
       ValueCodes valueCodes = cType.accept(v);
@@ -428,7 +428,7 @@ public class AssignmentToEdgeAllocator {
         return null;
       }
 
-      CType type = pIastArraySubscriptExpression.getExpressionType();
+      CType type = pIastArraySubscriptExpression.getExpressionType().getCanonicalType();
 
       Object value = modelAtEdge.getValueFromUF(type, valueAddress);
 
@@ -444,7 +444,7 @@ public class AssignmentToEdgeAllocator {
         return lookupReference(pIastFieldReference);
       }
 
-      CType type = pIastFieldReference.getExpressionType();
+      CType type = pIastFieldReference.getExpressionType().getCanonicalType();
 
       Object value = modelAtEdge.getValueFromUF(type, address);
 
@@ -555,7 +555,7 @@ public class AssignmentToEdgeAllocator {
     @Override
     public Object visit(CIdExpression pCIdExpression) {
 
-      CType type = pCIdExpression.getExpressionType();
+      CType type = pCIdExpression.getExpressionType().getCanonicalType();
 
       if (type instanceof CSimpleType || type instanceof CPointerType) {
         return handleSimpleVariableDeclaration(pCIdExpression.getDeclaration());
@@ -648,7 +648,7 @@ public class AssignmentToEdgeAllocator {
         return null;
       }
 
-      CType type = exp.getExpressionType();
+      CType type = exp.getExpressionType().getCanonicalType();
 
       if (type instanceof CPointerType) {
         type = ((CPointerType) type).getType();
@@ -718,7 +718,7 @@ public class AssignmentToEdgeAllocator {
 
         BigDecimal subscriptValue = new BigDecimal(subscriptValueNumber.toString());
 
-        BigDecimal typeSize = BigDecimal.valueOf(machineModel.getSizeof(pIastArraySubscriptExpression.getExpressionType()));
+        BigDecimal typeSize = BigDecimal.valueOf(machineModel.getSizeof(pIastArraySubscriptExpression.getExpressionType().getCanonicalType()));
 
         BigDecimal subscriptOffset = subscriptValue.multiply(typeSize);
 
