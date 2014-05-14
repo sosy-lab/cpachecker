@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.exactcounterexample;
+package org.sosy_lab.cpachecker.core.concrete_counterexample;
 
 import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
 

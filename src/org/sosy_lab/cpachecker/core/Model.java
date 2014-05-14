@@ -35,6 +35,8 @@ import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.core.concrete_counterexample.CFAEdgeWithAssignments;
+import org.sosy_lab.cpachecker.core.concrete_counterexample.CFAPathWithAssignments;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 

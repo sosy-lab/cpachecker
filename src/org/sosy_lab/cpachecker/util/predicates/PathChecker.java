@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.core.Model.Constant;
 import org.sosy_lab.cpachecker.core.Model.Function;
 import org.sosy_lab.cpachecker.core.Model.Variable;
-import org.sosy_lab.cpachecker.core.exactcounterexample.CFAPathWithAssignments;
+import org.sosy_lab.cpachecker.core.concrete_counterexample.CFAPathWithAssignments;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
