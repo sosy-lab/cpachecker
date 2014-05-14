@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.concrete_counterexample;
 
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -206,59 +205,52 @@ public class ModelAtCFAEdge {
 
   public static class Address {
 
-    private final Object address;
+    private final Number addressAsNumber;
+
+    private final Object symbolicAddress;
+
 
     private Address(Object pAddress) {
-      address = pAddress;
+      symbolicAddress = pAddress;
+
+      if (pAddress instanceof Number) {
+        addressAsNumber = (Number) pAddress;
+      } else {
+        addressAsNumber = null;
+      }
     }
 
     public boolean comparesToUFArgument(Object pArgument) {
 
-      if(address instanceof BigDecimal) {
-        if(pArgument instanceof BigDecimal) {
-          return ((BigDecimal) address).compareTo((BigDecimal) pArgument) == 0;
-        } else if(pArgument instanceof BigInteger) {
-          return ((BigDecimal) address).compareTo(BigDecimal.valueOf(((BigInteger) pArgument).longValue())) == 0;
-        }
+      if (pArgument instanceof BigDecimal && this.isNumericalType()) {
+        ((BigDecimal) pArgument).compareTo(new BigDecimal(addressAsNumber.toString()));
       }
 
-      if(pArgument instanceof BigDecimal && address instanceof BigInteger) {
-        return ((BigDecimal) pArgument).compareTo(BigDecimal.valueOf(((BigInteger) address).longValue())) == 0;
+      if (symbolicAddress instanceof BigDecimal && pArgument instanceof Number) {
+        ((BigDecimal) symbolicAddress).compareTo(new BigDecimal(((Number) pArgument).toString()));
       }
 
-      return pArgument.equals(address);
+      return pArgument.equals(symbolicAddress);
     }
 
     public boolean isNumericalType() {
-      return address instanceof BigDecimal || address instanceof BigInteger;
+      return addressAsNumber != null;
     }
 
-    public Address addOffset(BigDecimal offset) {
+    public Address addOffset(Number pOffset) {
 
-      if (address instanceof BigDecimal) {
-        BigDecimal result = ((BigDecimal) address).add(offset);
-        return Address.valueOf(result);
-      }
+      if (addressAsNumber == null) { throw new IllegalStateException(
+          "Can't add offsets to a non numerical type of address"); }
 
-      if (address instanceof BigInteger) {
-        long offsetL = offset.longValue();
+      BigDecimal address = new BigDecimal(pOffset.toString());
+      BigDecimal offset = new BigDecimal(addressAsNumber.toString());
 
-        if (offset.compareTo(BigDecimal.valueOf(offsetL)) == 0) {
-          BigInteger result = ((BigInteger) address).add(BigInteger.valueOf(offsetL));
-          return Address.valueOf(result);
-        } else {
-          /*BigInteger will be casted to BigDecimal*/
-          BigDecimal result = BigDecimal.valueOf(((BigInteger) address).longValue()).add(offset);
-          return Address.valueOf(result);
-        }
-      }
-
-      throw new IllegalStateException("Can't add offsets to a non numerical type of address");
+      return Address.valueOf(address.add(offset));
     }
 
     @Override
     public String toString() {
-      return "Address = [" + address + "]";
+      return "Address = [" + symbolicAddress + "]";
     }
 
     public static Address valueOf(Object address) {
@@ -266,7 +258,7 @@ public class ModelAtCFAEdge {
     }
 
     public Object getSymbolicValue() {
-      return address;
+      return symbolicAddress;
     }
   }
 }

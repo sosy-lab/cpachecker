@@ -381,7 +381,7 @@ public class AssignmentToEdgeAllocator {
       addressVisitor = new AddressValueVisitor(this);
     }
 
-    private final BigDecimal evaluateNumericalValue(CExpression exp) {
+    private final Number evaluateNumericalValue(CExpression exp) {
 
       Value addressV;
       try {
@@ -395,12 +395,12 @@ public class AssignmentToEdgeAllocator {
       }
 
       //TODO More specific evaluation, don't just get double value
-      return BigDecimal.valueOf(addressV.asNumericValue().doubleValue());
+      return addressV.asNumericValue().getNumber();
     }
 
     private final Address evaluateNumericalValueAsAddress(CExpression exp) {
 
-      BigDecimal result = evaluateNumericalValue(exp);
+      Number result = evaluateNumericalValue(exp);
 
       if (result == null) {
         return null;
@@ -672,7 +672,7 @@ public class AssignmentToEdgeAllocator {
       public Address visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
         CExpression arrayExpression = pIastArraySubscriptExpression.getArrayExpression();
 
-        //TODO Is this call correct?
+        //TODO Refactor, this call should not be correct. (Don't evaluate array to its address).
         Address address = evaluateNumericalValueAsAddress(arrayExpression);
 
         if(address == null) {
@@ -681,15 +681,21 @@ public class AssignmentToEdgeAllocator {
 
         CExpression subscriptCExpression = pIastArraySubscriptExpression.getSubscriptExpression();
 
-        BigDecimal subscriptValue = evaluateNumericalValue(subscriptCExpression);
+        Number subscriptValueNumber = evaluateNumericalValue(subscriptCExpression);
 
-        if(subscriptValue == null) {
+        if(subscriptValueNumber == null) {
           return null;
         }
+
+        BigDecimal subscriptValue = new BigDecimal(subscriptValueNumber.toString());
 
         BigDecimal typeSize = BigDecimal.valueOf(machineModel.getSizeof(pIastArraySubscriptExpression.getExpressionType()));
 
         BigDecimal subscriptOffset = subscriptValue.multiply(typeSize);
+
+        if (!address.isNumericalType()) {
+          return null;
+        }
 
         return address.addOffset(subscriptOffset);
       }
@@ -828,21 +834,25 @@ public class AssignmentToEdgeAllocator {
               .getInstance();
           }
 
-          double addressValue = addressValueV.asNumericValue().doubleValue();
+          Number addressValueNumber = addressValueV.asNumericValue().getNumber();
 
-          // Because address and offset value may be interchanged, use double for offsets
-          double offsetValue = offsetValueV.asNumericValue().doubleValue();
+          BigDecimal addressValue = new BigDecimal(addressValueNumber.toString());
 
-          double typeSize = getSizeof(elementType);
+          // Because address and offset value may be interchanged, use BigDecimal for both
+          Number offsetValueNumber = offsetValueV.asNumericValue().getNumber();
 
-          double pointerOffsetValue = offsetValue * typeSize;
+          BigDecimal offsetValue = new BigDecimal(offsetValueNumber.toString());
+
+          BigDecimal typeSize = BigDecimal.valueOf(getSizeof(elementType));
+
+          BigDecimal pointerOffsetValue = offsetValue.multiply(typeSize);
 
           switch (binaryOperator) {
           case PLUS:
-            return new NumericValue(addressValue + pointerOffsetValue);
+            return new NumericValue(addressValue.add(pointerOffsetValue));
           case MINUS:
             if (lVarIsAddress) {
-              return new NumericValue(addressValue - pointerOffsetValue);
+              return new NumericValue(addressValue.subtract(pointerOffsetValue));
             } else {
               throw new UnrecognizedCCodeException("Expected pointer arithmetic "
                   + " with + or - but found " + binaryExp.toASTString(), binaryExp);
@@ -1183,6 +1193,11 @@ public class AssignmentToEdgeAllocator {
 
           handleMemberField(memberType, fieldAddress);
           int offsetToNextField = machineModel.getSizeof(memberType.getType());
+
+          if (!fieldAddress.isNumericalType()) {
+            return;
+          }
+
           fieldAddress = fieldAddress.addOffset(BigDecimal.valueOf(offsetToNextField));
         }
       }
@@ -1254,6 +1269,11 @@ public class AssignmentToEdgeAllocator {
 
         int typeSize = machineModel.getSizeof(pExpectedType);
         int subscriptOffset = pSubscript * typeSize;
+
+        if (!pArrayAddress.isNumericalType()) {
+          return false;
+        }
+
         Address address = pArrayAddress.addOffset(BigDecimal.valueOf(subscriptOffset));
 
         Object value = modelAtEdge.getValueFromUF(pExpectedType, address);
