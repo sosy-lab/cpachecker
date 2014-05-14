@@ -219,7 +219,10 @@ public class CFAEdgeWithAssignments {
         AParameterDeclaration formalParameterDeclaration =
             formalParameters.get(formalParameterPosition);
 
-        ValueCodes valueAsCode = getValueAsCode(valuePair.getValue(), formalParameterDeclaration.getType());
+        ValueCodes valueAsCode = getValueAsCode(valuePair.getValue(),
+            formalParameterDeclaration.getType(),
+            formalParameterDeclaration.getName(),
+            functionName);
 
         if (valueAsCode.hasUnknownValueCode() ||
             !formalParameterDeclaration.getName().equals(termVariableName)) {
@@ -262,7 +265,7 @@ public class CFAEdgeWithAssignments {
     }
 
     Type expectedType = leftHandSide.getExpressionType();
-    ValueCodes valueAsCode = getValueAsCode(value, expectedType);
+    ValueCodes valueAsCode = getValueAsCode(value, expectedType, leftHandSide.toASTString(), functionName);
 
     return handleSimpleValueCodesAssignments(valueAsCode, leftHandSide.toASTString());
   }
@@ -279,11 +282,23 @@ public class CFAEdgeWithAssignments {
   }
 
   @Nullable
-  private ValueCodes getValueAsCode(Object pValue, Type pExpectedType) {
+  /*
+   * The Parameter leftHandSide may be null, it is needed if
+   * structs are to be resolved.
+   */
+  private ValueCodes getValueAsCode(Object pValue,
+      Type pExpectedType,
+      String leftHandSide,
+      String functionName) {
 
     // TODO processing for other languages
     if (pExpectedType instanceof CType) {
-      return ((CType) pExpectedType).accept(new ValueCodesVisitor(pValue));
+      CType cType = ((CType) pExpectedType);
+
+      ValueCodesVisitor v = new ValueCodesVisitor(pValue);
+      ValueCodes valueCodes = cType.accept(v);
+      v.resolveStruct(cType, valueCodes, leftHandSide, functionName);
+      return valueCodes;
     }
 
     return new ValueCodes();
@@ -322,7 +337,7 @@ public class CFAEdgeWithAssignments {
       }
 
       Type dclType = varDcl.getType();
-      ValueCodes valueAsCode = getValueAsCode(value, dclType);
+      ValueCodes valueAsCode = getValueAsCode(value, dclType, dcl.getName(), functionName);
 
       return handleSimpleValueCodesAssignments(valueAsCode, varDcl.getName());
     }
@@ -376,6 +391,23 @@ public class CFAEdgeWithAssignments {
 
   private Object getValueObject(CVariableDeclaration pVarDcl, String pFunctionName) {
     return new LModelValueVisitor(pFunctionName).handleVariableDeclaration(pVarDcl);
+  }
+
+  boolean isStructOrUnionType(CType rValueType) {
+
+    rValueType = rValueType.getCanonicalType();
+
+    if (rValueType instanceof CElaboratedType) {
+      CElaboratedType type = (CElaboratedType) rValueType;
+      return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
+    }
+
+    if (rValueType instanceof CCompositeType) {
+      CCompositeType type = (CCompositeType) rValueType;
+      return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
+    }
+
+    return false;
   }
 
   private class LModelValueVisitor implements CLeftHandSideVisitor<Object, RuntimeException> {
@@ -636,7 +668,6 @@ public class CFAEdgeWithAssignments {
       return value;
     }
 
-    @SuppressWarnings("unused")
     boolean isStructOrUnionType(CType rValueType) {
 
       rValueType = rValueType.getCanonicalType();
@@ -1050,6 +1081,12 @@ public class CFAEdgeWithAssignments {
       return UnknownValueCode.getInstance();
     }
 
+    public void resolveStruct(CType type, ValueCodes pValueCodes, String pLeftHandSide, String pFunctionName) {
+      if (isStructOrUnionType(type)) {
+        type.accept(new ValueCodeStructResolver(pValueCodes, pLeftHandSide, pFunctionName, "", ""));
+      }
+    }
+
     private ValueCode handleIntegerNumbers(Object pValue) {
 
       //TODO Check length in given constraints.
@@ -1130,13 +1167,69 @@ public class CFAEdgeWithAssignments {
       }
 
       @Override
-      public Void visit(CCompositeType pT) throws RuntimeException {
+      public Void visit(CCompositeType compType) throws RuntimeException {
 
-        if (pT.getKind() == ComplexTypeKind.ENUM) {
+        if (compType.getKind() == ComplexTypeKind.ENUM) {
           return null;
         }
 
+        if(compType.getKind() == ComplexTypeKind.UNION) {
+
+        }
+
+        if(compType.getKind() == ComplexTypeKind.STRUCT) {
+          handleStruct(compType);
+        }
+
         return null;
+      }
+
+      private void handleStruct(CCompositeType pCompType) {
+
+        ValueCode addressCode = handleAddress(address);
+
+        if (addressCode.isUnknown()) {
+          return;
+        }
+
+        BigDecimal fieldAddress = new BigDecimal(addressCode.getValueCode());
+
+        for (CCompositeType.CCompositeTypeMemberDeclaration memberType : pCompType.getMembers()) {
+
+          handleMemberField(memberType, fieldAddress);
+          int offsetToNextField = machineModel.getSizeof(memberType.getType());
+          fieldAddress = fieldAddress.add(BigDecimal.valueOf(offsetToNextField));
+        }
+      }
+
+      private void handleMemberField(CCompositeTypeMemberDeclaration pType, BigDecimal fieldAddress) {
+        CType realType = pType.getType().getCanonicalType();
+        String ufName = TypeUFNameVisitor.getUFName(realType);
+        Object fieldValue = TypeUFNameVisitor.getValueFromUF(ufName, fieldAddress, functionEnvoirment);
+
+        if(fieldValue == null) {
+          return;
+        }
+
+        ValueCode valueCode;
+
+        if (realType instanceof CSimpleType) {
+          valueCode = getValueCode(((CSimpleType) realType).getType(), fieldValue);
+        } else {
+          valueCode = handleAddress(fieldValue);
+        }
+
+        if(valueCode.isUnknown()) {
+          return;
+        }
+
+        String fieldPrefix = "(" + prefix;
+        String fieldPostfix = postfix +"." + pType.getName() + ")";
+
+        SubExpressionValueCode subExpression = SubExpressionValueCode.valueOf(valueCode.getValueCode(), fieldPrefix, fieldPostfix);
+        valueCodes.addSubExpressionValueCode(subExpression);
+
+        realType.accept(new ValueCodeVisitor(fieldValue, valueCodes, fieldPrefix, fieldPostfix));
       }
 
       @Override
@@ -1190,6 +1283,103 @@ public class CFAEdgeWithAssignments {
         String ufName = TypeUFNameVisitor.getUFName(expectedType);
 
         return TypeUFNameVisitor.getValueFromUF(ufName, address, functionEnvoirment);
+      }
+    }
+
+    /*Resolve structs or union fields that are stored in the variable environment*/
+    private class ValueCodeStructResolver extends DefaultCTypeVisitor<Void, RuntimeException> {
+
+      private final ValueCodes valueCodes;
+      private final String leftHandSide;
+      private final String functionName;
+      private final String prefix;
+      private final String postfix;
+
+      public ValueCodeStructResolver(ValueCodes pValueCodes, String pLeftHandSide,
+          String pFunctionName, String pPrefix, String pPostfix) {
+        valueCodes = pValueCodes;
+        leftHandSide = pLeftHandSide;
+        functionName = pFunctionName;
+        prefix = pPrefix;
+        postfix = pPostfix;
+      }
+
+      @Override
+      public Void visitDefault(CType pT) throws RuntimeException {
+        return null;
+      }
+
+      @Override
+      public Void visit(CElaboratedType type) throws RuntimeException {
+
+        CType realType = type.getRealType();
+
+        if (realType == null) {
+          return null;
+        }
+
+        return realType.getCanonicalType().accept(this);
+      }
+
+      @Override
+      public Void visit(CTypedefType pType) throws RuntimeException {
+        return pType.getRealType().accept(this);
+      }
+
+      @Override
+      public Void visit(CCompositeType compType) throws RuntimeException {
+
+        if (compType.getKind() == ComplexTypeKind.ENUM) {
+          return null;
+        }
+
+        for(CCompositeTypeMemberDeclaration memberType : compType.getMembers()) {
+          handleField(memberType.getName(), memberType.getType());
+        }
+
+        return null;
+      }
+
+      private void handleField(String pFieldName, CType pMemberType) {
+
+        String referenceName = functionName + "::" + leftHandSide + "$" + pFieldName;
+
+        if(variableEnvironment.containsKey(referenceName)) {
+          addStructSubexpression(variableEnvironment.get(referenceName), pFieldName, pMemberType);
+        }
+
+        String fieldPrefix = "(" + prefix;
+        String fieldPostfix = postfix + "." + pFieldName + ")";
+        String newLeftHandSide = functionName + "::" + leftHandSide + "$" + pFieldName;
+
+
+        ValueCodeStructResolver resolver =
+            new ValueCodeStructResolver(valueCodes, newLeftHandSide,
+                functionName, fieldPrefix, fieldPostfix);
+
+        pMemberType.accept(resolver);
+      }
+
+      private void addStructSubexpression(Assignment pAssignment, String pFieldName, CType pMemberType) {
+
+        CType realType = pMemberType.getCanonicalType();
+        Object fieldValue = pAssignment.getValue();
+
+        String fieldPrefix = "(" + prefix;
+        String fieldPostfix = postfix + "." + pFieldName + ")";
+
+        ValueCode valueCode;
+
+        if (realType instanceof CSimpleType) {
+          valueCode = getValueCode(((CSimpleType) realType).getType(), fieldValue);
+        } else {
+          valueCode = handleAddress(fieldValue);
+        }
+
+        SubExpressionValueCode subExpression =
+            SubExpressionValueCode.valueOf(valueCode.getValueCode(), fieldPrefix, fieldPostfix);
+
+        valueCodes.addSubExpressionValueCode(subExpression);
       }
     }
   }
