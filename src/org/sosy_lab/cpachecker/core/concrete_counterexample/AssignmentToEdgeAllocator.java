@@ -544,7 +544,12 @@ public class AssignmentToEdgeAllocator {
 
       if(type instanceof CArrayType || isStructOrUnionType(type)) {
         /*The evaluation of an array is its address*/
-        return evaluateAddress(pCIdExpression).getSymbolicValue();
+        Address address = evaluateAddress(pCIdExpression);
+
+        if(address != null) {
+          return address.getSymbolicValue();
+        }
+
       }
 
       return null;
@@ -566,7 +571,12 @@ public class AssignmentToEdgeAllocator {
 
       if (type instanceof CArrayType || isStructOrUnionType(type)) {
         /*The evaluation of an array or a struct is its address*/
-        return addressVisitor.getAddress(pVarDcl).getSymbolicValue();
+        Address address = addressVisitor.getAddress(pVarDcl);
+
+        if (address != null) {
+          return address.getSymbolicValue();
+        }
+
       }
 
       return null;
