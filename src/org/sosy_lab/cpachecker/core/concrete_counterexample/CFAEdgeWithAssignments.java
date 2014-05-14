@@ -470,11 +470,6 @@ public class CFAEdgeWithAssignments {
       return value;
     }
 
-    private int getSizeof(CType pExpressionType) {
-
-      return machineModel.getSizeof(pExpressionType);
-    }
-
     @Override
     public Object visit(CFieldReference pIastFieldReference) {
 
@@ -539,7 +534,7 @@ public class CFAEdgeWithAssignments {
         }
 
         if (!(ownerType.getKind() == ComplexTypeKind.UNION)) {
-          offset = offset + getSizeof(typeMember.getType().getCanonicalType());
+          offset = offset + machineModel.getSizeof(typeMember.getType().getCanonicalType());
         }
       }
       return null;
@@ -723,7 +718,7 @@ public class CFAEdgeWithAssignments {
           return null;
         }
 
-        BigDecimal typeSize = BigDecimal.valueOf(getSizeof(pIastArraySubscriptExpression.getExpressionType()));
+        BigDecimal typeSize = BigDecimal.valueOf(machineModel.getSizeof(pIastArraySubscriptExpression.getExpressionType()));
 
         BigDecimal subscriptOffset = subscriptValue.multiply(typeSize);
 
@@ -1232,6 +1227,75 @@ public class CFAEdgeWithAssignments {
         valueCodes.addSubExpressionValueCode(subExpression);
 
         realType.accept(new ValueCodeVisitor(fieldValue, valueCodes, fieldPrefix, fieldPostfix));
+      }
+
+      @Override
+      public Void visit(CArrayType arrayType) throws RuntimeException {
+
+        CType expectedType = arrayType.getType().getCanonicalType();
+
+        int subscript = 0;
+
+        ValueCode arrayAddressCode = handleAddress(value);
+
+        if(arrayAddressCode.isUnknown()) {
+          return null;
+        }
+
+
+        BigDecimal arrayAddress = new BigDecimal(arrayAddressCode.getValueCode());
+
+        boolean memoryHasValue = true;
+        while (memoryHasValue) {
+          memoryHasValue = handleArraySubscript(arrayAddress, subscript, expectedType);
+          subscript++;
+        }
+
+        return null;
+      }
+
+      private boolean handleArraySubscript(BigDecimal pArrayAddress, int pSubscript, CType pExpectedType) {
+
+        int typeSize = machineModel.getSizeof(pExpectedType);
+        int subscriptOffset = pSubscript * typeSize;
+        BigDecimal address = pArrayAddress.add(BigDecimal.valueOf(subscriptOffset));
+
+        String ufName = TypeUFNameVisitor.getUFName(pExpectedType);
+        Object value = TypeUFNameVisitor.getValueFromUF(ufName, address, functionEnvoirment);
+
+        if (value == null) {
+          return false;
+        }
+
+        //TODO the following code is duplicated over several methods, remove Code duplication
+
+        ValueCode valueCode;
+
+        if (pExpectedType instanceof CSimpleType) {
+          valueCode = getValueCode(((CSimpleType) pExpectedType).getType(), value);
+        } else {
+          valueCode = handleAddress(value);
+        }
+
+        if (valueCode.isUnknown()) {
+          /*Stop, because it is highly
+           * unlikely that following values can be identified*/
+          return false;
+        }
+
+        String lValuePrefix = "(" + prefix;
+        String lValuePostfix = postfix + "[" + pSubscript + "])";
+
+        SubExpressionValueCode subExpressionValueCode =
+            new SubExpressionValueCode(valueCode.getValueCode(), lValuePrefix, lValuePostfix);
+
+        valueCodes.addSubExpressionValueCode(subExpressionValueCode);
+
+        ValueCodeVisitor v = new ValueCodeVisitor(value, valueCodes, lValuePrefix, lValuePostfix);
+
+        pExpectedType.accept(v);
+
+        return true;
       }
 
       @Override
