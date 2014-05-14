@@ -137,10 +137,6 @@ public class CFAEdgeWithAssignments {
   @Nullable
   private String getAsCode(CFAEdge pEdge) {
 
-    if (assignments.size() < 0) {
-      return null;
-    }
-
     if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
       return handleDeclaration(((ADeclarationEdge) pEdge).getDeclaration());
     } else if (pEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
@@ -272,11 +268,6 @@ public class CFAEdgeWithAssignments {
   }
 
   private Object getValueObject(IALeftHandSide pLeftHandSide, String pFunctionName) {
-
-    //If their is only one value, its the one we search
-    if (assignments.size() == 1) {
-      return assignments.iterator().next().getValue();
-    }
 
     if(pLeftHandSide instanceof CLeftHandSide) {
       CLeftHandSide cLeftHandSide = (CLeftHandSide) pLeftHandSide;
@@ -551,12 +542,11 @@ public class CFAEdgeWithAssignments {
       CType type = pCIdExpression.getExpressionType();
 
       if (type instanceof CSimpleType || type instanceof CPointerType) {
-        // CIdExpression of simple types or pointer types
-        // can be handled the same way as declarations.
         return handleSimpleVariableDeclaration(pCIdExpression.getDeclaration());
       }
 
       if(type instanceof CArrayType) {
+        /*The evaluation of an array is its address*/
         return evaluateAddress(pCIdExpression);
       }
 
@@ -566,11 +556,6 @@ public class CFAEdgeWithAssignments {
     @Nullable
     private Object handleVariableDeclaration(CSimpleDeclaration pVarDcl) {
 
-      //If their is only one value, its the one we search
-      if (assignments.size() == 1) {
-        return assignments.iterator().next().getValue();
-      }
-
       if (pVarDcl == null || functionName == null || (!(pVarDcl instanceof CVariableDeclaration)
           && !(pVarDcl instanceof CParameterDeclaration))) {
         return null;
@@ -578,8 +563,13 @@ public class CFAEdgeWithAssignments {
 
       CType type = pVarDcl.getType();
 
-      if(type instanceof CSimpleType) {
-        handleSimpleVariableDeclaration(pVarDcl);
+      if (type instanceof CSimpleType || type instanceof CPointerType) {
+        return handleSimpleVariableDeclaration(pVarDcl);
+      }
+
+      if (type instanceof CArrayType || isStructOrUnionType(type)) {
+        /*The evaluation of an array or a struct is its address*/
+        return addressVisitor.getAddress(pVarDcl);
       }
 
       return null;
@@ -966,8 +956,60 @@ public class CFAEdgeWithAssignments {
     }
 
     @Override
+    public ValueCodes visit(CElaboratedType pT) throws RuntimeException {
+
+      CType realType = pT.getRealType();
+
+      if (realType != null) {
+        realType.accept(this);
+      }
+
+      return createUnknownValueCodes();
+    }
+
+    @Override
+    public ValueCodes visit(CEnumType pT) throws RuntimeException {
+
+      /*We don't need to resolve enum types */
+      return createUnknownValueCodes();
+    }
+
+    @Override
+    public ValueCodes visit(CFunctionType pT) throws RuntimeException {
+
+      // TODO Investigate
+      return createUnknownValueCodes();
+    }
+
+    @Override
     public ValueCodes visit(CSimpleType simpleType) throws RuntimeException {
       return new ValueCodes(getValueCode(simpleType.getType(), value));
+    }
+
+    @Override
+    public ValueCodes visit(CProblemType pT) throws RuntimeException {
+      return createUnknownValueCodes();
+    }
+
+    @Override
+    public ValueCodes visit(CTypedefType pT) throws RuntimeException {
+      return pT.getRealType().accept(this);
+    }
+
+    @Override
+    public ValueCodes visit(CCompositeType compType) throws RuntimeException {
+
+      if(compType.getKind() == ComplexTypeKind.ENUM) {
+        return createUnknownValueCodes();
+      }
+
+      ValueCodes valueCodes = new ValueCodes(handleAddress(value));
+
+      ValueCodeVisitor v = new ValueCodeVisitor(value, valueCodes, "", "");
+
+      compType.accept(v);
+
+      return valueCodes;
     }
 
     //TODO Move to Utility?
@@ -1062,6 +1104,38 @@ public class CFAEdgeWithAssignments {
 
       @Override
       public Void visitDefault(CType pT) throws RuntimeException {
+        return null;
+      }
+
+      @Override
+      public Void visit(CTypedefType pT) throws RuntimeException {
+        return pT.getRealType().accept(this);
+      }
+
+      @Override
+      public Void visit(CElaboratedType pT) throws RuntimeException {
+
+        CType realType = pT.getCanonicalType();
+
+        if (realType == null) {
+          return null;
+        }
+
+        return realType.getCanonicalType().accept(this);
+      }
+
+      @Override
+      public Void visit(CEnumType pT) throws RuntimeException {
+        return null;
+      }
+
+      @Override
+      public Void visit(CCompositeType pT) throws RuntimeException {
+
+        if (pT.getKind() == ComplexTypeKind.ENUM) {
+          return null;
+        }
+
         return null;
       }
 
