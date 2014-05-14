@@ -223,11 +223,11 @@ public class ModelAtCFAEdge {
     public boolean comparesToUFArgument(Object pArgument) {
 
       if (pArgument instanceof BigDecimal && this.isNumericalType()) {
-        ((BigDecimal) pArgument).compareTo(new BigDecimal(addressAsNumber.toString()));
+        return ((BigDecimal) pArgument).compareTo(new BigDecimal(addressAsNumber.toString())) == 0;
       }
 
       if (symbolicAddress instanceof BigDecimal && pArgument instanceof Number) {
-        ((BigDecimal) symbolicAddress).compareTo(new BigDecimal(((Number) pArgument).toString()));
+        return ((BigDecimal) symbolicAddress).compareTo(new BigDecimal(((Number) pArgument).toString())) == 0;
       }
 
       return pArgument.equals(symbolicAddress);
