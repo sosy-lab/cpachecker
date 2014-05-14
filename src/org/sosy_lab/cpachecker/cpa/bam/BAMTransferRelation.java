@@ -467,94 +467,15 @@ public class BAMTransferRelation implements TransferRelation {
   //returns root of a subtree leading from the root element of the given reachedSet to the target state
   //subtree is represented using children and parents of ARGElements, where newTreeTarget is the ARGState
   //in the constructed subtree that represents target
-  ARGState computeCounterexampleSubgraph(ARGState target, ARGReachedSet reachedSet, BackwardARGState newTreeTarget,
-      Map<ARGState, ARGState> pPathElementToReachedState) throws InterruptedException, RecursiveAnalysisFailedException {
+  ARGState computeCounterexampleSubgraph(ARGState target, ARGReachedSet reachedSet,
+                                                 Map<ARGState, ARGState> pPathElementToReachedState)
+          throws InterruptedException, RecursiveAnalysisFailedException {
     assert reachedSet.asReachedSet().contains(target);
 
-    //start by creating ARGElements for each node needed in the tree
-    Map<ARGState, BackwardARGState> elementsMap = new HashMap<>();
-    Stack<ARGState> openElements = new Stack<>();
-    ARGState root = null;
-
-    pPathElementToReachedState.put(newTreeTarget, target);
-    elementsMap.put(target, newTreeTarget);
-    openElements.push(target);
-    while (!openElements.empty()) {
-      ARGState currentElement = openElements.pop();
-
-      assert reachedSet.asReachedSet().contains(currentElement);
-
-      for (ARGState parent : currentElement.getParents()) {
-        if (!elementsMap.containsKey(parent)) {
-          //create node for parent in the new subtree
-          elementsMap.put(parent, new BackwardARGState(parent));
-          pPathElementToReachedState.put(elementsMap.get(parent), parent);
-          //and remember to explore the parent later
-          openElements.push(parent);
-        }
-        CFAEdge edge = BAMARGUtils.getEdgeToChild(parent, currentElement);
-        if (edge == null) {
-          //this is a summarized call and thus an direct edge could not be found
-          //we have the transfer function to handle this case, as our reachSet is wrong
-          //(we have to use the cached ones)
-          ARGState innerTree =
-              computeCounterexampleSubgraph(parent, reachedSet.asReachedSet().getPrecision(parent),
-                  elementsMap.get(currentElement), pPathElementToReachedState);
-          if (innerTree == null) {
-            ARGSubtreeRemover.removeSubtree(reachedSet, parent);
-            return null;
-          }
-          for (ARGState child : innerTree.getChildren()) {
-            child.addParent(elementsMap.get(parent));
-          }
-          innerTree.removeFromARG();
-          elementsMap.get(parent).updateDecreaseId();
-        } else {
-          //normal edge
-          //create an edge from parent to current
-          elementsMap.get(currentElement).addParent(elementsMap.get(parent));
-        }
-      }
-      if (currentElement.getParents().isEmpty()) {
-        root = elementsMap.get(currentElement);
-      }
-    }
-    assert root != null;
-    return root;
-  }
-
-  /**
-   * This method looks for the reached set that belongs to (root, rootPrecision),
-   * then looks for target in this reached set and constructs a tree from root to target
-   * (recursively, if needed).
-   * @throws RecursiveAnalysisFailedException
-   */
-  private ARGState computeCounterexampleSubgraph(ARGState root, Precision rootPrecision, BackwardARGState newTreeTarget,
-      Map<ARGState, ARGState> pPathElementToReachedState) throws InterruptedException, RecursiveAnalysisFailedException {
-    CFANode rootNode = extractLocation(root);
-    Block rootSubtree = partitioning.getBlockForCallNode(rootNode);
-
-    AbstractState reducedRootState = wrappedReducer.getVariableReducedState(root, rootSubtree, rootNode);
-    ReachedSet reachSet = abstractStateToReachedSet.get(root);
-
-    //we found the to the root and precision corresponding reach set
-    //now try to find the target in the reach set
-    ARGState targetARGState = (ARGState) expandedToReducedCache.get(pPathElementToReachedState.get(newTreeTarget));
-    if (targetARGState.isDestroyed()) {
-      logger.log(Level.FINE,
-          "Target state refers to a destroyed ARGState, i.e., the cached subtree is outdated. Updating it.");
-      return null;
-    }
-    assert reachSet.contains(targetARGState);
-    //we found the target; now construct a subtree in the ARG starting with targetARTElement
-    ARGState result =
-        computeCounterexampleSubgraph(targetARGState, new ARGReachedSet(reachSet), newTreeTarget,
-            pPathElementToReachedState);
-    if (result == null) {
-      //enforce recomputation to update cached subtree
-      argCache.removeReturnEntry(reducedRootState, reachSet.getPrecision(reachSet.getFirstState()), rootSubtree);
-    }
-    return result;
+    final BAMCEXSubgraphComputer cexSubgraphComputer = new BAMCEXSubgraphComputer(
+            partitioning, wrappedReducer, argCache, pPathElementToReachedState,
+            abstractStateToReachedSet, expandedToReducedCache, logger);
+    return cexSubgraphComputer.computeCounterexampleSubgraph(target, reachedSet, new BAMCEXSubgraphComputer.BackwardARGState(target));
   }
 
   void clearCaches() {
@@ -782,27 +703,5 @@ public class BAMTransferRelation implements TransferRelation {
       correctARGsForBlocks = new HashMap<>();
     }
     correctARGsForBlocks.put(pKey, pEndOfBlock);
-  }
-
-  static class BackwardARGState extends ARGState {
-
-    private static final long serialVersionUID = -3279533907385516993L;
-    private int decreasingStateID;
-    private static int nextDecreaseID = Integer.MAX_VALUE;
-
-    public BackwardARGState(ARGState originalState) {
-      super(originalState.getWrappedState(), null);
-      decreasingStateID = nextDecreaseID--;
-    }
-
-    @Override
-    public boolean isOlderThan(ARGState other) {
-      if (other instanceof BackwardARGState) { return decreasingStateID < ((BackwardARGState) other).decreasingStateID; }
-      return super.isOlderThan(other);
-    }
-
-    void updateDecreaseId() {
-      decreasingStateID = nextDecreaseID--;
-    }
   }
 }
