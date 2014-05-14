@@ -42,13 +42,15 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 public class SingleValueChecker implements PropertyChecker {
 
   private final MemoryLocation varValRep;
-  private final Value varVal;
+  private final Value varValBigInt;
+  private final Value varValLong;
   private final String labelLocVarVal;
 
   public SingleValueChecker(String varWithSingleValue, String varValue, String labelForLocationWithSingleValue) {
     varValRep = MemoryLocation.valueOf(varWithSingleValue);
     labelLocVarVal = labelForLocationWithSingleValue;
-    varVal = new NumericValue(new BigInteger(varValue));
+    varValBigInt = new NumericValue(new BigInteger(varValue));
+    varValLong = new NumericValue(Long.parseLong(varValue));
   }
 
   @Override
@@ -59,7 +61,8 @@ public class SingleValueChecker implements PropertyChecker {
       Value value =
           AbstractStates.extractStateByType(pElemToCheck, ValueAnalysisState.class).getConstantsMapView()
               .get(varValRep);
-      if (value == null || !value.isExplicitlyKnown() || !value.equals(varVal)) { return false; }
+      if (value == null || !value.isExplicitlyKnown() ||
+          !(value.equals(varValBigInt)||value.equals(varValLong))) { return false; }
     }
     return true;
   }

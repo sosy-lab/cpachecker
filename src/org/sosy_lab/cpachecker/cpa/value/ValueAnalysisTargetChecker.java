@@ -48,17 +48,20 @@ public class ValueAnalysisTargetChecker {
 
   private BooleanFormula errorF;
   private MemoryLocation errorVarRep;
-  private final NumericValue allowedNumericValue;
+  private final NumericValue allowedNumericValueBigInt;
+  private final NumericValue allowedNumericValueLong;
 
   public ValueAnalysisTargetChecker(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
     errorVarRep = MemoryLocation.valueOf(errorVar);
-    allowedNumericValue = new NumericValue(new BigInteger(Long.toString(allowedValue)));
+    allowedNumericValueBigInt = new NumericValue(new BigInteger(Long.toString(allowedValue)));
+    allowedNumericValueLong = new NumericValue(allowedValue);
   }
 
   public boolean isTarget(PersistentMap<MemoryLocation, Value> pConstantsMap) {
     Value value = pConstantsMap.get(errorVarRep);
-    if (value == null || !value.isExplicitlyKnown() || !value.equals(allowedNumericValue)) { return true; }
+    if (value == null || !value.isExplicitlyKnown()
+        || !(value.equals(allowedNumericValueBigInt) || value.equals(allowedNumericValueLong))) { return true; }
     return false;
   }
 
