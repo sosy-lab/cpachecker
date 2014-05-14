@@ -37,7 +37,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Stack;
+import java.util.NavigableSet;
+import java.util.TreeSet;
 import java.util.logging.Level;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
@@ -79,34 +80,40 @@ public class BAMCEXSubgraphComputer {
 
     //start by creating ARGElements for each node needed in the tree
     final Map<ARGState, BackwardARGState> finishedStates = new HashMap<>();
-    final Stack<ARGState> waitlist = new Stack<>();
+    final NavigableSet<ARGState> waitlist = new TreeSet<>(); // for sorted IDs in ARGstates
     BackwardARGState root = null;
 
     pathStateToReachedState.put(newTreeTarget, target);
     finishedStates.put(target, newTreeTarget);
-    waitlist.push(target);
-    while (!waitlist.empty()) {
-      final ARGState currentElement = waitlist.pop();
+    waitlist.add(target);
+    while (!waitlist.isEmpty()) {
+      final ARGState currentState = waitlist.pollFirst(); // get state with smallest ID
+      final BackwardARGState newCurrentState = finishedStates.get(currentState);
 
-      assert reachedSet.asReachedSet().contains(currentElement);
+      assert reachedSet.asReachedSet().contains(currentState);
 
-      for (final ARGState parent : currentElement.getParents()) {
+      for (final ARGState parent : currentState.getParents()) {
 
-        if (!finishedStates.containsKey(parent)) {
-          //create node for parent in the new subtree
-          finishedStates.put(parent, new BackwardARGState(parent));
-          pathStateToReachedState.put(finishedStates.get(parent), parent);
-          //and remember to explore the parent later
-          waitlist.push(parent);
+        final BackwardARGState newParent;
+        if (finishedStates.containsKey(parent)) {
+          newParent = finishedStates.get(parent);
+        } else {
+          newParent = new BackwardARGState(parent);
+          finishedStates.put(parent, newParent);
+          pathStateToReachedState.put(newParent, parent);
+          waitlist.add(parent);
         }
 
-        final CFAEdge edge = BAMARGUtils.getEdgeToChild(parent, currentElement);
+        // TODO assertion is disabled, because some ARGs are wrong
+        //assert newParent.isOlderThan(newCurrentState) : "child must be older than parent";
+
+        final CFAEdge edge = BAMARGUtils.getEdgeToChild(parent, currentState);
         if (edge == null) {
           //this is a summarized call and thus an direct edge could not be found
           //we have the transfer function to handle this case, as our reachSet is wrong
           //(we have to use the cached ones)
           BackwardARGState innerTree = computeCounterexampleSubgraphForBlock(
-                  parent, reachedSet.asReachedSet().getPrecision(parent), finishedStates.get(currentElement));
+                  parent, reachedSet.asReachedSet().getPrecision(parent), newCurrentState);
           if (innerTree == null) {
             ARGSubtreeRemover.removeSubtree(reachedSet, parent);
             return null;
@@ -114,20 +121,24 @@ public class BAMCEXSubgraphComputer {
 
           // reconnect ARG: replace the state 'innerTree' with the corresponding parent-state.
           for (ARGState child : innerTree.getChildren()) {
-            child.addParent(finishedStates.get(parent));
+            child.addParent(newParent);
           }
           innerTree.removeFromARG();
-          // the new parent must have an ID smaller than its children,so we must update it.
-          finishedStates.get(parent).updateDecreaseId();
+
         } else {
-          //normal edge
-          //create an edge from parent to current
-          finishedStates.get(currentElement).addParent(finishedStates.get(parent));
+          // normal edge -> create an edge from parent to current
+          newCurrentState.addParent(newParent);
         }
+
+        // the new parent must have an ID smaller than its children, so we must update it.
+        // As we always traverse the ARG backwards, we never know, if we have visited 'all' children.
+        // So waiting for this is not possible, and we update the ID as often as we visit a parent-node.
+        newParent.updateDecreaseId();
       }
-      if (currentElement.getParents().isEmpty()) {
+
+      if (currentState.getParents().isEmpty()) {
         assert root == null : "root should not be set before";
-        root = finishedStates.get(currentElement);
+        root = finishedStates.get(currentState);
       }
     }
     assert root != null;
