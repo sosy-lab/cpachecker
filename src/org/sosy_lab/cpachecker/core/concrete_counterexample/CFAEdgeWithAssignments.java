@@ -401,7 +401,7 @@ public class CFAEdgeWithAssignments {
 
     @Override
     public Object visit(CFieldReference pIastFieldReference) {
-      // TODO Auto-generated method stub
+
       return null;
     }
 
@@ -675,8 +675,13 @@ public class CFAEdgeWithAssignments {
 
       @Override
       protected Value evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
-        // TODO Auto-generated method stub
-        return Value.UnknownValue.getInstance();
+        Object value = LModelValueVisitor.this.visit(pLValue);
+
+        if(value == null || !(value instanceof BigDecimal)) {
+          return Value.UnknownValue.getInstance();
+        }
+
+        return new NumericValue((BigDecimal)value);
       }
 
       @Override
