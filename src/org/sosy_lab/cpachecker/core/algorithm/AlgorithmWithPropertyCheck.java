@@ -27,6 +27,9 @@ import java.util.Collection;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -58,6 +61,8 @@ public class AlgorithmWithPropertyCheck implements Algorithm, StatisticsProvider
     if (result) {
       logger.log(Level.INFO, "Start property checking.");
       result = cpa.getPropChecker().satisfiesProperty(pReachedSet.asCollection());
+      // add dummy error state to get verification result FALSE instead of UNKNOWN
+      pReachedSet.add(new DummyErrorState(pReachedSet.getLastState()), SingletonPrecision.getInstance());
     }
 
     logger.log(Level.INFO, "Finished analysis");
@@ -68,6 +73,31 @@ public class AlgorithmWithPropertyCheck implements Algorithm, StatisticsProvider
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     if (analysis instanceof StatisticsProvider) {
       ((StatisticsProvider) analysis).collectStatistics(pStatsCollection);
+    }
+  }
+
+  private static class DummyErrorState extends  AbstractSingleWrapperState {
+
+
+    private static final long serialVersionUID = 1338393013733003150L;
+
+    public DummyErrorState(final AbstractState pWrapped){
+      super(pWrapped);
+    }
+
+    @Override
+    public boolean isTarget() {
+      return true;
+    }
+
+    @Override
+    public ViolatedProperty getViolatedProperty() throws IllegalStateException {
+      return ViolatedProperty.OTHER;
+    }
+
+    @Override
+    public Object getPartitionKey() {
+      return null;
     }
   }
 
