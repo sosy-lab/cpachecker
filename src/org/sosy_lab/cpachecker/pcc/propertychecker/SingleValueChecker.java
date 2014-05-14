@@ -59,7 +59,7 @@ public class SingleValueChecker implements PropertyChecker {
       Value value =
           AbstractStates.extractStateByType(pElemToCheck, ValueAnalysisState.class).getConstantsMapView()
               .get(varValRep);
-      if (value == null || !value.isExplicitlyKnown() || !value.equals(varVal)) { System.out.println(value.equals(varVal));return false; }
+      if (value == null || !value.isExplicitlyKnown() || !value.equals(varVal)) { return false; }
     }
     return true;
   }
