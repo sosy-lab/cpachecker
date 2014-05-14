@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.concrete_counterexample;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -90,6 +89,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import apache.harmony.math.BigInteger;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 
 
@@ -268,12 +268,7 @@ public class CFAEdgeWithAssignments {
     Type expectedType = leftHandSide.getExpressionType();
     ValueCodes valueAsCode = getValueAsCode(value, expectedType);
 
-    if(valueAsCode.hasUnknownValueCode()) {
-      return null;
-    }
-
-    return leftHandSide.toASTString() +
-        " = " + valueAsCode.getExpressionValueCodeAsString() + ";";
+    return handleSimpleValueCodesAssignments(valueAsCode, leftHandSide.toASTString());
   }
 
   private Object getValueObject(IALeftHandSide pLeftHandSide, String pFunctionName) {
@@ -338,15 +333,54 @@ public class CFAEdgeWithAssignments {
       Type dclType = varDcl.getType();
       ValueCodes valueAsCode = getValueAsCode(value, dclType);
 
-      if (valueAsCode.hasUnknownValueCode()) {
-        return null;
-      }
-
-      return varDcl.getName() + " = "
-          + valueAsCode.getExpressionValueCodeAsString() + ";";
+      return handleSimpleValueCodesAssignments(valueAsCode, varDcl.getName());
     }
 
     return null;
+  }
+
+  private String handleSimpleValueCodesAssignments(ValueCodes pValueAsCodes, String pLValue) {
+
+    Set<SubExpressionValueCode> subValues = pValueAsCodes.getSubExpressionValueCode();
+
+    List<String> statements = new ArrayList<>(subValues.size() + 1);
+
+    if (!pValueAsCodes.hasUnknownValueCode()) {
+
+      String statement = getAssumptionStatements(pLValue, "", "",
+          pValueAsCodes.getExpressionValueCodeAsString());
+
+      statements.add(statement);
+    }
+
+    for (SubExpressionValueCode subCode : subValues) {
+      String statement = getAssumptionStatements(pLValue, subCode.getPrefix(), subCode.getPostfix(),
+          subCode.getValueCode());
+
+      statements.add(statement);
+    }
+
+    if (statements.size() == 0) {
+      return null;
+    }
+
+    Joiner joiner = Joiner.on("\n");
+
+    return joiner.join(statements);
+  }
+
+  private String getAssumptionStatements(String pLValue,
+      String pPrefix, String pPostfix, String value) {
+
+    StringBuilder result = new StringBuilder();
+    result.append(pPrefix);
+    result.append(pLValue);
+    result.append(pPostfix);
+    result.append(" = ");
+    result.append(value);
+    result.append(";");
+
+    return result.toString();
   }
 
   private Object getValueObject(CVariableDeclaration pVarDcl, String pFunctionName) {
@@ -831,31 +865,37 @@ public class CFAEdgeWithAssignments {
       return valueCodes;
     }
 
-    private ValueCode handleAddress(Object pValue) {
+    @Override
+    public ValueCodes visit(CSimpleType simpleType) throws RuntimeException {
+      return new ValueCodes(getValueCode(simpleType.getType(), value));
+    }
+
+    //TODO Move to Utility?
+    protected ValueCode handleAddress(Object pValue) {
 
       /*addresses are modeled as floating point numbers*/
       return handleFloatingPointNumbers(pValue);
     }
 
-    @Override
-    public ValueCodes visit(CSimpleType simpleType) throws RuntimeException {
-      switch (simpleType.getType()) {
+    protected ValueCode getValueCode(CBasicType basicType, Object pValue) {
+
+      switch (basicType) {
       case BOOL:
       case INT:
-        return new ValueCodes(handleIntegerNumbers(value));
+        return handleIntegerNumbers(pValue);
       case FLOAT:
       case DOUBLE:
-        return new ValueCodes(handleFloatingPointNumbers(value));
+        return handleFloatingPointNumbers(pValue);
       }
 
-      return createUnknownValueCodes();
+      return UnknownValueCode.getInstance();
     }
 
     private ValueCodes createUnknownValueCodes() {
       return new ValueCodes();
     }
 
-    protected ValueCode handleFloatingPointNumbers(Object pValue) {
+    private ValueCode handleFloatingPointNumbers(Object pValue) {
 
       //TODO Check length in given constraints.
 
@@ -868,7 +908,7 @@ public class CFAEdgeWithAssignments {
       return UnknownValueCode.getInstance();
     }
 
-    protected ValueCode handleIntegerNumbers(Object pValue) {
+    private ValueCode handleIntegerNumbers(Object pValue) {
 
       //TODO Check length in given constraints.
       String value = pValue.toString();
@@ -928,6 +968,43 @@ public class CFAEdgeWithAssignments {
       @Override
       public Void visit(CPointerType pointerType) throws RuntimeException {
 
+        CType expectedType = pointerType.getType().getCanonicalType();
+
+        Object value = getPointerOrArrayValue(expectedType);
+
+        if (value == null) {
+          return null;
+        }
+
+        ValueCode valueCode;
+
+        if (expectedType instanceof CSimpleType) {
+          valueCode = getValueCode(((CSimpleType) expectedType).getType(), value);
+        } else {
+          valueCode = handleAddress(value);
+        }
+
+        if (valueCode.isUnknown()) {
+          return null;
+        }
+
+        String lValuePrefix = "(*" + prefix;
+        String lValuePostfix = postfix + ")";
+
+        SubExpressionValueCode subExpressionValueCode =
+            new SubExpressionValueCode(valueCode.getValueCode(), lValuePrefix, lValuePostfix);
+
+        valueCodes.addSubExpressionValueCode(subExpressionValueCode);
+
+        ValueCodeVisitor v = new ValueCodeVisitor(value, valueCodes, lValuePrefix, lValuePostfix);
+
+        expectedType.accept(v);
+
+        return null;
+      }
+
+      private Object getPointerOrArrayValue(CType expectedType) {
+
         ValueCode addressCode = handleAddress(address);
 
         if (addressCode.isUnknown()) {
@@ -936,9 +1013,9 @@ public class CFAEdgeWithAssignments {
 
         BigDecimal address = new BigDecimal(addressCode.getValueCode());
 
-        TypeUFNameVisitor.getUFName(pointerType);
+        String ufName = TypeUFNameVisitor.getUFName(expectedType);
 
-        return super.visit(pointerType);
+        return TypeUFNameVisitor.getValueFromUF(ufName, address, functionEnvoirment);
       }
     }
   }
@@ -974,8 +1051,8 @@ public class CFAEdgeWithAssignments {
       return expressionValueCode.isUnknown();
     }
 
-    public Iterator<SubExpressionValueCode> getSubExpressionValueCodeIterator() {
-      return subExpressionValueCodes.iterator();
+    public Set<SubExpressionValueCode> getSubExpressionValueCode() {
+      return ImmutableSet.copyOf(subExpressionValueCodes);
     }
 
     @Override
