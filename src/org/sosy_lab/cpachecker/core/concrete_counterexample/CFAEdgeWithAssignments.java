@@ -402,7 +402,7 @@ public class CFAEdgeWithAssignments {
 
       Object valueAddress = address.add(subscriptOffset);
 
-      String ufMemoryName = getUFMemoryName(pIastArraySubscriptExpression.getExpressionType());
+      String ufMemoryName = UFMemoryNameVisitor.getUFMemoryName(pIastArraySubscriptExpression.getExpressionType());
 
       Object value = getValueFromUF(ufMemoryName, valueAddress);
 
@@ -444,7 +444,7 @@ public class CFAEdgeWithAssignments {
 
       BigDecimal address = fieldOwneraddress.add(fieldOffset);
 
-      return getValueFromUF(getUFMemoryName(pIastFieldReference.getExpressionType()), address);
+      return getValueFromUF(UFMemoryNameVisitor.getUFMemoryName(pIastFieldReference.getExpressionType()), address);
     }
 
     private BigDecimal getFieldOffset(CFieldReference fieldReference) {
@@ -588,7 +588,7 @@ public class CFAEdgeWithAssignments {
         }
 
         CType type = pVarDcl.getType();
-        String ufMemoryName = getUFMemoryName(type);
+        String ufMemoryName = UFMemoryNameVisitor.getUFMemoryName(type);
 
         return getValueFromUF(ufMemoryName, address);
       }
@@ -623,7 +623,7 @@ public class CFAEdgeWithAssignments {
         return null;
       }
 
-      String ufMemoryName = getUFMemoryName(type);
+      String ufMemoryName = UFMemoryNameVisitor.getUFMemoryName(type);
 
       Object value = getValueFromUF(ufMemoryName, address);
 
@@ -666,16 +666,6 @@ public class CFAEdgeWithAssignments {
         }
       }
       return null;
-    }
-
-    private String getUFMemoryName(CType pType) {
-      String name = pType.accept(new UFMemoryNameVisitor());
-
-      if(name == null) {
-        return null;
-      }
-
-      return "*" + name;
     }
 
     private class ModelExpressionValueVisitor extends AbstractExpressionValueVisitor {
@@ -818,81 +808,6 @@ public class CFAEdgeWithAssignments {
       }
     }
 
-    private class UFMemoryNameVisitor implements CTypeVisitor<String, RuntimeException>{
-
-      @Override
-      public String visit(CArrayType pArrayType) throws RuntimeException {
-        return null;
-      }
-
-      @Override
-      public String visit(CCompositeType pCompositeType) throws RuntimeException {
-
-        if(pCompositeType.getKind() == ComplexTypeKind.STRUCT) {
-          return "struct_" + pCompositeType.getName();
-        }
-
-        return null;
-      }
-
-      @Override
-      public String visit(CElaboratedType pElaboratedType) throws RuntimeException {
-
-        CComplexType realType = pElaboratedType.getRealType();
-
-        if (realType != null) {
-          return realType.accept(this);
-        }
-
-        return null;
-      }
-
-      @Override
-      public String visit(CEnumType pEnumType) throws RuntimeException {
-        return pEnumType.getName();
-      }
-
-      @Override
-      public String visit(CFunctionType pFunctionType) throws RuntimeException {
-        // TODO Auto-generated method stub
-        return null;
-      }
-
-      @Override
-      public String visit(CPointerType pPointerType) throws RuntimeException {
-
-        String ufName = pPointerType.getType().getCanonicalType().accept(this);
-
-        if(ufName == null) {
-          return null;
-        }
-
-        return "(" + ufName + ")*";
-      }
-
-      @Override
-      public String visit(CProblemType pProblemType) throws RuntimeException {
-        // TODO Auto-generated method stub
-        return null;
-      }
-
-      @Override
-      public String visit(CSimpleType pSimpleType) throws RuntimeException {
-
-        switch (pSimpleType.getType()) {
-        case INT: return "signed_int";
-
-        }
-
-        return null;
-      }
-
-      @Override
-      public String visit(CTypedefType pTypedefType) throws RuntimeException {
-        return pTypedefType.getRealType().accept(this);
-      }
-    }
-
     @Override
     public Object visit(CComplexCastExpression pComplexCastExpression) {
       // TODO Auto-generated method stub
@@ -900,7 +815,7 @@ public class CFAEdgeWithAssignments {
     }
   }
 
-  private static class ValueCodesVisitor extends DefaultCTypeVisitor<ValueCodes, RuntimeException> {
+  private class ValueCodesVisitor extends DefaultCTypeVisitor<ValueCodes, RuntimeException> {
 
     private final Object value;
 
@@ -914,14 +829,43 @@ public class CFAEdgeWithAssignments {
     }
 
     @Override
+    public ValueCodes visit(CPointerType pointerType) throws RuntimeException {
+
+      ValueCodes valueCodes = new ValueCodes(handleAddress(value));
+
+      ValueCodeVisitor v = new ValueCodeVisitor(value, valueCodes, "", "");
+
+      pointerType.accept(v);
+
+      return valueCodes;
+    }
+
+    @Override
+    public ValueCodes visit(CArrayType arrayType) throws RuntimeException {
+      ValueCodes valueCodes = new ValueCodes(handleAddress(value));
+
+      ValueCodeVisitor v = new ValueCodeVisitor(value, valueCodes, "", "");
+
+      arrayType.accept(v);
+
+      return valueCodes;
+    }
+
+    private ValueCode handleAddress(Object pValue) {
+
+      /*addresses are modeled as floating point numbers*/
+      return handleFloatingPointNumbers(pValue);
+    }
+
+    @Override
     public ValueCodes visit(CSimpleType simpleType) throws RuntimeException {
       switch (simpleType.getType()) {
       case BOOL:
       case INT:
-        return new ValueCodes(handleIntegerNumbers(simpleType, value));
+        return new ValueCodes(handleIntegerNumbers(value));
       case FLOAT:
       case DOUBLE:
-        return new ValueCodes(handleFloatingPointNumbers(simpleType, value));
+        return new ValueCodes(handleFloatingPointNumbers(value));
       }
 
       return createUnknownValueCodes();
@@ -931,7 +875,7 @@ public class CFAEdgeWithAssignments {
       return new ValueCodes();
     }
 
-    private ValueCode handleFloatingPointNumbers(CSimpleType pSimpleType, Object pValue) {
+    protected ValueCode handleFloatingPointNumbers(Object pValue) {
 
       //TODO Check length in given constraints.
 
@@ -944,7 +888,7 @@ public class CFAEdgeWithAssignments {
       return UnknownValueCode.getInstance();
     }
 
-    private ValueCode handleIntegerNumbers(CSimpleType pSimpleType, Object pValue) {
+    protected ValueCode handleIntegerNumbers(Object pValue) {
 
       //TODO Check length in given constraints.
       String value = pValue.toString();
@@ -962,16 +906,16 @@ public class CFAEdgeWithAssignments {
         }
       }
 
-      ValueCode valueCode = handleFloatingPointNumbers(pSimpleType, pValue);
+      ValueCode valueCode = handleFloatingPointNumbers(pValue);
 
       if (valueCode.isUnknown()) {
         return valueCode;
       } else {
-        return valueCode.addCast(pSimpleType.getType());
+        return valueCode.addCast(CBasicType.INT);
       }
     }
 
-    private static class ValueCodeVisitor extends DefaultCTypeVisitor<Void, RuntimeException> {
+    private class ValueCodeVisitor extends DefaultCTypeVisitor<Void, RuntimeException> {
 
       /*
        * Contains the address of the super type of the visited type.
@@ -999,6 +943,22 @@ public class CFAEdgeWithAssignments {
       @Override
       public Void visitDefault(CType pT) throws RuntimeException {
         return null;
+      }
+
+      @Override
+      public Void visit(CPointerType pT) throws RuntimeException {
+
+        ValueCode addressCode = handleAddress(address);
+
+        if (addressCode.isUnknown()) {
+          return null;
+        }
+
+        BigDecimal address = new BigDecimal(addressCode.getValueCode());
+
+
+
+        return super.visit(pT);
       }
     }
   }
@@ -1187,6 +1147,91 @@ public class CFAEdgeWithAssignments {
     public String toString() {
 
       return "<value code : " + super.toString() + ", prefix : " + prefix + ", postfix : " + postfix + ">";
+    }
+  }
+
+  private static class UFMemoryNameVisitor implements CTypeVisitor<String, RuntimeException>{
+
+    public static String getUFMemoryName(CType pType) {
+      String name = pType.accept(new UFMemoryNameVisitor());
+
+      if(name == null) {
+        return null;
+      }
+
+      return "*" + name;
+    }
+
+    @Override
+    public String visit(CArrayType pArrayType) throws RuntimeException {
+      return null;
+    }
+
+    @Override
+    public String visit(CCompositeType pCompositeType) throws RuntimeException {
+
+      if(pCompositeType.getKind() == ComplexTypeKind.STRUCT) {
+        return "struct_" + pCompositeType.getName();
+      }
+
+      return null;
+    }
+
+    @Override
+    public String visit(CElaboratedType pElaboratedType) throws RuntimeException {
+
+      CComplexType realType = pElaboratedType.getRealType();
+
+      if (realType != null) {
+        return realType.accept(this);
+      }
+
+      return null;
+    }
+
+    @Override
+    public String visit(CEnumType pEnumType) throws RuntimeException {
+      return pEnumType.getName();
+    }
+
+    @Override
+    public String visit(CFunctionType pFunctionType) throws RuntimeException {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    @Override
+    public String visit(CPointerType pPointerType) throws RuntimeException {
+
+      String ufName = pPointerType.getType().getCanonicalType().accept(this);
+
+      if(ufName == null) {
+        return null;
+      }
+
+      return "(" + ufName + ")*";
+    }
+
+    @Override
+    public String visit(CProblemType pProblemType) throws RuntimeException {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    @Override
+    public String visit(CSimpleType pSimpleType) throws RuntimeException {
+
+      switch (pSimpleType.getType()) {
+      case INT: return "signed_int";
+
+      }
+
+      return null;
+    }
+
+    @Override
+    public String visit(CTypedefType pTypedefType) throws RuntimeException {
+      return pTypedefType.getRealType().accept(this);
     }
   }
 }
