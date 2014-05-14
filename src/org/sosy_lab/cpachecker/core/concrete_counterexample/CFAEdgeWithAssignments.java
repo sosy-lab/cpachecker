@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.concrete_counterexample;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -63,7 +64,10 @@ import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -90,7 +94,9 @@ public class CFAEdgeWithAssignments {
   private final CFAEdge edge;
   private final Set<Assignment> assignments;
   private final Map<String, Object> addressMap;
+  @SuppressWarnings("unused")
   private final Map<Function, Object> functionMap;
+  @SuppressWarnings("unused")
   private final SSAMap map;
   private final Map<String, Assignment> variableEnvironment;
   private final Multimap<String, Assignment> functionEnvoirment;
@@ -350,48 +356,52 @@ public class CFAEdgeWithAssignments {
       functionName = pFunctionName;
     }
 
+    private final BigDecimal evaluateNumericalValue(CExpression exp) {
+
+      Value addressV;
+      try {
+        addressV = exp.accept(new ModelExpressionValueVisitor(functionName, machineModel, null));
+      } catch (UnrecognizedCCodeException e1) {
+        throw new IllegalArgumentException(e1);
+      }
+
+      if (addressV.isUnknown() && !addressV.isNumericValue()) {
+        return null;
+      }
+
+      return BigDecimal.valueOf(addressV.asNumericValue().longValue());
+    }
+
     @Override
     public Object visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
 
       CExpression arrayExpression = pIastArraySubscriptExpression.getArrayExpression();
 
-      Value addressV;
-      try {
-        addressV = arrayExpression.accept(new ModelExpressionValueVisitor(functionName, machineModel, null));
-      } catch (UnrecognizedCCodeException e1) {
-        throw new IllegalArgumentException(e1);
-      }
+      BigDecimal address = evaluateNumericalValue(arrayExpression);
 
-      if(addressV.isUnknown() && !addressV.isNumericValue()) {
+      if(address == null) {
         return null;
       }
-
-      BigDecimal address = BigDecimal.valueOf(addressV.asNumericValue().longValue());
 
       CExpression subscriptCExpression = pIastArraySubscriptExpression.getSubscriptExpression();
 
-      Value subscriptValue;
+      BigDecimal subscriptValue = evaluateNumericalValue(subscriptCExpression);
 
-      try {
-        subscriptValue = subscriptCExpression.accept(new ModelExpressionValueVisitor(functionName, machineModel, null));
-      } catch (UnrecognizedCCodeException e) {
-        throw new IllegalArgumentException(e);
-      }
-
-      if (subscriptValue.isUnknown() && !subscriptValue.isNumericValue()) {
+      if(subscriptValue == null) {
         return null;
       }
 
-      long subscriptValueL = subscriptValue.asNumericValue().longValue();
+      BigDecimal typeSize = BigDecimal.valueOf(getSizeof(pIastArraySubscriptExpression.getExpressionType()));
 
-      int typeSize = getSizeof(pIastArraySubscriptExpression.getExpressionType());
+      BigDecimal subscriptOffset = subscriptValue.multiply(typeSize);
 
-      long subscriptOffset = typeSize * subscriptValueL;
+      Object valueAddress = address.add(subscriptOffset);
 
-      Object valueAddress = address.add(BigDecimal.valueOf(subscriptOffset));
+      String ufMemoryName = getUFMemoryName(pIastArraySubscriptExpression.getExpressionType());
 
-      return getValueFromUF(getUFMemoryName(pIastArraySubscriptExpression.getExpressionType()),
-          valueAddress);
+      Object value = getValueFromUF(ufMemoryName, valueAddress);
+
+      return value;
     }
 
     private int getSizeof(CType pExpressionType) {
@@ -402,7 +412,106 @@ public class CFAEdgeWithAssignments {
     @Override
     public Object visit(CFieldReference pIastFieldReference) {
 
+      CExpression fieldowner = pIastFieldReference.getFieldOwner();
+
+      if (!pIastFieldReference.isPointerDereference()) {
+
+        /* Fieldreferences are sometimes represented as variables,
+           e.g a.b.c in main is main::a$b$c */
+        String fieldReferenceVariableName = getFieldReferenceVariableName(pIastFieldReference);
+
+        if (fieldReferenceVariableName != null && variableEnvironment.containsKey(fieldReferenceVariableName)) {
+          return variableEnvironment.get(fieldReferenceVariableName).getValue();
+        }
+      }
+
+      BigDecimal fieldOwneraddress = evaluateNumericalValue(fieldowner);
+
+      if (fieldOwneraddress == null) {
+        return null;
+      }
+
+      BigDecimal fieldOffset = getFieldOffset(pIastFieldReference);
+
+      if(fieldOffset == null) {
+        return null;
+      }
+
+      BigDecimal address = fieldOwneraddress.add(fieldOffset);
+
+      return getValueFromUF(getUFMemoryName(pIastFieldReference.getExpressionType()), address);
+    }
+
+    private BigDecimal getFieldOffset(CFieldReference fieldReference) {
+      CType fieldOwnerType = fieldReference.getFieldOwner().getExpressionType().getCanonicalType();
+      return getFieldOffset(fieldOwnerType, fieldReference.getFieldName());
+    }
+
+    private BigDecimal getFieldOffset(CType ownerType, String fieldName) {
+
+      if (ownerType instanceof CElaboratedType) {
+
+        CType realType = ((CElaboratedType) ownerType).getRealType();
+
+        if (realType == null) { return null; }
+
+        return getFieldOffset(realType.getCanonicalType(), fieldName);
+      } else if (ownerType instanceof CCompositeType) {
+        return getFieldOffset((CCompositeType) ownerType, fieldName);
+      } else if (ownerType instanceof CPointerType) {
+
+        /* We do not explicitly transform x->b,
+        so when we try to get the field b the ownerType of x
+        is a pointer type.*/
+
+        CType type = ((CPointerType) ownerType).getType().getCanonicalType();
+
+        return getFieldOffset(type, fieldName);
+      }
+
+      throw new AssertionError();
+    }
+
+    private BigDecimal getFieldOffset(CCompositeType ownerType, String fieldName) {
+
+      List<CCompositeTypeMemberDeclaration> membersOfType = ownerType.getMembers();
+
+      int offset = 0;
+
+      for (CCompositeTypeMemberDeclaration typeMember : membersOfType) {
+        String memberName = typeMember.getName();
+        if (memberName.equals(fieldName)) {
+          return BigDecimal.valueOf(offset);
+        }
+
+        if (!(ownerType.getKind() == ComplexTypeKind.UNION)) {
+          offset = offset + getSizeof(typeMember.getType().getCanonicalType());
+        }
+      }
       return null;
+    }
+
+    private String getFieldReferenceVariableName(CFieldReference pIastFieldReference) {
+
+      List<String> fieldNameList = new ArrayList<>();
+
+      CFieldReference reference = pIastFieldReference;
+
+      fieldNameList.add(0 ,reference.getFieldName());
+
+      while(reference.getFieldOwner() instanceof CFieldReference) {
+        reference = (CFieldReference) reference.getFieldOwner();
+        fieldNameList.add(0 ,reference.getFieldName());
+      }
+
+      if (reference.getFieldOwner() instanceof CIdExpression) {
+        fieldNameList.add(0, ((CIdExpression) reference.getFieldOwner()).getName());
+
+        Joiner joiner = Joiner.on("$");
+        return functionName + "::" + joiner.join(fieldNameList);
+      } else {
+        return null;
+      }
     }
 
     @Override
@@ -497,20 +606,7 @@ public class CFAEdgeWithAssignments {
 
       CExpression exp = pPointerExpression.getOperand();
 
-      Value addressV;
-
-      try {
-        addressV = exp.accept(new ModelExpressionValueVisitor(functionName, machineModel, null));
-      } catch (UnrecognizedCCodeException e) {
-        // TODO Auto-generated catch block
-        throw new IllegalArgumentException(e);
-      }
-
-      if (addressV.isUnknown() && !addressV.isNumericValue()) {
-        return null;
-      }
-
-      BigDecimal address = BigDecimal.valueOf(addressV.asNumericValue().longValue());
+      BigDecimal address = evaluateNumericalValue(exp);
 
       CType type = exp.getExpressionType();
 
@@ -524,7 +620,27 @@ public class CFAEdgeWithAssignments {
 
       String ufMemoryName = getUFMemoryName(type);
 
-      return getValueFromUF(ufMemoryName, address);
+      Object value = getValueFromUF(ufMemoryName, address);
+
+      return value;
+    }
+
+    @SuppressWarnings("unused")
+    boolean isStructOrUnionType(CType rValueType) {
+
+      rValueType = rValueType.getCanonicalType();
+
+      if (rValueType instanceof CElaboratedType) {
+        CElaboratedType type = (CElaboratedType) rValueType;
+        return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
+      }
+
+      if (rValueType instanceof CCompositeType) {
+        CCompositeType type = (CCompositeType) rValueType;
+        return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
+      }
+
+      return false;
     }
 
     private Object getValueFromUF(String ufMemoryName, Object address) {
@@ -701,26 +817,34 @@ public class CFAEdgeWithAssignments {
 
       @Override
       public String visit(CArrayType pArrayType) throws RuntimeException {
-        // TODO Auto-generated method stub
         return null;
       }
 
       @Override
       public String visit(CCompositeType pCompositeType) throws RuntimeException {
-        // TODO Auto-generated method stub
+
+        if(pCompositeType.getKind() == ComplexTypeKind.STRUCT) {
+          return "struct_" + pCompositeType.getName();
+        }
+
         return null;
       }
 
       @Override
       public String visit(CElaboratedType pElaboratedType) throws RuntimeException {
-        // TODO Auto-generated method stub
+
+        CComplexType realType = pElaboratedType.getRealType();
+
+        if (realType != null) {
+          return realType.accept(this);
+        }
+
         return null;
       }
 
       @Override
       public String visit(CEnumType pEnumType) throws RuntimeException {
-        // TODO Auto-generated method stub
-        return null;
+        return pEnumType.getName();
       }
 
       @Override
@@ -760,8 +884,7 @@ public class CFAEdgeWithAssignments {
 
       @Override
       public String visit(CTypedefType pTypedefType) throws RuntimeException {
-        // TODO Auto-generated method stub
-        return null;
+        return pTypedefType.getRealType().accept(this);
       }
     }
 
