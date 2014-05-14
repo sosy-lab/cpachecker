@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
@@ -34,15 +32,10 @@ import java.io.Writer;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import javax.annotation.Nullable;
-
-import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -52,17 +45,13 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssignments;
-import org.sosy_lab.cpachecker.core.counterexample.CFAMultiEdgeWithAssignments;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
+import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -96,59 +85,12 @@ public class ARGStatistics implements Statistics {
       description="export error path to file, if one is found")
   private boolean exportErrorPath = true;
 
-  @Option(name="errorPath.file",
-      description="export error path to file, if one is found")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathFile = Paths.get("ErrorPath.%d.txt");
-
-  @Option(name="errorPath.core",
-      description="export error path to file, if one is found")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathCoreFile = Paths.get("ErrorPath.%d.core.txt");
-
-  @Option(name="errorPath.source",
-      description="export error path to file, if one is found")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathSourceFile = Paths.get("ErrorPath.%d.c");
-
-  @Option(name="errorPath.exportAsSource",
-      description="translate error path to C program")
-  private boolean exportSource = true;
-
-  @Option(name="errorPath.json",
-      description="export error path to file, if one is found")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathJson = Paths.get("ErrorPath.%d.json");
-
-  @Option(name="errorPath.assignment",
-      description="export one variable assignment for error path to file, if one is found")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathAssignment = Paths.get("ErrorPath.%d.assignment.txt");
-
-  @Option(name="errorPath.graph",
-      description="export error path to file, if one is found")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathGraphFile = Paths.get("ErrorPath.%d.dot");
-
-  @Option(name="errorPath.automaton",
-      description="export error path to file as an automaton")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathAutomatonFile = Paths.get("ErrorPath.%d.spc");
-
-  @Option(name="errorPath.graphml",
-      description="export error path to file as an automaton to a graphml file")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathAutomatonGraphmlFile = null;
-
-  @Option(name="errorPath.exportImmediately",
-      description="export error paths to files immediately after they were found")
-  private boolean dumpErrorPathImmediately = false;
-
   private final ARGCPA cpa;
 
   private Writer refinementGraphUnderlyingWriter = null;
   private ARGToDotWriter refinementGraphWriter = null;
-  private ARGPathExport witnessExporter = null;
+  private final ARGPathExport witnessExporter;
+  private final CEXExporter cexExporter;
 
   public ARGStatistics(Configuration config, ARGCPA cpa) throws InvalidConfigurationException {
     this.cpa = cpa;
@@ -156,17 +98,10 @@ public class ARGStatistics implements Statistics {
     config.inject(this);
 
     witnessExporter = new ARGPathExport(config);
+    cexExporter = new CEXExporter(config, cpa.getLogger());
 
     if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null) {
       exportARG = false;
-    }
-    if (!exportSource) {
-      errorPathSourceFile = null;
-    }
-    if (errorPathAssignment == null && errorPathCoreFile == null && errorPathFile == null
-        && errorPathGraphFile == null && errorPathJson == null && errorPathSourceFile == null
-        && errorPathAutomatonFile == null && errorPathAutomatonGraphmlFile == null) {
-      exportErrorPath = false;
     }
   }
 
@@ -224,204 +159,14 @@ public class ARGStatistics implements Statistics {
     int cexIndex = 0;
 
     for (Map.Entry<ARGState, CounterexampleInfo> cex : getAllCounterexamples(pReached).entrySet()) {
-      exportCounterexample((ARGState)pReached.getFirstState(), cex.getKey(), cex.getValue(), cexIndex++, allTargetPathEdges,
-          !shouldDumpErrorPathImmediately());
+      cexExporter.exportCounterexample((ARGState)pReached.getFirstState(), cex.getKey(), cex.getValue(), cexIndex++, allTargetPathEdges,
+          !cexExporter.shouldDumpErrorPathImmediately());
     }
 
     if (exportARG) {
       final ARGState rootState = (ARGState)pReached.getFirstState();
       exportARG(rootState, Predicates.in(allTargetPathEdges));
     }
-  }
-
-  // Print error trace and increment counter cexIndex.
-  void exportCounterexample(ARGState pRootState, ARGState pTargetState,
-      @Nullable final CounterexampleInfo pCounterexampleInfo,
-      int cexIndex, @Nullable final Set<Pair<ARGState, ARGState>> allTargetPathEdges,
-      boolean reallyWriteToDisk) {
-    checkNotNull(pTargetState);
-
-    final ARGPath targetPath = checkNotNull(getTargetPath(pTargetState, pCounterexampleInfo));
-
-    final Set<Pair<ARGState, ARGState>> targetPathEdges = getEdgesOfPath(targetPath);
-    if (allTargetPathEdges != null) {
-      allTargetPathEdges.addAll(targetPathEdges);
-    }
-
-    if (reallyWriteToDisk && exportErrorPath && pCounterexampleInfo != null) {
-      exportCounterexample(pRootState, pTargetState, cexIndex, pCounterexampleInfo,
-          targetPath, Predicates.in(targetPathEdges));
-    }
-  }
-
-  private void exportCounterexample(final ARGState rootState, final ARGState targetState,
-      final int cexIndex,
-      final CounterexampleInfo counterexample,
-      final ARGPath targetPath,
-      final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge) {
-
-    writeErrorPathFile(errorPathFile, cexIndex,
-        createErrorPathWithVariableAssignmentInformation(targetPath, counterexample));
-
-    if (errorPathCoreFile != null) {
-      // the shrinked errorPath only includes the nodes,
-      // that are important for the error, it is not a complete path,
-      // only some nodes of the targetPath are part of it
-      ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
-      ARGPath shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
-      writeErrorPathFile(errorPathCoreFile, cexIndex,
-          createErrorPathWithVariableAssignmentInformation(shrinkedErrorPath, counterexample));
-    }
-
-    writeErrorPathFile(errorPathJson, cexIndex, new Appender() {
-      @Override
-      public void appendTo(Appendable pAppendable) throws IOException {
-        targetPath.toJSON(pAppendable);
-      }
-    });
-
-    final Set<ARGState> pathElements;
-    Appender pathProgram = null;
-    if (counterexample != null && counterexample.getTargetPath() != null) {
-      // precise error path
-      pathElements = targetPath.getStateSet();
-
-      if (errorPathSourceFile != null) {
-        pathProgram = PathToCTranslator.translateSinglePath(targetPath);
-      }
-
-    } else {
-      // Imprecise error path.
-      // For the text export, we have no other chance,
-      // but for the C code and graph export we use all existing paths
-      // to avoid this problem.
-      pathElements = ARGUtils.getAllStatesOnPathsTo(targetState);
-
-      if (errorPathSourceFile != null) {
-        pathProgram = PathToCTranslator.translatePaths(rootState, pathElements);
-      }
-    }
-
-    if (pathProgram != null) {
-      writeErrorPathFile(errorPathSourceFile, cexIndex, pathProgram);
-    }
-
-    writeErrorPathFile(errorPathGraphFile, cexIndex, new Appender() {
-      @Override
-      public void appendTo(Appendable pAppendable) throws IOException {
-        ARGToDotWriter.write(pAppendable, rootState,
-            ARGUtils.CHILDREN_OF_STATE,
-            Predicates.in(pathElements),
-            isTargetPathEdge);
-      }
-    });
-
-    writeErrorPathFile(errorPathAutomatonFile, cexIndex, new Appender() {
-      @Override
-      public void appendTo(Appendable pAppendable) throws IOException {
-        ARGUtils.producePathAutomaton(pAppendable, rootState, pathElements,
-                                      "ErrorPath" + cexIndex,
-                                      counterexample);
-      }
-    });
-
-    if (counterexample != null) {
-      if (counterexample.getTargetPathModel() != null) {
-        writeErrorPathFile(errorPathAssignment, cexIndex, counterexample.getTargetPathModel());
-      }
-
-      for (Pair<Object, Path> info : counterexample.getAllFurtherInformation()) {
-        if (info.getSecond() != null) {
-          writeErrorPathFile(info.getSecond(), cexIndex, info.getFirst());
-        }
-      }
-    }
-
-    writeErrorPathFile(errorPathAutomatonGraphmlFile, cexIndex, new Appender() {
-      @Override
-      public void appendTo(Appendable pAppendable) throws IOException {
-        witnessExporter.writePath(pAppendable, rootState,
-            ARGUtils.CHILDREN_OF_STATE,
-            Predicates.in(pathElements),
-            isTargetPathEdge,
-            counterexample);
-      }
-    });
-  }
-
-  private Appender createErrorPathWithVariableAssignmentInformation(
-      final ARGPath targetPath, final CounterexampleInfo counterexample) {
-    final Model model = counterexample == null ? null : counterexample.getTargetPathModel();
-    return new Appender() {
-      @Override
-      public void appendTo(Appendable out) throws IOException {
-        // Write edges mixed with assigned values.
-        List<CFAEdge> edgePath = targetPath.asEdgesList();
-        CFAPathWithAssignments exactValuePath;
-        exactValuePath = null;
-
-        if (model != null) {
-          exactValuePath = model.getExactVariableValuePath(edgePath);
-        }
-
-        if(exactValuePath != null) {
-          printPreciseValues(out, exactValuePath);
-        } else {
-          printAllValues(out, edgePath);
-        }
-      }
-
-      private void printAllValues(Appendable out, List<CFAEdge> pEdgePath) throws IOException {
-        for (CFAEdge edge : from(pEdgePath).filter(notNull())) {
-          out.append(edge.toString());
-          out.append(System.lineSeparator());
-          if (model != null) {
-            for (Model.AssignableTerm term : model.getAssignedTermsPerEdge().getAllAssignedTerms(edge)) {
-              out.append('\t');
-              out.append(term.toString());
-              out.append(": ");
-              out.append(model.get(term).toString());
-              out.append(System.lineSeparator());
-            }
-          }
-        }
-      }
-
-      private void printPreciseValues(Appendable out,
-          CFAPathWithAssignments pExactValuePath) throws IOException {
-
-        for (CFAEdgeWithAssignments edgeWithAssignments : from(pExactValuePath).filter(notNull())) {
-
-          if (edgeWithAssignments instanceof CFAMultiEdgeWithAssignments) {
-            for (CFAEdgeWithAssignments singleEdge : (CFAMultiEdgeWithAssignments) edgeWithAssignments) {
-              printPreciseValues(out, singleEdge);
-            }
-          } else {
-            printPreciseValues(out, edgeWithAssignments);
-          }
-        }
-      }
-
-      private void printPreciseValues(Appendable out, CFAEdgeWithAssignments edgeWithAssignments) throws IOException {
-        out.append(edgeWithAssignments.getCFAEdge().toString());
-        out.append(System.lineSeparator());
-
-        String cCode = edgeWithAssignments.getAsCode();
-        if (cCode != null) {
-          out.append('\t');
-          out.append(cCode);
-          out.append(System.lineSeparator());
-        }
-
-        String comment = edgeWithAssignments.getComment();
-
-        if (comment != null) {
-          out.append('\t');
-          out.append(comment);
-          out.append(System.lineSeparator());
-        }
-      }
-    };
   }
 
   private void exportARG(final ARGState rootState, final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge) {
@@ -488,54 +233,5 @@ public class ARGStatistics implements Statistics {
     }
 
     return counterexamples;
-  }
-
-  private ARGPath getTargetPath(final ARGState targetState,
-      @Nullable final CounterexampleInfo counterexample) {
-    ARGPath targetPath = null;
-
-    if (counterexample != null) {
-      targetPath = counterexample.getTargetPath();
-    }
-
-    if (targetPath == null) {
-      // try to find one
-      // This is imprecise if there are several paths in the ARG,
-      // because we randomly select one existing path,
-      // but this path may actually be infeasible.
-      targetPath = ARGUtils.getOnePathTo(targetState);
-    }
-    return targetPath;
-  }
-
-  private void writeErrorPathFile(Path file, int cexIndex, Object content) {
-    if (file != null) {
-      // fill in index in file name
-      file = Paths.get(String.format(file.toString(), cexIndex));
-
-      try {
-        Files.writeFile(file, content);
-      } catch (IOException e) {
-        cpa.getLogger().logUserException(Level.WARNING, e,
-            "Could not write information about the error path to file");
-      }
-    }
-  }
-
-  private static Set<Pair<ARGState, ARGState>> getEdgesOfPath(ARGPath pPath) {
-    Set<Pair<ARGState, ARGState>> result = new HashSet<>(pPath.size());
-    Iterator<Pair<ARGState, CFAEdge>> it = pPath.iterator();
-    assert it.hasNext();
-    ARGState lastElement = it.next().getFirst();
-    while (it.hasNext()) {
-      ARGState currentElement = it.next().getFirst();
-      result.add(Pair.of(lastElement, currentElement));
-      lastElement = currentElement;
-    }
-    return result;
-  }
-
-  boolean shouldDumpErrorPathImmediately() {
-    return dumpErrorPathImmediately;
   }
 }

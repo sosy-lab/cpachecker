@@ -62,7 +62,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.ConjunctiveCounterexampleFilter;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CounterexampleFilter;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.NullCounterexampleFilter;
@@ -106,6 +106,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   private final ARGStatistics stats;
   private final ProofChecker wrappedProofChecker;
 
+  private final CEXExporter cexExporter;
   private final Map<ARGState, CounterexampleInfo> counterexamples = new WeakHashMap<>();
 
   private ARGCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
@@ -151,6 +152,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     }
     stopOperator = new ARGStopSep(getWrappedCpa().getStopOperator(), logger, config);
     cexFilter = createCounterexampleFilter(config, logger, cpa);
+    cexExporter = new CEXExporter(config, logger);
     stats = new ARGStatistics(config, this);
   }
 
@@ -272,9 +274,9 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
 
   void exportCounterexampleOnTheFly(ARGState pRootState, ARGState pTargetState,
     CounterexampleInfo pCounterexampleInfo, int cexIndex) throws InterruptedException {
-    if (stats.shouldDumpErrorPathImmediately()) {
+    if (cexExporter.shouldDumpErrorPathImmediately()) {
       if (cexFilter.isRelevant(pCounterexampleInfo)) {
-        stats.exportCounterexample(pRootState, pTargetState, pCounterexampleInfo, cexIndex, null, true);
+        cexExporter.exportCounterexample(pRootState, pTargetState, pCounterexampleInfo, cexIndex, null, true);
       } else {
         logger.log(Level.FINEST, "Skipping counterexample printing because it is similar to one of already printed.");
       }
