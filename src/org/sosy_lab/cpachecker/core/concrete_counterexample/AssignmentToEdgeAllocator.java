@@ -541,7 +541,6 @@ public class AssignmentToEdgeAllocator {
         return null;
       }
 
-      //TODO More specific evaluation, don't just get double value
       return addressV.asNumericValue().getNumber();
     }
 
@@ -854,7 +853,8 @@ public class AssignmentToEdgeAllocator {
       public Address visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
         CExpression arrayExpression = pIastArraySubscriptExpression.getArrayExpression();
 
-        //TODO Refactor, this call should not be correct. (Don't evaluate array to its address).
+        // we can evaluate this here, because arrays will be evaluated to their address
+        // TODO BUG!? what if array types are intermingled with pointer types
         Address address = evaluateNumericalValueAsAddress(arrayExpression);
 
         if(address == null) {
@@ -1061,7 +1061,7 @@ public class AssignmentToEdgeAllocator {
           CExpression operand = pUnaryExpression.getOperand();
 
           if (operand instanceof CLeftHandSide) {
-            //TODO assumed?
+            //TODO assumed? Problems with casts
 
             Address address = evaluateAddress((CLeftHandSide) operand);
 
