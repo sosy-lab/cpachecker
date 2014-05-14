@@ -80,6 +80,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.core.concrete_counterexample.ModelAtCFAEdge.Address;
+import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.Value;
@@ -120,6 +121,10 @@ public class AssignmentToEdgeAllocator {
 
   @Nullable
   private String createEdgeCode(CFAEdge pCFAEdge) {
+
+    if(cfaEdge.toString().contains("1018")) {
+      System.out.println();
+    }
 
     if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
       return handleDeclaration(((ADeclarationEdge) pCFAEdge).getDeclaration());
@@ -436,26 +441,32 @@ public class AssignmentToEdgeAllocator {
       Address address = evaluateAddress(pIastFieldReference);
 
       if(address == null) {
-        return null;
+        return lookupReference(pIastFieldReference);
       }
 
       CType type = pIastFieldReference.getExpressionType();
 
       Object value = modelAtEdge.getValueFromUF(type, address);
 
-      if (value != null) {
-        return value;
+      if (value == null) {
+        return lookupReference(pIastFieldReference);
       }
 
-      if (!pIastFieldReference.isPointerDereference()) {
+      return value;
+    }
 
-        /* Fieldreferences are sometimes represented as variables,
-           e.g a.b.c in main is main::a$b$c */
-        String fieldReferenceVariableName = getFieldReferenceVariableName(pIastFieldReference);
+    private Object lookupReference(CFieldReference pIastFieldReference) {
 
-        if (fieldReferenceVariableName != null && modelAtEdge.containsVariableName(fieldReferenceVariableName)) {
-          return modelAtEdge.getVariableValue(fieldReferenceVariableName);
-        }
+      if(pIastFieldReference.isPointerDereference()) {
+        return null;
+      }
+
+      /* Fieldreferences are sometimes represented as variables,
+         e.g a.b.c in main is main::a$b$c */
+      String fieldReferenceVariableName = getFieldReferenceVariableName(pIastFieldReference);
+
+      if (fieldReferenceVariableName != null && modelAtEdge.containsVariableName(fieldReferenceVariableName)) {
+        return modelAtEdge.getVariableValue(fieldReferenceVariableName);
       }
 
       return null;
@@ -524,10 +535,18 @@ public class AssignmentToEdgeAllocator {
       }
 
       if (reference.getFieldOwner() instanceof CIdExpression) {
-        fieldNameList.add(0, ((CIdExpression) reference.getFieldOwner()).getName());
+
+        CIdExpression idExpression = (CIdExpression) reference.getFieldOwner();
+
+        fieldNameList.add(0, idExpression.getName());
 
         Joiner joiner = Joiner.on("$");
-        return functionName + "::" + joiner.join(fieldNameList);
+
+        if (ForwardingTransferRelation.isGlobal(idExpression)) {
+          return joiner.join(fieldNameList);
+        } else {
+          return functionName + "::" + joiner.join(fieldNameList);
+        }
       } else {
         return null;
       }
@@ -734,27 +753,31 @@ public class AssignmentToEdgeAllocator {
 
         if (!(fieldOwner instanceof CLeftHandSide)) {
           //TODO Investigate
-          return null;
+          return lookupReferenceAddress(pIastFieldReference);
         }
 
         Address fieldOwnerAddress = evaluateAddress((CLeftHandSide) fieldOwner);
 
         if (fieldOwnerAddress == null) {
-          return null;
+          return lookupReferenceAddress(pIastFieldReference);
         }
 
         BigDecimal fieldOffset = getFieldOffset(pIastFieldReference);
 
         if(fieldOffset == null && !fieldOwnerAddress.isNumericalType()) {
-          return null;
+          return lookupReferenceAddress(pIastFieldReference);
         }
 
         Address address = fieldOwnerAddress.addOffset(fieldOffset);
 
-        if (address != null) {
-          return address;
+        if (address == null) {
+          return lookupReferenceAddress(pIastFieldReference);
         }
 
+        return address;
+      }
+
+      private Address lookupReferenceAddress(CFieldReference pIastFieldReference) {
         /* Fieldreferences are sometimes represented as variables,
         e.g a.b.c in main is main::a$b$c */
         String fieldReferenceVariableName = getFieldReferenceVariableName(pIastFieldReference);
