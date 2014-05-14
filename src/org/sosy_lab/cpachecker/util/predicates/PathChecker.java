@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.core.Model.Constant;
 import org.sosy_lab.cpachecker.core.Model.Function;
 import org.sosy_lab.cpachecker.core.Model.Variable;
+import org.sosy_lab.cpachecker.core.concrete_counterexample.AssignmentToPathAllocator;
 import org.sosy_lab.cpachecker.core.concrete_counterexample.CFAPathWithAssignments;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -167,7 +168,9 @@ public class PathChecker {
       }
     }
 
-    return new CFAPathWithAssignments(pPath, assignedTermsPosition,
+    AssignmentToPathAllocator allocator = new AssignmentToPathAllocator(logger);
+
+    return allocator.allocateAssignmentsToPath(pPath, assignedTermsPosition,
         pModel, constants, functionsWithoutSSAIndex, pSsaMaps, machineModel);
   }
 

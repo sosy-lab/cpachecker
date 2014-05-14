@@ -45,6 +45,8 @@ import com.google.common.collect.Multimap;
 
 public class ModelAtCFAEdge {
 
+  private static final String ADDRESS_PREFIX = "__ADDRESS_OF_";
+
   private final Map<String, Assignment> variableModel;
   private final Multimap<String, Assignment> uFModel;
   private final Map<String, Object> variableAddressMap;
@@ -125,7 +127,6 @@ public class ModelAtCFAEdge {
 
     @Override
     public String visit(CFunctionType pFunctionType) throws RuntimeException {
-      // TODO Auto-generated method stub
       return null;
     }
 
@@ -143,7 +144,6 @@ public class ModelAtCFAEdge {
 
     @Override
     public String visit(CProblemType pProblemType) throws RuntimeException {
-      // TODO Auto-generated method stub
       return null;
     }
 
@@ -177,17 +177,21 @@ public class ModelAtCFAEdge {
   }
 
   public boolean containsVariableAddress(String varName) {
-    String addressName = CFAPathWithAssignments.getAddressPrefix() + varName;
+    String addressName = getAddressPrefix() + varName;
     return variableAddressMap.containsKey(addressName);
   }
 
   public Object getVariableAddress(String varName) {
-    String addressName = CFAPathWithAssignments.getAddressPrefix() + varName;
+    String addressName = getAddressPrefix() + varName;
 
     if (variableAddressMap.containsKey(addressName)) {
       return variableAddressMap.get(addressName);
     } else {
       throw new IllegalArgumentException();
     }
+  }
+
+  public static String getAddressPrefix() {
+    return ADDRESS_PREFIX;
   }
 }
