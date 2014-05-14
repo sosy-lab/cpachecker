@@ -1116,6 +1116,8 @@ public class CFAEdgeWithAssignments {
 
     private class ValueCodeVisitor extends DefaultCTypeVisitor<Void, RuntimeException> {
 
+      //TODO Don't let this visitor unroll indefinitely
+
       /*
        * Contains the address of the super type of the visited type.
        * It is assigned by the model of the predicate Analysis.
@@ -1240,6 +1242,9 @@ public class CFAEdgeWithAssignments {
         Object value = getPointerValue(expectedType);
 
         if (value == null) {
+          if(isStructOrUnionType(expectedType)) {
+            handleFieldPointerDereference(expectedType);
+          }
           return null;
         }
 
@@ -1268,6 +1273,14 @@ public class CFAEdgeWithAssignments {
         expectedType.accept(v);
 
         return null;
+      }
+
+      private void handleFieldPointerDereference(CType pExpectedType) {
+        /* a->b <=> *(a).b */
+
+        String newPrefix = "*(" + prefix;
+        String newPostfix = ")";
+        pExpectedType.accept(new ValueCodeVisitor(address, valueCodes, newPrefix, newPostfix));
       }
 
       private Object getPointerValue(CType expectedType) {
