@@ -452,6 +452,16 @@ public class AssignmentToEdgeAllocator {
     @Override
     public Object visit(CFieldReference pIastFieldReference) {
 
+      BigDecimal address = evaluateNumericalAddress(pIastFieldReference);
+
+      CType type = pIastFieldReference.getExpressionType();
+
+      Object value = modelAtEdge.getValueFromUF(type, address);
+
+      if (value != null) {
+        return value;
+      }
+
       if (!pIastFieldReference.isPointerDereference()) {
 
         /* Fieldreferences are sometimes represented as variables,
@@ -463,11 +473,7 @@ public class AssignmentToEdgeAllocator {
         }
       }
 
-      BigDecimal address = evaluateNumericalAddress(pIastFieldReference);
-
-      CType type = pIastFieldReference.getExpressionType();
-
-      return modelAtEdge.getValueFromUF(type, address);
+      return null;
     }
 
     private BigDecimal getFieldOffset(CFieldReference fieldReference) {
@@ -720,16 +726,6 @@ public class AssignmentToEdgeAllocator {
           return fieldOwneraddress.add(fieldOffset);
         }
 
-        /* Fieldreferences are sometimes represented as variables,
-        e.g a.b.c in main is main::a$b$c */
-        String fieldReferenceVariableName = getFieldReferenceVariableName(pIastFieldReference);
-
-        if (fieldReferenceVariableName != null) {
-          if (modelAtEdge.containsVariableAddress(fieldReferenceVariableName)) {
-            return modelAtEdge.getVariableAddress(fieldReferenceVariableName);
-          }
-        }
-
         if (!(fieldOwner instanceof CLeftHandSide)) {
           //TODO Investigate
           return null;
@@ -747,7 +743,22 @@ public class AssignmentToEdgeAllocator {
           return null;
         }
 
-        return fieldOwnerAddress.add(fieldOffset);
+        Object value = fieldOwnerAddress.add(fieldOffset);
+
+        if (value != null) {
+          return value;
+        }
+
+        /* Fieldreferences are sometimes represented as variables,
+        e.g a.b.c in main is main::a$b$c */
+        String fieldReferenceVariableName = getFieldReferenceVariableName(pIastFieldReference);
+
+        if (fieldReferenceVariableName != null) {
+          if (modelAtEdge.containsVariableAddress(fieldReferenceVariableName)) { return modelAtEdge
+              .getVariableAddress(fieldReferenceVariableName); }
+        }
+
+        return null;
       }
 
       @Override
