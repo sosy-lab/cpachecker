@@ -455,8 +455,6 @@ public class CFAEdgeWithAssignments {
     @Override
     public Object visit(CFieldReference pIastFieldReference) {
 
-      CExpression fieldowner = pIastFieldReference.getFieldOwner();
-
       if (!pIastFieldReference.isPointerDereference()) {
 
         /* Fieldreferences are sometimes represented as variables,
@@ -468,27 +466,11 @@ public class CFAEdgeWithAssignments {
         }
       }
 
+      BigDecimal address = evaluateNumericalAddress(pIastFieldReference);
 
-      if(pIastFieldReference.isPointerDereference()) {
+      String ufName = TypeUFNameVisitor.getUFName(pIastFieldReference.getExpressionType());
 
-        BigDecimal fieldOwneraddress = evaluateNumericalValue(fieldowner);
-
-        if (fieldOwneraddress == null) {
-          return null;
-        }
-
-        BigDecimal fieldOffset = getFieldOffset(pIastFieldReference);
-
-        if(fieldOffset == null) {
-          return null;
-        }
-
-        BigDecimal address = fieldOwneraddress.add(fieldOffset);
-
-        return TypeUFNameVisitor.getValueFromUF(TypeUFNameVisitor.getUFName(pIastFieldReference.getExpressionType()), address, functionEnvoirment);
-      } else {
-        return null;
-      }
+      return TypeUFNameVisitor.getValueFromUF(ufName, address, functionEnvoirment);
     }
 
     private BigDecimal getFieldOffset(CFieldReference fieldReference) {
@@ -643,6 +625,8 @@ public class CFAEdgeWithAssignments {
 
       CExpression exp = pPointerExpression.getOperand();
 
+      /*Quick jump to the necessary method.
+       * the address of a dereference is the evaluation of its operand*/
       BigDecimal address = evaluateNumericalValue(exp);
 
       CType type = exp.getExpressionType();
@@ -727,8 +711,57 @@ public class CFAEdgeWithAssignments {
 
       @Override
       public Object visit(CFieldReference pIastFieldReference) {
-        // TODO Auto-generated method stub
-        return null;
+
+        CExpression fieldOwner = pIastFieldReference.getFieldOwner();
+
+        if (pIastFieldReference.isPointerDereference()) {
+
+          BigDecimal fieldOwneraddress = evaluateNumericalValue(fieldOwner);
+
+          if (fieldOwneraddress == null) {
+            return null;
+          }
+
+          BigDecimal fieldOffset = getFieldOffset(pIastFieldReference);
+
+          if(fieldOffset == null) {
+            return null;
+          }
+
+          return fieldOwneraddress.add(fieldOffset);
+        }
+
+        /* Fieldreferences are sometimes represented as variables,
+        e.g a.b.c in main is main::a$b$c */
+        String fieldReferenceVariableName = getFieldReferenceVariableName(pIastFieldReference);
+
+        if (fieldReferenceVariableName != null) {
+
+          String key = CFAPathWithAssignments.getAddressPrefix() + fieldReferenceVariableName;
+
+          if (addressMap.containsKey(key)) {
+            return addressMap.get(key);
+          }
+        }
+
+        if (!(fieldOwner instanceof CLeftHandSide)) {
+          //TODO Investigate
+          return null;
+        }
+
+        BigDecimal fieldOwnerAddress = evaluateNumericalAddress((CLeftHandSide) fieldOwner);
+
+        if (fieldOwnerAddress == null) {
+          return null;
+        }
+
+        BigDecimal fieldOffset = getFieldOffset(pIastFieldReference);
+
+        if(fieldOffset == null) {
+          return null;
+        }
+
+        return fieldOwnerAddress.add(fieldOffset);
       }
 
       @Override
@@ -738,8 +771,8 @@ public class CFAEdgeWithAssignments {
 
       @Override
       public Object visit(CPointerExpression pPointerExpression) {
-        /*The address of a pointer dereference is its evaluation*/
-        return valueVisitor.visit(pPointerExpression);
+        /*The address of a pointer dereference is the evaluation of its operand*/
+        return valueVisitor.evaluateNumericalValue(pPointerExpression.getOperand());
       }
 
       @Override
