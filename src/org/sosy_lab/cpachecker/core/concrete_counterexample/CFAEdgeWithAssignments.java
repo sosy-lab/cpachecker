@@ -37,7 +37,13 @@ import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -50,14 +56,23 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
-import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.core.Model.Function;
-import org.sosy_lab.cpachecker.core.Model.Variable;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Multimap;
 
 
 public class CFAEdgeWithAssignments {
@@ -65,12 +80,22 @@ public class CFAEdgeWithAssignments {
   private final CFAEdge edge;
   private final Set<Assignment> assignments;
   private final Map<String, Object> addressMap;
+  private final Map<Function, Object> functionMap;
+  private final SSAMap map;
+  private final Map<String, Assignment> variableEnvironment;
+  private final Multimap<String, Assignment> functionEnvoirment;
 
   public CFAEdgeWithAssignments(CFAEdge pEdge, Set<Assignment> pAssignments,
-      Map<String, Object> pAddressMap) {
+      Map<String, Object> pAddressMap, Map<Function, Object> pFunctionMap,
+      SSAMap pMap, Map<String, Assignment> pVariableEnvoirment,
+      Multimap<String, Assignment> pFunctionEnvoirment) {
     edge = pEdge;
     assignments = pAssignments;
     addressMap = pAddressMap;
+    functionMap = pFunctionMap;
+    map = pMap;
+    variableEnvironment = pVariableEnvoirment;
+    functionEnvoirment = pFunctionEnvoirment;
   }
 
   public Set<Assignment> getAssignments() {
@@ -108,7 +133,6 @@ public class CFAEdgeWithAssignments {
 
   @Nullable
   public String getAsCode() {
-
     return getAsCode(edge);
   }
 
@@ -225,12 +249,6 @@ public class CFAEdgeWithAssignments {
       return null;
     }
 
-    //TODO Check, what can and can't be parsed, and how to fix it
-
-    if (!(leftHandSide instanceof CIdExpression)) {
-      return null;
-    }
-
     return leftHandSide.toASTString() + " = " + valueAsCode + ";";
   }
 
@@ -241,80 +259,13 @@ public class CFAEdgeWithAssignments {
       return assignments.iterator().next().getValue();
     }
 
-    if (pLeftHandSide instanceof CIdExpression) {
-      return getValueObject(
-        ((CIdExpression) pLeftHandSide).getDeclaration(), pFunctionName);
-    } else if(pLeftHandSide instanceof CPointerExpression) {
-      return null;
+    if(pLeftHandSide instanceof CLeftHandSide) {
+      CLeftHandSide cLeftHandSide = (CLeftHandSide) pLeftHandSide;
+      LModelValueVisitor v = new LModelValueVisitor(pFunctionName);
+      return cLeftHandSide.accept(v);
     }
 
     return null;
-  }
-
-  @Nullable
-  private Object getValueObject(CSimpleDeclaration pVarDcl, String functionName) {
-
-    //If their is only one value, its the one we search
-    if (assignments.size() == 1) {
-      return assignments.iterator().next().getValue();
-    }
-
-    if (pVarDcl == null || functionName == null || (!(pVarDcl instanceof CVariableDeclaration)
-        && !(pVarDcl instanceof CParameterDeclaration))) {
-      return null;
-    }
-
-    String varName = pVarDcl.getName();
-    String assignableTermVarName;
-
-    if (pVarDcl instanceof CParameterDeclaration ||
-        (!((CVariableDeclaration) pVarDcl).isGlobal())) {
-      assignableTermVarName = functionName + "::" + varName;
-    } else {
-      assignableTermVarName = varName;
-    }
-
-    for (Assignment assignment : assignments) {
-
-      AssignableTerm term = assignment.getTerm();
-
-      boolean termBelongsToVariable = false;
-
-      if (term instanceof Variable) {
-        termBelongsToVariable = belongsToVariable(assignableTermVarName, (Variable) term);
-      } else if (term instanceof Function) {
-        termBelongsToVariable = belongsToVariable(assignableTermVarName, (Function) term);
-      }
-
-      if (termBelongsToVariable) {
-        return assignment.getValue();
-      }
-    }
-
-    return null;
-  }
-
-  private boolean belongsToVariable(String pAssignableTermVarName, Function pFunc) {
-
-    if(pFunc.getArity() != 1) {
-      return false;
-    }
-
-    String variableAddress = CFAPathWithAssignments.getAddressPrefix() + pAssignableTermVarName;
-
-    if (addressMap.containsKey(variableAddress)) {
-      Object addressValue = addressMap.get(variableAddress);
-      Object argumentValue = pFunc.getArgument(0);
-      if (addressValue.equals(argumentValue)) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  private boolean belongsToVariable(String pAssignableTermVarName, Variable pTerm) {
-    return pTerm.getName().equals(pAssignableTermVarName);
   }
 
   @Nullable
@@ -372,6 +323,228 @@ public class CFAEdgeWithAssignments {
     }
 
     return null;
+  }
+
+  private Object getValueObject(CVariableDeclaration pVarDcl, String pFunctionName) {
+    return new LModelValueVisitor(pFunctionName).handleVariableDeclaration(pVarDcl);
+  }
+
+  private class LModelValueVisitor implements CLeftHandSideVisitor<Object, RuntimeException> {
+
+    private final String functionName;
+
+    public LModelValueVisitor(String pFunctionName) {
+      functionName = pFunctionName;
+    }
+
+    @Override
+    public Object visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    @Override
+    public Object visit(CFieldReference pIastFieldReference) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    @Override
+    public Object visit(CIdExpression pCIdExpression) {
+
+      CType type = pCIdExpression.getExpressionType();
+
+      if (type instanceof CSimpleType || type instanceof CPointerType) {
+        // CIdExpression of simple types or pointer types
+        // can be handled the same way as declarations.
+        return handleSimpleVariableDeclaration(pCIdExpression.getDeclaration());
+      }
+
+      return null;
+    }
+
+    @Nullable
+    private Object handleVariableDeclaration(CSimpleDeclaration pVarDcl) {
+
+      //If their is only one value, its the one we search
+      if (assignments.size() == 1) {
+        return assignments.iterator().next().getValue();
+      }
+
+      if (pVarDcl == null || functionName == null || (!(pVarDcl instanceof CVariableDeclaration)
+          && !(pVarDcl instanceof CParameterDeclaration))) {
+        return null;
+      }
+
+      CType type = pVarDcl.getType();
+
+      if(type instanceof CSimpleType) {
+        handleSimpleVariableDeclaration(pVarDcl);
+      }
+
+      return null;
+    }
+
+    private Object handleSimpleVariableDeclaration(CSimpleDeclaration pVarDcl) {
+
+      String varName = pVarDcl.getName();
+      String assignableTermVarName;
+
+      if (pVarDcl instanceof CParameterDeclaration ||
+          (!((CVariableDeclaration) pVarDcl).isGlobal())) {
+        assignableTermVarName = functionName + "::" + varName;
+      } else {
+        assignableTermVarName = varName;
+      }
+
+      if (variableEnvironment.containsKey(assignableTermVarName)) {
+        return variableEnvironment.get(assignableTermVarName).getValue();
+      } else if (addressMap.containsKey(CFAPathWithAssignments.getAddressPrefix() + assignableTermVarName)) {
+        /* The variable might not exist anymore in the variable environment,
+           search in the address space of the function environment*/
+
+        Object address = addressMap.get(CFAPathWithAssignments.getAddressPrefix() + assignableTermVarName);
+
+        CType type = pVarDcl.getType();
+        String ufMemoryName = getUFMemoryName(type);
+
+        return getValueFromUF(ufMemoryName, address);
+      }
+
+      return null;
+    }
+
+    @Override
+    public Object visit(CPointerExpression pPointerExpression) {
+
+      CExpression exp = pPointerExpression.getOperand();
+
+      if (exp instanceof CLeftHandSide) {
+        Object address = ((CLeftHandSide) exp).accept(this);
+
+        if (address == null) {
+          return null;
+        }
+
+        CType type = exp.getExpressionType();
+
+        if(type instanceof CPointerType) {
+          type = ((CPointerType) type).getType();
+        } else {
+          return null;
+        }
+
+        String ufMemoryName = getUFMemoryName(type);
+
+        return getValueFromUF(ufMemoryName, address);
+      }
+
+      return null;
+    }
+
+    private Object getValueFromUF(String ufMemoryName, Object address) {
+
+      if (ufMemoryName == null) {
+        return null;
+      }
+
+      for (Assignment assignment : functionEnvoirment.get(ufMemoryName)) {
+        Function function = (Function) assignment.getTerm();
+
+        if (function.getArity() != 1) {
+          break;
+        }
+
+        if (function.getArgument(0).equals(address)) {
+          return assignment.getValue();
+        }
+      }
+      return null;
+    }
+
+    private String getUFMemoryName(CType pType) {
+      String name = pType.accept(new UFMemoryNameVisitor());
+
+      if(name == null) {
+        return null;
+      }
+
+      return "*" + name;
+    }
+
+    private class UFMemoryNameVisitor implements CTypeVisitor<String, RuntimeException>{
+
+      @Override
+      public String visit(CArrayType pArrayType) throws RuntimeException {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      @Override
+      public String visit(CCompositeType pCompositeType) throws RuntimeException {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      @Override
+      public String visit(CElaboratedType pElaboratedType) throws RuntimeException {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      @Override
+      public String visit(CEnumType pEnumType) throws RuntimeException {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      @Override
+      public String visit(CFunctionType pFunctionType) throws RuntimeException {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      @Override
+      public String visit(CPointerType pPointerType) throws RuntimeException {
+
+        String ufName = pPointerType.getType().getCanonicalType().accept(this);
+
+        if(ufName == null) {
+          return null;
+        }
+
+        return "(" + ufName + ")*";
+      }
+
+      @Override
+      public String visit(CProblemType pProblemType) throws RuntimeException {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      @Override
+      public String visit(CSimpleType pSimpleType) throws RuntimeException {
+
+        switch (pSimpleType.getType()) {
+        case INT: return "signed_int";
+
+        }
+
+        return null;
+      }
+
+      @Override
+      public String visit(CTypedefType pTypedefType) throws RuntimeException {
+        // TODO Auto-generated method stub
+        return null;
+      }
+    }
+
+    @Override
+    public Object visit(CComplexCastExpression pComplexCastExpression) {
+      // TODO Auto-generated method stub
+      return null;
+    }
   }
 
   private static class TypeValueAsCodeVisitor extends DefaultCTypeVisitor<String, RuntimeException> {

@@ -105,6 +105,7 @@ public class PathChecker {
     final Multimap<Integer, AssignableTerm> assignedTermsPosition = HashMultimap.create();
 
     Set<Constant> constants = new HashSet<>();
+    Set<Function> functionsWithoutSSAIndex = new HashSet<>();
 
     for (AssignableTerm term : pModel.keySet()) {
 
@@ -114,16 +115,23 @@ public class PathChecker {
           assignedTermsPosition.put(index, term);
         }
       } else if(term instanceof Function) {
-        int index = findFirstOccurrenceOfVariable((Function) term, pSsaMaps);
-        if (index >= 0) {
-          assignedTermsPosition.put(index, term);
+
+        Function function = (Function) term;
+
+        if (getSSAIndex(function) == -2) {
+          functionsWithoutSSAIndex.add(function);
+        } else {
+          int index = findFirstOccurrenceOfVariable(function, pSsaMaps);
+          if (index >= 0) {
+            assignedTermsPosition.put(index, term);
+          }
         }
       } else if(term instanceof Constant)  {
         constants.add((Constant) term);
       }
     }
 
-    return new CFAPathWithAssignments(pPath, assignedTermsPosition, pModel, constants);
+    return new CFAPathWithAssignments(pPath, assignedTermsPosition, pModel, constants, functionsWithoutSSAIndex, pSsaMaps);
   }
 
   private int findFirstOccurrenceOfVariable(Function pTerm, List<SSAMap> pSsaMaps) {
@@ -168,7 +176,7 @@ public class PathChecker {
     }
   }
 
-  private int getSSAIndex(Function pTerm) {
+  public static int getSSAIndex(Function pTerm) {
 
     String[] nameAndIndex = pTerm.getName().split("@");
 
@@ -184,7 +192,7 @@ public class PathChecker {
     return -2;
   }
 
-  private String getName(Function pTerm) {
+  public static String getName(Function pTerm) {
 
     String[] nameAndIndex = pTerm.getName().split("@");
 
