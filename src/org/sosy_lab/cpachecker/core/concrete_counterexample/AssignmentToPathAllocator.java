@@ -23,42 +23,16 @@
  */
 package org.sosy_lab.cpachecker.core.concrete_counterexample;
 
-import java.util.Set;
-
-import javax.annotation.Nullable;
-
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-
-import com.google.common.collect.ImmutableSet;
+import org.sosy_lab.common.log.LogManager;
 
 
-public class CFAEdgeWithAssignments {
+public class AssignmentToPathAllocator {
 
-  private final CFAEdge edge;
-  private final Set<Assignment> assignments;
-  private final String edgeCode;
+  @SuppressWarnings("unused")
+  private final LogManager logger;
 
-  public CFAEdgeWithAssignments(CFAEdge pEdge, Set<Assignment> pAssignments,
-      @Nullable String pEdgeCode) {
-    edge = pEdge;
-    assignments = ImmutableSet.copyOf(pAssignments);
-    edgeCode = pEdgeCode;
+  public AssignmentToPathAllocator(LogManager pLogger) {
+    logger = pLogger;
   }
 
-  public Set<Assignment> getAssignments() {
-    return assignments;
-  }
-
-  public CFAEdge getCFAEdge() {
-    return edge;
-  }
-
-  public String getAsCode() {
-    return edgeCode;
-  }
-
-  @Override
-  public String toString() {
-    return edge.toString() + " " + assignments.toString();
-  }
 }

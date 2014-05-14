@@ -175,10 +175,14 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
         }
       }
 
+      ModelAtCFAEdge modelAtEdge = new ModelAtCFAEdge(variableEnvoirment, functionEnvoirment, imAddressMap);
+
+      AssignmentToEdgeAllocator allocator =
+          new AssignmentToEdgeAllocator(null, cfaEdge, termSet,
+              modelAtEdge, pMachineModel);
+
       CFAEdgeWithAssignments cfaEdgeWithAssignment =
-          new CFAEdgeWithAssignments(cfaEdge, termSet, imAddressMap,
-              functionMap, map,
-              variableEnvoirment, functionEnvoirment, pMachineModel);
+          allocator.allocateAssignmentsToEdge();
 
       pathWithAssignments.add(cfaEdgeWithAssignment);
       multimap.putAll(cfaEdge, terms);
