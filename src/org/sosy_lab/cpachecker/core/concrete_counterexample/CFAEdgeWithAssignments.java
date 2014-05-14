@@ -545,7 +545,7 @@ public class CFAEdgeWithAssignments {
         return handleSimpleVariableDeclaration(pCIdExpression.getDeclaration());
       }
 
-      if(type instanceof CArrayType) {
+      if(type instanceof CArrayType || isStructOrUnionType(type)) {
         /*The evaluation of an array is its address*/
         return evaluateAddress(pCIdExpression);
       }
