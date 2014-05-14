@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -68,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -129,9 +129,36 @@ public class AssignmentToEdgeAllocator {
   private String createComment(CFAEdge pCfaEdge) {
     if (cfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
       return handleAssume((AssumeEdge) cfaEdge);
+    } else if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+      return handleDclComment((ADeclarationEdge)cfaEdge);
     }
 
     return null;
+  }
+
+  private String handleDclComment(ADeclarationEdge pCfaEdge) {
+
+    if (pCfaEdge instanceof CDeclarationEdge) {
+      return addressOfDcl((CSimpleDeclaration) pCfaEdge.getDeclaration(), pCfaEdge);
+    }
+
+    return null;
+  }
+
+  private String addressOfDcl(CSimpleDeclaration dcl, CFAEdge edge) {
+
+    String functionName = cfaEdge.getPredecessor().getFunctionName();
+
+    /* function name may be null*/
+    LModelValueVisitor v = new LModelValueVisitor(functionName);
+    Address address = v.getAddress(dcl);
+
+    if (address == null) {
+      return null;
+    }
+
+    return "Symbolic address of declaration " + dcl.getName()
+        + " is " + address.getAsNumber().toString();
   }
 
   @Nullable
@@ -469,6 +496,10 @@ public class AssignmentToEdgeAllocator {
     public LModelValueVisitor(String pFunctionName) {
       functionName = pFunctionName;
       addressVisitor = new AddressValueVisitor(this);
+    }
+
+    private Address getAddress(CSimpleDeclaration dcl) {
+      return addressVisitor.getAddress(dcl);
     }
 
     private final Number evaluateNumericalValue(CExpression exp) {
