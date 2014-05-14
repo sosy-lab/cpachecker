@@ -33,6 +33,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenAlgorithm.AnalysisStrategySelector;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.PredicatePathAnalysisResult;
@@ -61,14 +62,16 @@ public class CUTEBasicPathSelector implements PathSelector {
   private LogManager logger;
   private BranchingHistory branchingHistory;
   private PathChecker pathChecker;
+  private final MachineModel machineModel;
 
 
-  public CUTEBasicPathSelector(PathChecker pPathChecker, StartupConfig config, TestGenStatistics pStats) {
+  public CUTEBasicPathSelector(PathChecker pPathChecker, StartupConfig config, TestGenStatistics pStats, MachineModel pMachineModel) {
     super();
     this.pathChecker = pPathChecker;
     this.logger = config.getLog();
     stats = pStats;
     branchingHistory = new BranchingHistory();
+    machineModel = pMachineModel;
   }
 
 
@@ -178,7 +181,7 @@ public class CUTEBasicPathSelector implements PathSelector {
        * evaluate path candidate symbolically using SMT-solving
        */
       stats.beforePathCheck();
-      CounterexampleTraceInfo traceInfo = pathChecker.checkPath(newPath);
+      CounterexampleTraceInfo traceInfo = pathChecker.checkPath(newPath, machineModel);
       stats.afterPathCheck();
       /*
        * check if path is feasible. If it's not continue to identify another decision node
@@ -245,7 +248,7 @@ public class CUTEBasicPathSelector implements PathSelector {
   @Override
   public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPATransferException,
       InterruptedException {
-    return pathChecker.checkPath(pExecutedPath.asEdgesList()
+    return pathChecker.checkPath(pExecutedPath.asEdgesList(), machineModel
         );
   }
 

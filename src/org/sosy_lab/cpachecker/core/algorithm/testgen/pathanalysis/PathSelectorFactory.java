@@ -52,10 +52,10 @@ public class PathSelectorFactory {
     PathValidator validator;
     switch (selector) {
     case CUTE_PATH_SELECTOR:
-      validator = new CUTEPathValidator(pathChecker, startupConfig);
+      validator = new CUTEPathValidator(pathChecker, startupConfig, pCfa.getMachineModel());
       break;
     case CFA_TRACKING:
-      validator = new CFATrackingPathValidator(pathChecker, startupConfig);
+      validator = new CFATrackingPathValidator(pathChecker, startupConfig, pCfa.getMachineModel());
       break;
     case CUTE_LIKE:
     case LOCATION_AND_VALUE_STATE_TRACKING:
@@ -75,10 +75,10 @@ public class PathSelectorFactory {
     PathSelector analysisStrategy;
     switch (selector) {
     case LOCATION_AND_VALUE_STATE_TRACKING:
-      analysisStrategy = new LocationAndValueStateTrackingPathAnalysisStrategy(createPathChecker(pCfa), startupConfig, stats);
+      analysisStrategy = new LocationAndValueStateTrackingPathAnalysisStrategy(createPathChecker(pCfa), startupConfig, stats, pCfa.getMachineModel());
       break;
     case CUTE_LIKE:
-      analysisStrategy = new CUTEBasicPathSelector(createPathChecker(pCfa), startupConfig, stats);
+      analysisStrategy = new CUTEBasicPathSelector(createPathChecker(pCfa), startupConfig, stats, pCfa.getMachineModel());
       break;
     case CUTE_PATH_SELECTOR:
     case CFA_TRACKING:

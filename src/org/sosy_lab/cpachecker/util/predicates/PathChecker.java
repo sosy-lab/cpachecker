@@ -34,6 +34,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.core.Model.Constant;
@@ -69,7 +70,7 @@ public class PathChecker {
     solver = pSolver;
   }
 
-  public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException {
+  public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath, MachineModel machineModel) throws CPATransferException, InterruptedException {
     List<SSAMap> ssaMaps = new ArrayList<>(pPath.size());
 
     PathFormula pathFormula = pmgr.makeEmptyPathFormula();
@@ -86,7 +87,7 @@ public class PathChecker {
         return CounterexampleTraceInfo.infeasibleNoItp();
       } else {
         Model model = getModel(thmProver);
-        model = model.withAssignmentInformation(extractVariableAssignment(pPath, ssaMaps, model));
+        model = model.withAssignmentInformation(extractVariableAssignment(pPath, ssaMaps, model, machineModel));
 
         return CounterexampleTraceInfo.feasible(ImmutableList.of(f), model, ImmutableMap.<Integer, Boolean>of());
       }
@@ -96,9 +97,10 @@ public class PathChecker {
   /**
    * Given a model and a path, extract the information when each variable
    * from the model was assigned.
+   * @param pMachineModel
    */
   public CFAPathWithAssignments extractVariableAssignment(List<CFAEdge> pPath, List<SSAMap> pSsaMaps,
-      Model pModel) {
+      Model pModel, MachineModel pMachineModel) {
 
     // Create a map that holds all AssignableTerms that occured
     // in the given path.
@@ -131,7 +133,7 @@ public class PathChecker {
       }
     }
 
-    return new CFAPathWithAssignments(pPath, assignedTermsPosition, pModel, constants, functionsWithoutSSAIndex, pSsaMaps);
+    return new CFAPathWithAssignments(pPath, assignedTermsPosition, pModel, constants, functionsWithoutSSAIndex, pSsaMaps, pMachineModel);
   }
 
   private int findFirstOccurrenceOfVariable(Function pTerm, List<SSAMap> pSsaMaps) {

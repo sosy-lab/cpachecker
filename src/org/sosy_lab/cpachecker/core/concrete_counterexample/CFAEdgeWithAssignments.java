@@ -106,12 +106,13 @@ public class CFAEdgeWithAssignments {
   private final Multimap<String, Assignment> functionEnvoirment;
 
   // TODO Get correct machine Model.
-  private final MachineModel machineModel = MachineModel.LINUX32;
+  private final MachineModel machineModel;
 
   public CFAEdgeWithAssignments(CFAEdge pEdge, Set<Assignment> pAssignments,
       Map<String, Object> pAddressMap, Map<Function, Object> pFunctionMap,
       SSAMap pMap, Map<String, Assignment> pVariableEnvoirment,
-      Multimap<String, Assignment> pFunctionEnvoirment) {
+      Multimap<String, Assignment> pFunctionEnvoirment,
+      MachineModel pMachineModel) {
     edge = pEdge;
     assignments = pAssignments;
     addressMap = pAddressMap;
@@ -119,6 +120,7 @@ public class CFAEdgeWithAssignments {
     map = pMap;
     variableEnvironment = pVariableEnvoirment;
     functionEnvoirment = pFunctionEnvoirment;
+    machineModel = pMachineModel;
   }
 
   public Set<Assignment> getAssignments() {

@@ -463,7 +463,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       // replay error path for a more precise satisfying assignment
       PathChecker pathChecker = new PathChecker(logger, pmgr, solver);
       try {
-        CounterexampleTraceInfo info = pathChecker.checkPath(targetPath.asEdgesList());
+        CounterexampleTraceInfo info = pathChecker.checkPath(targetPath.asEdgesList(), cfa.getMachineModel());
 
         if (info.isSpurious()) {
           logger.log(Level.WARNING, "Inconsistent replayed error path!");

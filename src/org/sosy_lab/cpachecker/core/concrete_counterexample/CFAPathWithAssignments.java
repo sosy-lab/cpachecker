@@ -34,6 +34,7 @@ import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.core.Model.Constant;
@@ -75,7 +76,7 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
       Multimap<Integer, AssignableTerm> pAssignedTermsPosition,
       Model pModel, Set<Constant> pConstants,
       Set<Function> functionsWithoutSSAIndex,
-      List<SSAMap> pSSAMaps) {
+      List<SSAMap> pSSAMaps, MachineModel pMachineModel) {
 
     assert pSSAMaps.size() == pPath.size();
 
@@ -177,7 +178,7 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
       CFAEdgeWithAssignments cfaEdgeWithAssignment =
           new CFAEdgeWithAssignments(cfaEdge, termSet, imAddressMap,
               functionMap, map,
-              variableEnvoirment, functionEnvoirment);
+              variableEnvoirment, functionEnvoirment, pMachineModel);
 
       pathWithAssignments.add(cfaEdgeWithAssignment);
       multimap.putAll(cfaEdge, terms);

@@ -32,6 +32,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.PredicatePathAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.BasicPathSelector.PathInfo;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
@@ -51,12 +52,14 @@ public class CUTEPathValidator extends AbstractPathValidator{
   private final PathChecker patchChecher;
   private final BranchingHistory branchingHistory;
   protected Pair<CFAEdge, Boolean> oldElement;
+  private final MachineModel machineModel;
 
-  public CUTEPathValidator(PathChecker pPatchChecher, StartupConfig pConfig) {
+  public CUTEPathValidator(PathChecker pPatchChecher, StartupConfig pConfig, MachineModel pMachineModel) {
     super(pConfig);
     this.patchChecher = pPatchChecher;
     branchingHistory = new BranchingHistory();
     oldElement = null;
+    machineModel = pMachineModel;
   }
 
   @Override
@@ -67,7 +70,7 @@ public class CUTEPathValidator extends AbstractPathValidator{
   @Override
   public CounterexampleTraceInfo validatePath(List<CFAEdge> pPath) throws CPATransferException,
       InterruptedException {
-    return patchChecher.checkPath(pPath);
+    return patchChecher.checkPath(pPath, machineModel);
   }
 
   @Override

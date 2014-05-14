@@ -46,6 +46,7 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.Model;
@@ -53,6 +54,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -152,6 +154,8 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private final PathChecker pathChecker;
   private final RefinementStrategy strategy;
 
+  private final MachineModel machineModel;
+
   public PredicateCPARefiner(final Configuration config, final LogManager pLogger,
       final ConfigurableProgramAnalysis pCpa,
       final InterpolationManager pInterpolationManager,
@@ -177,6 +181,15 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     } else {
       recomputePathFormulae = false;
     }
+
+    if (pCpa instanceof ARGCPA) {
+      machineModel = ((ARGCPA) pCpa).getMachineModel();
+    } else {
+      //TODO Always get correct machine Model, change Option?
+      /*If we can't get the actual machine Model, assume Linux32*/
+      machineModel = MachineModel.LINUX32;
+    }
+
     logger.log(Level.INFO, "Using refinement for predicate analysis with " + strategy.getClass().getSimpleName() + " strategy.");
   }
 
@@ -371,7 +384,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       // try to create a better satisfying assignment by replaying this single path
       CounterexampleTraceInfo info2;
       try {
-        info2 = pathChecker.checkPath(targetPath.asEdgesList());
+        info2 = pathChecker.checkPath(targetPath.asEdgesList(), machineModel);
 
       } catch (CPATransferException e) {
         // path is now suddenly a problem
@@ -414,7 +427,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
     Model model = counterexample.getModel();
     model = counterexample.getModel().withAssignmentInformation(
-        pathChecker.extractVariableAssignment(edges, ssamaps, model));
+        pathChecker.extractVariableAssignment(edges, ssamaps, model, machineModel));
 
     return CounterexampleTraceInfo.feasible(counterexample.getCounterExampleFormulas(), model, counterexample.getBranchingPredicates());
   }

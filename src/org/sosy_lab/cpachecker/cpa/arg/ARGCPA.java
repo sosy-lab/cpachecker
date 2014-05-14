@@ -41,8 +41,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -107,12 +109,15 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
 
   private final Map<ARGState, CounterexampleInfo> counterexamples = new WeakHashMap<>();
 
-  private ARGCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger) throws InvalidConfigurationException {
+  private final MachineModel machineModel;
+
+  private ARGCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
     super(cpa);
     config.inject(this);
     this.logger = logger;
     abstractDomain = new FlatLatticeDomain();
     transferRelation = new ARGTransferRelation(cpa.getTransferRelation());
+    machineModel = cfa.getMachineModel();
 
     PrecisionAdjustment wrappedPrec = cpa.getPrecisionAdjustment();
     if (wrappedPrec instanceof SimplePrecisionAdjustment) {
@@ -278,5 +283,9 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
         logger.log(Level.FINEST, "Skipping counterexample printing because it is similar to one of already printed.");
       }
     }
+  }
+
+  public MachineModel getMachineModel() {
+    return machineModel;
   }
 }

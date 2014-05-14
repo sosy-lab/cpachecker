@@ -28,6 +28,7 @@ import java.util.List;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.PredicatePathAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -43,17 +44,19 @@ public class CFATrackingPathValidator extends AbstractPathValidator{
 
   private final PathChecker pathChecker;
   private final List<CFANode> handledDecisions;
+  private final MachineModel machineModel;
 
-  public CFATrackingPathValidator(PathChecker pPathChecker, StartupConfig pConfig) {
+  public CFATrackingPathValidator(PathChecker pPathChecker, StartupConfig pConfig, MachineModel pMachineModel) {
     super(pConfig);
     pathChecker = pPathChecker;
     handledDecisions = Lists.newLinkedList();
+    machineModel = pMachineModel;
   }
 
   @Override
   public CounterexampleTraceInfo validatePath(List<CFAEdge> pPath) throws CPATransferException,
       InterruptedException {
-    return pathChecker.checkPath(pPath);
+    return pathChecker.checkPath(pPath, machineModel);
   }
 
   @Override
