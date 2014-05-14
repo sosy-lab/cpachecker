@@ -85,60 +85,57 @@ public class BAMCEXSubgraphComputer {
 
     pathStateToReachedState.put(newTreeTarget, target);
     finishedStates.put(target, newTreeTarget);
-    waitlist.add(target);
+    waitlist.addAll(target.getParents()); // add parent for further processing
     while (!waitlist.isEmpty()) {
-      final ARGState currentState = waitlist.pollFirst(); // get state with smallest ID
-      final BackwardARGState newCurrentState = finishedStates.get(currentState);
-
+      final ARGState currentState = waitlist.pollLast(); // get state with biggest ID
       assert reachedSet.asReachedSet().contains(currentState);
 
-      for (final ARGState parent : currentState.getParents()) {
+      if (finishedStates.containsKey(currentState)) {
+        continue; // state already done
+      }
 
-        final BackwardARGState newParent;
-        if (finishedStates.containsKey(parent)) {
-          newParent = finishedStates.get(parent);
-        } else {
-          newParent = new BackwardARGState(parent);
-          finishedStates.put(parent, newParent);
-          pathStateToReachedState.put(newParent, parent);
-          waitlist.add(parent);
+      final BackwardARGState newCurrentState = new BackwardARGState(currentState);
+      finishedStates.put(currentState, newCurrentState);
+      pathStateToReachedState.put(newCurrentState, currentState);
+
+      // add parent for further processing
+      waitlist.addAll(currentState.getParents());
+
+      for (final ARGState child : currentState.getChildren()) {
+        if (!finishedStates.containsKey(child)) {
+          // child is not in the subgraph, that leads to the target,so ignore it.
+          // because of the ordering, all important children should be finished already.
+          continue;
         }
 
-        // TODO assertion is disabled, because some ARGs are wrong
-        //assert newParent.isOlderThan(newCurrentState) : "child must be older than parent";
-
-        final CFAEdge edge = BAMARGUtils.getEdgeToChild(parent, currentState);
+        final BackwardARGState newChild = finishedStates.get(child);
+        final CFAEdge edge = BAMARGUtils.getEdgeToChild(currentState, child);
         if (edge == null) {
           //this is a summarized call and thus an direct edge could not be found
           //we have the transfer function to handle this case, as our reachSet is wrong
           //(we have to use the cached ones)
           BackwardARGState innerTree = computeCounterexampleSubgraphForBlock(
-                  parent, reachedSet.asReachedSet().getPrecision(parent), newCurrentState);
+                  currentState, reachedSet.asReachedSet().getPrecision(currentState), newChild);
           if (innerTree == null) {
-            ARGSubtreeRemover.removeSubtree(reachedSet, parent);
+            ARGSubtreeRemover.removeSubtree(reachedSet, currentState);
             return null;
           }
 
-          // reconnect ARG: replace the state 'innerTree' with the corresponding parent-state.
-          for (ARGState child : innerTree.getChildren()) {
-            child.addParent(newParent);
+          // reconnect ARG: replace the state 'innerTree' with the current state.
+          for (ARGState innerChild : innerTree.getChildren()) {
+            innerChild.addParent(newCurrentState);
           }
           innerTree.removeFromARG();
 
         } else {
           // normal edge -> create an edge from parent to current
-          newCurrentState.addParent(newParent);
+          newChild.addParent(newCurrentState);
         }
-
-        // the new parent must have an ID smaller than its children, so we must update it.
-        // As we always traverse the ARG backwards, we never know, if we have visited 'all' children.
-        // So waiting for this is not possible, and we update the ID as often as we visit a parent-node.
-        newParent.updateDecreaseId();
       }
 
       if (currentState.getParents().isEmpty()) {
         assert root == null : "root should not be set before";
-        root = finishedStates.get(currentState);
+        root = newCurrentState;
       }
     }
     assert root != null;
