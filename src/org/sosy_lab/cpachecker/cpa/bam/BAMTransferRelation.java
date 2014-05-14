@@ -487,7 +487,7 @@ public class BAMTransferRelation implements TransferRelation {
       for (ARGState parent : currentElement.getParents()) {
         if (!elementsMap.containsKey(parent)) {
           //create node for parent in the new subtree
-          elementsMap.put(parent, new BackwardARGState(parent.getWrappedState(), null));
+          elementsMap.put(parent, new BackwardARGState(parent));
           pPathElementToReachedState.put(elementsMap.get(parent), parent);
           //and remember to explore the parent later
           openElements.push(parent);
@@ -790,8 +790,8 @@ public class BAMTransferRelation implements TransferRelation {
     private int decreasingStateID;
     private static int nextDecreaseID = Integer.MAX_VALUE;
 
-    public BackwardARGState(AbstractState pWrappedState, ARGState pParentElement) {
-      super(pWrappedState, pParentElement);
+    public BackwardARGState(ARGState originalState) {
+      super(originalState.getWrappedState(), null);
       decreasingStateID = nextDecreaseID--;
     }
 

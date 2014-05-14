@@ -99,7 +99,7 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
       ARGState subgraph;
       computeSubtreeTimer.start();
       try {
-        subgraph = transfer.computeCounterexampleSubgraph(pLastElement, pReachedSet, new BackwardARGState(pLastElement.getWrappedState(), null), pathStateToReachedState);
+        subgraph = transfer.computeCounterexampleSubgraph(pLastElement, pReachedSet, new BackwardARGState(pLastElement), pathStateToReachedState);
         if (subgraph == null) {
           return null;
         }
