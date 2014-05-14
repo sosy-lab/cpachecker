@@ -52,10 +52,10 @@ public class PathSelectorFactory {
     PathValidator validator;
     switch (selector) {
     case CUTE_PATH_SELECTOR:
-      validator = new CUTEPathValidator(pathChecker, startupConfig, pCfa.getMachineModel());
+      validator = new CUTEPathValidator(pathChecker, startupConfig);
       break;
     case CFA_TRACKING:
-      validator = new CFATrackingPathValidator(pathChecker, startupConfig, pCfa.getMachineModel());
+      validator = new CFATrackingPathValidator(pathChecker, startupConfig);
       break;
     case CUTE_LIKE:
     case LOCATION_AND_VALUE_STATE_TRACKING:
@@ -75,10 +75,10 @@ public class PathSelectorFactory {
     PathSelector analysisStrategy;
     switch (selector) {
     case LOCATION_AND_VALUE_STATE_TRACKING:
-      analysisStrategy = new LocationAndValueStateTrackingPathAnalysisStrategy(createPathChecker(pCfa), startupConfig, stats, pCfa.getMachineModel());
+      analysisStrategy = new LocationAndValueStateTrackingPathAnalysisStrategy(createPathChecker(pCfa), startupConfig, stats);
       break;
     case CUTE_LIKE:
-      analysisStrategy = new CUTEBasicPathSelector(createPathChecker(pCfa), startupConfig, stats, pCfa.getMachineModel());
+      analysisStrategy = new CUTEBasicPathSelector(createPathChecker(pCfa), startupConfig, stats);
       break;
     case CUTE_PATH_SELECTOR:
     case CFA_TRACKING:
@@ -99,7 +99,7 @@ public class PathSelectorFactory {
         new FormulaManagerView(formulaManagerFactory.getFormulaManager(), startupConfig.getConfig(), startupConfig.getLog());
     PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, startupConfig.getConfig(), startupConfig.getLog(), startupConfig.getShutdownNotifier(), pCfa);
     Solver solver = new Solver(formulaManager, formulaManagerFactory);
-    PathChecker pathChecker = new PathChecker(startupConfig.getLog(), pfMgr, solver);
+    PathChecker pathChecker = new PathChecker(startupConfig.getLog(), pfMgr, solver, pCfa.getMachineModel());
     return pathChecker;
   }
 }

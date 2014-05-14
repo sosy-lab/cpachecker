@@ -82,6 +82,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.Model;
@@ -238,6 +239,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private final FormulaManagerView fmgr;
   private final PathFormulaManager pmgr;
   private final Solver solver;
+  private final MachineModel machineModel;
 
   private final LogManager logger;
   private final ReachedSetFactory reachedSetFactory;
@@ -280,6 +282,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     solver = predCpa.getSolver();
     shutdownNotifier = pShutdownNotifier;
     conditionCPAs = CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class).toList();
+    machineModel = predCpa.getMachineModel();
 
     ignorableEdges = induction ? getIgnorableEdges(cfa) : Collections.<CFAEdge>emptySet();
   }
@@ -460,10 +463,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       // create and store CounterexampleInfo object
       CounterexampleInfo counterexample;
 
+
       // replay error path for a more precise satisfying assignment
-      PathChecker pathChecker = new PathChecker(logger, pmgr, solver);
+      PathChecker pathChecker = new PathChecker(logger, pmgr, solver, machineModel);
       try {
-        CounterexampleTraceInfo info = pathChecker.checkPath(targetPath.asEdgesList(), cfa.getMachineModel());
+        CounterexampleTraceInfo info = pathChecker.checkPath(targetPath.asEdgesList());
 
         if (info.isSpurious()) {
           logger.log(Level.WARNING, "Inconsistent replayed error path!");

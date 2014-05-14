@@ -33,7 +33,6 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.PredicatePathAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
@@ -59,16 +58,14 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
   private List<AbstractState> handledDecisions;
   private TestGenStatistics stats;
   private LogManager logger;
-  private final MachineModel machineModel;
 
   public LocationAndValueStateTrackingPathAnalysisStrategy(PathChecker pPathChecker, StartupConfig config,
-      TestGenStatistics pStats, MachineModel pMachineModel) {
+      TestGenStatistics pStats) {
     super();
     pathChecker = pPathChecker;
     this.logger = config.getLog();
     stats = pStats;
     handledDecisions = Lists.newLinkedList();
-    machineModel = pMachineModel;
   }
 
 
@@ -173,7 +170,7 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
        * If path is feasible, add the ARGState belonging to the decision node and the new edge to the ARGPath. Exit and Return result.
        */
       stats.beforePathCheck();
-      CounterexampleTraceInfo traceInfo = pathChecker.checkPath(newPath, machineModel);
+      CounterexampleTraceInfo traceInfo = pathChecker.checkPath(newPath);
       stats.afterPathCheck();
 
       if (!traceInfo.isSpurious())
@@ -195,8 +192,7 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
 
   @Override
   public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPATransferException, InterruptedException {
-    return pathChecker.checkPath(pExecutedPath.asEdgesList(), machineModel
-        );
+    return pathChecker.checkPath(pExecutedPath.asEdgesList());
   }
 
 }

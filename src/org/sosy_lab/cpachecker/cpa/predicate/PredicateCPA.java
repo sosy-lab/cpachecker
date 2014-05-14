@@ -37,6 +37,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
@@ -121,6 +122,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicateAbstractState topState;
   private final PredicatePrecisionBootstrapper precisionBootstraper;
   private final PredicateStaticRefiner staticRefiner;
+  private final MachineModel machineModel;
 
   protected PredicateCPA(Configuration config, LogManager logger,
       BlockOperator blk, CFA cfa, ReachedSetFactory reachedSetFactory,
@@ -208,6 +210,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
         cfa, invariantGenerator.getTimeOfExecution(), config);
 
     GlobalInfo.getInstance().storeFormulaManager(formulaManager);
+
+    machineModel = cfa.getMachineModel();
   }
 
 
@@ -314,5 +318,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     } else {
       return false;
     }
+  }
+
+  public MachineModel getMachineModel() {
+    return machineModel;
   }
 }

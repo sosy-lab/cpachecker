@@ -105,7 +105,6 @@ public class CFAEdgeWithAssignments {
   private final Map<String, Assignment> variableEnvironment;
   private final Multimap<String, Assignment> functionEnvoirment;
 
-  // TODO Get correct machine Model.
   private final MachineModel machineModel;
 
   public CFAEdgeWithAssignments(CFAEdge pEdge, Set<Assignment> pAssignments,

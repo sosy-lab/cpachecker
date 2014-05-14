@@ -38,6 +38,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -163,6 +164,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
         Solver solver                               = predicateCpa.getSolver();
         PathFormulaManager pathFormulaManager       = predicateCpa.getPathFormulaManager();
         PredicateStaticRefiner extractor            = predicateCpa.getStaticRefiner();
+        MachineModel machineModel                   = predicateCpa.getMachineModel();
 
         InterpolationManager manager = new InterpolationManager(
             formulaManager,
@@ -173,7 +175,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
             predicateCpa.getShutdownNotifier(),
             logger);
 
-        PathChecker pathChecker = new PathChecker(logger, pathFormulaManager, solver);
+        PathChecker pathChecker = new PathChecker(logger, pathFormulaManager, solver, machineModel);
 
         RefinementStrategy backupRefinementStrategy = new PredicateAbstractionRefinementStrategy(
             config,

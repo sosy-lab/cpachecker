@@ -64,15 +64,18 @@ public class PathChecker {
   private final LogManager logger;
   private final PathFormulaManager pmgr;
   private final Solver solver;
+  private final MachineModel machineModel;
 
-  public PathChecker(LogManager pLogger, PathFormulaManager pPmgr, Solver pSolver) {
+  public PathChecker(LogManager pLogger,
+      PathFormulaManager pPmgr, Solver pSolver,
+      MachineModel pMachineModel) {
     logger = pLogger;
     pmgr = pPmgr;
     solver = pSolver;
+    machineModel = pMachineModel;
   }
 
-  public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath, MachineModel machineModel)
-      throws CPATransferException, InterruptedException {
+  public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException {
 
     Pair<PathFormula, List<SSAMap>> result = createPrecisePathFormula(pPath);
 
@@ -88,7 +91,7 @@ public class PathChecker {
         return CounterexampleTraceInfo.infeasibleNoItp();
       } else {
         Model model = getModel(thmProver);
-        model = model.withAssignmentInformation(extractVariableAssignment(pPath, ssaMaps, model, machineModel));
+        model = model.withAssignmentInformation(extractVariableAssignment(pPath, ssaMaps, model));
 
         return CounterexampleTraceInfo.feasible(ImmutableList.of(f), model, ImmutableMap.<Integer, Boolean>of());
       }
@@ -131,8 +134,7 @@ public class PathChecker {
    * from the model was assigned.
    * @param pMachineModel
    */
-  public CFAPathWithAssignments extractVariableAssignment(List<CFAEdge> pPath, List<SSAMap> pSsaMaps,
-      Model pModel, MachineModel pMachineModel) {
+  public CFAPathWithAssignments extractVariableAssignment(List<CFAEdge> pPath, List<SSAMap> pSsaMaps, Model pModel) {
 
     // Create a map that holds all AssignableTerms that occured
     // in the given path.
@@ -165,7 +167,8 @@ public class PathChecker {
       }
     }
 
-    return new CFAPathWithAssignments(pPath, assignedTermsPosition, pModel, constants, functionsWithoutSSAIndex, pSsaMaps, pMachineModel);
+    return new CFAPathWithAssignments(pPath, assignedTermsPosition,
+        pModel, constants, functionsWithoutSSAIndex, pSsaMaps, machineModel);
   }
 
   private int findFirstOccurrenceOfVariable(Function pTerm, List<SSAMap> pSsaMaps) {
