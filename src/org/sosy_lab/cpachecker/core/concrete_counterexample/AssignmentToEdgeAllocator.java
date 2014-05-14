@@ -608,6 +608,10 @@ public class AssignmentToEdgeAllocator {
        * the address of a dereference is the evaluation of its operand*/
       Address address = evaluateNumericalValueAsAddress(exp);
 
+      if(address == null) {
+        return null;
+      }
+
       CType type = exp.getExpressionType();
 
       if (type instanceof CPointerType) {
