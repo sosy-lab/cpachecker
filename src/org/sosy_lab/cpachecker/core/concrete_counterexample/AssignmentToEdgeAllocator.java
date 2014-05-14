@@ -420,6 +420,10 @@ public class AssignmentToEdgeAllocator {
 
       Address valueAddress = evaluateAddress(pIastArraySubscriptExpression);
 
+      if(valueAddress == null) {
+        return null;
+      }
+
       CType type = pIastArraySubscriptExpression.getExpressionType();
 
       Object value = modelAtEdge.getValueFromUF(type, valueAddress);
@@ -431,6 +435,10 @@ public class AssignmentToEdgeAllocator {
     public Object visit(CFieldReference pIastFieldReference) {
 
       Address address = evaluateAddress(pIastFieldReference);
+
+      if(address == null) {
+        return null;
+      }
 
       CType type = pIastFieldReference.getExpressionType();
 
