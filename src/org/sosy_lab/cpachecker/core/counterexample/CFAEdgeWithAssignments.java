@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.concrete_counterexample;
+package org.sosy_lab.cpachecker.core.counterexample;
 
 import java.util.Set;
 

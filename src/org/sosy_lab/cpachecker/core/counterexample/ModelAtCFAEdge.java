@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.concrete_counterexample;
+package org.sosy_lab.cpachecker.core.counterexample;
 
 import java.math.BigDecimal;
 import java.util.Collection;
@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
-import org.sosy_lab.cpachecker.core.Model.Function;
+import org.sosy_lab.cpachecker.core.counterexample.Model.Function;
 
 import com.google.common.collect.Multimap;
 
