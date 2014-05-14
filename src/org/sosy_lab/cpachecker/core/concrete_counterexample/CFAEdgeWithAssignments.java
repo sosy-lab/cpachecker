@@ -402,7 +402,7 @@ public class CFAEdgeWithAssignments {
 
       Object valueAddress = address.add(subscriptOffset);
 
-      String ufMemoryName = UFMemoryNameVisitor.getUFMemoryName(pIastArraySubscriptExpression.getExpressionType());
+      String ufMemoryName = TypeUFNameVisitor.getUFName(pIastArraySubscriptExpression.getExpressionType());
 
       Object value = getValueFromUF(ufMemoryName, valueAddress);
 
@@ -444,7 +444,7 @@ public class CFAEdgeWithAssignments {
 
       BigDecimal address = fieldOwneraddress.add(fieldOffset);
 
-      return getValueFromUF(UFMemoryNameVisitor.getUFMemoryName(pIastFieldReference.getExpressionType()), address);
+      return getValueFromUF(TypeUFNameVisitor.getUFName(pIastFieldReference.getExpressionType()), address);
     }
 
     private BigDecimal getFieldOffset(CFieldReference fieldReference) {
@@ -588,7 +588,7 @@ public class CFAEdgeWithAssignments {
         }
 
         CType type = pVarDcl.getType();
-        String ufMemoryName = UFMemoryNameVisitor.getUFMemoryName(type);
+        String ufMemoryName = TypeUFNameVisitor.getUFName(type);
 
         return getValueFromUF(ufMemoryName, address);
       }
@@ -623,7 +623,7 @@ public class CFAEdgeWithAssignments {
         return null;
       }
 
-      String ufMemoryName = UFMemoryNameVisitor.getUFMemoryName(type);
+      String ufMemoryName = TypeUFNameVisitor.getUFName(type);
 
       Object value = getValueFromUF(ufMemoryName, address);
 
@@ -956,8 +956,6 @@ public class CFAEdgeWithAssignments {
 
         BigDecimal address = new BigDecimal(addressCode.getValueCode());
 
-
-
         return super.visit(pT);
       }
     }
@@ -1150,10 +1148,10 @@ public class CFAEdgeWithAssignments {
     }
   }
 
-  private static class UFMemoryNameVisitor implements CTypeVisitor<String, RuntimeException>{
+  private static class TypeUFNameVisitor implements CTypeVisitor<String, RuntimeException>{
 
-    public static String getUFMemoryName(CType pType) {
-      String name = pType.accept(new UFMemoryNameVisitor());
+    public static String getUFName(CType pType) {
+      String name = pType.accept(new TypeUFNameVisitor());
 
       if(name == null) {
         return null;
