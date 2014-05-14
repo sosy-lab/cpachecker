@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.concrete_counterexample;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -64,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -84,6 +86,8 @@ import org.sosy_lab.cpachecker.cpa.value.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+
+import apache.harmony.math.BigInteger;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Multimap;
@@ -219,14 +223,14 @@ public class CFAEdgeWithAssignments {
         AParameterDeclaration formalParameterDeclaration =
             formalParameters.get(formalParameterPosition);
 
-        String valueAsCode = getValueAsCode(valuePair.getValue(), formalParameterDeclaration.getType());
+        ValueCodes valueAsCode = getValueAsCode(valuePair.getValue(), formalParameterDeclaration.getType());
 
-        if (valueAsCode == null ||
+        if (valueAsCode.hasUnknownValueCode() ||
             !formalParameterDeclaration.getName().equals(termVariableName)) {
           return null;
         }
 
-        parameterValuesAsCode[formalParameterPosition] = valueAsCode;
+        parameterValuesAsCode[formalParameterPosition] = valueAsCode.getExpressionValueCodeAsString();
       } else {
         return null;
       }
@@ -262,13 +266,14 @@ public class CFAEdgeWithAssignments {
     }
 
     Type expectedType = leftHandSide.getExpressionType();
-    String valueAsCode = getValueAsCode(value, expectedType);
+    ValueCodes valueAsCode = getValueAsCode(value, expectedType);
 
-    if(valueAsCode == null) {
+    if(valueAsCode.hasUnknownValueCode()) {
       return null;
     }
 
-    return leftHandSide.toASTString() + " = " + valueAsCode + ";";
+    return leftHandSide.toASTString() +
+        " = " + valueAsCode.getExpressionValueCodeAsString() + ";";
   }
 
   private Object getValueObject(IALeftHandSide pLeftHandSide, String pFunctionName) {
@@ -288,14 +293,14 @@ public class CFAEdgeWithAssignments {
   }
 
   @Nullable
-  private String getValueAsCode(Object pValue, Type pExpectedType) {
+  private ValueCodes getValueAsCode(Object pValue, Type pExpectedType) {
 
     // TODO processing for other languages
-    if(pExpectedType instanceof CType) {
-      return ((CType) pExpectedType).accept(new TypeValueAsCodeVisitor(pValue));
+    if (pExpectedType instanceof CType) {
+      return ((CType) pExpectedType).accept(new ValueCodesVisitor(pValue));
     }
 
-    return null;
+    return new ValueCodes();
   }
 
   @Nullable
@@ -331,14 +336,14 @@ public class CFAEdgeWithAssignments {
       }
 
       Type dclType = varDcl.getType();
-      String valueAsCode = getValueAsCode(value, dclType);
+      ValueCodes valueAsCode = getValueAsCode(value, dclType);
 
-      if (valueAsCode == null) {
+      if (valueAsCode.hasUnknownValueCode()) {
         return null;
       }
 
       return varDcl.getName() + " = "
-          + valueAsCode + ";";
+          + valueAsCode.getExpressionValueCodeAsString() + ";";
     }
 
     return null;
@@ -895,49 +900,57 @@ public class CFAEdgeWithAssignments {
     }
   }
 
-  private static class TypeValueAsCodeVisitor extends DefaultCTypeVisitor<String, RuntimeException> {
+  private static class ValueCodesVisitor extends DefaultCTypeVisitor<ValueCodes, RuntimeException> {
 
     private final Object value;
 
-    public TypeValueAsCodeVisitor(Object pValue) {
+    public ValueCodesVisitor(Object pValue) {
       value = pValue;
     }
 
     @Override
-    public String visitDefault(CType pT) throws RuntimeException {
-      return null;
+    public ValueCodes visitDefault(CType pT) throws RuntimeException {
+      return createUnknownValueCodes();
     }
 
     @Override
-    public String visit(CSimpleType simpleType) throws RuntimeException {
+    public ValueCodes visit(CSimpleType simpleType) throws RuntimeException {
       switch (simpleType.getType()) {
       case BOOL:
       case INT:
-        return handleIntegerNumbers(simpleType);
+        return new ValueCodes(handleIntegerNumbers(simpleType, value));
       case FLOAT:
       case DOUBLE:
-        return handleFloatingPointNumbers(simpleType);
+        return new ValueCodes(handleFloatingPointNumbers(simpleType, value));
       }
 
-      return null;
+      return createUnknownValueCodes();
     }
 
-    private String handleFloatingPointNumbers(CSimpleType pSimpleType) {
+    private ValueCodes createUnknownValueCodes() {
+      return new ValueCodes();
+    }
+
+    private ValueCode handleFloatingPointNumbers(CSimpleType pSimpleType, Object pValue) {
 
       //TODO Check length in given constraints.
 
-      String value = this.value.toString();
+      String value = pValue.toString();
 
-      return value.matches("((-)?)((\\d*)|(.(\\d*))|((\\d*).)|((\\d*).(\\d*)))") ? value : null;
+      if (value.matches("((-)?)((\\d*)|(.(\\d*))|((\\d*).)|((\\d*).(\\d*)))")) {
+        return ExplicitValueCode.valueOf(value);
+      }
+
+      return UnknownValueCode.getInstance();
     }
 
-    private String handleIntegerNumbers(CSimpleType pSimpleType) {
+    private ValueCode handleIntegerNumbers(CSimpleType pSimpleType, Object pValue) {
 
       //TODO Check length in given constraints.
-      String value = this.value.toString();
+      String value = pValue.toString();
 
       if (value.matches("((-)?)\\d*")) {
-        return value;
+        return ExplicitValueCode.valueOf(value);
       } else {
         String[] numberParts = value.split("\\.");
 
@@ -945,17 +958,235 @@ public class CFAEdgeWithAssignments {
             numberParts[1].matches("0*") &&
             numberParts[0].matches("((-)?)\\d*")) {
 
-          return numberParts[0];
+          return ExplicitValueCode.valueOf(numberParts[0]);
         }
       }
 
-      value = handleFloatingPointNumbers(pSimpleType);
+      ValueCode valueCode = handleFloatingPointNumbers(pSimpleType, pValue);
 
-      if(value != null) {
-        return "(int) " + value;
+      if (valueCode.isUnknown()) {
+        return valueCode;
+      } else {
+        return valueCode.addCast(pSimpleType.getType());
+      }
+    }
+
+    private static class ValueCodeVisitor extends DefaultCTypeVisitor<Void, RuntimeException> {
+
+      /*
+       * Contains the address of the super type of the visited type.
+       * It is assigned by the model of the predicate Analysis.
+       */
+      private final Object address;
+      private final ValueCodes valueCodes;
+
+      /*
+       * Contains the prefix and postfix, that have to be added
+       * to the root expression to get the result, which has the super
+       * type of the visited type as type.
+       */
+      private final String prefix;
+      private final String postfix;
+
+      public ValueCodeVisitor(Object pAddress, ValueCodes pValueCodes,
+          String pPrefix, String pPostfix) {
+        address = pAddress;
+        valueCodes = pValueCodes;
+        prefix = pPrefix;
+        postfix = pPostfix;
       }
 
-      return null;
+      @Override
+      public Void visitDefault(CType pT) throws RuntimeException {
+        return null;
+      }
+    }
+  }
+
+  public final static class ValueCodes {
+
+    /*Contains values for possible sub expressions */
+    private final Set<SubExpressionValueCode> subExpressionValueCodes = new HashSet<>();
+
+    private final ValueCode expressionValueCode;
+
+    public ValueCodes() {
+      expressionValueCode = UnknownValueCode.getInstance();
+    }
+
+    public ValueCodes(ValueCode valueCode) {
+      expressionValueCode = valueCode;
+    }
+
+    public ValueCode getExpressionValueCode() {
+      return expressionValueCode;
+    }
+
+    public String getExpressionValueCodeAsString() {
+      return expressionValueCode.getValueCode();
+    }
+
+    public void addSubExpressionValueCode(SubExpressionValueCode code) {
+      subExpressionValueCodes.add(code);
+    }
+
+    public boolean hasUnknownValueCode() {
+      return expressionValueCode.isUnknown();
+    }
+
+    public Iterator<SubExpressionValueCode> getSubExpressionValueCodeIterator() {
+      return subExpressionValueCodes.iterator();
+    }
+
+    @Override
+    public String toString() {
+
+      StringBuilder result = new StringBuilder();
+
+      result.append("ValueCode : ");
+      result.append(expressionValueCode.toString());
+      result.append(", SubValueCodes : ");
+      Joiner joiner = Joiner.on(", ");
+      result.append(joiner.join(subExpressionValueCodes));
+
+      return result.toString();
+    }
+  }
+
+  public static interface ValueCode {
+
+    public String getValueCode();
+    public boolean isUnknown();
+
+    public ValueCode addCast(CBasicType pType);
+  }
+
+  public static class UnknownValueCode implements ValueCode {
+
+    private static final UnknownValueCode instance = new UnknownValueCode();
+
+    private UnknownValueCode() {}
+
+    public static UnknownValueCode getInstance() {
+      return instance;
+    }
+
+    @Override
+    public String getValueCode() {
+      throw new UnsupportedOperationException("Can't get the value code of an unknown value");
+    }
+
+    @Override
+    public boolean isUnknown() {
+      return true;
+    }
+
+    @Override
+    public ValueCode addCast(CBasicType pType) {
+      throw new UnsupportedOperationException("Can't get the value code of an unknown value");
+    }
+
+    @Override
+    public String toString() {
+      return "UNKNOWN";
+    }
+  }
+
+  public static class ExplicitValueCode implements ValueCode {
+
+    private final String valueCode;
+
+    protected ExplicitValueCode(String value) {
+      valueCode = value;
+    }
+
+    @Override
+    public ValueCode addCast(CBasicType pType) {
+
+      switch (pType) {
+      case CHAR:
+        return ExplicitValueCode.valueOf("(char)" + valueCode);
+      case DOUBLE:
+        return ExplicitValueCode.valueOf("(double)" + valueCode);
+      case FLOAT:
+        return ExplicitValueCode.valueOf("(float)" + valueCode);
+      case BOOL:
+      case INT:
+        return ExplicitValueCode.valueOf("(int)" + valueCode);
+      case UNSPECIFIED:
+        break;
+      case VOID:
+        break;
+      default:
+        break;
+      }
+
+      return this;
+    }
+
+    public static ValueCode valueOf(String value) {
+      return new ExplicitValueCode(value);
+    }
+
+    public static ValueCode valueOf(BigDecimal value) {
+      return new ExplicitValueCode(value.toPlainString());
+    }
+
+    public static ValueCode valueOf(BigInteger value) {
+      return new ExplicitValueCode(value.toString());
+    }
+
+    @Override
+    public String getValueCode() {
+      return valueCode;
+    }
+
+    @Override
+    public boolean isUnknown() {
+      return false;
+    }
+
+    @Override
+    public String toString() {
+      return valueCode;
+    }
+  }
+
+  public static final class SubExpressionValueCode extends ExplicitValueCode {
+
+    private final String prefix;
+    private final String postfix;
+
+    private SubExpressionValueCode(String value, String pPrefix, String pPostfix) {
+      super(value);
+      prefix = pPrefix;
+      postfix = pPostfix;
+    }
+
+    public static SubExpressionValueCode valueOf(String value, String prefix, String postfix) {
+      return new SubExpressionValueCode(value, prefix, postfix);
+    }
+
+    public static SubExpressionValueCode valueOf(BigDecimal value, String prefix, String postfix) {
+      return new SubExpressionValueCode(value.toPlainString(), prefix, postfix);
+    }
+
+    public static SubExpressionValueCode valueOf(BigInteger value, String prefix, String postfix) {
+      return new SubExpressionValueCode(value.toString(), prefix, postfix);
+    }
+
+    public String getPrefix() {
+      return prefix;
+    }
+
+    public String getPostfix() {
+      return postfix;
+    }
+
+    @Override
+    public String toString() {
+
+      return "<value code : " + super.toString() + ", prefix : " + prefix + ", postfix : " + postfix + ">";
     }
   }
 }
