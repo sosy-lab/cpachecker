@@ -910,9 +910,8 @@ public class CFAEdgeWithAssignments {
       }
 
       @Override
-      protected Long evaluateJIdExpression(JIdExpression pVarName) {
-        // TODO Auto-generated method stub
-        return null;
+      protected Value evaluateJIdExpression(JIdExpression pVarName) {
+        return Value.UnknownValue.getInstance();
       }
 
       @Override
