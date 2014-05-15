@@ -783,7 +783,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     BooleanFormulaManager bfmgr = pManager.getBooleanFormulaManager();
     BooleanFormula result = bfmgr.makeBoolean(true);
     ToFormulaVisitor<CompoundInterval, BooleanFormula> toBooleanFormulaVisitor =
-        ToBooleanFormulaVisitor.getVisitor(pManager, evaluationVisitor, useBitvectors);
+        ToBooleanFormulaVisitor.getVisitor(pManager, evaluationVisitor, useBitvectors, precision.getMachineModel());
 
     final Predicate<String> acceptVariable = new Predicate<String>() {
 

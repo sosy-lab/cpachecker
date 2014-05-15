@@ -27,6 +27,7 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -60,14 +61,14 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
 
   public static ToFormulaVisitor<CompoundInterval, BooleanFormula> getVisitor(FormulaManagerView pFmgr,
         FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor,
-        boolean useBitvectors) {
+        boolean useBitvectors, MachineModel pMachineModel) {
 
     final ToFormulaVisitorWrapper<CompoundInterval, BooleanFormula> wrapper = new ToFormulaVisitorWrapper<>();
     final ToBooleanFormulaVisitor<?> result;
     if (useBitvectors) {
       result = new ToBooleanFormulaVisitor<>(
           pFmgr,
-          new ToBitvectorFormulaVisitor(pFmgr, wrapper, pEvaluationVisitor),
+          new ToBitvectorFormulaVisitor(pFmgr, wrapper, pEvaluationVisitor, pMachineModel),
           pEvaluationVisitor);
       wrapper.setInner(result);
     } else {
