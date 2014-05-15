@@ -1690,6 +1690,10 @@ public class AssignmentToEdgeAllocator {
           valueCode = handleAddress(pFieldValue);
         }
 
+        if(valueCode.isUnknown()) {
+          return;
+        }
+
         SubExpressionValueCode subExpression =
             SubExpressionValueCode.valueOf(valueCode.getValueCode(), fieldPrefix, fieldPostfix);
 
