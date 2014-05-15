@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
+import com.google.common.collect.Lists;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -227,9 +228,17 @@ public class ARGStatistics implements Statistics {
       CounterexampleInfo cex = probableCounterexample.get(s);
       if (cex == null) {
         ARGPath path = ARGUtils.getOnePathTo(s);
-        cex = CounterexampleInfo.feasible(path, Model.empty());
+        if (Lists.transform(path, Pair.getProjectionToSecond()).contains(null)) {
+          // path is invalid,
+          // this might be a partial path in BAM, from an intermediate TargetState to root of its ReachedSet.
+          // TODO this check does not avoid dummy-paths in BAM, that might exist in main-reachedSet.
+        } else {
+          cex = CounterexampleInfo.feasible(path, Model.empty());
+        }
       }
-      counterexamples.put(s, cex);
+      if (cex != null) {
+        counterexamples.put(s, cex);
+      }
     }
 
     return counterexamples;
