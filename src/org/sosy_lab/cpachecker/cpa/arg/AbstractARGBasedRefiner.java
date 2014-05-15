@@ -131,8 +131,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
       logger.log(Level.FINEST, "Counterexample", counterexamplesCounter, "has been found.");
 
       // Print error trace if cpa.arg.printErrorPath = true
-      argCpa.exportCounterexampleOnTheFly((ARGState)pReached.getFirstState(), lastElement,
-              counterexample, counterexamplesCounter);
+      argCpa.exportCounterexampleOnTheFly(lastElement, counterexample, counterexamplesCounter);
       counterexamplesCounter++;
     }
 

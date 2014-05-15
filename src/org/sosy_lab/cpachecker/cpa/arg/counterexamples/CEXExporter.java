@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.HashSet;
@@ -137,9 +138,18 @@ public class CEXExporter {
     }
   }
 
-
-  // Print error trace and increment counter cexIndex.
-  public void exportCounterexample(final ARGState rootState, final ARGState pTargetState,
+  /**
+   * Export an Error Trace in different formats, for example as C-file, dot-file or automaton.
+   *
+   * @param pTargetState state of an ARG, used as fallback, if pCounterexampleInfo does not contains a targetPath.
+   * @param pCounterexampleInfo contains further information and the (optional) targetPath.
+   *                            If the targetPath is available,it will be used for the output.
+   *                            Otherwise we use all backwards reachable states from pTargetState.
+   * @param cexIndex should be a unique index for the CEX and will be used to enumerate files.
+   * @param allTargetPathEdges can be used to collect edges. All targetPath-edges are added to it.
+   * @param reallyWriteToDisk enable/disable output to files.
+   */
+  public void exportCounterexample(final ARGState pTargetState,
       @Nullable final CounterexampleInfo pCounterexampleInfo,
       int cexIndex, @Nullable final Set<Pair<ARGState, ARGState>> allTargetPathEdges,
       boolean reallyWriteToDisk) {
@@ -153,16 +163,18 @@ public class CEXExporter {
     }
 
     if (reallyWriteToDisk && exportErrorPath && pCounterexampleInfo != null) {
-      exportCounterexample(rootState, pTargetState, cexIndex, pCounterexampleInfo,
+      exportCounterexample(pTargetState, cexIndex, pCounterexampleInfo,
           targetPath, Predicates.in(targetPathEdges));
     }
   }
 
-  private void exportCounterexample(final ARGState rootState, final ARGState lastState,
+  private void exportCounterexample(final ARGState lastState,
                                     final int cexIndex,
-                                    final CounterexampleInfo counterexample,
-                                    final ARGPath targetPath,
+                                    @Nullable final CounterexampleInfo counterexample,
+                                    @Nonnull final ARGPath targetPath,
                                     final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge) {
+
+    final ARGState rootState = targetPath.getFirst().getFirst();
 
     writeErrorPathFile(errorPathFile, cexIndex,
             createErrorPathWithVariableAssignmentInformation(targetPath, counterexample));
