@@ -29,7 +29,7 @@ import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.Model;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;

@@ -48,7 +48,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.Model;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -77,7 +77,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableList;
 
 /**
  * This class provides a basic refiner implementation for predicate analysis.
@@ -177,6 +176,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     } else {
       recomputePathFormulae = false;
     }
+
     logger.log(Level.INFO, "Using refinement for predicate analysis with " + strategy.getClass().getSimpleName() + " strategy.");
   }
 
@@ -392,25 +392,13 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   }
 
   private CounterexampleTraceInfo addVariableAssignmentToCounterexample(
-      final CounterexampleTraceInfo counterexample, final ARGPath targetPath) {
-
-    final ImmutableList<SSAMap> ssamaps =
-        from(targetPath)
-          .transform(Pair.<ARGState>getProjectionToFirst())
-          .transform(toState(PredicateAbstractState.class))
-          .skip(1) // skip ARG root with empty SSAMap before first edge
-          .transform(new Function<PredicateAbstractState, SSAMap> () {
-            @Override
-            public SSAMap apply(PredicateAbstractState pInput) {
-              return pInput.getPathFormula().getSsa();
-            }})
-          .toList();
+      final CounterexampleTraceInfo counterexample, final ARGPath targetPath) throws CPATransferException, InterruptedException {
 
     List<CFAEdge> edges = targetPath.asEdgesList();
     // last edge in ARGPath is the one beyond target state, exclude it
-    edges = edges.subList(0, edges.size()-1);
+    edges = edges.subList(0, edges.size() - 1);
 
-    assert ssamaps.size() == edges.size();
+    List<SSAMap> ssamaps = pathChecker.calculatePreciseSSAMaps(edges);
 
     Model model = counterexample.getModel();
     model = counterexample.getModel().withAssignmentInformation(

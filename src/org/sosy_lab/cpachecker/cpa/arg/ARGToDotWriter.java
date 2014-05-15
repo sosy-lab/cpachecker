@@ -70,7 +70,7 @@ public class ARGToDotWriter {
    * @param highlightEdge Which edges to highlight in the graph?
    * @throws IOException
    */
-  static void write(Appendable sb,
+  public static void write(Appendable sb,
       final ARGState rootState,
       final Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction,
       final Predicate<? super ARGState> displayedElements,

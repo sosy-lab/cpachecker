@@ -32,11 +32,13 @@ import java.util.List;
 public class Octagon {
 
   private final long octId;
+  private final OctagonManager manager;
   private static List<OctPhantomReference> phantomReferences = new ArrayList<>();
   private static ReferenceQueue<Octagon> referenceQueue = new ReferenceQueue<>();
 
-  Octagon(long l) {
+  Octagon(long l, OctagonManager manager) {
     octId = l;
+    this.manager = manager;
     registerPhantomReference(this);
   }
 
@@ -55,6 +57,10 @@ public class Octagon {
     return octId;
   }
 
+  public OctagonManager getManager() {
+    return manager;
+  }
+
   @Override
   public int hashCode() {
     return (int)octId;
@@ -67,7 +73,7 @@ public class Octagon {
     }
     Octagon otherOct = (Octagon) pObj;
 
-    return OctagonManager.dimension(this) == OctagonManager.dimension(otherOct) && OctagonManager.isEqual(this, otherOct);
+    return manager.dimension(this) == otherOct.manager.dimension(otherOct) && manager.isEqual(this, otherOct);
   }
 
   @Override

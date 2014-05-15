@@ -345,7 +345,7 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
 
       // no specific timelimit set for octagon feasibility check
       if (timeForOctagonFeasibilityCheck == 0) {
-        checker = new OctagonAnalysisFeasabilityChecker(cfa, logger, shutdownNotifier, path, octagonCPA.handleFloats());
+        checker = new OctagonAnalysisFeasabilityChecker(cfa, logger, shutdownNotifier, path, octagonCPA);
 
       } else {
         ShutdownNotifier notifier = ShutdownNotifier.createWithParent(shutdownNotifier);
@@ -353,7 +353,7 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
         ResourceLimitChecker limits = new ResourceLimitChecker(notifier, Lists.newArrayList((ResourceLimit)l));
 
         limits.start();
-        checker = new OctagonAnalysisFeasabilityChecker(cfa, logger, notifier, path, octagonCPA.handleFloats());
+        checker = new OctagonAnalysisFeasabilityChecker(cfa, logger, notifier, path, octagonCPA);
         limits.cancel();
       }
 

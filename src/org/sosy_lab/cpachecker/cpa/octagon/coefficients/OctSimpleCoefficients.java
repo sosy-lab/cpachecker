@@ -276,13 +276,13 @@ public class OctSimpleCoefficients extends AOctCoefficients {
    * {@inheritDoc}
    */
   @Override
-  public NumArray getNumArray() {
-    NumArray arr = OctagonManager.init_num_t(coefficients.length);
+  public NumArray getNumArray(OctagonManager manager) {
+    NumArray arr = manager.init_num_t(coefficients.length);
     for (int i = 0; i < coefficients.length; i++) {
       if (coefficients[i].isFloat()) {
-        OctagonManager.num_set_float(arr, i, coefficients[i].getFloatVal().doubleValue());
+        manager.num_set_float(arr, i, coefficients[i].getFloatVal().doubleValue());
       } else {
-        OctagonManager.num_set_int(arr, i, coefficients[i].getIntVal().intValue());
+        manager.num_set_int(arr, i, coefficients[i].getIntVal().intValue());
       }
     }
     return arr;

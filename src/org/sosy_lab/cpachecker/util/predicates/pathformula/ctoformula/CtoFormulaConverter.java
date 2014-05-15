@@ -499,20 +499,6 @@ public class CtoFormulaConverter {
     return ret;
   }
 
-  CType getPromotedCType(CType t) {
-    t = t.getCanonicalType();
-    if (t instanceof CSimpleType) {
-      // Integer types smaller than int are promoted when an operation is performed on them.
-      // If all values of the original type can be represented as an int, the value of the smaller type is converted to an int;
-      // otherwise, it is converted to an unsigned int.
-      CSimpleType s = (CSimpleType) t;
-      if (machineModel.getSizeof(s) < machineModel.getSizeofInt()) {
-        return CNumericTypes.INT;
-      }
-    }
-    return t;
-  }
-
 //  @Override
   public PathFormula makeAnd(PathFormula oldFormula,
       CFAEdge edge, ErrorConditions errorConditions)

@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.octagon.OctPrecision;
 import org.sosy_lab.cpachecker.cpa.octagon.OctState;
 import org.sosy_lab.cpachecker.cpa.octagon.OctTransferRelation;
+import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.AssumptionUseDefinitionCollector;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -59,18 +60,18 @@ public class OctagonAnalysisFeasabilityChecker {
   private final ARGPath checkedPath;
   private final ARGPath foundPath;
 
-  public OctagonAnalysisFeasabilityChecker(CFA cfa, LogManager log, ShutdownNotifier pShutdownNotifier, ARGPath path, boolean handleFloats) throws InvalidConfigurationException, CPAException, InterruptedException {
+  public OctagonAnalysisFeasabilityChecker(CFA cfa, LogManager log, ShutdownNotifier pShutdownNotifier, ARGPath path, OctagonCPA cpa) throws InvalidConfigurationException, CPAException, InterruptedException {
     logger = log;
     shutdownNotifier = pShutdownNotifier;
 
     // use the normal configuration for creating the transferrelation
-    transfer  = new OctTransferRelation(logger, cfa, handleFloats);
+    transfer  = new OctTransferRelation(logger, cfa, cpa.handleFloats());
     checkedPath = path;
 
     // use a new configuration which only has the default values for the precision
     // we do not want any special options to be set there
     foundPath = getInfeasiblePrefix(new OctPrecision(Configuration.defaultConfiguration()),
-                                    new OctState(logger, handleFloats));
+                                    new OctState(logger, cpa.handleFloats(), cpa.getManager()));
   }
 
   /**

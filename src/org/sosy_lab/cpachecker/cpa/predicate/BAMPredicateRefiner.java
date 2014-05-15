@@ -133,7 +133,8 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
 
     PathChecker pathChecker = new PathChecker(logger,
                                           predicateCpa.getPathFormulaManager(),
-                                          predicateCpa.getSolver());
+                                          predicateCpa.getSolver(),
+                                          predicateCpa.getMachineModel());
 
     RefinementStrategy strategy = new BAMPredicateAbstractionRefinementStrategy(
                                           predicateCpa.getConfiguration(),

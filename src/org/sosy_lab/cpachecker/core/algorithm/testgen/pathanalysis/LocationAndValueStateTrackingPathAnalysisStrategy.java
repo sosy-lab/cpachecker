@@ -59,7 +59,8 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
   private TestGenStatistics stats;
   private LogManager logger;
 
-  public LocationAndValueStateTrackingPathAnalysisStrategy(PathChecker pPathChecker, StartupConfig config, TestGenStatistics pStats) {
+  public LocationAndValueStateTrackingPathAnalysisStrategy(PathChecker pPathChecker, StartupConfig config,
+      TestGenStatistics pStats) {
     super();
     pathChecker = pPathChecker;
     this.logger = config.getLog();
@@ -191,8 +192,7 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
 
   @Override
   public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPATransferException, InterruptedException {
-    return pathChecker.checkPath(pExecutedPath.asEdgesList()
-        );
+    return pathChecker.checkPath(pExecutedPath.asEdgesList());
   }
 
 }

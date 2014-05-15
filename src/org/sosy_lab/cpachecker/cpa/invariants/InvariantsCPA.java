@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -175,6 +176,8 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
    */
   private final CFA cfa;
 
+  private final MachineModel machineModel;
+
   private final WeakHashMap<CFANode, InvariantsPrecision> initialPrecisionMap = new WeakHashMap<>();
 
   private boolean relevantVariableLimitReached = false;
@@ -215,6 +218,7 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
     this.cfa = pCfa;
     this.options = pOptions;
     this.conditionAdjuster = pOptions.conditionAdjusterFactory.createConditionAdjuster(this);
+    this.machineModel = pCfa.getMachineModel();
   }
 
   @Override
@@ -263,7 +267,7 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
       }
     }
     if (shutdownNotifier.shouldShutdown()) {
-      return new InvariantsState(options.useBitvectors, new AcceptAllVariableSelection<CompoundInterval>(), InvariantsPrecision.NONE);
+      return new InvariantsState(options.useBitvectors, new AcceptAllVariableSelection<CompoundInterval>(), InvariantsPrecision.getEmptyPrecision(machineModel));
     }
     if (options.analyzeTargetPathsOnly && determineTargetLocations) {
       relevantLocations.addAll(targetLocations);
@@ -327,7 +331,7 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
     }
 
     if (shutdownNotifier.shouldShutdown()) {
-      return new InvariantsState(options.useBitvectors, new AcceptAllVariableSelection<CompoundInterval>(), InvariantsPrecision.NONE);
+      return new InvariantsState(options.useBitvectors, new AcceptAllVariableSelection<CompoundInterval>(), InvariantsPrecision.getEmptyPrecision(machineModel));
     }
 
     // Try to specify all relevant variables
@@ -373,7 +377,8 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
         ImmutableSet.copyOf(limit(interestingVariables, interestingVariableLimit)),
         options.maximumFormulaDepth,
         options.useBinaryVariableInterrelations,
-        options.edgeBasedAbstractionStrategyFactory);
+        options.edgeBasedAbstractionStrategyFactory,
+        machineModel);
 
     initialPrecisionMap.put(pNode, precision);
 

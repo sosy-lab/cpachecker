@@ -47,7 +47,7 @@ public class OctNumericValue {
     this.intVal = BigInteger.valueOf(intVal);
   }
 
-  public OctNumericValue(float floatVal) {
+  public OctNumericValue(double floatVal) {
     this.floatVal = BigDecimal.valueOf(floatVal);
   }
 

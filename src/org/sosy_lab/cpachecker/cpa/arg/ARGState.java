@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Function;
-import com.google.common.primitives.Ints;
 
 public class ARGState extends AbstractSingleWrapperState implements Comparable<ARGState>, TargetableWithPredicatedAnalysis {
 
@@ -255,7 +254,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
    */
   @Override
   public int compareTo(ARGState pO) {
-    return Ints.compare(this.stateId, pO.stateId);
+    return Integer.compare(this.stateId, pO.stateId);
   }
 
   public boolean isOlderThan(ARGState other) {

@@ -32,12 +32,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.core.Model;
-import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
-import org.sosy_lab.cpachecker.core.Model.Constant;
-import org.sosy_lab.cpachecker.core.Model.Function;
-import org.sosy_lab.cpachecker.core.Model.TermType;
-import org.sosy_lab.cpachecker.core.Model.Variable;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.core.counterexample.Model.Constant;
+import org.sosy_lab.cpachecker.core.counterexample.Model.Function;
+import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
+import org.sosy_lab.cpachecker.core.counterexample.Model.Variable;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.ModelIterator;

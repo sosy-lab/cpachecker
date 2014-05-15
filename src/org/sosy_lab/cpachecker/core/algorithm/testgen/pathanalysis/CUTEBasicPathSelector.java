@@ -62,7 +62,6 @@ public class CUTEBasicPathSelector implements PathSelector {
   private BranchingHistory branchingHistory;
   private PathChecker pathChecker;
 
-
   public CUTEBasicPathSelector(PathChecker pPathChecker, StartupConfig config, TestGenStatistics pStats) {
     super();
     this.pathChecker = pPathChecker;
@@ -70,7 +69,6 @@ public class CUTEBasicPathSelector implements PathSelector {
     stats = pStats;
     branchingHistory = new BranchingHistory();
   }
-
 
   @Override
   public PredicatePathAnalysisResult findNewFeasiblePathUsingPredicates(final ARGPath pExecutedPath,
@@ -245,8 +243,7 @@ public class CUTEBasicPathSelector implements PathSelector {
   @Override
   public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPATransferException,
       InterruptedException {
-    return pathChecker.checkPath(pExecutedPath.asEdgesList()
-        );
+    return pathChecker.checkPath(pExecutedPath.asEdgesList());
   }
 
   public class PathInfo {

@@ -95,6 +95,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -103,6 +104,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.octagon.OctState.Type;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.IOctCoefficients;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctEmptyCoefficients;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctIntervalCoefficients;
@@ -243,7 +245,11 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
     if (loopEntryEdges.get(cfaEdge) != null) {
       Set<OctState> newStates = new HashSet<>();
       for (OctState s : cleanedUpStates) {
-        newStates.add(new OctState(s.getOctagon(), s.getVariableToIndexMap(), new OctState.Block(), logger, handleFloats));
+        newStates.add(new OctState(s.getOctagon(),
+                                   s.getVariableToIndexMap(),
+                                   s.getVariableToTypeMap(),
+                                   new OctState.Block(),
+                                   logger, handleFloats));
       }
       cleanedUpStates = newStates;
     }
@@ -343,6 +349,16 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
     }
   }
 
+  private OctState.Type getCorrespondingOctStateType(CType type) {
+    if (handleFloats && type instanceof CSimpleType &&
+        (((CSimpleType)type).getType() == CBasicType.FLOAT
+          || ((CSimpleType)type).getType() == CBasicType.DOUBLE)) {
+      return Type.FLOAT;
+    } else {
+      return Type.INT;
+    }
+  }
+
   /**
    * This method handles all binary boolean expressions.
    */
@@ -371,7 +387,11 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
       temporaryVariableCounter++;
       Set<IOctCoefficients> coeffsList = binExp.accept(new COctagonCoefficientVisitor());
       for (IOctCoefficients coeffs : coeffsList) {
-        possibleStates.add(handleSingleBooleanExpression(tempVarName, truthAssumption, state.declareVariable(tempVarName).makeAssignment(tempVarName, coeffs)));
+        possibleStates.add(handleSingleBooleanExpression(tempVarName,
+                                                         truthAssumption,
+                                                         state.declareVariable(tempVarName,
+                                                                               getCorrespondingOctStateType(binExp.getExpressionType()))
+                                                                               .makeAssignment(tempVarName, coeffs)));
       }
       return null;
 
@@ -507,7 +527,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
         temporaryVariableCounter++;
         List<OctState> tmpList = new ArrayList<>();
         for (IOctCoefficients coeffs : coeffsLeft) {
-          OctState tmpState = state.declareVariable(tempLeft);
+          OctState tmpState = state.declareVariable(tempLeft, getCorrespondingOctStateType(left.getExpressionType()));
           tmpList.add(tmpState.makeAssignment(tempLeft, coeffs.expandToSize(tmpState.sizeOfVariables(), tmpState)));
         }
         states = tmpList;
@@ -734,7 +754,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
         temporaryVariableCounter++;
         List<OctState> tmpList = new ArrayList<>();
         for (IOctCoefficients coeffs : coeffsLeft) {
-          OctState tmp = state.declareVariable(tempLeft);
+          OctState tmp = state.declareVariable(tempLeft, getCorrespondingOctStateType(left.getExpressionType()));
           tmpList.add(tmp.makeAssignment(tempLeft, coeffs.expandToSize(tmp.sizeOfVariables(), tmp)));
         }
         states = tmpList;
@@ -758,7 +778,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
         List<OctState> tmpList = new ArrayList<>();
         for (OctState st : states) {
           for (IOctCoefficients coeffs : coeffsRight) {
-            OctState tmp = st.declareVariable(tempRight);
+            OctState tmp = st.declareVariable(tempRight, getCorrespondingOctStateType(right.getExpressionType()));
             tmpList.add(tmp.makeAssignment(tempRight, coeffs.expandToSize(tmp.sizeOfVariables(), tmp)));
           }
         }
@@ -858,7 +878,8 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
     }
 
     List<OctState> statesList = new ArrayList<>();
-    statesList.add(state.declareVariable(buildVarName(calledFunctionName, FUNCTION_RETURN_VAR)));
+    statesList.add(state.declareVariable(buildVarName(calledFunctionName, FUNCTION_RETURN_VAR),
+                                                      getCorrespondingOctStateType(cfaEdge.getSuccessor().getFunctionDefinition().getType().getReturnType())));
 
     // declare all parameters as variables
     for (int i = 0; i < parameters.size(); i++) {
@@ -875,7 +896,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
       List<OctState> newStatesList = new ArrayList<>();
       for (OctState st : statesList) {
         for (IOctCoefficients coeffs : coeffsList) {
-          OctState tmpState = st.declareVariable(formalParamName);
+          OctState tmpState = st.declareVariable(formalParamName, getCorrespondingOctStateType(parameters.get(i).getType()));
           tmpState = tmpState.makeAssignment(formalParamName, coeffs.expandToSize(tmpState.sizeOfVariables(), tmpState));
           newStatesList.add(tmpState);
         }
@@ -957,7 +978,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
       // not need to declarate them a second time, but if there is an initializer
       // we assign it to the before declared variable
       if (!state.existsVariable(variableName) && (init == null || init instanceof CInitializerExpression)) {
-        state = state.declareVariable(variableName);
+        state = state.declareVariable(variableName, getCorrespondingOctStateType(declaration.getType()));
       }
 
       if (init != null) {
@@ -1177,7 +1198,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
             }
             String tempVarLeft = buildVarName(functionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
             temporaryVariableCounter++;
-            state = state.declareVariable(tempVarLeft);
+            state = state.declareVariable(tempVarLeft, getCorrespondingOctStateType(e.getOperand1().getExpressionType()));
             state = state.makeAssignment(tempVarLeft, leftCoeffs.expandToSize(state.sizeOfVariables(), state));
 
             rightCoeffs = rightCoeffs.expandToSize(state.sizeOfVariables(), state);
@@ -1354,7 +1375,8 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
           }
           String tempVar = buildVarName(functionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
           temporaryVariableCounter++;
-          state = state.declareVariable(tempVar).makeAssignment(tempVar, coeffs.expandToSize(state.sizeOfVariables()+1, state));
+          state = state.declareVariable(tempVar, getCorrespondingOctStateType(e.getExpressionType()))
+                        .makeAssignment(tempVar, coeffs.expandToSize(state.sizeOfVariables()+1, state));
 
           if (e.getOperator() == UnaryOperator.MINUS) {
             returnCoefficients.add(new OctSimpleCoefficients(state.sizeOfVariables(), state.getVariableIndexFor(tempVar), new OctNumericValue(-1), state));

@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.PartialReachedConstructionAlg
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPABackwards;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -71,10 +70,7 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
     pConfig.inject(this);
     switch (new PartialCertificateTypeProvider(pConfig, true).getCertificateType()) {
     case ARG:
-      ARGCPA cpa = pCpa.retrieveWrappedCpa(ARGCPA.class);
-      if (cpa == null) { throw new InvalidConfigurationException(
-          "Require ARCPA and PropertyCheckerCPA must be a top level CPA of ARGCPA"); }
-      certificateConstructor = new ARGBasedPartialReachedSetConstructionAlgorithm(cpa.getWrappedCPAs().get(0), false);
+      certificateConstructor = new ARGBasedPartialReachedSetConstructionAlgorithm(false);
       break;
     case MONOTONESTOPARG:
       certificateConstructor = new MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm(false);

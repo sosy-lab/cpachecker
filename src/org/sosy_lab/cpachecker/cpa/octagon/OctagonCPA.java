@@ -45,6 +45,8 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
+import org.sosy_lab.cpachecker.util.octagon.OctagonFloatManager;
+import org.sosy_lab.cpachecker.util.octagon.OctagonIntManager;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
 @Options(prefix="cpa.octagon")
@@ -74,6 +76,7 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
   private final Configuration config;
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
+  private final OctagonManager octagonManager;
 
   private OctagonCPA(Configuration config, LogManager log,
                      ShutdownNotifier shutdownNotifier, CFA cfa)
@@ -81,6 +84,12 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
     config.inject(this);
     logger = log;
     OctDomain octagonDomain = new OctDomain(logger, handleFloats);
+
+    if (handleFloats) {
+      octagonManager = new OctagonFloatManager();
+    } else {
+      octagonManager = new OctagonIntManager();
+    }
 
     this.transferRelation = new OctTransferRelation(logger, cfa, handleFloats);
 
@@ -102,9 +111,10 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
     this.shutdownNotifier = shutdownNotifier;
     this.cfa = cfa;
     precision = new OctPrecision(config);
+  }
 
-    boolean initializingLibrarySuccessful = OctagonManager.init(handleFloats, log);
-    assert initializingLibrarySuccessful;
+  public OctagonManager getManager() {
+    return octagonManager;
   }
 
   @Override
@@ -134,7 +144,7 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractState getInitialState(CFANode node) {
-    return new OctState(logger, handleFloats);
+    return new OctState(logger, handleFloats, octagonManager);
   }
 
   @Override

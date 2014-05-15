@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 
 @Options(prefix="cpa.value.interpolation")
 public class ValueAnalysisInterpolator {
@@ -166,16 +165,16 @@ public class ValueAnalysisInterpolator {
     numberOfInterpolationQueries = 0;
 
     // on initial iteration
-    if(pOffset == 0) {
-      assumptionsAreRelevant  = isRemainingPathFeasible(pErrorPath, new ValueAnalysisState(), false, new ArrayDeque<>(callStack));
-      relevantVariables       = assumeCollector.obtainUseDefInformation(pErrorPath);
+    if (pOffset == 0) {
+      assumptionsAreRelevant = isRemainingPathFeasible(pErrorPath, new ValueAnalysisState(), false, new ArrayDeque<>(callStack));
+      relevantVariables = assumeCollector.obtainUseDefInformation(pErrorPath);
     }
 
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
-    ValueAnalysisState initialState      = pInputInterpolant.createValueAnalysisState();
+    ValueAnalysisState initialState = pInputInterpolant.createValueAnalysisState();
 
     // get successor and update callstack
-    ValueAnalysisState initialSuccessor  = getInitialSuccessor(initialState, pErrorPath.get(pOffset), callStack);
+    ValueAnalysisState initialSuccessor = getInitialSuccessor(initialState, pErrorPath.get(pOffset), callStack);
 
     if (initialSuccessor == null) {
       return ValueAnalysisInterpolant.FALSE;
@@ -187,7 +186,7 @@ public class ValueAnalysisInterpolator {
     }
 
     // check if the input-interpolant, after the initial transition, is still strong enough
-    if(applyUseDefInformation && !isUseDefInformationAffected(pErrorPath, initialState, initialSuccessor)) {
+    if (applyUseDefInformation && !isUseDefInformationAffected(pErrorPath, initialState, initialSuccessor)) {
       return new ValueAnalysisInterpolant(new HashMap<>(initialSuccessor.getConstantsMapView()));
     }
 
@@ -226,7 +225,7 @@ public class ValueAnalysisInterpolator {
   private void checkPathWithoutVariable( Iterable<CFAEdge> remainingErrorPath, ArrayDeque<ValueAnalysisState> callStack,
           ValueAnalysisState initialSuccessor, ValueAnalysisState modifiableState)
           throws InterruptedException, CPATransferException {
-    for (MemoryLocation currentMemoryLocation : determineInterpolationCandidates(modifiableState)) {
+    for (MemoryLocation currentMemoryLocation : optimizeForInterpolation(initialSuccessor)) {
       shutdownNotifier.shutdownIfNecessary();
 
       // temporarily remove the value of the current memory location from the rawInterpolant
@@ -246,17 +245,17 @@ public class ValueAnalysisInterpolator {
    * @param valueAnalysisState the collection of interpolation candidates, encoded in an value-analysis state
    * @return a (possibly) reordered collection of interpolation candidates
    */
-  private Collection<MemoryLocation> determineInterpolationCandidates(ValueAnalysisState valueAnalysisState) {
+  private Collection<MemoryLocation> optimizeForInterpolation(ValueAnalysisState valueAnalysisState) {
     Set<MemoryLocation> trackedMemoryLocations = valueAnalysisState.getTrackedMemoryLocations();
 
-    List<MemoryLocation> reOrderedMemoryLocations = Lists.newArrayListWithCapacity(trackedMemoryLocations.size());
+    ArrayDeque<MemoryLocation> reOrderedMemoryLocations = new ArrayDeque<>();
 
     // move loop-variables to the front - being checked for relevance earlier minimizes their impact on feasibility
     for(MemoryLocation currentMemoryLocation : trackedMemoryLocations) {
       if(loopExitMemoryLocations.contains(currentMemoryLocation)) {
-        reOrderedMemoryLocations.add(0, currentMemoryLocation);
+        reOrderedMemoryLocations.addFirst(currentMemoryLocation);
       } else {
-        reOrderedMemoryLocations.add(currentMemoryLocation);
+        reOrderedMemoryLocations.addLast(currentMemoryLocation);
       }
     }
 

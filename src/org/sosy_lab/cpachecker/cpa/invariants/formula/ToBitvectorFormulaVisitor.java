@@ -27,6 +27,7 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
@@ -75,6 +76,8 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
    */
   private final FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor;
 
+  private MachineModel machineModel;
+
   /**
    * Creates a new visitor for converting compound state invariants formulae to
    * bit vector formulae by using the given formula manager,
@@ -85,12 +88,14 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
    * visitor used to convert invariants formulae to boolean formulae.
    * @param pEvaluationVisitor the formula evaluation visitor used to evaluate
    * compound state invariants formulae to compound states.
+   * @param pMachineModel the machine model.
    */
   ToBitvectorFormulaVisitor(FormulaManagerView pFmgr,
       ToFormulaVisitor<CompoundInterval, BooleanFormula> pToBooleanFormulaVisitor,
-      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor, MachineModel pMachineModel) {
     this.bfmgr = pFmgr.getBooleanFormulaManager();
     this.bvfmgr = pFmgr.getBitvectorFormulaManager();
+    this.machineModel = pMachineModel;
     this.zero = makeLong(0);
     this.one = makeLong(1);
     this.toBooleanFormulaVisitor = pToBooleanFormulaVisitor;
@@ -98,11 +103,11 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
   }
 
   private BitvectorFormula makeLong(long pValue) {
-    return this.bvfmgr.makeBitvector(64, pValue);
+    return this.bvfmgr.makeBitvector(machineModel.getSizeofInt() * machineModel.getSizeofCharInBits(), pValue);
   }
 
   private BitvectorFormula makeLongVariable(String pVariableName) {
-    return this.bvfmgr.makeVariable(64, pVariableName);
+    return this.bvfmgr.makeVariable(machineModel.getSizeofInt() * machineModel.getSizeofCharInBits(), pVariableName);
   }
 
   /**

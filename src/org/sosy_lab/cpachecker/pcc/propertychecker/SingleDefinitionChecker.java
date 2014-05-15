@@ -87,12 +87,10 @@ public class SingleDefinitionChecker implements PropertyChecker {
         if (point == null) {
           if (isDefinitionInProgram((ProgramDefinitionPoint) p)) {
             point = (ProgramDefinitionPoint) p;
-          } else if (!p.equals(point)) {
-            // check if it is a real definition
-            if (isDefinitionInProgram((ProgramDefinitionPoint) p)) {
-              return false;
-            }
           }
+        } else if (!p.equals(point)) {
+          // check if it is a real definition
+          if (isDefinitionInProgram((ProgramDefinitionPoint) p)) { return false; }
         }
       }
     }

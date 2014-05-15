@@ -23,14 +23,17 @@
  */
 package org.sosy_lab.cpachecker.pcc.propertychecker;
 
+import java.math.BigInteger;
 import java.util.Collection;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
+import org.sosy_lab.cpachecker.cpa.value.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.Value;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
@@ -38,14 +41,16 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  */
 public class SingleValueChecker implements PropertyChecker {
 
-  private final String varValName;
-  private final long varVal;
+  private final MemoryLocation varValRep;
+  private final Value varValBigInt;
+  private final Value varValLong;
   private final String labelLocVarVal;
 
   public SingleValueChecker(String varWithSingleValue, String varValue, String labelForLocationWithSingleValue) {
-    varValName = varWithSingleValue;
+    varValRep = MemoryLocation.valueOf(varWithSingleValue);
     labelLocVarVal = labelForLocationWithSingleValue;
-    varVal = Long.parseLong(varValue);
+    varValBigInt = new NumericValue(new BigInteger(varValue));
+    varValLong = new NumericValue(Long.parseLong(varValue));
   }
 
   @Override
@@ -53,8 +58,11 @@ public class SingleValueChecker implements PropertyChecker {
     // check if value correctly specified at location
     CFANode node = AbstractStates.extractLocation(pElemToCheck);
     if (node instanceof CLabelNode && ((CLabelNode) node).getLabel().equals(labelLocVarVal)) {
-      // The following is a hack
-      if (AbstractStates.extractStateByType(pElemToCheck, ValueAnalysisState.class).getValueFor(varValName).asLong(CNumericTypes.INT) != varVal) { return false; }
+      Value value =
+          AbstractStates.extractStateByType(pElemToCheck, ValueAnalysisState.class).getConstantsMapView()
+              .get(varValRep);
+      if (value == null || !value.isExplicitlyKnown() ||
+          !(value.equals(varValBigInt)||value.equals(varValLong))) { return false; }
     }
     return true;
   }

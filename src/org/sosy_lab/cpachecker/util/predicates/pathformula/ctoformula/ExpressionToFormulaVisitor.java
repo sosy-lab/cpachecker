@@ -103,6 +103,15 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     return conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(implicitType), pointerTargetSize);
   }
 
+  private CType getPromotedCType(CType t) {
+    t = t.getCanonicalType();
+    if (t instanceof CSimpleType) {
+      // Integer types smaller than int are promoted when an operation is performed on them.
+      return conv.machineModel.getPromotedCType((CSimpleType)t);
+    }
+    return t;
+  }
+
   @Override
   public Formula visit(final CBinaryExpression exp) throws UnrecognizedCCodeException {
     /* FOR SHIFTS:
@@ -147,8 +156,8 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     // to INT or bigger
     final CType t1 = exp.getOperand1().getExpressionType();
     final CType t2 = exp.getOperand2().getExpressionType();
-    final CType promT1 = conv.getPromotedCType(t1).getCanonicalType();
-    final CType promT2 = conv.getPromotedCType(t2).getCanonicalType();
+    final CType promT1 = getPromotedCType(t1).getCanonicalType();
+    final CType promT2 = getPromotedCType(t2).getCanonicalType();
 
     final Formula ret;
 
@@ -400,7 +409,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     case TILDE: {
       // Handle Integer Promotion
       CType t = operand.getExpressionType();
-      CType promoted = conv.getPromotedCType(t);
+      CType promoted = getPromotedCType(t.getCanonicalType());
       Formula operandFormula = toFormula(operand);
       operandFormula = conv.makeCast(t, promoted, operandFormula, edge);
       Formula ret;
