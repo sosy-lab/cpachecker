@@ -40,6 +40,7 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CanExtractVariableRelationVisitor;
@@ -142,6 +143,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    */
   private final VariableSelection<CompoundInterval> variableSelection;
 
+  private final Map<String, CType> variableTypes;
+
   /**
    * A flag indicating whether or not to use bit vectors for representing states.
    */
@@ -180,6 +183,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     this.variableSelection = pVariableSelection;
     this.collectedInterestingAssumptions = pInvariant.collectedInterestingAssumptions;
     this.precision = pPrecision;
+    this.variableTypes = pInvariant.variableTypes;
   }
 
   /**
@@ -203,6 +207,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     this.variableSelection = pVariableSelection;
     this.collectedInterestingAssumptions = new HashSet<>();
     this.precision = pPrecision;
+    this.variableTypes = new HashMap<>();
   }
 
   /**
@@ -221,11 +226,38 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       Map<String, InvariantsFormula<CompoundInterval>> pEnvironment,
       boolean pUseBitvectors, VariableSelection<CompoundInterval> pVariableSelection,
       Set<InvariantsFormula<CompoundInterval>> pCollectedInterestingAssumptions,
-      InvariantsPrecision pPrecision) {
+      InvariantsPrecision pPrecision,
+      Map<String, CType> pVariableTypes) {
     InvariantsState result = new InvariantsState(pUseBitvectors, pVariableSelection, pEdgeBasedAbstractionStrategy, pPrecision);
     if (!result.assumeInternal(pAssumptions, result.getFormulaResolver())) { return null; }
     if (!result.assumeInternal(pCollectedInterestingAssumptions, result.getFormulaResolver())) { return null; }
     result.environment.putAll(pEnvironment);
+    result.variableTypes.putAll(pVariableTypes);
+    return result;
+  }
+
+  public InvariantsState setType(String pVarName, CType pType) {
+    if (pType.equals(variableTypes.get(pVarName))) {
+      return this;
+    }
+    InvariantsState result = from(edgeBasedAbstractionStrategy, assumptions, environment, useBitvectors, variableSelection, collectedInterestingAssumptions, precision, variableTypes);
+    result.variableTypes.put(pVarName, pType);
+    return result;
+  }
+
+  public InvariantsState setTypes(Map<String, CType> pVarTypes) {
+    boolean allContained = true;
+    for (Map.Entry<String, CType> entry : pVarTypes.entrySet()) {
+      if (!entry.getValue().equals(variableTypes.get(entry.getKey()))) {
+        allContained = false;
+        break;
+      }
+    }
+    if (allContained) {
+      return this;
+    }
+    InvariantsState result = from(edgeBasedAbstractionStrategy, assumptions, environment, useBitvectors, variableSelection, collectedInterestingAssumptions, precision, variableTypes);
+    result.variableTypes.putAll(pVarTypes);
     return result;
   }
 
@@ -323,7 +355,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       return from(edgeBasedAbstractionStrategy, newAssumptions, newEnvironment,
           useBitvectors, variableSelection,
           Collections.<InvariantsFormula<CompoundInterval>>emptySet(),
-          precision);
+          precision,
+          variableTypes);
     }
 
     CompoundIntervalFormulaManager ifm = CompoundIntervalFormulaManager.INSTANCE;
@@ -430,6 +463,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       VariableSelection<CompoundInterval> newVariableSelection,
       FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor, ReplaceVisitor<CompoundInterval> replaceVisitor) {
     final InvariantsState result = new InvariantsState(useBitvectors, newVariableSelection, edgeBasedAbstractionStrategy.addVisitedEdge(pEdge), precision);
+    result.variableTypes.putAll(variableTypes);
 
     for (Map.Entry<String, InvariantsFormula<CompoundInterval>> environmentEntry : this.environment.entrySet()) {
       if (!environmentEntry.getKey().equals(pVarName)) {
@@ -767,7 +801,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     }
 
     InvariantsState result = from(edgeBasedAbstractionStrategy.addVisitedEdge(pEdge), assumptions, environment, useBitvectors,
-        newVariableSelection, collectedInterestingAssumptions, precision);
+        newVariableSelection, collectedInterestingAssumptions, precision, variableTypes);
     if (result != null) {
       if (!result.assumeInternal(assumption, evaluator)) { return null; }
       if (equalsState(result)) {
@@ -783,7 +817,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     BooleanFormulaManager bfmgr = pManager.getBooleanFormulaManager();
     BooleanFormula result = bfmgr.makeBoolean(true);
     ToFormulaVisitor<CompoundInterval, BooleanFormula> toBooleanFormulaVisitor =
-        ToBooleanFormulaVisitor.getVisitor(pManager, evaluationVisitor, useBitvectors, precision.getMachineModel());
+        ToBooleanFormulaVisitor.getVisitor(pManager, evaluationVisitor, useBitvectors, precision.getMachineModel(), variableTypes);
 
     final Predicate<String> acceptVariable = new Predicate<String>() {
 
@@ -1019,9 +1053,12 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
       VariableSelection<CompoundInterval> resultVariableSelection = element1.variableSelection.join(element2.variableSelection);
 
+      Map<String, CType> variableTypes = new HashMap<>(element1.variableTypes);
+      variableTypes.putAll(element2.variableTypes);
+
       result = InvariantsState.from(edgeBasedAbstractionStrategy, resultAssumptions,
           resultEnvironment, element1.getUseBitvectors(), resultVariableSelection,
-          collectedInterestingAssumptions, precision);
+          collectedInterestingAssumptions, precision, variableTypes);
 
       if (result != null) {
         if (result.equalsState(element1)) {

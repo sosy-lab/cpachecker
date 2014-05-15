@@ -54,31 +54,14 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
-import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
-import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
@@ -110,6 +93,7 @@ import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.edgeexclusion.EdgeExclusionPrecision;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState;
+import org.sosy_lab.cpachecker.cpa.invariants.InvariantsTransferRelation;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -139,7 +123,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
@@ -1431,7 +1414,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
             CFANode successor = leavingEdge.getSuccessor();
             if (loopNodes.contains(successor)) {
-              boolean variableIsInvolved = getInvolvedVariables(leavingEdge, variableClassification).contains(variable);
+              boolean variableIsInvolved = InvariantsTransferRelation.getInvolvedVariables(leavingEdge).keySet().contains(variable);
               boolean isAssumeEdge = leavingEdge.getEdgeType() == CFAEdgeType.AssumeEdge;
               if (!variableIsInvolved || isAssumeEdge) {
                 waitlist.add(successor);
@@ -1532,7 +1515,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           } else {
             boolean isInLoop = pLoop.getLoopNodes().contains(successor);
             boolean isBeforeLoopHead = isInLoop && !loopHeadReachedLocal;
-            Iterable<String> involvedVariables = getInvolvedVariables(leavingEdge, pVariableClassification);
+            Iterable<String> involvedVariables = InvariantsTransferRelation.getInvolvedVariables(leavingEdge).keySet();
             involvedVariables = from(involvedVariables).filter(not(in(pVariableClassification.getIrrelevantVariables())));
             if (isBeforeLoopHead && !isFreeOfSideEffects(leavingEdge)
                 || !isBeforeLoopHead && (Iterables.contains(involvedVariables, pVariable) && !(Iterables.all(involvedVariables, equalTo(pVariable)) && leavingEdge.getEdgeType() == CFAEdgeType.DeclarationEdge))) {
@@ -1585,150 +1568,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       return true;
     }
     return false;
-  }
-
-  /**
-   * Gets the variables involved in the given edge.
-   *
-   * @param pCfaEdge the edge to be analyzed.
-   * @param pVariableClassification the variable classification.
-   *
-   * @return the variables involved in the given edge.
-   */
-  private static Set<String> getInvolvedVariables(CFAEdge pCfaEdge, VariableClassification pVariableClassification) {
-    switch (pCfaEdge.getEdgeType()) {
-    case AssumeEdge: {
-      AssumeEdge assumeEdge = (AssumeEdge) pCfaEdge;
-      IAExpression expression = assumeEdge.getExpression();
-      return getInvolvedVariables(expression, pVariableClassification);
-    }
-    case MultiEdge: {
-      MultiEdge multiEdge = (MultiEdge) pCfaEdge;
-      ImmutableSet.Builder<String> builder = ImmutableSet.builder();
-      for (CFAEdge edge : multiEdge) {
-        builder.addAll(getInvolvedVariables(edge, pVariableClassification));
-      }
-      return builder.build();
-    }
-    case DeclarationEdge: {
-      ADeclarationEdge declarationEdge = (ADeclarationEdge) pCfaEdge;
-      IADeclaration declaration = declarationEdge.getDeclaration();
-      if (declaration instanceof AVariableDeclaration) {
-        AVariableDeclaration variableDeclaration = (AVariableDeclaration) declaration;
-        String declaredVariable = variableDeclaration.getQualifiedName();
-        IAInitializer initializer = variableDeclaration.getInitializer();
-        if (initializer == null) {
-          return Collections.singleton(declaredVariable);
-        }
-        ImmutableSet.Builder<String> builder = ImmutableSet.builder();
-        builder.add(declaredVariable);
-        if (initializer instanceof AInitializerExpression) {
-          builder.addAll(getInvolvedVariables(((AInitializerExpression) initializer).getExpression(), pVariableClassification));
-        } else if (initializer instanceof CInitializer) {
-          builder.addAll(getInvolvedVariables((CInitializer) initializer, pVariableClassification));
-        } else if (initializer instanceof JArrayInitializer) {
-          for (IAExpression expression : ((JArrayInitializer) initializer).getInitializerExpressions()) {
-            builder.addAll(getInvolvedVariables(expression, pVariableClassification));
-          }
-        }
-        return builder.build();
-      } else {
-        return Collections.emptySet();
-      }
-    }
-    case FunctionCallEdge: {
-      FunctionCallEdge functionCallEdge = (FunctionCallEdge) pCfaEdge;
-      ImmutableSet.Builder<String> builder = ImmutableSet.builder();
-      for (IAExpression argument : functionCallEdge.getArguments()) {
-        builder.addAll(getInvolvedVariables(argument, pVariableClassification));
-      }
-      for (IAExpression parameter : functionCallEdge.getSummaryEdge().getExpression().getFunctionCallExpression().getParameterExpressions()) {
-        builder.addAll(getInvolvedVariables(parameter, pVariableClassification));
-      }
-      return builder.build();
-    }
-    case ReturnStatementEdge: {
-      AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) pCfaEdge;
-      return getInvolvedVariables(returnStatementEdge.getExpression(), pVariableClassification);
-    }
-    case StatementEdge: {
-      AStatementEdge statementEdge = (AStatementEdge) pCfaEdge;
-      IAStatement statement = statementEdge.getStatement();
-      if (statement instanceof AExpressionAssignmentStatement) {
-        AExpressionAssignmentStatement expressionAssignmentStatement = (AExpressionAssignmentStatement) statement;
-        ImmutableSet.Builder<String> builder = ImmutableSet.builder();
-        builder.addAll(getInvolvedVariables(expressionAssignmentStatement.getLeftHandSide(), pVariableClassification));
-        builder.addAll(getInvolvedVariables(expressionAssignmentStatement.getRightHandSide(), pVariableClassification));
-        return builder.build();
-      } else if (statement instanceof AExpressionStatement) {
-        return getInvolvedVariables(((AExpressionStatement) statement).getExpression(), pVariableClassification);
-      } else if (statement instanceof AFunctionCallAssignmentStatement) {
-        AFunctionCallAssignmentStatement functionCallAssignmentStatement = (AFunctionCallAssignmentStatement) statement;
-        ImmutableSet.Builder<String> builder = ImmutableSet.builder();
-        builder.addAll(getInvolvedVariables(functionCallAssignmentStatement.getLeftHandSide(), pVariableClassification));
-        for (IAExpression expression : functionCallAssignmentStatement.getFunctionCallExpression().getParameterExpressions()) {
-          builder.addAll(getInvolvedVariables(expression, pVariableClassification));
-        }
-        return builder.build();
-      } else if (statement instanceof AFunctionCallStatement) {
-        AFunctionCallStatement functionCallStatement = (AFunctionCallStatement) statement;
-        ImmutableSet.Builder<String> builder = ImmutableSet.builder();
-        for (IAExpression expression : functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
-          builder.addAll(getInvolvedVariables(expression, pVariableClassification));
-        }
-        return builder.build();
-      } else {
-        return Collections.emptySet();
-      }
-    }
-    case BlankEdge:
-    case CallToReturnEdge:
-    case FunctionReturnEdge:
-    default:
-      return Collections.emptySet();
-    }
-  }
-
-  /**
-   * Gets the variables involved in the given CInitializer.
-   *
-   * @param pCInitializer the CInitializer to be analyzed.
-   * @param pVariableClassification the variable classification.
-   *
-   * @return the variables involved in the given CInitializer.
-   */
-  private static Set<String> getInvolvedVariables(CInitializer pCInitializer, VariableClassification pVariableClassification) {
-    if (pCInitializer instanceof CDesignatedInitializer) {
-      return getInvolvedVariables(((CDesignatedInitializer) pCInitializer).getRightHandSide(), pVariableClassification);
-    } else if (pCInitializer instanceof CInitializerExpression) {
-      return getInvolvedVariables(((CInitializerExpression) pCInitializer).getExpression(), pVariableClassification);
-    } else if (pCInitializer instanceof CInitializerList) {
-      CInitializerList initializerList = (CInitializerList) pCInitializer;
-      ImmutableSet.Builder<String> builder = ImmutableSet.builder();
-      for (CInitializer initializer : initializerList.getInitializers()) {
-        builder.addAll(getInvolvedVariables(initializer, pVariableClassification));
-      }
-      return builder.build();
-    }
-    return Collections.emptySet();
-  }
-
-  /**
-   * Gets the variables involved in the given expression.
-   *
-   * @param pExpression the expression to be analyzed.
-   * @param pVariableClassification the variable classification.
-   *
-   * @return the variables involved in the given expression.
-   */
-  private static Set<String> getInvolvedVariables(IAExpression pExpression, VariableClassification pVariableClassification) {
-    if (pExpression == null) {
-      return Collections.emptySet();
-    } if (pExpression instanceof CExpression) {
-      return pVariableClassification.getVariablesOfExpression((CExpression) pExpression);
-    } else {
-      throw new UnsupportedOperationException("VariableClassification only supports C expressions");
-    }
   }
 
 }

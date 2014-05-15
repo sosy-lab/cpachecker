@@ -28,6 +28,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
@@ -78,6 +79,8 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
 
   private MachineModel machineModel;
 
+  private Map<String, CType> variableTypes;
+
   /**
    * Creates a new visitor for converting compound state invariants formulae to
    * bit vector formulae by using the given formula manager,
@@ -89,13 +92,15 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
    * @param pEvaluationVisitor the formula evaluation visitor used to evaluate
    * compound state invariants formulae to compound states.
    * @param pMachineModel the machine model.
+   * @param pVariableTypes
    */
   ToBitvectorFormulaVisitor(FormulaManagerView pFmgr,
       ToFormulaVisitor<CompoundInterval, BooleanFormula> pToBooleanFormulaVisitor,
-      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor, MachineModel pMachineModel) {
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor, MachineModel pMachineModel, Map<String, CType> pVariableTypes) {
     this.bfmgr = pFmgr.getBooleanFormulaManager();
     this.bvfmgr = pFmgr.getBitvectorFormulaManager();
     this.machineModel = pMachineModel;
+    this.variableTypes = pVariableTypes;
     this.zero = makeLong(0);
     this.one = makeLong(1);
     this.toBooleanFormulaVisitor = pToBooleanFormulaVisitor;
@@ -107,7 +112,11 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
   }
 
   private BitvectorFormula makeLongVariable(String pVariableName) {
-    return this.bvfmgr.makeVariable(machineModel.getSizeofInt() * machineModel.getSizeofCharInBits(), pVariableName);
+    CType variableType = this.variableTypes.get(pVariableName);
+    if (variableType == null) {
+      return this.bvfmgr.makeVariable(machineModel.getSizeofInt() * machineModel.getSizeofCharInBits(), pVariableName);
+    }
+    return this.bvfmgr.makeVariable(machineModel.getSizeof(variableType) * machineModel.getSizeofCharInBits(), pVariableName);
   }
 
   /**
