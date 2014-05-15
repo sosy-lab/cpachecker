@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.octagon.coefficients;
 
 import org.sosy_lab.cpachecker.cpa.octagon.OctState;
 import org.sosy_lab.cpachecker.util.octagon.NumArray;
+import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
 public final class OctEmptyCoefficients extends AOctCoefficients {
 
@@ -55,7 +56,7 @@ public final class OctEmptyCoefficients extends AOctCoefficients {
   }
 
   @Override
-  public NumArray getNumArray() {
+  public NumArray getNumArray(OctagonManager manager) {
     return null;
   }
 }

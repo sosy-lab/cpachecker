@@ -23,17 +23,17 @@ fi
 echo "Compiling the C wrapper code and creating the \"libJOct_float.so\" library"
 
 # This will compile the JNI wrapper part, given the JNI and the octagon header files
-gcc -g -O2 $JNI_HEADERS -I$OCT_SRC_DIR -I$OCT_SRC_DIR/clib versions.c -DOCT_NUM_FLOAT -DOCT_PREFIX=CAT\(octfao_ org_sosy_lab_cpachecker_util_octagon_OctFloatWrapper.c -fPIC -c
+gcc -g -O2 $JNI_HEADERS -I$OCT_SRC_DIR -I$OCT_SRC_DIR/clib versions.c -DOCT_NUM_FLOAT -DOCT_PREFIX=CAT\(octfao_ org_sosy_lab_cpachecker_util_octagon_OctWrapper.c -fPIC -c
 
 # This will link together the file produced above, the octagon library, and the standard libraries.
 # Everything except the standard libraries is included statically.
 # The result is a shared library.
-gcc -Wall -g $LINK_OPT org_sosy_lab_cpachecker_util_octagon_OctFloatWrapper.o $OCT_LIB_DIR/*.o versions.o -lc -lm -Wl,--wrap=memcpy
+gcc -Wall -g $LINK_OPT org_sosy_lab_cpachecker_util_octagon_OctWrapper.o $OCT_LIB_DIR/*.o versions.o -lc -lm -Wl,--wrap=memcpy
 
 if [ $? -eq 0 ]; then
 	strip libJOct_float.so
 else
-	echo "There was a problem during compilation of \"org_sosy_lab_cpachecker_util_octagon_OctFloatWrapper.c\""
+	echo "There was a problem during compilation of \"org_sosy_lab_cpachecker_util_octagon_OctWrapper.c\""
 	exit 1
 fi
 

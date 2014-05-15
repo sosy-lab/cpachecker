@@ -290,27 +290,27 @@ public class OctIntervalCoefficients extends AOctCoefficients {
   }
 
   @Override
-  public NumArray getNumArray() {
-    NumArray arr = OctagonManager.init_num_t(coefficients.length);
+  public NumArray getNumArray(OctagonManager manager) {
+    NumArray arr = manager.init_num_t(coefficients.length);
     for (int i = 0; i < coefficients.length; i++) {
       if (i % 2 == 0) {
         if (isInfite[i]) {
-          OctagonManager.num_set_inf(arr, i);
+          manager.num_set_inf(arr, i);
         } else {
           if (coefficients[i].isFloat()) {
-            OctagonManager.num_set_float(arr, i, coefficients[i].getFloatVal().doubleValue());
+            manager.num_set_float(arr, i, coefficients[i].getFloatVal().doubleValue());
           } else {
-            OctagonManager.num_set_int(arr, i, coefficients[i].getIntVal().intValue());
+            manager.num_set_int(arr, i, coefficients[i].getIntVal().intValue());
           }
         }
       } else {
         if (isInfite[i]) {
-          OctagonManager.num_set_inf(arr, i);
+          manager.num_set_inf(arr, i);
         } else {
           if (coefficients[i].isFloat()) {
-            OctagonManager.num_set_float(arr, i, coefficients[i].getFloatVal().doubleValue()*-1);
+            manager.num_set_float(arr, i, coefficients[i].getFloatVal().doubleValue()*-1);
           } else {
-            OctagonManager.num_set_int(arr, i, coefficients[i].getIntVal().intValue()*-1);
+            manager.num_set_int(arr, i, coefficients[i].getIntVal().intValue()*-1);
           }
         }
       }

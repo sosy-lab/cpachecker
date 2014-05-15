@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.octagon.coefficients;
 
 import org.sosy_lab.cpachecker.cpa.octagon.OctState;
 import org.sosy_lab.cpachecker.util.octagon.NumArray;
+import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
 /**
  * Class for representing Coeffecients which show the value of a variable
@@ -35,7 +36,7 @@ public interface IOctCoefficients {
   /**
    * Creates a NumArray out of the coefficient array.
    */
-  NumArray getNumArray();
+  NumArray getNumArray(OctagonManager manager);
 
   /**
    * Returns the size of the coefficient list.

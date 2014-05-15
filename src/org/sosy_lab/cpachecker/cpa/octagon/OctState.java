@@ -131,6 +131,7 @@ public class OctState implements AbstractState {
 
   // the octagon representation
   private Octagon octagon;
+  private OctagonManager octagonManager;
   private final boolean handleFloats;
 
   // mapping from variable name to its identifier
@@ -141,8 +142,9 @@ public class OctState implements AbstractState {
   private LogManager logger;
 
   // also top element
-  public OctState(LogManager log, boolean pHandleFloats) {
-    octagon = OctagonManager.universe(0);
+  public OctState(LogManager log, boolean pHandleFloats, OctagonManager manager) {
+    octagon = manager.universe(0);
+    octagonManager = manager;
     variableToIndexMap = HashBiMap.create();
     variableToTypeMap = new HashMap<>();
     block = new Block();
@@ -155,6 +157,7 @@ public class OctState implements AbstractState {
 
   public OctState(Octagon oct, BiMap<String, Integer> map, Map<String, Type> typeMap, Block block, LogManager log, boolean pHandleFloats) {
     octagon = oct;
+    octagonManager = octagon.getManager();
     variableToIndexMap = map;
     variableToTypeMap = typeMap;
     this.block = block;
@@ -182,14 +185,14 @@ public class OctState implements AbstractState {
     // TODO loopstack
 
     if (variableToIndexMap.equals(state.variableToIndexMap)) {
-      return OctagonManager.isIncludedInLazy(octagon, state.octagon);
+      return octagon.getManager().isIncludedInLazy(octagon, state.octagon);
     } else {
       logger.log(Level.FINEST, "Removing some temporary (in the transferrelation)"
                  + " introduced variables from the octagon to compute #isLessOrEquals()");
 
       if (variableToIndexMap.entrySet().containsAll(state.variableToIndexMap.entrySet())) {
         Pair<OctState, OctState> checkStates = shrinkToFittingSize(state);
-        return OctagonManager.isIncludedInLazy(checkStates.getFirst().octagon, checkStates.getSecond().octagon);
+        return octagon.getManager().isIncludedInLazy(checkStates.getFirst().octagon, checkStates.getSecond().octagon);
       } else {
         return 2;
       }
@@ -223,7 +226,7 @@ public class OctState implements AbstractState {
       for (int i = variableToIndexMap.size()-1; i > maxEqualIndex; i--) {
         newTypeMap1.remove(newMap1.inverse().remove(i));
       }
-      Octagon newOct1 = OctagonManager.removeDimension(octagon, variableToIndexMap.size()-(maxEqualIndex+1));
+      Octagon newOct1 = octagonManager.removeDimension(octagon, variableToIndexMap.size()-(maxEqualIndex+1));
       newState1 =  new OctState(newOct1, newMap1, newTypeMap1, block, logger, handleFloats);
     } else {
       newState1 = this;
@@ -236,7 +239,7 @@ public class OctState implements AbstractState {
       for (int i = oct.variableToIndexMap.size()-1; i > maxEqualIndex; i--) {
         newTypeMap2.remove(newMap2.inverse().remove(i));
       }
-      Octagon newOct2 =  OctagonManager.removeDimension(oct.octagon, oct.variableToIndexMap.size()-(maxEqualIndex+1));
+      Octagon newOct2 =  octagonManager.removeDimension(oct.octagon, oct.variableToIndexMap.size()-(maxEqualIndex+1));
       newState2 = new OctState(newOct2, newMap2, newTypeMap2, block, logger, handleFloats);
     } else {
       newState2 = oct;
@@ -265,7 +268,7 @@ public class OctState implements AbstractState {
 
   @Override
   public String toString() {
-    return OctagonManager.print(octagon, variableToIndexMap.inverse());
+    return octagonManager.print(octagon, variableToIndexMap.inverse());
   }
 
   public Octagon getOctagon() {
@@ -285,7 +288,7 @@ public class OctState implements AbstractState {
   }
 
   public boolean isEmpty() {
-    return OctagonManager.isEmpty(octagon);
+    return octagonManager.isEmpty(octagon);
   }
 
   /**
@@ -298,7 +301,7 @@ public class OctState implements AbstractState {
       return this;
     }
 
-    return new OctState(OctagonManager.forget(octagon, varIdx),
+    return new OctState(octagonManager.forget(octagon, varIdx),
                         HashBiMap.create(variableToIndexMap),
                         new HashMap<>(variableToTypeMap),
                         block,
@@ -323,7 +326,7 @@ public class OctState implements AbstractState {
 
   public OctState declareVariable(String varName, Type type) {
     assert !variableToIndexMap.containsKey(varName);
-    OctState newState = new OctState(OctagonManager.addDimensionAndEmbed(octagon, 1),
+    OctState newState = new OctState(octagonManager.addDimensionAndEmbed(octagon, 1),
                                      HashBiMap.create(variableToIndexMap),
                                      new HashMap<>(variableToTypeMap),
                                      block,
@@ -358,20 +361,20 @@ public class OctState implements AbstractState {
       return this;
     }
 
-    NumArray arr = oct.getNumArray();
+    NumArray arr = oct.getNumArray(octagonManager);
     int varIdx = getVariableIndexFor(leftVarName);
 
     if (varIdx == -1) {
       return this;
     }
 
-    OctState newState = new OctState(OctagonManager.assingVar(octagon, varIdx, arr),
+    OctState newState = new OctState(octagonManager.assingVar(octagon, varIdx, arr),
                                      HashBiMap.create(variableToIndexMap),
                                      new HashMap<>(variableToTypeMap),
                                      block,
                                      logger,
                                      handleFloats);
-    OctagonManager.num_clear_n(arr, oct.size());
+    octagonManager.num_clear_n(arr, oct.size());
     return newState;
   }
 
@@ -386,20 +389,20 @@ public class OctState implements AbstractState {
       return this;
     }
 
-    NumArray arr = oct.getNumArray();
+    NumArray arr = oct.getNumArray(octagonManager);
     int varIdx = getVariableIndexFor(leftVarName);
 
     if (varIdx == -1) {
       return this;
     }
 
-    OctState newState = new OctState(OctagonManager.intervAssingVar(octagon, varIdx, arr),
+    OctState newState = new OctState(octagonManager.intervAssingVar(octagon, varIdx, arr),
                                      HashBiMap.create(variableToIndexMap),
                                      new HashMap<>(variableToTypeMap),
                                      block,
                                      logger,
                                      handleFloats);
-    OctagonManager.num_clear_n(arr, oct.size());
+    octagonManager.num_clear_n(arr, oct.size());
     return newState;
   }
 
@@ -407,23 +410,23 @@ public class OctState implements AbstractState {
    * Helper method for all addXXXXConstraint methods
    */
   private OctState addConstraint(BinaryConstraints cons, int leftIndex, int rightIndex, OctNumericValue constantValue) {
-    NumArray arr = OctagonManager.init_num_t(4);
-    OctagonManager.num_set_int(arr, 0, cons.getNumber());
-    OctagonManager.num_set_int(arr, 1, leftIndex);
-    OctagonManager.num_set_int(arr, 2, rightIndex);
+    NumArray arr = octagonManager.init_num_t(4);
+    octagonManager.num_set_int(arr, 0, cons.getNumber());
+    octagonManager.num_set_int(arr, 1, leftIndex);
+    octagonManager.num_set_int(arr, 2, rightIndex);
     if (constantValue.isFloat()) {
-      OctagonManager.num_set_float(arr, 3, constantValue.getFloatVal().doubleValue());
+      octagonManager.num_set_float(arr, 3, constantValue.getFloatVal().doubleValue());
     } else {
-      OctagonManager.num_set_int(arr, 3, (int) constantValue.getIntVal().longValue());
+      octagonManager.num_set_int(arr, 3, (int) constantValue.getIntVal().longValue());
     }
 
-    OctState newState = new OctState(OctagonManager.addBinConstraint(octagon, 1, arr),
+    OctState newState = new OctState(octagonManager.addBinConstraint(octagon, 1, arr),
                                      HashBiMap.create(variableToIndexMap),
                                      new HashMap<>(variableToTypeMap),
                                      block,
                                      logger,
                                      handleFloats);
-    OctagonManager.num_clear_n(arr, 4);
+    octagonManager.num_clear_n(arr, 4);
     return newState;
   }
 
@@ -490,7 +493,7 @@ public class OctState implements AbstractState {
       if (addGreaterEqConstraint(pRightVariableName, pLeftVariableName).isEmpty()) {
         return addSmallerEqConstraint(pRightVariableName, pLeftVariableName);
       } else {
-        return new OctState(OctagonManager.empty(variableToIndexMap.size()),
+        return new OctState(octagonManager.empty(variableToIndexMap.size()),
                             HashBiMap.create(variableToIndexMap),
                             new HashMap<>(variableToTypeMap),
                             block, logger, handleFloats);
@@ -521,7 +524,7 @@ public class OctState implements AbstractState {
       if (addGreaterEqConstraint(pVariableName, pValueOfLiteral).isEmpty()) {
         return addSmallerEqConstraint(pVariableName, pValueOfLiteral);
       } else {
-        return new OctState(OctagonManager.empty(variableToIndexMap.size()),
+        return new OctState(octagonManager.empty(variableToIndexMap.size()),
                             HashBiMap.create(variableToIndexMap),
                             new HashMap<>(variableToTypeMap),
                             block, logger, handleFloats);
@@ -542,7 +545,7 @@ public class OctState implements AbstractState {
       if (addGreaterEqConstraint(pVariableName, oct).isEmpty()) {
         return addSmallerEqConstraint(pVariableName, oct);
       } else {
-        return new OctState(OctagonManager.empty(variableToIndexMap.size()),
+        return new OctState(octagonManager.empty(variableToIndexMap.size()),
                             HashBiMap.create(variableToIndexMap),
                             new HashMap<>(variableToTypeMap),
                             block, logger, handleFloats);
@@ -623,7 +626,7 @@ public class OctState implements AbstractState {
       if (addSmallerEqConstraint(pRightVariableName, pLeftVariableName).isEmpty()) {
         return addGreaterEqConstraint(pRightVariableName, pLeftVariableName);
       } else {
-        return new OctState(OctagonManager.empty(variableToIndexMap.size()),
+        return new OctState(octagonManager.empty(variableToIndexMap.size()),
                             HashBiMap.create(variableToIndexMap),
                             new HashMap<>(variableToTypeMap),
                             block, logger, handleFloats);
@@ -654,7 +657,7 @@ public class OctState implements AbstractState {
       if (addSmallerEqConstraint(pVariableName, pValueOfLiteral).isEmpty()) {
         return addGreaterEqConstraint(pVariableName, pValueOfLiteral);
       } else {
-        return new OctState(OctagonManager.empty(variableToIndexMap.size()),
+        return new OctState(octagonManager.empty(variableToIndexMap.size()),
                             HashBiMap.create(variableToIndexMap),
                             new HashMap<>(variableToTypeMap),
                             block, logger, handleFloats);
@@ -675,7 +678,7 @@ public class OctState implements AbstractState {
       if (addSmallerEqConstraint(pVariableName, oct).isEmpty()) {
         return addGreaterEqConstraint(pVariableName, oct);
       } else {
-        return new OctState(OctagonManager.empty(variableToIndexMap.size()),
+        return new OctState(octagonManager.empty(variableToIndexMap.size()),
                             HashBiMap.create(variableToIndexMap),
                             new HashMap<>(variableToTypeMap),
                             block, logger, handleFloats);
@@ -752,7 +755,7 @@ public class OctState implements AbstractState {
   }
 
   public OctState intersect(OctState other) {
-    return new OctState(OctagonManager.intersection(octagon, other.octagon),
+    return new OctState(octagonManager.intersection(octagon, other.octagon),
                         HashBiMap.create(variableToIndexMap),
                         new HashMap<>(variableToTypeMap),
                         block,
@@ -768,10 +771,10 @@ public class OctState implements AbstractState {
     return removeVars(functionName, "");
   }
 
-  public Map<String, Pair<Long, Long>> getVariablesWithBounds() {
-    Map<String, Pair<Long, Long>> vars = new HashMap<>();
+  public Map<String, Pair<OctNumericValue, OctNumericValue>> getVariablesWithBounds() {
+    Map<String, Pair<OctNumericValue, OctNumericValue>> vars = new HashMap<>();
     for (String varName : variableToIndexMap.keySet()) {
-      vars.put(varName, OctagonManager.getVariableBounds(octagon, getVariableIndexFor(varName)));
+      vars.put(varName, octagonManager.getVariableBounds(octagon, getVariableIndexFor(varName)));
     }
     return vars;
   }
@@ -788,7 +791,7 @@ public class OctState implements AbstractState {
       return this;
     }
 
-    OctState newState = new OctState(OctagonManager.removeDimension(octagon, keysToRemove.size()),
+    OctState newState = new OctState(octagonManager.removeDimension(octagon, keysToRemove.size()),
                                      HashBiMap.create(variableToIndexMap),
                                      new HashMap<>(variableToTypeMap),
                                      block,
@@ -800,7 +803,7 @@ public class OctState implements AbstractState {
     for (int i = 0; i < newState.variableToIndexMap.size(); i++) {
       assert newState.variableToIndexMap.inverse().get(i) != null;
     }
-    assert OctagonManager.dimension(newState.octagon) == newState.sizeOfVariables();
+    assert octagonManager.dimension(newState.octagon) == newState.sizeOfVariables();
     return newState;
   }
 }

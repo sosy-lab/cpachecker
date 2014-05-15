@@ -34,7 +34,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.octagon.Octagon;
-import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
 class OctDomain implements AbstractDomain {
 
@@ -69,7 +68,7 @@ class OctDomain implements AbstractDomain {
       return false;
     } else {
       assert (result == 3);
-      boolean included = OctagonManager.isIncludedIn(octState1.getOctagon(), octState2.getOctagon());
+      boolean included = octState1.getOctagon().getManager().isIncludedIn(octState1.getOctagon(), octState2.getOctagon());
       if (included) {
         Set<OctState> s;
         if (covers.containsKey(octState2)) {
@@ -88,7 +87,8 @@ class OctDomain implements AbstractDomain {
   @Override
   public AbstractState join(AbstractState successor, AbstractState reached) {
     Pair<OctState, OctState> shrinkedStates = getShrinkedStates((OctState)successor, (OctState)reached);
-    Octagon newOctagon = OctagonManager.union(shrinkedStates.getFirst().getOctagon(), shrinkedStates.getSecond().getOctagon());
+    Octagon newOctagon = shrinkedStates.getFirst().getOctagon().getManager()
+                           .union(shrinkedStates.getFirst().getOctagon(), shrinkedStates.getSecond().getOctagon());
 
     OctState newState = new OctState(newOctagon,
                                      shrinkedStates.getFirst().getVariableToIndexMap(),
@@ -109,7 +109,8 @@ class OctDomain implements AbstractDomain {
     successorOct = shrinkedStates.getFirst();
     reachedOct = shrinkedStates.getSecond();
 
-    Octagon newOctagon = OctagonManager.widening(reachedOct.getOctagon(), successorOct.getOctagon());
+    Octagon newOctagon = reachedOct.getOctagon().getManager()
+                            .widening(reachedOct.getOctagon(), successorOct.getOctagon());
 
     OctState newState = new OctState(newOctagon,
                                      successorOct.getVariableToIndexMap(),

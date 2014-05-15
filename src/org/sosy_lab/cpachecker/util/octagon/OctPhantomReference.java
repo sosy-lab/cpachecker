@@ -29,13 +29,15 @@ import java.lang.ref.ReferenceQueue;
 public class OctPhantomReference extends PhantomReference<Octagon> {
 
   private Long octRef;
+  private OctagonManager manager;
 
   public OctPhantomReference(Octagon reference, ReferenceQueue<? super Octagon> queue) {
     super(reference, queue);
     octRef = reference.getOctId();
+    manager = reference.getManager();
   }
 
   public void cleanup() {
-    OctagonManager.free(octRef);
+    manager.free(octRef);
   }
 }

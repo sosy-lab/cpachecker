@@ -791,9 +791,9 @@ cpa.monitor.limit = 0
 # or specify a unit; 0 for infinite)
 cpa.monitor.pathcomputationlimit = 0
 
-# with this option one can toggle the ability of handling floats note that
-# this does some over-approximation if the wrong underlying numerical domain
-# in the library is chosen
+# with this option the evaluation of float variables can be toggled.
+# Additionally the used number representation in the library will be changed
+# between floats and ints.
 cpa.octagon.handleFloats = false
 
 # whether or not to use use-definition information from the error pathsto
@@ -803,11 +803,6 @@ cpa.octagon.interpolation.applyUseDefInformation = true
 # whether or not to ignore the semantics of loop-leaving-assume-edges during
 # interpolation - this avoids to have loop-counters in the interpolant
 cpa.octagon.interpolation.ignoreLoopsExitAssumes = true
-
-# with this option the used number representation in the library can be
-# changed between floats and ints. Default is int
-cpa.octagon.library = "INT"
-  allowed values: [INT, FLOAT]
 
 # which merge operator to use for OctagonCPA?
 cpa.octagon.merge = "SEP"
