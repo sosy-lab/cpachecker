@@ -624,7 +624,9 @@ public class AssignmentToEdgeAllocator {
 
         CType realType = ((CElaboratedType) ownerType).getRealType();
 
-        if (realType == null) { return null; }
+        if (realType == null) {
+          return null;
+        }
 
         return getFieldOffset(realType.getCanonicalType(), fieldName);
       } else if (ownerType instanceof CCompositeType) {
@@ -1354,7 +1356,7 @@ public class AssignmentToEdgeAllocator {
       @Override
       public Void visit(CElaboratedType pT) throws RuntimeException {
 
-        CType realType = pT.getCanonicalType();
+        CType realType = pT.getRealType();
 
         if (realType == null) {
           return null;
