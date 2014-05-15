@@ -141,10 +141,10 @@ public class CEXExporter {
   /**
    * Export an Error Trace in different formats, for example as C-file, dot-file or automaton.
    *
-   * @param pTargetState state of an ARG, used as fallback, if pCounterexampleInfo does not contains a targetPath.
+   * @param pTargetState state of an ARG, used as fallback, if pCounterexampleInfo contains no targetPath.
    * @param pCounterexampleInfo contains further information and the (optional) targetPath.
-   *                            If the targetPath is available,it will be used for the output.
-   *                            Otherwise we use all backwards reachable states from pTargetState.
+   *                            If the targetPath is available, it will be used for the output.
+   *                            Otherwise we use backwards reachable states from pTargetState.
    * @param cexIndex should be a unique index for the CEX and will be used to enumerate files.
    * @param allTargetPathEdges can be used to collect edges. All targetPath-edges are added to it.
    * @param reallyWriteToDisk enable/disable output to files.
