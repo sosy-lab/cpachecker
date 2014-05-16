@@ -35,6 +35,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -42,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.strategy.PCCStrategyBuilder;
+import org.sosy_lab.cpachecker.util.error.DummyErrorState;
 
 @Options
 public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
@@ -128,6 +130,10 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
     stats.totalTimer.stop();
     logger.log(Level.INFO, "Proof check algorithm finished.");
+
+    if (!result) {
+      reachedSet.add(new DummyErrorState(reachedSet.getFirstState()), SingletonPrecision.getInstance());
+    }
 
     return result;
   }
