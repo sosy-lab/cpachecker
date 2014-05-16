@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import java.math.BigInteger;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -50,7 +51,7 @@ public class ToNumeralFormulaVisitor<T extends NumeralFormula> implements ToForm
   /**
    * The rational formula manager used.
    */
-  private final NumeralFormulaManager<? super T, T> nfmgr;
+  private final NumeralFormulaManager<? super T, ? extends T> nfmgr;
 
   /**
    * The rational formula representing the value zero.
@@ -87,7 +88,7 @@ public class ToNumeralFormulaVisitor<T extends NumeralFormula> implements ToForm
    * compound state invariants formulae to compound states.
    */
   ToNumeralFormulaVisitor(FormulaManagerView pFmgr,
-      NumeralFormulaManager<? super T, T> pNumeralFormualManager,
+      NumeralFormulaManager<? super T, ? extends T> pNumeralFormualManager,
       ToFormulaVisitor<CompoundInterval, BooleanFormula> pToBooleanFormulaVisitor,
       FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
     this.bfmgr = pFmgr.getBooleanFormulaManager();
@@ -264,16 +265,6 @@ public class ToNumeralFormulaVisitor<T extends NumeralFormula> implements ToForm
   }
 
   @Override
-  public T getZero() {
-    return zero;
-  }
-
-  @Override
-  public T getOne() {
-    return one;
-  }
-
-  @Override
   public BooleanFormula lessThan(T pOp1, T pOp2) {
     return this.nfmgr.lessThan(pOp1, pOp2);
   }
@@ -296,6 +287,11 @@ public class ToNumeralFormulaVisitor<T extends NumeralFormula> implements ToForm
   @Override
   public BooleanFormula greaterOrEqual(T pOp1, T pOp2) {
     return this.nfmgr.greaterOrEquals(pOp1, pOp2);
+  }
+
+  @Override
+  public BooleanFormula asBoolean(T pOp1) {
+    return this.bfmgr.not(this.nfmgr.equal(pOp1, this.nfmgr.makeNumber(BigInteger.ZERO)));
   }
 
 }
