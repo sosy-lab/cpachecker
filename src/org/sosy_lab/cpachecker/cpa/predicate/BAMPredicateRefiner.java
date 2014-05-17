@@ -30,6 +30,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.io.PrintStream;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
@@ -76,7 +77,6 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManage
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 
 
 /**
@@ -205,48 +205,48 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
     private List<BooleanFormula> computeBlockFormulas(ARGState pRoot) throws CPATransferException, InterruptedException {
 
       Map<ARGState, PathFormula> formulas = new HashMap<>();
-      List<BooleanFormula> abstractionFormulas = Lists.newArrayList();
+      List<BooleanFormula> abstractionFormulas = new ArrayList<>();
       Deque<ARGState> todo = new ArrayDeque<>();
 
       // initialize
-      assert pRoot.getParents().isEmpty();
+      assert pRoot.getParents().isEmpty() : "rootState must be the first state of the program";
       formulas.put(pRoot, pfmgr.makeEmptyPathFormula());
       todo.addAll(pRoot.getChildren());
 
       // iterate over all elements in the ARG with BFS
-      outer: while (!todo.isEmpty()) {
+      while (!todo.isEmpty()) {
         ARGState currentElement = todo.pollFirst();
         if (formulas.containsKey(currentElement)) {
           continue; // already handled
         }
 
+        if (!formulas.keySet().containsAll(currentElement.getParents())) {
+          // parent not handled yet, re-queue current element and wait for all parents
+          todo.addLast(currentElement);
+          continue;
+        }
+
         // collect formulas for current location
-        List<PathFormula> currentFormulas = Lists.newArrayListWithExpectedSize(currentElement.getParents().size());
+        List<PathFormula> currentFormulas = new ArrayList<>(currentElement.getParents().size());
         for (ARGState parentElement : currentElement.getParents()) {
           PathFormula parentFormula = formulas.get(parentElement);
-          if (parentFormula == null) {
-            // parent not handled yet, re-queue current element
-            todo.addLast(currentElement);
-            continue outer;
-
-          } else {
-            CFAEdge edge = parentElement.getEdgeToChild(currentElement);
-            PathFormula currentFormula = pfmgr.makeAnd(parentFormula, edge);
-            currentFormulas.add(currentFormula);
-          }
+          CFAEdge edge = parentElement.getEdgeToChild(currentElement);
+          PathFormula currentFormula = pfmgr.makeAnd(parentFormula, edge);
+          currentFormulas.add(currentFormula);
         }
-        assert currentFormulas.size() >= 1;
+        assert currentFormulas.size() >= 1 : "each state except root must have parents";
 
         PredicateAbstractState predicateElement = extractStateByType(currentElement, PredicateAbstractState.class);
         if (predicateElement.isAbstractionState()) {
-          // abstraction element
-          PathFormula currentFormula = getOnlyElement(currentFormulas);
-          abstractionFormulas.add(currentFormula.getFormula());
+          // abstraction element is the start of a new part of the ARG
 
-          // start new block with empty formula
-          assert todo.isEmpty() : "todo should be empty because of the special ARG structure";
+          assert todo.isEmpty() : "todo should be empty, because of the special ARG structure";
+          assert currentElement.getParents().size() == 1 : "there should be only one parent, because of the special ARG structure";
           formulas.clear(); // free some memory
 
+          // start new block with empty formula
+          PathFormula currentFormula = getOnlyElement(currentFormulas);
+          abstractionFormulas.add(currentFormula.getFormula());
           formulas.put(currentElement, pfmgr.makeEmptyPathFormula(currentFormula));
 
         } else {
