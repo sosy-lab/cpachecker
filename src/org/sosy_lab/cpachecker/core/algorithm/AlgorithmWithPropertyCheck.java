@@ -27,14 +27,13 @@ import java.util.Collection;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.error.DummyErrorState;
 
 
 public class AlgorithmWithPropertyCheck implements Algorithm, StatisticsProvider {
@@ -77,30 +76,4 @@ public class AlgorithmWithPropertyCheck implements Algorithm, StatisticsProvider
       ((StatisticsProvider) analysis).collectStatistics(pStatsCollection);
     }
   }
-
-  private static class DummyErrorState extends  AbstractSingleWrapperState {
-
-
-    private static final long serialVersionUID = 1338393013733003150L;
-
-    public DummyErrorState(final AbstractState pWrapped){
-      super(pWrapped);
-    }
-
-    @Override
-    public boolean isTarget() {
-      return true;
-    }
-
-    @Override
-    public ViolatedProperty getViolatedProperty() throws IllegalStateException {
-      return ViolatedProperty.OTHER;
-    }
-
-    @Override
-    public Object getPartitionKey() {
-      return null;
-    }
-  }
-
 }

@@ -110,7 +110,7 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
     this.config = config;
     this.shutdownNotifier = shutdownNotifier;
     this.cfa = cfa;
-    precision = new OctPrecision(config);
+    precision = new OctPrecision(config, handleFloats);
   }
 
   public OctagonManager getManager() {

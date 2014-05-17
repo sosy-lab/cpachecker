@@ -21,25 +21,33 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.invariants.formula;
+package org.sosy_lab.cpachecker.util.error;
 
-import java.util.Map;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+
+public class DummyErrorState extends AbstractSingleWrapperState {
 
 
-public interface ToFormulaVisitor<ConstantType, FormulaType> extends ParameterizedInvariantsFormulaVisitor<ConstantType, Map<? extends String, ? extends InvariantsFormula<ConstantType>>, FormulaType> {
+  private static final long serialVersionUID = 1338393013733003150L;
 
-  BooleanFormula asBoolean(FormulaType op1);
+  public DummyErrorState(final AbstractState pWrapped) {
+    super(pWrapped);
+  }
 
-  BooleanFormula lessThan(FormulaType op1, FormulaType op2);
+  @Override
+  public boolean isTarget() {
+    return true;
+  }
 
-  BooleanFormula equal(FormulaType op1, FormulaType op2);
+  @Override
+  public ViolatedProperty getViolatedProperty() throws IllegalStateException {
+    return ViolatedProperty.OTHER;
+  }
 
-  BooleanFormula greaterThan(FormulaType op1, FormulaType op2);
-
-  BooleanFormula lessOrEqual(FormulaType op1, FormulaType op2);
-
-  BooleanFormula greaterOrEqual(FormulaType op1, FormulaType op2);
-
+  @Override
+  public Object getPartitionKey() {
+    return null;
+  }
 }

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -33,17 +34,31 @@ import java.util.Map.Entry;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -51,7 +66,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -113,7 +134,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
   }
 
   private InvariantsState getSuccessor(CFAEdge pEdge, InvariantsPrecision pPrecision, InvariantsState pState) throws UnrecognizedCFAEdgeException, UnrecognizedCCodeException {
-    InvariantsState element = pState;
+    InvariantsState element = pState.setTypes(getInvolvedVariables(pEdge));
     switch (pEdge.getEdgeType()) {
     case BlankEdge:
       break;
@@ -537,5 +558,164 @@ public enum InvariantsTransferRelation implements TransferRelation {
 
   private static boolean hasMoreThanNElements(Iterable<?> pIterable, int pN) {
     return !Iterables.isEmpty(Iterables.skip(pIterable, pN));
+  }
+
+  /**
+   * Gets the variables involved in the given edge.
+   *
+   * @param pCfaEdge the edge to be analyzed.
+   * @param pVariableClassification the variable classification.
+   *
+   * @return the variables involved in the given edge.
+   */
+  public static Map<String, CType> getInvolvedVariables(CFAEdge pCfaEdge) {
+    switch (pCfaEdge.getEdgeType()) {
+    case AssumeEdge: {
+      AssumeEdge assumeEdge = (AssumeEdge) pCfaEdge;
+      IAExpression expression = assumeEdge.getExpression();
+      return getInvolvedVariables(expression);
+    }
+    case MultiEdge: {
+      MultiEdge multiEdge = (MultiEdge) pCfaEdge;
+      Map<String, CType> result = new HashMap<>();
+      for (CFAEdge edge : multiEdge) {
+        result.putAll(getInvolvedVariables(edge));
+      }
+      return result;
+    }
+    case DeclarationEdge: {
+      ADeclarationEdge declarationEdge = (ADeclarationEdge) pCfaEdge;
+      IADeclaration declaration = declarationEdge.getDeclaration();
+      if (declaration instanceof AVariableDeclaration) {
+        AVariableDeclaration variableDeclaration = (AVariableDeclaration) declaration;
+        String declaredVariable = variableDeclaration.getQualifiedName();
+        CType type;
+        if (variableDeclaration instanceof CVariableDeclaration) {
+          type = ((CVariableDeclaration) variableDeclaration).getType();
+        } else {
+          throw new UnsupportedOperationException("Only C expressions are supported");
+        }
+        IAInitializer initializer = variableDeclaration.getInitializer();
+        if (initializer == null) {
+          return Collections.singletonMap(declaredVariable, type);
+        }
+        Map<String, CType> result = new HashMap<>();
+        result.put(declaredVariable, type);
+        if (initializer instanceof AInitializerExpression) {
+          result.putAll(getInvolvedVariables(((AInitializerExpression) initializer).getExpression()));
+        } else if (initializer instanceof CInitializer) {
+          result.putAll(getInvolvedVariables((CInitializer) initializer));
+        } else if (initializer instanceof JArrayInitializer) {
+          for (IAExpression expression : ((JArrayInitializer) initializer).getInitializerExpressions()) {
+            result.putAll(getInvolvedVariables(expression));
+          }
+        }
+        return result;
+      } else {
+        return Collections.emptyMap();
+      }
+    }
+    case FunctionCallEdge: {
+      FunctionCallEdge functionCallEdge = (FunctionCallEdge) pCfaEdge;
+      Map<String, CType> result = new HashMap<>();
+      for (IAExpression argument : functionCallEdge.getArguments()) {
+        result.putAll(getInvolvedVariables(argument));
+      }
+      for (IAExpression parameter : functionCallEdge.getSummaryEdge().getExpression().getFunctionCallExpression().getParameterExpressions()) {
+        result.putAll(getInvolvedVariables(parameter));
+      }
+      return result;
+    }
+    case ReturnStatementEdge: {
+      AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) pCfaEdge;
+      return getInvolvedVariables(returnStatementEdge.getExpression());
+    }
+    case StatementEdge: {
+      AStatementEdge statementEdge = (AStatementEdge) pCfaEdge;
+      IAStatement statement = statementEdge.getStatement();
+      if (statement instanceof AExpressionAssignmentStatement) {
+        AExpressionAssignmentStatement expressionAssignmentStatement = (AExpressionAssignmentStatement) statement;
+        Map<String, CType> result = new HashMap<>();
+        result.putAll(getInvolvedVariables(expressionAssignmentStatement.getLeftHandSide()));
+        result.putAll(getInvolvedVariables(expressionAssignmentStatement.getRightHandSide()));
+        return result;
+      } else if (statement instanceof AExpressionStatement) {
+        return getInvolvedVariables(((AExpressionStatement) statement).getExpression());
+      } else if (statement instanceof AFunctionCallAssignmentStatement) {
+        AFunctionCallAssignmentStatement functionCallAssignmentStatement = (AFunctionCallAssignmentStatement) statement;
+        Map<String, CType> result = new HashMap<>();
+        result.putAll(getInvolvedVariables(functionCallAssignmentStatement.getLeftHandSide()));
+        for (IAExpression expression : functionCallAssignmentStatement.getFunctionCallExpression().getParameterExpressions()) {
+          result.putAll(getInvolvedVariables(expression));
+        }
+        return result;
+      } else if (statement instanceof AFunctionCallStatement) {
+        AFunctionCallStatement functionCallStatement = (AFunctionCallStatement) statement;
+        Map<String, CType> result = new HashMap<>();
+        for (IAExpression expression : functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
+          result.putAll(getInvolvedVariables(expression));
+        }
+        return result;
+      } else {
+        return Collections.emptyMap();
+      }
+    }
+    case BlankEdge:
+    case CallToReturnEdge:
+    case FunctionReturnEdge:
+    default:
+      return Collections.emptyMap();
+    }
+  }
+
+  /**
+   * Gets the variables involved in the given CInitializer.
+   *
+   * @param pCInitializer the CInitializer to be analyzed.
+   * @param pVariableClassification the variable classification.
+   *
+   * @return the variables involved in the given CInitializer.
+   */
+  private static Map<String, CType> getInvolvedVariables(CInitializer pCInitializer) {
+    if (pCInitializer instanceof CDesignatedInitializer) {
+      return getInvolvedVariables(((CDesignatedInitializer) pCInitializer).getRightHandSide());
+    } else if (pCInitializer instanceof CInitializerExpression) {
+      return getInvolvedVariables(((CInitializerExpression) pCInitializer).getExpression());
+    } else if (pCInitializer instanceof CInitializerList) {
+      CInitializerList initializerList = (CInitializerList) pCInitializer;
+      Map<String, CType> result = new HashMap<>();
+      for (CInitializer initializer : initializerList.getInitializers()) {
+        result.putAll(getInvolvedVariables(initializer));
+      }
+      return result;
+    }
+    return Collections.emptyMap();
+  }
+
+  /**
+   * Gets the variables involved in the given expression.
+   *
+   * @param pExpression the expression to be analyzed.
+   * @param pVariableClassification the variable classification.
+   *
+   * @return the variables involved in the given expression.
+   */
+  private static Map<String, CType> getInvolvedVariables(IAExpression pExpression) {
+    if (pExpression == null) {
+      return Collections.emptyMap();
+    } if (pExpression instanceof CExpression) {
+      Map<String, CType> result = new HashMap<>();
+      CIdExpressionCollectorVisitor collector = new CIdExpressionCollectorVisitor();
+
+      ((CExpression) pExpression).accept(collector);
+
+      for (CIdExpression id : collector.getReferencedIdExpressions()) {
+        String assignToVar = id.getDeclaration().getQualifiedName();
+        result.put(assignToVar, id.getExpressionType());
+      }
+      return result;
+    } else {
+      throw new UnsupportedOperationException("Only C expressions are supported");
+    }
   }
 }

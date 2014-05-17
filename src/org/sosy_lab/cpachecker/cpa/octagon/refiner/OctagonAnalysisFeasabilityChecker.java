@@ -70,7 +70,7 @@ public class OctagonAnalysisFeasabilityChecker {
 
     // use a new configuration which only has the default values for the precision
     // we do not want any special options to be set there
-    foundPath = getInfeasiblePrefix(new OctPrecision(Configuration.defaultConfiguration()),
+    foundPath = getInfeasiblePrefix(new OctPrecision(Configuration.defaultConfiguration(), cpa.handleFloats()),
                                     new OctState(logger, cpa.handleFloats(), cpa.getManager()));
   }
 

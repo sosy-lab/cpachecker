@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.octagon;
 
 import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.Iterables.filter;
-import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -470,7 +469,8 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
     if (var instanceof CArraySubscriptExpression
         || var instanceof CFieldReference
         || var instanceof CPointerExpression
-        || (!handleFloats && var instanceof CFloatLiteralExpression)) {
+        || (!handleFloats && var instanceof CFloatLiteralExpression)
+        || (var instanceof CFieldReference && ((CFieldReference)var).isPointerDereference())) {
       return false;
     }
     return isHandleAbleType(var.getExpressionType());
@@ -483,10 +483,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
     }
     if (type instanceof CPointerType
         || type instanceof CCompositeType
-        || type instanceof CArrayType
-        || (!handleFloats && type instanceof CSimpleType
-                          && (((CSimpleType)type).getType() == FLOAT
-                                 || ((CSimpleType)type).getType() == DOUBLE))) {
+        || type instanceof CArrayType) {
       return false;
     }
 
@@ -540,8 +537,11 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
       rightVal = new OctNumericValue(((CIntegerLiteralExpression) right).asLong());
     } else if (right instanceof CCharLiteralExpression) {
       rightVal = new OctNumericValue(((CCharLiteralExpression) right).getCharacter());
-    } else if (right instanceof CFloatLiteralExpression) {
+    } else if (right instanceof CFloatLiteralExpression && handleFloats) {
       rightVal = new OctNumericValue(((CFloatLiteralExpression) right).getValue());
+    } else {
+      // TODO floats could be represented by an interval around its value
+      return state;
     }
 
     for (OctState actState : states) {
@@ -730,9 +730,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
 
     // we cannot handle pointers, so just ignore them
     // TODO make program unsafe?
-    if (left.getExpressionType() instanceof CPointerType || right.getExpressionType() instanceof CPointerType
-        || (left instanceof CFieldReference && ((CFieldReference) left).isPointerDereference())
-        || (right instanceof CFieldReference && ((CFieldReference) right).isPointerDereference())) {
+    if (!isHandleableVariable(left) || !isHandleableVariable(right)) {
       return state;
     }
 
@@ -891,6 +889,10 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
       String nameOfParam = paramNames.get(i);
       String formalParamName = buildVarName(calledFunctionName, nameOfParam);
 
+      if (!precision.isTracked(formalParamName, parameters.get(i).getType())) {
+        continue;
+      }
+
       Set<IOctCoefficients> coeffsList = arg.accept(new COctagonCoefficientVisitor());
 
       List<OctState> newStatesList = new ArrayList<>();
@@ -922,16 +924,17 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
     if (exprOnSummary instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement binExp = ((CFunctionCallAssignmentStatement) exprOnSummary);
       CLeftHandSide op1 = binExp.getLeftHandSide();
+      String assignedVarName = buildVarName(op1, callerFunctionName);
 
       // we do not know anything about pointers, so assignments to pointers
       // are not possible for us
-      if (!isHandleableVariable(op1)) {
+      if (!isHandleableVariable(op1)
+          || !precision.isTracked(assignedVarName, op1.getExpressionType())) {
         return state.removeLocalVars(calledFunctionName);
       }
 
       String returnVarName = buildVarName(calledFunctionName, FUNCTION_RETURN_VAR);
 
-      String assignedVarName = buildVarName(op1, callerFunctionName);
       IOctCoefficients right = new OctSimpleCoefficients(state.sizeOfVariables(), state.getVariableIndexFor(returnVarName), OctNumericValue.ONE, state);
 
       state = state.makeAssignment(assignedVarName, right);
@@ -966,7 +969,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
         variableName = buildVarName(functionName, variableName);
       }
 
-      if (!precision.isTracked(variableName)) {
+      if (!precision.isTracked(variableName, declaration.getType())) {
         return state;
       }
 
@@ -1039,7 +1042,8 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Oc
 
       // as pointers do not get declarated in the beginning we can just
       // ignore them here
-      if (!isHandleableVariable(left)) {
+      if (!isHandleableVariable(left)
+          || !precision.isTracked(variableName, left.getExpressionType())) {
         assert !state.existsVariable(variableName) : "variablename '" + variableName + "' is in map although it can not be handled";
         return state;
       } else {
