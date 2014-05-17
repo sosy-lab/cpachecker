@@ -202,52 +202,52 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
       }
     }
 
-    private List<BooleanFormula> computeBlockFormulas(ARGState pRoot) throws CPATransferException, InterruptedException {
+    private List<BooleanFormula> computeBlockFormulas(final ARGState pRoot) throws CPATransferException, InterruptedException {
 
-      Map<ARGState, PathFormula> formulas = new HashMap<>();
-      List<BooleanFormula> abstractionFormulas = new ArrayList<>();
-      Deque<ARGState> todo = new ArrayDeque<>();
+      final Map<ARGState, PathFormula> finishedFormulas = new HashMap<>();
+      final List<BooleanFormula> abstractionFormulas = new ArrayList<>();
+      final Deque<ARGState> waitlist = new ArrayDeque<>();
 
       // initialize
       assert pRoot.getParents().isEmpty() : "rootState must be the first state of the program";
-      formulas.put(pRoot, pfmgr.makeEmptyPathFormula());
-      todo.addAll(pRoot.getChildren());
+      finishedFormulas.put(pRoot, pfmgr.makeEmptyPathFormula());
+      waitlist.addAll(pRoot.getChildren());
 
       // iterate over all elements in the ARG with BFS
-      while (!todo.isEmpty()) {
-        ARGState currentElement = todo.pollFirst();
-        if (formulas.containsKey(currentElement)) {
+      while (!waitlist.isEmpty()) {
+        final ARGState currentState = waitlist.pollFirst();
+        if (finishedFormulas.containsKey(currentState)) {
           continue; // already handled
         }
 
-        if (!formulas.keySet().containsAll(currentElement.getParents())) {
+        if (!finishedFormulas.keySet().containsAll(currentState.getParents())) {
           // parent not handled yet, re-queue current element and wait for all parents
-          todo.addLast(currentElement);
+          waitlist.addLast(currentState);
           continue;
         }
 
         // collect formulas for current location
-        List<PathFormula> currentFormulas = new ArrayList<>(currentElement.getParents().size());
-        for (ARGState parentElement : currentElement.getParents()) {
-          PathFormula parentFormula = formulas.get(parentElement);
-          CFAEdge edge = parentElement.getEdgeToChild(currentElement);
+        List<PathFormula> currentFormulas = new ArrayList<>(currentState.getParents().size());
+        for (ARGState parentElement : currentState.getParents()) {
+          PathFormula parentFormula = finishedFormulas.get(parentElement);
+          CFAEdge edge = parentElement.getEdgeToChild(currentState);
           PathFormula currentFormula = pfmgr.makeAnd(parentFormula, edge);
           currentFormulas.add(currentFormula);
         }
         assert currentFormulas.size() >= 1 : "each state except root must have parents";
 
-        PredicateAbstractState predicateElement = extractStateByType(currentElement, PredicateAbstractState.class);
+        PredicateAbstractState predicateElement = extractStateByType(currentState, PredicateAbstractState.class);
         if (predicateElement.isAbstractionState()) {
           // abstraction element is the start of a new part of the ARG
 
-          assert todo.isEmpty() : "todo should be empty, because of the special ARG structure";
-          assert currentElement.getParents().size() == 1 : "there should be only one parent, because of the special ARG structure";
-          formulas.clear(); // free some memory
+          assert waitlist.isEmpty() : "todo should be empty, because of the special ARG structure";
+          assert currentState.getParents().size() == 1 : "there should be only one parent, because of the special ARG structure";
+          finishedFormulas.clear(); // free some memory
 
           // start new block with empty formula
           PathFormula currentFormula = getOnlyElement(currentFormulas);
           abstractionFormulas.add(currentFormula.getFormula());
-          formulas.put(currentElement, pfmgr.makeEmptyPathFormula(currentFormula));
+          finishedFormulas.put(currentState, pfmgr.makeEmptyPathFormula(currentFormula));
 
         } else {
           // merge the formulas
@@ -257,10 +257,10 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
             currentFormula = pfmgr.makeOr(currentFormula, it.next());
           }
 
-          formulas.put(currentElement, currentFormula);
+          finishedFormulas.put(currentState, currentFormula);
         }
 
-        todo.addAll(currentElement.getChildren());
+        waitlist.addAll(currentState.getChildren());
       }
       return abstractionFormulas;
     }
