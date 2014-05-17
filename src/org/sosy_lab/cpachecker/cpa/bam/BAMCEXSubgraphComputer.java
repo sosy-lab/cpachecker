@@ -26,10 +26,8 @@ package org.sosy_lab.cpachecker.cpa.bam;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -71,9 +69,14 @@ public class BAMCEXSubgraphComputer {
    * The subtree is represented using children and parents of ARGElements,
    * where newTreeTarget is the ARGState in the constructed subtree that represents target.
    *
-   * @param target a state from the reachedSet.
+   * @param target a state from the reachedSet, is used as the last state of the returned subgraph.
    * @param reachedSet contains the target-state.
-   * @param newTreeTarget a copy of the target, should contains the same information as target.
+   * @param newTreeTarget a copy of the target, should contain the same information as target.
+   *
+   * @return root of a subgraph, that contains all states on all paths to newTreeTarget.
+   *         The subgraph contains only copies of the real ARG states,
+   *         because one real state can be used multiple times in one path.
+   *         The map "pathStateToReachedState" should be used to search the correct real state.
    */
   BackwardARGState computeCounterexampleSubgraph(final ARGState target, final ARGReachedSet reachedSet, final BackwardARGState newTreeTarget) {
     assert reachedSet.asReachedSet().contains(target);
@@ -109,13 +112,15 @@ public class BAMCEXSubgraphComputer {
         }
 
         final BackwardARGState newChild = finishedStates.get(child);
-        final CFAEdge edge = BAMARGUtils.getEdgeToChild(currentState, child);
-        if (edge == null) {
-          //this is a summarized call and thus an direct edge could not be found
-          //we have the transfer function to handle this case, as our reachSet is wrong
-          //(we have to use the cached ones)
-          BackwardARGState innerTree = computeCounterexampleSubgraphForBlock(
-                  currentState, reachedSet.asReachedSet().getPrecision(currentState), newChild);
+
+        if (expandedToReducedCache.containsKey(child)) {
+          // If child-state is an expanded state, we are at the exit-location of a block.
+          // In this case, we enter the block (backwards).
+          // We must use a cached reachedSet to process further, because the block has its own reachedSet.
+          // The returned 'innerTree' is the rootNode of the subtree, created from the cached reachedSet.
+          // The current subtree (successors of child) is appended beyond the innerTree, to get a complete subgraph.
+          final ARGState reducedTarget = (ARGState) expandedToReducedCache.get(child);
+          BackwardARGState innerTree = computeCounterexampleSubgraphForBlock(currentState, reducedTarget, newChild);
           if (innerTree == null) {
             ARGSubtreeRemover.removeSubtree(reachedSet, currentState);
             return null;
@@ -127,8 +132,13 @@ public class BAMCEXSubgraphComputer {
           }
           innerTree.removeFromARG();
 
+          // now the complete inner tree (including all successors of the state innerTree on paths to reducedTarget)
+          // is inserted between newCurrentState and child.
+
         } else {
-          // normal edge -> create an edge from parent to current
+          // child is a normal successor
+          // -> create an simple connection from parent to current
+          assert currentState.getEdgeToChild(child) != null: "unexpected ARG state: parent has no edge to child.";
           newChild.addParent(newCurrentState);
         }
       }
@@ -148,44 +158,46 @@ public class BAMCEXSubgraphComputer {
    * (recursively, if needed).
    *
    * @param root the expanded initial state of the reachedSet of current block
-   * @param newTreeTarget ent-state of the reachedSet of current block
+   * @param reducedTarget exit-state of the reachedSet of current block
+   * @param newTreeTarget copy of the exit-state of the reachedSet of current block.
+   *                     newTreeTarget has only children, that are all part of the Pseudo-ARG
+   *                     (these children are copies of states from reachedSets of other blocks)
    *
    * @return the default return value is the rootState of the Pseudo-ARG.
    *         We return NULL, if reachedSet is invalid, i.e. there is a 'hole' in it,
-   *         because of a refinement of the block at another CEX-refinement.
+   *         maybe because of a refinement of the block at another CEX-refinement.
    *         In that case we also perform some cleanup-operations.
    */
   private BackwardARGState computeCounterexampleSubgraphForBlock(
-          final ARGState root, final Precision rootPrecision, final BackwardARGState newTreeTarget) {
+          final ARGState expandedRoot, final ARGState reducedTarget, final BackwardARGState newTreeTarget) {
 
-    // first try to
-    final ARGState reducedTargetARGState = (ARGState) expandedToReducedCache.get(pathStateToReachedState.get(newTreeTarget));
-    if (reducedTargetARGState.isDestroyed()) {
+    // first check, if the cached state is valid.
+    if (reducedTarget.isDestroyed()) {
       logger.log(Level.FINE,
               "Target state refers to a destroyed ARGState, i.e., the cached subtree is outdated. Updating it.");
       return null;
     }
 
     // TODO why do we use 'abstractStateToReachedSet' to get the reachedSet and not 'bamCache'?
-    final ReachedSet reachedSet = abstractStateToReachedSet.get(root);
+    final ReachedSet reachedSet = abstractStateToReachedSet.get(expandedRoot);
 
     // we found the reachedSet, corresponding to the root and precision.
     // now try to find the target in the reach set.
 
-    assert reachedSet.contains(reducedTargetARGState);
+    assert reachedSet.contains(reducedTarget);
 
-    // we found the target; now construct a subtree in the ARG starting with targetARTElement
-    final BackwardARGState result = computeCounterexampleSubgraph(reducedTargetARGState, new ARGReachedSet(reachedSet), newTreeTarget);
+    // we found the target; now construct a subtree in the ARG starting with targetARGElement
+    final BackwardARGState result = computeCounterexampleSubgraph(reducedTarget, new ARGReachedSet(reachedSet), newTreeTarget);
     if (result == null) {
       //enforce recomputation to update cached subtree
       logger.log(Level.FINE,
               "Target state refers to a destroyed ARGState, i.e., the cached subtree will be removed.");
 
       // TODO why do we use precision of reachedSet from 'abstractStateToReachedSet' here and not the reduced precision?
-      final CFANode rootNode = extractLocation(root);
-      final Block rootSubtree = partitioning.getBlockForCallNode(rootNode);
-      final AbstractState reducedRootState = reducer.getVariableReducedState(root, rootSubtree, rootNode);
-      bamCache.removeReturnEntry(reducedRootState, reachedSet.getPrecision(reachedSet.getFirstState()), rootSubtree);
+      final CFANode rootNode = extractLocation(expandedRoot);
+      final Block rootBlock = partitioning.getBlockForCallNode(rootNode);
+      final AbstractState reducedRootState = reducer.getVariableReducedState(expandedRoot, rootBlock, rootNode);
+      bamCache.removeReturnEntry(reducedRootState, reachedSet.getPrecision(reachedSet.getFirstState()), rootBlock);
     }
     return result;
   }
