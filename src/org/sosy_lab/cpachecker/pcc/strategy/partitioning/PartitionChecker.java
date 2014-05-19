@@ -144,8 +144,8 @@ public class PartitionChecker implements Runnable {
       }
 
       // add adjacent nodes of other partition
-      for (AbstractState internalNode : partition.getSecond()) {
-        addElement(internalNode, false);
+      for (AbstractState adjacentNode : partition.getSecond()) {
+        addElement(adjacentNode, false);
       }
 
       AbstractState checkedState;
