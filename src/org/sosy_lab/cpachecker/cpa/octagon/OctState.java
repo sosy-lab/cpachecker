@@ -25,9 +25,11 @@ package org.sosy_lab.cpachecker.cpa.octagon;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
@@ -726,11 +728,11 @@ public class OctState implements AbstractState {
    * as workaraound we added a state for a smaller constraint, and a state for a greater constraint.
    * Note that it only works if both variables are Integers!
    */
-  public List<OctState> addIneqConstraint(String rightVarName, String leftVarName) {
-    List<OctState> list = new ArrayList<>();
-    list.add(addSmallerConstraint(rightVarName, leftVarName));
-    list.add(addGreaterConstraint(rightVarName, leftVarName));
-    return list;
+  public Set<OctState> addIneqConstraint(String rightVarName, String leftVarName) {
+    Set<OctState> set = new HashSet<>();
+    set.add(addSmallerConstraint(rightVarName, leftVarName));
+    set.add(addGreaterConstraint(rightVarName, leftVarName));
+    return set;
   }
 
   /**
@@ -740,18 +742,18 @@ public class OctState implements AbstractState {
    * as workaraound we added a state for a smaller constraint, and a state for a greater constraint.
    * Note that it only works if both variables are Integers!
    */
-  public List<OctState> addIneqConstraint(String varname, OctNumericValue value) {
-    List<OctState> list = new ArrayList<>();
-    list.add(addSmallerConstraint(varname, value));
-    list.add(addGreaterConstraint(varname, value));
-    return list;
+  public Set<OctState> addIneqConstraint(String varname, OctNumericValue value) {
+    Set<OctState> set = new HashSet<>();
+    set.add(addSmallerConstraint(varname, value));
+    set.add(addGreaterConstraint(varname, value));
+    return set;
   }
 
-  public List<OctState> addIneqConstraint(String varname, IOctCoefficients oct) {
-    List<OctState> list = new ArrayList<>();
-    list.add(addSmallerConstraint(varname, oct));
-    list.add(addGreaterConstraint(varname, oct));
-    return list;
+  public Set<OctState> addIneqConstraint(String varname, IOctCoefficients oct) {
+    Set<OctState> set = new HashSet<>();
+    set.add(addSmallerConstraint(varname, oct));
+    set.add(addGreaterConstraint(varname, oct));
+    return set;
   }
 
   public OctState intersect(OctState other) {
