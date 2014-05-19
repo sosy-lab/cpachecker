@@ -107,8 +107,14 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
  *
  * 4. postProcessing
  * 5. resetInfo
+ *
+ * Generics:
+ *  - S type of intermediate result, should be equal to T or Collection<T>,
+ *      should be converted/copied into an Object of type Collection<T> in method 'postProcessing'.
+ *  - T type of State
+ *  - P type of Precision
  */
-public abstract class ForwardingTransferRelation<S extends AbstractState, P extends Precision>
+public abstract class ForwardingTransferRelation<S, T extends AbstractState, P extends Precision>
     implements TransferRelation {
 
   private static final String NOT_IMPLEMENTED = "this method is not implemented";
@@ -143,13 +149,13 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
 
 
   @Override
-  public Collection<S> getAbstractSuccessors(
+  public Collection<T> getAbstractSuccessors(
       final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge)
       throws CPATransferException {
 
     setInfo(abstractState, abstractPrecision, cfaEdge);
 
-    final Collection<S> preCheck = preCheck();
+    final Collection<T> preCheck = preCheck();
     if (preCheck != null) { return preCheck; }
 
     final S successor;
@@ -186,15 +192,11 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
       successor = handleSimpleEdge(cfaEdge);
     }
 
-    postProcessing(successor);
+    final Collection<T> result = postProcessing(successor);
 
     resetInfo();
 
-    if (successor == null) {
-      return Collections.emptySet();
-    } else {
-      return Collections.singleton(successor);
-    }
+    return result;
   }
 
 
@@ -262,13 +264,17 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
   /** This is a fast check, if the edge should be analyzed.
    * It returns NULL for further processing,
    * otherwise the return-value for skipping. */
-  protected Collection<S> preCheck() {
+  protected Collection<T> preCheck() {
     return null;
   }
 
   /** This method can modify the successor. */
-  protected void postProcessing(@Nullable S successor) {
-    // do nothing
+  protected Collection<T> postProcessing(@Nullable S successor) {
+    if (successor == null) {
+      return Collections.emptySet();
+    } else {
+      return Collections.singleton((T)successor);
+    }
   }
 
 

@@ -96,7 +96,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 /** This Transfer Relation tracks variables and handles them as bitvectors. */
 @Options(prefix = "cpa.bdd")
-public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BDDPrecision> {
+public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BDDState, BDDPrecision> {
 
   @Option(name = "logfile", description = "Dump tracked variables to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)

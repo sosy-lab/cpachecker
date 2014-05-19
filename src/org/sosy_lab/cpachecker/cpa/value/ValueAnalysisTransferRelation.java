@@ -122,7 +122,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 @Options(prefix="cpa.value")
-public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<ValueAnalysisState, ValueAnalysisPrecision> {
+public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<ValueAnalysisState, ValueAnalysisState, ValueAnalysisPrecision> {
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
   private static final Map<String, String> UNSUPPORTED_FUNCTIONS
@@ -190,10 +190,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   }
 
   @Override
-  protected void postProcessing(ValueAnalysisState successor) {
+  protected Collection<ValueAnalysisState> postProcessing(ValueAnalysisState successor) {
     if (successor != null){
       successor.addToDelta(state);
     }
+    return super.postProcessing(successor);
   }
 
 

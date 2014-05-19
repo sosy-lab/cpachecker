@@ -119,7 +119,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.octagon")
-public class OctTransferRelation extends ForwardingTransferRelation<OctState, OctPrecision> {
+public class OctTransferRelation extends ForwardingTransferRelation<OctState, OctState, OctPrecision> {
 
   private static final String FUNCTION_RETURN_VAR = "___cpa_temp_result_var_";
   private static final String TEMP_VAR_PREFIX = "___cpa_temp_var_";
