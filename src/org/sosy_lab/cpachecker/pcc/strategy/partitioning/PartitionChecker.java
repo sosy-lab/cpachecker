@@ -23,10 +23,8 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -72,7 +70,6 @@ public class PartitionChecker implements Runnable {
   private final StopOperator stop;
   private final TransferRelation transfer;
 
-  private final Deque<AbstractState> waitlist = new ArrayDeque<>();
   private final Multimap<CFANode, AbstractState> statesPerLocation = HashMultimap.create();
 
   private final ShutdownNotifier shutdownNotifier;
@@ -150,9 +147,9 @@ public class PartitionChecker implements Runnable {
 
       AbstractState checkedState;
       Collection<? extends AbstractState> successors;
+      int nextPos = 0;
 
-
-      while (!waitlist.isEmpty()) {
+      while (nextPos<addToCertificate.size()) {
         if (shutdownNotifier.shouldShutdown()) {
           abortPreparation();
           return;
@@ -165,7 +162,7 @@ public class PartitionChecker implements Runnable {
           return;
         }
 
-        checkedState = waitlist.pop();
+        checkedState = addToCertificate.get(nextPos++);
 
         // compute successors
         try {
@@ -175,7 +172,7 @@ public class PartitionChecker implements Runnable {
           for (AbstractState successor : successors) {
             // check if covered
             if (!stop.stop(successor, statesPerLocation.get(AbstractStates.extractLocation(successor)), initPrec)) {
-              addElement(successor, true);
+              addToCertificate.add(successor);
             }
           }
         } catch (CPATransferException | InterruptedException e) {
@@ -213,7 +210,6 @@ public class PartitionChecker implements Runnable {
     statesPerLocation.put(node, element);
     if (inCertificate) {
       addToCertificate.add(element);
-      waitlist.push(element);
     } else {
       addToContainedInCertificate.add(element);
     }
