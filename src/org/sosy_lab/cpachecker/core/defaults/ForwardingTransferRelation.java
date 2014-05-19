@@ -29,6 +29,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
@@ -123,7 +124,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   protected CFAEdge edge;
 
   /** the given state, casted to correct type, for local access */
-  protected S state;
+  protected T state;
 
   /** the given precision, casted to correct type, for local access */
   protected P precision;
@@ -135,7 +136,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     return edge;
   }
 
-  protected S getState() {
+  protected T getState() {
     return state;
   }
 
@@ -204,7 +205,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   protected void setInfo(final AbstractState abstractState,
       final Precision abstractPrecision, final CFAEdge cfaEdge) {
     edge = cfaEdge;
-    state = (S) abstractState;
+    state = (T) abstractState;
     precision = (P) abstractPrecision;
     functionName = cfaEdge.getPredecessor().getFunctionName();
   }
@@ -251,13 +252,19 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   }
 
   /** This method just forwards the handling to every inner edge. */
+  @SuppressWarnings("unchecked")
   protected S handleMultiEdge(MultiEdge cfaEdge) throws CPATransferException {
     for (final CFAEdge innerEdge : cfaEdge) {
       edge = innerEdge;
-      state = handleSimpleEdge(innerEdge);
+      final S intermediateResult = handleSimpleEdge(innerEdge);
+      Preconditions.checkState(state.getClass().isAssignableFrom(intermediateResult.getClass()),
+            "We assume equal types for input- and output-values. " +
+            "Thus this implementation only works with exactly one input- and one output-state (and they should have same type)." +
+            "If there are more successors during a MultiEdge, you need to override this method.");
+      state = (T)intermediateResult;
     }
     edge = cfaEdge; // reset edge
-    return state;
+    return (S)state;
   }
 
 
@@ -448,8 +455,9 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    *  in the CFA. This default implementation returns the input-state.
    *  A blank edge can also be a default-return-edge for a function "void f()".
    *  In that case the successor-node is a FunctionExitNode. */
+  @SuppressWarnings("unchecked")
   protected S handleBlankEdge(BlankEdge cfaEdge) throws CPATransferException {
-    return state;
+    return (S)state;
   }
 
   protected S handleFunctionSummaryEdge(FunctionSummaryEdge cfaEdge) throws CPATransferException {
