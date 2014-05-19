@@ -34,7 +34,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -59,10 +58,9 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
   private final PartialReachedConstructionAlgorithm certificateConstructor;
   @Option(
       description = "Enables proper PCC but may not work correctly for heuristics. Stops adding newly computed elements to reached set if size saved in proof is reached. If another element must be added, stops certificate checking and returns false.")
-  private boolean stopAddingAtReachedSetSize = false;
+  protected boolean stopAddingAtReachedSetSize = false;
 
-  private int savedReachedSetSize;
-  private int certificateSize;
+  protected int savedReachedSetSize;
 
   public PartialReachedSetStrategy(Configuration pConfig, LogManager pLogger,
       ShutdownNotifier pShutdownNotifier, PropertyCheckerCPA pCpa) throws InvalidConfigurationException {
@@ -113,11 +111,10 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
 
   @Override
   public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    certificateSize = 0;
+    int certificateSize = 0;
 
-    List<AbstractState> certificate = new ArrayList<>(reachedSet.length);
+    List<AbstractState> certificate = new ArrayList<>(savedReachedSetSize);
     for (AbstractState elem : reachedSet) {
-      certificateSize++;
       certificate.add(elem);
     }
 
@@ -134,8 +131,7 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
       if (!stop.stop(initialState, statesPerLocation.get(AbstractStates.extractLocation(initialState)), initialPrec)) {
         logger.log(Level.FINE, "Initial element not in partial reached set.", "Add to elements whose successors ",
             "must be computed.");
-        certificateSize++;
-        addElement(initialState, certificate);
+        certificate.add(initialState);
       }
     } catch (CPAException e) {
       logger.logException(Level.FINE, e, "Stop check failed for initial element.");
@@ -144,10 +140,9 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
       stats.stopTimer.stop();
     }
 
-
     // check if elements form transitive closure
     Collection<? extends AbstractState> successors;
-    while (!certificate.isEmpty()) {
+    while (certificateSize<certificate.size()) {
 
       shutdownNotifier.shutdownIfNecessary();
       stats.countIterations++;
@@ -155,7 +150,7 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
       try {
         stats.transferTimer.start();
         successors =
-            cpa.getTransferRelation().getAbstractSuccessors(certificate.remove(certificate.size() - 1), initialPrec,
+            cpa.getTransferRelation().getAbstractSuccessors(certificate.get(certificateSize++), initialPrec,
                 null);
         stats.transferTimer.stop();
 
@@ -164,12 +159,9 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
             stats.stopTimer.start();
             if (!stop.stop(succ, statesPerLocation.get(AbstractStates.extractLocation(succ)), initialPrec)) {
               logger.log(Level.FINE, "Successor ", succ, " not in partial reached set.",
-                  "Add to elements whose successors ",
-                  "must be computed.");
-
-              if (stopAddingAtReachedSetSize && savedReachedSetSize == certificateSize) { return false; }
-              addElement(succ, certificate);
-              certificateSize++;
+                  "Add to elements whose successors ", "must be computed.");
+              if (stopAddingAtReachedSetSize && savedReachedSetSize == certificate.size()) { return false; }
+              certificate.add(succ);
             }
           } finally {
             stats.stopTimer.stop();
@@ -185,15 +177,9 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
     }
     stats.propertyCheckingTimer.start();
     try {
-      return cpa.getPropChecker().satisfiesProperty(statesPerLocation.values());
+      return cpa.getPropChecker().satisfiesProperty(certificate);
     } finally {
       stats.propertyCheckingTimer.stop();
     }
-  }
-
-  protected void addElement(AbstractState element, List<AbstractState> insertIn) {
-    insertIn.add(insertIn.size(), element);
-    CFANode node = AbstractStates.extractLocation(element);
-    statesPerLocation.put(node, element);
   }
 }

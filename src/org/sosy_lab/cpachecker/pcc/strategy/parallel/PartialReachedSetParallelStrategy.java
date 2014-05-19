@@ -57,7 +57,9 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
      *  consider how to integrate shutdown notifier in here and
      *  avoid unprotected access to stats*/
  // TODO for parallelization use Runtime.getRuntime().availableProcessors(); to identify maximal number of parallel threads
-    List<AbstractState> certificate = new ArrayList<>(reachedSet.length);
+    int certificateSize = 0;
+
+    List<AbstractState> certificate = new ArrayList<>(savedReachedSetSize);
     for (AbstractState elem : reachedSet) {
       certificate.add(elem);
     }
@@ -75,7 +77,7 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
       if (!stop.stop(initialState, statesPerLocation.get(AbstractStates.extractLocation(initialState)), initialPrec)) {
         logger.log(Level.FINE, "Initial element not in partial reached set.", "Add to elements whose successors ",
             "must be computed.");
-        addElement(initialState, certificate);
+        certificate.add(initialState);
       }
     } catch (CPAException e) {
       logger.logException(Level.FINE, e, "Stop check failed for initial element.");
@@ -84,10 +86,9 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
       stats.getStopTimer().stop();
     }
 
-
     // check if elements form transitive closure
     Collection<? extends AbstractState> successors;
-    while (!certificate.isEmpty()) {
+    while (certificateSize<certificate.size()) {
 
       shutdownNotifier.shutdownIfNecessary();
       stats.increaseIteration();
@@ -95,7 +96,7 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
       try {
         stats.getTransferTimer().start();
         successors =
-            cpa.getTransferRelation().getAbstractSuccessors(certificate.remove(certificate.size() - 1), initialPrec,
+            cpa.getTransferRelation().getAbstractSuccessors(certificate.get(certificateSize++), initialPrec,
                 null);
         stats.getTransferTimer().stop();
 
@@ -104,16 +105,15 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
             stats.getStopTimer().start();
             if (!stop.stop(succ, statesPerLocation.get(AbstractStates.extractLocation(succ)), initialPrec)) {
               logger.log(Level.FINE, "Successor ", succ, " not in partial reached set.",
-                  "Add to elements whose successors ",
-                  "must be computed.");
-
-              addElement(succ, certificate);
+                  "Add to elements whose successors ", "must be computed.");
+              if (stopAddingAtReachedSetSize && savedReachedSetSize == certificate.size()) { return false; }
+              certificate.add(succ);
             }
           } finally {
             stats.getStopTimer().stop();
           }
         }
-      } catch (CPATransferException | InterruptedException e) {
+      } catch (CPATransferException e) {
         logger.logException(Level.FINE, e, "Computation of successors failed.");
         return false;
       } catch (CPAException e) {
@@ -123,7 +123,7 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
     }
     stats.getPropertyCheckingTimer().start();
     try {
-      return cpa.getPropChecker().satisfiesProperty(statesPerLocation.values());
+      return cpa.getPropChecker().satisfiesProperty(certificate);
     } finally {
       stats.getPropertyCheckingTimer().stop();
     }
