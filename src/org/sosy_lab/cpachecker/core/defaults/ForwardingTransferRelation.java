@@ -268,7 +268,9 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     return null;
   }
 
-  /** This method can modify the successor. */
+  /** This method should convert/cast/copy the intermediate result into a Collection<T>.
+   * This method can modify the successor, if needed. */
+  @SuppressWarnings("unchecked")
   protected Collection<T> postProcessing(@Nullable S successor) {
     if (successor == null) {
       return Collections.emptySet();
