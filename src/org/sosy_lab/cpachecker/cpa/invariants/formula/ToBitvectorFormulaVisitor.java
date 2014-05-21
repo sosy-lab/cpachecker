@@ -413,7 +413,7 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
 
     @Override
     public Integer visit(Variable<CompoundInterval> pVariable) {
-      CType type = types.get(pVariable);
+      CType type = types.get(pVariable.getName());
       if (type == null) {
         return null;
       }
