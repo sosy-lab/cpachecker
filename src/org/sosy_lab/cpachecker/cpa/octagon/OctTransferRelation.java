@@ -1321,10 +1321,6 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
               returnCoefficients.add(leftCoeffs.sub(rightCoeffs));
             } else if (e.getOperator() == BinaryOperator.PLUS) {
               returnCoefficients.add(leftCoeffs.add(rightCoeffs));
-            } else if (e.getOperator() == BinaryOperator.MULTIPLY) {
-              returnCoefficients.add(leftCoeffs.mul(rightCoeffs));
-            } else if (e.getOperator() == BinaryOperator.DIVIDE) {
-              returnCoefficients.add(leftCoeffs.div(rightCoeffs));
             }
           }
         }
