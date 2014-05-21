@@ -55,6 +55,9 @@ import org.sosy_lab.cpachecker.util.predicates.logging.LoggingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5InterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5TheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.princess.PrincessFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.princess.PrincessInterpolatingProver;
+import org.sosy_lab.cpachecker.util.predicates.princess.PrincessTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3InterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3TheoremProver;
@@ -68,6 +71,7 @@ public class FormulaManagerFactory {
     MATHSAT5,
     SMTINTERPOL,
     Z3,
+    PRINCESS
     ;
   }
 
@@ -75,7 +79,8 @@ public class FormulaManagerFactory {
       description="log some solver actions, this may be slow!")
   private boolean useLogger = false;
 
-  @Option(description="Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver (Z3 needs the FOCI library from http://www.kenmcmil.com/foci2/).")
+  @Option(description="Whether to use MathSAT 5, SmtInterpol, Z3 or Princess as SMT solver " +
+          "(Z3 needs the FOCI library from http://www.kenmcmil.com/foci2/).")
   private Solvers solver = Solvers.MATHSAT5;
 
   @Option(description="Which solver to use specifically for interpolation (default is to use the main one).")
@@ -135,6 +140,9 @@ public class FormulaManagerFactory {
           }
         }
 
+      case PRINCESS:
+        return PrincessFormulaManager.create(config, logger, shutdownNotifier);
+
       default:
         throw new AssertionError("no solver selected");
       }
@@ -162,6 +170,9 @@ public class FormulaManagerFactory {
       break;
     case Z3:
       pe = new Z3TheoremProver((Z3FormulaManager) fmgr);
+      break;
+    case PRINCESS:
+      pe = new PrincessTheoremProver((PrincessFormulaManager) fmgr, shutdownNotifier);
       break;
     default:
       throw new AssertionError("no solver selected");
@@ -196,6 +207,9 @@ public class FormulaManagerFactory {
       break;
     case Z3:
       ipe = new Z3InterpolatingProver((Z3FormulaManager) fmgr);
+      break;
+    case PRINCESS:
+      ipe = new PrincessInterpolatingProver((PrincessFormulaManager) fmgr);
       break;
     default:
       throw new AssertionError("no solver selected");
