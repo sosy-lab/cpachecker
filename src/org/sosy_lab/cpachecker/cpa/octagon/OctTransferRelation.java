@@ -386,7 +386,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
     case PLUS:
       String tempVarName = buildVarName(functionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
       temporaryVariableCounter++;
-      COctagonCoefficientVisitor coeffVisitor = new COctagonCoefficientVisitor(state);
+      COctagonCoefficientVisitor coeffVisitor = new COctagonCoefficientVisitor(state, functionName);
       Set<IOctCoefficients> coeffsList = binExp.accept(coeffVisitor);
       Set<OctState> possibleStates = new HashSet<>();
       for (IOctCoefficients coeffs : coeffsList) {
@@ -518,7 +518,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
 
       // create a temp var for the left side of the expression
     } else {
-      COctagonCoefficientVisitor coeffVisitor = new COctagonCoefficientVisitor(state);
+      COctagonCoefficientVisitor coeffVisitor = new COctagonCoefficientVisitor(state, functionName);
       Set<IOctCoefficients> coeffsLeft = left.accept(coeffVisitor);
 
       // we cannot do any comparison with an unknown value, so just quit here
@@ -750,7 +750,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
       // create a temp var for the left side of the expression
     } else {
       // we cannot do any comparison with an unknown value, so just quit here
-      COctagonCoefficientVisitor coeffVisitor = new COctagonCoefficientVisitor(state);
+      COctagonCoefficientVisitor coeffVisitor = new COctagonCoefficientVisitor(state, functionName);
       Set<IOctCoefficients> coeffsLeft = left.accept(coeffVisitor);
       if (coeffsLeft.isEmpty()) {
         return Collections.singleton(state);
@@ -779,7 +779,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
       Set<OctState> tmpSet = new HashSet<>();
 
       for (OctState st : states) {
-        COctagonCoefficientVisitor coeffVisitor = new COctagonCoefficientVisitor(st);
+        COctagonCoefficientVisitor coeffVisitor = new COctagonCoefficientVisitor(st, functionName);
         Set<IOctCoefficients> coeffsRight = right.accept(coeffVisitor);
 
         // we cannot do any comparison with an unknown value, so just quit here
@@ -900,17 +900,24 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
       String nameOfParam = paramNames.get(i);
       String formalParamName = buildVarName(calledFunctionName, nameOfParam);
 
-      if (!precision.isTracked(formalParamName, parameters.get(i).getType())) {
+      if (!precision.isTracked(formalParamName, parameters.get(i).getType())
+          || !isHandleAbleType(parameters.get(i).getType())) {
         continue;
       }
 
+
       Set<OctState> newPossibleStates = new HashSet<>();
       for (OctState st : possibleStates) {
-        COctagonCoefficientVisitor coeffVisitor = new COctagonCoefficientVisitor(st);
+        // declare parameter in state
+        OctState tmpState = st.declareVariable(formalParamName, getCorrespondingOctStateType(parameters.get(i).getType()));
+
+        // create the value assigned to the parameter
+        COctagonCoefficientVisitor coeffVisitor = new COctagonCoefficientVisitor(tmpState, calledFunctionName);
         Set<IOctCoefficients> coeffsList = arg.accept(coeffVisitor);
+
+        // create new states for all possible parameter values
         for (IOctCoefficients coeffs : coeffsList) {
-          OctState tmpState = coeffVisitor.visitorState.declareVariable(formalParamName, getCorrespondingOctStateType(parameters.get(i).getType()));
-          tmpState = tmpState.makeAssignment(formalParamName, coeffs.expandToSize(tmpState.sizeOfVariables(), tmpState));
+          tmpState = coeffVisitor.visitorState.makeAssignment(formalParamName, coeffs);
           newPossibleStates.add(tmpState);
         }
       }
@@ -997,7 +1004,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
         if (init instanceof CInitializerExpression) {
           CExpression exp = ((CInitializerExpression) init).getExpression();
 
-          COctagonCoefficientVisitor coeffVisitor = new COctagonCoefficientVisitor(state);
+          COctagonCoefficientVisitor coeffVisitor = new COctagonCoefficientVisitor(state, functionName);
           Set<IOctCoefficients> initCoeffs = exp.accept(coeffVisitor);
           for (IOctCoefficients coeffs : initCoeffs) {
             possibleStates.add(coeffVisitor.visitorState.makeAssignment(variableName, coeffs));
@@ -1057,7 +1064,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
         assert !state.existsVariable(variableName) : "variablename '" + variableName + "' is in map although it can not be handled";
         return Collections.singleton(state);
       } else {
-        COctagonCoefficientVisitor coeffVisitor = new COctagonCoefficientVisitor(state);
+        COctagonCoefficientVisitor coeffVisitor = new COctagonCoefficientVisitor(state, functionName);
         Set<IOctCoefficients> coeffsList = right.accept(coeffVisitor);
 
         Set<OctState> possibleStates = new HashSet<>();
@@ -1138,7 +1145,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
     }
 
     Set<OctState> possibleStates = new HashSet<>();
-    COctagonCoefficientVisitor coeffVisitor = new COctagonCoefficientVisitor(state);
+    COctagonCoefficientVisitor coeffVisitor = new COctagonCoefficientVisitor(state, cfaEdge.getPredecessor().getFunctionName());
     Set<IOctCoefficients> coeffsList = expression.accept(coeffVisitor);
     for (IOctCoefficients coeffs : coeffsList) {
       if (coeffs == OctEmptyCoefficients.INSTANCE) {
@@ -1169,6 +1176,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
       implements CRightHandSideVisitor<Set<IOctCoefficients>, CPATransferException> {
 
     private OctState visitorState;
+    private String visitorFunctionName;
 
     /**
      * This method creates the Visitor, which evaluates all coefficients for a given
@@ -1176,8 +1184,9 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
      *
      * @param state
      */
-    public COctagonCoefficientVisitor(OctState pState) {
+    public COctagonCoefficientVisitor(OctState pState, String pFunctionName) {
       visitorState = pState;
+      visitorFunctionName = pFunctionName;
     }
 
     public OctState getState() {
@@ -1221,7 +1230,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
             if (returnCoefficients.size() == 2) {
               return returnCoefficients;
             }
-            String tempVarLeft = buildVarName(functionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
+            String tempVarLeft = buildVarName(visitorFunctionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
             temporaryVariableCounter++;
             visitorState = visitorState.declareVariable(tempVarLeft, getCorrespondingOctStateType(e.getOperand1().getExpressionType()));
             visitorState = visitorState.makeAssignment(tempVarLeft, leftCoeffs.expandToSize(visitorState.sizeOfVariables(), visitorState));
@@ -1342,7 +1351,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
 
     @Override
     public Set<IOctCoefficients> visit(CIdExpression e) throws CPATransferException {
-      String varName = buildVarName(e, functionName);
+      String varName = buildVarName(e, visitorFunctionName);
       Integer varIndex = visitorState.getVariableIndexFor(varName);
       if (varIndex == -1) { return Collections.singleton((IOctCoefficients)OctEmptyCoefficients.INSTANCE); }
       return Collections.singleton((IOctCoefficients)new OctSimpleCoefficients(visitorState.sizeOfVariables(), varIndex, OctNumericValue.ONE, visitorState));
@@ -1398,7 +1407,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
               continue;
             }
           }
-          String tempVar = buildVarName(functionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
+          String tempVar = buildVarName(visitorFunctionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
           temporaryVariableCounter++;
           visitorState = visitorState.declareVariable(tempVar, getCorrespondingOctStateType(e.getExpressionType()))
                         .makeAssignment(tempVar, coeffs.expandToSize(visitorState.sizeOfVariables()+1, visitorState));
