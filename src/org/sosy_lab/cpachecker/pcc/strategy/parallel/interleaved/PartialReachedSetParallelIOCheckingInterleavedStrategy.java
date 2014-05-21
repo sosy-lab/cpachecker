@@ -60,7 +60,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
-@Options(prefix = "pcc")
+@Options(prefix = "pcc.interleaved")
 public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends AbstractStrategy {
 
   @Option(

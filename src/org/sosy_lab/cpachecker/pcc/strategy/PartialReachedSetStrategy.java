@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialCertificat
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-@Options(prefix = "pcc")
+@Options(prefix = "pcc.partial")
 public class PartialReachedSetStrategy extends ReachedSetStrategy {
 
   private final PartialReachedConstructionAlgorithm certificateConstructor;

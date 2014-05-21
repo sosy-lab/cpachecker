@@ -58,7 +58,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
-@Options(prefix = "pcc")
+@Options(prefix = "pcc.parallel.io")
 public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
 
   private final PartitioningIOHelper ioHelper;

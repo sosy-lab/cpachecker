@@ -56,20 +56,20 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-@Options()
+@Options(prefix="pcc")
 public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvider {
 
   protected LogManager logger;
   protected PCStrategyStatistics stats;
 
   @Option(
-      name = "pcc.proofFile",
+      name = "proofFile",
       description = "file in which proof representation needed for proof checking is stored")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   protected Path file = Paths.get("arg.obj");
 
   @Option(
-      name = "pcc.useCores",
+      name = "useCores",
       description = "number of cpus/cores which should be used in parallel for proof checking")
   @IntegerOption(min=1)
   protected int numThreads = 1;
