@@ -418,6 +418,7 @@ cpa.arg.errorPath.automaton = "ErrorPath.%d.spc"
 
 # export error path to file, if one is found
 cpa.arg.errorPath.core = "ErrorPath.%d.core.txt"
+cpa.arg.errorPath.enabled = true
 cpa.arg.errorPath.export = true
 
 # translate error path to C program
