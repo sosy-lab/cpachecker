@@ -487,19 +487,9 @@ public class OctState implements AbstractState {
     }
 
     // the octagon library can only handle <= and >= constraints on floats
-    // so we need to check if the a >= b that we can make sure that its really
-    // smaller
     if (variableToTypeMap.get(pRightVariableName) == Type.FLOAT
           || variableToTypeMap.get(pLeftVariableName) == Type.FLOAT) {
-
-      if (addGreaterEqConstraint(pRightVariableName, pLeftVariableName).isEmpty()) {
         return addSmallerEqConstraint(pRightVariableName, pLeftVariableName);
-      } else {
-        return new OctState(octagonManager.empty(variableToIndexMap.size()),
-                            HashBiMap.create(variableToIndexMap),
-                            new HashMap<>(variableToTypeMap),
-                            block, logger, handleFloats);
-      }
     }
 
     // we want the lefthandside to be really smaller than the righthandside
@@ -519,18 +509,8 @@ public class OctState implements AbstractState {
     }
 
     // the octagon library can only handle <= and >= constraints on floats
-    // so we need to check if the a >= b that we can make sure that its really
-    // smaller
     if (variableToTypeMap.get(pVariableName) == Type.FLOAT) {
-
-      if (addGreaterEqConstraint(pVariableName, pValueOfLiteral).isEmpty()) {
-        return addSmallerEqConstraint(pVariableName, pValueOfLiteral);
-      } else {
-        return new OctState(octagonManager.empty(variableToIndexMap.size()),
-                            HashBiMap.create(variableToIndexMap),
-                            new HashMap<>(variableToTypeMap),
-                            block, logger, handleFloats);
-      }
+      return addSmallerEqConstraint(pVariableName, pValueOfLiteral);
     }
 
     // set right index to -1 as it is not used
@@ -540,18 +520,8 @@ public class OctState implements AbstractState {
   public OctState addSmallerConstraint(String pVariableName, IOctCoefficients oct) {
 
     // the octagon library can only handle <= and >= constraints on floats
-    // so we need to check if the a >= b that we can make sure that its really
-    // smaller
     if (variableToTypeMap.get(pVariableName) == Type.FLOAT) {
-
-      if (addGreaterEqConstraint(pVariableName, oct).isEmpty()) {
-        return addSmallerEqConstraint(pVariableName, oct);
-      } else {
-        return new OctState(octagonManager.empty(variableToIndexMap.size()),
-                            HashBiMap.create(variableToIndexMap),
-                            new HashMap<>(variableToTypeMap),
-                            block, logger, handleFloats);
-      }
+      return addSmallerEqConstraint(pVariableName, oct);
     }
 
     // TODO review coefficient handling
@@ -620,19 +590,9 @@ public class OctState implements AbstractState {
     }
 
     // the octagon library can only handle <= and >= constraints on floats
-    // so we need to check if the a >= b that we can make sure that its really
-    // smaller
     if (variableToTypeMap.get(pRightVariableName) == Type.FLOAT
           || variableToTypeMap.get(pLeftVariableName) == Type.FLOAT) {
-
-      if (addSmallerEqConstraint(pRightVariableName, pLeftVariableName).isEmpty()) {
-        return addGreaterEqConstraint(pRightVariableName, pLeftVariableName);
-      } else {
-        return new OctState(octagonManager.empty(variableToIndexMap.size()),
-                            HashBiMap.create(variableToIndexMap),
-                            new HashMap<>(variableToTypeMap),
-                            block, logger, handleFloats);
-      }
+      return addGreaterEqConstraint(pRightVariableName, pLeftVariableName);
     }
 
     // we want the lefthandside to be really greater than the righthandside
@@ -652,18 +612,8 @@ public class OctState implements AbstractState {
     }
 
     // the octagon library can only handle <= and >= constraints on floats
-    // so we need to check if the a >= b that we can make sure that its really
-    // smaller
     if (variableToTypeMap.get(pVariableName) == Type.FLOAT) {
-
-      if (addSmallerEqConstraint(pVariableName, pValueOfLiteral).isEmpty()) {
-        return addGreaterEqConstraint(pVariableName, pValueOfLiteral);
-      } else {
-        return new OctState(octagonManager.empty(variableToIndexMap.size()),
-                            HashBiMap.create(variableToIndexMap),
-                            new HashMap<>(variableToTypeMap),
-                            block, logger, handleFloats);
-      }
+      return addGreaterEqConstraint(pVariableName, pValueOfLiteral);
     }
 
     // set right index to -1 as it is not used
@@ -673,18 +623,8 @@ public class OctState implements AbstractState {
   public OctState addGreaterConstraint(String pVariableName, IOctCoefficients oct) {
 
     // the octagon library can only handle <= and >= constraints on floats
-    // so we need to check if the a >= b that we can make sure that its really
-    // smaller
     if (variableToTypeMap.get(pVariableName) == Type.FLOAT) {
-
-      if (addSmallerEqConstraint(pVariableName, oct).isEmpty()) {
-        return addGreaterEqConstraint(pVariableName, oct);
-      } else {
-        return new OctState(octagonManager.empty(variableToIndexMap.size()),
-                            HashBiMap.create(variableToIndexMap),
-                            new HashMap<>(variableToTypeMap),
-                            block, logger, handleFloats);
-      }
+      return addGreaterEqConstraint(pVariableName, oct);
     }
 
     // TODO review coefficients
