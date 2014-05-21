@@ -70,6 +70,10 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
 
   private final int size;
 
+  private final Map<String, CType> types;
+
+  private final MachineModel machineModel;
+
   /**
    * Creates a new visitor for converting compound state invariants formulae to
    * bit vector formulae by using the given formula manager,
@@ -85,16 +89,25 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
   ToBitvectorFormulaVisitor(FormulaManagerView pFmgr,
       ToFormulaVisitor<CompoundInterval, BooleanFormula> pToBooleanFormulaVisitor,
       FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor,
-      int pSize) {
+      int pSize, Map<String, CType> pTypes,
+      MachineModel pMachineModel) {
     this.bfmgr = pFmgr.getBooleanFormulaManager();
     this.bvfmgr = pFmgr.getBitvectorFormulaManager();
     this.toBooleanFormulaVisitor = pToBooleanFormulaVisitor;
     this.evaluationVisitor = pEvaluationVisitor;
     this.size = pSize;
+    this.types = pTypes;
+    this.machineModel = pMachineModel;
   }
 
   private BitvectorFormula makeVariable(String pVariableName) {
-    return this.bvfmgr.makeVariable(size, pVariableName);
+    CType type = types.get(pVariableName);
+    if (type == null) {
+      return null;
+    }
+    int variableSize = machineModel.getSizeof(type) * machineModel.getSizeofCharInBits();
+
+    return this.bvfmgr.extract(this.bvfmgr.makeVariable(variableSize, pVariableName), size - 1, 0);
   }
 
   /**
@@ -423,7 +436,6 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
   }
 
   private static Integer decideSize(Integer pSize1, Integer pSize2) {
-    assert pSize1 == null || pSize2 == null || pSize1 == pSize2;
     if (pSize1 == null) {
       return pSize2;
     }
