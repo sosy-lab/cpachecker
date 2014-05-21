@@ -103,7 +103,7 @@ public class ExponentialOptimalBalancedGraphPartitioner implements BalancedGraph
       }
     }
 
-    for (int i = 0; i < pPermutationIndices.size() - numSmaller; i++) {
+    for (int i = 0; i < pNumPartitions - numSmaller; i++) {
       currentPartition = result.get(i);
       for (int j = i * maxSize + numSmaller * (maxSize - 1); j < (i + 1) * maxSize + numSmaller * (maxSize - 1); j++) {
         currentPartition.add(orderedNodes.get(j));
