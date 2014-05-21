@@ -1623,38 +1623,47 @@ parser.transformTokensToLines = false
 # not the original input file.
 parser.usePreprocessor = false
 
-# Selects the strategy used for partial certificate construction
-pcc.certificateType = HEURISTIC
-  enum:     [HEURISTIC, ARG, MONOTONESTOPARG]
-
 # Enable if used property checker implements satisfiesProperty(AbstractState)
 # and checked property is violated for a set iff an element in this set
 # exists for which violates the property
 pcc.checkPropertyPerElement = false
 
+# The number of cores used exclusively for proof reading. Must be less than
+# pcc.useCores and may not be negative. Value 0 means that the cores used for
+# reading and checking are shared
+pcc.interleaved.useReadCores = 0
+
 # enables parallel checking of partial certificate
-pcc.enableParallelCheck = false
+pcc.parallel.io.enableParallelCheck = false
+
+# Selects the strategy used for partial certificate construction
+pcc.partial.certificateType = HEURISTIC
+  enum:     [HEURISTIC, ARG, MONOTONESTOPARG]
+
+# Enables proper PCC but may not work correctly for heuristics. Stops adding
+# newly computed elements to reached set if size saved in proof is reached.
+# If another element must be added, stops certificate checking and returns
+# false.
+pcc.partial.stopAddingAtReachedSetSize = false
 
 # Specifies the maximum size of the partition. This size is used to compute
 # the number of partitions if a proof (reached set) should be written.
 # Default value 0 means always a single partition.
-pcc.maxNumElemsPerPartition = 0
+pcc.partitioning.maxNumElemsPerPartition = 0
 
 # Heuristic for computing partitioning of proof (partial reached set).
-pcc.partitioning = RANDOM
+pcc.partitioning.partitioningStrategy = RANDOM
   enum:     [RANDOM, OPTIMAL]
+
+# If enabled uses the number of nodes saved in certificate size to compute
+# partition number otherwise the size of certificate
+pcc.partitioning.useGraphSizeToComputePartitionNumber = false
 
 # file in which proof representation needed for proof checking is stored
 pcc.proofFile = "arg.obj"
 
 # Generate and dump a proof
 pcc.proofgen.doPCC = false
-
-# Enables proper PCC but may not work correctly for heuristics. Stops adding
-# newly computed elements to reached set if size saved in proof is reached.
-# If another element must be added, stops certificate checking and returns
-# false.
-pcc.stopAddingAtReachedSetSize = false
 
 # Qualified name for class which implements certification strategy, hence
 # proof writing, to be used.
@@ -1664,15 +1673,6 @@ pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.ARGProofCheckerStrategy"
 
 # number of cpus/cores which should be used in parallel for proof checking
 pcc.useCores = 1
-
-# If enabled uses the number of nodes saved in certificate size to compute
-# partition number otherwise the size of certificate
-pcc.useGraphSizeToComputePartitionNumber = false
-
-# The number of cores used exclusively for proof reading. Must be less than
-# pcc.useCores and may not be negative. Value 0 means that the cores used for
-# reading and checking are shared
-pcc.useReadCores = 0
 
 # print reached set to text file
 reachedSet.export = true
