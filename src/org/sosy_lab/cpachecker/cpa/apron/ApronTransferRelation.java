@@ -1184,7 +1184,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
     }
   }
 
-  class CLiteralExpressionVisitor extends DefaultCExpressionVisitor<Double, CPATransferException> {
+  static class CLiteralExpressionVisitor extends DefaultCExpressionVisitor<Double, CPATransferException> {
 
     @Override
     protected Double visitDefault(CExpression pExp) throws CPATransferException {
@@ -1223,7 +1223,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
       case DIVIDE:
         return left / right;
       case EQUALS:
-        return left == right ? 1.0 : 0;
+        return left.equals(right) ? 1.0 : 0;
       case GREATER_EQUAL:
         return left >= right ? 1.0 : 0;
       case GREATER_THAN:
