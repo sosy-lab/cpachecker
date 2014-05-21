@@ -113,6 +113,9 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
         result = checker.run(reached);
       } catch (InvalidConfigurationException e) {
         result = false;
+      } catch (InterruptedException e1){
+        logger.log(Level.INFO, "Timed out. Checking incomplete.");
+        return false;
       } finally {
         stats.checkTimer.stop();
         logger.log(Level.INFO, "Stop checking analysis result.");

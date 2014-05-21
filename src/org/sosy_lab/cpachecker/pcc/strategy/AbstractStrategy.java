@@ -132,6 +132,8 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       throw new RuntimeException(e);
     } catch (InvalidConfigurationException e) {
       logger.log(Level.SEVERE, "Proof cannot be constructed due to conflicting configuration.", e.getMessage());
+    } catch (InterruptedException e) {
+      logger.log(Level.SEVERE, "Proof cannot be written due to time out during proof construction");
     } finally {
       try {
         fos.close();
@@ -140,7 +142,8 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     }
   }
 
-  protected abstract void writeProofToStream(ObjectOutputStream out, UnmodifiableReachedSet reached) throws IOException, InvalidConfigurationException;
+  protected abstract void writeProofToStream(ObjectOutputStream out, UnmodifiableReachedSet reached)
+      throws IOException, InvalidConfigurationException, InterruptedException;
 
 
   @Override

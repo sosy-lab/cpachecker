@@ -215,13 +215,10 @@ public class PartitioningIOHelper {
   }
 
   public void writeProof(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached)
-      throws InvalidConfigurationException, IOException {
-    Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> partitionDescription;
-    try {
-      partitionDescription = computePartialReachedSetAndPartition(pReached);
-    } catch (InterruptedException e) {
-      throw new IOException("Write prepartion took too long", e);
-    }
+      throws InvalidConfigurationException, IOException, InterruptedException {
+    Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> partitionDescription =
+        computePartialReachedSetAndPartition(pReached);
+
     writeMetadata(pOut, pReached.size(), partitionDescription.getSecond().size());
     for (Set<Integer> partition : partitionDescription.getSecond()) {
       writePartition(pOut, partition, partitionDescription.getFirst());
