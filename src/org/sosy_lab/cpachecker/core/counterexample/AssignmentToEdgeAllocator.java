@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
@@ -533,6 +534,12 @@ public class AssignmentToEdgeAllocator {
       try {
         ModelExpressionValueVisitor v = new ModelExpressionValueVisitor(functionName, machineModel, new LogManagerWithoutDuplicates(logger));
         addressV = exp.accept(v);
+      } catch(ArithmeticException e) {
+        logger.logDebugException(e);
+        logger.log(Level.WARNING, "The expression " + exp.toASTString() +
+            "could not be correctly evaluated while calculating the concrete values "
+            + "in the counterexample path.");
+        return null;
       } catch (UnrecognizedCCodeException e1) {
         throw new IllegalArgumentException(e1);
       }
