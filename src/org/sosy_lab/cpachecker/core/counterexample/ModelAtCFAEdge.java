@@ -253,8 +253,10 @@ public class ModelAtCFAEdge {
 
     public Address addOffset(Number pOffset) {
 
-      if (addressAsNumber == null) { throw new IllegalStateException(
-          "Can't add offsets to a non numerical type of address"); }
+      if (addressAsNumber == null) {
+        throw new IllegalStateException(
+          "Can't add offsets to a non numerical type of address");
+      }
 
       BigDecimal address = new BigDecimal(pOffset.toString());
       BigDecimal offset = new BigDecimal(addressAsNumber.toString());

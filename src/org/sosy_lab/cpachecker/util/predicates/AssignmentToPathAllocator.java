@@ -149,7 +149,7 @@ public class AssignmentToPathAllocator {
     ModelAtCFAEdge modelAtEdge = new ModelAtCFAEdge(variableEnvoirment, functionEnvoirment, addressOfVariables);
 
     AssignmentToEdgeAllocator allocator =
-        new AssignmentToEdgeAllocator(logger, cfaEdge, termSet, modelAtEdge, pMachineModel);
+        new AssignmentToEdgeAllocator(logger, cfaEdge, modelAtEdge, pMachineModel);
 
     CFAEdgeWithAssignments cfaEdgeWithAssignment = allocator.allocateAssignmentsToEdge();
     usedAssignableTerms.putAll(cfaEdge, terms);
