@@ -199,8 +199,9 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
   [^\n\r\}\\]+                   { string.append( yytext() ); }
   \\t                            { string.append('\t'); }
   \\n                            { string.append('\n'); }
-
+  \n                             { string.append('\n'); }
   \\r                            { string.append('\r'); }
+  \r                             { string.append('\r'); }
   \\\}                           { string.append('}'); }
   \\\\                           { string.append('\\'); }
 }

@@ -59,4 +59,9 @@ public final class OctEmptyCoefficients extends AOctCoefficients {
   public NumArray getNumArray(OctagonManager manager) {
     return null;
   }
+
+  @Override
+  public boolean equals(Object other) {
+    return other instanceof OctEmptyCoefficients;
+  }
 }

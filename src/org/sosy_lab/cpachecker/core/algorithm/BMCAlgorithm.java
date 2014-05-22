@@ -1070,13 +1070,13 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           freshCutPointPrecision = excludeLoopEdges(freshCutPointPrecision, cutPointEdge);
 
           // Create path formulas by running CPAAlgorithm
-          reached = reachedSetFactory.create();
-          reached.add(freshCutPointState, freshCutPointPrecision);
-          algorithm.run(reached);
+          ReachedSet lastIterationReached = reachedSetFactory.create();
+          lastIterationReached.add(freshCutPointState, freshCutPointPrecision);
+          algorithm.run(lastIterationReached);
 
-          Iterable<AbstractState> targetStates = from(reached).filter(IS_TARGET_STATE);
+          Iterable<AbstractState> targetStates = from(lastIterationReached).filter(IS_TARGET_STATE);
           formulaC = bfmgr.not(createFormulaFor(targetStates));
-          reached.clear();
+          lastIterationReached.clear();
 
           // Reset predicate path formula
           predicateAbstractState.setPathFormula(savedPathFormula);

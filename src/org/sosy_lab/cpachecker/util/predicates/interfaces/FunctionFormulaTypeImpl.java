@@ -31,17 +31,22 @@ import com.google.common.collect.ImmutableList;
 /**
  * A simple straightforward implementation of FunctionFormulaType<T>
  */
-public class FunctionFormulaTypeImpl<T extends Formula> extends FunctionFormulaType<T> {
+public class FunctionFormulaTypeImpl<T extends Formula, TFuncDecl> extends FunctionFormulaType<T> {
+
   private final FormulaType<T> returnType;
   private final List<FormulaType<?>> argumentTypes;
-  public FunctionFormulaTypeImpl(FormulaType<T> returnType, FormulaType<?>... argumentTypes) {
+  private final TFuncDecl funcDecl;
+
+  public FunctionFormulaTypeImpl(FormulaType<T> returnType, TFuncDecl funcDecl, FormulaType<?>... argumentTypes) {
     this.returnType = returnType;
     this.argumentTypes = ImmutableList.copyOf(argumentTypes);
+    this.funcDecl = funcDecl;
   }
 
-  public FunctionFormulaTypeImpl(FormulaType<T> returnType, List<FormulaType<?>> argumentTypes) {
+  public FunctionFormulaTypeImpl(FormulaType<T> returnType, TFuncDecl funcDecl, List<FormulaType<?>> argumentTypes) {
     this.returnType = returnType;
     this.argumentTypes = ImmutableList.copyOf(argumentTypes);
+    this.funcDecl = funcDecl;
   }
 
   @Override
@@ -59,6 +64,9 @@ public class FunctionFormulaTypeImpl<T extends Formula> extends FunctionFormulaT
     return returnType.getInterfaceType();
   }
 
+  public TFuncDecl getFuncDecl() {
+    return funcDecl;
+  }
 
   @Override
   public String toString() {

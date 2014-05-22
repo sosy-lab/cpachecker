@@ -73,7 +73,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 
 
-public class SignTransferRelation extends ForwardingTransferRelation<SignState, SingletonPrecision> {
+public class SignTransferRelation extends ForwardingTransferRelation<SignState, SignState, SingletonPrecision> {
 
   LogManager logger;
 

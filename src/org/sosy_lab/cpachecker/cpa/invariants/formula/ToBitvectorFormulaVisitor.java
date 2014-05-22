@@ -70,6 +70,10 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
 
   private final int size;
 
+  private final Map<String, CType> types;
+
+  private final MachineModel machineModel;
+
   /**
    * Creates a new visitor for converting compound state invariants formulae to
    * bit vector formulae by using the given formula manager,
@@ -85,16 +89,28 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
   ToBitvectorFormulaVisitor(FormulaManagerView pFmgr,
       ToFormulaVisitor<CompoundInterval, BooleanFormula> pToBooleanFormulaVisitor,
       FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor,
-      int pSize) {
+      int pSize, Map<String, CType> pTypes,
+      MachineModel pMachineModel) {
     this.bfmgr = pFmgr.getBooleanFormulaManager();
     this.bvfmgr = pFmgr.getBitvectorFormulaManager();
     this.toBooleanFormulaVisitor = pToBooleanFormulaVisitor;
     this.evaluationVisitor = pEvaluationVisitor;
     this.size = pSize;
+    this.types = pTypes;
+    this.machineModel = pMachineModel;
   }
 
   private BitvectorFormula makeVariable(String pVariableName) {
-    return this.bvfmgr.makeVariable(size, pVariableName);
+    CType type = types.get(pVariableName);
+    if (type == null) {
+      return null;
+    }
+    int variableSize = machineModel.getSizeof(type) * machineModel.getSizeofCharInBits();
+    BitvectorFormula variable = this.bvfmgr.makeVariable(variableSize, pVariableName);
+    if (size <= variableSize) {
+      return this.bvfmgr.extract(variable, size - 1, 0);
+    }
+    return this.bvfmgr.concat(this.bvfmgr.makeBitvector(size - variableSize, 0), variable);
   }
 
   /**
@@ -109,10 +125,13 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
    * not be represented as a bit vector formula.
    */
   private @Nullable BitvectorFormula evaluate(InvariantsFormula<CompoundInterval> pFormula, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    CompoundInterval value = pFormula.accept(this.evaluationVisitor, pEnvironment);
+    CompoundInterval intervals = pFormula.accept(this.evaluationVisitor, pEnvironment);
 
-    if (value.isSingleton()) {
-      return this.bvfmgr.makeBitvector(size, value.getLowerBound().longValue());
+    if (intervals.isSingleton()) {
+      BigInteger value = intervals.getValue();
+      // Get only the [size] least significant bits
+      value = value.and(BigInteger.valueOf(2).pow(size).subtract(BigInteger.valueOf(1)));
+      return this.bvfmgr.makeBitvector(size, value);
     }
     return null;
   }
@@ -413,7 +432,7 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
 
     @Override
     public Integer visit(Variable<CompoundInterval> pVariable) {
-      CType type = types.get(pVariable);
+      CType type = types.get(pVariable.getName());
       if (type == null) {
         return null;
       }
@@ -423,7 +442,6 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
   }
 
   private static Integer decideSize(Integer pSize1, Integer pSize2) {
-    assert pSize1 == null || pSize2 == null || pSize1 == pSize2;
     if (pSize1 == null) {
       return pSize2;
     }

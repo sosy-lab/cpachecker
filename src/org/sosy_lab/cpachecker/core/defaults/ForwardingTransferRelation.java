@@ -29,6 +29,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
@@ -107,8 +108,14 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
  *
  * 4. postProcessing
  * 5. resetInfo
+ *
+ * Generics:
+ *  - S type of intermediate result, should be equal to T or Collection<T>,
+ *      should be converted/copied into an Object of type Collection<T> in method 'postProcessing'.
+ *  - T type of State
+ *  - P type of Precision
  */
-public abstract class ForwardingTransferRelation<S extends AbstractState, P extends Precision>
+public abstract class ForwardingTransferRelation<S, T extends AbstractState, P extends Precision>
     implements TransferRelation {
 
   private static final String NOT_IMPLEMENTED = "this method is not implemented";
@@ -117,7 +124,7 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
   protected CFAEdge edge;
 
   /** the given state, casted to correct type, for local access */
-  protected S state;
+  protected T state;
 
   /** the given precision, casted to correct type, for local access */
   protected P precision;
@@ -129,7 +136,7 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
     return edge;
   }
 
-  protected S getState() {
+  protected T getState() {
     return state;
   }
 
@@ -143,13 +150,13 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
 
 
   @Override
-  public Collection<S> getAbstractSuccessors(
+  public Collection<T> getAbstractSuccessors(
       final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge)
       throws CPATransferException {
 
     setInfo(abstractState, abstractPrecision, cfaEdge);
 
-    final Collection<S> preCheck = preCheck();
+    final Collection<T> preCheck = preCheck();
     if (preCheck != null) { return preCheck; }
 
     final S successor;
@@ -186,15 +193,11 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
       successor = handleSimpleEdge(cfaEdge);
     }
 
-    postProcessing(successor);
+    final Collection<T> result = postProcessing(successor);
 
     resetInfo();
 
-    if (successor == null) {
-      return Collections.emptySet();
-    } else {
-      return Collections.singleton(successor);
-    }
+    return result;
   }
 
 
@@ -202,7 +205,7 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
   protected void setInfo(final AbstractState abstractState,
       final Precision abstractPrecision, final CFAEdge cfaEdge) {
     edge = cfaEdge;
-    state = (S) abstractState;
+    state = (T) abstractState;
     precision = (P) abstractPrecision;
     functionName = cfaEdge.getPredecessor().getFunctionName();
   }
@@ -249,26 +252,38 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
   }
 
   /** This method just forwards the handling to every inner edge. */
+  @SuppressWarnings("unchecked")
   protected S handleMultiEdge(MultiEdge cfaEdge) throws CPATransferException {
     for (final CFAEdge innerEdge : cfaEdge) {
       edge = innerEdge;
-      state = handleSimpleEdge(innerEdge);
+      final S intermediateResult = handleSimpleEdge(innerEdge);
+      Preconditions.checkState(state.getClass().isAssignableFrom(intermediateResult.getClass()),
+            "We assume equal types for input- and output-values. " +
+            "Thus this implementation only works with exactly one input- and one output-state (and they should have same type)." +
+            "If there are more successors during a MultiEdge, you need to override this method.");
+      state = (T)intermediateResult;
     }
     edge = cfaEdge; // reset edge
-    return state;
+    return (S)state;
   }
 
 
   /** This is a fast check, if the edge should be analyzed.
    * It returns NULL for further processing,
    * otherwise the return-value for skipping. */
-  protected Collection<S> preCheck() {
+  protected Collection<T> preCheck() {
     return null;
   }
 
-  /** This method can modify the successor. */
-  protected void postProcessing(@Nullable S successor) {
-    // do nothing
+  /** This method should convert/cast/copy the intermediate result into a Collection<T>.
+   * This method can modify the successor, if needed. */
+  @SuppressWarnings("unchecked")
+  protected Collection<T> postProcessing(@Nullable S successor) {
+    if (successor == null) {
+      return Collections.emptySet();
+    } else {
+      return Collections.singleton((T)successor);
+    }
   }
 
 
@@ -440,8 +455,9 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
    *  in the CFA. This default implementation returns the input-state.
    *  A blank edge can also be a default-return-edge for a function "void f()".
    *  In that case the successor-node is a FunctionExitNode. */
+  @SuppressWarnings("unchecked")
   protected S handleBlankEdge(BlankEdge cfaEdge) throws CPATransferException {
-    return state;
+    return (S)state;
   }
 
   protected S handleFunctionSummaryEdge(FunctionSummaryEdge cfaEdge) throws CPATransferException {

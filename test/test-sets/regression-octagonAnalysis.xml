@@ -3,7 +3,7 @@
 <benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="3000" cpuCores="2">
     <option name="-heap">2000M</option>
     <option name="-setprop">limits.time.cpu=1min</option>
-    <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
+    <propertyfile>../programs/simple/octagon/ALL.prp</propertyfile>
 
 
     <sourcefiles>
@@ -14,9 +14,14 @@
   <rundefinition name="octagonAnalysis">
     <option name="-octagonAnalysis"/>
   </rundefinition>
-  <rundefinition name="octagonAnalysis-mergeJoin">
+  <rundefinition name="octagonAnalysis-mergeJoin_normal">
     <option name="-octagonAnalysis"/>
     <option name="-setprop">cpa.octagon.merge=join</option>
+  </rundefinition>
+  <rundefinition name="octagonAnalysis-mergeJoin_widening">
+    <option name="-octagonAnalysis"/>
+    <option name="-setprop">cpa.octagon.merge=join</option>
+    <option name="-setprop">cpa.octagon.domain.joinType=widening</option>
   </rundefinition>
   <columns>
     <column title="total">time for CPAchecker</column>

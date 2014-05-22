@@ -60,7 +60,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
-@Options(prefix = "pcc")
+@Options(prefix = "pcc.interleaved")
 public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends AbstractStrategy {
 
   @Option(
@@ -189,12 +189,9 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
 
   @Override
   protected void writeProofToStream(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached)
-      throws IOException, InvalidConfigurationException {
-    try {
-      ioHelper.constructInternalProofRepresentation(pReached);
-    } catch (InterruptedException e) {
-      throw new IOException("Write preparation took too long.", e);
-    }
+      throws IOException, InvalidConfigurationException, InterruptedException {
+    ioHelper.constructInternalProofRepresentation(pReached);
+
     // write meta data
     ioHelper.writeMetadata(pOut, pReached.size(), ioHelper.getNumPartitions());
     nextPartition = 0;

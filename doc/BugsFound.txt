@@ -5,6 +5,13 @@
 
 # Place latest bugs first; the first n bugs will be shown on the CPAchecker web page.
 
-2013-03-04: Bug found in the Linux kernel: <a href="https://patchwork.kernel.org/patch/2204681/">https://patchwork.kernel.org/patch/2204681/</a> (<a href="http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=193d01532a730a53cbc74462799dbc43968b97fd">commit</a>)
-2012-02-13: Bug found in the Linux kernel: <a href="https://linuxtv.org/patch/9871/">https://linuxtv.org/patch/9871/</a>
+# Please use a committer date for bugs found in the Linux kernel since it
+# reflects that corresponding bugs were recognized by the developers.
+# Do not use any extra links except links to commits because of they are
+# not uniform and can become deprecated.
+
+2014-04-16: Bug found and fixed in Linux kernel 3.15-rc2 (<a href="https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=070c0b17f6a1ba39dff9be112218127e7e8fd456">commit</a>)
+2013-11-29: Bug found and fixed in Linux kernel 3.13-rc4 (<a href="https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=6633327d59067fe16128d66968cd50a10ca7a09c">commit</a>)
+2013-03-28: Bug found and fixed in Linux kernel 3.10-rc1 (<a href="https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=193d01532a730a53cbc74462799dbc43968b97fd">commit</a>)
+2012-03-08: Bug found and fixed in Linux kernel 3.5-rc5 (<a href="https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=0c07aec31a98a63ee83f2bbad4a2fab0e0f58d33">commit</a>)
 

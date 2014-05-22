@@ -105,7 +105,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
   protected ProofCheckAlgorithm(ConfigurableProgramAnalysis cpa, Configuration pConfig,
       LogManager logger, ShutdownNotifier pShutdownNotifier, ReachedSet pReachedSet)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, InterruptedException {
     pConfig.inject(this);
 
     checkingStrategy = PCCStrategyBuilder.buildStrategy(pccStrategy, pConfig, logger, pShutdownNotifier, cpa);

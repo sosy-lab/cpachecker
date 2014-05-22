@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.MonotoneTransferF
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialCertificateTypeProvider;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
 
-@Options(prefix = "pcc")
+@Options(prefix = "pcc.partitioning")
 public class PartitioningIOHelper {
 
   @Option(description = "If enabled uses the number of nodes saved in certificate size to compute partition number otherwise the size of certificate")
@@ -62,7 +62,7 @@ public class PartitioningIOHelper {
   private int maxNumElemsPerPartition = 0;
 
   @Option(description = "Heuristic for computing partitioning of proof (partial reached set).")
-  private PartitioningHeuristics partitioning = PartitioningHeuristics.RANDOM;
+  private PartitioningHeuristics partitioningStrategy = PartitioningHeuristics.RANDOM;
 
   public enum PartitioningHeuristics {
     RANDOM,
@@ -90,7 +90,7 @@ public class PartitioningIOHelper {
       partialConstructor = new ARGBasedPartialReachedSetConstructionAlgorithm(true);
     }
 
-    switch (partitioning) {
+    switch (partitioningStrategy) {
     case OPTIMAL:
       partitioner = new ExponentialOptimalBalancedGraphPartitioner(pShutdownNotifier);
       break;
@@ -215,13 +215,10 @@ public class PartitioningIOHelper {
   }
 
   public void writeProof(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached)
-      throws InvalidConfigurationException, IOException {
-    Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> partitionDescription;
-    try {
-      partitionDescription = computePartialReachedSetAndPartition(pReached);
-    } catch (InterruptedException e) {
-      throw new IOException("Write prepartion took too long", e);
-    }
+      throws InvalidConfigurationException, IOException, InterruptedException {
+    Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> partitionDescription =
+        computePartialReachedSetAndPartition(pReached);
+
     writeMetadata(pOut, pReached.size(), partitionDescription.getSecond().size());
     for (Set<Integer> partition : partitionDescription.getSecond()) {
       writePartition(pOut, partition, partitionDescription.getFirst());

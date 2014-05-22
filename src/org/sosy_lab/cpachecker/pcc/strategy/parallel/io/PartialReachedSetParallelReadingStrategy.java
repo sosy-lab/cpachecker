@@ -58,7 +58,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
-@Options(prefix = "pcc")
+@Options(prefix = "pcc.parallel.io")
 public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
 
   private final PartitioningIOHelper ioHelper;
@@ -82,12 +82,8 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
 
   @Override
   public void constructInternalProofRepresentation(final UnmodifiableReachedSet pReached)
-      throws InvalidConfigurationException {
-    try {
-      ioHelper.constructInternalProofRepresentation(pReached);
-    } catch (InterruptedException e) {
-      throw new InvalidConfigurationException("Time limit does not match certificate construction strategy!", e);
-    }
+      throws InvalidConfigurationException, InterruptedException {
+    ioHelper.constructInternalProofRepresentation(pReached);
   }
 
   @Override
@@ -149,12 +145,9 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
 
   @Override
   protected void writeProofToStream(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached)
-      throws IOException, InvalidConfigurationException {
-    try {
-      ioHelper.constructInternalProofRepresentation(pReached);
-    } catch (InterruptedException e) {
-      throw new IOException("Write preparation took too long.", e);
-    }
+      throws IOException, InvalidConfigurationException, InterruptedException {
+    ioHelper.constructInternalProofRepresentation(pReached);
+
     // write metadata
     ioHelper.writeMetadata(pOut, pReached.size(), ioHelper.getNumPartitions());
     nextPartition = 0;

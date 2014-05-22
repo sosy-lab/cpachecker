@@ -51,8 +51,9 @@ public interface PCCStrategy {
    * @throws InvalidConfigurationException <ul>
    * <li>if format of abstract state does not match expectation of PCC strategy, configuration of PCC strategy</li>
    * <li>if class does not support direct checking of analysis result</li></ul>
+   * @throws InterruptedException if construction took longer than remaining time available for CPAchecker execution
    */
-  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) throws InvalidConfigurationException;
+  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) throws InvalidConfigurationException, InterruptedException;
 
   /**
    * Reads the certificate from disk, stream, etc. and stores it internally.

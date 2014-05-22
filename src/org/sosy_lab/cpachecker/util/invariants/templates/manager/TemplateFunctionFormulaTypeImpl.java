@@ -30,16 +30,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaTypeImpl;
 
 
-public class TemplateFunctionFormulaTypeImpl<T extends Formula> extends FunctionFormulaTypeImpl<T> {
-
-  private String name;
+public class TemplateFunctionFormulaTypeImpl<T extends Formula> extends FunctionFormulaTypeImpl<T, String> {
 
   public TemplateFunctionFormulaTypeImpl(String name, FormulaType<T> pReturnType, List<FormulaType<?>> pArgumentTypes) {
-    super(pReturnType, pArgumentTypes);
-    this.name = name;
-  }
-
-  public String getName() {
-    return name;
+    super(pReturnType, name, pArgumentTypes);
   }
 }
