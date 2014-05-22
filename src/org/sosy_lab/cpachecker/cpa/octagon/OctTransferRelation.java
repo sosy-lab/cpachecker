@@ -116,6 +116,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 
@@ -1204,7 +1206,11 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
       Set<IOctCoefficients> left = e.getOperand1().accept(this);
       Set<IOctCoefficients> right = e.getOperand2().accept(this);
 
-      if (left.isEmpty() || right.isEmpty()) { return Collections.singleton((IOctCoefficients)OctEmptyCoefficients.INSTANCE); }
+      left = FluentIterable.from(left).filter(not(instanceOf(OctEmptyCoefficients.class))).toSet();
+      right = FluentIterable.from(right).filter(not(instanceOf(OctEmptyCoefficients.class))).toSet();
+      if (left.isEmpty() || right.isEmpty()) {
+        return Collections.singleton((IOctCoefficients)OctEmptyCoefficients.INSTANCE);
+      }
 
       switch (e.getOperator()) {
       case BINARY_AND:
@@ -1223,6 +1229,10 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
       case LESS_THAN:
       case NOT_EQUALS: {
         Set<IOctCoefficients> returnCoefficients = new HashSet<>(2);
+        String tempVarLeft = buildVarName(visitorFunctionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
+        temporaryVariableCounter++;
+        visitorState = visitorState.declareVariable(tempVarLeft, getCorrespondingOctStateType(e.getOperand1().getExpressionType()));
+
         for (IOctCoefficients leftCoeffs : left) {
           for (IOctCoefficients rightCoeffs : right) {
             // return values can only be zero and one, so we can abort this for loop if we have
@@ -1230,9 +1240,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
             if (returnCoefficients.size() == 2) {
               return returnCoefficients;
             }
-            String tempVarLeft = buildVarName(visitorFunctionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
-            temporaryVariableCounter++;
-            visitorState = visitorState.declareVariable(tempVarLeft, getCorrespondingOctStateType(e.getOperand1().getExpressionType()));
+
             visitorState = visitorState.makeAssignment(tempVarLeft, leftCoeffs.expandToSize(visitorState.sizeOfVariables(), visitorState));
 
             rightCoeffs = rightCoeffs.expandToSize(visitorState.sizeOfVariables(), visitorState);
@@ -1382,7 +1390,10 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
     public Set<IOctCoefficients> visit(CUnaryExpression e) throws CPATransferException {
       Set<IOctCoefficients> operand = e.getOperand().accept(this);
 
-      if (operand.isEmpty()) { Collections.singleton((IOctCoefficients)OctEmptyCoefficients.INSTANCE); }
+      operand = FluentIterable.from(operand).filter(not(instanceOf(OctEmptyCoefficients.class))).toSet();
+      if (operand.isEmpty()) {
+        return Collections.singleton((IOctCoefficients)OctEmptyCoefficients.INSTANCE);
+      }
 
       switch (e.getOperator()) {
       case AMPER:
@@ -1390,27 +1401,43 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
       case TILDE:
         return Collections.singleton((IOctCoefficients)OctEmptyCoefficients.INSTANCE);
       case MINUS:
-        Set<IOctCoefficients> returnCoefficients = new HashSet<>();
-        for (IOctCoefficients coeffs : operand) {
-          if (coeffs.hasOnlyConstantValue()) {
-            if (coeffs instanceof OctSimpleCoefficients) {
-              returnCoefficients.add(new OctSimpleCoefficients(coeffs.size(), ((OctSimpleCoefficients) coeffs).getConstantValue().mul(-1), visitorState));
-              continue;
-            } else if (coeffs instanceof OctIntervalCoefficients) {
-              Pair<Pair<OctNumericValue, Boolean>, Pair<OctNumericValue, Boolean>> bounds = ((OctIntervalCoefficients) coeffs).getConstantValue();
-              returnCoefficients.add(new OctIntervalCoefficients(coeffs.size(),
-                                                                 bounds.getSecond().getFirst().mul(-1),
-                                                                 bounds.getFirst().getFirst().mul(-1),
-                                                                 bounds.getSecond().getSecond(),
-                                                                 bounds.getFirst().getSecond(),
-                                                                 visitorState));
-              continue;
+        final Set<IOctCoefficients> returnCoefficients = new HashSet<>();
+
+        // we filter out all coefficients which do not only have a constant value
+        // and at the same time we add the returnCoefficients for those who only have
+        // a constant value
+        operand = FluentIterable.from(operand).filter(new Predicate<IOctCoefficients>() {
+          @Override
+          public boolean apply(IOctCoefficients coeffs) {
+            if (coeffs.hasOnlyConstantValue()) {
+              if (coeffs instanceof OctSimpleCoefficients) {
+                returnCoefficients.add(new OctSimpleCoefficients(coeffs.size(), ((OctSimpleCoefficients) coeffs).getConstantValue().mul(-1), visitorState));
+                return false;
+              } else if (coeffs instanceof OctIntervalCoefficients) {
+                Pair<Pair<OctNumericValue, Boolean>, Pair<OctNumericValue, Boolean>> bounds = ((OctIntervalCoefficients) coeffs).getConstantValue();
+                returnCoefficients.add(new OctIntervalCoefficients(coeffs.size(),
+                                                                   bounds.getSecond().getFirst().mul(-1),
+                                                                   bounds.getFirst().getFirst().mul(-1),
+                                                                   bounds.getSecond().getSecond(),
+                                                                   bounds.getFirst().getSecond(),
+                                                                   visitorState));
+                return false;
+              }
             }
+            return true;
           }
-          String tempVar = buildVarName(visitorFunctionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
-          temporaryVariableCounter++;
-          visitorState = visitorState.declareVariable(tempVar, getCorrespondingOctStateType(e.getExpressionType()))
-                        .makeAssignment(tempVar, coeffs.expandToSize(visitorState.sizeOfVariables()+1, visitorState));
+        }).toSet();
+
+        if (operand.isEmpty()) {
+          return returnCoefficients;
+        }
+
+        String tempVar = buildVarName(visitorFunctionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
+        temporaryVariableCounter++;
+        visitorState = visitorState.declareVariable(tempVar, getCorrespondingOctStateType(e.getExpressionType()));
+
+        for (IOctCoefficients coeffs : operand) {
+        visitorState = visitorState.makeAssignment(tempVar, coeffs.expandToSize(visitorState.sizeOfVariables()+1, visitorState));
 
           if (e.getOperator() == UnaryOperator.MINUS) {
             returnCoefficients.add(new OctSimpleCoefficients(visitorState.sizeOfVariables(), visitorState.getVariableIndexFor(tempVar), new OctNumericValue(-1), visitorState));
