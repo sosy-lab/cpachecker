@@ -99,6 +99,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 
 /**
  * This is a CPA for collecting simple invariants about integer variables.
@@ -187,6 +188,8 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
   private final ConditionAdjuster conditionAdjuster;
 
   private Optional<Set<CFANode>> targetLocations = Optional.absent();
+
+  private final Set<String> interestingVariables = new LinkedHashSet<>();
 
   /**
    * Gets a factory for creating InvariantCPAs.
@@ -278,7 +281,7 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
     // Collect relevant edges and guess that information might be interesting
     Set<CFAEdge> relevantEdges = new HashSet<>();
     Set<InvariantsFormula<CompoundInterval>> interestingPredicates = new LinkedHashSet<>();
-    Set<String> interestingVariables = new LinkedHashSet<>();
+    Set<String> interestingVariables = new LinkedHashSet<>(this.interestingVariables);
 
     boolean guessInterestingInformation = options.interestingPredicatesLimit != 0 || options.interestingVariableLimit != 0;
     if (guessInterestingInformation && !determineTargetLocations) {
@@ -402,6 +405,10 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
 
   public void injectInvariant(CFANode pLocation, InvariantsState pInvariant) {
     this.invariants.put(pLocation, pInvariant);
+  }
+
+  public void addInterestingVariables(Iterable<String> pInterestingVariables) {
+    Iterables.addAll(this.interestingVariables, pInterestingVariables);
   }
 
   /**
