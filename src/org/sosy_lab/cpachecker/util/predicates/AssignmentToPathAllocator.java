@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Constant;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Function;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Variable;
-import org.sosy_lab.cpachecker.core.counterexample.ModelAtCFAEdge;
+import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.collect.HashMultimap;
@@ -146,7 +146,7 @@ public class AssignmentToPathAllocator {
 
     removeDeallocatedVariables(ssaMap, variableEnvoirment);
 
-    ModelAtCFAEdge modelAtEdge = new ModelAtCFAEdge(variableEnvoirment, functionEnvoirment, addressOfVariables);
+    ConcreteState modelAtEdge = new ConcreteState(variableEnvoirment, functionEnvoirment, addressOfVariables);
 
     AssignmentToEdgeAllocator allocator =
         new AssignmentToEdgeAllocator(logger, cfaEdge, modelAtEdge, pMachineModel);
@@ -232,7 +232,7 @@ public class AssignmentToPathAllocator {
 
     for (Constant constant : assignableTerms.getConstants()) {
       String name = constant.getName();
-      if (name.startsWith(ModelAtCFAEdge.getAddressPrefix())
+      if (name.startsWith(ConcreteState.getAddressPrefix())
           && pModel.containsKey(constant)) {
 
         addressOfVariables.put(name, pModel.get(constant));

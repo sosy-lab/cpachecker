@@ -45,15 +45,19 @@ import org.sosy_lab.cpachecker.core.counterexample.Model.Function;
 import com.google.common.collect.Multimap;
 
 
-public class ModelAtCFAEdge {
+public class ConcreteState {
 
   private static final String ADDRESS_PREFIX = "__ADDRESS_OF_";
 
   private final Map<String, Assignment> variableModel;
+
+
   private final Multimap<String, Assignment> uFModel;
+
+
   private final Map<String, Object> variableAddressMap;
 
-  public ModelAtCFAEdge(Map<String, Assignment> pVariableModel,
+  public ConcreteState(Map<String, Assignment> pVariableModel,
       Multimap<String, Assignment> pUFModel,
       Map<String, Object> pVariableAddressMap) {
     variableAddressMap = pVariableAddressMap;
