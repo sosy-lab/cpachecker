@@ -323,6 +323,10 @@ class PrincessEnvironment {
   }
 
   public String getVersion() {
-    return "unknown version";
+    return "Princess (unknown version)";
+  }
+
+  public void close() {
+    api.shutDown(); // TODO after this method is called, the next checkSat-call blocks forever.
   }
 }

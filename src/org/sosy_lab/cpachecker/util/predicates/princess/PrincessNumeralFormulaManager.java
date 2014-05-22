@@ -168,7 +168,8 @@ abstract class PrincessNumeralFormulaManager
   public boolean isEqual(IExpression pNumber) {
     // Princess does not support Equal.
     // Formulas are converted from "a==b" to "a+(-b)==0".
-    return false;
+    // So this will never return true for the original terms, but only for a intermediate result.
+    return pNumber instanceof IIntFormula && ((IIntFormula)pNumber).rel() == IIntRelation.EqZero();
   }
 
   @Override

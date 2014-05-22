@@ -96,6 +96,7 @@ public class PrincessTheoremProver implements ProverEnvironment {
       env.pop(assertedTerms.size());
       assertedTerms.clear();
     }
+    // env.close();
     env = null;
   }
 
