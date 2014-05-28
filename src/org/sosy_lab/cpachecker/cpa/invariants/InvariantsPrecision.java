@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState.AbstractEdgeBasedAbstractionStrategyFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState.EdgeBasedAbstractionStrategyFactories;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
@@ -49,7 +48,6 @@ public class InvariantsPrecision implements Precision {
   public static InvariantsPrecision getEmptyPrecision(final MachineModel pMachineModel) {
     return new InvariantsPrecision(
         Collections.<CFAEdge>emptySet(),
-        Collections.<InvariantsFormula<CompoundInterval>>emptySet(),
         Collections.<String>emptySet(),
         0,
         false,
@@ -71,8 +69,6 @@ public class InvariantsPrecision implements Precision {
 
   private final ImmutableSet<CFAEdge> relevantEdges;
 
-  private final ImmutableSet<InvariantsFormula<CompoundInterval>> interestingAssumptions;
-
   private final ImmutableSet<String> interestingVariables;
 
   private final int maximumFormulaDepth;
@@ -84,13 +80,11 @@ public class InvariantsPrecision implements Precision {
   private final MachineModel machineModel;
 
   public InvariantsPrecision(Set<CFAEdge> pRelevantEdges,
-      Set<InvariantsFormula<CompoundInterval>> pInterestingAssumptions,
       Set<String> pInterestingVariables, int pMaximumFormulaDepth,
       boolean pUseBinaryVariableInterrelations,
       AbstractEdgeBasedAbstractionStrategyFactory pEdgeBasedAbstractionStrategyFactory,
       MachineModel pMachineModel) {
     this(asImmutableRelevantEdges(pRelevantEdges),
-        ImmutableSet.<InvariantsFormula<CompoundInterval>>copyOf(pInterestingAssumptions),
         ImmutableSet.<String>copyOf(pInterestingVariables),
         pMaximumFormulaDepth,
         pUseBinaryVariableInterrelations,
@@ -99,13 +93,11 @@ public class InvariantsPrecision implements Precision {
   }
 
   public InvariantsPrecision(ImmutableSet<CFAEdge> pRelevantEdges,
-      ImmutableSet<InvariantsFormula<CompoundInterval>> pInterestingAssumptions,
       ImmutableSet<String> pInterestingVariables, int pMaximumFormulaDepth,
       boolean pUseBinaryVariableInterrelations,
       AbstractEdgeBasedAbstractionStrategyFactory pEdgeBasedAbstractionStrategyFactory,
       MachineModel pMachineModel) {
     this.relevantEdges = pRelevantEdges;
-    this.interestingAssumptions = pInterestingAssumptions;
     this.interestingVariables = pInterestingVariables;
     this.maximumFormulaDepth = pMaximumFormulaDepth;
     this.useBinaryVariableInterrelations = pUseBinaryVariableInterrelations;
@@ -128,17 +120,13 @@ public class InvariantsPrecision implements Precision {
     return pEdge != null && (this.relevantEdges == null || this.relevantEdges.contains(pEdge));
   }
 
-  public Set<InvariantsFormula<CompoundInterval>> getInterestingAssumptions() {
-    return this.interestingAssumptions;
-  }
-
   public Set<String> getInterestingVariables() {
     return this.interestingVariables;
   }
 
   @Override
   public String toString() {
-    return String.format("Number of relevant edges: %d; Interesting asumptions: %s; Interesting variables: %s;", this.relevantEdges.size(), this.interestingAssumptions, this.interestingVariables);
+    return String.format("Number of relevant edges: %d; Interesting variables: %s;", this.relevantEdges.size(), this.interestingVariables);
   }
 
   @Override
@@ -149,7 +137,6 @@ public class InvariantsPrecision implements Precision {
     if (pOther instanceof InvariantsPrecision) {
       InvariantsPrecision other = (InvariantsPrecision) pOther;
       return relevantEdges.equals(other.relevantEdges)
-          && interestingAssumptions.equals(other.interestingAssumptions)
           && interestingVariables.equals(other.interestingVariables)
           && maximumFormulaDepth == other.maximumFormulaDepth
           && useBinaryVariableInterrelations == other.useBinaryVariableInterrelations;
@@ -159,7 +146,7 @@ public class InvariantsPrecision implements Precision {
 
   @Override
   public int hashCode() {
-    return this.interestingVariables.hashCode() * 43 + interestingAssumptions.hashCode();
+    return this.interestingVariables.hashCode();
   }
 
   public int getMaximumFormulaDepth() {

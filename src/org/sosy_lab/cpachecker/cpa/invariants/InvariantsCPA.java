@@ -85,8 +85,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaMan
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor.VariableNameExtractor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalNot;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.SplitDisjunctionsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptAllVariableSelection;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptSpecifiedVariableSelection;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
@@ -123,9 +121,6 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
 
     @Option(description="determine variables relevant to the decision whether or not a target path assume edge is taken and limit the analyis to those variables.")
     private boolean analyzeRelevantVariablesOnly = true;
-
-    @Option(description="the maximum number of predicates to consider as interesting. -1 one disables the limit, but this is not recommended. 0 means that guessing interesting predicates is disabled.")
-    private int interestingPredicatesLimit = 0;
 
     @Option(description="the maximum number of variables to consider as interesting. -1 one disables the limit, but this is not recommended. 0 means that guessing interesting variables is disabled.")
     private volatile int interestingVariableLimit = 2;
@@ -232,7 +227,7 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
     int interestingVariableLimit = options.interestingVariableLimit;
 
     // Determine the target locations
-    boolean determineTargetLocations = options.analyzeTargetPathsOnly || options.interestingPredicatesLimit != 0 || options.interestingVariableLimit != 0;
+    boolean determineTargetLocations = options.analyzeTargetPathsOnly || options.interestingVariableLimit != 0;
     if (determineTargetLocations) {
       if (this.targetLocations.isPresent()) {
         targetLocations = this.targetLocations.get();
@@ -286,7 +281,7 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
       interestingVariables = new LinkedHashSet<>(this.interestingVariables);
     }
 
-    boolean guessInterestingInformation = options.interestingPredicatesLimit != 0 || options.interestingVariableLimit != 0;
+    boolean guessInterestingInformation = options.interestingVariableLimit != 0;
     if (guessInterestingInformation && !determineTargetLocations) {
       logManager.log(Level.WARNING, "Target states were not determined. Guessing interesting information is arbitrary.");
     }
@@ -310,17 +305,6 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
                   InvariantsFormula<CompoundInterval> formula = ((CAssumeEdge) edge).getExpression().accept(InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(edge));
                   if (interestingVariableLimit != 0) {
                     addAll(interestingVariables, formula.accept(COLLECT_VARS_VISITOR), interestingVariableLimit);
-                  }
-                  if (options.interestingPredicatesLimit != 0) {
-                    if (formula instanceof LogicalNot<?>) { // We don't care about negations here
-                      formula = ((LogicalNot<CompoundInterval>) formula).getNegated();
-                    }
-                    for (InvariantsFormula<CompoundInterval> assumption : formula.accept(new SplitDisjunctionsVisitor<CompoundInterval>())) {
-                      if (assumption instanceof LogicalNot<?>) { // We don't care about negations here either
-                        assumption = ((LogicalNot<CompoundInterval>) assumption).getNegated();
-                      }
-                      interestingPredicates.add(assumption);
-                    }
                   }
                 } catch (UnrecognizedCCodeException e) {
                   logManager.logException(Level.SEVERE, e, "Found unrecognized C code on an edge. Cannot guess interesting information.");
@@ -379,7 +363,6 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
     relevantVariableLimitReached = interestingVariableLimit > interestingVariables.size();
 
     InvariantsPrecision precision = new InvariantsPrecision(relevantEdges,
-        ImmutableSet.copyOf(limit(interestingPredicates, options.interestingPredicatesLimit)),
         ImmutableSet.copyOf(limit(interestingVariables, interestingVariableLimit)),
         options.maximumFormulaDepth,
         options.useBinaryVariableInterrelations,

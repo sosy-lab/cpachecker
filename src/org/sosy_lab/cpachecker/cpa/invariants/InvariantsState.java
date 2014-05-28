@@ -440,10 +440,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       }
     }
 
-    if (!result.collectInterestingAssumptions(CompoundIntervalFormulaManager.INSTANCE.equal(variable, pValue.accept(replaceVisitor)))) {
-      return null;
-    }
-
     if (equals(result)) {
       return this;
     }
@@ -672,10 +668,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
     // If the assumption is an obvious contradiction, it cannot be validly assumed
     if (assumption.equals(BOTTOM)) { return false; }
-
-    if (!collectInterestingAssumptions(assumption)) {
-      return false;
-    }
 
     CompoundInterval assumptionEvaluation = assumption.accept(pEvaluationVisitor, getEnvironment());
     // If the invariant evaluates to false or is bottom, it represents an invalid state
@@ -1067,39 +1059,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       }
     }
     return result;
-  }
-
-  /**
-   * Collects any "interesting" assumptions holding for this state, considering
-   * the given assumption as true.
-   *
-   * @param pAssumption the additional assumption to consider.
-   * @return <code>true</code> if the state is not obviously bottom afterwards.
-   */
-  private boolean collectInterestingAssumptions(InvariantsFormula<CompoundInterval> pAssumption) {
-    if (precision.getInterestingAssumptions().isEmpty()) {
-      return true;
-    }
-    Collection<InvariantsFormula<CompoundInterval>> informationBase = new ArrayList<>();
-    FluentIterable.from(getAssumptionsAndEnvironment()).copyInto(informationBase);
-    informationBase.add(pAssumption);
-    for (InvariantsFormula<CompoundInterval> interestingAssumption : precision.getInterestingAssumptions()) {
-      InvariantsFormula<CompoundInterval> negatedInterestingAssumption = CompoundIntervalFormulaManager.INSTANCE.logicalNot(interestingAssumption);
-      if (!collectedInterestingAssumptions.contains(interestingAssumption) && CompoundIntervalFormulaManager.definitelyImplies(informationBase, interestingAssumption)) {
-        collectedInterestingAssumptions.add(interestingAssumption);
-        if (collectedInterestingAssumptions.contains(negatedInterestingAssumption)) {
-          return false;
-        }
-        assumeInternal(interestingAssumption, ABSTRACTION_VISITOR);
-      } else if (!collectedInterestingAssumptions.contains(negatedInterestingAssumption) && CompoundIntervalFormulaManager.definitelyImplies(informationBase, negatedInterestingAssumption)) {
-        collectedInterestingAssumptions.add(negatedInterestingAssumption);
-        if (collectedInterestingAssumptions.contains(interestingAssumption)) {
-          return false;
-        }
-        assumeInternal(negatedInterestingAssumption, ABSTRACTION_VISITOR);
-      }
-    }
-    return true;
   }
 
   public InvariantsPrecision getPrecision() {
