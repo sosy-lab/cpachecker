@@ -744,11 +744,6 @@ cpa.invariants.conditionAdjusterFactory = COMPOUND
 cpa.invariants.edgeBasedAbstractionStrategyFactory = VISITED_EDGES
   enum:     [ALWAYS, VISITED_EDGES, NEVER]
 
-# the maximum number of predicates to consider as interesting. -1 one
-# disables the limit, but this is not recommended. 0 means that guessing
-# interesting predicates is disabled.
-cpa.invariants.interestingPredicatesLimit = 0
-
 # the maximum number of variables to consider as interesting. -1 one disables
 # the limit, but this is not recommended. 0 means that guessing interesting
 # variables is disabled.
