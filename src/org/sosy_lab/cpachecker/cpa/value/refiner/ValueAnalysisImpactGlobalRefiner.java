@@ -55,15 +55,16 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -86,6 +87,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
@@ -125,8 +127,12 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
 
   private Set<ARGState> strengthendStates = new HashSet<>();
 
+  private static ARGCPA argCpa = null;
+
   public static ValueAnalysisImpactGlobalRefiner create(final ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     final ValueAnalysisCPA valueAnalysisCpa = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
+
+    argCpa = CPAs.retrieveCPA(pCpa, ARGCPA.class);
 
     if (valueAnalysisCpa == null) {
       throw new InvalidConfigurationException(ValueAnalysisImpactGlobalRefiner.class.getSimpleName() + " needs a ValueAnalysisCPA");
@@ -179,6 +185,7 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
 
     timerItp.start();
     int i = 0;
+    ARGPath lastErrorPath = null;
     while(interpolationTree.hasNextPathForInterpolation()) {
       i++;
 
@@ -190,7 +197,12 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
         continue;
       }
 
-      incrementUniqueTargetTraceCounter(errorPath);
+
+      lastErrorPath = errorPath;
+
+      if(i == 1) {
+        incrementUniqueTargetTraceCounter(errorPath);
+      }
 
       ValueAnalysisInterpolant initialItp = interpolationTree.getInitialInterpolantForPath(errorPath);
 
@@ -236,10 +248,14 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
     strengthenArg(interpolationTree);
     timerStrengthen.stop();
 
-    ARGReachedSet reached       = new ARGReachedSet(pReached);
+    ARGReachedSet reached       = new ARGReachedSet(pReached, argCpa);
     Set<ARGState> weakSiblings  = new HashSet<>();
 
+    tryToCoverArg(lastErrorPath, reached);
+
     timerObtainPrecision.start();
+    boolean clear = false;
+
     for (Map.Entry<ARGState, ValueAnalysisInterpolant> itp : interpolationTree.interpolants.entrySet()) {
       ARGState currentState = itp.getKey();
 
@@ -256,7 +272,13 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
         }
 
         timerReaddToWaitlist.start();
-        reached.readdToWaitlist(currentState, new ValueAnalysisPrecision(currentPrecision, increment), ValueAnalysisPrecision.class);
+
+        if(!currentState.isCovered()) {
+          reached.readdToWaitlist(currentState, new ValueAnalysisPrecision(currentPrecision, increment), ValueAnalysisPrecision.class, clear);
+        }
+
+clear = false;
+
         timerReaddToWaitlist.stop();
 
         weakSiblings.addAll(currentState.getChildren());
@@ -286,6 +308,34 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
 
     totalTime.stop();
     return true;
+  }
+
+  private void tryToCoverArg(ARGPath pLastErrorPath, ARGReachedSet reached) {
+    ARGState root = null;
+    boolean coverAll = false;
+    for(int i = 0; i < pLastErrorPath.size(); i++) {
+      Pair<ARGState, CFAEdge> elem = pLastErrorPath.get(i);
+
+      ARGState state = elem.getFirst();
+
+      if(strengthendStates.contains(state)) {
+        try {
+
+          if(coverAll && !state.isCovered()) {
+            state.setCovered(root);
+            continue;
+          }
+
+          if(reached.tryToCover(state, true)) {
+            coverAll = true;
+            root = state;
+          }
+        } catch (CPAException | InterruptedException e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
+        }
+      }
+    }
   }
 
   // debugging/stats only
@@ -451,12 +501,14 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
   }
 
   private List<ARGState> getErrorStates(final ReachedSet pReached) {
+    if(((ARGState)pReached.getLastState()).isTarget()) {
+      return Lists.newArrayList(((ARGState)pReached.getLastState()));
+    }
+
     List<ARGState> targets = from(pReached)
         .transform(AbstractStates.toState(ARGState.class))
         .filter(AbstractStates.IS_TARGET_STATE)
         .toList();
-
-    CPAAlgorithm.targets.clear();
 
     assert !targets.isEmpty();
     logger.log(Level.FINEST, "number of targets found: " + targets.size());
@@ -646,12 +698,12 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
           sb.append(interpolants.get(current.getKey()));
 
           result.append(current.getKey().getStateId() + " [label=\"" + (current.getKey().getStateId() + " / " + AbstractStates.extractLocation(current.getKey())) + " has itp " + (sb.toString()) + "\"]" + "\n");
-          result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
+          result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "").replace("\"", "'") + "\"]\n");
         }
 
         else {
           result.append(current.getKey().getStateId() + " [label=\"" + current.getKey().getStateId() + " has itp NA\"]" + "\n");
-          result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
+          result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "").replace("\"", "'") + "\"]\n");
         }
 
         if(current.getValue().isTarget()) {
@@ -956,4 +1008,5 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
     }
   }
 }
+
 

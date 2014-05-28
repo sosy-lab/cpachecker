@@ -73,6 +73,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     public volatile int countRefinements = 0;
     private int countSuccessfulRefinements = 0;
     private int countFailedRefinements = 0;
+    private int countRestarts = 0;
 
     private int maxReachedSizeBeforeRefinement = 0;
     private int maxReachedSizeAfterRefinement = 0;
@@ -89,6 +90,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         ReachedSet pReached) {
 
       out.println("Number of refinements:                " + countRefinements);
+      out.println("Number of restarts:                " + countRestarts);
 
       if (countRefinements > 0) {
         out.println("Number of successful refinements:     " + countSuccessfulRefinements);
@@ -257,6 +259,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
               ValueAnalysisImpactGlobalRefiner.globalPrecision, ValueAnalysisPrecision.class);
           refinementSuccessful        = true;
           refinedInPreviousIteration  = false;
+          stats.countRestarts++;
         }
 
       } while (refinementSuccessful);

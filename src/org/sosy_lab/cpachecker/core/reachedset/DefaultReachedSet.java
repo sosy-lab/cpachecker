@@ -46,7 +46,7 @@ import com.google.common.collect.Iterators;
  * Basic implementation of ReachedSet.
  * It does not group states by location or any other key.
  */
-class DefaultReachedSet implements ReachedSet {
+public class DefaultReachedSet implements ReachedSet {
 
   private final LinkedHashMap<AbstractState, Precision> reached;
   private final Set<AbstractState> unmodifiableReached;
@@ -112,8 +112,17 @@ class DefaultReachedSet implements ReachedSet {
 
   @Override
   public void reAddToWaitlist(AbstractState s) {
+    reAddToWaitlist(s, false);
+  }
+
+
+  public void reAddToWaitlist(AbstractState s, boolean clear) {
     Preconditions.checkNotNull(s);
     Preconditions.checkArgument(reached.containsKey(s), "State has to be in the reached set");
+
+    if(clear) {
+      waitlist.clear();
+    }
 
     if (!waitlist.contains(s)) {
       waitlist.add(s);

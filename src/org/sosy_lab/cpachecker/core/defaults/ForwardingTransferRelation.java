@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
@@ -152,7 +153,7 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
     final Collection<S> preCheck = preCheck();
     if (preCheck != null) { return preCheck; }
 
-    final S successor;
+    S successor;
 
     switch (cfaEdge.getEdgeType()) {
 
@@ -184,6 +185,10 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
 
     default:
       successor = handleSimpleEdge(cfaEdge);
+    }
+
+    if (successor != null) {
+      successor = (S)((ValueAnalysisState)successor).clone();
     }
 
     postProcessing(successor);

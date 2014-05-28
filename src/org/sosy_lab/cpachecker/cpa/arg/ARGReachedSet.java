@@ -36,6 +36,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.reachedset.DefaultReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
@@ -129,9 +130,9 @@ public class ARGReachedSet {
     }
   }
 
-  public void readdToWaitlist(ARGState e, Precision p, Class<? extends Precision> pPrecisionType) {
+  public void readdToWaitlist(ARGState e, Precision p, Class<? extends Precision> pPrecisionType, boolean clear) {
     mReached.updatePrecision(e, adaptPrecision(mReached.getPrecision(e), p, pPrecisionType));
-    mReached.reAddToWaitlist(e);
+    ((DefaultReachedSet)mReached).reAddToWaitlist(e, clear);
   }
 
   /**
@@ -400,6 +401,14 @@ public class ARGReachedSet {
       return true;
     }
     return false;
+  }
+
+  public boolean tryToCover(ARGState v, boolean quickMode) throws CPAException, InterruptedException {
+    assert v.mayCover();
+
+    cpa.getStopOperator().stop(v, mReached.getReached(v), mReached.getPrecision(v));
+
+    return v.isCovered();
   }
 
   public static class ForwardingARGReachedSet extends ARGReachedSet {
