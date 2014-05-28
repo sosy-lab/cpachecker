@@ -281,7 +281,10 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
     // Collect relevant edges and guess that information might be interesting
     Set<CFAEdge> relevantEdges = new HashSet<>();
     Set<InvariantsFormula<CompoundInterval>> interestingPredicates = new LinkedHashSet<>();
-    Set<String> interestingVariables = new LinkedHashSet<>(this.interestingVariables);
+    Set<String> interestingVariables;
+    synchronized (this.interestingVariables) {
+      interestingVariables = new LinkedHashSet<>(this.interestingVariables);
+    }
 
     boolean guessInterestingInformation = options.interestingPredicatesLimit != 0 || options.interestingVariableLimit != 0;
     if (guessInterestingInformation && !determineTargetLocations) {
@@ -408,7 +411,9 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
   }
 
   public void addInterestingVariables(Iterable<String> pInterestingVariables) {
-    Iterables.addAll(this.interestingVariables, pInterestingVariables);
+    synchronized (this.interestingVariables) {
+      Iterables.addAll(this.interestingVariables, pInterestingVariables);
+    }
   }
 
   /**
