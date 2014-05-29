@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cpa.octagon.coefficients;
 
 import org.sosy_lab.cpachecker.cpa.octagon.OctState;
 
-
-
 public abstract class AOctCoefficients implements IOctCoefficients {
 
   protected OctNumericValue[] coefficients;
@@ -51,7 +49,37 @@ public abstract class AOctCoefficients implements IOctCoefficients {
     int prime = 31;
     int result = 7;
     return prime * result;
+  }
 
+  abstract protected IOctCoefficients mulInner(IOctCoefficients oct);
+  abstract protected IOctCoefficients divInner(IOctCoefficients oct);
+
+  @Override
+  final public IOctCoefficients mul(IOctCoefficients other) {
+    if (other instanceof OctEmptyCoefficients) {
+      return OctEmptyCoefficients.INSTANCE;
+    } else if (other instanceof AOctCoefficients) {
+      if (hasOnlyOneValue()) {
+        return mulInner(other);
+      } else if (other.hasOnlyOneValue()) {
+        return ((AOctCoefficients)other).mulInner(this);
+      }
+      throw new IllegalArgumentException("At least one of the coefficients has to be a single variable or constant.");
+    }
+    throw new IllegalArgumentException("Unkown subtype of OctCoefficients");
+  }
+
+  @Override
+  final public IOctCoefficients div(IOctCoefficients other) {
+    if (other instanceof OctEmptyCoefficients) {
+      return OctEmptyCoefficients.INSTANCE;
+    } else if (other instanceof AOctCoefficients) {
+      if (other.hasOnlyOneValue()) {
+        return divInner(other);
+      }
+      throw new IllegalArgumentException("At least one of the coefficients has to be a single variable or constant.");
+    }
+    throw new IllegalArgumentException("Unkown subtype of OctCoefficients");
   }
 
   @Override

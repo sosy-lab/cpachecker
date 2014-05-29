@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctEmptyCoefficients;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctIntervalCoefficients;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctNumericValue;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctSimpleCoefficients;
+import org.sosy_lab.cpachecker.util.octagon.InfinityNumericWrapper;
 import org.sosy_lab.cpachecker.util.octagon.NumArray;
 import org.sosy_lab.cpachecker.util.octagon.Octagon;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
@@ -713,12 +714,17 @@ public class OctState implements AbstractState {
     return removeVars(functionName, "");
   }
 
-  public Map<String, Pair<OctNumericValue, OctNumericValue>> getVariablesWithBounds() {
-    Map<String, Pair<OctNumericValue, OctNumericValue>> vars = new HashMap<>();
+  public Map<String, Pair<InfinityNumericWrapper, InfinityNumericWrapper>> getVariablesWithBounds() {
+    Map<String, Pair<InfinityNumericWrapper, InfinityNumericWrapper>> vars = new HashMap<>();
     for (String varName : variableToIndexMap.keySet()) {
       vars.put(varName, octagonManager.getVariableBounds(octagon, getVariableIndexFor(varName)));
     }
     return vars;
+  }
+
+  public Pair<InfinityNumericWrapper, InfinityNumericWrapper> getVariableBounds(int index) {
+    assert index < sizeOfVariables();
+    return octagonManager.getVariableBounds(octagon, index);
   }
 
   private OctState removeVars(String functionName, String varPrefix) {

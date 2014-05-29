@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.octagon.coefficients;
 
 import org.sosy_lab.cpachecker.cpa.octagon.OctState;
+import org.sosy_lab.cpachecker.util.octagon.InfinityNumericWrapper;
 import org.sosy_lab.cpachecker.util.octagon.NumArray;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
@@ -51,8 +52,33 @@ public final class OctEmptyCoefficients extends AOctCoefficients {
   }
 
   @Override
-  public boolean hasOnlyConstantValue() {
-    return false;
+  public IOctCoefficients mul(OctNumericValue pFactor) {
+    return INSTANCE;
+  }
+
+  @Override
+  public IOctCoefficients mul(InfinityNumericWrapper pLowerBound, InfinityNumericWrapper pUpperBound) {
+    return INSTANCE;
+  }
+
+  @Override
+  protected IOctCoefficients mulInner(IOctCoefficients pOct) {
+    return INSTANCE;
+  }
+
+  @Override
+  protected IOctCoefficients divInner(IOctCoefficients pOct) {
+    return INSTANCE;
+  }
+
+  @Override
+  public IOctCoefficients div(OctNumericValue pDivisor) {
+    return INSTANCE;
+  }
+
+  @Override
+  public IOctCoefficients div(InfinityNumericWrapper pBound1, InfinityNumericWrapper pBound2) {
+    return INSTANCE;
   }
 
   @Override
@@ -61,7 +87,18 @@ public final class OctEmptyCoefficients extends AOctCoefficients {
   }
 
   @Override
+  public boolean hasOnlyConstantValue() {
+    return false;
+  }
+
+  @Override
+  public boolean hasOnlyOneValue() {
+    return false;
+  }
+
+  @Override
   public boolean equals(Object other) {
     return other instanceof OctEmptyCoefficients;
   }
+
 }

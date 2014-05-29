@@ -29,48 +29,66 @@ import java.util.Objects;
 
 public class OctNumericValue {
 
+  boolean handleFloatsAsFloats = true;
+
   private BigDecimal floatVal = null;
   private BigInteger intVal = null;
+
+  private boolean isInt;
 
   public final static OctNumericValue ZERO = new OctNumericValue(BigInteger.ZERO);
   public final static OctNumericValue ONE = new OctNumericValue(BigInteger.ONE);
 
   public OctNumericValue(BigDecimal floatVal) {
     this.floatVal = floatVal;
+    isInt = false;
   }
 
   public OctNumericValue(BigInteger intVal) {
     this.intVal = intVal;
+    isInt = true;
   }
 
   public OctNumericValue(long intVal) {
     this.intVal = BigInteger.valueOf(intVal);
+    isInt = true;
   }
 
   public OctNumericValue(double floatVal) {
     this.floatVal = BigDecimal.valueOf(floatVal);
+    isInt = false;
   }
 
   public boolean isInt() {
-    return intVal != null;
+    return isInt;
   }
 
   public boolean isFloat() {
-    return floatVal != null;
+    return !isInt;
   }
 
   public BigInteger getIntVal() {
-    if (intVal == null) {
+    if (!isInt) {
       throw new IllegalStateException("This is a float value, not an int value");
     }
     return intVal;
   }
 
   public BigDecimal getFloatVal() {
-    if (floatVal == null) {
+    if (isInt) {
       throw new IllegalStateException("This is an int value, not a float value");
     }
     return floatVal;
+  }
+
+  public boolean isInInterval(double lower, double upper) {
+    if (floatVal != null) {
+      return floatVal.compareTo(BigDecimal.valueOf(lower)) > 0
+          && floatVal.compareTo(BigDecimal.valueOf(upper)) < 0;
+    } else {
+      return intVal.compareTo(BigInteger.valueOf((long) Math.floor(lower))) > 0
+            && intVal.compareTo(BigInteger.valueOf((long) Math.ceil(upper))) < 0;
+    }
   }
 
   public OctNumericValue add(OctNumericValue val) {
@@ -78,13 +96,27 @@ public class OctNumericValue {
       if (val.floatVal == null) {
         return new OctNumericValue(intVal.add(val.intVal));
       } else {
-        return new OctNumericValue(val.floatVal.add(BigDecimal.valueOf(intVal.longValue())));
+        if (handleFloatsAsFloats) {
+          return new OctNumericValue(val.floatVal.doubleValue() + intVal.longValue());
+        } else {
+          return new OctNumericValue(val.floatVal.add(BigDecimal.valueOf(intVal.longValue())));
+        }
       }
+
     } else {
-      if (val.floatVal == null) {
-        return new OctNumericValue(floatVal.add(BigDecimal.valueOf(val.intVal.longValue())));
+      if (handleFloatsAsFloats) {
+        if (val.floatVal == null) {
+          return new OctNumericValue(floatVal.doubleValue() + val.intVal.longValue());
+        } else {
+          return new OctNumericValue(floatVal.doubleValue() + val.floatVal.doubleValue());
+        }
+
       } else {
-        return new OctNumericValue(floatVal.add(val.floatVal));
+        if (val.floatVal == null) {
+          return new OctNumericValue(floatVal.add(BigDecimal.valueOf(val.intVal.longValue())));
+        } else {
+          return new OctNumericValue(floatVal.add(val.floatVal));
+        }
       }
     }
   }
@@ -113,6 +145,43 @@ public class OctNumericValue {
     }
   }
 
+  public OctNumericValue mul(OctNumericValue val) {
+    if (floatVal == null) {
+      if (val.floatVal == null) {
+        return new OctNumericValue(intVal.multiply(val.intVal));
+      } else {
+        return new OctNumericValue(BigDecimal.valueOf(intVal.longValue()).multiply(val.floatVal));
+      }
+    } else {
+      if (val.floatVal == null) {
+        return new OctNumericValue(floatVal.multiply(BigDecimal.valueOf(val.intVal.longValue())));
+      } else {
+        return new OctNumericValue(floatVal.multiply(val.floatVal));
+      }
+    }
+  }
+
+  public OctNumericValue div(OctNumericValue divisor) {
+    if (floatVal == null) {
+      if (divisor.floatVal == null) {
+        return new OctNumericValue(intVal.divide(divisor.intVal));
+      } else {
+        try {
+          return new OctNumericValue(BigDecimal.valueOf(intVal.longValue()).divide(divisor.floatVal, 3, BigDecimal.ROUND_HALF_UP));
+        } catch (ArithmeticException e) {
+          System.out.println(floatVal);
+        }
+        return new OctNumericValue(BigDecimal.valueOf(intVal.longValue()).divide(divisor.floatVal, 3, BigDecimal.ROUND_HALF_UP));
+      }
+    } else {
+      if (divisor.floatVal == null) {
+        return new OctNumericValue(floatVal.divide(BigDecimal.valueOf(divisor.intVal.longValue())));
+      } else {
+        return new OctNumericValue(floatVal.divide(divisor.floatVal, 3, BigDecimal.ROUND_HALF_UP));
+      }
+    }
+  }
+
   @Override
   public String toString() {
     if (floatVal == null) {
@@ -130,12 +199,18 @@ public class OctNumericValue {
 
     OctNumericValue other = (OctNumericValue) obj;
 
-    if (other.floatVal != null && floatVal != null) {
-      return other.floatVal.equals(floatVal);
-    } else if (other.intVal != null && intVal != null) {
-      return other.intVal.equals(intVal);
-    } else {
-      return false;
+    if (other.floatVal != null) {
+      if (floatVal != null) {
+        return other.floatVal.compareTo(floatVal) == 0;
+      } else {
+        return other.floatVal.compareTo(new BigDecimal(intVal.toString())) == 0;
+      }
+    } else  {
+      if (floatVal != null) {
+        return floatVal.compareTo(new BigDecimal(other.intVal.toString())) == 0;
+      } else {
+        return other.intVal.compareTo(intVal) == 0;
+      }
     }
   }
 

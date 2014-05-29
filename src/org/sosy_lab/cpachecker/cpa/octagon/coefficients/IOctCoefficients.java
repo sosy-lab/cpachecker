@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.octagon.coefficients;
 
 import org.sosy_lab.cpachecker.cpa.octagon.OctState;
+import org.sosy_lab.cpachecker.util.octagon.InfinityNumericWrapper;
 import org.sosy_lab.cpachecker.util.octagon.NumArray;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
@@ -49,18 +50,31 @@ public interface IOctCoefficients {
    * Adds two OctCoefficients.
    * @return The new added Coefficient.
    */
-  IOctCoefficients add(IOctCoefficients other);
+  IOctCoefficients add(IOctCoefficients summand);
 
   /**
    * Substracts two OctCoefficients.
    * @return The new substracted Coefficient.
    */
-  IOctCoefficients sub(IOctCoefficients other);
+  IOctCoefficients sub(IOctCoefficients subtrahend);
+
+  IOctCoefficients mul(IOctCoefficients factor);
+
+  IOctCoefficients mul(OctNumericValue factor);
+
+  IOctCoefficients mul(InfinityNumericWrapper bound1, InfinityNumericWrapper bound2);
+
+  IOctCoefficients div(IOctCoefficients divisor);
+
+  IOctCoefficients div(OctNumericValue divisor);
+
+  IOctCoefficients div(InfinityNumericWrapper bound1, InfinityNumericWrapper bound2);
 
   /**
    * Indicates whether the Coefficient List only consists of a constant value.
    */
   boolean hasOnlyConstantValue();
+  boolean hasOnlyOneValue();
 
   @Override
   boolean equals(Object obj);

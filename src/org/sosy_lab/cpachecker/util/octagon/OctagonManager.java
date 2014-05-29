@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.octagon;
 import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.*;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctNumericValue;
 
 import com.google.common.collect.BiMap;
 
@@ -218,5 +217,5 @@ public abstract class OctagonManager {
   }
 
   public abstract String print(Octagon oct, BiMap<Integer, String> map);
-  public abstract Pair<OctNumericValue, OctNumericValue> getVariableBounds(Octagon oct, int id);
+  public abstract Pair<InfinityNumericWrapper, InfinityNumericWrapper> getVariableBounds(Octagon oct, int id);
 }
