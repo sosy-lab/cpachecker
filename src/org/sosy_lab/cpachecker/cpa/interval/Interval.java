@@ -23,10 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
 
-public class Interval {
+public class Interval implements Serializable{
+  private static final long serialVersionUID = 4223098080993616295L;
+
   /**
    * the lower bound of the interval
    */
