@@ -24,7 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.octagon.coefficients;
 
 import org.sosy_lab.cpachecker.cpa.octagon.OctState;
-import org.sosy_lab.cpachecker.util.octagon.InfinityNumericWrapper;
+import org.sosy_lab.cpachecker.cpa.octagon.values.OctInterval;
+import org.sosy_lab.cpachecker.cpa.octagon.values.OctNumericValue;
 import org.sosy_lab.cpachecker.util.octagon.NumArray;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
@@ -32,6 +33,7 @@ import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
  * Class for representing Coeffecients which show the value of a variable
  * dependant on all other variables and a constant value.
  */
+@SuppressWarnings("rawtypes")
 public interface IOctCoefficients {
 
   /**
@@ -62,13 +64,13 @@ public interface IOctCoefficients {
 
   IOctCoefficients mul(OctNumericValue factor);
 
-  IOctCoefficients mul(InfinityNumericWrapper bound1, InfinityNumericWrapper bound2);
+  IOctCoefficients mul(OctInterval interval);
 
   IOctCoefficients div(IOctCoefficients divisor);
 
   IOctCoefficients div(OctNumericValue divisor);
 
-  IOctCoefficients div(InfinityNumericWrapper bound1, InfinityNumericWrapper bound2);
+  IOctCoefficients div(OctInterval interval);
 
   /**
    * Indicates whether the Coefficient List only consists of a constant value.

@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.octagon;
 
 import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.*;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cpa.octagon.values.OctInterval;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 
 import com.google.common.collect.BiMap;
@@ -79,13 +79,13 @@ public class OctagonFloatManager extends OctagonManager {
   }
 
   @Override
-  public Pair<InfinityNumericWrapper, InfinityNumericWrapper> getVariableBounds(Octagon oct, int id) {
+  public OctInterval getVariableBounds(Octagon oct, int id) {
     NumArray lower = init_num_t(1);
     NumArray upper = init_num_t(1);
     assert id < dimension(oct);
     J_get_bounds(oct.getOctId(), id, upper.getArray(), lower.getArray());
-    Pair<InfinityNumericWrapper, InfinityNumericWrapper> retVal = Pair.of(new InfinityNumericWrapper(J_num_get_float(lower.getArray(), 0) * -1),
-                                                                          new InfinityNumericWrapper(J_num_get_float(upper.getArray(), 0)));
+    OctInterval retVal = new OctInterval(J_num_get_float(lower.getArray(), 0) * -1,
+                                         J_num_get_float(upper.getArray(), 0));
     J_num_clear_n(lower.getArray(), 1);
     J_num_clear_n(upper.getArray(), 1);
     return retVal;

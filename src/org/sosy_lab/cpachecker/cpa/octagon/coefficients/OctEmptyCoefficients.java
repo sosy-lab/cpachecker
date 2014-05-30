@@ -24,10 +24,12 @@
 package org.sosy_lab.cpachecker.cpa.octagon.coefficients;
 
 import org.sosy_lab.cpachecker.cpa.octagon.OctState;
-import org.sosy_lab.cpachecker.util.octagon.InfinityNumericWrapper;
+import org.sosy_lab.cpachecker.cpa.octagon.values.OctInterval;
+import org.sosy_lab.cpachecker.cpa.octagon.values.OctNumericValue;
 import org.sosy_lab.cpachecker.util.octagon.NumArray;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
+@SuppressWarnings("rawtypes")
 public final class OctEmptyCoefficients extends AOctCoefficients {
 
   public static final OctEmptyCoefficients INSTANCE = new OctEmptyCoefficients();
@@ -57,7 +59,7 @@ public final class OctEmptyCoefficients extends AOctCoefficients {
   }
 
   @Override
-  public IOctCoefficients mul(InfinityNumericWrapper pLowerBound, InfinityNumericWrapper pUpperBound) {
+  public IOctCoefficients mul(OctInterval interval) {
     return INSTANCE;
   }
 
@@ -77,7 +79,7 @@ public final class OctEmptyCoefficients extends AOctCoefficients {
   }
 
   @Override
-  public IOctCoefficients div(InfinityNumericWrapper pBound1, InfinityNumericWrapper pBound2) {
+  public IOctCoefficients div(OctInterval interval) {
     return INSTANCE;
   }
 

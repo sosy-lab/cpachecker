@@ -25,9 +25,9 @@ package org.sosy_lab.cpachecker.cpa.octagon.coefficients;
 
 import org.sosy_lab.cpachecker.cpa.octagon.OctState;
 
+@SuppressWarnings("rawtypes")
 public abstract class AOctCoefficients implements IOctCoefficients {
 
-  protected OctNumericValue[] coefficients;
   protected int size;
   protected OctState oct;
 
