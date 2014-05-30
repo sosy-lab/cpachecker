@@ -23,35 +23,17 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partialcertificate;
 
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.PartialReachedConstructionAlgorithm;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
-@Options(prefix = "pcc.partial")
-public class PartialCertificateTypeProvider {
 
-  public enum PartialCertificateTypes {
-    ALL,
-    HEURISTIC,
-    ARG,
-    MONOTONESTOPARG;
-  }
+public class CompleteCertificateConstructionAlgorithm implements PartialReachedConstructionAlgorithm{
 
-  @Option(
-      description = "Selects the strategy used for partial certificate construction")
-  private PartialCertificateTypes certificateType = PartialCertificateTypes.HEURISTIC;
-
-  public PartialCertificateTypeProvider(final Configuration pConfig, final boolean pHeuristicAllowed)
-      throws InvalidConfigurationException {
-    pConfig.inject(this);
-    if (!pHeuristicAllowed && certificateType == PartialCertificateTypes.HEURISTIC) {
-      certificateType = PartialCertificateTypes.ARG;
-    }
-  }
-
-  public PartialCertificateTypes getCertificateType() {
-    return certificateType;
+  @Override
+  public AbstractState[] computePartialReachedSet(UnmodifiableReachedSet pReached) throws InvalidConfigurationException {
+    return pReached.asCollection().toArray(new AbstractState[pReached.size()]);
   }
 
 }
