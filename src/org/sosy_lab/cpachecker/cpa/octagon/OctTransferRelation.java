@@ -98,6 +98,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -900,16 +901,22 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
     CFunctionEntryNode functionEntryNode = cfaEdge.getSuccessor();
 
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
+    CFunctionType functionType = cfaEdge.getSuccessor().getFunctionDefinition().getType();
 
-    if (!cfaEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
+    if (!functionType.takesVarArgs()) {
       assert parameters.size() == arguments.size();
     } else {
       assert parameters.size() <= arguments.size();
     }
 
     Set<OctState> possibleStates = new HashSet<>();
-    state = state.declareVariable(buildVarName(calledFunctionName, FUNCTION_RETURN_VAR),
-                          getCorrespondingOctStateType(cfaEdge.getSuccessor().getFunctionDefinition().getType().getReturnType()));
+
+    CType returnType = functionType.getReturnType().getCanonicalType();
+    if (isHandleAbleType(returnType)
+        && !(returnType instanceof CSimpleType && ((CSimpleType)returnType).getType() == CBasicType.VOID)) {
+      state = state.declareVariable(buildVarName(calledFunctionName, FUNCTION_RETURN_VAR),
+                            getCorrespondingOctStateType(cfaEdge.getSuccessor().getFunctionDefinition().getType().getReturnType()));
+    }
 
     List<Pair<String, CExpression>> handleAbleParams = new LinkedList<>();
 
@@ -976,8 +983,14 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
       }
 
       String returnVarName = buildVarName(calledFunctionName, FUNCTION_RETURN_VAR);
+      int returnVarIndex = state.getVariableIndexFor(returnVarName);
 
-      IOctCoefficients right = new OctSimpleCoefficients(state.sizeOfVariables(), state.getVariableIndexFor(returnVarName), OctNumericValue.ONE, state);
+      if (returnVarIndex == -1) {
+        state = state.forget(assignedVarName);
+        return Collections.singleton(state.removeLocalVars(calledFunctionName));
+      }
+
+      IOctCoefficients right = new OctSimpleCoefficients(state.sizeOfVariables(), returnVarIndex, OctNumericValue.ONE, state);
 
       state = state.makeAssignment(assignedVarName, right);
 
