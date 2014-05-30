@@ -1583,7 +1583,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
   /**
    * Predicate implementation which filters out OctEmptyCoefficients of a given fluentiterable.
    */
-  class NotInstanceOfEmptyCoefficients implements Predicate<Pair<IOctCoefficients, OctState>> {
+  static class NotInstanceOfEmptyCoefficients implements Predicate<Pair<IOctCoefficients, OctState>> {
     @Override
     public boolean apply(Pair<IOctCoefficients, OctState> pInput) {
       return !(pInput.getFirst() instanceof OctEmptyCoefficients);
