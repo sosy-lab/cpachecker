@@ -43,12 +43,6 @@ class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpress
     super(pCreator);
   }
 
-  /** ApplicationTerms can be wrapped with "|".
-   * This function removes those chars. */
-  static String dequote(String s) {
-   return s.replace("|", "");
-  }
-
  /** ApplicationTerms can be wrapped with "|".
    * This function replaces those chars with "\"". */
   // TODO: Check where this was used in the past.
@@ -85,9 +79,9 @@ class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpress
   @Override
   public String getName(IExpression t) {
     if (isVariable(t)) {
-      return dequote(t.toString());
+      return PrincessUtil.unescape(t.toString());
     } else if (isUF(t)) {
-      return ((IFunApp)t).fun().name();
+      return PrincessUtil.unescape(((IFunApp)t).fun().name());
     } else {
       throw new IllegalArgumentException("The Term " + t + " has no name!");
     }

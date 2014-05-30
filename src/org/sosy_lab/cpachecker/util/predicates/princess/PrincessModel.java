@@ -71,7 +71,7 @@ class PrincessModel {
       lType = toType(PrincessEnvironment.Type.INT);
     }
 
-    Pair<String, Integer> lSplitName = FormulaManagerView.parseName(lName);
+    Pair<String, Integer> lSplitName = FormulaManagerView.parseName(PrincessUtil.unescape(lName));
     if (lSplitName.getSecond() != null) {
       return new Variable(lSplitName.getFirst(), lSplitName.getSecond(), lType);
     } else {
@@ -86,7 +86,7 @@ class PrincessModel {
     }
 
     IFunApp appTerm = (IFunApp)t;
-    String lName = appTerm.fun().name();
+    String lName = PrincessUtil.unescape(appTerm.fun().name());
     TermType lType = toType(env.getFunctionDeclaration(appTerm.fun()).getResultType());
 
     int lArity = PrincessUtil.getArity(appTerm);

@@ -59,7 +59,7 @@ import java.util.Set;
 /** This is a Wrapper around Princess.
  * This Wrapper allows to set a logfile for all Smt-Queries (default "princess.smt2").
  */
-@Options(prefix="cpa.predicate.smtinterpol")
+@Options(prefix="cpa.predicate.princess")
 class PrincessEnvironment {
 
   /**
@@ -104,17 +104,12 @@ class PrincessEnvironment {
   /** cache for variables, because they do not implement equals() and hashCode(),
    * so we need to have the same objects. */
   private final Map<String, IExpression> variablesCache = new HashMap<>();
+  private final Map<String, FunctionType> functionsCache = new HashMap<>();
 
   private final Map<IFunction, FunctionType> declaredFunctions = new HashMap<>();
 
-  @Option(description="Double check generated results like interpolants and models whether they are correct")
-  private boolean checkResults = false;
-
   @Option(description="Export solver queries in Smtlib format into a file.")
   private boolean logAllQueries = false;
-
-  @Option(description="Export interpolation queries in Smtlib format into a file.")
-  private boolean logInterpolationQueries = false;
 
   @Option(name="logfile", description="Export solver queries in Smtlib format into a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -149,14 +144,6 @@ class PrincessEnvironment {
   private String getFilename(final Path oldFilename) {
     String filename = oldFilename.toAbsolutePath().getPath();
     return String.format(filename, logfileCounter++);
-  }
-
-  PrincessInterpolatingProver getInterpolator(PrincessFormulaManager mgr) {
-    return new PrincessInterpolatingProver(mgr);
-  }
-
-  PrincessTheoremProver createProver(PrincessFormulaManager mgr) {
-    return new PrincessTheoremProver(mgr, shutdownNotifier);
   }
 
   public List<IExpression> parseStringToTerms(String s) {
@@ -228,6 +215,7 @@ class PrincessEnvironment {
   }
 
   private IExpression makeVariable0(Type type, String varname) {
+    varname = PrincessUtil.escape(varname);
     switch (type) {
       case BOOL:
         return api.createBooleanVariable(varname);
@@ -237,10 +225,23 @@ class PrincessEnvironment {
         throw new AssertionError("unsupported type: " + type);
     }
   }
+
   /** This function declares a new functionSymbol, that has a given number of params.
    * Princess has no support for typed params, only their number is important. */
   public FunctionType declareFun(String name, Type resultType, Type[] args) {
-    IFunction funcDecl = api.createFunction(name, args.length);
+    if (functionsCache.containsKey(name)) {
+      return functionsCache.get(name);
+    } else {
+      final FunctionType type = declareFun0(name, resultType, args);
+      functionsCache.put(name, type);
+      return type;
+    }
+  }
+
+  /** This function declares a new functionSymbol, that has a given number of params.
+   * Princess has no support for typed params, only their number is important. */
+  private FunctionType declareFun0(String name, Type resultType, Type[] args) {
+    IFunction funcDecl = api.createFunction(PrincessUtil.escape(name), args.length);
     FunctionType type = new FunctionType(funcDecl, resultType, args);
     declaredFunctions.put(funcDecl, type);
     return type;
