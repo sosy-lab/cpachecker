@@ -1279,138 +1279,41 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
         Set<Pair<IOctCoefficients, OctState>> returnCoefficients = new HashSet<>();
         String tempVarLeft = buildVarName(visitorFunctionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
         temporaryVariableCounter++;
+        BinaryOperator binOp = e.getOperator();
 
         for (Pair<IOctCoefficients, Set<Pair<IOctCoefficients, OctState>>> pairs : right) {
           IOctCoefficients leftCoeffs = pairs.getFirst();
           for (Pair<IOctCoefficients, OctState> rightPair : pairs.getSecond()) {
-            OctState visitorState;
-
-            // we do not need to create a temporary variable if the left coefficients are
-            // a variable
-            // TODO of course this is the same for the right coefficients, and if the value
-            // is constant, but this has to be implemented additionally
-            if (leftCoeffs.hasOnlyOneValue() && !leftCoeffs.hasOnlyConstantValue()) {
-              visitorState = rightPair.getSecond();
-              tempVarLeft = visitorState.getVariableNameFor(leftCoeffs.getVariableIndex());
-            } else {
-              visitorState = rightPair.getSecond().declareVariable(tempVarLeft, getCorrespondingOctStateType(e.getOperand1().getExpressionType()));
-              visitorState = visitorState.makeAssignment(tempVarLeft, leftCoeffs.expandToSize(visitorState.sizeOfVariables(), visitorState));
-            }
-
+            OctState visitorState = rightPair.getSecond();
             IOctCoefficients rightCoeffs = rightPair.getFirst();
-            rightCoeffs = rightCoeffs.expandToSize(visitorState.sizeOfVariables(), visitorState);
-            OctState tmpState;
-            switch (e.getOperator()) {
-            case EQUALS:
-              tmpState = visitorState.addEqConstraint(tempVarLeft, rightCoeffs);
-              if (tmpState.isEmpty()) {
-                returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(visitorState.sizeOfVariables(), visitorState), visitorState));
-              } else {
-                returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolTRUECoeffs(visitorState.sizeOfVariables(), visitorState), visitorState));
 
-                // just because we know the value may be equal to the rightcoeffs, it does not
-                // have to be equal, so we need to check on smaller/greater rightCoeffs
-                // and eventually return more states
-                OctState smaller = visitorState.addSmallerConstraint(tempVarLeft, rightCoeffs);
-                if (!smaller.isEmpty()) {
-                  returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(smaller.sizeOfVariables(), smaller), smaller));
-                } else {
-                  OctState greater = visitorState.addGreaterConstraint(tempVarLeft, rightCoeffs);
-                  returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(greater.sizeOfVariables(), greater), greater));
-                }
-              }
-              break;
-            case GREATER_EQUAL:
-              tmpState = visitorState.addGreaterEqConstraint(tempVarLeft, rightCoeffs);
-              if (tmpState.isEmpty()) {
-                returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(visitorState.sizeOfVariables(), visitorState), visitorState));
-              } else {
-                returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolTRUECoeffs(visitorState.sizeOfVariables(), visitorState), visitorState));
+            // we do not need to create a temporary variable if the left or
+            // right coefficients are already a variable
+            if (leftCoeffs.hasOnlyOneValue() && !leftCoeffs.hasOnlyConstantValue()) {
+              tempVarLeft = visitorState.getVariableNameFor(leftCoeffs.getVariableIndex());
 
+            } else if (rightCoeffs.hasOnlyOneValue() && !rightCoeffs.hasOnlyConstantValue()) {
+              tempVarLeft = visitorState.getVariableNameFor(rightCoeffs.getVariableIndex());
+              rightCoeffs = leftCoeffs.expandToSize(visitorState.sizeOfVariables(), visitorState);
 
-                // just because we know the value may be greater equal than the rightcoeffs, it does not
-                // have to be greater equal, so we need to check on smaller rightCoeffs
-                // and eventually return more states
-                OctState smaller = visitorState.addSmallerConstraint(tempVarLeft, rightCoeffs);
-                if (!smaller.isEmpty()) {
-                  returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(smaller.sizeOfVariables(), smaller), smaller));
-                }
-              }
-              break;
-            case GREATER_THAN:
-              tmpState = visitorState.addGreaterConstraint(tempVarLeft, rightCoeffs);
-              if (tmpState.isEmpty()) {
-                returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(visitorState.sizeOfVariables(), visitorState), visitorState));
-              } else {
-                returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolTRUECoeffs(visitorState.sizeOfVariables(), visitorState), visitorState));
-
-                // just because we know the value may be greater than the rightcoeffs, it does not
-                // have to be greater, so we need to check on smaller equal rightCoeffs
-                // and eventually return more states
-                OctState smaller = visitorState.addSmallerEqConstraint(tempVarLeft, rightCoeffs);
-                if (!smaller.isEmpty()) {
-                  returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(smaller.sizeOfVariables(), smaller), smaller));
-                }
-              }
-              break;
-            case LESS_EQUAL:
-              tmpState = visitorState.addSmallerEqConstraint(tempVarLeft, rightCoeffs);
-              if (tmpState.isEmpty()) {
-                returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(visitorState.sizeOfVariables(), visitorState), visitorState));
-              } else {
-                returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolTRUECoeffs(visitorState.sizeOfVariables(), visitorState), visitorState));
-
-                // just because we know the value may be smaller equal than the rightcoeffs, it does not
-                // have to be smaller equal, so we need to check on greater rightCoeffs
-                // and eventually return more states
-                OctState greater = visitorState.addGreaterConstraint(tempVarLeft, rightCoeffs);
-                if (!greater.isEmpty()) {
-                  returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(greater.sizeOfVariables(), greater), greater));
-                }
-              }
-              break;
-            case LESS_THAN:
-              tmpState = visitorState.addSmallerConstraint(tempVarLeft, rightCoeffs);
-              if (tmpState.isEmpty()) {
-                returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(visitorState.sizeOfVariables(), visitorState), visitorState));
-              } else {
-                returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolTRUECoeffs(visitorState.sizeOfVariables(), visitorState), visitorState));
-
-                // just because we know the value may be smaller than the rightcoeffs, it does not
-                // have to be smaller, so we need to check on greater equal rightCoeffs
-                // and eventually return more states
-                OctState greater = visitorState.addGreaterEqConstraint(tempVarLeft, rightCoeffs);
-                if (!greater.isEmpty()) {
-                  returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(greater.sizeOfVariables(), greater), greater));
-                }
-              }
-              break;
-            case NOT_EQUALS:
-              OctState smaller = visitorState.addSmallerConstraint(tempVarLeft, rightCoeffs);
-              OctState bigger = visitorState.addGreaterConstraint(tempVarLeft, rightCoeffs);
-              OctState equal = visitorState.addEqConstraint(tempVarLeft, rightCoeffs);
-              if ((!smaller.isEmpty() || !bigger.isEmpty()) && equal.isEmpty()) {
-                returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolTRUECoeffs(visitorState.sizeOfVariables(), visitorState), visitorState));
-              } else if ((!smaller.isEmpty() || !bigger.isEmpty()) && !equal.isEmpty()) {
-                returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolTRUECoeffs(visitorState.sizeOfVariables(), visitorState), visitorState));
-                returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(visitorState.sizeOfVariables(), visitorState), visitorState));
-              } else {
-                returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(visitorState.sizeOfVariables(), visitorState), visitorState));
+              //because we change the sides of the operands, we have to change the
+              //operator, too
+              switch (binOp) {
+              case EQUALS: binOp = BinaryOperator.NOT_EQUALS; break;
+              case GREATER_EQUAL: binOp = BinaryOperator.LESS_EQUAL; break;
+              case GREATER_THAN: binOp = BinaryOperator.LESS_THAN; break;
+              case LESS_EQUAL: binOp = BinaryOperator.GREATER_EQUAL; break;
+              case LESS_THAN: binOp = BinaryOperator.GREATER_THAN; break;
+              case NOT_EQUALS:binOp = BinaryOperator.EQUALS; break;
               }
 
-              if (!smaller.isEmpty()) {
-                returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolTRUECoeffs(smaller.sizeOfVariables(), smaller), smaller));
-              }
-
-              if (!bigger.isEmpty()) {
-                returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolTRUECoeffs(bigger.sizeOfVariables(), bigger), bigger));
-              }
-
-              if (!equal.isEmpty()) {
-                returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(equal.sizeOfVariables(), equal), equal));
-              }
-              break;
+            } else {
+              visitorState = visitorState.declareVariable(tempVarLeft, getCorrespondingOctStateType(e.getOperand1().getExpressionType()));
+              visitorState = visitorState.makeAssignment(tempVarLeft, leftCoeffs.expandToSize(visitorState.sizeOfVariables(), visitorState));
+              rightCoeffs = rightCoeffs.expandToSize(visitorState.sizeOfVariables(), visitorState);
             }
+
+            returnCoefficients.addAll(handleLogicalOperators(tempVarLeft, binOp, visitorState, rightCoeffs));
           }
         }
         return returnCoefficients;
@@ -1460,6 +1363,116 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
       default:
         throw new AssertionError("Unhandled case statement");
       }
+    }
+
+    private Set<Pair<IOctCoefficients, OctState>> handleLogicalOperators(String varName, BinaryOperator binOp, OctState state, IOctCoefficients constraintCoeffs) {
+      Set<Pair<IOctCoefficients, OctState>> returnCoefficients = new HashSet<>();
+      OctState tmpState;
+      switch (binOp) {
+      case EQUALS:
+        tmpState = state.addEqConstraint(varName, constraintCoeffs);
+        if (tmpState.isEmpty()) {
+          returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(state.sizeOfVariables(), state), state));
+        } else {
+          returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolTRUECoeffs(state.sizeOfVariables(), tmpState), tmpState));
+
+          // just because we know the value may be equal to the rightcoeffs, it does not
+          // have to be equal, so we need to check on smaller/greater rightCoeffs
+          // and eventually return more states
+          OctState smaller = state.addSmallerConstraint(varName, constraintCoeffs);
+          if (!smaller.isEmpty()) {
+            returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(smaller.sizeOfVariables(), smaller), smaller));
+          } else {
+            OctState greater = state.addGreaterConstraint(varName, constraintCoeffs);
+            returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(greater.sizeOfVariables(), greater), greater));
+          }
+        }
+        break;
+      case GREATER_EQUAL:
+        tmpState = state.addGreaterEqConstraint(varName, constraintCoeffs);
+        if (tmpState.isEmpty()) {
+          returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(state.sizeOfVariables(), state), state));
+        } else {
+          returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolTRUECoeffs(state.sizeOfVariables(), tmpState), tmpState));
+
+
+          // just because we know the value may be greater equal than the rightcoeffs, it does not
+          // have to be greater equal, so we need to check on smaller rightCoeffs
+          // and eventually return more states
+          OctState smaller = state.addSmallerConstraint(varName, constraintCoeffs);
+          if (!smaller.isEmpty()) {
+            returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(smaller.sizeOfVariables(), smaller), smaller));
+          }
+        }
+        break;
+      case GREATER_THAN:
+        tmpState = state.addGreaterConstraint(varName, constraintCoeffs);
+        if (tmpState.isEmpty()) {
+          returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(state.sizeOfVariables(), state), state));
+        } else {
+          returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolTRUECoeffs(state.sizeOfVariables(), tmpState), tmpState));
+
+          // just because we know the value may be greater than the rightcoeffs, it does not
+          // have to be greater, so we need to check on smaller equal rightCoeffs
+          // and eventually return more states
+          OctState smaller = state.addSmallerEqConstraint(varName, constraintCoeffs);
+          if (!smaller.isEmpty()) {
+            returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(smaller.sizeOfVariables(), smaller), smaller));
+          }
+        }
+        break;
+      case LESS_EQUAL:
+        tmpState = state.addSmallerEqConstraint(varName, constraintCoeffs);
+        if (tmpState.isEmpty()) {
+          returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(state.sizeOfVariables(), state), state));
+        } else {
+          returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolTRUECoeffs(state.sizeOfVariables(), tmpState), tmpState));
+
+          // just because we know the value may be smaller equal than the rightcoeffs, it does not
+          // have to be smaller equal, so we need to check on greater rightCoeffs
+          // and eventually return more states
+          OctState greater = state.addGreaterConstraint(varName, constraintCoeffs);
+          if (!greater.isEmpty()) {
+            returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(greater.sizeOfVariables(), greater), greater));
+          }
+        }
+        break;
+      case LESS_THAN:
+        tmpState = state.addSmallerConstraint(varName, constraintCoeffs);
+        if (tmpState.isEmpty()) {
+          returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(state.sizeOfVariables(), state), state));
+        } else {
+          returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolTRUECoeffs(state.sizeOfVariables(), tmpState), tmpState));
+
+          // just because we know the value may be smaller than the rightcoeffs, it does not
+          // have to be smaller, so we need to check on greater equal rightCoeffs
+          // and eventually return more states
+          OctState greater = state.addGreaterEqConstraint(varName, constraintCoeffs);
+          if (!greater.isEmpty()) {
+            returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(greater.sizeOfVariables(), greater), greater));
+          }
+        }
+        break;
+      case NOT_EQUALS:
+        OctState smaller = state.addSmallerConstraint(varName, constraintCoeffs);
+        OctState bigger = state.addGreaterConstraint(varName, constraintCoeffs);
+        OctState equal = state.addEqConstraint(varName, constraintCoeffs);
+
+        if (!smaller.isEmpty()) {
+          returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolTRUECoeffs(smaller.sizeOfVariables(), smaller), smaller));
+        }
+
+        if (!bigger.isEmpty()) {
+          returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolTRUECoeffs(bigger.sizeOfVariables(), bigger), bigger));
+        }
+
+        if (!equal.isEmpty()) {
+          returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(equal.sizeOfVariables(), equal), equal));
+        }
+        break;
+      }
+
+      return returnCoefficients;
     }
 
     /**
