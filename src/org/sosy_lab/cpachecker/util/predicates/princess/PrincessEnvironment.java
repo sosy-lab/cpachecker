@@ -137,6 +137,8 @@ class PrincessEnvironment {
     } else {
       api = SimpleAPI.spawn();
     }
+
+    api.setConstructProofs(true); // needed for interpolation
   }
 
   /**  This function creates a filename with following scheme:
