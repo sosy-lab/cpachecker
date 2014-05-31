@@ -117,7 +117,7 @@ public class OctIntValue extends OctNumericValue<Long> {
 
   @Override
   public OctNumericValue mul(OctNumericValue pVal) {
-    return pVal.add(value);
+    return pVal.mul(value);
   }
 
   @Override
@@ -135,7 +135,7 @@ public class OctIntValue extends OctNumericValue<Long> {
     if (pDivisor instanceof OctIntValue) {
       return OctIntValue.of(value.longValue() / ((OctIntValue)pDivisor).value.longValue());
     } else if (pDivisor instanceof OctDoubleValue) {
-      return new OctDoubleValue(value.longValue() - ((OctDoubleValue)pDivisor).value.doubleValue());
+      return new OctDoubleValue(value.longValue() / ((OctDoubleValue)pDivisor).value.doubleValue());
     }
     throw new AssertionError("unknown subtype of octnumericvalue");
   }
@@ -249,10 +249,15 @@ public class OctIntValue extends OctNumericValue<Long> {
     if (val.isEqual(value)) {
       return 0;
     } else if (val.lessThan(value)) {
-      return -1;
-    } else if (val.greaterThan(value)){
       return 1;
+    } else if (val.greaterThan(value)){
+      return -1;
     }
     throw new AssertionError("implementation fault");
+  }
+
+  @Override
+  public String toString() {
+    return value.toString();
   }
 }
