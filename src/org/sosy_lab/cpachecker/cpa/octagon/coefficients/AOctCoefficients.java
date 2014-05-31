@@ -77,7 +77,7 @@ public abstract class AOctCoefficients implements IOctCoefficients {
       if (other.hasOnlyOneValue()) {
         return divInner(other);
       }
-      throw new IllegalArgumentException("At least one of the coefficients has to be a single variable or constant.");
+      throw new IllegalArgumentException("The divisor has to be a single variable or constant.");
     }
     throw new IllegalArgumentException("Unkown subtype of OctCoefficients");
   }

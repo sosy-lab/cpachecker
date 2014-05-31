@@ -199,11 +199,7 @@ public class OctIntervalCoefficients extends AOctCoefficients {
 
   @Override
   public IOctCoefficients mul(OctNumericValue factor) {
-    OctIntervalCoefficients ret = new OctIntervalCoefficients(size, oct);
-    for (int i = 0; i < size; i++) {
-      ret.coefficients[i] = coefficients[i].times(new OctInterval(factor));
-    }
-    return ret;
+    return mul(new OctInterval(factor));
   }
 
   @Override
