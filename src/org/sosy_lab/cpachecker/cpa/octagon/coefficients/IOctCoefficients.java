@@ -77,6 +77,7 @@ public interface IOctCoefficients {
    */
   boolean hasOnlyConstantValue();
   boolean hasOnlyOneValue();
+  int getVariableIndex();
 
   @Override
   boolean equals(Object obj);

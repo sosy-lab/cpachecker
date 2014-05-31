@@ -372,24 +372,9 @@ public class OctSimpleCoefficients extends AOctCoefficients {
     return true;
   }
 
-  public boolean isVariable() {
-    int counter = 0;
-    while (counter < size && coefficients[counter].equals(OctIntValue.ZERO)) {
-      counter++;
-    }
-    counter++;
-    while (counter < size && coefficients[counter].equals(OctIntValue.ZERO)) {
-      counter++;
-    }
-    if (counter == size && coefficients[counter].equals(OctIntValue.ZERO)) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-
+  @Override
   public int getVariableIndex() {
-    assert isVariable() : "is no variable!";
+    assert hasOnlyOneValue() && !hasOnlyConstantValue() : "is no variable!";
     int counter = 0;
     while (counter < size && coefficients[counter].equals(OctIntValue.ZERO)) {
       counter++;

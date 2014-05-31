@@ -334,6 +334,16 @@ public class OctIntervalCoefficients extends AOctCoefficients {
     return true;
   }
 
+  @Override
+  public int getVariableIndex() {
+    assert hasOnlyOneValue() && !hasOnlyConstantValue() : "is no variable!";
+    int counter = 0;
+    while (counter < size && coefficients[counter].equals(OctInterval.FALSE)) {
+      counter++;
+    }
+    return counter;
+  }
+
   public OctInterval getConstantValue() {
     return coefficients[coefficients.length-1];
   }

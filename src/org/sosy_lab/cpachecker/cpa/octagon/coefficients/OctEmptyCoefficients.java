@@ -44,6 +44,11 @@ public final class OctEmptyCoefficients extends AOctCoefficients {
   }
 
   @Override
+  public int getVariableIndex() {
+    throw new UnsupportedOperationException("Do only call this method on coefficients with exactly one value");
+  }
+
+  @Override
   public OctEmptyCoefficients add(IOctCoefficients pOther) {
     return INSTANCE;
   }

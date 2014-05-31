@@ -1236,9 +1236,20 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
 
     @Override
     public Set<Pair<IOctCoefficients, OctState>> visit(CBinaryExpression e) throws CPATransferException {
+      // do not even evaluate the members of this binary expression if we cannot
+      // handle the operator
+      switch (e.getOperator()) {
+      case BINARY_AND:
+      case BINARY_OR:
+      case BINARY_XOR:
+      case SHIFT_LEFT:
+      case SHIFT_RIGHT:
+      case MODULO:
+        return Collections.singleton(Pair.of((IOctCoefficients)OctEmptyCoefficients.INSTANCE, visitorState));
+      }
+
       Set<Pair<IOctCoefficients, OctState>> left = e.getOperand1().accept(this);
       Set<Pair<IOctCoefficients, Set<Pair<IOctCoefficients, OctState>>>> right = new HashSet<>();
-
 
       int origSize = left.size();
       left = FluentIterable.from(left).filter(new NotInstanceOfEmptyCoefficients()).toSet();
@@ -1259,31 +1270,34 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
       }
 
       switch (e.getOperator()) {
-      case BINARY_AND:
-      case BINARY_OR:
-      case BINARY_XOR:
-      case SHIFT_LEFT:
-      case SHIFT_RIGHT:
-      case MODULO:
-        return Collections.singleton(Pair.of((IOctCoefficients)OctEmptyCoefficients.INSTANCE, visitorState));
       case EQUALS:
       case GREATER_EQUAL:
       case GREATER_THAN:
       case LESS_EQUAL:
       case LESS_THAN:
       case NOT_EQUALS: {
-        Set<Pair<IOctCoefficients, OctState>> returnCoefficients = new HashSet<>(2);
+        Set<Pair<IOctCoefficients, OctState>> returnCoefficients = new HashSet<>();
         String tempVarLeft = buildVarName(visitorFunctionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
         temporaryVariableCounter++;
 
         for (Pair<IOctCoefficients, Set<Pair<IOctCoefficients, OctState>>> pairs : right) {
           IOctCoefficients leftCoeffs = pairs.getFirst();
           for (Pair<IOctCoefficients, OctState> rightPair : pairs.getSecond()) {
+            OctState visitorState;
 
-            OctState visitorState = rightPair.getSecond().declareVariable(tempVarLeft, getCorrespondingOctStateType(e.getOperand1().getExpressionType()));
+            // we do not need to create a temporary variable if the left coefficients are
+            // a variable
+            // TODO of course this is the same for the right coefficients, and if the value
+            // is constant, but this has to be implemented additionally
+            if (leftCoeffs.hasOnlyOneValue() && !leftCoeffs.hasOnlyConstantValue()) {
+              visitorState = rightPair.getSecond();
+              tempVarLeft = visitorState.getVariableNameFor(leftCoeffs.getVariableIndex());
+            } else {
+              visitorState = rightPair.getSecond().declareVariable(tempVarLeft, getCorrespondingOctStateType(e.getOperand1().getExpressionType()));
+              visitorState = visitorState.makeAssignment(tempVarLeft, leftCoeffs.expandToSize(visitorState.sizeOfVariables(), visitorState));
+            }
+
             IOctCoefficients rightCoeffs = rightPair.getFirst();
-            visitorState = visitorState.makeAssignment(tempVarLeft, leftCoeffs.expandToSize(visitorState.sizeOfVariables(), visitorState));
-
             rightCoeffs = rightCoeffs.expandToSize(visitorState.sizeOfVariables(), visitorState);
             OctState tmpState;
             switch (e.getOperator()) {

@@ -326,6 +326,14 @@ public class OctState implements AbstractState {
     return result;
   }
 
+  protected String getVariableNameFor(int index) {
+    String result = variableToIndexMap.inverse().get(index);
+    if (result == null) {
+      throw new IllegalArgumentException();
+    }
+    return result;
+  }
+
   protected boolean existsVariable(String variableName) {
     return variableToIndexMap.containsKey(variableName);
   }
