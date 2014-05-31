@@ -113,7 +113,6 @@ import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctIntervalCoefficients;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctSimpleCoefficients;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctDoubleValue;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctIntValue;
-import org.sosy_lab.cpachecker.cpa.octagon.values.OctInterval;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctNumericValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
@@ -1491,93 +1490,40 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
       return Collections.singleton(Pair.of((IOctCoefficients)new OctSimpleCoefficients(visitorState.sizeOfVariables(), OctIntValue.of(e.asLong()), visitorState), visitorState));
     }
 
-    @SuppressWarnings("deprecation")
     @Override
     public Set<Pair<IOctCoefficients, OctState>> visit(CUnaryExpression e) throws CPATransferException {
-      Set<Pair<IOctCoefficients, OctState>> operand = e.getOperand().accept(this);
-
-      operand = FluentIterable.from(operand).filter(new NotInstanceOfEmptyCoefficients()).toSet();
-
-      if (operand.isEmpty()) {
-        return Collections.singleton(Pair.of((IOctCoefficients)OctEmptyCoefficients.INSTANCE, visitorState));
-      }
 
       switch (e.getOperator()) {
       case AMPER:
       case SIZEOF:
       case TILDE:
         return Collections.singleton(Pair.of((IOctCoefficients)OctEmptyCoefficients.INSTANCE, visitorState));
-      case MINUS:
-        final Set<Pair<IOctCoefficients, OctState>> returnCoefficients = new HashSet<>();
-
-        // we filter out all coefficients which do not only have a constant value
-        // and at the same time we add the returnCoefficients for those who only have
-        // a constant value
-        operand = FluentIterable.from(operand).filter(new Predicate<Pair<IOctCoefficients, OctState>>() {
-          @Override
-          public boolean apply(Pair<IOctCoefficients, OctState> pair) {
-            IOctCoefficients coeffs = pair.getFirst();
-            if (coeffs.hasOnlyConstantValue()) {
-              if (coeffs instanceof OctSimpleCoefficients) {
-                returnCoefficients.add(Pair.of((IOctCoefficients)new OctSimpleCoefficients(coeffs.size(), ((OctSimpleCoefficients) coeffs).getConstantValue().mul(-1), pair.getSecond()), pair.getSecond()));
-                return false;
-              } else if (coeffs instanceof OctIntervalCoefficients) {
-                OctInterval bounds = ((OctIntervalCoefficients) coeffs).getConstantValue();
-                returnCoefficients.add(Pair.of((IOctCoefficients)new OctIntervalCoefficients(coeffs.size(),
-                                                                   bounds,
-                                                                   pair.getSecond()),
-                                                pair.getSecond()));
-                return false;
-              }
-            }
-            return true;
-          }
-        }).toSet();
-
-        if (operand.isEmpty()) {
-          return returnCoefficients;
-        }
-
-        String tempVar = buildVarName(visitorFunctionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
-        temporaryVariableCounter++;
-
-        for (Pair<IOctCoefficients, OctState> pair : operand) {
-          IOctCoefficients coeffs = pair.getFirst();
-          OctState visitorState = pair.getSecond();
-          visitorState = visitorState.declareVariable(tempVar, getCorrespondingOctStateType(e.getExpressionType()));
-          visitorState = visitorState.makeAssignment(tempVar, coeffs.expandToSize(visitorState.sizeOfVariables(), visitorState));
-
-          if (e.getOperator() == UnaryOperator.MINUS) {
-            returnCoefficients.add(Pair.of((IOctCoefficients)new OctSimpleCoefficients(visitorState.sizeOfVariables(),
-                                                                                       visitorState.getVariableIndexFor(tempVar),
-                                                                                       OctIntValue.NEG_ONE, visitorState),
-                                            visitorState));
-          } else {
-
-            OctState tmpState = visitorState.addEqConstraint(tempVar, OctIntValue.ZERO);
-            if (tmpState.isEmpty()) {
-              returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(visitorState.sizeOfVariables(), visitorState), visitorState));
-
-            } else {
-              returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolTRUECoeffs(visitorState.sizeOfVariables(), visitorState), visitorState));
-
-              // just because we know the value may be zero, it does not
-              // have to be zero, so we need to check on smaller/greater zero
-              // and eventually return more states
-              OctState smaller = visitorState.addSmallerConstraint(tempVar, OctIntValue.ZERO);
-              if (!smaller.isEmpty()) {
-                returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(smaller.sizeOfVariables(), smaller), smaller));
-              } else {
-                OctState greater = visitorState.addGreaterConstraint(tempVar, OctIntValue.ZERO);
-                returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(greater.sizeOfVariables(), greater), greater));
-              }
-            }
-          }
-        }
-        return returnCoefficients;
-      default:
-        throw new AssertionError("Unhandled case in switch clause.");
       }
+
+      // only minus operantor is handled after here
+      assert e.getOperator() == UnaryOperator.MINUS;
+
+      Set<Pair<IOctCoefficients, OctState>> operand = e.getOperand().accept(this);
+
+      int origSize = operand.size();
+      operand = FluentIterable.from(operand).filter(new NotInstanceOfEmptyCoefficients()).toSet();
+
+      // after filtering out all emptycoefficients, we check if there were some
+      // if yes we can quit immediately as there is at least one state where the
+      // value is undefined, the other states could only be more precise and are
+      // therefore irrelevant
+      if (operand.isEmpty() || origSize != operand.size()) {
+        return Collections.singleton(Pair.of((IOctCoefficients)OctEmptyCoefficients.INSTANCE, visitorState));
+      }
+
+      Set<Pair<IOctCoefficients, OctState>> returnValues = new HashSet<>();
+
+      // we negate all coefficients and afterwards return the computed results
+      for (Pair<IOctCoefficients, OctState> pair : operand) {
+        returnValues.add(Pair.of(pair.getFirst().mul(OctIntValue.NEG_ONE), pair.getSecond()));
+      }
+
+      return returnValues;
     }
 
     @Override
