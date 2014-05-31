@@ -28,9 +28,6 @@ import ap.parser.IFormula;
 import ap.parser.IFunApp;
 import ap.parser.IFunction;
 import ap.parser.ITerm;
-import com.google.common.collect.Lists;
-import org.eclipse.jdt.core.JavaConventions;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
 import scala.collection.JavaConversions;
 
@@ -41,14 +38,6 @@ class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpress
 
   PrincessUnsafeFormulaManager(PrincessFormulaCreator pCreator) {
     super(pCreator);
-  }
-
- /** ApplicationTerms can be wrapped with "|".
-   * This function replaces those chars with "\"". */
-  // TODO: Check where this was used in the past.
-  @SuppressWarnings("unused")
-  private static String convertQuotes(String s) {
-    return s.replace("|", "\"");
   }
 
   @Override
@@ -79,9 +68,9 @@ class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpress
   @Override
   public String getName(IExpression t) {
     if (isVariable(t)) {
-      return PrincessUtil.unescape(t.toString());
+      return t.toString();
     } else if (isUF(t)) {
-      return PrincessUtil.unescape(((IFunApp)t).fun().name());
+      return ((IFunApp)t).fun().name();
     } else {
       throw new IllegalArgumentException("The Term " + t + " has no name!");
     }

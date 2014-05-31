@@ -53,15 +53,6 @@ import java.util.Set;
 class PrincessUtil {
   private PrincessUtil() { }
 
-  // TODO escaping is not perfect, but works and is simple to understand
-  public static String escape(String str) {
-    return str.replace(":","_ESC_DOTS_").replace("@","_ESC_AT_");
-  }
-
-  public static String unescape(String str) {
-    return str.replace("_ESC_DOTS_",":").replace("_ESC_AT_","@");
-  }
-
   /** ITerm is the arithmetic subclass of IExpression. */
   public static ITerm castToTerm(IExpression e) {
     return (ITerm) e;

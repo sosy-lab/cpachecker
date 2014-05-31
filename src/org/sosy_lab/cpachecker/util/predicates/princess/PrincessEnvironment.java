@@ -133,10 +133,11 @@ class PrincessEnvironment {
     shutdownNotifier = pShutdownNotifier;
 
     if (logAllQueries && smtLogfile != null) {
-      api = SimpleAPI.spawnWithLog(getFilename(smtLogfile));
+      api = SimpleAPI.spawnWithLogNoSanitise(getFilename(smtLogfile));
     } else {
-      api = SimpleAPI.spawn();
+      api = SimpleAPI.spawnNoSanitise();
     }
+    // we do not use 'sanitise', because variable-names contain special chars like "@" and ":"
 
     api.setConstructProofs(true); // needed for interpolation
   }
@@ -217,7 +218,6 @@ class PrincessEnvironment {
   }
 
   private IExpression makeVariable0(Type type, String varname) {
-    varname = PrincessUtil.escape(varname);
     switch (type) {
       case BOOL:
         return api.createBooleanVariable(varname);
@@ -243,7 +243,7 @@ class PrincessEnvironment {
   /** This function declares a new functionSymbol, that has a given number of params.
    * Princess has no support for typed params, only their number is important. */
   private FunctionType declareFun0(String name, Type resultType, Type[] args) {
-    IFunction funcDecl = api.createFunction(PrincessUtil.escape(name), args.length);
+    IFunction funcDecl = api.createFunction(name, args.length);
     FunctionType type = new FunctionType(funcDecl, resultType, args);
     declaredFunctions.put(funcDecl, type);
     return type;
