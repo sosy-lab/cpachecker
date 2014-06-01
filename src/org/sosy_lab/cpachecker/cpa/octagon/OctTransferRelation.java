@@ -1346,14 +1346,39 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
                 return Collections.singleton(Pair.of((IOctCoefficients)OctEmptyCoefficients.INSTANCE, this.visitorState));
               }
 
-              returnCoefficients.add(Pair.of(leftCoeffs.mul(rightCoeffs), visitorState));
+              if (leftCoeffs.hasOnlyOneValue() || rightCoeffs.hasOnlyOneValue()) {
+                returnCoefficients.add(Pair.of(leftCoeffs.mul(rightCoeffs), visitorState));
+              } else {
+                String tempVarLeft = buildVarName(visitorFunctionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
+                temporaryVariableCounter++;
+                visitorState = visitorState.declareVariable(tempVarLeft, getCorrespondingOctStateType(e.getOperand1().getExpressionType()));
+                visitorState = visitorState.makeAssignment(tempVarLeft, leftCoeffs.expandToSize(visitorState.sizeOfVariables(), visitorState));
+                returnCoefficients.add(Pair.of(new OctSimpleCoefficients(visitorState.sizeOfVariables(),
+                                                                         visitorState.getVariableIndexFor(tempVarLeft),
+                                                                         OctIntValue.ONE,
+                                                                         visitorState).mul(rightCoeffs.expandToSize(visitorState.sizeOfVariables(), visitorState)),
+                                                visitorState));
+              }
 
             } else if (e.getOperator() == BinaryOperator.DIVIDE) {
               if(!handleFloats) {
                 return Collections.singleton(Pair.of((IOctCoefficients)OctEmptyCoefficients.INSTANCE, this.visitorState));
               }
 
-              returnCoefficients.add(Pair.of(leftCoeffs.div(rightCoeffs), visitorState));
+              if (rightCoeffs.hasOnlyOneValue()) {
+                returnCoefficients.add(Pair.of(leftCoeffs.div(rightCoeffs), visitorState));
+              } else {
+                String tempVarRight = buildVarName(visitorFunctionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
+                temporaryVariableCounter++;
+                visitorState = visitorState.declareVariable(tempVarRight, getCorrespondingOctStateType(e.getOperand2().getExpressionType()));
+                visitorState = visitorState.makeAssignment(tempVarRight, rightCoeffs.expandToSize(visitorState.sizeOfVariables(), visitorState));
+                IOctCoefficients expandedleftCoeffs = leftCoeffs.expandToSize(visitorState.sizeOfVariables(), visitorState);
+                returnCoefficients.add(Pair.of(expandedleftCoeffs.div(new OctSimpleCoefficients(visitorState.sizeOfVariables(),
+                                                                                        visitorState.getVariableIndexFor(tempVarRight),
+                                                                                        OctIntValue.ONE,
+                                                                                        visitorState)),
+                                                visitorState));
+              }
             }
           }
         }

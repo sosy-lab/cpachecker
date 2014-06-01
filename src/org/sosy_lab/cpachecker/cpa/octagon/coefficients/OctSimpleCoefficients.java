@@ -101,7 +101,7 @@ public class OctSimpleCoefficients extends AOctCoefficients {
 
   public OctIntervalCoefficients convertToInterval(){
     OctIntervalCoefficients octCoeffs = new OctIntervalCoefficients(size, oct);
-    for (int i = 0; i <= size; i++) {
+    for (int i = 0; i < coefficients.length; i++) {
       octCoeffs.coefficients[i] = new OctInterval(coefficients[i]);
     }
     return octCoeffs;
@@ -181,7 +181,7 @@ public class OctSimpleCoefficients extends AOctCoefficients {
     OctNumericValue value = null;
     while (index < coefficients.length) {
       value = coefficients[index];
-      if (!value.equals(OctIntValue.ZERO)) {
+      if (!value.isEqual(OctIntValue.ZERO)) {
         break;
       }
       index++;
@@ -217,7 +217,7 @@ public class OctSimpleCoefficients extends AOctCoefficients {
   @Override
   public IOctCoefficients mul(OctInterval interval) {
     OctIntervalCoefficients ret = new OctIntervalCoefficients(size, oct);
-    for (int i = 0; i < size; i++) {
+    for (int i = 0; i < coefficients.length; i++) {
       ret.coefficients[i] = interval.times(new OctInterval(coefficients[i]));
     }
     return ret;
@@ -241,7 +241,7 @@ public class OctSimpleCoefficients extends AOctCoefficients {
     OctNumericValue value = null;
     while (index < coeffs.coefficients.length) {
       value = coeffs.coefficients[index];
-      if (!value.equals(OctIntValue.ZERO)) {
+      if (!value.isEqual(OctIntValue.ZERO)) {
         break;
       }
       index++;
@@ -329,7 +329,7 @@ public class OctSimpleCoefficients extends AOctCoefficients {
     }
 
     OctIntervalCoefficients ret = new OctIntervalCoefficients(size, oct);
-    for (int i = 0; i < size; i++) {
+    for (int i = 0; i < coefficients.length; i++) {
       ret.coefficients[i] = new OctInterval(coefficients[i]).divide(interval);
     }
     return ret;
@@ -353,7 +353,9 @@ public class OctSimpleCoefficients extends AOctCoefficients {
   @Override
   public boolean hasOnlyConstantValue() {
     for (int i = 0; i < coefficients.length - 1; i++) {
-      if (!coefficients[i].equals(OctIntValue.ZERO)) { return false; }
+      if (!coefficients[i].isEqual(OctIntValue.ZERO)) {
+        return false;
+      }
     }
     return true;
   }
@@ -362,7 +364,7 @@ public class OctSimpleCoefficients extends AOctCoefficients {
   public boolean hasOnlyOneValue() {
     boolean foundValue = false;
     for (int i = 0; i < coefficients.length; i++) {
-      if (!coefficients[i].equals(OctIntValue.ZERO)) {
+      if (!coefficients[i].isEqual(OctIntValue.ZERO)) {
         if (foundValue) {
           return false;
         }
@@ -376,7 +378,7 @@ public class OctSimpleCoefficients extends AOctCoefficients {
   public int getVariableIndex() {
     assert hasOnlyOneValue() && !hasOnlyConstantValue() : "is no variable!";
     int counter = 0;
-    while (counter < size && coefficients[counter].equals(OctIntValue.ZERO)) {
+    while (counter < size && coefficients[counter].isEqual(OctIntValue.ZERO)) {
       counter++;
     }
     return counter;

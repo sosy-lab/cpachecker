@@ -118,7 +118,7 @@ public class OctIntervalCoefficients extends AOctCoefficients {
   private IOctCoefficients add(OctSimpleCoefficients other) {
     Preconditions.checkArgument(other.size() == size, "Different size of coefficients.");
     OctIntervalCoefficients ret = new OctIntervalCoefficients(size, oct);
-    for (int i = 0; i < other.size; i++) {
+    for (int i = 0; i < coefficients.length; i++) {
       ret.coefficients[i] = coefficients[i].plus(new OctInterval(other.coefficients[i]));
     }
     return ret;
@@ -151,7 +151,7 @@ public class OctIntervalCoefficients extends AOctCoefficients {
   private IOctCoefficients sub(OctSimpleCoefficients other) {
     Preconditions.checkArgument(other.size() == size, "Different size of coefficients.");
     OctIntervalCoefficients ret = new OctIntervalCoefficients(size, oct);
-    for (int i = 0; i < size; i++) {
+    for (int i = 0; i < coefficients.length; i++) {
       ret.coefficients[i] = coefficients[i].minus(new OctInterval(other.coefficients[i]));
     }
     return ret;
@@ -160,7 +160,7 @@ public class OctIntervalCoefficients extends AOctCoefficients {
   private IOctCoefficients sub(OctIntervalCoefficients other) {
     Preconditions.checkArgument(other.size() == size, "Different size of coefficients.");
     OctIntervalCoefficients ret = new OctIntervalCoefficients(size, oct);
-    for (int i = 0; i < size; i++) {
+    for (int i = 0; i < coefficients.length; i++) {
       ret.coefficients[i] = coefficients[i].minus(other.coefficients[i]);
     }
     return ret;
@@ -205,7 +205,7 @@ public class OctIntervalCoefficients extends AOctCoefficients {
   @Override
   public IOctCoefficients mul(OctInterval interval) {
     OctIntervalCoefficients ret = new OctIntervalCoefficients(size, oct);
-    for (int i = 0; i < size; i++) {
+    for (int i = 0; i < coefficients.length; i++) {
         ret.coefficients[i] = coefficients[i].times(interval);
     }
     return ret;
@@ -229,7 +229,7 @@ public class OctIntervalCoefficients extends AOctCoefficients {
     OctNumericValue value = null;
     while (index < coeffs.coefficients.length) {
       value = coeffs.coefficients[index];
-      if (!value.equals(OctIntValue.ZERO)) {
+      if (!value.isEqual(OctIntValue.ZERO)) {
         break;
       }
       index++;
@@ -289,7 +289,7 @@ public class OctIntervalCoefficients extends AOctCoefficients {
   @Override
   public IOctCoefficients div(OctNumericValue pDivisor) {
     OctIntervalCoefficients ret = new OctIntervalCoefficients(size, oct);
-    for (int i = 0; i < size; i++) {
+    for (int i = 0; i < coefficients.length; i++) {
       ret.coefficients[i] = coefficients[i].divide(new OctInterval(pDivisor));
     }
     return ret;
@@ -307,7 +307,7 @@ public class OctIntervalCoefficients extends AOctCoefficients {
     }
 
     OctIntervalCoefficients ret = new OctIntervalCoefficients(size, oct);
-    for (int i = 0; i < size; i++) {
+    for (int i = 0; i < coefficients.length; i++) {
       ret.coefficients[i] = coefficients[i].divide(interval);
     }
 
@@ -402,7 +402,7 @@ public class OctIntervalCoefficients extends AOctCoefficients {
   public String toString() {
     StringBuilder builder = new StringBuilder();
 
-    for (int i = 0; i < coefficients.length - 1; i++) {
+    for (int i = 0; i < coefficients.length; i++) {
       String a, b;
       if (coefficients[i].getLow().isInfinite()) {
         a = "INFINITY";
@@ -414,8 +414,8 @@ public class OctIntervalCoefficients extends AOctCoefficients {
       } else {
         b = coefficients[i].getHigh().toString();
       }
-      if ((i+1)/2 < size) {
-        builder.append(oct.getVariableToIndexMap().inverse().get((i+1)/2) + " -> [" + a + ", " + b + "]\n");
+      if (i < size) {
+        builder.append(oct.getVariableToIndexMap().inverse().get(i) + " -> [" + a + ", " + b + "]\n");
       } else {
         builder.append("CONSTANT_VAL -> [" + a + ", " + b + "]\n");
       }
