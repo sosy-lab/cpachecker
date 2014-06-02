@@ -32,6 +32,7 @@ import ap.parser.IFormulaITE;
 import ap.parser.INot;
 import ap.parser.ITermITE;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
+import scala.Enumeration;
 
 import static org.sosy_lab.cpachecker.util.predicates.princess.PrincessUtil.castToFormula;
 import static org.sosy_lab.cpachecker.util.predicates.princess.PrincessUtil.castToTerm;
@@ -78,21 +79,54 @@ class PrincessBooleanFormulaManager extends AbstractBooleanFormulaManager<IExpre
 
   @Override
   public IFormula not(IExpression pBits) {
-    return new INot(castToFormula(pBits));
+    if (isNot(pBits)) {
+      return (INot)pBits.apply(0); // "not not a" == "a"
+    } else {
+      return new INot(castToFormula(pBits));
+    }
   }
 
   @Override
   public IFormula and(IExpression t1, IExpression t2) {
+    if (t1.equals(t2)) { return castToFormula(t1); }
     if (PrincessUtil.isTrue(t1)) { return castToFormula(t2); }
     if (PrincessUtil.isTrue(t2)) { return castToFormula(t1); }
-    return new IBinFormula(IBinJunctor.And(), castToFormula(t1), castToFormula(t2));
+    return simplify(new IBinFormula(IBinJunctor.And(), castToFormula(t1), castToFormula(t2)));
   }
 
   @Override
   public IFormula or(IExpression t1, IExpression t2) {
     if (PrincessUtil.isFalse(t1)) { return castToFormula(t2); }
     if (PrincessUtil.isFalse(t2)) { return castToFormula(t1); }
-    return new IBinFormula(IBinJunctor.Or(), castToFormula(t1), castToFormula(t2));
+    return simplify(new IBinFormula(IBinJunctor.Or(), castToFormula(t1), castToFormula(t2)));
+  }
+
+  /** simplification to avoid identical subgraphs: (a&b)&(a&c) --> a&(b&c), etc */
+  private IFormula simplify(IFormula f) {
+    if (f instanceof IBinFormula) {
+      final IBinFormula bin = (IBinFormula)f;
+      if (bin.f1() instanceof IBinFormula && bin.f2() instanceof IBinFormula
+              && ((IBinFormula) bin.f1()).j().equals(((IBinFormula) bin.f2()).j())) {
+        Enumeration.Value operator = ((IBinFormula) f).j();
+        Enumeration.Value innerOperator = ((IBinFormula) bin.f1()).j();
+
+        IFormula s11 = ((IBinFormula) bin.f1()).f1();
+        IFormula s12 = ((IBinFormula) bin.f1()).f2();
+        IFormula s21 = ((IBinFormula) bin.f2()).f1();
+        IFormula s22 = ((IBinFormula) bin.f2()).f2();
+
+        if (s11.equals(s21)) { // (ab)(ac) -> a(bc)
+          return new IBinFormula(innerOperator, s11, new IBinFormula(operator, s12, s22));
+        } else if (s11.equals(s22)) { // (ab)(ca) -> a(bc)
+          return new IBinFormula(innerOperator, s11, new IBinFormula(operator, s12, s21));
+        } else if (s12.equals(s21)) { // (ba)(ac) -> a(bc)
+          return new IBinFormula(innerOperator, s12, new IBinFormula(operator, s11, s22));
+        } else if (s12.equals(s22)) { // (ba)(ca) -> a(bc)
+          return new IBinFormula(innerOperator, s12, new IBinFormula(operator, s11, s21));
+        }
+      }
+    }
+    return f;
   }
 
   @Override
