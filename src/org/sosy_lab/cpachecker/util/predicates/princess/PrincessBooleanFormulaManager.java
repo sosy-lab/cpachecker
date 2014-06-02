@@ -80,7 +80,7 @@ class PrincessBooleanFormulaManager extends AbstractBooleanFormulaManager<IExpre
   @Override
   public IFormula not(IExpression pBits) {
     if (isNot(pBits)) {
-      return (INot)pBits.apply(0); // "not not a" == "a"
+      return ((INot)pBits).subformula(); // "not not a" == "a"
     } else {
       return new INot(castToFormula(pBits));
     }
