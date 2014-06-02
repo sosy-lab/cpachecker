@@ -389,7 +389,7 @@ public class OctIntervalCoefficients extends AOctCoefficients {
       return true;
     }
 
-    if (!(other instanceof OctIntervalCoefficients) && !super.equals(other)) {
+    if (!(other instanceof OctIntervalCoefficients) || !super.equals(other)) {
       return false;
     }
 
