@@ -293,6 +293,58 @@ public class Interval implements Serializable{
   }
 
   /**
+   * New interval instance after the modulo computation.
+   *
+   * @param other the other interval
+   * @return the new interval with the respective bounds.
+   */
+  public Interval modulo(Interval other) {
+    if (other.contains(FALSE)) {
+      return Interval.createUnboundInterval();
+    }
+
+    // The interval doesn't contain zero, hence low and high has to be of the same sign.
+    // In that case we can call an absolute value on both, as "% (-x)" is the same as "% x".
+    other = new Interval(Math.abs(other.low), Math.abs(other.high));
+
+    long newHigh;
+    long newLow;
+
+    // New high of the interval can't be higher than the highest value in the divisor.
+    // If the divisible element is positive, it is also bounded by it's highest number,
+    // or by the absolute value of the lowest number.
+    // (-1 % 6 CAN be either -1 or 5 according to the C standard).
+    long top;
+    if (low >= 0) {
+      top = high;
+    } else {
+      top = Math.max(Math.abs(low), high);
+    }
+    newHigh = Math.min(top, other.high - 1);
+
+    // Separate consideration for the case where the divisible number can be negative.
+    if (low >= 0) { // If the divisible interval is all positive, the lowest we can ever get is 0.
+
+      // We can only get zero if we include 0 or the number higher than the smallest value of the other interval.
+      if (low == 0 || high >= other.low) {
+        newLow = 0;
+      } else {
+        newLow = low;
+      }
+    } else {
+      // The remainder can go negative, but it can not be more negative than the negation of the highest value
+      // of the other interval plus 1.
+      // (e.g. X mod 14 can not be lower than -13)
+
+      // Remember, <low> is negative in this branch.
+      newLow = Math.max(low, 1 - other.high);
+    }
+
+    Interval out = new Interval(newLow, newHigh);
+    return out;
+  }
+
+  /**
    * This method returns a new interval with a limited, i.e. higher, lower bound.
    *
    * @param other the interval to limit this interval
