@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -63,9 +64,11 @@ public class ReachingDefTransferRelation implements TransferRelation {
   private CFANode main;
 
   private LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
 
-  public ReachingDefTransferRelation(LogManager pLogger) {
+  public ReachingDefTransferRelation(LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
     logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
   }
 
   public void provideLocalVariablesOfFunctions(Map<FunctionEntryNode, Set<String>> localVars) {
@@ -91,6 +94,8 @@ public class ReachingDefTransferRelation implements TransferRelation {
     CFAEdge cfaedge;
     for (CFANode node : nodes) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+        shutdownNotifier.shutdownIfNecessary();
+
         cfaedge = node.getLeavingEdge(i);
         if (!(cfaedge.getEdgeType() == CFAEdgeType.FunctionReturnEdge)) {
           if (cfaedge.getEdgeType() == CFAEdgeType.StatementEdge || cfaedge.getEdgeType() == CFAEdgeType.DeclarationEdge) {

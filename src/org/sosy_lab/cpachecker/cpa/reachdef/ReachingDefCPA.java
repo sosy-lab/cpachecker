@@ -35,6 +35,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -85,12 +86,12 @@ public class ReachingDefCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(ReachingDefCPA.class);
   }
 
-  private ReachingDefCPA(LogManager logger, Configuration config) throws InvalidConfigurationException {
+  private ReachingDefCPA(LogManager logger, Configuration config, ShutdownNotifier shutdownNotifier) throws InvalidConfigurationException {
     config.inject(this);
     this.logger = logger;
 
     domain = new ReachingDefDomain();
-    transfer = new ReachingDefTransferRelation(logger);
+    transfer = new ReachingDefTransferRelation(logger, shutdownNotifier);
 
     if (stopType.equals("SEP")) {
       stop = new StopSepOperator(domain);
