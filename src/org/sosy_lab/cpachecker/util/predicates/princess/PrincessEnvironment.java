@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
 import ap.SimpleAPI;
-import ap.SimpleAPI$;
 import ap.basetypes.IdealInt;
 import ap.parser.IExpression;
 import ap.parser.IFormula;
@@ -55,6 +54,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
 /** This is a Wrapper around Princess.
  * This Wrapper allows to set a logfile for all Smt-Queries (default "princess.smt2").
@@ -330,6 +330,7 @@ class PrincessEnvironment {
   }
 
   public void close() {
-    api.shutDown(); // TODO after this method is called, the next checkSat-call blocks forever.
+    logger.log(Level.FINE, "shutting down Princess");
+    api.shutDown();
   }
 }

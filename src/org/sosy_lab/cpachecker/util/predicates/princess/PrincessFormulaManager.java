@@ -38,7 +38,7 @@ import java.io.IOException;
 
 import static com.google.common.collect.Iterables.getOnlyElement;
 
-public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, PrincessEnvironment.Type, PrincessEnvironment> {
+public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, PrincessEnvironment.Type, PrincessEnvironment> implements AutoCloseable {
 
   private PrincessFormulaManager(
           PrincessEnvironment pEnv,
@@ -110,5 +110,10 @@ public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, 
   protected IExpression getTerm(Formula pF) {
     // for visibility
     return super.getTerm(pF);
+  }
+
+  @Override
+  public void close() {
+    getEnvironment().close();
   }
 }
