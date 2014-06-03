@@ -23,11 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.sign;
 
+import java.io.Serializable;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
 
-public class SignMap {
+public class SignMap implements Serializable{
+
+  private static final long serialVersionUID = -9120431575909566570L;
 
   private ImmutableMap<String, SIGN> possibleSigns;
 

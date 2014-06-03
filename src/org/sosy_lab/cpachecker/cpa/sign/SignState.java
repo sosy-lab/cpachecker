@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.sign;
 
+import java.io.IOException;
+import java.io.ObjectStreamException;
+import java.io.Serializable;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithTargetVariable;
@@ -36,7 +40,9 @@ import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Sets;
 
 
-public class SignState implements AbstractStateWithTargetVariable, TargetableWithPredicatedAnalysis {
+public class SignState implements AbstractStateWithTargetVariable, TargetableWithPredicatedAnalysis, Serializable {
+
+  private static final long serialVersionUID = -2507059869178203119L;
 
   private static final boolean DEBUG = false;
 
@@ -55,6 +61,7 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
   }
 
   public final static SignState TOP = new SignState();
+  private final static SerialProxySign proxy = new SerialProxySign();
 
   private SignState(SignMap pSignMap, Optional<SignState> pStateBeforeEnteredFunction) {
     signMap = pSignMap;
@@ -174,6 +181,33 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
   @Override
   public String getTargetVariableName() {
     return targetChecker == null ? "" : targetChecker.getErrorVariableName();
+  }
+
+  private Object writeReplace() throws ObjectStreamException {
+    if (this == TOP) {
+      return proxy;
+    } else {
+      return this;
+    }
+  }
+
+  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    out.defaultWriteObject();
+  }
+
+  private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+    in.defaultReadObject();
+  }
+
+  private static class SerialProxySign implements Serializable {
+
+    private static final long serialVersionUID = 2843708585446089623L;
+
+    public SerialProxySign() {}
+
+    private Object readResolve() throws ObjectStreamException {
+      return TOP;
+    }
   }
 
 }
