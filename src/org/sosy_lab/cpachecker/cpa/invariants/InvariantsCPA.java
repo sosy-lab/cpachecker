@@ -128,9 +128,6 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
     @Option(description="the maximum tree depth of a formula recorded in the environment.")
     private int maximumFormulaDepth = 4;
 
-    @Option(description="whether or not to collect information about binary variable interrelations.")
-    private boolean useBinaryVariableInterrelations = true;
-
     @Option(description="whether or not to use a bit vector formula manager when extracting invariant approximations from states.")
     private boolean useBitvectors = false;
 
@@ -365,7 +362,6 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
     InvariantsPrecision precision = new InvariantsPrecision(relevantEdges,
         ImmutableSet.copyOf(limit(interestingVariables, interestingVariableLimit)),
         options.maximumFormulaDepth,
-        options.useBinaryVariableInterrelations,
         options.edgeBasedAbstractionStrategyFactory,
         machineModel);
 

@@ -50,7 +50,6 @@ public class InvariantsPrecision implements Precision {
         Collections.<CFAEdge>emptySet(),
         Collections.<String>emptySet(),
         0,
-        false,
         EdgeBasedAbstractionStrategyFactories.ALWAYS,
         pMachineModel) {
 
@@ -73,34 +72,28 @@ public class InvariantsPrecision implements Precision {
 
   private final int maximumFormulaDepth;
 
-  private final boolean useBinaryVariableInterrelations;
-
   private final AbstractEdgeBasedAbstractionStrategyFactory edgeBasedAbstractionStrategyFactory;
 
   private final MachineModel machineModel;
 
   public InvariantsPrecision(Set<CFAEdge> pRelevantEdges,
       Set<String> pInterestingVariables, int pMaximumFormulaDepth,
-      boolean pUseBinaryVariableInterrelations,
       AbstractEdgeBasedAbstractionStrategyFactory pEdgeBasedAbstractionStrategyFactory,
       MachineModel pMachineModel) {
     this(asImmutableRelevantEdges(pRelevantEdges),
         ImmutableSet.<String>copyOf(pInterestingVariables),
         pMaximumFormulaDepth,
-        pUseBinaryVariableInterrelations,
         pEdgeBasedAbstractionStrategyFactory,
         pMachineModel);
   }
 
   public InvariantsPrecision(ImmutableSet<CFAEdge> pRelevantEdges,
       ImmutableSet<String> pInterestingVariables, int pMaximumFormulaDepth,
-      boolean pUseBinaryVariableInterrelations,
       AbstractEdgeBasedAbstractionStrategyFactory pEdgeBasedAbstractionStrategyFactory,
       MachineModel pMachineModel) {
     this.relevantEdges = pRelevantEdges;
     this.interestingVariables = pInterestingVariables;
     this.maximumFormulaDepth = pMaximumFormulaDepth;
-    this.useBinaryVariableInterrelations = pUseBinaryVariableInterrelations;
     this.edgeBasedAbstractionStrategyFactory = pEdgeBasedAbstractionStrategyFactory;
     this.machineModel = pMachineModel;
   }
@@ -138,8 +131,7 @@ public class InvariantsPrecision implements Precision {
       InvariantsPrecision other = (InvariantsPrecision) pOther;
       return relevantEdges.equals(other.relevantEdges)
           && interestingVariables.equals(other.interestingVariables)
-          && maximumFormulaDepth == other.maximumFormulaDepth
-          && useBinaryVariableInterrelations == other.useBinaryVariableInterrelations;
+          && maximumFormulaDepth == other.maximumFormulaDepth;
     }
     return false;
   }
@@ -151,10 +143,6 @@ public class InvariantsPrecision implements Precision {
 
   public int getMaximumFormulaDepth() {
     return this.maximumFormulaDepth;
-  }
-
-  public boolean isUsingBinaryVariableInterrelations() {
-    return this.useBinaryVariableInterrelations;
   }
 
   public AbstractEdgeBasedAbstractionStrategyFactory getEdgeBasedAbstractionStrategyFactory() {
