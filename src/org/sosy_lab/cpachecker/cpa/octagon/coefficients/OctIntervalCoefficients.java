@@ -240,8 +240,10 @@ public class OctIntervalCoefficients extends AOctCoefficients {
       return div(value);
 
       // this is a constant value which is ZERO
+      // divisions through zero should not be possible, thus this state
+      // is there because of over-approximation
     } else if (index > oct.sizeOfVariables()) {
-      throw new ArithmeticException("Division by zero");
+      return OctEmptyCoefficients.INSTANCE;
     }
 
     OctInterval bounds = coeffs.oct.getVariableBounds(index);
