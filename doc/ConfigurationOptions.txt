@@ -756,9 +756,6 @@ cpa.invariants.maximumFormulaDepth = 4
 cpa.invariants.merge = "JOIN"
   allowed values: [JOIN, SEP]
 
-# whether or not to collect information about binary variable interrelations.
-cpa.invariants.useBinaryVariableInterrelations = true
-
 # whether or not to use a bit vector formula manager when extracting
 # invariant approximations from states.
 cpa.invariants.useBitvectors = false
@@ -1633,7 +1630,11 @@ pcc.parallel.io.enableParallelCheck = false
 
 # Selects the strategy used for partial certificate construction
 pcc.partial.certificateType = HEURISTIC
-  enum:     [HEURISTIC, ARG, MONOTONESTOPARG]
+  enum:     [ALL, HEURISTIC, ARG, MONOTONESTOPARG]
+
+# If enabled, distributes checking of partial elements depending on actual
+# checking costs, else uses the number of elements
+pcc.partial.enableLoadDistribution = false
 
 # Enables proper PCC but may not work correctly for heuristics. Stops adding
 # newly computed elements to reached set if size saved in proof is reached.
