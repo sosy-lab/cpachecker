@@ -187,7 +187,7 @@ public class AssignmentToEdgeAllocator {
     }
 
     return "Symbolic address of declaration " + dcl.getName()
-        + " is " + address.getAsNumber().toString();
+        + " is " + address.getAsNumber();
   }
 
   @Nullable
