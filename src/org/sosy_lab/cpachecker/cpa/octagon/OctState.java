@@ -138,7 +138,6 @@ public class OctState implements AbstractState {
   // the octagon representation
   private Octagon octagon;
   private OctagonManager octagonManager;
-  private final boolean handleFloats;
 
   // mapping from variable name to its identifier
   private BiMap<String, Integer> variableToIndexMap;
@@ -148,27 +147,25 @@ public class OctState implements AbstractState {
   private LogManager logger;
 
   // also top element
-  public OctState(LogManager log, boolean pHandleFloats, OctagonManager manager) {
+  public OctState(LogManager log, OctagonManager manager) {
     octagon = manager.universe(0);
     octagonManager = manager;
     variableToIndexMap = HashBiMap.create();
     variableToTypeMap = new HashMap<>();
     block = new Block();
     logger = log;
-    handleFloats = pHandleFloats;
 
     // cleanup old octagons
     Octagon.removePhantomReferences();
   }
 
-  public OctState(Octagon oct, BiMap<String, Integer> map, Map<String, Type> typeMap, Block block, LogManager log, boolean pHandleFloats) {
+  public OctState(Octagon oct, BiMap<String, Integer> map, Map<String, Type> typeMap, Block block, LogManager log) {
     octagon = oct;
     octagonManager = octagon.getManager();
     variableToIndexMap = map;
     variableToTypeMap = typeMap;
     this.block = block;
     logger = log;
-    handleFloats = pHandleFloats;
 
     // cleanup old octagons
     Octagon.removePhantomReferences();
@@ -233,7 +230,7 @@ public class OctState implements AbstractState {
         newTypeMap1.remove(newMap1.inverse().remove(i));
       }
       Octagon newOct1 = octagonManager.removeDimension(octagon, variableToIndexMap.size()-(maxEqualIndex+1));
-      newState1 =  new OctState(newOct1, newMap1, newTypeMap1, block, logger, handleFloats);
+      newState1 =  new OctState(newOct1, newMap1, newTypeMap1, block, logger);
     } else {
       newState1 = this;
     }
@@ -246,7 +243,7 @@ public class OctState implements AbstractState {
         newTypeMap2.remove(newMap2.inverse().remove(i));
       }
       Octagon newOct2 =  octagonManager.removeDimension(oct.octagon, oct.variableToIndexMap.size()-(maxEqualIndex+1));
-      newState2 = new OctState(newOct2, newMap2, newTypeMap2, block, logger, handleFloats);
+      newState2 = new OctState(newOct2, newMap2, newTypeMap2, block, logger);
     } else {
       newState2 = oct;
     }
@@ -311,8 +308,7 @@ public class OctState implements AbstractState {
                         HashBiMap.create(variableToIndexMap),
                         new HashMap<>(variableToTypeMap),
                         block,
-                        logger,
-                        handleFloats);
+                        logger);
   }
 
   /**
@@ -344,8 +340,7 @@ public class OctState implements AbstractState {
                                      HashBiMap.create(variableToIndexMap),
                                      new HashMap<>(variableToTypeMap),
                                      block,
-                                     logger,
-                                     handleFloats);
+                                     logger);
     newState.variableToIndexMap.put(varName, sizeOfVariables());
     newState.variableToTypeMap.put(varName, type);
     return newState;
@@ -386,8 +381,7 @@ public class OctState implements AbstractState {
                                      HashBiMap.create(variableToIndexMap),
                                      new HashMap<>(variableToTypeMap),
                                      block,
-                                     logger,
-                                     handleFloats);
+                                     logger);
     octagonManager.num_clear_n(arr, oct.size());
     return newState;
   }
@@ -414,8 +408,7 @@ public class OctState implements AbstractState {
                                      HashBiMap.create(variableToIndexMap),
                                      new HashMap<>(variableToTypeMap),
                                      block,
-                                     logger,
-                                     handleFloats);
+                                     logger);
     octagonManager.num_clear_n(arr, oct.size());
     return newState;
   }
@@ -431,15 +424,14 @@ public class OctState implements AbstractState {
     if (constantValue instanceof OctDoubleValue) {
       octagonManager.num_set_float(arr, 3, constantValue.getValue().doubleValue());
     } else {
-      octagonManager.num_set_int(arr, 3, (int) constantValue.getValue().longValue());
+      octagonManager.num_set_int(arr, 3, constantValue.getValue().longValue());
     }
 
     OctState newState = new OctState(octagonManager.addBinConstraint(octagon, 1, arr),
                                      HashBiMap.create(variableToIndexMap),
                                      new HashMap<>(variableToTypeMap),
                                      block,
-                                     logger,
-                                     handleFloats);
+                                     logger);
     octagonManager.num_clear_n(arr, 4);
     return newState;
   }
@@ -656,8 +648,8 @@ public class OctState implements AbstractState {
    * Note that this only works with integers!
    */
   public OctState addEqConstraint(String pRightVariableName, String pLeftVariableName) {
-    return addSmallerEqConstraint(pLeftVariableName, pRightVariableName)
-           .addGreaterEqConstraint(pLeftVariableName, pRightVariableName);
+    return addSmallerEqConstraint(pRightVariableName, pLeftVariableName)
+           .addGreaterEqConstraint(pRightVariableName, pLeftVariableName);
   }
 
   /**
@@ -713,8 +705,7 @@ public class OctState implements AbstractState {
                         HashBiMap.create(variableToIndexMap),
                         new HashMap<>(variableToTypeMap),
                         block,
-                        logger,
-                        handleFloats);
+                        logger);
   }
 
   public OctState removeTempVars(String functionName, String varPrefix) {
@@ -754,8 +745,7 @@ public class OctState implements AbstractState {
                                      HashBiMap.create(variableToIndexMap),
                                      new HashMap<>(variableToTypeMap),
                                      block,
-                                     logger,
-                                     handleFloats);
+                                     logger);
     newState.variableToIndexMap.keySet().removeAll(keysToRemove);
     newState.variableToTypeMap.keySet().removeAll(keysToRemove);
 

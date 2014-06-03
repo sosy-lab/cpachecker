@@ -65,13 +65,21 @@ public class OctagonAnalysisFeasabilityChecker {
     shutdownNotifier = pShutdownNotifier;
 
     // use the normal configuration for creating the transferrelation
-    transfer  = new OctTransferRelation(logger, cfa, cpa.handleFloats());
+    transfer  = new OctTransferRelation(logger, cfa);
     checkedPath = path;
 
     // use a new configuration which only has the default values for the precision
     // we do not want any special options to be set there
-    foundPath = getInfeasiblePrefix(new OctPrecision(Configuration.defaultConfiguration(), cpa.handleFloats()),
-                                    new OctState(logger, cpa.handleFloats(), cpa.getManager()));
+    String handleFloats = cpa.getConfiguration().getProperty("cpa.octagon.handleFloats");
+    // if nothing is in the configuration we use the default value
+    if (handleFloats == null) {
+      handleFloats = "false";
+    }
+    foundPath = getInfeasiblePrefix(new OctPrecision(Configuration.builder()
+                                                                  .setOption("cpa.octagon.handleFloats",
+                                                                             handleFloats)
+                                                                   .build()),
+                                    new OctState(logger, cpa.getManager()));
   }
 
   /**

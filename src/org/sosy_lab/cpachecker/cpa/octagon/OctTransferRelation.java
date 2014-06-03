@@ -42,7 +42,6 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -125,7 +124,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 
-@Options(prefix="cpa.octagon")
 @SuppressWarnings("rawtypes")
 public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState>, OctState, OctPrecision> {
 
@@ -145,8 +143,6 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
   private static final Map<String, String> UNSUPPORTED_FUNCTIONS
       = ImmutableMap.of("pthread_create", "threads");
 
-  private final boolean handleFloats;
-
   private final LogManager logger;
 
   private final Map<CFAEdge, Loop> loopEntryEdges;
@@ -156,7 +152,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
    * @throws InvalidCFAException
    * @throws InvalidConfigurationException
    */
-  public OctTransferRelation(LogManager log, CFA cfa, boolean handleFloats) throws InvalidCFAException {
+  public OctTransferRelation(LogManager log, CFA cfa) throws InvalidCFAException {
     logger = log;
 
     if (!cfa.getLoopStructure().isPresent()) {
@@ -176,8 +172,6 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
       }
     }
     loopEntryEdges = Collections.unmodifiableMap(entryEdges);
-
-    this.handleFloats = handleFloats;
   }
 
   @Override
@@ -252,7 +246,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
                                    s.getVariableToIndexMap(),
                                    s.getVariableToTypeMap(),
                                    new OctState.Block(),
-                                   logger, handleFloats));
+                                   logger));
       }
       cleanedUpStates = newStates;
     }
@@ -358,7 +352,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
   }
 
   private OctState.Type getCorrespondingOctStateType(CType type) {
-    if (handleFloats && type instanceof CSimpleType &&
+    if (type instanceof CSimpleType &&
         (((CSimpleType)type).getType() == CBasicType.FLOAT
           || ((CSimpleType)type).getType() == CBasicType.DOUBLE)) {
       return Type.FLOAT;
@@ -488,7 +482,8 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
     if (var instanceof CArraySubscriptExpression
         || var instanceof CFieldReference
         || var instanceof CPointerExpression
-        || (!handleFloats && var instanceof CFloatLiteralExpression)
+        || (!precision.shouldHandleFloats() && var instanceof CFloatLiteralExpression)
+        || var instanceof CStringLiteralExpression
         || (var instanceof CFieldReference && ((CFieldReference)var).isPointerDereference())) {
       return false;
     }
@@ -559,7 +554,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
       rightVal = OctIntValue.of(((CIntegerLiteralExpression) right).asLong());
     } else if (right instanceof CCharLiteralExpression) {
       rightVal = OctIntValue.of(((CCharLiteralExpression) right).getCharacter());
-    } else if (right instanceof CFloatLiteralExpression && handleFloats) {
+    } else if (right instanceof CFloatLiteralExpression && precision.shouldHandleFloats()) {
       rightVal = new OctDoubleValue(((CFloatLiteralExpression) right).getValue().doubleValue());
 
     // we cannot handle strings, so just return the previous state
@@ -1112,7 +1107,17 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
 
         Set<OctState> possibleStates = new HashSet<>();
         for (Pair<IOctCoefficients, OctState> pairs : coeffsList) {
-          possibleStates.add(pairs.getSecond().makeAssignment(variableName, pairs.getFirst()));
+          OctState newState = pairs.getSecond().makeAssignment(variableName, pairs.getFirst());
+
+          // if state is empty after assignment there was probably an overflow, so we have
+          // to forget the variables value and then break out of this loop so we do not
+          // have to evaluete further states even if there were some
+          if (newState.isEmpty()) {
+            possibleStates.add(state.forget(variableName));
+            break;
+          }
+
+          possibleStates.add(newState);
         }
 
         return possibleStates;
@@ -1342,9 +1347,6 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
               // TODO these are some more or less untested optimizations which should mostly
               // be necessary for floats, after some testing this should be enabled by default
             } else if (e.getOperator() == BinaryOperator.MULTIPLY) {
-              if (!handleFloats) {
-                return Collections.singleton(Pair.of((IOctCoefficients)OctEmptyCoefficients.INSTANCE, this.visitorState));
-              }
 
               if (leftCoeffs.hasOnlyOneValue() || rightCoeffs.hasOnlyOneValue()) {
                 returnCoefficients.add(Pair.of(leftCoeffs.mul(rightCoeffs), visitorState));
@@ -1361,9 +1363,6 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
               }
 
             } else if (e.getOperator() == BinaryOperator.DIVIDE) {
-              if(!handleFloats) {
-                return Collections.singleton(Pair.of((IOctCoefficients)OctEmptyCoefficients.INSTANCE, this.visitorState));
-              }
 
               if (rightCoeffs.hasOnlyOneValue()) {
                 returnCoefficients.add(Pair.of(leftCoeffs.div(rightCoeffs), visitorState));
@@ -1530,7 +1529,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
     @Override
     public Set<Pair<IOctCoefficients, OctState>> visit(CFloatLiteralExpression e) throws CPATransferException {
       // only handle floats when specified in the configuration
-      if (handleFloats) {
+      if (precision.shouldHandleFloats()) {
         return Collections.singleton(Pair.of((IOctCoefficients)new OctSimpleCoefficients(visitorState.sizeOfVariables(), new OctDoubleValue(e.getValue().doubleValue()), visitorState), visitorState));
       } else {
         return Collections.singleton(Pair.of((IOctCoefficients)OctEmptyCoefficients.INSTANCE, visitorState));
