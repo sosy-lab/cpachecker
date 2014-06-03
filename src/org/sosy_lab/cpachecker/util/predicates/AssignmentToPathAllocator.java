@@ -36,17 +36,18 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Assignment;
 import org.sosy_lab.cpachecker.core.counterexample.AssignmentToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssignments;
 import org.sosy_lab.cpachecker.core.counterexample.CFAMultiEdgeWithAssignments;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
+import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Constant;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Function;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Variable;
-import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.collect.HashMultimap;
@@ -58,15 +59,16 @@ import com.google.common.collect.Multimap;
 
 public class AssignmentToPathAllocator {
 
-  @SuppressWarnings("unused")
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
 
-  public AssignmentToPathAllocator(LogManager pLogger) {
+  public AssignmentToPathAllocator(LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
     logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
   }
 
   public CFAPathWithAssignments allocateAssignmentsToPath(List<CFAEdge> pPath,
-      Model pModel, List<SSAMap> pSSAMaps, MachineModel pMachineModel) {
+      Model pModel, List<SSAMap> pSSAMaps, MachineModel pMachineModel) throws InterruptedException {
 
     AssignableTermsInPath assignableTerms = assignTermsToPathPosition(pSSAMaps, pModel);
 
@@ -82,6 +84,7 @@ public class AssignmentToPathAllocator {
     int ssaMapIndex = 0;
 
     for (int pathIndex = 0; pathIndex < pPath.size(); pathIndex++) {
+      shutdownNotifier.shutdownIfNecessary();
 
       /*We always look at the precise path, with resolved multi edges*/
       CFAEdge cfaEdge = pPath.get(pathIndex);

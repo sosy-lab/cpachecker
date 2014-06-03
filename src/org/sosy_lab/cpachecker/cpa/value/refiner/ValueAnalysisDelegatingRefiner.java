@@ -175,7 +175,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
             predicateCpa.getShutdownNotifier(),
             logger);
 
-        PathChecker pathChecker = new PathChecker(logger, pathFormulaManager, solver, machineModel);
+        PathChecker pathChecker = new PathChecker(logger, predicateCpa.getShutdownNotifier(), pathFormulaManager, solver, machineModel);
 
         RefinementStrategy backupRefinementStrategy = new PredicateAbstractionRefinementStrategy(
             config,
