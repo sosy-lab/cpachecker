@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
+import ap.basetypes.IdealInt;
 import ap.parser.IExpression;
+import ap.parser.IIntLit;
 import ap.parser.ITerm;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
@@ -47,17 +49,17 @@ class PrincessRationalFormulaManager extends PrincessNumeralFormulaManager<Numer
 
   @Override
   protected ITerm makeNumberImpl(long i) {
-    return getFormulaCreator().getEnv().decimal(BigDecimal.valueOf(i));
+    return new IIntLit(IdealInt.apply(i));
   }
 
   @Override
   protected ITerm makeNumberImpl(BigInteger pI) {
-    return getFormulaCreator().getEnv().decimal(new BigDecimal(pI));
+    return new IIntLit(IdealInt.apply(pI.toString()));
   }
 
   @Override
   protected ITerm makeNumberImpl(String pI) {
-    return getFormulaCreator().getEnv().decimal(pI);
+    return new IIntLit(IdealInt.apply(pI));
   }
 
   @Override
