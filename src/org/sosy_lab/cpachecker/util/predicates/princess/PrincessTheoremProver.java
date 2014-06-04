@@ -51,7 +51,7 @@ public class PrincessTheoremProver extends PrincessAbstractProver implements Pro
   protected final ShutdownNotifier shutdownNotifier;
 
   public PrincessTheoremProver(PrincessFormulaManager pMgr, ShutdownNotifier pShutdownNotifier) {
-    super(pMgr);
+    super(pMgr, false);
     this.shutdownNotifier = checkNotNull(pShutdownNotifier);
   }
 

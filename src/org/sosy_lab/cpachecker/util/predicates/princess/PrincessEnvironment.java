@@ -47,7 +47,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 
 /** This is a Wrapper around Princess.
  * This Wrapper allows to set a logfile for all Smt-Queries (default "princess.smt2").
@@ -127,14 +126,14 @@ class PrincessEnvironment {
   public PrincessEnvironment(Configuration config, final LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
-    api = getNewApi();
+    api = getNewApi(false); // this api is only used local in this environment, no need for interpolation
   }
 
 
   /** This method returns a new stack, that is registered in this environment.
    * All variables are shared in all registered stacks. */
-  PrincessStack getNewStack() {
-    SimpleAPI newApi = getNewApi();
+  PrincessStack getNewStack(boolean useForInterpolation) {
+    SimpleAPI newApi = getNewApi(useForInterpolation);
     SymbolTrackingPrincessStack stack = new SymbolTrackingPrincessStack(this, newApi);
 
     // add all symbols, that are available until now
@@ -151,7 +150,7 @@ class PrincessEnvironment {
     return stack;
   }
 
-  private SimpleAPI getNewApi() {
+  private SimpleAPI getNewApi(boolean useForInterpolation) {
     final SimpleAPI api;
     if (logAllQueries && smtLogfile != null) {
       api = SimpleAPI.spawnWithLogNoSanitise(getFilename(smtLogfile));
@@ -160,12 +159,13 @@ class PrincessEnvironment {
     }
     // we do not use 'sanitise', because variable-names contain special chars like "@" and ":"
 
-    api.setConstructProofs(true); // needed for interpolation
+    if (useForInterpolation) {
+      api.setConstructProofs(true); // needed for interpolation
+    }
     return api;
   }
 
   void unregisterStack(PrincessStack stack) {
-    logger.log(Level.FINE, "shutting down Princess");
     assert registeredStacks.contains(stack) : "cannot remove api, it is not registered";
     registeredStacks.remove(stack);
   }

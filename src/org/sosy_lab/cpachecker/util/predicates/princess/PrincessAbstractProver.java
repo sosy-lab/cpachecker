@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
-import ap.SimpleAPI;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
-import scala.Enumeration;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -34,9 +32,9 @@ abstract class PrincessAbstractProver {
   protected PrincessStack stack;
   protected PrincessFormulaManager mgr;
 
-  protected PrincessAbstractProver(PrincessFormulaManager pMgr) {
+  protected PrincessAbstractProver(PrincessFormulaManager pMgr, boolean useForInterpolation) {
     this.mgr = pMgr;
-    this.stack = checkNotNull(mgr.getEnvironment().getNewStack());
+    this.stack = checkNotNull(mgr.getEnvironment().getNewStack(useForInterpolation));
   }
 
   /** This function causes the SatSolver to check all the terms on the stack,

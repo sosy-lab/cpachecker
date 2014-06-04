@@ -48,7 +48,7 @@ public class PrincessInterpolatingProver extends PrincessAbstractProver implemen
   private static int counter = 0; // for different indices
 
   public PrincessInterpolatingProver(PrincessFormulaManager pMgr) {
-    super(pMgr);
+    super(pMgr, true);
   }
 
   @Override
