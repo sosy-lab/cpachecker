@@ -459,7 +459,7 @@ public class OctInterval {
    * @return new negated OctInterval
    */
   public OctInterval negate() {
-    return new OctInterval(scalarTimes(high, OctIntValue.NEG_ONE), scalarTimes(low, OctIntValue.NEG_ONE));
+    return new OctInterval(high.mul(OctIntValue.NEG_ONE), low.mul(OctIntValue.NEG_ONE));
   }
 
   /**
