@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.princess;
 
 import ap.parser.IExpression;
 import ap.parser.IFormula;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -42,30 +41,23 @@ import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 
-public class PrincessInterpolatingProver implements InterpolatingProverEnvironment<Integer> {
+public class PrincessInterpolatingProver extends PrincessAbstractProver implements InterpolatingProverEnvironment<Integer> {
 
-  protected final PrincessFormulaManager mgr;
-  private PrincessEnvironment env;
-
-  private final List<Integer> assertedFormulas; // Collection of termNames
-  private final Map<Integer, IFormula> annotatedTerms; // Collection of termNames
-  private static int counter = 0; // for different indices // TODO static?
+  private final List<Integer> assertedFormulas = new ArrayList<>(); // Collection of termNames
+  private final Map<Integer, IFormula> annotatedTerms = new HashMap<>(); // Collection of termNames
+  private static int counter = 0; // for different indices
 
   public PrincessInterpolatingProver(PrincessFormulaManager pMgr) {
-    mgr = pMgr;
-    env = mgr.createEnvironment();
-    assertedFormulas = new ArrayList<>();
-    annotatedTerms = new HashMap<>();
+    super(pMgr);
   }
 
   @Override
   public Integer push(BooleanFormula f) {
-    Preconditions.checkNotNull(env);
     IFormula t = (IFormula)mgr.getTerm(f);
     Integer termIndex = counter++;
 
-    env.push(1);
-    env.assertTermInPartition(t, termIndex);
+    stack.push(1);
+    stack.assertTermInPartition(t, termIndex);
 
     assertedFormulas.add(termIndex);
     annotatedTerms.put(termIndex, t);
@@ -75,21 +67,14 @@ public class PrincessInterpolatingProver implements InterpolatingProverEnvironme
 
   @Override
   public void pop() {
-    Preconditions.checkNotNull(env);
     Integer removed = assertedFormulas.remove(assertedFormulas.size()-1); // remove last term
     annotatedTerms.remove(removed);
     assert assertedFormulas.size() == annotatedTerms.size();
-    env.pop(1);
-  }
-
-  @Override
-  public boolean isUnsat() throws InterruptedException {
-    return !env.checkSat();
+    stack.pop(1);
   }
 
   @Override
   public BooleanFormula getInterpolant(List<Integer> pTermNamesOfA) {
-    Preconditions.checkNotNull(env);
 
     Set<Integer> indizesOfA = new HashSet<>(pTermNamesOfA);
 
@@ -99,34 +84,16 @@ public class PrincessInterpolatingProver implements InterpolatingProverEnvironme
                                  .toSet();
 
     // get interpolant of groups
-    List<IFormula> itp = env.getInterpolants(Lists.newArrayList(indizesOfA, indizesOfB));
+    List<IFormula> itp = stack.getInterpolants(indizesOfA, indizesOfB);
     assert itp.size() == 1; // 2 groups -> 1 interpolant
 
     return mgr.encapsulateBooleanFormula(itp.get(0));
   }
 
   @Override
-  public void close() {
-    Preconditions.checkNotNull(env);
-    assert assertedFormulas.size() == annotatedTerms.size();
-    if (!assertedFormulas.isEmpty()) {
-      env.pop(assertedFormulas.size());
-      assertedFormulas.clear();
-      annotatedTerms.clear();
-    }
-    env = null;
-  }
-
-  @Override
   public Model getModel() {
-    Preconditions.checkNotNull(env);
     assert assertedFormulas.size() == annotatedTerms.size();
-
-    final List<IExpression> values = new ArrayList<>();
-    for (IFormula val : annotatedTerms.values()) {
-      values.add(val);
-    }
-
-    return PrincessModel.createModel(mgr, values);
+    final List<IExpression> values = Lists.<IExpression>newArrayList(annotatedTerms.values());
+    return PrincessModel.createModel(stack, values);
   }
 }

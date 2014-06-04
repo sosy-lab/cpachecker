@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.princess;
 import ap.SimpleAPI;
 import ap.parser.IExpression;
 import ap.parser.IFormula;
-import com.google.common.base.Preconditions;
 import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -46,58 +45,33 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.predicates.princess.PrincessUtil.castToFormula;
 
-public class PrincessTheoremProver implements ProverEnvironment {
+public class PrincessTheoremProver extends PrincessAbstractProver implements ProverEnvironment {
 
-  private final PrincessFormulaManager mgr;
-  private final ShutdownNotifier shutdownNotifier;
-  private PrincessEnvironment env;
-  private final List<IExpression> assertedTerms;
+  private final List<IExpression> assertedTerms = new ArrayList<>();
+  protected final ShutdownNotifier shutdownNotifier;
 
   public PrincessTheoremProver(PrincessFormulaManager pMgr, ShutdownNotifier pShutdownNotifier) {
-    this.mgr = pMgr;
+    super(pMgr);
     this.shutdownNotifier = checkNotNull(pShutdownNotifier);
-
-    assertedTerms = new ArrayList<>();
-    env = mgr.createEnvironment();
-    checkNotNull(env);
-  }
-
-  @Override
-  public boolean isUnsat() throws InterruptedException {
-    return !env.checkSat();
   }
 
   @Override
   public Model getModel() {
-    Preconditions.checkNotNull(env);
-    return PrincessModel.createModel(mgr, assertedTerms);
+    return PrincessModel.createModel(stack, assertedTerms);
   }
 
   @Override
   public void pop() {
-    Preconditions.checkNotNull(env);
     assertedTerms.remove(assertedTerms.size()-1); // remove last term
-    env.pop(1);
+    stack.pop(1);
   }
 
   @Override
   public void push(BooleanFormula f) {
-    Preconditions.checkNotNull(env);
     final IFormula t = castToFormula(mgr.getTerm(f));
     assertedTerms.add(t);
-    env.push(1);
-    env.assertTerm(t);
-  }
-
-  @Override
-  public void close() {
-    Preconditions.checkNotNull(env);
-    if (!assertedTerms.isEmpty()) {
-      env.pop(assertedTerms.size());
-      assertedTerms.clear();
-    }
-    // env.close();
-    env = null;
+    stack.push(1);
+    stack.assertTerm(t);
   }
 
   @Override
@@ -113,30 +87,19 @@ public class PrincessTheoremProver implements ProverEnvironment {
     checkNotNull(enumTime);
     checkArgument(!formulas.isEmpty());
 
-    PrincessEnvironment allsatEnv = env;
-    checkNotNull(allsatEnv);
-
     // create new allSatResult
     SmtInterpolAllSatCallback result = new SmtInterpolAllSatCallback(rmgr, solveTime, enumTime);
 
-    // unpack formulas to terms
-    IFormula[] importantTerms = new IFormula[formulas.size()];
-    int i = 0;
-    for (BooleanFormula impF : formulas) {
-
-      importantTerms[i++] = (IFormula)mgr.getTerm(impF);
-    }
-
     solveTime.start();
     try {
-      allsatEnv.push(1);
-      while (allsatEnv.hasNextModel()) {
+      stack.push(1);
+      while (stack.hasNextModel()) {
         shutdownNotifier.shutdownIfNecessary();
-        SimpleAPI.PartialModel model = allsatEnv.getModel();
+        SimpleAPI.PartialModel model = stack.getModel();
         result.callback(model);
       }
       shutdownNotifier.shutdownIfNecessary();
-      allsatEnv.pop(1);
+      stack.pop(1);
 
     } finally {
       if (solveTime.isRunning()) {

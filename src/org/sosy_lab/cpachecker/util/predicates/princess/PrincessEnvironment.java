@@ -32,9 +32,6 @@ import ap.parser.IFunction;
 import ap.parser.IIntLit;
 import ap.parser.ITerm;
 import ap.parser.ITermITE;
-import scala.Enumeration.Value;
-import scala.collection.JavaConversions;
-import scala.collection.Seq;
 import scala.collection.mutable.ArrayBuffer;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -45,19 +42,16 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 
 /** This is a Wrapper around Princess.
  * This Wrapper allows to set a logfile for all Smt-Queries (default "princess.smt2").
+ * It also manages the "shared variables": each variable is declared for all stacks.
  */
 @Options(prefix="cpa.predicate.princess")
 class PrincessEnvironment {
@@ -103,7 +97,8 @@ class PrincessEnvironment {
 
   /** cache for variables, because they do not implement equals() and hashCode(),
    * so we need to have the same objects. */
-  private final Map<String, IExpression> variablesCache = new HashMap<>();
+  private final Map<String, IFormula> boolVariablesCache = new HashMap<>();
+  private final Map<String, ITerm> intVariablesCache = new HashMap<>();
   private final Map<String, FunctionType> functionsCache = new HashMap<>();
 
   private final Map<IFunction, FunctionType> declaredFunctions = new HashMap<>();
@@ -119,19 +114,45 @@ class PrincessEnvironment {
   private static int logfileCounter = 0;
 
   private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
 
-  /** the wrapped api */
+  /** the wrapped api is the first created api.
+   * It will never be used outside of this class and never be closed.
+   * If a variable is declared, it is declared in the first api, then copied into all registered apis.
+   * Each api has its own stack for formulas. */
   private final SimpleAPI api;
+  private final List<SymbolTrackingPrincessStack> registeredStacks = new ArrayList<>();
 
   /** The Constructor creates the wrapped Element, sets some options
    * and initializes the logger. */
-  public PrincessEnvironment(Configuration config, final LogManager pLogger,
-                             final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+  public PrincessEnvironment(Configuration config, final LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
+    api = getNewApi();
+  }
 
+
+  /** This method returns a new stack, that is registered in this environment.
+   * All variables are shared in all registered stacks. */
+  PrincessStack getNewStack() {
+    SimpleAPI newApi = getNewApi();
+    SymbolTrackingPrincessStack stack = new SymbolTrackingPrincessStack(this, newApi);
+
+    // add all symbols, that are available until now
+    for (IFormula s : boolVariablesCache.values()) {
+      stack.addSymbol(s);
+    }
+    for (ITerm s : intVariablesCache.values()) {
+      stack.addSymbol(s);
+    }
+    for (FunctionType s : functionsCache.values()) {
+      stack.addSymbol(s.funcDecl);
+    }
+    registeredStacks.add(stack);
+    return stack;
+  }
+
+  private SimpleAPI getNewApi() {
+    final SimpleAPI api;
     if (logAllQueries && smtLogfile != null) {
       api = SimpleAPI.spawnWithLogNoSanitise(getFilename(smtLogfile));
     } else {
@@ -140,6 +161,13 @@ class PrincessEnvironment {
     // we do not use 'sanitise', because variable-names contain special chars like "@" and ":"
 
     api.setConstructProofs(true); // needed for interpolation
+    return api;
+  }
+
+  void unregisterStack(PrincessStack stack) {
+    logger.log(Level.FINE, "shutting down Princess");
+    assert registeredStacks.contains(stack) : "cannot remove api, it is not registered";
+    registeredStacks.remove(stack);
   }
 
   /**  This function creates a filename with following scheme:
@@ -153,76 +181,35 @@ class PrincessEnvironment {
     throw new UnsupportedOperationException(); // todo: implement this
   }
 
-  public void push(int levels) {
-    for (int i = 0; i < levels; i++) {
-      api.push();
-    }
-  }
-
-  /** This function pops levels from the assertion-stack. */
-  public void pop(int levels) {
-    for (int i = 0; i < levels; i++) {
-      api.pop();
-    }
-  }
-
-  /** This function adds the term on top of the stack. */
-  public void assertTerm(IFormula booleanFormula) {
-    api.addAssertion(booleanFormula);
-  }
-
-  /** This function sets a partition number for all the term,
-   *  that are asserted  after calling this method, until a new partition number is set. */
-  public void assertTermInPartition(IFormula booleanFormula, int index) {
-    // set partition number and add formula
-    api.setPartitionNumber(index);
-    api.addAssertion(booleanFormula);
-
-    // reset partition number to magic number -1, that represents formulae belonging to all partitions.
-    api.setPartitionNumber(-1);
-  }
-
-  /** This function causes the SatSolver to check all the terms on the stack,
-   * if their conjunction is SAT or UNSAT.
-   */
-  public boolean checkSat() throws InterruptedException {
-    final Value result = api.checkSat(true);
-    if (result == SimpleAPI.ProverStatus$.MODULE$.Sat()) {
-      return true;
-    } else if (result == SimpleAPI.ProverStatus$.MODULE$.Unsat()) {
-      return false;
-    } else {
-      throw new AssertionError("checkSat returned " + result);
-    }
-  }
-
-  public SimpleAPI.PartialModel getModel() {
-    return api.partialModel();
-  }
-
-  /** performs a sat-check, that produces a new model
-   * TODO check when to stop? */
-  public boolean hasNextModel() {
-    return api.nextModel(true) == SimpleAPI.ProverStatus$.MODULE$.Sat();
-  }
-
   public IExpression makeVariable(Type type, String varname) {
-    // TODO is type important for caching?
-    if (variablesCache.containsKey(varname)) {
-      return variablesCache.get(varname);
-    } else {
-      final IExpression var = makeVariable0(type, varname);
-      variablesCache.put(varname, var);
-      return var;
-    }
-  }
-
-  private IExpression makeVariable0(Type type, String varname) {
     switch (type) {
-      case BOOL:
-        return api.createBooleanVariable(varname);
-      case INT:
-        return api.createConstant(varname);
+
+      case BOOL: {
+        if (boolVariablesCache.containsKey(varname)) {
+          return boolVariablesCache.get(varname);
+        } else {
+          IFormula var = api.createBooleanVariable(varname);
+          for (SymbolTrackingPrincessStack stack : registeredStacks) {
+            stack.addSymbol(var);
+          }
+          boolVariablesCache.put(varname, var);
+          return var;
+        }
+      }
+
+      case INT: {
+        if (intVariablesCache.containsKey(varname)) {
+          return intVariablesCache.get(varname);
+        } else {
+          ITerm var = api.createConstant(varname);
+          for (SymbolTrackingPrincessStack stack : registeredStacks) {
+            stack.addSymbol(var);
+          }
+          intVariablesCache.put(varname, var);
+          return var;
+        }
+      }
+
       default:
         throw new AssertionError("unsupported type: " + type);
     }
@@ -244,6 +231,9 @@ class PrincessEnvironment {
    * Princess has no support for typed params, only their number is important. */
   private FunctionType declareFun0(String name, Type resultType, Type[] args) {
     IFunction funcDecl = api.createFunction(name, args.length);
+    for (SymbolTrackingPrincessStack stack : registeredStacks) {
+       stack.addSymbol(funcDecl);
+    }
     FunctionType type = new FunctionType(funcDecl, resultType, args);
     declaredFunctions.put(funcDecl, type);
     return type;
@@ -277,60 +267,7 @@ class PrincessEnvironment {
     }
   }
 
-  /** returns a number of type INT or REAL */
-  public ITerm numeral(BigInteger num) {
-    return new IIntLit(IdealInt.apply(num.toString()));
-  }
-
-  /** returns a number of type INT or REAL */
-  public ITerm numeral(String num) {
-    return new IIntLit(IdealInt.apply(num));
-  }
-
-  /** returns a number of type REAL */
-  public ITerm decimal(String num) {
-    return new IIntLit(IdealInt.apply(num));
-  }
-
-  /** returns a number of type REAL */
-  public ITerm decimal(BigDecimal num) {
-    return new IIntLit(IdealInt.apply(num.toString()));
-  }
-
-  /** This function returns a list of interpolants for the partitions.
-   * Each partition contains the indizes of its terms.
-   * There will be (n-1) interpolants for n partitions. */
-  public List<IFormula> getInterpolants(List<Set<Integer>> partitions) {
-
-    // convert to needed data-structure
-    final ArrayBuffer<scala.collection.immutable.Set<Object>> args = new ArrayBuffer<>();
-    for (Set<Integer> partition :partitions) {
-      final ArrayBuffer<Object> indexes = new ArrayBuffer<>();
-      for (Integer index : partition)
-        indexes.$plus$eq(index);
-      args.$plus$eq(indexes.toSet());
-    }
-
-    // do the hard work
-    final Seq<IFormula> itps = api.getInterpolants(args.toSeq());
-
-    assert itps.length() == partitions.size() - 1 : "There should be (n-1) interpolants for n partitions";
-
-    // convert data-structure back
-    final List<IFormula> result = new ArrayList<>(itps.size());
-    for (IFormula itp : JavaConversions.asJavaIterable(itps)) {
-      result.add(itp);
-    }
-
-    return result;
-  }
-
   public String getVersion() {
     return "Princess (unknown version)";
-  }
-
-  public void close() {
-    logger.log(Level.FINE, "shutting down Princess");
-    api.shutDown();
   }
 }

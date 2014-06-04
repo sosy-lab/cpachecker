@@ -23,26 +23,38 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
-import ap.parser.IExpression;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator;
+import ap.SimpleAPI;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
+import scala.Enumeration;
 
-class PrincessFormulaCreator extends AbstractFormulaCreator<IExpression, PrincessEnvironment.Type, PrincessEnvironment> {
+import static com.google.common.base.Preconditions.checkNotNull;
 
-  PrincessFormulaCreator(
-          PrincessEnvironment pEnv,
-          PrincessEnvironment.Type pBoolType,
-          PrincessEnvironment.Type pIntegerType,
-          PrincessEnvironment.Type pRealType) {
-    super(pEnv, pBoolType, pIntegerType, pRealType);
+abstract class PrincessAbstractProver {
+
+  protected PrincessStack stack;
+  protected PrincessFormulaManager mgr;
+
+  protected PrincessAbstractProver(PrincessFormulaManager pMgr) {
+    this.mgr = pMgr;
+    this.stack = checkNotNull(mgr.getEnvironment().getNewStack());
   }
 
-  @Override
-  public IExpression makeVariable(PrincessEnvironment.Type type, String varName) {
-    return getEnv().makeVariable(type, varName);
+  /** This function causes the SatSolver to check all the terms on the stack,
+   * if their conjunction is SAT or UNSAT.
+   */
+  public boolean isUnsat() throws InterruptedException {
+    return !stack.checkSat();
   }
 
-  @Override
-  public PrincessEnvironment.Type getBittype(int pBitwidth) {
-    throw new UnsupportedOperationException("Bitvector theory is not supported by Princess");
+  public abstract void pop();
+
+  public abstract Model getModel();
+
+  public void close() {
+    checkNotNull(stack);
+    checkNotNull(mgr);
+    stack.close();
+    stack = null;
+    mgr = null;
   }
 }

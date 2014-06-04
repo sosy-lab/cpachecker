@@ -38,7 +38,7 @@ import java.io.IOException;
 
 import static com.google.common.collect.Iterables.getOnlyElement;
 
-public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, PrincessEnvironment.Type, PrincessEnvironment> implements AutoCloseable {
+public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, PrincessEnvironment.Type, PrincessEnvironment> {
 
   private PrincessFormulaManager(
           PrincessEnvironment pEnv,
@@ -54,7 +54,7 @@ public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, 
   public static PrincessFormulaManager create(Configuration config, LogManager logger,
       ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
 
-    PrincessEnvironment env = new PrincessEnvironment(config, logger, pShutdownNotifier);
+    PrincessEnvironment env = new PrincessEnvironment(config, logger);
 
     PrincessFormulaCreator creator = new PrincessFormulaCreator(env,
         PrincessEnvironment.Type.BOOL, PrincessEnvironment.Type.INT, PrincessEnvironment.Type.INT);
@@ -99,21 +99,9 @@ public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, 
     return getEnvironment().getVersion();
   }
 
-  /** This method returns a 'shared' environment or
-   * a complete new environment. */
-  PrincessEnvironment createEnvironment() {
-    assert getEnvironment() != null;
-    return getEnvironment();
-  }
-
   @Override
   protected IExpression getTerm(Formula pF) {
     // for visibility
     return super.getTerm(pF);
-  }
-
-  @Override
-  public void close() {
-    getEnvironment().close();
   }
 }

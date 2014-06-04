@@ -113,20 +113,15 @@ class PrincessModel {
     }
   }
 
-  static Model createModel(PrincessFormulaManager mgr, Collection<IExpression> terms) {
-    PrincessEnvironment env = mgr.getEnvironment();
+  static Model createModel(PrincessStack stack, Collection<IExpression> terms) {
     // model can only return values for keys, not for terms
     Set<IExpression> keys = PrincessUtil.getVars(terms);
 
     ImmutableMap.Builder<AssignableTerm, Object> model = ImmutableMap.builder();
 
-    try {
-      assert env.checkSat() : "model is only available for SAT environments";
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-    }
+    assert stack.checkSat() : "model is only available for SAT environments";
 
-    SimpleAPI.PartialModel partialModel = env.getModel();
+    SimpleAPI.PartialModel partialModel = stack.getModel();
 
     for (IExpression lKeyTerm : keys) {
       Option<SimpleAPI.ModelValue> value = partialModel.evalExpression(lKeyTerm);
@@ -137,7 +132,7 @@ class PrincessModel {
 
       SimpleAPI.ModelValue lValueTerm = value.get();
 
-      AssignableTerm lAssignable = toAssignable(env, lKeyTerm);
+      AssignableTerm lAssignable = toAssignable(stack.getEnv(), lKeyTerm);
 
       Object lValue;
 

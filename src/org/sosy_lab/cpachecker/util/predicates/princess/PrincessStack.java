@@ -23,26 +23,35 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
-import ap.parser.IExpression;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator;
+import ap.SimpleAPI;
+import ap.parser.IFormula;
 
-class PrincessFormulaCreator extends AbstractFormulaCreator<IExpression, PrincessEnvironment.Type, PrincessEnvironment> {
+import java.util.List;
+import java.util.Set;
 
-  PrincessFormulaCreator(
-          PrincessEnvironment pEnv,
-          PrincessEnvironment.Type pBoolType,
-          PrincessEnvironment.Type pIntegerType,
-          PrincessEnvironment.Type pRealType) {
-    super(pEnv, pBoolType, pIntegerType, pRealType);
-  }
+/** This is a Interface for the Wrapper around some parts of the PrincessAPI.
+ * It allows to have a stack with operations like: push, pop, assert, checkSat, getInterpolants, getModel.
+ * A stack is always connected with a PrincessEnvironment, because Variables are declared there.
+ * One PrincessEnvironment can manage several stacks. */
+public interface PrincessStack {
 
-  @Override
-  public IExpression makeVariable(PrincessEnvironment.Type type, String varName) {
-    return getEnv().makeVariable(type, varName);
-  }
+  PrincessEnvironment getEnv();
 
-  @Override
-  public PrincessEnvironment.Type getBittype(int pBitwidth) {
-    throw new UnsupportedOperationException("Bitvector theory is not supported by Princess");
-  }
+  void push(int levels);
+
+  void pop(int levels);
+
+  void assertTerm(IFormula booleanFormula);
+
+  void assertTermInPartition(IFormula booleanFormula, int index);
+
+  boolean checkSat();
+
+  SimpleAPI.PartialModel getModel();
+
+  boolean hasNextModel();
+
+  List<IFormula> getInterpolants(Set<Integer>... partitions);
+
+  void close();
 }
