@@ -1964,7 +1964,7 @@
 			<include>../programs/benchmarks/eca/Problem10_20_true-unreach-call.c</include>
 		</sourcefiles>
 		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=a,a21,7,ERROR,</option><
+			<option name="-setprop">cpa.propertychecker.parameters=a,a21,7,ERROR,</option>
 			<include>../programs/benchmarks/eca/Problem14_00_true-unreach-call.c</include>
 			<include>../programs/benchmarks/eca/Problem14_20_true-unreach-call.c</include>
 			<include>../programs/benchmarks/eca/Problem14_30_true-unreach-call.c</include>
