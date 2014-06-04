@@ -29,6 +29,7 @@
       <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
       <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_6_true-unreach-call.cil.c</exclude>
+      <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_7_true-unreach-call.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/mem_slave_tlm.2_true-unreach-call_false-termination.cil.c</exclude>
     </sourcefiles>
     <sourcefiles>
