@@ -24,8 +24,12 @@
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
 import ap.SimpleAPI;
+import ap.parser.IBinFormula;
+import ap.parser.IBinJunctor;
+import ap.parser.IBoolLit;
 import ap.parser.IExpression;
 import ap.parser.IFormula;
+import ap.parser.INot;
 import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -35,11 +39,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager.RegionBuilder;
-import scala.collection.JavaConversions;
+import scala.Option;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -88,15 +94,40 @@ public class PrincessTheoremProver extends PrincessAbstractProver implements Pro
     checkArgument(!formulas.isEmpty());
 
     // create new allSatResult
-    SmtInterpolAllSatCallback result = new SmtInterpolAllSatCallback(rmgr, solveTime, enumTime);
+    final AllSatCallback result = new AllSatCallback(rmgr, solveTime, enumTime);
+
+    // unpack formulas to terms
+    IFormula[] importantFormulas = new IFormula[formulas.size()];
+    int i = 0;
+    for (BooleanFormula impF : formulas) {
+      importantFormulas[i++] = castToFormula(mgr.getTerm(impF));
+    }
 
     solveTime.start();
     try {
       stack.push(1);
-      while (stack.hasNextModel()) {
+      while (stack.checkSat()) {
         shutdownNotifier.shutdownIfNecessary();
-        SimpleAPI.PartialModel model = stack.getModel();
-        result.callback(model);
+        final SimpleAPI.PartialModel model = stack.getModel();
+
+        IFormula newFormula = new IBoolLit(true); // neutral element for AND
+        final Map<IFormula, Boolean> partialModel = new HashMap<>();
+        for (final IFormula f : importantFormulas) {
+          final Option<Object> value = model.eval(f);
+          if (value.isDefined()) {
+            final Boolean isTrueValue = (Boolean)value.get();
+            final IFormula newElement = isTrueValue ? f : new INot(f);
+            newFormula = new IBinFormula(IBinJunctor.And(), newFormula, newElement);
+            partialModel.put(f, isTrueValue);
+          } else {
+            // when does this happen? if formula was not asserted?
+          }
+        }
+
+        result.callback(partialModel);
+
+        // add negation of current formula to get a new model in next iteration
+        stack.assertTerm(new INot(newFormula));
       }
       shutdownNotifier.shutdownIfNecessary();
       stack.pop(1);
@@ -115,7 +146,7 @@ public class PrincessTheoremProver extends PrincessAbstractProver implements Pro
   /**
    * callback used to build the predicate abstraction of a formula
    */
-  class SmtInterpolAllSatCallback implements AllSatResult {
+  class AllSatCallback implements AllSatResult {
     private final RegionCreator rmgr;
     private final RegionBuilder builder;
 
@@ -127,7 +158,7 @@ public class PrincessTheoremProver extends PrincessAbstractProver implements Pro
 
     private Region formula = null;
 
-    public SmtInterpolAllSatCallback(RegionCreator rmgr, Timer pSolveTime, NestedTimer pEnumTime) {
+    public AllSatCallback(RegionCreator rmgr, Timer pSolveTime, NestedTimer pEnumTime) {
       this.rmgr = rmgr;
       this.solveTime = pSolveTime;
       this.enumTime = pEnumTime;
@@ -153,7 +184,7 @@ public class PrincessTheoremProver extends PrincessAbstractProver implements Pro
       return formula;
     }
 
-    public void callback(SimpleAPI.PartialModel model) {
+    public void callback(final Map<IFormula, Boolean> model) {
       if (count == 0) {
         solveTime.stop();
         enumTime.startOuter();
@@ -167,15 +198,11 @@ public class PrincessTheoremProver extends PrincessAbstractProver implements Pro
       // first, let's create the BDD corresponding to the model
       builder.startNewConjunction();
 
-      for (SimpleAPI.ModelLocation mloc : JavaConversions.asJavaCollection(model.definedLocations())) {
-        System.out.println(mloc);
-        if (mloc instanceof SimpleAPI.ConstantLoc) {
-         /* if (isNot(mloc)) {
-            t = getArg(t, 0);
-            builder.addNegativeRegion(rmgr.getPredicate(encapsulate(t)));
-          } else {
-            builder.addPositiveRegion(rmgr.getPredicate(encapsulate(t)));
-          }*/
+      for (IFormula f : model.keySet()) {
+        if (model.get(f)) {
+          builder.addPositiveRegion(rmgr.getPredicate(encapsulate(f)));
+        } else {
+          builder.addNegativeRegion(rmgr.getPredicate(encapsulate(f)));
         }
       }
       builder.finishConjunction();
@@ -185,7 +212,7 @@ public class PrincessTheoremProver extends PrincessAbstractProver implements Pro
       regionTime.stop();
     }
 
-    private BooleanFormula encapsulate(IExpression pT) {
+    private BooleanFormula encapsulate(IFormula pT) {
       return mgr.encapsulateBooleanFormula(pT);
     }
   }

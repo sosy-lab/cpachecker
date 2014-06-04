@@ -129,13 +129,6 @@ class SymbolTrackingPrincessStack implements PrincessStack {
     return api.partialModel();
   }
 
-  /** performs a sat-check, that produces a new model
-   * TODO check when to stop? */
-  @Override
-  public boolean hasNextModel() {
-    return api.nextModel(true) == SimpleAPI.ProverStatus$.MODULE$.Sat();
-  }
-
   /** This function returns a list of interpolants for the partitions.
    * Each partition contains the indizes of its terms.
    * There will be (n-1) interpolants for n partitions. */

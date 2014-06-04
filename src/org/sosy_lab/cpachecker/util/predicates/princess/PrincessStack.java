@@ -49,8 +49,6 @@ public interface PrincessStack {
 
   SimpleAPI.PartialModel getModel();
 
-  boolean hasNextModel();
-
   List<IFormula> getInterpolants(Set<Integer>... partitions);
 
   void close();
