@@ -650,13 +650,13 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
     switch (op) {
     case EQUALS:
       if (truthAssumption) {
-        if (leftVal.equals(rightVal)) {
+        if (leftVal.isEqual(rightVal)) {
           return Collections.singleton(state);
         } else {
           return Collections.emptySet();
         }
       } else {
-        if (leftVal.equals(rightVal)) {
+        if (leftVal.isEqual(rightVal)) {
           return Collections.emptySet();
         } else {
           return Collections.singleton(state);
@@ -720,13 +720,13 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
       }
     case NOT_EQUALS:
       if (truthAssumption) {
-        if (leftVal.equals(rightVal)) {
+        if (leftVal.isEqual(rightVal)) {
           return Collections.emptySet();
         } else {
           return Collections.singleton(state);
         }
       } else {
-        if (leftVal.equals(rightVal)) {
+        if (leftVal.isEqual(rightVal)) {
           return Collections.singleton(state);
         } else {
           return Collections.emptySet();
