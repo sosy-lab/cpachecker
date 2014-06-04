@@ -375,9 +375,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
     case BINARY_XOR:
     case SHIFT_LEFT:
     case SHIFT_RIGHT:
-    case DIVIDE:
     case MODULO:
-    case MULTIPLY:
       return Collections.singleton(state);
 
     // for the following cases we first create a temporary variable where
@@ -385,6 +383,8 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
     // is checked
     case MINUS:
     case PLUS:
+    case MULTIPLY:
+    case DIVIDE:
       String tempVarName = buildVarName(functionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
       temporaryVariableCounter++;
       COctagonCoefficientVisitor coeffVisitor = new COctagonCoefficientVisitor(state, functionName);
@@ -814,6 +814,29 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
       }
       states = tmpSet;
       rightVarName = tempRight;
+    }
+
+    // performance optimization, this is something like x == x
+    if (leftVarName.equals(rightVarName)) {
+      switch (op) {
+      case EQUALS:
+      case GREATER_EQUAL:
+      case LESS_EQUAL:
+       if (truthAssumption) {
+         return Collections.singleton(state);
+       } else {
+         return Collections.emptySet();
+       }
+      case NOT_EQUALS:
+      case LESS_THAN:
+      case GREATER_THAN:
+        if (truthAssumption) {
+          return Collections.emptySet();
+        } else {
+          return Collections.singleton(state);
+        }
+      default:
+      }
     }
 
     Set<OctState> possibleStates = new HashSet<>();
@@ -1291,6 +1314,23 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
           for (Pair<IOctCoefficients, OctState> rightPair : pairs.getSecond()) {
             OctState visitorState = rightPair.getSecond();
             IOctCoefficients rightCoeffs = rightPair.getFirst();
+
+            // shortcut for statements like x == x
+            if (leftCoeffs.expandToSize(visitorState.sizeOfVariables(), visitorState).equals(rightCoeffs)) {
+              switch (binOp) {
+              case EQUALS:
+              case GREATER_EQUAL:
+              case LESS_EQUAL:
+                returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolTRUECoeffs(visitorState.sizeOfVariables(), visitorState), visitorState));
+                break;
+              case NOT_EQUALS:
+              case LESS_THAN:
+              case GREATER_THAN:
+                returnCoefficients.add(Pair.of((IOctCoefficients)OctSimpleCoefficients.getBoolFALSECoeffs(visitorState.sizeOfVariables(), visitorState), visitorState));
+                break;
+              }
+              continue;
+            }
 
             // we do not need to create a temporary variable if the left or
             // right coefficients are already a variable
