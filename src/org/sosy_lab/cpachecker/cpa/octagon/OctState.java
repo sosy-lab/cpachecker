@@ -36,7 +36,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.IOctCoefficients;
-import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctEmptyCoefficients;
+import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctUniversalCoefficients;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctIntervalCoefficients;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctSimpleCoefficients;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctDoubleValue;
@@ -354,7 +354,7 @@ public class OctState implements AbstractState {
       return makeAssignment(leftVarName, (OctSimpleCoefficients)oct);
     } else if (oct instanceof OctIntervalCoefficients) {
       return makeAssignment(leftVarName, (OctIntervalCoefficients)oct);
-    } else if (oct instanceof OctEmptyCoefficients) {
+    } else if (oct instanceof OctUniversalCoefficients) {
       return forget(leftVarName);
     }
     throw new IllegalArgumentException("Unkown subtype of OctCoefficients.");
@@ -467,7 +467,7 @@ public class OctState implements AbstractState {
   }
 
   public OctState addSmallerEqConstraint(String pVariableName, IOctCoefficients oct) {
-    if (oct instanceof OctEmptyCoefficients) {
+    if (oct instanceof OctUniversalCoefficients) {
       return this;
     } else if (oct instanceof OctSimpleCoefficients) {
         oct = ((OctSimpleCoefficients) oct).convertToInterval();
@@ -529,7 +529,7 @@ public class OctState implements AbstractState {
     }
 
     // TODO review coefficient handling
-    if (oct instanceof OctEmptyCoefficients) {
+    if (oct instanceof OctUniversalCoefficients) {
       return this;
     } else if (oct instanceof OctSimpleCoefficients) {
         oct = ((OctSimpleCoefficients) oct).convertToInterval();
@@ -571,7 +571,7 @@ public class OctState implements AbstractState {
   }
 
   public OctState addGreaterEqConstraint(String pVariableName, IOctCoefficients oct) {
-    if (oct instanceof OctEmptyCoefficients) {
+    if (oct instanceof OctUniversalCoefficients) {
       return this;
     } else if (oct instanceof OctSimpleCoefficients) {
         oct = ((OctSimpleCoefficients) oct).convertToInterval();
@@ -632,7 +632,7 @@ public class OctState implements AbstractState {
     }
 
     // TODO review coefficients
-    if (oct instanceof OctEmptyCoefficients) {
+    if (oct instanceof OctUniversalCoefficients) {
       return this;
     } else if (oct instanceof OctSimpleCoefficients) {
         oct = ((OctSimpleCoefficients) oct).convertToInterval();

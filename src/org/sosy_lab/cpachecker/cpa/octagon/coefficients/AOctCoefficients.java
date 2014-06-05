@@ -56,8 +56,8 @@ public abstract class AOctCoefficients implements IOctCoefficients {
 
   @Override
   final public IOctCoefficients mul(IOctCoefficients other) {
-    if (other instanceof OctEmptyCoefficients) {
-      return OctEmptyCoefficients.INSTANCE;
+    if (other instanceof OctUniversalCoefficients) {
+      return OctUniversalCoefficients.INSTANCE;
     } else if (other instanceof AOctCoefficients) {
       if (hasOnlyOneValue()) {
         return mulInner(other);
@@ -71,8 +71,8 @@ public abstract class AOctCoefficients implements IOctCoefficients {
 
   @Override
   final public IOctCoefficients div(IOctCoefficients other) {
-    if (other instanceof OctEmptyCoefficients) {
-      return OctEmptyCoefficients.INSTANCE;
+    if (other instanceof OctUniversalCoefficients) {
+      return OctUniversalCoefficients.INSTANCE;
     } else if (other instanceof AOctCoefficients) {
       if (other.hasOnlyOneValue()) {
         return divInner(other);

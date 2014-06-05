@@ -30,16 +30,16 @@ import org.sosy_lab.cpachecker.util.octagon.NumArray;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
 @SuppressWarnings("rawtypes")
-public final class OctEmptyCoefficients extends AOctCoefficients {
+public final class OctUniversalCoefficients extends AOctCoefficients {
 
-  public static final OctEmptyCoefficients INSTANCE = new OctEmptyCoefficients();
+  public static final OctUniversalCoefficients INSTANCE = new OctUniversalCoefficients();
 
-  private OctEmptyCoefficients() {
+  private OctUniversalCoefficients() {
     super(0, null);
   }
 
   @Override
-  public OctEmptyCoefficients expandToSize(int pSize, OctState oct) {
+  public OctUniversalCoefficients expandToSize(int pSize, OctState oct) {
     return this;
   }
 
@@ -49,12 +49,12 @@ public final class OctEmptyCoefficients extends AOctCoefficients {
   }
 
   @Override
-  public OctEmptyCoefficients add(IOctCoefficients pOther) {
+  public OctUniversalCoefficients add(IOctCoefficients pOther) {
     return INSTANCE;
   }
 
   @Override
-  public OctEmptyCoefficients sub(IOctCoefficients pOther) {
+  public OctUniversalCoefficients sub(IOctCoefficients pOther) {
     return INSTANCE;
   }
 
@@ -105,7 +105,7 @@ public final class OctEmptyCoefficients extends AOctCoefficients {
 
   @Override
   public boolean equals(Object other) {
-    return other instanceof OctEmptyCoefficients;
+    return other instanceof OctUniversalCoefficients;
   }
 
 }

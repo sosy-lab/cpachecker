@@ -107,7 +107,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.octagon.OctState.Type;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.IOctCoefficients;
-import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctEmptyCoefficients;
+import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctUniversalCoefficients;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctIntervalCoefficients;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctSimpleCoefficients;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctDoubleValue;
@@ -394,7 +394,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
         IOctCoefficients coeffs = pairs.getFirst();
 
         // we have an undefined value, so there is no need to make any assumptions about it
-        if (coeffs.equals(OctEmptyCoefficients.INSTANCE)) {
+        if (coeffs.equals(OctUniversalCoefficients.INSTANCE)) {
           return Collections.singleton(state);
         }
 
@@ -538,7 +538,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
         IOctCoefficients coeffs = pairs.getFirst();
 
         // we cannot do any comparison with an unknown value, so just quit here
-        if (coeffs.equals(OctEmptyCoefficients.INSTANCE)) {
+        if (coeffs.equals(OctUniversalCoefficients.INSTANCE)) {
           return Collections.singleton(state);
         }
 
@@ -772,7 +772,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
         IOctCoefficients coeffs = pairs.getFirst();
 
         // we cannot do any comparison with an unknown value, so just quit here
-        if (coeffs.equals(OctEmptyCoefficients.INSTANCE)) {
+        if (coeffs.equals(OctUniversalCoefficients.INSTANCE)) {
           return Collections.singleton(state);
         }
 
@@ -804,7 +804,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
           IOctCoefficients coeffs = pairs.getFirst();
 
           // we cannot do any comparison with an unknown value, so just quit here
-          if (coeffs.equals(OctEmptyCoefficients.INSTANCE)) {
+          if (coeffs.equals(OctUniversalCoefficients.INSTANCE)) {
             return Collections.singleton(state);
           }
 
@@ -1259,7 +1259,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
 
     @Override
     protected Set<Pair<IOctCoefficients, OctState>> visitDefault(CExpression pExp) throws CPATransferException {
-      return Collections.singleton(Pair.of((IOctCoefficients)OctEmptyCoefficients.INSTANCE, visitorState));
+      return Collections.singleton(Pair.of((IOctCoefficients)OctUniversalCoefficients.INSTANCE, visitorState));
     }
 
     @Override
@@ -1273,7 +1273,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
       case SHIFT_LEFT:
       case SHIFT_RIGHT:
       case MODULO:
-        return Collections.singleton(Pair.of((IOctCoefficients)OctEmptyCoefficients.INSTANCE, visitorState));
+        return Collections.singleton(Pair.of((IOctCoefficients)OctUniversalCoefficients.INSTANCE, visitorState));
       }
 
       Set<Pair<IOctCoefficients, OctState>> left = e.getOperand1().accept(this);
@@ -1283,14 +1283,14 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
       left = FluentIterable.from(left).filter(new NotInstanceOfEmptyCoefficients()).toSet();
 
       if (left.isEmpty() || origSize != left.size()) {
-        return Collections.singleton(Pair.of((IOctCoefficients)OctEmptyCoefficients.INSTANCE, visitorState));
+        return Collections.singleton(Pair.of((IOctCoefficients)OctUniversalCoefficients.INSTANCE, visitorState));
       } else {
         for (Pair<IOctCoefficients, OctState> pair : left) {
           Set<Pair<IOctCoefficients, OctState>> tmpRight = e.getOperand2().accept(new COctagonCoefficientVisitor(pair.getSecond(), visitorFunctionName));
           origSize = tmpRight.size();
           tmpRight = FluentIterable.from(tmpRight).filter(new NotInstanceOfEmptyCoefficients()).toSet();
           if (tmpRight.isEmpty() || origSize != tmpRight.size()) {
-            return Collections.singleton(Pair.of((IOctCoefficients)OctEmptyCoefficients.INSTANCE, visitorState));
+            return Collections.singleton(Pair.of((IOctCoefficients)OctUniversalCoefficients.INSTANCE, visitorState));
           } else {
             right.add(Pair.of(pair.getFirst(), tmpRight));
           }
@@ -1557,7 +1557,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
         varIndex = visitorState.getVariableIndexFor(varName);
       }
 
-      if (varIndex == -1) { return Collections.singleton(Pair.of((IOctCoefficients)OctEmptyCoefficients.INSTANCE, visitorState)); }
+      if (varIndex == -1) { return Collections.singleton(Pair.of((IOctCoefficients)OctUniversalCoefficients.INSTANCE, visitorState)); }
       return Collections.singleton(Pair.of((IOctCoefficients)new OctSimpleCoefficients(visitorState.sizeOfVariables(), varIndex, OctIntValue.ONE, visitorState), visitorState));
     }
 
@@ -1572,7 +1572,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
       if (precision.shouldHandleFloats()) {
         return Collections.singleton(Pair.of((IOctCoefficients)new OctSimpleCoefficients(visitorState.sizeOfVariables(), new OctDoubleValue(e.getValue().doubleValue()), visitorState), visitorState));
       } else {
-        return Collections.singleton(Pair.of((IOctCoefficients)OctEmptyCoefficients.INSTANCE, visitorState));
+        return Collections.singleton(Pair.of((IOctCoefficients)OctUniversalCoefficients.INSTANCE, visitorState));
       }
     }
 
@@ -1588,7 +1588,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
       case AMPER:
       case SIZEOF:
       case TILDE:
-        return Collections.singleton(Pair.of((IOctCoefficients)OctEmptyCoefficients.INSTANCE, visitorState));
+        return Collections.singleton(Pair.of((IOctCoefficients)OctUniversalCoefficients.INSTANCE, visitorState));
       }
 
       // only minus operantor is handled after here
@@ -1604,7 +1604,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
       // value is undefined, the other states could only be more precise and are
       // therefore irrelevant
       if (operand.isEmpty() || origSize != operand.size()) {
-        return Collections.singleton(Pair.of((IOctCoefficients)OctEmptyCoefficients.INSTANCE, visitorState));
+        return Collections.singleton(Pair.of((IOctCoefficients)OctUniversalCoefficients.INSTANCE, visitorState));
       }
 
       Set<Pair<IOctCoefficients, OctState>> returnValues = new HashSet<>();
@@ -1627,17 +1627,17 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
           return Collections.singleton(Pair.of((IOctCoefficients)OctIntervalCoefficients.getNondetBoolCoeffs(visitorState.sizeOfVariables(), visitorState), visitorState));
         }
       }
-      return Collections.singleton(Pair.of((IOctCoefficients)OctEmptyCoefficients.INSTANCE, visitorState));
+      return Collections.singleton(Pair.of((IOctCoefficients)OctUniversalCoefficients.INSTANCE, visitorState));
     }
   }
 
   /**
-   * Predicate implementation which filters out OctEmptyCoefficients of a given fluentiterable.
+   * Predicate implementation which filters out OctUniversalCoefficients of a given fluentiterable.
    */
   static class NotInstanceOfEmptyCoefficients implements Predicate<Pair<IOctCoefficients, OctState>> {
     @Override
     public boolean apply(Pair<IOctCoefficients, OctState> pInput) {
-      return !(pInput.getFirst() instanceof OctEmptyCoefficients);
+      return !(pInput.getFirst() instanceof OctUniversalCoefficients);
     }
   }
 }

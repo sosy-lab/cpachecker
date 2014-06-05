@@ -109,8 +109,8 @@ public class OctIntervalCoefficients extends AOctCoefficients {
       return add((OctSimpleCoefficients)other);
     } else if (other instanceof OctIntervalCoefficients) {
       return add((OctIntervalCoefficients)other);
-    } else if (other instanceof OctEmptyCoefficients) {
-      return OctEmptyCoefficients.INSTANCE;
+    } else if (other instanceof OctUniversalCoefficients) {
+      return OctUniversalCoefficients.INSTANCE;
     }
     throw new IllegalArgumentException("Unkown subtype of OctCoefficients");
   }
@@ -142,8 +142,8 @@ public class OctIntervalCoefficients extends AOctCoefficients {
       return sub((OctSimpleCoefficients)other);
     } else if (other instanceof OctIntervalCoefficients) {
       return sub((OctIntervalCoefficients)other);
-    } else if (other instanceof OctEmptyCoefficients) {
-      return OctEmptyCoefficients.INSTANCE;
+    } else if (other instanceof OctUniversalCoefficients) {
+      return OctUniversalCoefficients.INSTANCE;
     }
     throw new IllegalArgumentException("Unkown subtype of OctCoefficients");
   }
@@ -191,7 +191,7 @@ public class OctIntervalCoefficients extends AOctCoefficients {
     }
 
     if (infBounds.isInfinite()) {
-      return OctEmptyCoefficients.INSTANCE;
+      return OctUniversalCoefficients.INSTANCE;
     }
 
     return other.mul(bounds.times(infBounds));
@@ -218,8 +218,8 @@ public class OctIntervalCoefficients extends AOctCoefficients {
       return divInner((OctSimpleCoefficients)coeffs);
     } else if (coeffs instanceof OctIntervalCoefficients) {
       return divInner((OctIntervalCoefficients)coeffs);
-    } else if (coeffs instanceof OctEmptyCoefficients) {
-      return OctEmptyCoefficients.INSTANCE;
+    } else if (coeffs instanceof OctUniversalCoefficients) {
+      return OctUniversalCoefficients.INSTANCE;
     }
     throw new IllegalArgumentException("Unkown subtype of OctCoefficients");
   }
@@ -243,12 +243,12 @@ public class OctIntervalCoefficients extends AOctCoefficients {
       // divisions through zero should not be possible, thus this state
       // is there because of over-approximation
     } else if (index > oct.sizeOfVariables()) {
-      return OctEmptyCoefficients.INSTANCE;
+      return OctUniversalCoefficients.INSTANCE;
     }
 
     OctInterval bounds = coeffs.oct.getVariableBounds(index);
     if (bounds.isInfinite()) {
-      return OctEmptyCoefficients.INSTANCE;
+      return OctUniversalCoefficients.INSTANCE;
     }
 
     return div(bounds.times(new OctInterval(value)));
@@ -282,7 +282,7 @@ public class OctIntervalCoefficients extends AOctCoefficients {
     }
 
     if (infBounds.isInfinite()) {
-      return OctEmptyCoefficients.INSTANCE;
+      return OctUniversalCoefficients.INSTANCE;
     }
 
     return div(infBounds.times(bounds));
@@ -300,12 +300,12 @@ public class OctIntervalCoefficients extends AOctCoefficients {
   @Override
   public IOctCoefficients div(OctInterval interval) {
     if (interval.isInfinite()) {
-      return OctEmptyCoefficients.INSTANCE;
+      return OctUniversalCoefficients.INSTANCE;
     }
 
     // TODO make configurable
     if (interval.intersects(OctInterval.DELTA)) {
-      return OctEmptyCoefficients.INSTANCE;
+      return OctUniversalCoefficients.INSTANCE;
     }
 
     OctIntervalCoefficients ret = new OctIntervalCoefficients(size, oct);
