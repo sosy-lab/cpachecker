@@ -27,19 +27,7 @@ import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Function;
 
 import com.google.common.collect.Multimap;
@@ -105,82 +93,6 @@ public class ConcreteState {
     }
 
     return "*" + name;
-  }
-
-  @SuppressWarnings("unused")
-  private class TypeUFNameVisitor implements CTypeVisitor<String, RuntimeException> {
-
-    @Override
-    public String visit(CArrayType pArrayType) throws RuntimeException {
-      return null;
-    }
-
-    @Override
-    public String visit(CCompositeType pCompositeType) throws RuntimeException {
-
-      if(pCompositeType.getKind() == ComplexTypeKind.STRUCT) {
-        return "struct_" + pCompositeType.getName();
-      }
-
-      return null;
-    }
-
-    @Override
-    public String visit(CElaboratedType pElaboratedType) throws RuntimeException {
-
-      CComplexType realType = pElaboratedType.getRealType();
-
-      if (realType != null) {
-        return realType.accept(this);
-      }
-
-      return null;
-    }
-
-    @Override
-    public String visit(CEnumType pEnumType) throws RuntimeException {
-      return "enum_" + pEnumType.getName();
-    }
-
-    @Override
-    public String visit(CFunctionType pFunctionType) throws RuntimeException {
-      return null;
-    }
-
-    @Override
-    public String visit(CPointerType pPointerType) throws RuntimeException {
-
-      CType type = pPointerType.getType().getCanonicalType();
-
-      String ufName = type.accept(this);
-
-      if(ufName == null) {
-        return null;
-      }
-
-      return "(" + ufName + ")*";
-    }
-
-    @Override
-    public String visit(CProblemType pProblemType) throws RuntimeException {
-      return null;
-    }
-
-    @Override
-    public String visit(CSimpleType pSimpleType) throws RuntimeException {
-
-      switch (pSimpleType.getType()) {
-      case INT: return "signed_int";
-
-      }
-
-      return null;
-    }
-
-    @Override
-    public String visit(CTypedefType pTypedefType) throws RuntimeException {
-      return pTypedefType.getRealType().accept(this);
-    }
   }
 
   public boolean containsVariableName(String variableName) {

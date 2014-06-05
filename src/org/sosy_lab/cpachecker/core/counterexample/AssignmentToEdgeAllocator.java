@@ -106,7 +106,6 @@ import com.google.common.collect.ImmutableSet;
 
 public class AssignmentToEdgeAllocator {
 
-  @SuppressWarnings("unused")
   private final LogManager logger;
   private final MachineModel machineModel;
 
