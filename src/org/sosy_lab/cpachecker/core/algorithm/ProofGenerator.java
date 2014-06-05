@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import java.io.PrintStream;
-import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
@@ -38,14 +37,13 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.pcc.strategy.PCCStrategyBuilder;
 
 @Options
-public class ProofGenerator implements StatisticsProvider{
+public class ProofGenerator {
 
   @Option(
       name = "pcc.strategy",
@@ -56,6 +54,23 @@ public class ProofGenerator implements StatisticsProvider{
 
   private final LogManager logger;
   private final Timer writingTimer = new Timer();
+
+  private final Statistics proofGeneratorStats = new Statistics() {
+
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+      pOut.println();
+      pOut.println(getName() + " statistics");
+      pOut.println("------------------------------------");
+      pOut.println("Time for proof writing: " + writingTimer);
+
+    }
+
+    @Override
+    public String getName() {
+      return "Proof Generation";
+    }
+  };
 
   public ProofGenerator(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
@@ -82,23 +97,9 @@ public class ProofGenerator implements StatisticsProvider{
 
     writingTimer.stop();
     logger.log(Level.INFO, "Writing proof took " + writingTimer.getMaxTime().formatAs(TimeUnit.SECONDS));
-  }
 
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-       pStatsCollection.add(new Statistics() {
+    pResult.addProofGeneratorStatistics(proofGeneratorStats);
 
-        @Override
-        public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-          pOut.println("Time for proof writing: " + writingTimer);
-
-        }
-
-        @Override
-        public String getName() {
-          return "Proof Generation";
-        }
-      });
   }
 
 }
