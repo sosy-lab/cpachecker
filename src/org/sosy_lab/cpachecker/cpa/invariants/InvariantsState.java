@@ -528,13 +528,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
         return false;
       }
       // Check all the assumption once more after the environment changed
-      if (isDefinitelyFalse(assumption, pEvaluationVisitor)) { return false; }
-
-      // Check again if there is any more value to gain from the assumption after extracting environment information
-      assumption = assumption.accept(this.partialEvaluator, EVALUATION_VISITOR);
-      if (assumption.accept(EVALUATION_VISITOR, this.environment).isDefinitelyTrue()) {
-        // No more value to gain
-        return true;
+      if (isDefinitelyFalse(assumption, pEvaluationVisitor)) {
+        return false;
       }
     }
 
