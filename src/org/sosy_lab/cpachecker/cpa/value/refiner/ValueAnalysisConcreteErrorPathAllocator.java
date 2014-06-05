@@ -194,7 +194,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
 
   private Variable createBaseIdExpresssion(MemoryLocation pLoc) {
 
-    if (pLoc.isOnFunctionStack()) {
+    if (!pLoc.isOnFunctionStack()) {
       return new Variable(pLoc.getIdentifier());
     } else {
       return new Variable(pLoc.getIdentifier(), pLoc.getFunctionName());
