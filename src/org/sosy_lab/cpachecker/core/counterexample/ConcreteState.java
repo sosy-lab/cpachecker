@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
-import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Map;
 
@@ -131,70 +130,5 @@ public class ConcreteState {
   public String toString() {
     return "ModelAtCFAEdge\n variableModel=" + variableModel + "\n uFModel=" + uFModel + "\n variableAddressMap="
         + variableAddressMap;
-  }
-
-  public static class Address {
-
-    private final Number addressAsNumber;
-
-    private final Object symbolicAddress;
-
-
-    private Address(Object pAddress) {
-      symbolicAddress = pAddress;
-
-      if (pAddress instanceof Number) {
-        addressAsNumber = (Number) pAddress;
-      } else {
-        addressAsNumber = null;
-      }
-    }
-
-    public boolean comparesToUFArgument(Object pArgument) {
-
-      if (pArgument instanceof BigDecimal && this.isNumericalType()) {
-        return ((BigDecimal) pArgument).compareTo(new BigDecimal(addressAsNumber.toString())) == 0;
-      }
-
-      if (symbolicAddress instanceof BigDecimal && pArgument instanceof Number) {
-        return ((BigDecimal) symbolicAddress).compareTo(new BigDecimal(((Number) pArgument).toString())) == 0;
-      }
-
-      return pArgument.equals(symbolicAddress);
-    }
-
-    public boolean isNumericalType() {
-      return addressAsNumber != null;
-    }
-
-    public Address addOffset(Number pOffset) {
-
-      if (addressAsNumber == null) {
-        throw new IllegalStateException(
-          "Can't add offsets to a non numerical type of address");
-      }
-
-      BigDecimal address = new BigDecimal(pOffset.toString());
-      BigDecimal offset = new BigDecimal(addressAsNumber.toString());
-
-      return Address.valueOf(address.add(offset));
-    }
-
-    @Override
-    public String toString() {
-      return "Address = [" + symbolicAddress + "]";
-    }
-
-    public static Address valueOf(Object address) {
-      return new Address(address);
-    }
-
-    public Object getSymbolicValue() {
-      return symbolicAddress;
-    }
-
-    public Number getAsNumber() {
-      return addressAsNumber;
-    }
   }
 }
