@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -121,7 +122,12 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
 
     // if path is infeasible, try to refine the precision
     if (isPathFeasable(errorPath)) {
-      return CounterexampleInfo.feasible(errorPath, null);
+      //TODO Get ShutDownNotifier
+      ValueAnalysisConcreteErrorPathAllocator va = new ValueAnalysisConcreteErrorPathAllocator(logger, null);
+
+      Model model = va.allocateAssignmentsToPath(errorPath, cfa.getMachineModel());
+
+      return CounterexampleInfo.feasible(errorPath, model);
     }
 
     else if (performValueAnalysisRefinement(reached, errorPath)) {

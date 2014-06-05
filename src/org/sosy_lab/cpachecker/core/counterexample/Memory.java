@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
-import java.util.HashMap;
+import java.util.Map;
 
 import com.google.common.base.Preconditions;
 
@@ -31,9 +31,9 @@ import com.google.common.base.Preconditions;
 public class Memory {
 
   private final String name;
-  private final HashMap<Address, Object> values;
+  private final Map<Address, Object> values;
 
-  public Memory(String pName, HashMap<Address, Object> pValues) {
+  public Memory(String pName, Map<Address, Object> pValues) {
     name = pName;
     values = pValues;
   }
