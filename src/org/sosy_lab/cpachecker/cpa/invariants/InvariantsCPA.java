@@ -72,10 +72,18 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
-import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
@@ -102,7 +110,7 @@ import com.google.common.collect.Iterables;
 /**
  * This is a CPA for collecting simple invariants about integer variables.
  */
-public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA {
+public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdjustingCPA {
 
   /**
    * A formula visitor for collecting the variables contained in a formula.
@@ -112,9 +120,9 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
   @Options(prefix="cpa.invariants")
   public static class InvariantsOptions {
 
-    @Option(values={"JOIN", "SEP"}, toUppercase=true,
+    @Option(values={"JOIN", "SEP", "PRECISIONDEPENDENT"}, toUppercase=true,
         description="which merge operator to use for InvariantCPA")
-    private String merge = "JOIN";
+    private String merge = "PRECISIONDEPENDENT";
 
     @Option(description="determine target locations in advance and analyse paths to the target locations only.")
     private boolean analyzeTargetPathsOnly = true;
@@ -183,6 +191,8 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
 
   private final Set<String> interestingVariables = new LinkedHashSet<>();
 
+  private final MergeOperator mergeOperator;
+
   /**
    * Gets a factory for creating InvariantCPAs.
    *
@@ -205,7 +215,6 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
    */
   public InvariantsCPA(Configuration pConfig, LogManager pLogManager, InvariantsOptions pOptions,
       ShutdownNotifier pShutdownNotifier, ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException {
-    super(pOptions.merge, "sep", InvariantsDomain.INSTANCE, InvariantsTransferRelation.INSTANCE);
     this.config = pConfig;
     this.logManager = pLogManager;
     this.shutdownNotifier = pShutdownNotifier;
@@ -214,6 +223,39 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
     this.options = pOptions;
     this.conditionAdjuster = pOptions.conditionAdjusterFactory.createConditionAdjuster(this);
     this.machineModel = pCfa.getMachineModel();
+    if (pOptions.merge.equalsIgnoreCase("precisiondependent")) {
+      mergeOperator = new InvariantsMergeOperator();
+    } else if (pOptions.merge.equalsIgnoreCase("sep")) {
+      mergeOperator = MergeSepOperator.getInstance();
+    } else {
+      assert pOptions.merge.equalsIgnoreCase("join");
+      mergeOperator = new MergeJoinOperator(InvariantsDomain.INSTANCE);
+    }
+  }
+
+  @Override
+  public MergeOperator getMergeOperator() {
+    return mergeOperator;
+  }
+
+  @Override
+  public AbstractDomain getAbstractDomain() {
+    return InvariantsDomain.INSTANCE;
+  }
+
+  @Override
+  public TransferRelation getTransferRelation() {
+    return InvariantsTransferRelation.INSTANCE;
+  }
+
+  @Override
+  public StopOperator getStopOperator() {
+    return new StopSepOperator(getAbstractDomain());
+  }
+
+  @Override
+  public PrecisionAdjustment getPrecisionAdjustment() {
+    return StaticPrecisionAdjustment.getInstance();
   }
 
   @Override
@@ -262,7 +304,7 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
       }
     }
     if (shutdownNotifier.shouldShutdown()) {
-      return new InvariantsState(options.useBitvectors, new AcceptAllVariableSelection<CompoundInterval>(), InvariantsPrecision.getEmptyPrecision(machineModel));
+      return new InvariantsState(options.useBitvectors, new AcceptAllVariableSelection<CompoundInterval>(), machineModel);
     }
     if (options.analyzeTargetPathsOnly && determineTargetLocations) {
       relevantLocations.addAll(targetLocations);
@@ -318,7 +360,7 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
     }
 
     if (shutdownNotifier.shouldShutdown()) {
-      return new InvariantsState(options.useBitvectors, new AcceptAllVariableSelection<CompoundInterval>(), InvariantsPrecision.getEmptyPrecision(machineModel));
+      return new InvariantsState(options.useBitvectors, new AcceptAllVariableSelection<CompoundInterval>(), machineModel);
     }
 
     // Try to specify all relevant variables
@@ -362,18 +404,17 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
     InvariantsPrecision precision = new InvariantsPrecision(relevantEdges,
         ImmutableSet.copyOf(limit(interestingVariables, interestingVariableLimit)),
         options.maximumFormulaDepth,
-        options.edgeBasedAbstractionStrategyFactory,
-        machineModel);
+        options.edgeBasedAbstractionStrategyFactory);
 
     initialPrecisionMap.put(pNode, precision);
 
     InvariantsState invariant = invariants.get(pNode);
     if (invariant != null) {
-      return new InvariantsState(options.useBitvectors, variableSelection, precision, invariant);
+      return new InvariantsState(options.useBitvectors, variableSelection, machineModel, invariant);
     }
 
     // Create the configured initial state
-    return new InvariantsState(options.useBitvectors, variableSelection, precision);
+    return new InvariantsState(options.useBitvectors, variableSelection, machineModel);
   }
 
   @Override
@@ -382,7 +423,8 @@ public class InvariantsCPA extends AbstractCPA implements ReachedSetAdjustingCPA
     if (precision != null) {
       return precision;
     }
-    return getInitialState(pNode).getPrecision();
+    getInitialState(pNode);
+    return initialPrecisionMap.get(pNode);
   }
 
   public void injectInvariant(CFANode pLocation, InvariantsState pInvariant) {

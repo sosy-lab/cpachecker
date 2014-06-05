@@ -33,7 +33,6 @@ import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState.AbstractEdgeBasedAbstractionStrategyFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState.EdgeBasedAbstractionStrategyFactories;
@@ -45,13 +44,12 @@ import com.google.common.collect.ImmutableSet;
 
 public class InvariantsPrecision implements Precision {
 
-  public static InvariantsPrecision getEmptyPrecision(final MachineModel pMachineModel) {
+  public static InvariantsPrecision getEmptyPrecision() {
     return new InvariantsPrecision(
         Collections.<CFAEdge>emptySet(),
         Collections.<String>emptySet(),
         0,
-        EdgeBasedAbstractionStrategyFactories.ALWAYS,
-        pMachineModel) {
+        EdgeBasedAbstractionStrategyFactories.ALWAYS) {
 
       @Override
       public boolean isRelevant(CFAEdge pEdge) {
@@ -74,28 +72,22 @@ public class InvariantsPrecision implements Precision {
 
   private final AbstractEdgeBasedAbstractionStrategyFactory edgeBasedAbstractionStrategyFactory;
 
-  private final MachineModel machineModel;
-
   public InvariantsPrecision(Set<CFAEdge> pRelevantEdges,
       Set<String> pInterestingVariables, int pMaximumFormulaDepth,
-      AbstractEdgeBasedAbstractionStrategyFactory pEdgeBasedAbstractionStrategyFactory,
-      MachineModel pMachineModel) {
+      AbstractEdgeBasedAbstractionStrategyFactory pEdgeBasedAbstractionStrategyFactory) {
     this(asImmutableRelevantEdges(pRelevantEdges),
         ImmutableSet.<String>copyOf(pInterestingVariables),
         pMaximumFormulaDepth,
-        pEdgeBasedAbstractionStrategyFactory,
-        pMachineModel);
+        pEdgeBasedAbstractionStrategyFactory);
   }
 
   public InvariantsPrecision(ImmutableSet<CFAEdge> pRelevantEdges,
       ImmutableSet<String> pInterestingVariables, int pMaximumFormulaDepth,
-      AbstractEdgeBasedAbstractionStrategyFactory pEdgeBasedAbstractionStrategyFactory,
-      MachineModel pMachineModel) {
+      AbstractEdgeBasedAbstractionStrategyFactory pEdgeBasedAbstractionStrategyFactory) {
     this.relevantEdges = pRelevantEdges;
     this.interestingVariables = pInterestingVariables;
     this.maximumFormulaDepth = pMaximumFormulaDepth;
     this.edgeBasedAbstractionStrategyFactory = pEdgeBasedAbstractionStrategyFactory;
-    this.machineModel = pMachineModel;
   }
 
   public boolean isRelevant(CFAEdge pEdge) {
@@ -163,10 +155,6 @@ public class InvariantsPrecision implements Precision {
       }
     }
     return builder.build();
-  }
-
-  public MachineModel getMachineModel() {
-    return this.machineModel;
   }
 
 }

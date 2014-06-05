@@ -34,12 +34,12 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
 
 import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
@@ -116,11 +116,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   private final NonRecursiveEnvironment environment;
 
   /**
-   * The edge based abstraction strategy used.
-   */
-  private final EdgeBasedAbstractionStrategy edgeBasedAbstractionStrategy;
-
-  /**
    * The variables selected for this analysis.
    */
   private final VariableSelection<CompoundInterval> variableSelection;
@@ -134,34 +129,22 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
   private final PartialEvaluator partialEvaluator;
 
-  private final InvariantsPrecision precision;
+  private final MachineModel machineModel;
 
   private Iterable<InvariantsFormula<CompoundInterval>> environmentAsAssumptions;
 
   private volatile int hash = 0;
 
-  /**
-   * Creates a new pristine invariants state with just a value for the flag indicating whether
-   * or not to use bit vectors for representing states and a variable selection.
-   *
-   * @param pUseBitvectors the flag indicating whether or not to use bit vectors for representing states.
-   * @param pVariableSelection the selected variables.
-   * @param pPrecision the precision of the state.
-   */
-  public InvariantsState(boolean pUseBitvectors, VariableSelection<CompoundInterval> pVariableSelection,
-      InvariantsPrecision pPrecision) {
-    this(pUseBitvectors, pVariableSelection, pPrecision.getEdgeBasedAbstractionStrategyFactory().getAbstractionStrategy(), pPrecision);
-  }
-
-  public InvariantsState(boolean pUseBitvectors, VariableSelection<CompoundInterval> pVariableSelection,
-      InvariantsPrecision pPrecision, InvariantsState pInvariant) {
-    this.edgeBasedAbstractionStrategy = pPrecision.getEdgeBasedAbstractionStrategyFactory().getAbstractionStrategy();
+  public InvariantsState(boolean pUseBitvectors,
+      VariableSelection<CompoundInterval> pVariableSelection,
+      MachineModel pMachineModel,
+      InvariantsState pInvariant) {
     this.environment = pInvariant.environment;
     this.partialEvaluator = pInvariant.partialEvaluator;
     this.useBitvectors = pUseBitvectors;
     this.variableSelection = pVariableSelection;
-    this.precision = pPrecision;
     this.variableTypes = pInvariant.variableTypes;
+    this.machineModel = pMachineModel;
   }
 
   /**
@@ -171,38 +154,36 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    *
    * @param pUseBitvectors the flag indicating whether or not to use bit vectors for representing states.
    * @param pVariableSelection the selected variables.
-   * @param pEdgeBasedAbstractionStrategy the edge based abstraction strategy used.
-   * @param pPrecision the precision of the state.
+   * @param pMachineModel the machine model used.
    */
-  private InvariantsState(boolean pUseBitvectors, VariableSelection<CompoundInterval> pVariableSelection,
-      EdgeBasedAbstractionStrategy pEdgeBasedAbstractionStrategy,
-      InvariantsPrecision pPrecision) {
-    this.edgeBasedAbstractionStrategy = pEdgeBasedAbstractionStrategy;
+  public InvariantsState(boolean pUseBitvectors,
+      VariableSelection<CompoundInterval> pVariableSelection,
+      MachineModel pMachineModel) {
     this.environment = new NonRecursiveEnvironment();
     this.partialEvaluator = new PartialEvaluator(this.environment);
     this.useBitvectors = pUseBitvectors;
     this.variableSelection = pVariableSelection;
-    this.precision = pPrecision;
     this.variableTypes = new HashMap<>();
+    this.machineModel = pMachineModel;
   }
 
   /**
    * Creates a new state from the given state properties.
    *
-   * @param pEdgeBasedAbstractionStrategy the edge based abstraction strategy.
-   * @param pAssumptions the current assumptions.
-   * @param pVariableRelations the currently known relations between variables.
    * @param pEnvironment the current environment.
    * @param pUseBitvectors a flag indicating whether or not to use bit vectors to represent states.
-   * @param pInterestingAssumptions
+   * @param pVariableSelection the selected variables.
+   * @param pMachineModel the machine model used.
+   * @param pVariableTypes the types of the variables.
+   *
    * @return a new state from the given state properties.
    */
-  private static InvariantsState from(EdgeBasedAbstractionStrategy pEdgeBasedAbstractionStrategy,
-      Map<String, InvariantsFormula<CompoundInterval>> pEnvironment,
-      boolean pUseBitvectors, VariableSelection<CompoundInterval> pVariableSelection,
-      InvariantsPrecision pPrecision,
+  private static InvariantsState from(Map<String, InvariantsFormula<CompoundInterval>> pEnvironment,
+      boolean pUseBitvectors,
+      VariableSelection<CompoundInterval> pVariableSelection,
+      MachineModel pMachineModel,
       Map<String, CType> pVariableTypes) {
-    InvariantsState result = new InvariantsState(pUseBitvectors, pVariableSelection, pEdgeBasedAbstractionStrategy, pPrecision);
+    InvariantsState result = new InvariantsState(pUseBitvectors, pVariableSelection, pMachineModel);
     result.environment.putAll(pEnvironment);
     result.variableTypes.putAll(pVariableTypes);
     return result;
@@ -212,7 +193,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     if (pType.equals(variableTypes.get(pVarName))) {
       return this;
     }
-    InvariantsState result = from(edgeBasedAbstractionStrategy, environment, useBitvectors, variableSelection, precision, variableTypes);
+    InvariantsState result = from(environment, useBitvectors, variableSelection, machineModel, variableTypes);
     result.variableTypes.put(pVarName, pType);
     return result;
   }
@@ -228,18 +209,16 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     if (allContained) {
       return this;
     }
-    InvariantsState result = from(edgeBasedAbstractionStrategy, environment, useBitvectors, variableSelection, precision, variableTypes);
+    InvariantsState result = from(environment, useBitvectors, variableSelection, machineModel, variableTypes);
     result.variableTypes.putAll(pVarTypes);
     return result;
   }
 
   public InvariantsState assignArray(String pArray, InvariantsFormula<CompoundInterval> pSubscript, InvariantsFormula<CompoundInterval> pValue, CFAEdge pEdge) {
     FormulaEvaluationVisitor<CompoundInterval> fev = getFormulaResolver(pEdge);
-    // Edge is already counted by formula resolver access
-    boolean ignoreEdge = mayEvaluate(pEdge);
     CompoundInterval value = pSubscript.accept(fev, this.environment);
     if (value.isSingleton()) { // Exact subscript value is known
-      return assign(pArray + "[" + value.getValue() + "]", pValue, pEdge, ignoreEdge);
+      return assign(pArray + "[" + value.getValue() + "]", pValue, pEdge, true);
     } else { // Multiple subscript values are possible: All possible subscript targets are now unknown
       InvariantsState result = this;
       for (String varName : this.environment.keySet()) {
@@ -247,7 +226,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
         if (varName.startsWith(prefix)) {
           String subscriptValueStr = varName.replace(prefix, "").replaceAll("].*", "");
           if (subscriptValueStr.equals("*") || value.contains(new BigInteger(subscriptValueStr))) {
-            result = result.assign(varName, TOP, pEdge, ignoreEdge);
+            result = result.assign(varName, TOP, pEdge, true);
           }
         }
       }
@@ -308,9 +287,9 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       if (this.environment == newEnvironment) {
         return this;
       }
-      return from(edgeBasedAbstractionStrategy, newEnvironment,
+      return from(newEnvironment,
           useBitvectors, variableSelection,
-          precision,
+          machineModel,
           variableTypes);
     }
 
@@ -359,13 +338,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
     InvariantsFormula<CompoundInterval> previousValue = getEnvironmentValue(pVarName);
     FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor = getFormulaResolver(pEdge);
-    if (!mayEvaluate(pEdge) && previousValue instanceof Union<?>) {
-      Union<CompoundInterval> union = (Union<CompoundInterval>) previousValue;
-      if (union.getOperand1() instanceof Union<?>
-          || union.getOperand2() instanceof Union<?>) {
-        previousValue = CompoundIntervalFormulaManager.INSTANCE.asConstant(previousValue.accept(evaluationVisitor, environment));
-      }
-    }
 
     /*
      * A variable is newly assigned, so the appearances of this variable
@@ -395,29 +367,20 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     return result;
   }
 
-  /**
-   * @param pVarName
-   * @param pValue
-   * @param pEdge
-   * @param newVariableSelection
-   * @param evaluationVisitor
-   * @param replaceVisitor
-   * @return
-   */
   private InvariantsState assignInternal(String pVarName, InvariantsFormula<CompoundInterval> pValue, CFAEdge pEdge,
       VariableSelection<CompoundInterval> newVariableSelection,
       FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor, ReplaceVisitor<CompoundInterval> replaceVisitor) {
-    final InvariantsState result = new InvariantsState(useBitvectors, newVariableSelection, edgeBasedAbstractionStrategy.addVisitedEdge(pEdge), precision);
+    final InvariantsState result = new InvariantsState(useBitvectors, newVariableSelection, machineModel);
     result.variableTypes.putAll(variableTypes);
 
     for (Map.Entry<String, InvariantsFormula<CompoundInterval>> environmentEntry : this.environment.entrySet()) {
       if (!environmentEntry.getKey().equals(pVarName)) {
         InvariantsFormula<CompoundInterval> newEnvValue =
             environmentEntry.getValue().accept(replaceVisitor);
-        result.environment.put(environmentEntry.getKey(), trim(newEnvValue, evaluationVisitor));
+        result.environment.put(environmentEntry.getKey(), newEnvValue);
       }
     }
-    result.environment.put(pVarName, trim(pValue.accept(replaceVisitor), evaluationVisitor));
+    result.environment.put(pVarName, pValue.accept(replaceVisitor));
     return result;
   }
 
@@ -432,19 +395,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     if (environment.isEmpty()) {
       return this;
     }
-    return new InvariantsState(useBitvectors, variableSelection, edgeBasedAbstractionStrategy, precision);
-  }
-
-  private InvariantsFormula<CompoundInterval> trim(InvariantsFormula<CompoundInterval> pFormula, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
-    if (pFormula.accept(FORMULA_DEPTH_COUNT_VISITOR) > this.precision.getMaximumFormulaDepth()) {
-      InvariantsFormula<CompoundInterval> result = pFormula.accept(this.partialEvaluator, pEvaluationVisitor);
-      if (result.accept(FORMULA_DEPTH_COUNT_VISITOR) > this.precision.getMaximumFormulaDepth()) {
-        result = CompoundIntervalFormulaManager.INSTANCE.asConstant(
-            pFormula.accept(pEvaluationVisitor, environment));
-      }
-      return result;
-    }
-    return pFormula;
+    return new InvariantsState(useBitvectors, variableSelection, machineModel);
   }
 
   /**
@@ -510,10 +461,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    * @return a formula resolver for the given edge.
    */
   public FormulaEvaluationVisitor<CompoundInterval> getFormulaResolver(CFAEdge pEdge) {
-    if (mayEvaluate(pEdge)) {
-      return getFormulaResolver();
-    }
-    return ABSTRACTION_VISITOR;
+    return getFormulaResolver();
   }
 
   /**
@@ -620,8 +568,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       return this;
     }
 
-    InvariantsState result = from(edgeBasedAbstractionStrategy.addVisitedEdge(pEdge), environment, useBitvectors,
-        newVariableSelection, precision, variableTypes);
+    InvariantsState result = from(environment, useBitvectors,
+        newVariableSelection, machineModel, variableTypes);
     if (result != null) {
       if (!result.assumeInternal(assumption, evaluator)) { return null; }
       if (equalsState(result)) {
@@ -637,7 +585,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     BooleanFormulaManager bfmgr = pManager.getBooleanFormulaManager();
     BooleanFormula result = bfmgr.makeBoolean(true);
     ToFormulaVisitor<CompoundInterval, BooleanFormula> toBooleanFormulaVisitor =
-        ToBooleanFormulaVisitor.getVisitor(pManager, evaluationVisitor, useBitvectors, precision.getMachineModel(), variableTypes);
+        ToBooleanFormulaVisitor.getVisitor(pManager, evaluationVisitor, useBitvectors, machineModel, variableTypes);
 
     final Predicate<String> acceptVariable = new Predicate<String>() {
 
@@ -698,18 +646,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   }
 
   /**
-   * Checks whether or not the given edge may be evaluated exactly any further.
-   *
-   * @param pEdge the edge to evaluate.
-   *
-   * @return <code>true</code> if the given edge has any exact evaluations left, <code>false</code>
-   * otherwise.
-   */
-  private boolean mayEvaluate(CFAEdge pEdge) {
-    return !edgeBasedAbstractionStrategy.useAbstraction(pEdge);
-  }
-
-  /**
    * Gets the environment of this state.
    *
    * @return the environment of this state.
@@ -745,81 +681,103 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     return CompoundIntervalFormulaManager.definitelyImplies(this.environment, pFormula);
   }
 
-  private boolean environmentsEqualWithRespectToInterestingVariables(InvariantsState pElement2) {
-    Set<String> checkedVariables = new HashSet<>();
-    Queue<String> waitlist = new ArrayDeque<>(precision.getInterestingVariables());
-    while (!waitlist.isEmpty()) {
-      String variableName = waitlist.poll();
-      if (checkedVariables.add(variableName)) {
-        InvariantsFormula<CompoundInterval> left = environment.get(variableName);
-        InvariantsFormula<CompoundInterval> right = pElement2.environment.get(variableName);
-        if (left != right && (left == null || !left.equals(right))) {
-          return false;
-        }
-        if (left != null) {
-          waitlist.addAll(left.accept(COLLECT_VARS_VISITOR));
+  private InvariantsState widen(InvariantsState pOlderState, InvariantsPrecision pPrecision) {
+    InvariantsState result = from(environment, useBitvectors, variableSelection, machineModel, variableTypes);
+    Map<String, InvariantsFormula<CompoundInterval>> toDo = new HashMap<>();
+    for (Map.Entry<String, InvariantsFormula<CompoundInterval>> entry : this.environment.entrySet()) {
+      String varName = entry.getKey();
+      InvariantsFormula<CompoundInterval> currentFormula = entry.getValue();
+      if (currentFormula.accept(FORMULA_DEPTH_COUNT_VISITOR) > pPrecision.getMaximumFormulaDepth()) {
+        InvariantsFormula<CompoundInterval> oldFormula = pOlderState.getEnvironmentValue(varName);
+        if (oldFormula != null && !currentFormula.equals(oldFormula)) {
+          InvariantsFormula<CompoundInterval> newValueFormula =
+          CompoundIntervalFormulaManager.INSTANCE.union(
+              currentFormula.accept(this.partialEvaluator, EVALUATION_VISITOR),
+              oldFormula.accept(pOlderState.partialEvaluator, EVALUATION_VISITOR)).accept(new PartialEvaluator(), EVALUATION_VISITOR);
+          if (newValueFormula.accept(FORMULA_DEPTH_COUNT_VISITOR) > pPrecision.getMaximumFormulaDepth()) {
+            result.environment.put(varName, newValueFormula);
+            toDo.put(varName, newValueFormula);
+          }
         }
       }
     }
-    return true;
-  }
-
-  public InvariantsState join(InvariantsState pElement2) {
-    return join(pElement2, false);
-  }
-
-  public InvariantsState join(InvariantsState pElement2, boolean pForceJoin) {
-    Preconditions.checkArgument(pElement2.useBitvectors == useBitvectors);
-    Preconditions.checkArgument(pElement2.precision == precision);
-
-    InvariantsState element1 = this;
-    InvariantsState element2 = pElement2;
-
-    InvariantsState result;
-
-    if (isLessThanOrEqualTo(element2)
-        || !pForceJoin && !environmentsEqualWithRespectToInterestingVariables(pElement2)) {
-      result = element2;
-    } else if (element2.isLessThanOrEqualTo(element1)) {
-      result = element1;
-    } else {
-      final EdgeBasedAbstractionStrategy edgeBasedAbstractionStrategy = element1.edgeBasedAbstractionStrategy.join(element2.edgeBasedAbstractionStrategy);
-
-      Map<String, InvariantsFormula<CompoundInterval>> resultEnvironment = new NonRecursiveEnvironment();
-
-      // Get some basic information by joining the environments
-      for (Map.Entry<String, InvariantsFormula<CompoundInterval>> entry : element1.environment.entrySet()) {
-        String varName = entry.getKey();
-        InvariantsFormula<CompoundInterval> rightFormula = element2.environment.get(varName);
-        if (rightFormula != null) {
-          InvariantsFormula<CompoundInterval> newValueFormula =
-              CompoundIntervalFormulaManager.INSTANCE.union(
-                  entry.getValue().accept(element1.partialEvaluator, EVALUATION_VISITOR),
-                  rightFormula.accept(element2.partialEvaluator, EVALUATION_VISITOR)).accept(new PartialEvaluator(), EVALUATION_VISITOR);
-          resultEnvironment.put(varName, newValueFormula);
+    if (toDo.isEmpty()) {
+      return this;
+    }
+    for (Map.Entry<String, InvariantsFormula<CompoundInterval>> entry : toDo.entrySet()) {
+      String varName = entry.getKey();
+      InvariantsFormula<CompoundInterval> newValueFormula = entry.getValue();
+      CompoundInterval simpleExactValue = newValueFormula.accept(EVALUATION_VISITOR, result.environment);
+      if (simpleExactValue.isSingleton()) {
+        result.environment.put(varName, CompoundIntervalFormulaManager.INSTANCE.asConstant(simpleExactValue));
+      } else {
+        InvariantsFormula<CompoundInterval> oldFormula = pOlderState.getEnvironmentValue(varName);
+        InvariantsFormula<CompoundInterval> currentFormula = getEnvironmentValue(varName);
+        CompoundInterval oldExactValue = oldFormula.accept(EVALUATION_VISITOR, pOlderState.environment);
+        CompoundInterval currentExactValue = currentFormula.accept(EVALUATION_VISITOR, environment);
+        final CompoundInterval newValue;
+        if (oldExactValue.equals(currentExactValue)) {
+          newValue = currentExactValue;
+        } else if (oldExactValue.lessEqual(currentExactValue).isDefinitelyTrue()) {
+          newValue = oldExactValue.extendToPositiveInfinity();
+        } else if (oldExactValue.greaterEqual(currentExactValue).isDefinitelyTrue()) {
+          newValue = oldExactValue.extendToNegativeInfinity();
+        } else {
+          newValue = result.getEnvironmentValue(varName).accept(ABSTRACTION_VISITOR, result.environment);
         }
+        result.environment.put(varName, CompoundIntervalFormulaManager.INSTANCE.asConstant(newValue));
       }
-
-      VariableSelection<CompoundInterval> resultVariableSelection = element1.variableSelection.join(element2.variableSelection);
-
-      Map<String, CType> variableTypes = new HashMap<>(element1.variableTypes);
-      variableTypes.putAll(element2.variableTypes);
-
-      result = InvariantsState.from(edgeBasedAbstractionStrategy,
-          resultEnvironment, element1.getUseBitvectors(), resultVariableSelection,
-          precision, variableTypes);
-
-      if (result != null) {
-        if (result.equalsState(element1)) {
-          result = element1;
-        }
-      }
+    }
+    if (equals(result)) {
+      return this;
     }
     return result;
   }
 
-  public InvariantsPrecision getPrecision() {
-    return this.precision;
+  public InvariantsState join(InvariantsState pState2, InvariantsPrecision pPrecision) {
+    Preconditions.checkArgument(pState2.useBitvectors == useBitvectors);
+
+    InvariantsState state1 = widen(pState2, pPrecision);
+    InvariantsState state2 = pState2;
+
+    InvariantsState result;
+
+    if (isLessThanOrEqualTo(state2)) {
+      result = state2;
+    } else if (state2.isLessThanOrEqualTo(state1)) {
+      result = state1;
+    } else {
+
+      Map<String, InvariantsFormula<CompoundInterval>> resultEnvironment = new NonRecursiveEnvironment();
+
+      // Get some basic information by joining the environments
+      for (Map.Entry<String, InvariantsFormula<CompoundInterval>> entry : state1.environment.entrySet()) {
+        String varName = entry.getKey();
+        InvariantsFormula<CompoundInterval> rightFormula = state2.environment.get(varName);
+        if (rightFormula != null) {
+          InvariantsFormula<CompoundInterval> newValueFormula =
+              CompoundIntervalFormulaManager.INSTANCE.union(
+                  entry.getValue().accept(state1.partialEvaluator, EVALUATION_VISITOR),
+                  rightFormula.accept(state2.partialEvaluator, EVALUATION_VISITOR)).accept(new PartialEvaluator(), EVALUATION_VISITOR);
+          resultEnvironment.put(varName, newValueFormula);
+        }
+      }
+
+      VariableSelection<CompoundInterval> resultVariableSelection = state1.variableSelection.join(state2.variableSelection);
+
+      Map<String, CType> variableTypes = new HashMap<>(state1.variableTypes);
+      variableTypes.putAll(state2.variableTypes);
+
+      result = InvariantsState.from(resultEnvironment, state1.getUseBitvectors(), resultVariableSelection,
+          machineModel, variableTypes);
+
+      if (result != null) {
+        if (result.equalsState(state1)) {
+          result = state1;
+        }
+      }
+    }
+    return result;
   }
 
   static interface EdgeBasedAbstractionStrategy {

@@ -30,7 +30,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.io.PrintStream;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -42,7 +41,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -91,6 +89,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.edgeexclusion.EdgeExclusionPrecision;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
+import org.sosy_lab.cpachecker.cpa.invariants.InvariantsPrecision;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsTransferRelation;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackCPA;
@@ -382,22 +381,38 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     try {
       logger.log(Level.INFO, "Error found, creating error path");
 
-      Iterable<ARGState> arg = from(pReachedSet).filter(ARGState.class);
+      Set<ARGState> targetStates = from(pReachedSet).filter(ARGState.class).filter(IS_TARGET_STATE).toSet();
 
-      // get the branchingFormula
-      // this formula contains predicates for all branches we took
-      // this way we can figure out which branches make a feasible path
-      BooleanFormula branchingFormula = pmgr.buildBranchingFormula(arg);
+      final boolean shouldCheckBranching;
+      if (targetStates.size() == 1) {
+        ARGState state = Iterables.getOnlyElement(targetStates);
+        while (state.getParents().size() == 1) {
+          state = Iterables.getOnlyElement(state.getParents());
+        }
+        shouldCheckBranching = !state.getParents().isEmpty();
+      } else {
+        shouldCheckBranching = true;
+      }
 
-      if (bfmgr.isTrue(branchingFormula)) {
-        logger.log(Level.WARNING, "Could not create error path because of missing branching information!");
-        return;
+      if (shouldCheckBranching) {
+        Iterable<ARGState> arg = from(pReachedSet).filter(ARGState.class);
+
+        // get the branchingFormula
+        // this formula contains predicates for all branches we took
+        // this way we can figure out which branches make a feasible path
+        BooleanFormula branchingFormula = pmgr.buildBranchingFormula(arg);
+
+        if (bfmgr.isTrue(branchingFormula)) {
+          logger.log(Level.WARNING, "Could not create error path because of missing branching information!");
+          return;
+        }
+
+        // add formula to solver environment
+        pProver.push(branchingFormula);
       }
 
       Model model;
 
-      // add formula to solver environment
-      pProver.push(branchingFormula);
       try {
 
         // need to ask solver for satisfiability again,
@@ -418,7 +433,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           return;
         }
       } finally {
-        pProver.pop(); // remove branchingFormula
+        if (shouldCheckBranching) {
+          pProver.pop(); // remove branchingFormula
+        }
       }
 
 
@@ -792,7 +809,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           if (invariant == null) {
             invariant = disjunctivePart;
           } else {
-            invariant = invariant.join(disjunctivePart, true);
+            invariant = invariant.join(disjunctivePart, InvariantsPrecision.getEmptyPrecision());
           }
         } else {
           return;
@@ -950,7 +967,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       push(induction);
       boolean sound = prover.isUnsat();
 
-      if (!sound) {
+      if (!sound) {/*
         final List<Pair<ARGState, CounterexampleInfo>> counterexampleStorage = new ArrayList<>(1);
         addCounterexampleTo(reached, prover, new CounterexampleStorage() {
 
@@ -960,8 +977,20 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           }
         });
         if (!counterexampleStorage.isEmpty()) {
-          counterexampleStorage.get(0).getSecond();
-        }
+          if (invariantGenerator instanceof CPAInvariantGenerator) {
+            Set<String> variables = new LinkedHashSet<>();
+            List<CFAEdge> edgeList = counterexampleStorage.get(0).getSecond().getTargetPath().asEdgesList();
+            ListIterator<CFAEdge> edgeIterator = edgeList.listIterator(edgeList.size());
+            while (edgeIterator.hasPrevious()) {
+              variables.addAll(InvariantsTransferRelation.getInvolvedVariables(edgeIterator.previous()).keySet());
+            }
+            ConfigurableProgramAnalysis invGenCpas = ((CPAInvariantGenerator) invariantGenerator).getInvariantsCPA();
+            InvariantsCPA invGenCPA = CPAs.retrieveCPA(invGenCpas, InvariantsCPA.class);
+            if (invGenCPA != null) {
+              //invGenCPA.addInterestingVariables(variables);
+            }
+          }
+        }*/
       }
 
       if (!sound && logger.wouldBeLogged(Level.ALL)) {
