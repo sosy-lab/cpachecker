@@ -1,15 +1,15 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <!-- test set for evaluation presented in "Certification for Configurable Program Analysis", SPIN 2014 -->
-<!-- Rundefinitions starting with A, execute pure verification/analysis without certificate checking and collect that data.
-     Rundefinitions starting with V, execute for each program the verification with proof generation followed by certificate
+<!-- Rundefinitions execute for each program the verification with proof generation followed by certificate
      checking and collect the respective data.
-     Programs are taken from SV-Comp Benchmark subcategory ControlFlowInteger. Programs for which verification timed out after
-     5 minutes with JIT for the coarsest analysis are completely excluded. Programs for which verification timed out after 15 
-     minutes without JIT are excluded from the respective rundefinition.
+     Programs are taken from SV-Comp Benchmark subcategory ControlFlowInteger (only true-unreach-call programs).
+     Programs for which verification timed out after 5 minutes for the coarsest analysis are completely excluded. 
+     Programs for which verification timed out after 5 minutes for another analysis are excluded from the respective
+     rundefinition of that analysis.
      The time limit used for evaluation was 15 minutes.
 -->    
-<benchmark tool="cpachecker" timelimit="900" memlimit="3000">
+<benchmark tool="cpachecker" timelimit="300" memlimit="3000">
 <option name="-heap">2500M</option>
 <option name="-noout"/>
 <option name="-disable-java-assertions"/>
@@ -18,66 +18,8 @@
 <option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
 <option name="-setprop">pcc.proofFile=arg.obj</option>
 
-<rundefinition name="A_ReachDefSingleState">
-	<option name="-reachingdefinitionNoLocation"/>
-	<option name="-setprop">analysis.traversal.order=BFS</option>
-	<option name="-setprop">cpa.propertychecker.className=SingleDefinitionChecker</option>
-	    <sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=tmp___0,</option>
-			<include>../programs/benchmarks/ssh-simplified/s3_clnt_*_true-unreach-call*.cil.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=initial_state,</option>
-			<include>../programs/benchmarks/ssh-simplified/s3_srvr_*_true-unreach-call*.cil.c</include>
-			<exclude>../programs/benchmarks/ssh-simplified/s3_srvr_1b_true-unreach-call_false-termination.cil.c</exclude>
-			<exclude>../programs/benchmarks/ssh-simplified/s3_srvr_1a_true-unreach-call.cil.c</exclude>
-		</sourcefiles>
-	   <sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=a,</option>
-			<include>../programs/benchmarks/eca/Problem*_*_true-unreach-call.c</include>
-			<exclude>../programs/benchmarks/eca/Problem07_00_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem07_10_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem07_50_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem08_00_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem08_20_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem08_30_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem08_40_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem09_00_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem09_30_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem09_40_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem09_50_true-unreach-call.c</exclude>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=cond,</option>
-			<include>../programs/benchmarks/locks/test_locks_*_true-unreach-call*.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=lastSession,</option>
-			<include>../programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_true-unreach-call_true-termination.cil.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=FilterDevice,</option>
-			<include>../programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_true-unreach-call_true-termination.cil.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=PeripheralType,</option>
-			<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl3_true-unreach-call_true-termination.cil.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=ObjectType,</option>
-			<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl4_true-unreach-call_true-termination.cil.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=Timeout,</option>
-			<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_true-unreach-call_true-termination.cil.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=devExt,</option>
-			<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_true-unreach-call_true-termination.cil.c</include>
-		</sourcefiles>
-</rundefinition>
 
-<rundefinition name="V_ReachDefSingleState">
+<rundefinition name="ReachDefSingleState">
 	<option name="-reachingdefinitionNoLocation"/>
 	<option name="-setprop">analysis.traversal.order=BFS</option>
 	<option name="-setprop">cpa.propertychecker.className=SingleDefinitionChecker</option>
@@ -703,84 +645,7 @@
 </sourcefiles>
 </rundefinition>
 
-<rundefinition name="A_ReachDefDF">
-	<option name="-reachingdefinition"/>
-	<option name="-setprop">analysis.traversal.order=BFS</option>
-	<option name="-setprop">cpa.propertychecker.className=SingleDefinitionChecker</option>	
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=tmp___0,</option>
-			<include>../programs/benchmarks/ssh-simplified/s3_clnt_*_true-unreach-call*.cil.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=initial_state,</option>
-			<include>../programs/benchmarks/ssh-simplified/s3_srvr_*_true-unreach-call*.cil.c</include>
-			<exclude>../programs/benchmarks/ssh-simplified/s3_srvr_1b_true-unreach-call_false-termination.cil.c</exclude>
-			<exclude>../programs/benchmarks/ssh-simplified/s3_srvr_1a_true-unreach-call.cil.c</exclude>
-		</sourcefiles>
-	   <sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=a,</option>
-			<include>../programs/benchmarks/eca/Problem*_*_true-unreach-call.c</include>
-			<exclude>../programs/benchmarks/eca/Problem03_00_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem03_10_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem03_20_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem03_30_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem03_40_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem04_00_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem04_10_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem04_20_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem04_30_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem04_50_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem05_10_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem05_20_true-unreach-call.c</exclude>			
-			<exclude>../programs/benchmarks/eca/Problem05_50_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem06_30_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem06_40_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem06_50_true-unreach-call.c</exclude>			
-			<exclude>../programs/benchmarks/eca/Problem07_00_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem07_10_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem07_50_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem08_00_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem08_20_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem08_30_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem08_40_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem09_00_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem09_30_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem09_40_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem09_50_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem16_40_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/eca/Problem16_50_true-unreach-call.c</exclude>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=cond,</option>
-			<include>../programs/benchmarks/locks/test_locks_*_true-unreach-call*.c</include>
-		</sourcefiles>  
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=lastSession,</option>
-			<include>../programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_true-unreach-call_true-termination.cil.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=FilterDevice,</option>
-			<include>../programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_true-unreach-call_true-termination.cil.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=PeripheralType,</option>
-			<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl3_true-unreach-call_true-termination.cil.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=ObjectType,</option>
-			<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl4_true-unreach-call_true-termination.cil.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=Timeout,</option>
-			<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_true-unreach-call_true-termination.cil.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=devExt,</option>
-			<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_true-unreach-call_true-termination.cil.c</include>
-		</sourcefiles>
-</rundefinition>
-
-<rundefinition name="V_ReachDefDF">
+<rundefinition name="ReachDefDF">
 	<option name="-reachingdefinition"/>
 	<option name="-setprop">analysis.traversal.order=BFS</option>
 	<option name="-setprop">cpa.propertychecker.className=SingleDefinitionChecker</option>
@@ -987,6 +852,56 @@
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=a,</option>
+<include>../programs/benchmarks/eca/Problem03_00_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,</option>
+<include>../programs/benchmarks/eca/Problem03_00_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,</option>
+<include>../programs/benchmarks/eca/Problem03_10_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,</option>
+<include>../programs/benchmarks/eca/Problem03_10_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,</option>
+<include>../programs/benchmarks/eca/Problem03_20_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,</option>
+<include>../programs/benchmarks/eca/Problem03_20_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,</option>
+<include>../programs/benchmarks/eca/Problem03_30_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,</option>
+<include>../programs/benchmarks/eca/Problem03_30_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,</option>
+<include>../programs/benchmarks/eca/Problem03_40_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,</option>
+<include>../programs/benchmarks/eca/Problem03_40_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,</option>
 <include>../programs/benchmarks/eca/Problem10_00_true-unreach-call.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1053,6 +968,26 @@
 <option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=a,</option>
 <include>../programs/benchmarks/eca/Problem14_50_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,</option>
+<include>../programs/benchmarks/eca/Problem16_40_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,</option>
+<include>../programs/benchmarks/eca/Problem16_40_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,</option>
+<include>../programs/benchmarks/eca/Problem16_50_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,</option>
+<include>../programs/benchmarks/eca/Problem16_50_true-unreach-call.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
@@ -1226,84 +1161,7 @@
 </sourcefiles>
 </rundefinition>
 
-<rundefinition name="A_ExplicitDF">
-	<option name="-explicitAnalysis-pcc-trac-all"/>
-	<option name="-setprop">analysis.traversal.order=BFS</option>
-	<option name="-setprop">cpa.value.merge=JOIN</option>
-	<option name="-setprop">cpa.propertychecker.className=SingleValueChecker</option>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=ssl3_connect::tmp___0,0,end,</option>
-			<include>../programs/benchmarks/ssh-simplified/s3_clnt_*_true-unreach-call*.cil.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=ssl3_accept::initial_state,8464,end,</option>
-			<include>../programs/benchmarks/ssh-simplified/s3_srvr_*_true-unreach-call*.cil.c</include>
-			<exclude>../programs/benchmarks/ssh-simplified/s3_srvr_1b_true-unreach-call_false-termination.cil.c</exclude>
-			<exclude>../programs/benchmarks/ssh-simplified/s3_srvr_1a_true-unreach-call.cil.c</exclude>
-		</sourcefiles>
-	   <sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=u,21,ERROR,</option>
-			<include>../programs/benchmarks/eca/Problem01_00_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem01_10_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem01_30_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem01_40_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem02_00_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem02_10_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem02_20_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem02_30_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem02_40_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem03_00_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem03_10_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem03_20_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem03_30_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem03_40_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem04_00_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem04_10_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem04_20_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem04_30_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem04_50_true-unreach-call.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=a15,1,ERROR,</option>
-			<include>../programs/benchmarks/eca/Problem05_10_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem05_20_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem05_50_true-unreach-call.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=u,21,ERROR,</option>
-			<include>../programs/benchmarks/eca/Problem06_30_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem06_40_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem06_50_true-unreach-call.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=a12,0,ERROR,</option>
-			<include>../programs/benchmarks/eca/Problem10_00_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem10_10_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem10_20_true-unreach-call.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=a21,7,ERROR,</option>
-			<include>../programs/benchmarks/eca/Problem14_00_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem14_20_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem14_30_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem14_50_true-unreach-call.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=a16,10,ERROR,</option>
-			<include>../programs/benchmarks/eca/Problem16_40_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem16_50_true-unreach-call.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=main::cond,0,out,</option>
-			<include>../programs/benchmarks/locks/test_locks_*_true-unreach-call*.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=IPC,7,_L,</option>
-			<include>../programs/benchmarks/ntdrivers-simplified/*_true-unreach-call_true-termination.cil.c</include>
-		</sourcefiles>
-</rundefinition>
-
-<rundefinition name="V_ExplicitDF">
+<rundefinition name="ExplicitDF">
 	<option name="-explicitAnalysis-pcc-trac-all"/>
 	<option name="-setprop">analysis.traversal.order=BFS</option>
 	<option name="-setprop">cpa.value.merge=JOIN</option>
@@ -1390,7 +1248,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
-<option name="-setprop">cpa.propertychecker.parameters=initial_state,ssl3_accept::initial_state,8464,end,</option>
+<option name="-setprop">cpa.propertychecker.parameters=ssl3_accept::initial_state,8464,end,</option>
 <include>../programs/benchmarks/ssh-simplified/s3_srvr_6_true-unreach-call.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1670,12 +1528,12 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
-<option name="-setprop">cpa.propertychecker.parameters=a7,1,ERROR,</option>
+<option name="-setprop">cpa.propertychecker.parameters=a12,0,ERROR,</option>
 <include>../programs/benchmarks/eca/Problem10_00_true-unreach-call.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.algorithm.proofCheck = true</option>
-<option name="-setprop">cpa.propertychecker.parameters=a7,1,ERROR,</option>
+<option name="-setprop">cpa.propertychecker.parameters=a12,0,ERROR,</option>
 <include>../programs/benchmarks/eca/Problem10_00_true-unreach-call.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1930,78 +1788,7 @@
 </sourcefiles>
 </rundefinition>
 
-<rundefinition name="A_ReachDef_ExplicitDF">
-	<option name="-reachingdef-explicit"/>
-	<option name="-setprop">analysis.traversal.order=BFS</option>
-	<option name="-setprop">cpa.value.merge=JOIN</option>
-	<option name="-setprop">cpa.propertychecker.className=SingleDefinitionSingleValueChecker</option>
-	    <sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=tmp___0,ssl3_connect::tmp___0,0,end,</option>
-			<include>../programs/benchmarks/ssh-simplified/s3_clnt_*_true-unreach-call*.cil.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=initial_state,ssl3_accept::initial_state,8464,end,</option>
-			<include>../programs/benchmarks/ssh-simplified/s3_srvr_*_true-unreach-call*.cil.c</include>
-			<exclude>../programs/benchmarks/ssh-simplified/s3_srvr_1b_true-unreach-call_false-termination.cil.c</exclude>
-			<exclude>../programs/benchmarks/ssh-simplified/s3_srvr_1a_true-unreach-call.cil.c</exclude>
-		</sourcefiles>
-	   <sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
-			<include>../programs/benchmarks/eca/Problem01_00_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem01_10_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem01_30_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem01_40_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem02_00_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem02_10_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem02_20_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem02_30_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem02_40_true-unreach-call.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=a,a12,0,ERROR,</option>
-			<include>../programs/benchmarks/eca/Problem10_00_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem10_10_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem10_20_true-unreach-call.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=a,a21,7,ERROR,</option>
-			<include>../programs/benchmarks/eca/Problem14_00_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem14_20_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem14_30_true-unreach-call.c</include>
-			<include>../programs/benchmarks/eca/Problem14_50_true-unreach-call.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=cond,main::cond,0,out,</option>
-			<include>../programs/benchmarks/locks/test_locks_*_true-unreach-call*.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=lastSession,IPC,7,_L,</option>
-			<include>../programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_true-unreach-call_true-termination.cil.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=FilterDevice,IPC,7,_L,</option>
-			<include>../programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_true-unreach-call_true-termination.cil.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=PeripheralType,IPC,7,_L,</option>
-			<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl3_true-unreach-call_true-termination.cil.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=ObjectType,IPC,7,_L,</option>
-			<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl4_true-unreach-call_true-termination.cil.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=Timeout,IPC,7,_L,</option>
-			<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_true-unreach-call_true-termination.cil.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=devExt,IPC,7,_L,</option>
-			<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_true-unreach-call_true-termination.cil.c</include>
-		</sourcefiles>
-</rundefinition>
-
-
-<rundefinition name="V_ReachDef_ExplicitDF">
+<rundefinition name="ReachDef_ExplicitDF">
 	<option name="-reachingdef-explicit"/>
 	<option name="-setprop">analysis.traversal.order=BFS</option>
 	<option name="-setprop">cpa.value.merge=JOIN</option>
@@ -2208,6 +1995,56 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem03_00_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem03_00_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem03_10_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem03_10_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem03_20_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem03_20_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem03_30_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem03_30_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem03_40_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem03_40_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=a,a12,0,ERROR,</option>
 <include>../programs/benchmarks/eca/Problem10_00_true-unreach-call.c</include>
 </sourcefiles>
@@ -2275,6 +2112,26 @@
 <option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=a,a21,7,ERROR,</option>
 <include>../programs/benchmarks/eca/Problem14_50_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,a16,10,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem16_40_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,a16,10,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem16_40_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,a16,10,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem16_50_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,a16,10,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem16_50_true-unreach-call.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
@@ -2448,47 +2305,190 @@
 </sourcefiles>
 </rundefinition>
 
-
-<rundefinition name="A_ReachDef_ExplicitJOINSEP">
+<rundefinition name="ReachDef_ExplicitJOINSEP">
 	<option name="-reachingdef-explicit"/>
 	<option name="-setprop">analysis.traversal.order=BFS</option>
 	<option name="-setprop">cpa.propertychecker.className=SingleDefinitionSingleValueChecker</option>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=cond,main::cond,0,out,</option>
-			<include>../programs/benchmarks/locks/test_locks_*_true-unreach-call*.c</include>
-			<exclude>../programs/benchmarks/locks/test_locks_10_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/locks/test_locks_11_true-unreach-call_false-termination.c</exclude>
-			<exclude>../programs/benchmarks/locks/test_locks_12_true-unreach-call_false-termination.c</exclude>
-			<exclude>../programs/benchmarks/locks/test_locks_13_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/locks/test_locks_14_true-unreach-call.c</exclude>
-			<exclude>../programs/benchmarks/locks/test_locks_15_true-unreach-call_false-termination.c</exclude>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=lastSession,IPC,7,_L,</option>
-			<include>../programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_true-unreach-call_true-termination.cil.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=PeripheralType,IPC,7,_L,</option>
-			<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl3_true-unreach-call_true-termination.cil.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=ObjectType,IPC,7,_L,</option>
-			<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl4_true-unreach-call_true-termination.cil.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=Timeout,IPC,7,_L,</option>
-			<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_true-unreach-call_true-termination.cil.c</include>
-		</sourcefiles>
-		<sourcefiles>
-			<option name="-setprop">cpa.propertychecker.parameters=devExt,IPC,7,_L,</option>
-			<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_true-unreach-call_true-termination.cil.c</include>
-		</sourcefiles>
-</rundefinition>
-
-<rundefinition name="V_ReachDef_ExplicitJOINSEP">
-	<option name="-reachingdef-explicit"/>
-	<option name="-setprop">analysis.traversal.order=BFS</option>
-	<option name="-setprop">cpa.propertychecker.className=SingleDefinitionSingleValueChecker</option>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=tmp___0,ssl3_connect::tmp___0,0,end,</option>
+<include>../programs/benchmarks/ssh-simplified/s3_clnt_1_true-unreach-call.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=tmp___0,ssl3_connect::tmp___0,0,end,</option>
+<include>../programs/benchmarks/ssh-simplified/s3_clnt_1_true-unreach-call.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=tmp___0,ssl3_connect::tmp___0,0,end,</option>
+<include>../programs/benchmarks/ssh-simplified/s3_clnt_2_true-unreach-call_true-termination.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=tmp___0,ssl3_connect::tmp___0,0,end,</option>
+<include>../programs/benchmarks/ssh-simplified/s3_clnt_2_true-unreach-call_true-termination.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=tmp___0,ssl3_connect::tmp___0,0,end,</option>
+<include>../programs/benchmarks/ssh-simplified/s3_clnt_3_true-unreach-call.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=tmp___0,ssl3_connect::tmp___0,0,end,</option>
+<include>../programs/benchmarks/ssh-simplified/s3_clnt_3_true-unreach-call.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=tmp___0,ssl3_connect::tmp___0,0,end,</option>
+<include>../programs/benchmarks/ssh-simplified/s3_clnt_4_true-unreach-call.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=tmp___0,ssl3_connect::tmp___0,0,end,</option>
+<include>../programs/benchmarks/ssh-simplified/s3_clnt_4_true-unreach-call.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=initial_state,ssl3_accept::initial_state,8464,end,</option>
+<include>../programs/benchmarks/ssh-simplified/s3_srvr_1_true-unreach-call.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=initial_state,ssl3_accept::initial_state,8464,end,</option>
+<include>../programs/benchmarks/ssh-simplified/s3_srvr_1_true-unreach-call.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=initial_state,ssl3_accept::initial_state,8464,end,</option>
+<include>../programs/benchmarks/ssh-simplified/s3_srvr_2_true-unreach-call.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=initial_state,ssl3_accept::initial_state,8464,end,</option>
+<include>../programs/benchmarks/ssh-simplified/s3_srvr_2_true-unreach-call.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=initial_state,ssl3_accept::initial_state,8464,end,</option>
+<include>../programs/benchmarks/ssh-simplified/s3_srvr_3_true-unreach-call.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=initial_state,ssl3_accept::initial_state,8464,end,</option>
+<include>../programs/benchmarks/ssh-simplified/s3_srvr_3_true-unreach-call.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=initial_state,ssl3_accept::initial_state,8464,end,</option>
+<include>../programs/benchmarks/ssh-simplified/s3_srvr_4_true-unreach-call.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=initial_state,ssl3_accept::initial_state,8464,end,</option>
+<include>../programs/benchmarks/ssh-simplified/s3_srvr_4_true-unreach-call.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=initial_state,ssl3_accept::initial_state,8464,end,</option>
+<include>../programs/benchmarks/ssh-simplified/s3_srvr_8_true-unreach-call.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=initial_state,ssl3_accept::initial_state,8464,end,</option>
+<include>../programs/benchmarks/ssh-simplified/s3_srvr_8_true-unreach-call.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem01_00_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem01_00_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem01_10_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem01_10_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem01_30_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem01_30_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem01_40_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem01_40_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem02_00_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem02_00_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem02_10_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem02_10_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem02_20_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem02_20_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem02_30_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem02_30_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">pcc.proofgen.doPCC = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem02_40_true-unreach-call.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
+<option name="-setprop">cpa.propertychecker.parameters=a,u,21,ERROR,</option>
+<include>../programs/benchmarks/eca/Problem02_40_true-unreach-call.c</include>
+</sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=cond,main::cond,0,out,</option>
