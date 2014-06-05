@@ -122,11 +122,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
   private final Map<String, CType> variableTypes;
 
-  /**
-   * A flag indicating whether or not to use bit vectors for representing states.
-   */
-  private final boolean useBitvectors;
-
   private final PartialEvaluator partialEvaluator;
 
   private final MachineModel machineModel;
@@ -135,33 +130,27 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
   private volatile int hash = 0;
 
-  public InvariantsState(boolean pUseBitvectors,
-      VariableSelection<CompoundInterval> pVariableSelection,
+  public InvariantsState(VariableSelection<CompoundInterval> pVariableSelection,
       MachineModel pMachineModel,
       InvariantsState pInvariant) {
     this.environment = pInvariant.environment;
     this.partialEvaluator = pInvariant.partialEvaluator;
-    this.useBitvectors = pUseBitvectors;
     this.variableSelection = pVariableSelection;
     this.variableTypes = pInvariant.variableTypes;
     this.machineModel = pMachineModel;
   }
 
   /**
-   * Creates a new invariants state with just a value for the flag indicating
-   * whether or not to use bit vectors for representing states, a selection of
-   * variables, the set of visited edges and a precision.
+   * Creates a new invariants state with a selection of
+   * variables, and the machine model used.
    *
-   * @param pUseBitvectors the flag indicating whether or not to use bit vectors for representing states.
    * @param pVariableSelection the selected variables.
    * @param pMachineModel the machine model used.
    */
-  public InvariantsState(boolean pUseBitvectors,
-      VariableSelection<CompoundInterval> pVariableSelection,
+  public InvariantsState(VariableSelection<CompoundInterval> pVariableSelection,
       MachineModel pMachineModel) {
     this.environment = new NonRecursiveEnvironment();
     this.partialEvaluator = new PartialEvaluator(this.environment);
-    this.useBitvectors = pUseBitvectors;
     this.variableSelection = pVariableSelection;
     this.variableTypes = new HashMap<>();
     this.machineModel = pMachineModel;
@@ -171,7 +160,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    * Creates a new state from the given state properties.
    *
    * @param pEnvironment the current environment.
-   * @param pUseBitvectors a flag indicating whether or not to use bit vectors to represent states.
    * @param pVariableSelection the selected variables.
    * @param pMachineModel the machine model used.
    * @param pVariableTypes the types of the variables.
@@ -179,11 +167,10 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    * @return a new state from the given state properties.
    */
   private static InvariantsState from(Map<String, InvariantsFormula<CompoundInterval>> pEnvironment,
-      boolean pUseBitvectors,
       VariableSelection<CompoundInterval> pVariableSelection,
       MachineModel pMachineModel,
       Map<String, CType> pVariableTypes) {
-    InvariantsState result = new InvariantsState(pUseBitvectors, pVariableSelection, pMachineModel);
+    InvariantsState result = new InvariantsState(pVariableSelection, pMachineModel);
     result.environment.putAll(pEnvironment);
     result.variableTypes.putAll(pVariableTypes);
     return result;
@@ -193,7 +180,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     if (pType.equals(variableTypes.get(pVarName))) {
       return this;
     }
-    InvariantsState result = from(environment, useBitvectors, variableSelection, machineModel, variableTypes);
+    InvariantsState result = from(environment, variableSelection, machineModel, variableTypes);
     result.variableTypes.put(pVarName, pType);
     return result;
   }
@@ -209,7 +196,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     if (allContained) {
       return this;
     }
-    InvariantsState result = from(environment, useBitvectors, variableSelection, machineModel, variableTypes);
+    InvariantsState result = from(environment, variableSelection, machineModel, variableTypes);
     result.variableTypes.putAll(pVarTypes);
     return result;
   }
@@ -288,7 +275,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
         return this;
       }
       return from(newEnvironment,
-          useBitvectors, variableSelection,
+          variableSelection,
           machineModel,
           variableTypes);
     }
@@ -370,7 +357,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   private InvariantsState assignInternal(String pVarName, InvariantsFormula<CompoundInterval> pValue, CFAEdge pEdge,
       VariableSelection<CompoundInterval> newVariableSelection,
       FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor, ReplaceVisitor<CompoundInterval> replaceVisitor) {
-    final InvariantsState result = new InvariantsState(useBitvectors, newVariableSelection, machineModel);
+    final InvariantsState result = new InvariantsState(newVariableSelection, machineModel);
     result.variableTypes.putAll(variableTypes);
 
     for (Map.Entry<String, InvariantsFormula<CompoundInterval>> environmentEntry : this.environment.entrySet()) {
@@ -395,7 +382,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     if (environment.isEmpty()) {
       return this;
     }
-    return new InvariantsState(useBitvectors, variableSelection, machineModel);
+    return new InvariantsState(variableSelection, machineModel);
   }
 
   /**
@@ -563,8 +550,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       return this;
     }
 
-    InvariantsState result = from(environment, useBitvectors,
-        newVariableSelection, machineModel, variableTypes);
+    InvariantsState result = from(environment, newVariableSelection, machineModel, variableTypes);
     if (result != null) {
       if (!result.assumeInternal(assumption, evaluator)) { return null; }
       if (equalsState(result)) {
@@ -580,7 +566,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     BooleanFormulaManager bfmgr = pManager.getBooleanFormulaManager();
     BooleanFormula result = bfmgr.makeBoolean(true);
     ToFormulaVisitor<CompoundInterval, BooleanFormula> toBooleanFormulaVisitor =
-        ToBooleanFormulaVisitor.getVisitor(pManager, evaluationVisitor, useBitvectors, machineModel, variableTypes);
+        ToBooleanFormulaVisitor.getVisitor(pManager, evaluationVisitor, true, machineModel, variableTypes);
 
     final Predicate<String> acceptVariable = new Predicate<String>() {
 
@@ -649,15 +635,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     return Collections.unmodifiableMap(environment);
   }
 
-  /**
-   * Gets the flag indicating whether or not to use bit vectors to represent the states.
-   *
-   * @return the flag indicating whether or not to use bit vectors to represent the states.
-   */
-  private boolean getUseBitvectors() {
-    return useBitvectors;
-  }
-
   public boolean isLessThanOrEqualTo(InvariantsState pElement2) {
     if (pElement2 == this) { return true; }
     if (pElement2 == null) {
@@ -677,7 +654,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   }
 
   private InvariantsState widen(InvariantsState pOlderState, InvariantsPrecision pPrecision) {
-    InvariantsState result = from(environment, useBitvectors, variableSelection, machineModel, variableTypes);
+    InvariantsState result = from(environment, variableSelection, machineModel, variableTypes);
     Map<String, InvariantsFormula<CompoundInterval>> toDo = new HashMap<>();
     for (Map.Entry<String, InvariantsFormula<CompoundInterval>> entry : this.environment.entrySet()) {
       String varName = entry.getKey();
@@ -730,7 +707,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   }
 
   public InvariantsState join(InvariantsState pState2, InvariantsPrecision pPrecision) {
-    Preconditions.checkArgument(pState2.useBitvectors == useBitvectors);
 
     InvariantsState state1 = widen(pState2, pPrecision);
     InvariantsState state2 = pState2;
@@ -763,7 +739,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       Map<String, CType> variableTypes = new HashMap<>(state1.variableTypes);
       variableTypes.putAll(state2.variableTypes);
 
-      result = InvariantsState.from(resultEnvironment, state1.getUseBitvectors(), resultVariableSelection,
+      result = InvariantsState.from(resultEnvironment, resultVariableSelection,
           machineModel, variableTypes);
 
       if (result != null) {

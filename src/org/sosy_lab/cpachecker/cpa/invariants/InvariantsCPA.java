@@ -136,9 +136,6 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     @Option(description="the maximum tree depth of a formula recorded in the environment.")
     private int maximumFormulaDepth = 4;
 
-    @Option(description="whether or not to use a bit vector formula manager when extracting invariant approximations from states.")
-    private boolean useBitvectors = false;
-
     @Option(description="controls whether to use abstract evaluation always, never, or only on already previously visited edges.")
     private EdgeBasedAbstractionStrategyFactories edgeBasedAbstractionStrategyFactory = EdgeBasedAbstractionStrategyFactories.VISITED_EDGES;
 
@@ -304,7 +301,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
       }
     }
     if (shutdownNotifier.shouldShutdown()) {
-      return new InvariantsState(options.useBitvectors, new AcceptAllVariableSelection<CompoundInterval>(), machineModel);
+      return new InvariantsState(new AcceptAllVariableSelection<CompoundInterval>(), machineModel);
     }
     if (options.analyzeTargetPathsOnly && determineTargetLocations) {
       relevantLocations.addAll(targetLocations);
@@ -360,7 +357,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     }
 
     if (shutdownNotifier.shouldShutdown()) {
-      return new InvariantsState(options.useBitvectors, new AcceptAllVariableSelection<CompoundInterval>(), machineModel);
+      return new InvariantsState(new AcceptAllVariableSelection<CompoundInterval>(), machineModel);
     }
 
     // Try to specify all relevant variables
@@ -410,11 +407,11 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
     InvariantsState invariant = invariants.get(pNode);
     if (invariant != null) {
-      return new InvariantsState(options.useBitvectors, variableSelection, machineModel, invariant);
+      return new InvariantsState(variableSelection, machineModel, invariant);
     }
 
     // Create the configured initial state
-    return new InvariantsState(options.useBitvectors, variableSelection, machineModel);
+    return new InvariantsState(variableSelection, machineModel);
   }
 
   @Override

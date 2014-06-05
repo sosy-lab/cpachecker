@@ -764,10 +764,6 @@ cpa.invariants.maximumFormulaDepth = 4
 cpa.invariants.merge = "PRECISIONDEPENDENT"
   allowed values: [JOIN, SEP, PRECISIONDEPENDENT]
 
-# whether or not to use a bit vector formula manager when extracting
-# invariant approximations from states.
-cpa.invariants.useBitvectors = false
-
 # this option controls how the maxLoopIterations condition is adjusted when a
 # condition adjustment is invoked.
 cpa.loopstack.maxLoopIterationAdjusterFactory = STATIC
