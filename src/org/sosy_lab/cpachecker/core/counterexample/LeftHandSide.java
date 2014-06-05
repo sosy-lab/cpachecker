@@ -33,12 +33,22 @@ public abstract class LeftHandSide {
     functionName = pFunctionName;
   }
 
+  public LeftHandSide(String pName) {
+    name = pName;
+    functionName = null;
+  }
+
   public String getName() {
     return name;
   }
 
   public String getFunctionName() {
+    assert functionName != null;
     return functionName;
+  }
+
+  public boolean isGlobal() {
+    return functionName == null;
   }
 
   @Override
@@ -49,6 +59,6 @@ public abstract class LeftHandSide {
 
   @Override
   public String toString() {
-    return functionName + "::" + name;
+    return functionName == null ? name : functionName + "::" + name;
   }
 }

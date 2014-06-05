@@ -23,29 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
-import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 
 
-public class Assignment {
+public interface MemoryName {
 
-  private final AssignableTerm term;
-  private final Object value;
+  public String getMemoryName(CRightHandSide exp, Address address);
 
-  public Assignment(AssignableTerm pTerm, Object pValue) {
-    term = pTerm;
-    value = pValue;
-  }
-
-  public AssignableTerm getTerm() {
-    return term;
-  }
-
-  public Object getValue() {
-    return value;
-  }
-
-  @Override
-  public String toString() {
-    return "term: " + term.toString() + "value: " + value.toString();
-  }
 }

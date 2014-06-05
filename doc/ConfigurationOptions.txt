@@ -410,6 +410,14 @@ coverage.file = "coverage.%s.info"
 # CPA to use (see doc/Configuration.txt for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
 
+# Use this to change the underlying abstract domain in the APRON library
+cpa.apron.domain = "OCTAGON"
+  allowed values: [BOX, OCTAGON, POLKA, POLKA_STRICT, POLKA_EQ]
+
+# which merge operator to use for ApronCPA?
+cpa.apron.merge = "SEP"
+  allowed values: [SEP, JOIN]
+
 # export one variable assignment for error path to file, if one is found
 cpa.arg.errorPath.assignment = "ErrorPath.%d.assignment.txt"
 

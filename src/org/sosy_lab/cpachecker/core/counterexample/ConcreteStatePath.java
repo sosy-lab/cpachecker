@@ -23,32 +23,67 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcerteStateCFAEdgePair;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcerteStatePathNode;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 
-public class ConcreteStatePath implements Iterable<ConcerteStateCFAEdgePair> {
+public final class ConcreteStatePath implements Iterable<ConcerteStatePathNode> {
 
-  private final List<ConcerteStateCFAEdgePair> list;
+  private final List<ConcerteStatePathNode> list;
 
-  public ConcreteStatePath(List<ConcerteStateCFAEdgePair> pList) {
+  public ConcreteStatePath(List<ConcerteStatePathNode> pList) {
     list = ImmutableList.copyOf(pList);
   }
 
   @Override
-  public final Iterator<ConcerteStateCFAEdgePair> iterator() {
+  public final Iterator<ConcerteStatePathNode> iterator() {
     return list.iterator();
   }
 
-  public static ConcerteStateCFAEdgePair valueOf(ConcreteState pConcreteState, CFAEdge cfaEdge) {
-    return new ConcerteStateCFAEdgePair(pConcreteState, cfaEdge);
+  public static ConcerteStatePathNode valueOfPathNode(ConcreteState pConcreteState, CFAEdge cfaEdge) {
+
+    Preconditions.checkArgument(cfaEdge.getEdgeType() != CFAEdgeType.MultiEdge);
+    return new SingleConcreteState(cfaEdge, pConcreteState);
+  }
+
+  public static ConcerteStatePathNode valueOfPathNode(ConcreteState[] pConcreteStates, MultiEdge multiEdge) {
+
+    List<CFAEdge> edges = multiEdge.getEdges();
+
+    Preconditions.checkArgument(edges.size() == pConcreteStates.length);
+
+    List<SingleConcreteState> result = new ArrayList<>(pConcreteStates.length);
+
+    int concreteStateCounter = 0;
+    for (CFAEdge edge : edges) {
+      result.add(new SingleConcreteState(edge, pConcreteStates[concreteStateCounter]));
+      concreteStateCounter++;
+    }
+
+    return new MultiConcreteState(multiEdge, result);
+  }
+
+  public int size() {
+    return list.size();
+  }
+
+  @Override
+  public boolean equals(Object pObj) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public int hashCode() {
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -56,30 +91,55 @@ public class ConcreteStatePath implements Iterable<ConcerteStateCFAEdgePair> {
     return "ConcreteStatePath:" + list.toString();
   }
 
-  public static final class ConcerteStateCFAEdgePair {
+  public static abstract class ConcerteStatePathNode {
 
-    private final ConcreteState concreteState;
     private final CFAEdge cfaEdge;
 
-    public ConcerteStateCFAEdgePair(ConcreteState pConcreteState, CFAEdge pCfaEdge) {
-      Preconditions.checkArgument(pCfaEdge.getEdgeType() != CFAEdgeType.MultiEdge);
-      concreteState = pConcreteState;
+    public ConcerteStatePathNode(CFAEdge pCfaEdge) {
       cfaEdge = pCfaEdge;
+    }
+
+    public CFAEdge getCfaEdge() {
+      return cfaEdge;
+    }
+  }
+
+  static final class SingleConcreteState extends ConcerteStatePathNode {
+
+    private final ConcreteState concreteState;
+
+    public SingleConcreteState(CFAEdge cfaEdge, ConcreteState pConcreteState) {
+      super(cfaEdge);
+      concreteState = pConcreteState;
     }
 
     public ConcreteState getConcreteState() {
       return concreteState;
     }
 
-    public CFAEdge getCfaEdge() {
-      return cfaEdge;
+    @Override
+    public String toString() {
+      return "[" + getCfaEdge().toString() + " " + concreteState.toString() + "]";
+    }
+  }
+
+  static final class MultiConcreteState extends ConcerteStatePathNode implements Iterable<SingleConcreteState> {
+
+    private final List<SingleConcreteState> concreteStates;
+
+    public MultiConcreteState(MultiEdge pCfaEdge, List<SingleConcreteState> pConcreteStates) {
+      super(pCfaEdge);
+      concreteStates = ImmutableList.copyOf(pConcreteStates);
     }
 
     @Override
-    public String toString() {
-      return "concreteState= [" + concreteState.toString() + "]"
-          + System.lineSeparator()
-          + "cfaEdge= [" + cfaEdge.toString() + "]";
+    public MultiEdge getCfaEdge() {
+      return (MultiEdge) super.getCfaEdge();
+    }
+
+    @Override
+    public Iterator<SingleConcreteState> iterator() {
+      return concreteStates.iterator();
     }
   }
 }

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkState;
 
 import java.io.IOException;
 import java.util.List;
@@ -262,9 +262,6 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
   public Model(Map<AssignableTerm, Object> content, CFAPathWithAssignments pAssignments) {
     mModel = ImmutableMap.copyOf(content);
     assignments = pAssignments;
-
-    checkArgument(mModel.keySet().containsAll(
-        assignments.getAllAssignedTerms()));
   }
 
   /**

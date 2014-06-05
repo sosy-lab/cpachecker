@@ -111,6 +111,8 @@ public class AssignmentToEdgeAllocator {
   private final CFAEdge cfaEdge;
   private final ConcreteState modelAtEdge;
 
+  private static final int FIRST = 0;
+
   public AssignmentToEdgeAllocator(LogManager pLogger,
       CFAEdge pCfaEdge,
       ConcreteState pModelAtEdge,
@@ -324,7 +326,7 @@ public class AssignmentToEdgeAllocator {
     }
 
     Type expectedType = leftHandSide.getExpressionType();
-    ValueLiterals valueAsCode = getValueAsCode(value, expectedType, leftHandSide.toASTString(), functionName);
+    ValueLiterals valueAsCode = getValueAsCode(value, expectedType, leftHandSide, functionName);
 
     return handleSimpleValueLiteralsAssignments(valueAsCode, leftHandSide);
   }
@@ -340,22 +342,22 @@ public class AssignmentToEdgeAllocator {
     return pLeftHandSide.accept(v);
   }
 
-  /*
-   * The Parameter leftHandSide may be null, it is needed if
-   * structs are to be resolved.
-   */
   private ValueLiterals getValueAsCode(Object pValue,
       Type pExpectedType,
-      String leftHandSide,
+      CLeftHandSide leftHandSide,
       String functionName) {
 
     // TODO processing for other languages
     if (pExpectedType instanceof CType) {
       CType cType = ((CType) pExpectedType).getCanonicalType();
 
-      ValueLiteralsVisitor v = new ValueLiteralsVisitor(pValue);
+      ValueLiteralsVisitor v = new ValueLiteralsVisitor(pValue, leftHandSide);
       ValueLiterals valueLiterals = cType.accept(v);
-      v.resolveStruct(cType, valueLiterals, leftHandSide, functionName);
+
+      if (isStructOrUnionType(cType) && leftHandSide instanceof CIdExpression) {
+        v.resolveStruct(cType, valueLiterals, (CIdExpression) leftHandSide, functionName);
+      }
+
       return valueLiterals;
     }
 
@@ -393,8 +395,10 @@ public class AssignmentToEdgeAllocator {
         return Collections.emptyList();
       }
 
+      CIdExpression idExpression = new CIdExpression(dcl.getFileLocation(), cDcl);
+
       Type dclType = cDcl.getType();
-      ValueLiterals valueAsCode = getValueAsCode(value, dclType, dcl.getName(), functionName);
+      ValueLiterals valueAsCode =  getValueAsCode(value, dclType, idExpression, functionName);
 
       CIdExpression idExp = new CIdExpression(FileLocation.DUMMY, cDcl);
 
@@ -421,7 +425,7 @@ public class AssignmentToEdgeAllocator {
     for (SubExpressionValueLiteral subValueLiteral : subValues) {
       IAssignment statement =
           new CExpressionAssignmentStatement(pLValue.getFileLocation(),
-              subValueLiteral.getSubExpression().createSubExpressionLeftHandSide(pLValue),
+              subValueLiteral.getSubExpression(),
               subValueLiteral.getValueLiteralAsCExpression());
 
       statements.add(statement);
@@ -434,7 +438,7 @@ public class AssignmentToEdgeAllocator {
     return new LModelValueVisitor(pFunctionName).handleVariableDeclaration(pDcl);
   }
 
-  boolean isStructOrUnionType(CType rValueType) {
+  private boolean isStructOrUnionType(CType rValueType) {
 
     rValueType = rValueType.getCanonicalType();
 
@@ -449,6 +453,36 @@ public class AssignmentToEdgeAllocator {
     }
 
     return false;
+  }
+
+  //TODO Move to Utility?
+  private ReferenceName getFieldReferenceVariableName(CFieldReference pIastFieldReference,
+      String pFunctionName) {
+
+    List<String> fieldNameList = new ArrayList<>();
+
+    CFieldReference reference = pIastFieldReference;
+
+    fieldNameList.add(FIRST, reference.getFieldName());
+
+    while (reference.getFieldOwner() instanceof CFieldReference
+        && !reference.isPointerDereference()) {
+      reference = (CFieldReference) reference.getFieldOwner();
+      fieldNameList.add(FIRST, reference.getFieldName());
+    }
+
+    if (reference.getFieldOwner() instanceof CIdExpression) {
+
+      CIdExpression idExpression = (CIdExpression) reference.getFieldOwner();
+
+      if (ForwardingTransferRelation.isGlobal(idExpression)) {
+        return new ReferenceName(idExpression.getName(), fieldNameList);
+      } else {
+        return new ReferenceName(idExpression.getName(), pFunctionName, fieldNameList);
+      }
+    } else {
+      return null;
+    }
   }
 
   private class LModelValueVisitor implements CLeftHandSideVisitor<Object, RuntimeException> {
@@ -509,13 +543,12 @@ public class AssignmentToEdgeAllocator {
 
       Address valueAddress = evaluateAddress(pIastArraySubscriptExpression);
 
-      if(valueAddress == null) {
+      if (valueAddress == null) {
         return null;
       }
 
-      CType type = pIastArraySubscriptExpression.getExpressionType().getCanonicalType();
-
-      Object value = modelAtEdge.getValueFromUF(type, valueAddress);
+      Object value = modelAtEdge.getValueFromMemory(pIastArraySubscriptExpression,
+          valueAddress);
 
       return value;
     }
@@ -529,9 +562,7 @@ public class AssignmentToEdgeAllocator {
         return lookupReference(pIastFieldReference);
       }
 
-      CType type = pIastFieldReference.getExpressionType().getCanonicalType();
-
-      Object value = modelAtEdge.getValueFromUF(type, address);
+      Object value = modelAtEdge.getValueFromMemory(pIastFieldReference, address);
 
       if (value == null) {
         return lookupReference(pIastFieldReference);
@@ -542,16 +573,14 @@ public class AssignmentToEdgeAllocator {
 
     private Object lookupReference(CFieldReference pIastFieldReference) {
 
-      if(pIastFieldReference.isPointerDereference()) {
-        return null;
-      }
-
       /* Fieldreferences are sometimes represented as variables,
          e.g a.b.c in main is main::a$b$c */
-      String fieldReferenceVariableName = getFieldReferenceVariableName(pIastFieldReference);
+      ReferenceName fieldReference = getFieldReferenceVariableName(pIastFieldReference, functionName);
 
-      if (fieldReferenceVariableName != null && modelAtEdge.containsVariableName(fieldReferenceVariableName)) {
-        return modelAtEdge.getVariableValue(fieldReferenceVariableName);
+      if (fieldReference != null &&
+          modelAtEdge.hasValueForLeftHandSide(fieldReference)) {
+
+        return modelAtEdge.getVariableValue(fieldReference);
       }
 
       return null;
@@ -608,37 +637,6 @@ public class AssignmentToEdgeAllocator {
       return null;
     }
 
-    private String getFieldReferenceVariableName(CFieldReference pIastFieldReference) {
-
-      List<String> fieldNameList = new ArrayList<>();
-
-      CFieldReference reference = pIastFieldReference;
-
-      fieldNameList.add(0 ,reference.getFieldName());
-
-      while(reference.getFieldOwner() instanceof CFieldReference) {
-        reference = (CFieldReference) reference.getFieldOwner();
-        fieldNameList.add(0 ,reference.getFieldName());
-      }
-
-      if (reference.getFieldOwner() instanceof CIdExpression) {
-
-        CIdExpression idExpression = (CIdExpression) reference.getFieldOwner();
-
-        fieldNameList.add(0, idExpression.getName());
-
-        Joiner joiner = Joiner.on("$");
-
-        if (ForwardingTransferRelation.isGlobal(idExpression)) {
-          return joiner.join(fieldNameList);
-        } else {
-          return functionName + "::" + joiner.join(fieldNameList);
-        }
-      } else {
-        return null;
-      }
-    }
-
     @Override
     public Object visit(CIdExpression pCIdExpression) {
 
@@ -653,7 +651,7 @@ public class AssignmentToEdgeAllocator {
         Address address = evaluateAddress(pCIdExpression);
 
         if(address != null) {
-          return address.getSymbolicValue();
+          return address.getAsNumber();
         }
 
       }
@@ -680,7 +678,7 @@ public class AssignmentToEdgeAllocator {
         Address address = addressVisitor.getAddress(pVarDcl);
 
         if (address != null) {
-          return address.getSymbolicValue();
+          return address.getAsNumber();
         }
 
       }
@@ -699,9 +697,9 @@ public class AssignmentToEdgeAllocator {
         return lookupVariable(pVarDcl);
       }
 
-      CType type = pVarDcl.getType().getCanonicalType();
+      CIdExpression idExp = new CIdExpression(FileLocation.DUMMY, pVarDcl);
 
-      Object value = modelAtEdge.getValueFromUF(type, address);
+      Object value = modelAtEdge.getValueFromMemory(idExp, address);
 
       if (value == null) {
         return lookupVariable(pVarDcl);
@@ -711,25 +709,28 @@ public class AssignmentToEdgeAllocator {
     }
 
     private Object lookupVariable(CSimpleDeclaration pVarDcl) {
-      String varName = getName(pVarDcl);
+      Variable varName = getName(pVarDcl);
 
-      if (modelAtEdge.containsVariableName(varName)) {
+      if (modelAtEdge.hasValueForLeftHandSide(varName)) {
         return modelAtEdge.getVariableValue(varName);
       } else {
         return null;
       }
     }
 
-    private String getName(CSimpleDeclaration pDcl) {
+    //TODO Change Name and Model, can be more than Variable
+    //TODO Move to util
+    private Variable getName(CSimpleDeclaration pDcl) {
 
       String name = pDcl.getName();
 
       if (pDcl instanceof CParameterDeclaration ||
           (pDcl instanceof CVariableDeclaration
-              && !((CVariableDeclaration) pDcl).isGlobal())) {
-        return functionName + "::" + name;
+          && !((CVariableDeclaration) pDcl).isGlobal())) {
+
+        return new Variable(name, functionName);
       } else {
-        return name;
+        return new Variable(name);
       }
     }
 
@@ -756,7 +757,7 @@ public class AssignmentToEdgeAllocator {
         return null;
       }
 
-      return modelAtEdge.getValueFromUF(type, address);
+      return modelAtEdge.getValueFromMemory(pPointerExpression, address);
     }
 
     boolean isStructOrUnionType(CType rValueType) {
@@ -786,9 +787,9 @@ public class AssignmentToEdgeAllocator {
 
       public Address getAddress(CSimpleDeclaration dcl) {
 
-        String name = getName(dcl);
+        Variable name = getName(dcl);
 
-        if (modelAtEdge.containsVariableAddress(name)) {
+        if (modelAtEdge.hasAddressOfVaribable(name)) {
           return modelAtEdge.getVariableAddress(name);
         }
 
@@ -820,10 +821,6 @@ public class AssignmentToEdgeAllocator {
         BigDecimal typeSize = BigDecimal.valueOf(machineModel.getSizeof(pIastArraySubscriptExpression.getExpressionType().getCanonicalType()));
 
         BigDecimal subscriptOffset = subscriptValue.multiply(typeSize);
-
-        if (!address.isNumericalType()) {
-          return null;
-        }
 
         return address.addOffset(subscriptOffset);
       }
@@ -863,7 +860,7 @@ public class AssignmentToEdgeAllocator {
 
         BigDecimal fieldOffset = getFieldOffset(pIastFieldReference);
 
-        if(fieldOffset == null && !fieldOwnerAddress.isNumericalType()) {
+        if(fieldOffset == null) {
           return lookupReferenceAddress(pIastFieldReference);
         }
 
@@ -879,11 +876,11 @@ public class AssignmentToEdgeAllocator {
       private Address lookupReferenceAddress(CFieldReference pIastFieldReference) {
         /* Fieldreferences are sometimes represented as variables,
         e.g a.b.c in main is main::a$b$c */
-        String fieldReferenceVariableName = getFieldReferenceVariableName(pIastFieldReference);
+        ReferenceName fieldReferenceName = getFieldReferenceVariableName(pIastFieldReference, functionName);
 
-        if (fieldReferenceVariableName != null) {
-          if (modelAtEdge.containsVariableAddress(fieldReferenceVariableName)) {
-            return modelAtEdge.getVariableAddress(fieldReferenceVariableName);
+        if (fieldReferenceName != null) {
+          if (modelAtEdge.hasAddressOfVaribable(fieldReferenceName)) {
+            return modelAtEdge.getVariableAddress(fieldReferenceName);
           }
         }
 
@@ -1011,7 +1008,7 @@ public class AssignmentToEdgeAllocator {
 
             Address address = evaluateAddress((CLeftHandSide) operand);
 
-            if(address != null && address.isNumericalType()) {
+            if(address != null) {
               return new NumericValue(address.getAsNumber());
             }
           }
@@ -1083,9 +1080,11 @@ public class AssignmentToEdgeAllocator {
   private class ValueLiteralsVisitor extends DefaultCTypeVisitor<ValueLiterals, RuntimeException> {
 
     private final Object value;
+    private final CExpression exp;
 
-    public ValueLiteralsVisitor(Object pValue) {
+    public ValueLiteralsVisitor(Object pValue, CExpression pExp) {
       value = pValue;
+      exp = pExp;
     }
 
     @Override
@@ -1102,7 +1101,7 @@ public class AssignmentToEdgeAllocator {
 
       ValueLiterals valueLiterals = new ValueLiterals(valueLiteral);
 
-      ValueLiteralVisitor v = new ValueLiteralVisitor(address, valueLiterals);
+      ValueLiteralVisitor v = new ValueLiteralVisitor(address, valueLiterals, exp);
 
       pointerType.accept(v);
 
@@ -1117,7 +1116,7 @@ public class AssignmentToEdgeAllocator {
 
       ValueLiterals valueLiterals = new ValueLiterals(valueLiteral);
 
-      ValueLiteralVisitor v = new ValueLiteralVisitor(address, valueLiterals);
+      ValueLiteralVisitor v = new ValueLiteralVisitor(address, valueLiterals, exp);
 
       arrayType.accept(v);
 
@@ -1178,7 +1177,7 @@ public class AssignmentToEdgeAllocator {
 
       ValueLiterals valueLiterals = new ValueLiterals(valueLiteral);
 
-      ValueLiteralVisitor v = new ValueLiteralVisitor(address, valueLiterals);
+      ValueLiteralVisitor v = new ValueLiteralVisitor(address, valueLiterals, exp);
 
       compType.accept(v);
 
@@ -1215,11 +1214,11 @@ public class AssignmentToEdgeAllocator {
       return UnknownValueLiteral.getInstance();
     }
 
-    public void resolveStruct(CType type, ValueLiterals pValueLiterals, String pLeftHandSide, String pFunctionName) {
-      if (isStructOrUnionType(type)) {
-        ValueLiteralStructResolver v = new ValueLiteralStructResolver(pValueLiterals, pLeftHandSide, pFunctionName);
-        type.accept(v);
-      }
+    public void resolveStruct(CType type, ValueLiterals pValueLiterals,
+        CIdExpression pOwner, String pFunctionName) {
+
+      ValueLiteralStructResolver v = new ValueLiteralStructResolver(pValueLiterals, pFunctionName, pOwner);
+      type.accept(v);
     }
 
     private ValueLiteral handleIntegerNumbers(Object pValue) {
@@ -1258,7 +1257,7 @@ public class AssignmentToEdgeAllocator {
 
       /*Contains references already visited, to avoid descending indefinitely.
        *Shares a reference with all instanced Visitors resolving the given type.*/
-      private final Set<Pair<CType, Object>> visited;
+      private final Set<Pair<CType, Address>> visited;
 
       /*
        * Contains the address of the super type of the visited type.
@@ -1267,21 +1266,21 @@ public class AssignmentToEdgeAllocator {
       private final Address address;
       private final ValueLiterals valueLiterals;
 
-      private final SubExpression prevSubExpression;
+      private final CExpression subExpression;
 
-      public ValueLiteralVisitor(Address pAddress, ValueLiterals pValueLiterals) {
+      public ValueLiteralVisitor(Address pAddress, ValueLiterals pValueLiterals, CExpression pSubExp) {
         address = pAddress;
         valueLiterals = pValueLiterals;
         visited = new HashSet<>();
-        prevSubExpression = null;
+        subExpression = pSubExp;
       }
 
       private ValueLiteralVisitor(Address pAddress, ValueLiterals pValueLiterals,
-          SubExpression subExp, Set<Pair<CType, Object>> pVisited) {
+          CExpression pSubExp, Set<Pair<CType, Address>> pVisited) {
         address = pAddress;
         valueLiterals = pValueLiterals;
         visited = pVisited;
-        prevSubExpression = subExp;
+        subExpression = pSubExp;
       }
 
       @Override
@@ -1335,20 +1334,25 @@ public class AssignmentToEdgeAllocator {
 
         for (CCompositeType.CCompositeTypeMemberDeclaration memberType : pCompType.getMembers()) {
 
-          handleMemberField(memberType, fieldAddress);
+          handleMemberField(memberType, fieldAddress, pCompType);
           int offsetToNextField = machineModel.getSizeof(memberType.getType());
-
-          if (!fieldAddress.isNumericalType()) {
-            return;
-          }
 
           fieldAddress = fieldAddress.addOffset(offsetToNextField);
         }
       }
 
-      private void handleMemberField(CCompositeTypeMemberDeclaration pType, Address fieldAddress) {
+      private void handleMemberField(CCompositeTypeMemberDeclaration pType, Address fieldAddress,
+          CCompositeType structType) {
         CType expectedType = pType.getType().getCanonicalType();
-        Object fieldValue = modelAtEdge.getValueFromUF(expectedType, fieldAddress);
+
+        assert isStructOrUnionType(subExpression.getExpressionType().getCanonicalType());
+
+        //TODO resolve correct pointer dereference
+        CFieldReference fieldReference =
+            new CFieldReference(subExpression.getFileLocation(),
+                expectedType, pType.getName(), subExpression, false);
+
+        Object fieldValue = modelAtEdge.getValueFromMemory(fieldReference, fieldAddress);
 
         if(fieldValue == null) {
           return;
@@ -1364,14 +1368,11 @@ public class AssignmentToEdgeAllocator {
           valueLiteral = ExplicitValueLiteral.valueOf(valueAddress);
         }
 
-        Object fieldAddressObject = fieldAddress.getSymbolicValue();
-        Pair<CType, Object> visits = Pair.of(expectedType, fieldAddressObject);
+        Pair<CType, Address> visits = Pair.of(expectedType, fieldAddress);
 
         if (visited.contains(visits)) {
           return;
         }
-
-        FieldReference fieldReference = FieldReference.valueOf(expectedType, pType.getName(), false, prevSubExpression);
 
         if (!valueLiteral.isUnknown()) {
           visited.add(visits);
@@ -1407,13 +1408,15 @@ public class AssignmentToEdgeAllocator {
         int typeSize = machineModel.getSizeof(pExpectedType);
         int subscriptOffset = pSubscript * typeSize;
 
-        if (!pArrayAddress.isNumericalType()) {
-          return false;
-        }
-
         Address address = pArrayAddress.addOffset(subscriptOffset);
 
-        Object value = modelAtEdge.getValueFromUF(pExpectedType, address);
+        BigInteger subscript = BigInteger.valueOf(pSubscript);
+        CIntegerLiteralExpression litExp =
+            new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, subscript);
+        CArraySubscriptExpression arraySubscript =
+            new CArraySubscriptExpression(subExpression.getFileLocation(), pExpectedType, subExpression, litExp);
+
+        Object value = modelAtEdge.getValueFromMemory(arraySubscript, address);
 
         if (value == null) {
           return false;
@@ -1429,23 +1432,9 @@ public class AssignmentToEdgeAllocator {
           valueLiteral = ExplicitValueLiteral.valueOf(valueAddress);
         }
 
-        Object addressO = address.getSymbolicValue();
-        Pair<CType, Object> visits = Pair.of(pExpectedType, addressO);
-
-        if (visited.contains(visits)) {
-          return false;
-        }
-
-        BigInteger subscript = BigInteger.valueOf(pSubscript);
-        CIntegerLiteralExpression litExp =
-            new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, subscript);
-        ArraySubscript arraySubscript = ArraySubscript.valueOf(pExpectedType, litExp, prevSubExpression);
-
         boolean contin = false;
 
         if (!valueLiteral.isUnknown()) {
-
-          visited.add(visits);
 
           SubExpressionValueLiteral subExpressionValueLiteral =
               new SubExpressionValueLiteral(valueLiteral, arraySubscript);
@@ -1458,6 +1447,14 @@ public class AssignmentToEdgeAllocator {
         }
 
         if (valueAddress != null) {
+          Pair<CType, Address> visits = Pair.of(pExpectedType, valueAddress);
+
+          if (visited.contains(visits)) {
+            return false;
+          }
+
+          visited.add(visits);
+
           ValueLiteralVisitor v = new ValueLiteralVisitor(valueAddress, valueLiterals, arraySubscript, visited);
           pExpectedType.accept(v);
         }
@@ -1470,11 +1467,13 @@ public class AssignmentToEdgeAllocator {
 
         CType expectedType = pointerType.getType().getCanonicalType();
 
-        Object value = modelAtEdge.getValueFromUF(expectedType, address);
+        CPointerExpression pointerExp = new CPointerExpression(subExpression.getFileLocation(), expectedType, subExpression);
+
+        Object value = modelAtEdge.getValueFromMemory(pointerExp, address);
 
         if (value == null) {
           if(isStructOrUnionType(expectedType)) {
-            handleFieldPointerDereference(expectedType);
+            handleFieldPointerDereference(expectedType, pointerExp);
           }
           return null;
         }
@@ -1489,37 +1488,36 @@ public class AssignmentToEdgeAllocator {
           valueLiteral = ExplicitValueLiteral.valueOf(valueAddress);
         }
 
-        Pair<CType, Object> visits = Pair.of(expectedType, value);
-
-        if (visited.contains(visits)) {
-          return null;
-        }
-
-        SubExpression pointerExp = PointerExpression.valueof(expectedType, prevSubExpression);
-
         if (!valueLiteral.isUnknown()) {
 
           SubExpressionValueLiteral subExpressionValueLiteral =
               new SubExpressionValueLiteral(valueLiteral, pointerExp);
 
           valueLiterals.addSubExpressionValueLiteral(subExpressionValueLiteral);
-
-          /*Tell all instanced visitors that you visited this memory location*/
-          visited.add(visits);
         }
 
         if (valueAddress != null) {
+
+          Pair<CType, Address> visits = Pair.of(expectedType, valueAddress);
+
+          if (visited.contains(visits)) {
+            return null;
+          }
+
+          /*Tell all instanced visitors that you visited this memory location*/
+          visited.add(visits);
+
           ValueLiteralVisitor v = new ValueLiteralVisitor(valueAddress, valueLiterals, pointerExp, visited);
           expectedType.accept(v);
+
         }
 
         return null;
       }
 
-      private void handleFieldPointerDereference(CType pExpectedType) {
+      private void handleFieldPointerDereference(CType pExpectedType, CExpression pointerExpression) {
         /* a->b <=> *(a).b */
 
-        SubExpression pointerExpression = PointerExpression.valueof(pExpectedType, prevSubExpression);
         ValueLiteralVisitor v = new ValueLiteralVisitor(address, valueLiterals, pointerExpression, visited);
         pExpectedType.accept(v);
       }
@@ -1529,24 +1527,20 @@ public class AssignmentToEdgeAllocator {
     private class ValueLiteralStructResolver extends DefaultCTypeVisitor<Void, RuntimeException> {
 
       private final ValueLiterals valueLiterals;
-      private final String leftHandSide;
       private final String functionName;
+      private final CExpression prevSub;
 
-      private final SubExpression prevSub;
-
-      public ValueLiteralStructResolver(ValueLiterals pValueLiterals, String pLeftHandSide,
-          String pFunctionName, SubExpression pPrevSub) {
+      public ValueLiteralStructResolver(ValueLiterals pValueLiterals,
+          String pFunctionName, CFieldReference pPrevSub) {
         valueLiterals = pValueLiterals;
-        leftHandSide = pLeftHandSide;
         functionName = pFunctionName;
         prevSub = pPrevSub;
       }
 
-      public ValueLiteralStructResolver(ValueLiterals pValueLiterals, String pLeftHandSide, String pFunctionName) {
+      public ValueLiteralStructResolver(ValueLiterals pValueLiterals, String pFunctionName, CIdExpression pOwner) {
         valueLiterals = pValueLiterals;
-        leftHandSide = pLeftHandSide;
         functionName = pFunctionName;
-        prevSub = null;
+        prevSub = pOwner;
       }
 
       @Override
@@ -1587,29 +1581,27 @@ public class AssignmentToEdgeAllocator {
 
       private void handleField(String pFieldName, CType pMemberType) {
 
-        String referenceName = functionName + "::" + leftHandSide + "$" + pFieldName;
+        //TODO Resolve pointer dereference.
+        CFieldReference reference =
+            new CFieldReference(prevSub.getFileLocation(), pMemberType, pFieldName, prevSub, false);
 
-        if (modelAtEdge.containsVariableName(referenceName)) {
-          Object referenceValue = modelAtEdge.getVariableValue(referenceName);
-          addStructSubexpression(referenceValue, pFieldName, pMemberType);
+        ReferenceName fieldReferenceName = getFieldReferenceVariableName(reference, functionName);
+
+        if (modelAtEdge.hasValueForLeftHandSide(fieldReferenceName)) {
+          Object referenceValue = modelAtEdge.getVariableValue(fieldReferenceName);
+          addStructSubexpression(referenceValue, reference);
         }
 
-        SubExpression subExp = FieldReference.valueOf(pMemberType, pFieldName, false, prevSub);
-
-        String newLeftHandSide = functionName + "::" + leftHandSide + "$" + pFieldName;
-
         ValueLiteralStructResolver resolver =
-            new ValueLiteralStructResolver(valueLiterals, newLeftHandSide,
-                functionName, subExp);
+            new ValueLiteralStructResolver(valueLiterals,
+                functionName, reference);
 
         pMemberType.accept(resolver);
       }
 
-      private void addStructSubexpression(Object pFieldValue, String pFieldName, CType pMemberType) {
+      private void addStructSubexpression(Object pFieldValue, CFieldReference reference) {
 
-        CType realType = pMemberType.getCanonicalType();
-
-        SubExpression subExp = FieldReference.valueOf(realType, pFieldName, false, prevSub);
+        CType realType = reference.getExpressionType();
 
         ValueLiteral valueLiteral;
         Address valueAddress = null;
@@ -1626,9 +1618,7 @@ public class AssignmentToEdgeAllocator {
           return;
         }
 
-        SubExpressionValueLiteral subExpression =
-            new SubExpressionValueLiteral(valueLiteral, subExp);
-
+        SubExpressionValueLiteral subExpression = new SubExpressionValueLiteral(valueLiteral, reference);
         valueLiterals.addSubExpressionValueLiteral(subExpression);
       }
     }
@@ -1637,7 +1627,7 @@ public class AssignmentToEdgeAllocator {
   public final static class ValueLiterals {
 
     /*Contains values for possible sub expressions */
-    private final Set<SubExpressionValueLiteral> subExpressionValueLiterals = new HashSet<>();
+    private final List<SubExpressionValueLiteral> subExpressionValueLiterals = new ArrayList<>();
 
     private final ValueLiteral expressionValueLiteral;
 
@@ -1733,10 +1723,6 @@ public class AssignmentToEdgeAllocator {
 
     public static ValueLiteral valueOf(Address address) {
 
-      if(!address.isNumericalType()) {
-        return UnknownValueLiteral.getInstance();
-      }
-
       Number number = address.getAsNumber();
 
       if (number instanceof BigInteger) {
@@ -1818,9 +1804,9 @@ public class AssignmentToEdgeAllocator {
   public static final class SubExpressionValueLiteral {
 
     private final ValueLiteral valueLiteral;
-    private final SubExpression subExpression;
+    private final CLeftHandSide subExpression;
 
-    private SubExpressionValueLiteral(ValueLiteral pValueLiteral, SubExpression pSubExpression) {
+    private SubExpressionValueLiteral(ValueLiteral pValueLiteral, CLeftHandSide pSubExpression) {
       valueLiteral = pValueLiteral;
       subExpression = pSubExpression;
     }
@@ -1833,171 +1819,8 @@ public class AssignmentToEdgeAllocator {
       return valueLiteral;
     }
 
-    public SubExpression getSubExpression() {
+    public CLeftHandSide getSubExpression() {
       return subExpression;
-    }
-  }
-
-  public interface SubExpression {
-
-    public CLeftHandSide createSubExpressionLeftHandSide(CLeftHandSide leftHandSide);
-    List<SubExpression> getPrevSubExpression();
-  }
-
-  public static abstract class SubExpressionImpl implements SubExpression {
-
-    private final CType subExpressionType;
-    private final List<SubExpression> prevSubExpression;
-
-    public SubExpressionImpl(CType pSubExpressionType) {
-      subExpressionType = pSubExpressionType;
-      prevSubExpression = new ArrayList<>();
-    }
-
-    public SubExpressionImpl(CType pSubExpressionType, List<SubExpression> pPrevSubExpression) {
-      subExpressionType = pSubExpressionType;
-      prevSubExpression = pPrevSubExpression;
-    }
-
-    public CType getSubExpressionType() {
-      return subExpressionType;
-    }
-
-    @Override
-    public CLeftHandSide createSubExpressionLeftHandSide(CLeftHandSide pLeftHandSide) {
-
-      CLeftHandSide result = pLeftHandSide;
-
-      for(SubExpression sbexp : prevSubExpression) {
-        result = sbexp.createSubExpressionLeftHandSide(result);
-      }
-
-      return createThisSubExpressionLeftHandSide(result);
-    }
-
-    protected abstract CLeftHandSide createThisSubExpressionLeftHandSide(CLeftHandSide pLeftHandSide);
-
-    @Override
-    public List<SubExpression> getPrevSubExpression() {
-      return prevSubExpression;
-    }
-  }
-
-  public static final class PointerExpression extends SubExpressionImpl {
-
-    private PointerExpression(CType pSubExpressionType) {
-      super(pSubExpressionType);
-    }
-
-    private PointerExpression(CType pSubExpressionType, List<SubExpression> pSubexp) {
-      super(pSubExpressionType,pSubexp);
-    }
-
-    @Override
-    protected CLeftHandSide createThisSubExpressionLeftHandSide(CLeftHandSide pLeftHandSide) {
-
-      CPointerExpression pointerExpression =
-          new CPointerExpression(pLeftHandSide.getFileLocation(), getSubExpressionType(), pLeftHandSide);
-
-      return pointerExpression;
-    }
-
-    public static PointerExpression valueof(CType subExpressionType) {
-      return new PointerExpression(subExpressionType);
-    }
-
-    public static PointerExpression valueof(CType subExpressionType, SubExpression exp) {
-
-      if(exp == null) {
-        return valueof(subExpressionType);
-      }
-
-      List<SubExpression> list = new ArrayList<>(exp.getPrevSubExpression());
-      list.add(exp);
-      return new PointerExpression(subExpressionType, list);
-    }
-  }
-
-  public static final class ArraySubscript extends SubExpressionImpl {
-
-    private final CExpression subscriptExpression;
-
-    private ArraySubscript(CType pSubExpressionType, CExpression pSubscriptExpression) {
-      super(pSubExpressionType);
-      subscriptExpression = pSubscriptExpression;
-    }
-
-    private ArraySubscript(CType pSubExpressionType, CExpression pSubscriptExpression, List<SubExpression> prevSubExp) {
-      super(pSubExpressionType, prevSubExp);
-      subscriptExpression = pSubscriptExpression;
-    }
-
-    @Override
-    protected CLeftHandSide createThisSubExpressionLeftHandSide(CLeftHandSide pLeftHandSide) {
-
-      CArraySubscriptExpression exp =
-          new CArraySubscriptExpression(pLeftHandSide.getFileLocation(),
-              getSubExpressionType(), pLeftHandSide, subscriptExpression);
-      return exp;
-    }
-
-    public static ArraySubscript valueOf(CType pSubExpressionType, CExpression pSubscriptExpression) {
-      return new ArraySubscript(pSubExpressionType, pSubscriptExpression);
-    }
-
-    public static ArraySubscript valueOf(CType pSubExpressionType, CExpression pSubscriptExpression, SubExpression subExp) {
-
-      if (subExp == null) {
-        return new ArraySubscript(pSubExpressionType, pSubscriptExpression);
-      }
-
-      List<SubExpression> prevSub = new ArrayList<>(subExp.getPrevSubExpression());
-      prevSub.add(subExp);
-      return new ArraySubscript(pSubExpressionType, pSubscriptExpression, prevSub);
-    }
-  }
-
-  public static final class FieldReference extends SubExpressionImpl {
-
-    private final String fieldName;
-    private final boolean isPointerDereference;
-
-    private FieldReference(CType pSubExpressionType, String pFieldName, boolean pIsPointerDereference) {
-      super(pSubExpressionType);
-      fieldName = pFieldName;
-      isPointerDereference = pIsPointerDereference;
-    }
-
-    private FieldReference(CType pSubExpressionType, String pFieldName, boolean pIsPointerDereference,
-        List<SubExpression> prevSubExp) {
-      super(pSubExpressionType, prevSubExp);
-      fieldName = pFieldName;
-      isPointerDereference = pIsPointerDereference;
-    }
-
-    public static FieldReference valueOf(CType pSubExpressionType, String pFieldName, boolean pIsPointerDereference) {
-      return new FieldReference(pSubExpressionType, pFieldName, pIsPointerDereference);
-    }
-
-    public static FieldReference valueOf(CType pSubExpressionType, String pFieldName, boolean pIsPointerDereference,
-        SubExpression subExp) {
-
-      if (subExp == null) {
-        return valueOf(pSubExpressionType, pFieldName, pIsPointerDereference);
-      }
-
-      List<SubExpression> prevSubExp = new ArrayList<>(subExp.getPrevSubExpression());
-      prevSubExp.add(subExp);
-
-      return new FieldReference(pSubExpressionType, pFieldName, pIsPointerDereference, prevSubExp);
-    }
-
-    @Override
-    protected CLeftHandSide createThisSubExpressionLeftHandSide(CLeftHandSide pLeftHandSide) {
-
-      CFieldReference fieldReference = new CFieldReference(pLeftHandSide.getFileLocation(),
-          getSubExpressionType(), fieldName, pLeftHandSide, isPointerDereference);
-      return fieldReference;
     }
   }
 }

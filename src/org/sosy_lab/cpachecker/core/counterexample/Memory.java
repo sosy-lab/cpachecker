@@ -53,7 +53,7 @@ public class Memory {
 
   @Override
   public String toString() {
-    return "Memory name=" + name + System.lineSeparator() +
+    return "Memory name=" + name + " , " +
         " values=" + values.toString();
   }
 }

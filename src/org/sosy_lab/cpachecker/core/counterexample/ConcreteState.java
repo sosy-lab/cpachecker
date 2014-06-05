@@ -23,112 +23,97 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
-import java.util.Collection;
 import java.util.Map;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.counterexample.Model.Function;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 
-import com.google.common.collect.Multimap;
-
-
-public class ConcreteState {
-
-  private static final String ADDRESS_PREFIX = "__ADDRESS_OF_";
-
-  private final Map<String, Assignment> variableModel;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 
 
-  private final Multimap<String, Assignment> uFModel;
+public final class ConcreteState {
 
+  private final Map<LeftHandSide, Object> variables;
+  private final Map<String, Memory> allocatedMemory;
+  private final Map<LeftHandSide, Address> variableAddressMap;
 
-  private final Map<String, Object> variableAddressMap;
+  private final MemoryName memoryNameAllocator;
 
-  public ConcreteState(Map<String, Assignment> pVariableModel,
-      Multimap<String, Assignment> pUFModel,
-      Map<String, Object> pVariableAddressMap) {
-    variableAddressMap = pVariableAddressMap;
-    uFModel = pUFModel;
-    variableModel = pVariableModel;
+  public ConcreteState(Map<LeftHandSide, Object> pVariables,
+      Map<String, Memory> pAllocatedMemory,
+      Map<LeftHandSide, Address> pVariableAddressMap,
+      MemoryName pMemoryName) {
+    variableAddressMap = ImmutableMap.copyOf(pVariableAddressMap);
+    allocatedMemory = ImmutableMap.copyOf(pAllocatedMemory);
+    variables = ImmutableMap.copyOf(pVariables);
+    memoryNameAllocator = pMemoryName;
   }
 
-  public Object getValueFromUF(CType pType, Address address) {
+  //TODO abstract?
+  @SuppressWarnings("unused")
+  private String getMemoryName(CRightHandSide exp, Address address) {
 
-    CType type = pType.getCanonicalType();
+    CType expectedType = exp.getExpressionType().getCanonicalType();
 
-    String ufName = getUFName(type);
+    expectedType = CTypes.withoutConst(expectedType);
+    expectedType = CTypes.withoutVolatile(expectedType);
 
-    if (ufName == null) {
+    return "*" + expectedType.toString();
+  }
+
+  public Object getValueFromMemory(CRightHandSide exp, Address address) {
+
+    String memoryName = memoryNameAllocator.getMemoryName(exp, address);
+
+    if (!allocatedMemory.containsKey(memoryName)) {
       return null;
     }
 
-    Collection<Assignment> assignments = uFModel.get(ufName);
+    Memory memory = allocatedMemory.get(memoryName);
 
-    for (Assignment assignment : assignments) {
-      Function function = (Function) assignment.getTerm();
-
-      if (function.getArity() != 1) {
-        break;
-      }
-
-      if (address.comparesToUFArgument(function.getArgument(0))) {
-        return assignment.getValue();
-      }
+    if (memory.hasValue(address)) {
+      return memory.getValue(address);
     }
+
     return null;
   }
 
-  private String getUFName(CType pType) {
-    CType type = pType.getCanonicalType(false, false);
-
-    //TODO Seems to work, for now
-    //TODO ugly ... rewrite
-    String name = type.toString().replace("volatile ", "").replace("const ", "").replace(" ", "_");
-
-//    String name = type.accept(new TypeUFNameVisitor());
-
-    if (name == null) {
-      return null;
-    }
-
-    return "*" + name;
+  public boolean hasValueForLeftHandSide(LeftHandSide variable) {
+    return variables.containsKey(variable);
   }
 
-  public boolean containsVariableName(String variableName) {
-    return variableModel.containsKey(variableName);
+  public Object getVariableValue(LeftHandSide variable) {
+    Preconditions.checkArgument(variables.containsKey(variable));
+
+    return variables.get(variable);
   }
 
-  public Object getVariableValue(String variableName) {
-    if (variableModel.containsKey(variableName)) {
-      return variableModel.get(variableName).getValue();
-    } else {
-      throw new IllegalArgumentException("Name of variable " + variableName + "not found in model.");
-    }
+  public boolean hasAddressOfVaribable(LeftHandSide variable) {
+    return variableAddressMap.containsKey(variable);
   }
 
-  public boolean containsVariableAddress(String varName) {
-    String addressName = getAddressPrefix() + varName;
-    return variableAddressMap.containsKey(addressName);
+  public Address getVariableAddress(LeftHandSide variable) {
+    Preconditions.checkArgument(variableAddressMap.containsKey(variable));
+
+    return variableAddressMap.get(variable);
   }
 
-  public Address getVariableAddress(String varName) {
-    String addressName = getAddressPrefix() + varName;
-
-    if (variableAddressMap.containsKey(addressName)) {
-      Object addressO = variableAddressMap.get(addressName);
-      return Address.valueOf(addressO);
-    } else {
-      throw new IllegalArgumentException();
-    }
+  @Override
+  public int hashCode() {
+    throw new UnsupportedOperationException();
   }
 
-  public static String getAddressPrefix() {
-    return ADDRESS_PREFIX;
+  @Override
+  public boolean equals(Object obj) {
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public String toString() {
-    return "ModelAtCFAEdge\n variableModel=" + variableModel + "\n uFModel=" + uFModel + "\n variableAddressMap="
-        + variableAddressMap;
+    return "variables=" + variables
+        + System.lineSeparator() + "allocatedMemory=" + allocatedMemory
+        + System.lineSeparator() + " variableAddressMap=" + variableAddressMap;
   }
 }

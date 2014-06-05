@@ -30,6 +30,10 @@ public final class Variable extends LeftHandSide {
     super(pName, pFunctionName);
   }
 
+  public Variable(String pName) {
+    super(pName);
+  }
+
   @Override
   public boolean equals(Object obj) {
     if (this == obj) {
@@ -46,11 +50,11 @@ public final class Variable extends LeftHandSide {
 
     Variable other = (Variable) obj;
 
-    if (getFunctionName() == null) {
-      if (other.getFunctionName() != null) {
+    if (isGlobal()) {
+      if (!other.isGlobal()) {
         return false;
       }
-    } else if (!getFunctionName().equals(other.getFunctionName())) {
+    } else if (!getFunctionName().equals(!other.isGlobal() ? other.getFunctionName() : null)) {
       return false;
     }
 
@@ -69,7 +73,7 @@ public final class Variable extends LeftHandSide {
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + ((getFunctionName() == null) ? 0 : getFunctionName().hashCode());
+    result = prime * result + ((isGlobal()) ? 0 : getFunctionName().hashCode());
     result = prime * result + ((getName() == null) ? 0 : getName().hashCode());
     return result;
   }

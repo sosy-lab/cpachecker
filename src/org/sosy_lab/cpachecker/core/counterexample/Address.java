@@ -25,67 +25,80 @@ package org.sosy_lab.cpachecker.core.counterexample;
 
 import java.math.BigDecimal;
 
-public class Address {
+import javax.annotation.Nullable;
 
-  private final Number addressAsNumber;
+import com.google.common.base.Preconditions;
 
-  private final Object symbolicAddress;
+public final class Address {
 
+  private final Number address;
 
-  private Address(Object pAddress) {
-    symbolicAddress = pAddress;
+  public Address(Number pAddress) {
 
-    if (pAddress instanceof Number) {
-      addressAsNumber = (Number) pAddress;
-    } else {
-      addressAsNumber = null;
-    }
-  }
+    Preconditions.checkNotNull(pAddress);
 
-  public boolean comparesToUFArgument(Object pArgument) {
+    Number addressV = pAddress;
 
-    if (pArgument instanceof BigDecimal && this.isNumericalType()) {
-      return ((BigDecimal) pArgument).compareTo(new BigDecimal(addressAsNumber.toString())) == 0;
+    if (addressV instanceof BigDecimal) {
+      addressV = ((BigDecimal) addressV).stripTrailingZeros();
     }
 
-    if (symbolicAddress instanceof BigDecimal && pArgument instanceof Number) {
-      return ((BigDecimal) symbolicAddress).compareTo(new BigDecimal(((Number) pArgument).toString())) == 0;
-    }
-
-    return pArgument.equals(symbolicAddress);
-  }
-
-  public boolean isNumericalType() {
-    return addressAsNumber != null;
+    address = addressV;
   }
 
   public Address addOffset(Number pOffset) {
 
-    if (addressAsNumber == null) {
-      throw new IllegalStateException(
-        "Can't add offsets to a non numerical type of address");
-    }
-
-    BigDecimal address = new BigDecimal(pOffset.toString());
-    BigDecimal offset = new BigDecimal(addressAsNumber.toString());
-
-    return Address.valueOf(address.add(offset));
+    BigDecimal addressV = new BigDecimal(address.toString());
+    BigDecimal offsetV = new BigDecimal(pOffset.toString());
+    return Address.valueOf(addressV.add(offsetV));
   }
 
   @Override
   public String toString() {
-    return "Address = [" + symbolicAddress + "]";
+    return address.toString();
   }
 
+  @Nullable
   public static Address valueOf(Object address) {
-    return new Address(address);
-  }
 
-  public Object getSymbolicValue() {
-    return symbolicAddress;
+    if (address instanceof Address) {
+      return (Address) address;
+    } else if (address instanceof Number) {
+      return new Address((Number) address);
+    }
+
+    return null;
   }
 
   public Number getAsNumber() {
-    return addressAsNumber;
+    return address;
+  }
+
+  @Override
+  public int hashCode() {
+    return address.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    if (obj == null) {
+      return false;
+    }
+
+    if (!(obj instanceof Address)) {
+      return false;
+    }
+
+    Address other = (Address) obj;
+
+    if (!address.equals(other.address)) {
+      return false;
+    }
+
+    return true;
   }
 }

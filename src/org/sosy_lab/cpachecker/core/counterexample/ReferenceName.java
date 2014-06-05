@@ -38,6 +38,12 @@ public final class ReferenceName extends LeftHandSide {
     fieldNames = ImmutableList.copyOf(pFieldNames);
   }
 
+  public ReferenceName(String pName, List<String> pFieldNames) {
+    super(pName);
+    assert pFieldNames.size() > 0;
+    fieldNames = ImmutableList.copyOf(pFieldNames);
+  }
+
   @Override
   public boolean equals(Object obj) {
     if (this == obj) {
@@ -54,11 +60,11 @@ public final class ReferenceName extends LeftHandSide {
 
     ReferenceName other = (ReferenceName) obj;
 
-    if (getFunctionName() == null) {
-      if (other.getFunctionName() != null) {
+    if (isGlobal()) {
+      if (!other.isGlobal()) {
         return false;
       }
-    } else if (!getFunctionName().equals(other.getFunctionName())) {
+    } else if (!getFunctionName().equals(!other.isGlobal() ? other.getFunctionName() : null)) {
       return false;
     }
 
@@ -85,9 +91,20 @@ public final class ReferenceName extends LeftHandSide {
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + ((getFunctionName() == null) ? 0 : getFunctionName().hashCode());
+    result = prime * result + ((isGlobal()) ? 0 : getFunctionName().hashCode());
     result = prime * result + ((getName() == null) ? 0 : getName().hashCode());
     result = prime * result + ((fieldNames == null) ? 0 : fieldNames.hashCode());
     return result;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder result = new StringBuilder(super.toString());
+
+    for (String fieldName : fieldNames) {
+      result.append("$" + fieldName);
+    }
+
+    return result.toString();
   }
 }
