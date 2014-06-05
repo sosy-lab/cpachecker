@@ -59,6 +59,8 @@ public final class ConcreteStatePath implements Iterable<ConcerteStatePathNode> 
 
     List<CFAEdge> edges = multiEdge.getEdges();
 
+    assert pConcreteStates.length == edges.size();
+
     Preconditions.checkArgument(edges.size() == pConcreteStates.length);
 
     List<SingleConcreteState> result = new ArrayList<>(pConcreteStates.length);
@@ -111,6 +113,7 @@ public final class ConcreteStatePath implements Iterable<ConcerteStatePathNode> 
     public SingleConcreteState(CFAEdge cfaEdge, ConcreteState pConcreteState) {
       super(cfaEdge);
       concreteState = pConcreteState;
+      assert concreteState != null;
     }
 
     public ConcreteState getConcreteState() {

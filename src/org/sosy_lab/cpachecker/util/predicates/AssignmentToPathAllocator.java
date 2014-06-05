@@ -152,6 +152,7 @@ public class AssignmentToPathAllocator {
               ssaMap, variableEnvoirment, functionEnvoirment, addressOfVariables, terms,
               pModel, pMachineModel, usedAssignableTerms);
           ssaMapIndex++;
+          multiEdgeIndex++;
         }
 
         ConcerteStatePathNode edge = ConcreteStatePath.valueOfPathNode(singleConcreteStates, multiEdge);

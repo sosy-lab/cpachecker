@@ -122,6 +122,7 @@ public class AssignmentToEdgeAllocator {
 
     cfaEdge = pCfaEdge;
     modelAtEdge = pModelAtEdge;
+    assert modelAtEdge != null;
   }
 
   public CFAEdgeWithAssignments allocateAssignmentsToEdge() {
