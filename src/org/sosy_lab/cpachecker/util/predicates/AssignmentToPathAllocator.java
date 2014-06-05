@@ -98,7 +98,6 @@ public class AssignmentToPathAllocator {
     shutdownNotifier = pShutdownNotifier;
   }
 
-  @SuppressWarnings("deprecation")
   public CFAPathWithAssignments allocateAssignmentsToPath(List<CFAEdge> pPath,
       Model pModel, List<SSAMap> pSSAMaps, MachineModel pMachineModel) throws InterruptedException {
 

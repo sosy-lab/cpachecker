@@ -294,6 +294,7 @@ public class CEXExporter {
           out.append(edge.toString());
           out.append(System.lineSeparator());
           if (model != null) {
+            //TODO Erase, counterexample is supposed to be independent of Assignable terms
             for (Model.AssignableTerm term : model.getAssignedTermsPerEdge().getAllAssignedTerms(edge)) {
               out.append('\t');
               out.append(term.toString());

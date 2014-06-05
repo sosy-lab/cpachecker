@@ -74,7 +74,7 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
     allAssignableTerms = ImmutableListMultimap.of();
   }
 
-  @Deprecated
+
   private CFAPathWithAssignments(List<CFAEdgeWithAssignments> pPathWithAssignments,
       Multimap<CFAEdge, AssignableTerm> pUsedAssignableTerms) {
     pathWithAssignments = ImmutableList.copyOf(pPathWithAssignments);
@@ -189,7 +189,6 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
     return new CFAPathWithAssignments(result);
   }
 
-  @Deprecated
   public static CFAPathWithAssignments valueOf(ConcreteStatePath statePath,
       LogManager pLogger, MachineModel pMachineModel,
       Multimap<CFAEdge, AssignableTerm> usedAssignableTerms) {
@@ -258,7 +257,6 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
     return pathWithAssignments.iterator();
   }
 
-  @Deprecated
   public Collection<AssignableTerm> getAllAssignedTerms(CFAEdge pEdge) {
     return allAssignableTerms.get(pEdge);
   }
