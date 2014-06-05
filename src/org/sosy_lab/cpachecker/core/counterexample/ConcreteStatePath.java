@@ -51,6 +51,11 @@ public class ConcreteStatePath implements Iterable<ConcerteStateCFAEdgePair> {
     return new ConcerteStateCFAEdgePair(pConcreteState, cfaEdge);
   }
 
+  @Override
+  public String toString() {
+    return "ConcreteStatePath:" + list.toString();
+  }
+
   public static final class ConcerteStateCFAEdgePair {
 
     private final ConcreteState concreteState;
@@ -68,6 +73,13 @@ public class ConcreteStatePath implements Iterable<ConcerteStateCFAEdgePair> {
 
     public CFAEdge getCfaEdge() {
       return cfaEdge;
+    }
+
+    @Override
+    public String toString() {
+      return "concreteState= [" + concreteState.toString() + "]"
+          + System.lineSeparator()
+          + "cfaEdge= [" + cfaEdge.toString() + "]";
     }
   }
 }
