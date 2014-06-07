@@ -60,7 +60,7 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
 
   private final List<CFAEdgeWithAssignments> pathWithAssignments;
 
-  @Deprecated
+  //TODO Erase this
   private final Multimap<CFAEdge, AssignableTerm> allAssignableTerms;
 
   private CFAPathWithAssignments(

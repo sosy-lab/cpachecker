@@ -121,8 +121,17 @@ public class AssignmentToPathAllocator {
 
     Map<LeftHandSide, Address> addressOfVariables = getVariableAddresses(assignableTerms, pModel);
 
+    /* Its too inefficient to recreate every assignment from scratch,
+       but the ssaIndex of the Assignable Terms are needed, thats
+       why we declare two maps of variables and functions. One for
+       the calculation of the SSAIndex, the other to save the references
+       to the objects we want to store in the concrete State, so we can avoid
+       recreating those objects */
+
     Map<String, Assignment> variableEnvoirment = new HashMap<>();
+    Map<LeftHandSide, Object> variables = new HashMap<>();
     Multimap<String, Assignment> functionEnvoirment = HashMultimap.create();
+    Map<String, Map<Address, Object>> memory = new HashMap<>();
 
     int ssaMapIndex = 0;
 
@@ -132,23 +141,27 @@ public class AssignmentToPathAllocator {
       /*We always look at the precise path, with resolved multi edges*/
       CFAEdge cfaEdge = pPath.get(pathIndex);
 
-      if(cfaEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
+      if (cfaEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
 
         MultiEdge multiEdge = (MultiEdge) cfaEdge;
 
         ConcreteState[] singleConcreteStates = new ConcreteState[multiEdge.getEdges().size()];
 
         int multiEdgeIndex = 0;
+
         for (CFAEdge singleCfaEdge : multiEdge) {
 
           variableEnvoirment = new HashMap<>(variableEnvoirment);
+          variables = new HashMap<>(variables);
           functionEnvoirment = HashMultimap.create(functionEnvoirment);
+          memory = new HashMap<>(memory);
           Collection<AssignableTerm> terms = assignableTerms.getAssignableTermsAtPosition().get(ssaMapIndex);
 
           SSAMap ssaMap = pSSAMaps.get(ssaMapIndex);
 
-          singleConcreteStates[multiEdgeIndex] = createSingleConcreteState(singleCfaEdge,
-              ssaMap, variableEnvoirment, functionEnvoirment, addressOfVariables, terms,
+          singleConcreteStates[multiEdgeIndex] = createSingleConcreteState(
+              singleCfaEdge, ssaMap, variableEnvoirment, variables,
+              functionEnvoirment, memory, addressOfVariables, terms,
               pModel, pMachineModel, usedAssignableTerms);
           ssaMapIndex++;
           multiEdgeIndex++;
@@ -164,8 +177,8 @@ public class AssignmentToPathAllocator {
         SSAMap ssaMap = pSSAMaps.get(ssaMapIndex);
 
         ConcerteStatePathNode concreteStatePathNode =
-            createSingleConcreteStateNode(cfaEdge, ssaMap, variableEnvoirment,
-                functionEnvoirment, addressOfVariables,
+            createSingleConcreteStateNode(cfaEdge, ssaMap, variableEnvoirment, variables,
+                functionEnvoirment, memory, addressOfVariables,
                 terms, pModel, pMachineModel, usedAssignableTerms);
 
         pathWithAssignments.add(concreteStatePathNode);
@@ -180,14 +193,17 @@ public class AssignmentToPathAllocator {
   private ConcerteStatePathNode createSingleConcreteStateNode(
       CFAEdge cfaEdge, SSAMap ssaMap,
       Map<String, Assignment> variableEnvoirment,
+      Map<LeftHandSide, Object> variables,
       Multimap<String, Assignment> functionEnvoirment,
+      Map<String, Map<Address, Object>> memory,
       Map<LeftHandSide, Address> addressOfVariables,
       Collection<AssignableTerm> terms, Model pModel,
       MachineModel pMachineModel,
       Multimap<CFAEdge, AssignableTerm> usedAssignableTerms) {
 
     ConcreteState concreteState = createSingleConcreteState(cfaEdge, ssaMap,
-        variableEnvoirment, functionEnvoirment,
+        variableEnvoirment, variables,
+        functionEnvoirment, memory,
         addressOfVariables, terms, pModel,
         pMachineModel, usedAssignableTerms);
 
@@ -197,7 +213,9 @@ public class AssignmentToPathAllocator {
   private ConcreteState createSingleConcreteState(
       CFAEdge cfaEdge, SSAMap ssaMap,
       Map<String, Assignment> variableEnvoirment,
+      Map<LeftHandSide, Object> variables,
       Multimap<String, Assignment> functionEnvoirment,
+      Map<String, Map<Address, Object>> memory,
       Map<LeftHandSide, Address> addressOfVariables,
       Collection<AssignableTerm> terms, Model pModel,
       MachineModel pMachineModel,
@@ -205,14 +223,11 @@ public class AssignmentToPathAllocator {
 
     Set<Assignment> termSet = new HashSet<>();
 
-    createAssignments(pModel, terms, termSet, variableEnvoirment, functionEnvoirment);
+    createAssignments(pModel, terms, termSet, variableEnvoirment, variables, functionEnvoirment, memory);
 
     removeDeallocatedVariables(ssaMap, variableEnvoirment);
 
-    //TODO inefficient, transforms values already transformed at a prior date
-    Map<LeftHandSide, Object> variables = createVariables(variableEnvoirment);
-
-    Map<String, Memory> allocatedMemory = createAllocatedMemory(functionEnvoirment);
+    Map<String, Memory> allocatedMemory = createAllocatedMemory(memory);
 
     ConcreteState concreteState = new ConcreteState(variables, allocatedMemory, addressOfVariables, memoryName);
 
@@ -222,54 +237,17 @@ public class AssignmentToPathAllocator {
     return concreteState;
   }
 
-  private Map<String, Memory> createAllocatedMemory(Multimap<String, Assignment> pFunctionEnvoirment) {
+  private Map<String, Memory> createAllocatedMemory(Map<String, Map<Address, Object>> pMemory) {
 
-    Map<String, Memory> memory = new HashMap<>(pFunctionEnvoirment.size());
+    Map<String, Memory> memory = new HashMap<>(pMemory.size());
 
-    for (String heapName : pFunctionEnvoirment.keys()) {
-      HashMap<Address, Object> heapValues = createHeapContent(pFunctionEnvoirment.get(heapName));
+    for (String heapName : pMemory.keySet()) {
+      Map<Address, Object> heapValues = pMemory.get(heapName);
       Memory heap = new Memory(heapName, heapValues);
       memory.put(heap.getName(), heap);
     }
 
     return memory;
-  }
-
-  private HashMap<Address, Object> createHeapContent(Collection<Assignment> heapValuesAsFunctions) {
-
-    HashMap<Address, Object> heapValues = new HashMap<>(heapValuesAsFunctions.size());
-
-    for (Assignment functionAssignment : heapValuesAsFunctions) {
-      addHeapValue(heapValues, functionAssignment);
-    }
-
-    return heapValues;
-  }
-
-  private void addHeapValue(HashMap<Address, Object> pHeapValues, Assignment pFunctionAssignment) {
-    Function function = (Function) pFunctionAssignment.getTerm(); //TODO Assumption
-    if (function.getArity() == 1) {
-      Address address = Address.valueOf(function.getArgument(FIRST));
-      Object value = pFunctionAssignment.getValue();
-      pHeapValues.put(address, value);
-    } else {
-      throw new AssertionError();
-    }
-  }
-
-  private Map<LeftHandSide, Object> createVariables(Map<String, Assignment> pVariableEnvoirment) {
-
-    Collection<Assignment> varAssignments = pVariableEnvoirment.values();
-
-    Map<LeftHandSide, Object> variables = new HashMap<>(varAssignments.size());
-
-    for (Assignment assignment : pVariableEnvoirment.values()) {
-      Variable variableAsAssignableTerm = (Variable) assignment.getTerm(); //TODO Assumption should be checked.
-      LeftHandSide variable = createLeftHandSide(variableAsAssignableTerm);
-      variables.put(variable, assignment.getValue());
-    }
-
-    return variables;
   }
 
   private LeftHandSide createLeftHandSide(Variable pTerm) {
@@ -328,13 +306,17 @@ public class AssignmentToPathAllocator {
     }
   }
 
+  /*We need the variableEnvoirment and functionEnvoirment for their SSAIndeces.*/
   private void createAssignments(Model pModel,
       Collection<AssignableTerm> terms,
       Set<Assignment> termSet,
       Map<String, Assignment> variableEnvoirment,
-      Multimap<String, Assignment> functionEnvoirment) {
+      Map<LeftHandSide, Object> pVariables,
+      Multimap<String, Assignment> functionEnvoirment,
+      Map<String, Map<Address, Object>> memory) {
 
     for (AssignableTerm term : terms) {
+
       Assignment assignment = new Assignment(term, pModel.get(term));
 
       if (term instanceof Variable) {
@@ -347,11 +329,24 @@ public class AssignmentToPathAllocator {
           int oldIndex = oldVariable.getSSAIndex();
           int newIndex = variable.getSSAIndex();
           if (oldIndex < newIndex) {
+
+            //update variableEnvoirment for subsequent calculation
             variableEnvoirment.remove(name);
             variableEnvoirment.put(name, assignment);
+
+            LeftHandSide oldlhs = createLeftHandSide(oldVariable);
+            LeftHandSide lhs = createLeftHandSide(variable);
+            pVariables.remove(oldlhs);
+            pVariables.put(lhs, assignment.getValue());
+
+
           }
         } else {
+          //update variableEnvoirment for subsequent calculation
           variableEnvoirment.put(name, assignment);
+
+          LeftHandSide lhs = createLeftHandSide(variable);
+          pVariables.put(lhs, assignment.getValue());
         }
 
       } else if (term instanceof Function) {
@@ -369,20 +364,59 @@ public class AssignmentToPathAllocator {
 
             if(isLessSSA(oldFunction, function)) {
 
+              //update functionEnvoirment for subsequent calculation
               functionEnvoirment.remove(name, oldAssignment);
               functionEnvoirment.put(name, assignment);
               replaced = true;
+              removeHeapValue(memory, assignment);
+              addHeapValue(memory, assignment);
+
             }
           }
 
           if(!replaced) {
             functionEnvoirment.put(name, assignment);
+            addHeapValue(memory, assignment);
           }
         } else {
           functionEnvoirment.put(name, assignment);
+          addHeapValue(memory, assignment);
         }
       }
       termSet.add(assignment);
+    }
+  }
+
+  private void removeHeapValue(Map<String, Map<Address, Object>> memory, Assignment pFunctionAssignment) {
+    Function function = (Function) pFunctionAssignment.getTerm(); //TODO Assumption
+    String heapName = getName(function);
+    Map<Address, Object> heap = memory.get(heapName); //TODO Assumption
+
+    if (function.getArity() == 1) {
+      Address address = Address.valueOf(function.getArgument(FIRST));
+      heap.remove(address);
+    } else {
+      throw new AssertionError();
+    }
+  }
+
+  private void addHeapValue(Map<String, Map<Address, Object>> memory, Assignment pFunctionAssignment) {
+    Function function = (Function) pFunctionAssignment.getTerm(); //TODO Assumption
+    String heapName = getName(function);
+    Map<Address, Object> heap;
+
+    if (!memory.containsKey(heapName)) {
+      memory.put(heapName, new HashMap<Address, Object>());
+    }
+
+    heap = memory.get(heapName);
+
+    if (function.getArity() == 1) {
+      Address address = Address.valueOf(function.getArgument(FIRST));
+      Object value = pFunctionAssignment.getValue();
+      heap.put(address, value);
+    } else {
+      throw new AssertionError();
     }
   }
 
