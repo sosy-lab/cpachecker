@@ -676,8 +676,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     Value value;
     if (exp instanceof JRightHandSide) {
-       // value = ((JRightHandSide) exp).accept(visitor); TODO
-      value = Value.UnknownValue.getInstance();
+       value = ((JRightHandSide) exp).accept(visitor); // TODO - find out whether something's wrong with this
+      //value = Value.UnknownValue.getInstance();
     } else if (exp instanceof CRightHandSide) {
        value = visitor.evaluate((CRightHandSide) exp, (CType) lType);
     } else {
