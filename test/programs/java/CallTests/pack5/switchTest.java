@@ -11,7 +11,7 @@ public class switchTest {
   switch(s){
   case JA:
     assert true;
-  break;
+    break;
   case NEIN:
     assert false;
 

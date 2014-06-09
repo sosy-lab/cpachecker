@@ -96,7 +96,7 @@ import com.google.common.primitives.UnsignedLongs;
  * defined as simply typed iff it is not an
  * array type (vgl {@link CArrayType}), a struct or
  * union type (vgl {@link CComplexType}),
- * a imaginary type (vgl {@link CImaginaryLiteralExpression}),
+ * an imaginary type (vgl {@link CImaginaryLiteralExpression}),
  * or a pointer type (vgl {@link CPointerType}).
  * The key distinction between these types and simply typed types is,
  * that a value of simply typed types can be represented as a numerical
@@ -867,6 +867,7 @@ public abstract class AbstractExpressionValueVisitor
   public Value visit(JEnumConstantExpression pJEnumConstantExpression) {
     missingEnumComparisonInformation = true;
     return UnknownValue.getInstance();
+//    return pJEnumConstantExpression.getConstantName();
   }
 
   @Override
