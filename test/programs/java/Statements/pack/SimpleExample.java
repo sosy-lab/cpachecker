@@ -4,10 +4,10 @@ public class SimpleExample {
 
   public static void main(String[] args) {
 
-  int n1 = 3 + 3 * 4;
-  int n2 = 2 + 2 * 6;
-  boolean b1 = n1 == n2;
+    int n1 = 3 + 3 * 4; // n1 = 15
+    int n2 = 2 + 2 * 6; // n2 = 14
+    boolean b1 = n1 == n2; // b1 = false
 
-  assert b1;
+    assert b1; // always false
   }
 }

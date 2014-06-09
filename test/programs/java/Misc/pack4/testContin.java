@@ -28,6 +28,6 @@ public class testContin {
   System.out.println(y);
 
 
-  assert z == 2;
+  assert z == 2; // 2 loops above, so z == 2 always true
   }
 }

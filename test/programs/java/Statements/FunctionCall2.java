@@ -16,11 +16,13 @@ public class FunctionCall2 {
         if(n1 == n2){
 
             if(n1 != n3){
+                // enters this branch
                 n3 = 1;
 
             }
 
             if(n1 == n3){
+                // enters this branch
                 n1 = n1 + n2 + n3;
                 des();
             }else {
@@ -30,8 +32,8 @@ public class FunctionCall2 {
             if(n1 == n1 + n2){
             assert(false);
             } else if(n1 == 2 * n2 + n3){
-
-            if((n3 != n2))
+            // enters this branch
+            if((n3 != n2)) // n3 == n2, so doesn't enter
              assert(false);
             }
 
@@ -46,7 +48,7 @@ public class FunctionCall2 {
 
         if(n1 == n2){
 
-        assert(false);
+        assert(false); // never entered
 
         } else {
 

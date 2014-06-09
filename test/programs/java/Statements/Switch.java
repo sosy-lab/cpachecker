@@ -1,31 +1,29 @@
 
 public class Switch {
 
+public static void main(String[] args) {
 
+  int n1;
 
+  n1 = 10;
 
-  public static void main(
-      String[] args) {
+  switch(n1){
+    case 1: 
+      assert (false);
+      break;
+    case 5:
+      assert (false);
+      break;
+    case 10:
+      // this branch happens
+      assert(true); // always true
+      break;
+    default:
+      assert (false);
+      n1 = 1;
+  }
 
+  n1 = 6;
 
-        int n1;
-
-        n1 = 10;
-
-
-        switch(n1){
-        case 1: assert (false);
-                    break;
-        case 5: assert (false);
-                    break;
-        case 10: assert(true);
-                    break;
-        default: assert (false);
-          n1 = 1;
-        }
-
-        n1 = 6;
-
-        }
-
+}
 }

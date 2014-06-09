@@ -13,13 +13,13 @@ public class FunctionCall {
 
     int n = 32;
 
-    n = Function.teileDurch2(n);
-    n = Function2.teileDurch2(n);
-    n = Function3.teileDurch2(n);
-    assert(n == Function3.getValue());
-    n = teile(n ,n);
+    n = Function.teileDurch2(n); // = 16
+    n = Function2.teileDurch2(n); // = 8
+    n = Function3.teileDurch2(n); // = 4
+    assert(n == Function3.getValue()); // always true
+    n = teile(n ,n); // 4 / 4 = 1
     Function3.setValue(1);
-    assert(n == Function3.getValue());
+    assert(n == Function3.getValue()); // always true
 
   }
 
