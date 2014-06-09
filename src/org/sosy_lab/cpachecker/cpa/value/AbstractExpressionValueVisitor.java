@@ -892,7 +892,7 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(JFloatLiteralExpression pJBooleanLiteralExpression) throws RuntimeException {
-    return UnknownValue.getInstance();
+    return new NumericValue(pJBooleanLiteralExpression.getValue());
   }
 
   @Override
