@@ -995,6 +995,16 @@ class ASTConverter {
       }
     }
 
+    CType functionNameType = functionName.getExpressionType().getCanonicalType();
+    if (functionNameType instanceof CPointerType
+        && ((CPointerType)functionNameType).getType() instanceof CFunctionType) {
+      // Function pointers can be called either via "*fp" or simply "fp".
+      // We add the dereference operator, if it is missing.
+
+      functionName = new CPointerExpression(functionName.getFileLocation(),
+          ((CPointerType)functionNameType).getType(), functionName);
+    }
+
     CType returnType = typeConverter.convert(e.getExpressionType());
     if (containsProblemType(returnType)) {
       // workaround for Eclipse CDT problems
