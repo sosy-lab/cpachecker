@@ -30,7 +30,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -259,10 +258,11 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
   }
 
   /**
+   * This path obtains a (sub)path of the error path which is given to the interpolation procedure.
    *
-   * @param errorPath
-   * @param interpolant
-   * @return
+   * @param errorPath the original error path
+   * @param interpolant the initial interpolant, i.e. the initial state, with which to check the error path.
+   * @return a (sub)path of the error path which is given to the interpolation procedure
    * @throws CPAException
    * @throws InterruptedException
    */
@@ -589,23 +589,6 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      */
     boolean isTrivial() {
       return isFalse() || isTrue();
-    }
-
-    /**
-     * This method clears memory locations from the assignment that belong to the given function.
-     *
-     * @param functionName the name of the function for which to remove assignments
-     */
-    private void clearScope(String functionName) {
-      if(isTrivial()) {
-        return;
-      }
-
-      for (Iterator<MemoryLocation> variableNames = assignment.keySet().iterator(); variableNames.hasNext(); ) {
-        if (variableNames.next().isOnFunctionStack(functionName)) {
-          variableNames.remove();
-        }
-      }
     }
 
     /**
