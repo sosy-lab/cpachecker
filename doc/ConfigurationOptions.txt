@@ -789,8 +789,6 @@ cpa.monitor.limit = 0
 cpa.monitor.pathcomputationlimit = 0
 
 # with this option the evaluation of float variables can be toggled.
-# Additionally the used number representation in the library will be changed
-# between floats and ints.
 cpa.octagon.handleFloats = false
 
 # whether or not to use use-definition information from the error pathsto
@@ -814,6 +812,11 @@ cpa.octagon.mergeop.onlyJoinEdgesInSameBlock = false
 # widening instead of a join
 cpa.octagon.mergeop.type = "NORMAL"
   allowed values: [NORMAL, WIDENING]
+
+# with this option the number representation in the library will be changed
+# between floats and ints.
+cpa.octagon.octagonLibrary = "INT"
+  allowed values: [INT, FLOAT]
 
 # turn the refiner on or off, default is off
 cpa.octagon.refiner = false
@@ -1456,10 +1459,6 @@ cpa.value.initialPrecisionFile = no default value
 # whether or not to use use-definition information from the error pathsto
 # optimize the interpolation process
 cpa.value.interpolation.applyUseDefInformation = true
-
-# whether or not to ignore the semantics of loop-leaving-assume-edges during
-# interpolation - this avoids to have loop-counters in the interpolant
-cpa.value.interpolation.ignoreLoopsExitAssumes = true
 
 # which merge operator to use for ValueAnalysisCPA
 cpa.value.merge = "SEP"

@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.cpa.value.Value;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.InitialAssumptionUseDefinitionCollector;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -139,7 +140,10 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
     interpolationOffset = -1;
 
-    List<CFAEdge> errorTrace = obtainErrorTrace(errorPath, interpolant);
+    errorPath = obtainErrorPathPrefix(errorPath, interpolant);
+
+    List<CFAEdge> errorTrace = obtainErrorTrace(errorPath);
+
     Map<ARGState, ValueAnalysisInterpolant> pathInterpolants = new LinkedHashMap<>(errorPath.size());
 
     for (int i = 0; i < errorPath.size() - 1; i++) {
@@ -150,12 +154,6 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
       }
 
       totalInterpolationQueries = totalInterpolationQueries + interpolator.getNumberOfInterpolationQueries();
-
-      // remove variables from the interpolant that belong to the scope of the returning function
-      // this is done one iteration after returning from the function, as the special FUNCTION_RETURN_VAR is needed that long
-      if (i > 0 && errorPath.get(i - 1).getSecond().getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
-        interpolant.clearScope(errorPath.get(i - 1).getSecond().getSuccessor().getFunctionName());
-      }
 
       if(!interpolant.isTrivial() && interpolationOffset == -1) {
         interpolationOffset = i + 1;
@@ -251,35 +249,102 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
   }
 
   /**
-   * This method obtains, from the error path, the list of CFA edges to be interpolated. This might not include all CFA
-   * edges from the original path, but might be limited to the infeasible prefix.
+   * This method obtains, from the error path, the list of CFA edges to be interpolated.
    *
    * @param errorPath the error path
-   * @param interpolant the input interpolant
    * @return the list of CFA edges to be interpolated
+   */
+  private List<CFAEdge> obtainErrorTrace(ARGPath errorPath) {
+    return from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
+  }
+
+  /**
+   *
+   * @param errorPath
+   * @param interpolant
+   * @return
    * @throws CPAException
    * @throws InterruptedException
    */
-  private List<CFAEdge> obtainErrorTrace(ARGPath errorPath,
-      ValueAnalysisInterpolant interpolant) throws CPAException,
-      InterruptedException {
-
+  private ARGPath obtainErrorPathPrefix(ARGPath errorPath, ValueAnalysisInterpolant interpolant)
+          throws CPAException, InterruptedException {
     if(interpolateInfeasiblePrefix) {
-      ValueAnalysisFeasibilityChecker checker;
       try {
-        checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
-        errorPath = checker.getInfeasilbePrefix(errorPath,
+        ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
+
+        List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath,
             new ValueAnalysisPrecision("",
                 Configuration.builder().build(),
                 Optional.<VariableClassification>absent(),
                 new ValueAnalysisPrecision.FullPrecision()),
             interpolant.createValueAnalysisState());
+
+        errorPath = obtainPrefixWithLowestScore(prefixes);
+
       } catch (InvalidConfigurationException e) {
         throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
       }
     }
 
-    return from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
+    return errorPath;
+  }
+
+  /**
+   * This method obtains, heuristically, from the list of infeasible prefixes the one with the lowest score, i.e., the
+   * one that leads, given the heuristic performs well, to the best interpolants.
+   *
+   * @param pPrefixes the list of infeasible prefixes of the original error path
+   * @return the ARG path with the lowest score
+   */
+  private ARGPath obtainPrefixWithLowestScore(List<ARGPath> pPrefixes) {
+
+    final int BOOLEAN_VAR   = 2;
+    final int INTEQUAL_VAR  = 4;
+    final int UNKNOWN_VAR   = 16;
+
+    ARGPath fullArgPath   = new ARGPath();
+    long lowestScore      = Long.MAX_VALUE;
+    int lowestScoreIndex  = 0;
+
+    for(ARGPath prefix : pPrefixes) {
+      assert(prefix.getLast().getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
+
+      fullArgPath.addAll(prefix);
+
+      InitialAssumptionUseDefinitionCollector collector = new InitialAssumptionUseDefinitionCollector();
+      Set<String> useDefinitionInformation = collector.obtainUseDefInformation(fullArgPath);
+
+      long score = 1;
+      for(String variableName : useDefinitionInformation) {
+        int factor = UNKNOWN_VAR;
+        if(cfa.getVarClassification().get().getIntBoolVars().contains(variableName)) {
+          factor = BOOLEAN_VAR;
+        }
+        else if(cfa.getVarClassification().get().getIntEqualVars().contains(variableName)) {
+          factor = INTEQUAL_VAR;
+        }
+
+        score = score * factor;
+      }
+
+      if(score <= lowestScore) {
+        lowestScore = score;
+        lowestScoreIndex = pPrefixes.indexOf(prefix);
+      }
+    }
+
+    ARGPath errorPath = new ARGPath();
+    for(int j = 0; j <= lowestScoreIndex; j++) {
+      if(j != lowestScoreIndex) {
+        errorPath.addAll(pPrefixes.get(j).subList(0, pPrefixes.get(j).size() - 1));
+      }
+
+      else {
+        errorPath.addAll(pPrefixes.get(j).subList(0, pPrefixes.get(j).size()));
+      }
+    }
+
+    return errorPath;
   }
 
   /**

@@ -62,10 +62,6 @@ import com.google.common.collect.Iterables;
 
 @Options(prefix="cpa.value.interpolation")
 public class ValueAnalysisInterpolator {
-  @Option(description="whether or not to ignore the semantics of loop-leaving-assume-edges during interpolation - "
-      + "this avoids to have loop-counters in the interpolant")
-  private boolean ignoreLoopsExitAssumes = true;
-
   @Option(description="whether or not to use use-definition information from the error paths" +
       "to optimize the interpolation process")
   private boolean applyUseDefInformation = true;
@@ -99,11 +95,6 @@ public class ValueAnalysisInterpolator {
    * the set of relevant variables found by the collector
    */
   private Set<String> relevantVariables = new HashSet<>();
-
-  /**
-   * the set of assume edges leading out of loops
-   */
-  private final Set<CAssumeEdge> loopExitAssumes = new HashSet<>();
 
   /**
    * the set of memory locations appearing in assume edges leading out of loops
@@ -180,7 +171,7 @@ public class ValueAnalysisInterpolator {
     }
 
     // check if the input-interpolant, after the initial transition, is still strong enough
-    if(applyUseDefInformation && !isUseDefInformationAffected(pErrorPath, initialState, initialSuccessor)) {
+    if (applyUseDefInformation && !isUseDefInformationAffected(pErrorPath, initialState, initialSuccessor)) {
       return new ValueAnalysisInterpolant(new HashMap<>(initialSuccessor.getConstantsMapView()));
     }
 
@@ -276,17 +267,13 @@ public class ValueAnalysisInterpolator {
       throws CPATransferException {
     numberOfInterpolationQueries++;
 
-    for(CFAEdge currentEdge : remainingErrorPath) {
-      if(loopExitAssumes.contains(currentEdge)) {
-        continue;
-      }
-
+    for (CFAEdge currentEdge : remainingErrorPath) {
       Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessors(
         state,
         precision,
         currentEdge);
 
-      if(successors.isEmpty()) {
+      if (successors.isEmpty()) {
         return false;
       }
 
@@ -367,32 +354,28 @@ public class ValueAnalysisInterpolator {
    * This method initializes the loop-information which is used during interpolation.
    */
   private void initializeLoopInformation() {
-    for(Loop l : cfa.getLoopStructure().get().values()) {
-      for(CFAEdge currentEdge : l.getOutgoingEdges()) {
-        if(currentEdge instanceof CAssumeEdge) {
+    final Set<CAssumeEdge> loopExitAssumes = new HashSet<>();
+    for (Loop loop : cfa.getLoopStructure().get().values()) {
+      for (CFAEdge currentEdge : loop.getOutgoingEdges()) {
+        if (currentEdge instanceof CAssumeEdge) {
           loopExitAssumes.add((CAssumeEdge)currentEdge);
         }
       }
     }
 
-    for(CAssumeEdge assumeEdge : loopExitAssumes) {
+    for (CAssumeEdge assumeEdge : loopExitAssumes) {
       CIdExpressionCollectorVisitor collector = new CIdExpressionCollectorVisitor();
       assumeEdge.getExpression().accept(collector);
 
       for (CIdExpression id : collector.getReferencedIdExpressions()) {
         String scope = ForwardingTransferRelation.isGlobal(id) ? null : assumeEdge.getPredecessor().getFunctionName();
 
-        if(scope == null) {
+        if (scope == null) {
           loopExitMemoryLocations.add(MemoryLocation.valueOf(id.getName()));
         } else {
           loopExitMemoryLocations.add(MemoryLocation.valueOf(scope, id.getName(), 0));
         }
       }
-    }
-
-    // clear the set of assume edges if the respective option is not set
-    if(!ignoreLoopsExitAssumes) {
-      loopExitAssumes.clear();
     }
   }
 }
