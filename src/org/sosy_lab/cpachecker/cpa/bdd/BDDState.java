@@ -105,7 +105,7 @@ public class BDDState implements AbstractQueryableState {
   @Override
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
     if (pProperty.equals("VALUES")) {
-      return manager.dumpRegion(this.currentState);
+      return manager.dumpRegion(this.currentState).toString();
     } else if (pProperty.equals("VARSET")) {
       return "(" + Joiner.on(", ").join(manager.getPredicates()) + ")";
     } else if (pProperty.equals("VARSETSIZE")) {

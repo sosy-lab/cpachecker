@@ -25,11 +25,14 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.common.Appender;
+import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -85,9 +88,14 @@ public class NamedRegionManager implements RegionManager {
   /**
    * Returns a String representation of a region.
    */
-  public String dumpRegion(Region r) {
-    Map<Region, String> cache = new HashMap<>(); // map for same regions
-    return dumpRegion(r, cache);
+  public Appender dumpRegion(final Region r) {
+    return new AbstractAppender() {
+      @Override
+      public void appendTo(Appendable pAppendable) throws IOException {
+        Map<Region, String> cache = new HashMap<>(); // map for same regions
+        pAppendable.append(dumpRegion(r, cache));
+      }
+    };
   }
 
   private String dumpRegion(Region r, Map<Region, String> cache) {
