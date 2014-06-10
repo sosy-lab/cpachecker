@@ -223,7 +223,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
           conv.fmgr.makeGreaterOrEqual(f1, zero, signed),
           bfmgr.and(
 
-              // Remainder positive.
+              // Remainder positive or zero.
               conv.fmgr.makeGreaterOrEqual(ret, zero, signed),
 
               // Remainder is bounded above by the numerator (both positive)
@@ -231,8 +231,8 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
           ),
           bfmgr.and(
 
-              // Remainder negative.
-              conv.fmgr.makeLessThan(ret, zero, signed),
+              // Remainder negative or zero.
+              conv.fmgr.makeLessOrEqual(ret, zero, signed),
 
               // Remainder is bounded below by the numerator (both negative)
               conv.fmgr.makeGreaterOrEqual(ret, f1, signed)
