@@ -92,62 +92,56 @@ public class NamedRegionManager implements RegionManager {
     return new AbstractAppender() {
       @Override
       public void appendTo(Appendable pAppendable) throws IOException {
-        Map<Region, String> cache = new HashMap<>(); // map for same regions
-        pAppendable.append(dumpRegion(r, cache));
+        dumpRegion(r, pAppendable);
       }
     };
   }
 
-  private String dumpRegion(Region r, Map<Region, String> cache) {
-    if (cache.containsKey(r)) { return cache.get(r); } // use same region again
-
-    String result;
+  private void dumpRegion(Region r, Appendable out) throws IOException {
     if (regionMap.containsValue(r)) {
-      result = regionMap.inverse().get(r);
+      out.append(regionMap.inverse().get(r));
 
     } else if (r.isFalse()) {
-      result = "FALSE";
+      out.append("FALSE");
 
     } else if (r.isTrue()) {
-      result = "TRUE";
+      out.append("TRUE");
 
     } else {
       Triple<Region, Region, Region> triple = delegate.getIfThenElse(r);
       String predName = regionMap.inverse().get(triple.getFirst());
 
       Region trueBranch = triple.getSecond();
-      String ifTrue = "";
-      if (trueBranch.isFalse()) {
-        // omit
-      } else if (trueBranch.isTrue()) {
-        ifTrue = predName;
-      } else {
-        ifTrue = predName + " & " + dumpRegion(trueBranch, cache);
-      }
-
       Region falseBranch = triple.getThird();
-      String ifFalse = "";
-      if (falseBranch.isFalse()) {
-        // omit
-      } else if (falseBranch.isTrue()) {
-        ifFalse = "!" + predName;
-      } else {
-        ifFalse = "!" + predName + " & " + dumpRegion(falseBranch, cache);
-      }
 
-      if (!ifTrue.isEmpty() && !ifFalse.isEmpty()) {
-        result = "((" + ifTrue + ") | (" + ifFalse + "))";
-      } else if (ifTrue.isEmpty()) {
-        result = ifFalse;
-      } else if (ifFalse.isEmpty()) {
-        result = ifTrue;
+      if (trueBranch.isFalse()) {
+        assert !falseBranch.isFalse();
+        // only falseBranch is present
+        out.append("!")
+           .append(predName)
+           .append(" & ");
+        dumpRegion(falseBranch, out);
+
+      } else if (falseBranch.isFalse()) {
+        // only trueBranch is present
+        out.append(predName)
+           .append(" & ");
+        dumpRegion(trueBranch, out);
 
       } else {
-        throw new AssertionError("Both BDD Branches are empty!?");
+        // both branches present
+        out.append("((")
+           .append(predName)
+           .append(" & ");
+        dumpRegion(trueBranch, out);
+        out.append(") | (")
+           .append("!")
+           .append(predName)
+           .append(" & ");
+        dumpRegion(falseBranch, out);
+        out.append("))");
       }
     }
-    cache.put(r, result);
-    return result;
   }
 
   /** Returns a representation of a region in dot-format (graphviz). */
