@@ -39,6 +39,9 @@
     <option name="-cp">test/programs/java/Statements</option>
     <withoutfile>Assert1</withoutfile>
     <withoutfile>Assert2</withoutfile>
+    <withoutfile>BigDouble</withoutfile>
+    <withoutfile>Casts</withoutfile>
+    <withoutfile>CastMixedExpression</withoutfile>
     <withoutfile>ConditionalExpression1</withoutfile>
     <withoutfile>FunctionCall2</withoutfile>
     <withoutfile>FunctionCall3</withoutfile>
