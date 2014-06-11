@@ -28,7 +28,6 @@ import static com.google.common.collect.Iterables.skip;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -59,12 +58,13 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 @Options(prefix="cpa.value.interpolation")
 public class ValueAnalysisInterpolator {
-  @Option(description="whether or not to use use-definition information from the error paths" +
-      "to optimize the interpolation process")
-  private boolean applyUseDefInformation = true;
+  @Option(name="weakenInterpolant", description="whether or not to heuristically weaken the candidate interpolant "
+      + "prior to the interpolation process")
+  private boolean weakenInterpolant = false;
 
   /**
    * the shutdownNotifier in use
@@ -120,7 +120,6 @@ public class ValueAnalysisInterpolator {
 
     pConfig.inject(this);
 
-
     try {
       shutdownNotifier  = pShutdownNotifier;
       assumeCollector   = new AssumptionUseDefinitionCollector();
@@ -161,56 +160,76 @@ public class ValueAnalysisInterpolator {
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
     ValueAnalysisState initialState      = pInputInterpolant.createValueAnalysisState();
     ValueAnalysisState initialSuccessor  = getInitialSuccessor(initialState, pErrorPath.get(pOffset));
+
     if (initialSuccessor == null) {
       return ValueAnalysisInterpolant.FALSE;
     }
 
     // if initial state and successor are equal, return the input interpolant
+    // in general, this returned interpolant might be stronger than needed, but only in very rare cases,
+    // the weaker interpolant would be different from the input interpolant, so we spare the effort
     if (initialState.equals(initialSuccessor)) {
       return pInputInterpolant;
-    }
-
-    // check if the input-interpolant, after the initial transition, is still strong enough
-    if (applyUseDefInformation && !isUseDefInformationAffected(pErrorPath, initialState, initialSuccessor)) {
-      return new ValueAnalysisInterpolant(new HashMap<>(initialSuccessor.getConstantsMapView()));
     }
 
     // if the current edge just changes the names of variables (e.g. function arguments, returned variables)
     // then return the input interpolant with those renamings
     if (isOnlyVariableRenamingEdge(pErrorPath.get(pOffset))) {
-      return new ValueAnalysisInterpolant(new HashMap<>(initialSuccessor.getConstantsMapView()));
+      return initialSuccessor.createInterpolant();
     }
 
-    // if the remaining path is infeasible by itself, i.e., contradicting by itself, skip interpolation
     Iterable<CFAEdge> remainingErrorPath = skip(pErrorPath, pOffset + 1);
-    if (initialSuccessor.getSize() > 1 && !isRemainingPathFeasible(remainingErrorPath, new ValueAnalysisState(), assumptionsAreRelevant)) {
+
+    // if the remaining path, i.e., the suffix, is contradicting by itself, then return the TRUE interpolant
+    if (initialSuccessor.getSize() > 1 && isSuffixContradicting(remainingErrorPath)) {
       return ValueAnalysisInterpolant.TRUE;
     }
 
-    for (MemoryLocation currentMemoryLocation : optimizeForInterpolation(initialSuccessor)) {
+    ValueAnalysisInterpolant candidateInterpolant = initialSuccessor.createInterpolant();
+
+    if(weakenInterpolant) {
+      candidateInterpolant = weakenToUseDefInformation(candidateInterpolant);
+    }
+
+    initialSuccessor = candidateInterpolant.createValueAnalysisState();
+
+    for (MemoryLocation currentMemoryLocation : optimizeForInterpolation(initialSuccessor, pErrorPath.get(pOffset))) {
       shutdownNotifier.shutdownIfNecessary();
 
-      // temporarily remove the value of the current memory location from the rawInterpolant
+      // temporarily remove the value of the current memory location from the candidate interpolant
       Value value = initialSuccessor.forget(currentMemoryLocation);
 
-      // check if the remaining path now becomes feasible,
+      // check if the remaining path now becomes feasible
       if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor, assumptionsAreRelevant)) {
         initialSuccessor.assignConstant(currentMemoryLocation, value);
       }
     }
 
-    return new ValueAnalysisInterpolant(new HashMap<>(initialSuccessor.getConstantsMapView()));
+    return initialSuccessor.createInterpolant();
   }
 
   /**
-   * This method returns a (possibly) reordered collection of interpolation candidates, which favors non-loop variables
+   * This method checks, if the given error path is contradicting in itself.
+   *
+   * @param errorPath the error path to check.
+   * @return true, if the given error path is contradicting in itself, else false
+   * @throws CPATransferException
+   */
+  private boolean isSuffixContradicting(Iterable<CFAEdge> errorPath) throws CPATransferException {
+    return !isRemainingPathFeasible(errorPath, new ValueAnalysisState(), assumptionsAreRelevant);
+  }
+
+  /**
+   * This method returns a (possibly) reordered collection of memory locations to interpolate, which favors non-loop variables
    * to be part of the interpolant.
    *
    * @param valueAnalysisState the collection of interpolation candidates, encoded in an value-analysis state
-   * @return a (possibly) reordered collection of interpolation candidates
+   * @param currentEdge the edge for which the current interpolant is computed
+   * @return a (possibly) reordered and reduced collection of memory locations to interpolate
    */
-  private Collection<MemoryLocation> optimizeForInterpolation(ValueAnalysisState valueAnalysisState) {
-    Set<MemoryLocation> trackedMemoryLocations = valueAnalysisState.getTrackedMemoryLocations();
+  private Collection<MemoryLocation> optimizeForInterpolation(ValueAnalysisState valueAnalysisState, CFAEdge currentEdge) {
+
+    Set<MemoryLocation> trackedMemoryLocations = Sets.newHashSet(valueAnalysisState.getTrackedMemoryLocations());
 
     ArrayDeque<MemoryLocation> reOrderedMemoryLocations = new ArrayDeque<>();
 
@@ -218,7 +237,9 @@ public class ValueAnalysisInterpolator {
     for(MemoryLocation currentMemoryLocation : trackedMemoryLocations) {
       if(loopExitMemoryLocations.contains(currentMemoryLocation)) {
         reOrderedMemoryLocations.addFirst(currentMemoryLocation);
-      } else {
+      }
+
+      else {
         reOrderedMemoryLocations.addLast(currentMemoryLocation);
       }
     }
@@ -306,26 +327,14 @@ public class ValueAnalysisInterpolator {
   }
 
   /**
-   * This method checks if through the initial edge, memory locations in the use-def chain got changed.
+   * This method weakens the candidate interpolant to contain only memory locations identifiers occurring in the use-def
+   * chain.
    *
-   * @param pErrorPath the error current path
-   * @param initialState the initial state
-   * @param initialSuccessor the immediate successor of the initial state
-   * @return true, if memory locations in the use-def chain got changed, else false
+   * @param candidate the candidate interpolant to weaken
+   * @return the weakened candidate interpolant
    */
-  private boolean isUseDefInformationAffected(final List<CFAEdge> pErrorPath,
-      ValueAnalysisState initialState, ValueAnalysisState initialSuccessor) {
-
-    boolean isUseDefInformationAffected = false;
-    for(MemoryLocation memoryLocation : initialState.getDifference(initialSuccessor)) {
-      if(relevantVariables.contains(memoryLocation.getAsSimpleString())) {
-        isUseDefInformationAffected = true;
-      } else {
-        initialSuccessor.forget(memoryLocation.getAsSimpleString());
-      }
-    }
-
-    return isUseDefInformationAffected;
+  private ValueAnalysisInterpolant weakenToUseDefInformation(ValueAnalysisInterpolant candidate) {
+    return candidate.weaken(relevantVariables);
   }
 
   /**

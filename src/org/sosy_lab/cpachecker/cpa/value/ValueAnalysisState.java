@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -42,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithTargetVariable;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationBasedRefiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
@@ -574,6 +576,15 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
 
   public Map<MemoryLocation, Value> getConstantsMapView() {
     return Collections.unmodifiableMap(constantsMap);
+  }
+
+  /**
+   * This method acts as factory to create a value-analysis interpolant from this value-analysis state.
+   *
+   * @return the value-analysis interpolant reflecting the value assignment of this state
+   */
+  public ValueAnalysisInterpolant createInterpolant() {
+    return new ValueAnalysisInterpolant(new HashMap<>(constantsMap));
   }
 
   public static class MemoryLocation implements Comparable<MemoryLocation>, Serializable {

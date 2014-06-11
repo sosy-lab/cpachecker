@@ -1456,9 +1456,9 @@ cpa.value.initAssumptionVars = false
 # get an initial precison from file
 cpa.value.initialPrecisionFile = no default value
 
-# whether or not to use use-definition information from the error pathsto
-# optimize the interpolation process
-cpa.value.interpolation.applyUseDefInformation = true
+# whether or not to heuristically weaken the candidate interpolant prior to
+# the interpolation process
+cpa.value.interpolation.weakenInterpolant = false
 
 # which merge operator to use for ValueAnalysisCPA
 cpa.value.merge = "SEP"

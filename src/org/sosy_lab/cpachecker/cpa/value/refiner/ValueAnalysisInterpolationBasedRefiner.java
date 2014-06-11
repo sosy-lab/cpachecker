@@ -30,12 +30,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -44,7 +43,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
@@ -77,6 +75,11 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
@@ -110,9 +113,10 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
   private UniqueAssignmentsInPathConditionState assignments = null;
 
   // statistics
-  private int totalInterpolations       = 0;
-  private int totalInterpolationQueries = 0;
-  private Timer timerInterpolation      = new Timer();
+  private StatCounter totalInterpolations   = new StatCounter("Number of interpolations");
+  private StatInt totalInterpolationQueries = new StatInt(StatKind.SUM, "Number of interpolation queries");
+  private StatInt sizeOfInterpolant         = new StatInt(StatKind.AVG, "Size of interpolant");
+  private StatTimer timerInterpolation      = new StatTimer("Time for interpolation");
 
   private final CFA cfa;
   private final LogManager logger;
@@ -134,7 +138,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
   protected Map<ARGState, ValueAnalysisInterpolant> performInterpolation(ARGPath errorPath,
       ValueAnalysisInterpolant interpolant) throws CPAException, InterruptedException {
-    totalInterpolations++;
+    totalInterpolations.inc();
     timerInterpolation.start();
 
     interpolationOffset = -1;
@@ -152,10 +156,18 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
         interpolant = interpolator.deriveInterpolant(errorTrace, i, interpolant);
       }
 
-      totalInterpolationQueries = totalInterpolationQueries + interpolator.getNumberOfInterpolationQueries();
+      totalInterpolationQueries.setNextValue(interpolator.getNumberOfInterpolationQueries());
 
       if(!interpolant.isTrivial() && interpolationOffset == -1) {
         interpolationOffset = i + 1;
+      }
+
+      if(interpolant.isTrivial()) {
+        sizeOfInterpolant.setNextValue(0);
+      }
+
+      else {
+        sizeOfInterpolant.setNextValue(interpolant.assignment.size());
       }
 
       pathInterpolants.put(errorPath.get(i + 1).getFirst(), interpolant);
@@ -442,10 +454,11 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-    out.println("  Number of interpolations:          " + String.format(Locale.US, "%9d",totalInterpolations));
-    out.println("  Number of interpolation queries:   " + String.format(Locale.US, "%9d",totalInterpolationQueries));
-    out.println("  Max. time for singe interpolation:     " + timerInterpolation.getMaxTime().formatAs(TimeUnit.SECONDS));
-    out.println("  Total time for interpolation:          " + timerInterpolation);
+    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out).beginLevel();
+    writer.put(totalInterpolations);
+    writer.put(totalInterpolationQueries);
+    writer.put(sizeOfInterpolant);
+    writer.put(timerInterpolation);
   }
 
   public int getInterpolationOffset() {
@@ -632,6 +645,33 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
       }
 
       return strengthened;
+    }
+
+    /**
+     * This method weakens the interpolant to the given set of memory location identifiers.
+     *
+     * As the information on what to retain is derived in a static syntactical analysis, the set to retain is a
+     * collection of memory location identifiers, instead of {@link MemoryLocation}s, as offsets cannot be provided.
+     *
+     * @param toRetain the set of memory location identifiers to retain in the interpolant.
+     * @return the weakened interpolant
+     */
+    public ValueAnalysisInterpolant weaken(Set<String> toRetain) {
+      if (isTrivial()) {
+        return this;
+      }
+
+      ValueAnalysisInterpolant weakenedItp = new ValueAnalysisInterpolant(new HashMap<>(assignment));
+
+      for(Iterator<MemoryLocation> it = weakenedItp.assignment.keySet().iterator(); it.hasNext(); ) {
+        MemoryLocation current = it.next();
+
+        if(!toRetain.contains(current.getAsSimpleString())) {
+          it.remove();
+        }
+      }
+
+      return weakenedItp;
     }
   }
 }
