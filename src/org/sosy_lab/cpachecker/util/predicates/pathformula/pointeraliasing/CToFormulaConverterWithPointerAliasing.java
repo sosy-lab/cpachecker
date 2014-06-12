@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -323,7 +324,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           offset += getSizeof(memberType);
         }
       }
-    } else {
+    } else if (!(baseType instanceof CFunctionType)) {
+      // This adds a constraint *a = a for the case where we previously tracked
+      // a variable directly and now via its address (we do not want to loose
+      // the value previously stored in the variable).
       // Make sure to not add invalid-deref constraints for this dereference
       constraints.addConstraint(fmgr.makeEqual(makeSafeDereference(baseType, address, ssa),
                                                makeVariable(base.getName(), baseType, ssa)));
