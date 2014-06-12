@@ -251,11 +251,11 @@ public class ValueAnalysisInterpolator {
    *
    * @param remainingErrorPath the error path to check feasibility on
    * @param state the (pseudo) initial state
-   * @param ignoreAssumptions whether or not to ignore the assigning semantics of assume edges
+   * @param pAssumptionsAreRelevant whether or not to ignore the assigning semantics of assume edges
    * @return true, it the path is feasible, else false
    * @throws CPATransferException
    */
-  private boolean isRemainingPathFeasible(Iterable<CFAEdge> remainingErrorPath, ValueAnalysisState state, boolean ignoreAssumptions)
+  private boolean isRemainingPathFeasible(Iterable<CFAEdge> remainingErrorPath, ValueAnalysisState state, boolean pAssumptionsAreRelevant)
       throws CPATransferException {
     numberOfInterpolationQueries++;
 
@@ -269,7 +269,7 @@ public class ValueAnalysisInterpolator {
         return false;
       }
 
-      state = extractSingletonSuccessor(state, currentEdge, ignoreAssumptions, successors);
+      state = extractSingletonSuccessor(state, currentEdge, pAssumptionsAreRelevant, successors);
     }
     return true;
   }
@@ -283,12 +283,12 @@ public class ValueAnalysisInterpolator {
    * @return the only successor or null, if no set of successors is empty
    */
   private ValueAnalysisState extractSingletonSuccessor(ValueAnalysisState predecessor,
-      CFAEdge currentEdge, boolean ignoreAssumptions, Collection<ValueAnalysisState> successors) {
+      CFAEdge currentEdge, boolean pAssumptionsAreRelevant, Collection<ValueAnalysisState> successors) {
     if(successors.isEmpty()) {
       return null;
     }
 
-    else if(!ignoreAssumptions && currentEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+    else if(!pAssumptionsAreRelevant && currentEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
       return predecessor.clone();
     }
 
