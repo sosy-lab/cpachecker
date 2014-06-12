@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Rationa
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
@@ -146,13 +147,20 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   }
 
   /**
-   * This method removes all variables and their respective values from the underlying map.
+   * This method retains all variables and their respective values in the underlying map, while removing all others.
    *
-   * @param variableNames the names of the variables to be removed
+   * @param toRetain the names of the variables to retain
    */
-  void removeAll(Collection<String> variableNames) {
-    for (String variableName : variableNames) {
-      constantsMap = constantsMap.removeAndCopy(MemoryLocation.valueOf(variableName));
+  public void retainAll(Set<MemoryLocation> toRetain) {
+    Set<MemoryLocation> toRemove = new HashSet<>();
+    for(MemoryLocation memoryLocation : constantsMap.keySet()) {
+      if(!toRetain.contains(memoryLocation)) {
+        toRemove.add(memoryLocation);
+      }
+    }
+
+    for(MemoryLocation memoryLocation : toRemove) {
+      forget(memoryLocation);
     }
   }
 
@@ -593,6 +601,12 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     private final String functionName;
     private final String identifier;
     private final long offset;
+
+    public static final Function<String, MemoryLocation> FROM_STRING_TO_MEMORYLOCATION =
+        new Function<String, MemoryLocation>() {
+            @Override
+            public MemoryLocation apply(String variableName) { return MemoryLocation.valueOf(variableName); }
+        };
 
     private MemoryLocation(String pFunctionName, String pIdentifier,
         long pOffset) {

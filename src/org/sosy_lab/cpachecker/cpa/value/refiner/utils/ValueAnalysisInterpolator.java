@@ -24,9 +24,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
+import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.skip;
 
-import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -38,13 +38,9 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.Value;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -53,7 +49,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationBasedRefiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
@@ -70,11 +65,6 @@ public class ValueAnalysisInterpolator {
    * the shutdownNotifier in use
    */
   private final ShutdownNotifier shutdownNotifier;
-
-  /**
-   * the current cfa
-   */
-  private final CFA cfa;
 
   /**
    * the transfer relation in use
@@ -95,11 +85,6 @@ public class ValueAnalysisInterpolator {
    * the set of relevant variables found by the collector
    */
   private Set<String> relevantVariables = new HashSet<>();
-
-  /**
-   * the set of memory locations appearing in assume edges leading out of loops
-   */
-  private final Set<MemoryLocation> loopExitMemoryLocations = new HashSet<>();
 
   /**
    * the boolean flag that indicates, if assignments through assumptions are needed for excluding the target state
@@ -123,13 +108,9 @@ public class ValueAnalysisInterpolator {
     try {
       shutdownNotifier  = pShutdownNotifier;
       assumeCollector   = new AssumptionUseDefinitionCollector();
-
-      cfa               = pCfa;
       transfer          = new ValueAnalysisTransferRelation(Configuration.builder().build(), pLogger, pCfa);
       precision         = new ValueAnalysisPrecision("", Configuration.builder().build(),
           Optional.<VariableClassification>absent());
-
-      initializeLoopInformation();
     }
     catch (InvalidConfigurationException e) {
       throw new InvalidConfigurationException("Invalid configuration for checking path: " + e.getMessage(), e);
@@ -185,15 +166,12 @@ public class ValueAnalysisInterpolator {
       return ValueAnalysisInterpolant.TRUE;
     }
 
-    ValueAnalysisInterpolant candidateInterpolant = initialSuccessor.createInterpolant();
-
     if(weakenInterpolant) {
-      candidateInterpolant = weakenToUseDefInformation(candidateInterpolant);
+      initialSuccessor.retainAll(from(relevantVariables)
+          .transform(MemoryLocation.FROM_STRING_TO_MEMORYLOCATION).toSet());
     }
 
-    initialSuccessor = candidateInterpolant.createValueAnalysisState();
-
-    for (MemoryLocation currentMemoryLocation : optimizeForInterpolation(initialSuccessor, pErrorPath.get(pOffset))) {
+    for (MemoryLocation currentMemoryLocation : optimizeForInterpolation(initialSuccessor)) {
       shutdownNotifier.shutdownIfNecessary();
 
       // temporarily remove the value of the current memory location from the candidate interpolant
@@ -224,27 +202,20 @@ public class ValueAnalysisInterpolator {
    * to be part of the interpolant.
    *
    * @param valueAnalysisState the collection of interpolation candidates, encoded in an value-analysis state
-   * @param currentEdge the edge for which the current interpolant is computed
    * @return a (possibly) reordered and reduced collection of memory locations to interpolate
    */
-  private Collection<MemoryLocation> optimizeForInterpolation(ValueAnalysisState valueAnalysisState, CFAEdge currentEdge) {
+  private Collection<MemoryLocation> optimizeForInterpolation(ValueAnalysisState valueAnalysisState) {
 
-    Set<MemoryLocation> trackedMemoryLocations = Sets.newHashSet(valueAnalysisState.getTrackedMemoryLocations());
+    return Sets.newHashSet(valueAnalysisState.getTrackedMemoryLocations());/*
 
     ArrayDeque<MemoryLocation> reOrderedMemoryLocations = new ArrayDeque<>();
 
     // move loop-variables to the front - being checked for relevance earlier minimizes their impact on feasibility
     for(MemoryLocation currentMemoryLocation : trackedMemoryLocations) {
-      if(loopExitMemoryLocations.contains(currentMemoryLocation)) {
-        reOrderedMemoryLocations.addFirst(currentMemoryLocation);
-      }
-
-      else {
-        reOrderedMemoryLocations.addLast(currentMemoryLocation);
-      }
+      reOrderedMemoryLocations.addLast(currentMemoryLocation);
     }
 
-    return reOrderedMemoryLocations;
+    return reOrderedMemoryLocations;*/
   }
 
   /**
@@ -327,17 +298,6 @@ public class ValueAnalysisInterpolator {
   }
 
   /**
-   * This method weakens the candidate interpolant to contain only memory locations identifiers occurring in the use-def
-   * chain.
-   *
-   * @param candidate the candidate interpolant to weaken
-   * @return the weakened candidate interpolant
-   */
-  private ValueAnalysisInterpolant weakenToUseDefInformation(ValueAnalysisInterpolant candidate) {
-    return candidate.weaken(relevantVariables);
-  }
-
-  /**
    * This method checks, if the given edge is only renaming variables.
    *
    * @param cfaEdge the CFA edge to check
@@ -357,34 +317,5 @@ public class ValueAnalysisInterpolator {
         //|| cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge
         //|| cfaEdge.getEdgeType() == CFAEdgeType.ReturnStatementEdge
         ;
-  }
-
-  /**
-   * This method initializes the loop-information which is used during interpolation.
-   */
-  private void initializeLoopInformation() {
-    final Set<CAssumeEdge> loopExitAssumes = new HashSet<>();
-    for (Loop loop : cfa.getLoopStructure().get().values()) {
-      for (CFAEdge currentEdge : loop.getOutgoingEdges()) {
-        if (currentEdge instanceof CAssumeEdge) {
-          loopExitAssumes.add((CAssumeEdge)currentEdge);
-        }
-      }
-    }
-
-    for (CAssumeEdge assumeEdge : loopExitAssumes) {
-      CIdExpressionCollectorVisitor collector = new CIdExpressionCollectorVisitor();
-      assumeEdge.getExpression().accept(collector);
-
-      for (CIdExpression id : collector.getReferencedIdExpressions()) {
-        String scope = ForwardingTransferRelation.isGlobal(id) ? null : assumeEdge.getPredecessor().getFunctionName();
-
-        if (scope == null) {
-          loopExitMemoryLocations.add(MemoryLocation.valueOf(id.getName()));
-        } else {
-          loopExitMemoryLocations.add(MemoryLocation.valueOf(scope, id.getName(), 0));
-        }
-      }
-    }
   }
 }
