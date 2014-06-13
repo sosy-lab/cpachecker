@@ -57,6 +57,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.Longs;
 
@@ -602,10 +603,24 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     private final String identifier;
     private final long offset;
 
+    /**
+     * This function can be used to {@link Iterables#transform transform}  a collection of {@link String}s
+     * to a collection of {@link MemoryLocation}s, representing the respective memory location of the identifiers.
+     */
     public static final Function<String, MemoryLocation> FROM_STRING_TO_MEMORYLOCATION =
         new Function<String, MemoryLocation>() {
             @Override
             public MemoryLocation apply(String variableName) { return MemoryLocation.valueOf(variableName); }
+        };
+
+    /**
+     * This function can be used to {@link Iterables#transform transform} a collection of {@link MemoryLocation}s
+     * to a collection of {@link String}s, representing the respective variable identifiers.
+     */
+    public static final Function<MemoryLocation, String> FROM_MEMORYLOCATION_TO_STRING =
+        new Function<MemoryLocation, String>() {
+            @Override
+            public String apply(MemoryLocation memoryLocation) { return memoryLocation.getAsSimpleString(); }
         };
 
     private MemoryLocation(String pFunctionName, String pIdentifier,
