@@ -32,6 +32,9 @@ import ap.parser.IFunction;
 import ap.parser.IIntLit;
 import ap.parser.ITerm;
 import ap.parser.ITermITE;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import org.sosy_lab.common.Pair;
 import scala.collection.mutable.ArrayBuffer;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -49,7 +52,8 @@ import java.util.List;
 import java.util.Map;
 
 /** This is a Wrapper around Princess.
- * This Wrapper allows to set a logfile for all Smt-Queries (default "princess.smt2").
+ * This Wrapper allows to set a logfile for all Smt-Queries (default "princess.###.smt2").
+ * // TODO logfile is only available as tmpfile in /tmp, perhaps it is not closed?
  * It also manages the "shared variables": each variable is declared for all stacks.
  */
 @Options(prefix="cpa.predicate.princess")
@@ -102,6 +106,11 @@ class PrincessEnvironment {
 
   private final Map<IFunction, FunctionType> declaredFunctions = new HashMap<>();
 
+  // order is important for abbreviations, because a abbreviation might depend on another one.
+  private final List<Pair<IFormula, IFormula>> abbrevFormulas = new ArrayList<>();
+  // for faster lookup, key: abbreviation, entry: long formula.
+  private final BiMap<IFormula, IFormula> abbrevFormulasMap = HashBiMap.create();
+
   @Option(description="Export solver queries in Smtlib format into a file.")
   private boolean logAllQueries = false;
 
@@ -111,6 +120,11 @@ class PrincessEnvironment {
 
   /** this is a counter to get distinct logfiles for distinct environments. */
   private static int logfileCounter = 0;
+
+  /** formulas can be simplified through replacing them with an abbrev-formula. */
+  // TODO do we have to check, that no other symbol equals an abbreviation-symbol?
+  private static final String ABBREV = "ABBREV_";
+  private static int abbrevIndex = 0;
 
   private final LogManager logger;
 
@@ -146,6 +160,9 @@ class PrincessEnvironment {
     for (FunctionType s : functionsCache.values()) {
       stack.addSymbol(s.funcDecl);
     }
+    for (Pair<IFormula, IFormula> abbrev : abbrevFormulas) {
+      stack.addAbbrev(abbrev.getFirst(), abbrev.getSecond());
+    }
     registeredStacks.add(stack);
     return stack;
   }
@@ -165,7 +182,7 @@ class PrincessEnvironment {
     return api;
   }
 
-  void unregisterStack(PrincessStack stack) {
+  void unregisterStack(SymbolTrackingPrincessStack stack) {
     assert registeredStacks.contains(stack) : "cannot remove api, it is not registered";
     registeredStacks.remove(stack);
   }
@@ -264,6 +281,22 @@ class PrincessEnvironment {
         return t;
       default:
         throw new AssertionError("unknown resulttype");
+    }
+  }
+
+  /** create a short replacement/abbreviation function for a long formula. */
+  public IFormula abbrev(IFormula longFormula) {
+    if (abbrevFormulasMap.inverse().containsKey(longFormula)) {
+      return abbrevFormulasMap.inverse().get(longFormula);
+    } else {
+      final String abbrevName = ABBREV + abbrevIndex++;
+      final IFormula abbrev = api.abbrev(longFormula, abbrevName);
+      abbrevFormulas.add(Pair.of(abbrev, longFormula));
+      abbrevFormulasMap.put(abbrev, longFormula);
+      for (SymbolTrackingPrincessStack stack : registeredStacks) {
+        stack.addAbbrev(abbrev, longFormula);
+      }
+      return abbrev;
     }
   }
 

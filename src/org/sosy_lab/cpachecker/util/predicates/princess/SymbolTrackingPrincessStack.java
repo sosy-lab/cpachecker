@@ -27,6 +27,7 @@ import ap.SimpleAPI;
 import ap.parser.IFormula;
 import ap.parser.IFunction;
 import ap.parser.ITerm;
+import org.sosy_lab.common.Pair;
 import scala.Enumeration.Value;
 import scala.collection.JavaConversions;
 import scala.collection.Seq;
@@ -77,7 +78,7 @@ class SymbolTrackingPrincessStack implements PrincessStack {
   @Override
   public void pop(int levels) {
     // we have to recreate symbols on lower levels, because CPAchecker assumes "global" symbols.
-    final List<Level> toAdd = new ArrayList<>(levels);
+    final Deque<Level> toAdd = new ArrayDeque<>(levels);
     for (int i = 0; i < levels; i++) {
       api.pop();
       toAdd.add(trackingStack.removeLast());
@@ -88,6 +89,10 @@ class SymbolTrackingPrincessStack implements PrincessStack {
       for (IFunction function : level.functionSymbols) {
         api.addFunction(function);
       }
+      for (Pair<IFormula, IFormula> abbrev : level.abbreviations) {
+        api.addAbbrev(abbrev.getFirst(), abbrev.getSecond());
+      }
+      trackingStack.getLast().mergeWithHigher(level);
     }
   }
 
@@ -164,6 +169,7 @@ class SymbolTrackingPrincessStack implements PrincessStack {
     api.shutDown();
   }
 
+  /** add external definition: boolean variable. */
   void addSymbol(IFormula f) {
     api.addBooleanVariable(f);
     if (!trackingStack.isEmpty()) {
@@ -171,6 +177,7 @@ class SymbolTrackingPrincessStack implements PrincessStack {
     }
   }
 
+  /** add external definition: integer variable. */
   void addSymbol(ITerm f) {
     api.addConstant(f);
     if (!trackingStack.isEmpty()) {
@@ -178,6 +185,7 @@ class SymbolTrackingPrincessStack implements PrincessStack {
     }
   }
 
+  /** add external definition: uninterpreted function. */
   void addSymbol(IFunction f) {
     api.addFunction(f);
     if (!trackingStack.isEmpty()) {
@@ -185,9 +193,28 @@ class SymbolTrackingPrincessStack implements PrincessStack {
     }
   }
 
+  /** add external definition: abbreviation for formula. */
+  void addAbbrev(IFormula abbrev, IFormula formula) {
+    api.addAbbrev(abbrev, formula);
+    if (!trackingStack.isEmpty()) {
+      trackingStack.getLast().abbreviations.add(Pair.of(abbrev, formula));
+    }
+  }
+
   private class Level {
     List<IFormula> booleanSymbols = new ArrayList<>();
     List<ITerm> intSymbols = new ArrayList<>();
     List<IFunction> functionSymbols = new ArrayList<>();
+
+    // order is important for abbreviations, because a abbreviation might depend on another one.
+    List<Pair<IFormula, IFormula>> abbreviations = new ArrayList<>();
+
+    /**  add higher level to current level, we keep the order of creating symbols. */
+    void mergeWithHigher(Level other) {
+      this.booleanSymbols.addAll(other.booleanSymbols);
+      this.intSymbols.addAll(other.intSymbols);
+      this.functionSymbols.addAll(other.functionSymbols);
+      this.abbreviations.addAll(other.abbreviations);
+    }
   }
 }

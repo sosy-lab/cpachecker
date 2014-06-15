@@ -126,6 +126,9 @@ class PrincessBooleanFormulaManager extends AbstractBooleanFormulaManager<IExpre
         }
       }
     }
+
+    // if we cannot simplify the formula, we create an abbreviation
+    // return getFormulaCreator().getEnv().abbrev(f);
     return f;
   }
 
