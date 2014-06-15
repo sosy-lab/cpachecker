@@ -92,7 +92,9 @@ class SymbolTrackingPrincessStack implements PrincessStack {
       for (Pair<IFormula, IFormula> abbrev : level.abbreviations) {
         api.addAbbrev(abbrev.getFirst(), abbrev.getSecond());
       }
-      trackingStack.getLast().mergeWithHigher(level);
+      if (!trackingStack.isEmpty()) {
+        trackingStack.getLast().mergeWithHigher(level);
+      }
     }
   }
 
