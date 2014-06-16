@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
-import com.google.common.collect.Sets;
 
 
 public class SignState implements AbstractStateWithTargetVariable, TargetableWithPredicatedAnalysis, Serializable {
@@ -81,11 +80,19 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
     if (isSubsetOf(pToJoin)) { return pToJoin; }
 
     SignState result = SignState.TOP;
-    for (String varIdent : Sets.union(signMap.keySet(), pToJoin.signMap.keySet())) {
-      result = result.assignSignToVariable(varIdent,
-          signMap.getSignForVariable(varIdent).combineWith(pToJoin.signMap.getSignForVariable(varIdent))); // TODO performance
+    ImmutableMap.Builder<String, SIGN> mapBuilder = ImmutableMap.builder();
+    SIGN combined;
+    for (String varIdent : signMap.keySet()) {
+      // only add those variables that are contained in both states (otherwise one has value ALL (not saved))
+      if (pToJoin.signMap.containsKey(varIdent)) {
+        combined = signMap.getSignForVariable(varIdent).combineWith(pToJoin.signMap.getSignForVariable(varIdent));
+        if (!combined.isAll()) {
+          mapBuilder.put(varIdent, combined);
+        }
+      }
     }
-    return result;
+    ImmutableMap<String, SIGN> newMap = mapBuilder.build();
+    return newMap.size()>0?new SignState(new SignMap(newMap), stateBeforeEnteredFunction):result;
   }
 
   public boolean isSubsetOf(SignState pSuperset) {
@@ -97,8 +104,13 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
       if (pSuperset.stateBeforeEnteredFunction.isPresent()) { return false; }
     }
     // is subset if for every variable all sign assumptions are considered in pSuperset
-    for (String varIdent : Sets.union(signMap.keySet(), pSuperset.signMap.keySet())) {
+    // check that all variables with SIGN != ALL are covered
+    for (String varIdent : signMap.keySet()) {
       if (!signMap.getSignForVariable(varIdent).isSubsetOf(pSuperset.signMap.getSignForVariable(varIdent))) { return false; }
+    }
+    // check that all variables in superset with value SIGN != ALL have also a value SIGN!=ALL in subset
+    for (String varIdent : pSuperset.signMap.keySet()) {
+      if (!signMap.containsKey(varIdent)) { return false; }
     }
     return true;
   }
