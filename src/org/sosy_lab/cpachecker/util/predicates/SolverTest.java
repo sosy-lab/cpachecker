@@ -41,7 +41,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Rationa
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class SolverTest {
 
@@ -202,7 +203,6 @@ public class SolverTest {
 
   @Test(expected = Exception.class)
   public void stackTestSMTINTERPOL() throws Exception {
-    // TODO does SMTINTERPOL support dualStack??
     stackTest("SMTINTERPOL");
   }
 
@@ -233,7 +233,6 @@ public class SolverTest {
 
   @Test(expected = Exception.class)
   public void stackTest2SMTINTERPOL() throws Exception {
-    // TODO does SMTINTERPOL support dualStack??
     stackTest2("SMTINTERPOL");
   }
 
@@ -262,7 +261,6 @@ public class SolverTest {
 
   @Test
   public void dualStackTestSMTINTERPOL() throws Exception {
-    // TODO does SMTINTERPOL support dualStack??
     dualStackTest("SMTINTERPOL");
   }
 
@@ -307,7 +305,6 @@ public class SolverTest {
 
   @Test
   public void dualStackTest2SMTINTERPOL() throws Exception {
-    // TODO does SMTINTERPOL support dualStack??
     dualStackTest2("SMTINTERPOL");
   }
 
