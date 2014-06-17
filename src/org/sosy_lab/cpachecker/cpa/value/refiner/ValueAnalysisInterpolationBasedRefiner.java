@@ -67,7 +67,7 @@ import org.sosy_lab.cpachecker.cpa.value.Value;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.InitialAssumptionUseDefinitionCollector;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -291,68 +291,10 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
                 new ValueAnalysisPrecision.FullPrecision()),
             interpolant.createValueAnalysisState());
 
-        errorPath = obtainPrefixWithLowestScore(prefixes);
+        errorPath = new ErrorPathClassifier(cfa.getVarClassification()).obtainPrefixWithLowestScore(prefixes);
 
       } catch (InvalidConfigurationException e) {
         throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
-      }
-    }
-
-    return errorPath;
-  }
-
-  /**
-   * This method obtains, heuristically, from the list of infeasible prefixes the one with the lowest score, i.e., the
-   * one that leads, given the heuristic performs well, to the best interpolants.
-   *
-   * @param pPrefixes the list of infeasible prefixes of the original error path
-   * @return the ARG path with the lowest score
-   */
-  private ARGPath obtainPrefixWithLowestScore(List<ARGPath> pPrefixes) {
-
-    final int BOOLEAN_VAR   = 2;
-    final int INTEQUAL_VAR  = 4;
-    final int UNKNOWN_VAR   = 16;
-
-    ARGPath fullArgPath   = new ARGPath();
-    long lowestScore      = Long.MAX_VALUE;
-    int lowestScoreIndex  = 0;
-
-    for(ARGPath prefix : pPrefixes) {
-      assert(prefix.getLast().getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
-
-      fullArgPath.addAll(prefix);
-
-      InitialAssumptionUseDefinitionCollector collector = new InitialAssumptionUseDefinitionCollector();
-      Set<String> useDefinitionInformation = collector.obtainUseDefInformation(fullArgPath);
-
-      long score = 1;
-      for(String variableName : useDefinitionInformation) {
-        int factor = UNKNOWN_VAR;
-        if(cfa.getVarClassification().get().getIntBoolVars().contains(variableName)) {
-          factor = BOOLEAN_VAR;
-        }
-        else if(cfa.getVarClassification().get().getIntEqualVars().contains(variableName)) {
-          factor = INTEQUAL_VAR;
-        }
-
-        score = score * factor;
-      }
-
-      if(score <= lowestScore) {
-        lowestScore = score;
-        lowestScoreIndex = pPrefixes.indexOf(prefix);
-      }
-    }
-
-    ARGPath errorPath = new ARGPath();
-    for(int j = 0; j <= lowestScoreIndex; j++) {
-      if(j != lowestScoreIndex) {
-        errorPath.addAll(pPrefixes.get(j).subList(0, pPrefixes.get(j).size() - 1));
-      }
-
-      else {
-        errorPath.addAll(pPrefixes.get(j).subList(0, pPrefixes.get(j).size()));
       }
     }
 

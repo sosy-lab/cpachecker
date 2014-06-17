@@ -23,12 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -47,20 +49,22 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.AssumptionUseDefinitionCollector;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.InitialAssumptionUseDefinitionCollector;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 /**
@@ -87,6 +91,7 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
 
     ValueAnalysisUseDefinitionBasedRefiner refiner = initialiseRefiner(cpa, valueAnalysisCpa);
     valueAnalysisCpa.getStats().addRefiner(refiner);
+    valueAnalysisCpa.injectRefinablePrecision();
 
     return refiner;
   }
@@ -94,7 +99,7 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
   private static ValueAnalysisUseDefinitionBasedRefiner initialiseRefiner(
       ConfigurableProgramAnalysis cpa, ValueAnalysisCPA pValueAnalysisCpa)
           throws CPAException, InvalidConfigurationException {
-    LogManager logger    = pValueAnalysisCpa.getLogger();
+    LogManager logger = pValueAnalysisCpa.getLogger();
 
     return new ValueAnalysisUseDefinitionBasedRefiner(
         logger,
@@ -145,44 +150,52 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
    * @returns true, if the value-analysis refinement was successful, else false
    * @throws CPAException when value-analysis interpolation fails
    */
-  private boolean performValueAnalysisRefinement(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException, InterruptedException {
+  private boolean performValueAnalysisRefinement(final ARGReachedSet reached, ARGPath errorPath) throws CPAException, InterruptedException {
     numberOfRefinements++;
+
+    try {
+      ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
+      List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath,
+          new ValueAnalysisPrecision("",
+              Configuration.builder().build(),
+              Optional.<VariableClassification>absent(),
+              new ValueAnalysisPrecision.FullPrecision()),
+          new ValueAnalysisState());
+
+      errorPath = new ErrorPathClassifier(cfa.getVarClassification()).obtainPrefixWithLowestScore(prefixes);
+    } catch (InvalidConfigurationException e) {
+      throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
+    }
+
+    Multimap<CFANode, MemoryLocation> increment = obtainPrecisionIncrement(errorPath);
+
+    // no increment - refinement was not successful
+    if(increment.isEmpty()) {
+      return false;
+    }
 
     UnmodifiableReachedSet reachedSet             = reached.asReachedSet();
     Precision precision                           = reachedSet.getPrecision(reachedSet.getLastState());
     ValueAnalysisPrecision valueAnalysisPrecision = Precisions.extractPrecisionByType(precision, ValueAnalysisPrecision.class);
 
-    List<CFAEdge> cfaTrace = Lists.newArrayList();
-    for(Pair<ARGState, CFAEdge> elem : errorPath) {
-      cfaTrace.add(elem.getSecond());
-    }
-
-    Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
-    for(String var : new AssumptionUseDefinitionCollector().obtainUseDefInformation(cfaTrace)) {
-      String[] s = var.split("::");
-
-      // just add to BOGUS LOCATION
-      increment.put(cfaTrace.get(0).getSuccessor(), (s.length == 1)
-                                                      ? MemoryLocation.valueOf(s[0])
-                                                      : MemoryLocation.valueOf(s[0], s[1], 0));
-    }
-
-    // no increment - Refinement was not successful
-    if(increment.isEmpty()) {
-      return false;
-    }
-
-    ValueAnalysisPrecision refinedValueAnalysisPrecision = new ValueAnalysisPrecision(valueAnalysisPrecision, increment);
-
-    ArrayList<Precision> refinedPrecisions = new ArrayList<>(2);
-    refinedPrecisions.add(refinedValueAnalysisPrecision);
-
-    ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(2);
-    newPrecisionTypes.add(ValueAnalysisPrecision.class);
+    reached.removeSubtree(errorPath.get(1).getFirst(),
+        new ValueAnalysisPrecision(valueAnalysisPrecision, increment),
+        ValueAnalysisPrecision.class);
 
     numberOfSuccessfulRefinements++;
-    reached.removeSubtree(errorPath.get(1).getFirst(), refinedPrecisions, newPrecisionTypes);
     return true;
+  }
+
+  private Multimap<CFANode, MemoryLocation> obtainPrecisionIncrement(ARGPath errorPath) {
+    List<CFAEdge> cfaTrace = from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
+    Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
+
+    // just add each variable referenced in the use-def set to a BOGUS PROGRAM LOCATION (i.e., initial location)
+    for(String referencedVariable : new InitialAssumptionUseDefinitionCollector().obtainUseDefInformation(cfaTrace)) {
+      increment.put(cfaTrace.get(0).getSuccessor(), MemoryLocation.valueOf(referencedVariable));
+    }
+
+    return increment;
   }
 
   @Override
