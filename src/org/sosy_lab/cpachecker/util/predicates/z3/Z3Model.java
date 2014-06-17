@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
 
 public class Z3Model {
 
@@ -211,11 +212,8 @@ public class Z3Model {
         break;
 
       case Real:
-        long numerator = get_numerator(z3context, value);
-        long denominator = get_denominator(z3context, value);
-        BigInteger num = BigInteger.valueOf(numerator);
-        BigInteger den = BigInteger.valueOf(denominator);
-        lValue = num.divide(den);
+        String s = get_numeral_string(z3context, value);
+        lValue = ExtendedRational.ofString(s);
         break;
 
       case Bitvector:
