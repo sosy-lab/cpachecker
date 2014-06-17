@@ -48,19 +48,19 @@ import com.google.common.collect.Multimap;
 public class OctPrecision implements Precision {
 
   private final Set<String> trackedVars;
-  private final Configuration config;
   private final ValueAnalysisPrecision valuePrecision;
-  private final boolean handleFloats;
+
+  @Option(name="handleFloats",
+      description="with this option the evaluation of float variables can be toggled.")
+  private boolean handleFloats = false;
 
   @Option(name="refiner", description="turn the refiner on or off, default is off")
   private boolean refiner = false;
 
-  public OctPrecision(Configuration pConfig, boolean pHandleFloats) throws InvalidConfigurationException {
-    valuePrecision = new ValueAnalysisPrecision("", pConfig, Optional.<VariableClassification>absent());
-    config = pConfig;
+  public OctPrecision(Configuration config) throws InvalidConfigurationException {
+    valuePrecision = new ValueAnalysisPrecision("", config, Optional.<VariableClassification>absent());
     config.inject(this);
     trackedVars = new HashSet<>();
-    handleFloats = pHandleFloats;
   }
 
   /**
@@ -69,7 +69,6 @@ public class OctPrecision implements Precision {
    */
   public OctPrecision(OctPrecision pOctPrecision, Multimap<CFANode, MemoryLocation> pIncrement) {
     valuePrecision = new ValueAnalysisPrecision(pOctPrecision.valuePrecision, pIncrement);
-    config = pOctPrecision.config;
     handleFloats = pOctPrecision.handleFloats;
     refiner = pOctPrecision.refiner;
     trackedVars = new HashSet<>();
@@ -86,7 +85,6 @@ public class OctPrecision implements Precision {
   public OctPrecision(OctPrecision pOctPrecision, Set<String> pIncrement) {
     valuePrecision = pOctPrecision.valuePrecision;
     handleFloats = pOctPrecision.handleFloats;
-    config = pOctPrecision.config;
     refiner = pOctPrecision.refiner;
     trackedVars = new HashSet<>();
     trackedVars.addAll(pOctPrecision.trackedVars);
@@ -112,6 +110,10 @@ public class OctPrecision implements Precision {
       }
     }
     return trackedVars.contains(varName);
+  }
+
+  public boolean shouldHandleFloats() {
+    return handleFloats;
   }
 
   public ValueAnalysisPrecision getValueAnalysisPrecision() {

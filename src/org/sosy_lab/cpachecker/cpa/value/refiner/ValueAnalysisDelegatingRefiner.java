@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -175,7 +176,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
             predicateCpa.getShutdownNotifier(),
             logger);
 
-        PathChecker pathChecker = new PathChecker(logger, pathFormulaManager, solver, machineModel);
+        PathChecker pathChecker = new PathChecker(logger, predicateCpa.getShutdownNotifier(), pathFormulaManager, solver, machineModel);
 
         RefinementStrategy backupRefinementStrategy = new PredicateAbstractionRefinementStrategy(
             config,
@@ -254,7 +255,12 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     }
 
     else {
-      return CounterexampleInfo.feasible(errorPath, null);
+      //TODO Get ShutDownNotifier
+      ValueAnalysisConcreteErrorPathAllocator va = new ValueAnalysisConcreteErrorPathAllocator(logger, null);
+
+      Model model = va.allocateAssignmentsToPath(errorPath, cfa.getMachineModel());
+
+      return CounterexampleInfo.feasible(errorPath, model);
     }
   }
 

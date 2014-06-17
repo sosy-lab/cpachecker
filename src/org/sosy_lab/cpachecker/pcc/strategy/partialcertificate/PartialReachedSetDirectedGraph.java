@@ -201,16 +201,19 @@ public class PartialReachedSetDirectedGraph {
 
     @Override
     public void visitARGNode(ARGState pNode) {
-      if(stopPathDiscovery(pNode)){
-         int indexSuccessor = nodeToIndex.get(pNode);
-         adjacencyMatrix[indexPredecessor][indexSuccessor] = 1;
-         changeableAdjacencyList.get(indexPredecessor).add(indexSuccessor);
+      if (stopPathDiscovery(pNode)) {
+        while (pNode.isCovered()) {
+          pNode = pNode.getCoveringState();
+        }
+        int indexSuccessor = nodeToIndex.get(pNode);
+        adjacencyMatrix[indexPredecessor][indexSuccessor] = 1;
+        changeableAdjacencyList.get(indexPredecessor).add(indexSuccessor);
       }
     }
 
     @Override
     public boolean stopPathDiscovery(ARGState pNode) {
-      return pNode!=predecessor && nodeToIndex.containsKey(pNode);
+      return pNode != predecessor && (nodeToIndex.containsKey(pNode) || pNode.isCovered());
     }
 
   }

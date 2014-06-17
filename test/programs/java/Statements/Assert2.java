@@ -16,6 +16,7 @@ public class Assert2 {
 
         n3 = 9;
 
+        // comparison always true
         assert (n1 == n2) && (n2 == n3) : "The Values are not equal";
 
         }

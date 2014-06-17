@@ -74,4 +74,4 @@ fi
 
 echo "All Done"
 echo "Please check in the following output that the library does not depend on any GLIBC version >= 2.11, otherwise it will not work on Ubuntu 10.04:"
-objdump -p libmathsat5j.so |grep -A50 "required from"
+LANG=C objdump -p libmathsat5j.so |grep -A50 "required from"

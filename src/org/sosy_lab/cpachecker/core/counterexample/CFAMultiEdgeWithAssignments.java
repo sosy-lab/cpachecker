@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 
 import com.google.common.collect.ImmutableList;
@@ -37,9 +37,9 @@ public final class CFAMultiEdgeWithAssignments extends CFAEdgeWithAssignments im
 
   private final List<CFAEdgeWithAssignments> edgesWithAssignment;
 
-  private CFAMultiEdgeWithAssignments(MultiEdge pEdge, Set<Assignment> pAssignments,
-      String pEdgeCode, List<CFAEdgeWithAssignments> pEdges, String pComments) {
-    super(pEdge, pAssignments, pEdgeCode, pComments);
+  private CFAMultiEdgeWithAssignments(MultiEdge pEdge, List<IAssignment> pAssignments,
+      List<CFAEdgeWithAssignments> pEdges, String pComments) {
+    super(pEdge, pAssignments, pComments);
     edgesWithAssignment = ImmutableList.copyOf(pEdges);
   }
 
@@ -54,30 +54,15 @@ public final class CFAMultiEdgeWithAssignments extends CFAEdgeWithAssignments im
 
   public static final CFAMultiEdgeWithAssignments valueOf(MultiEdge pEdge, List<CFAEdgeWithAssignments> pEdges) {
 
-    Set<Assignment> assignments = new HashSet<>();
-    StringBuilder edgeCodeBuilder = new StringBuilder();
+    List<IAssignment> assignments = new ArrayList<>();
 
     for (CFAEdgeWithAssignments edge : pEdges) {
-      assignments.addAll(edge.getAssignments());
       /*In MultiEdges, it is possible to write the same variable multiple times.
        *This means, the order of the statements is essential.*/
-
-      String singleEdgeCode = edge.getAsCode();
-
-      if(singleEdgeCode != null) {
-        edgeCodeBuilder = edgeCodeBuilder.append(edge.getAsCode() + "\n");
-      }
-    }
-
-    String edgeCode = edgeCodeBuilder.toString();
-
-    if (edgeCode.isEmpty()) {
-      edgeCode = null;
-    } else {
-      edgeCode = edgeCodeBuilder.deleteCharAt(edgeCodeBuilder.length() - 1).toString();
+      assignments.addAll(edge.getAssignments());
     }
 
     /*Comments only make sense in the exact location of an path*/
-    return new CFAMultiEdgeWithAssignments(pEdge, assignments, edgeCode, pEdges, null);
+    return new CFAMultiEdgeWithAssignments(pEdge, assignments, pEdges, null);
   }
 }

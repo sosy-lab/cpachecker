@@ -873,6 +873,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
           return new Interval(interval1.mayBeLessOrEqualThan(interval2) ? 1L : 0L);
 
         case MODULO:
+          return interval1.modulo(interval2);
         case BINARY_AND:
         case BINARY_OR:
         case BINARY_XOR:

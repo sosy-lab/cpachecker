@@ -106,8 +106,11 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
       return null;
     }
     int variableSize = machineModel.getSizeof(type) * machineModel.getSizeofCharInBits();
-
-    return this.bvfmgr.extract(this.bvfmgr.makeVariable(variableSize, pVariableName), size - 1, 0);
+    BitvectorFormula variable = this.bvfmgr.makeVariable(variableSize, pVariableName);
+    if (size <= variableSize) {
+      return this.bvfmgr.extract(variable, size - 1, 0);
+    }
+    return this.bvfmgr.concat(this.bvfmgr.makeBitvector(size - variableSize, 0), variable);
   }
 
   /**
@@ -122,10 +125,13 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
    * not be represented as a bit vector formula.
    */
   private @Nullable BitvectorFormula evaluate(InvariantsFormula<CompoundInterval> pFormula, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    CompoundInterval value = pFormula.accept(this.evaluationVisitor, pEnvironment);
+    CompoundInterval intervals = pFormula.accept(this.evaluationVisitor, pEnvironment);
 
-    if (value.isSingleton()) {
-      return this.bvfmgr.makeBitvector(size, value.getLowerBound().longValue());
+    if (intervals.isSingleton()) {
+      BigInteger value = intervals.getValue();
+      // Get only the [size] least significant bits
+      value = value.and(BigInteger.valueOf(2).pow(size).subtract(BigInteger.valueOf(1)));
+      return this.bvfmgr.makeBitvector(size, value);
     }
     return null;
   }

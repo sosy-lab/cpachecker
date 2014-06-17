@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -39,11 +40,9 @@ class OctDomain implements AbstractDomain {
 
   private static long totaltime = 0;
   private final LogManager logger;
-  private final boolean handleFloats;
 
-  public OctDomain(LogManager log, boolean pHandleFloats) throws InvalidConfigurationException {
+  public OctDomain(LogManager log) throws InvalidConfigurationException {
     logger = log;
-    handleFloats = pHandleFloats;
   }
 
   @Override
@@ -90,11 +89,16 @@ class OctDomain implements AbstractDomain {
     Octagon newOctagon = shrinkedStates.getFirst().getOctagon().getManager()
                            .union(shrinkedStates.getFirst().getOctagon(), shrinkedStates.getSecond().getOctagon());
 
+    //TODO this should not be necessary however it occurs that a widened state is bottom
+    if (shrinkedStates.getFirst().getOctagon().getManager().isEmpty(newOctagon)) {
+      throw new AssertionError("bottom state occured where it should not be");
+    }
+
     OctState newState = new OctState(newOctagon,
                                      shrinkedStates.getFirst().getVariableToIndexMap(),
                                      shrinkedStates.getFirst().getVariableToTypeMap(),
                                      ((OctState)successor).getBlock(),
-                                     logger, handleFloats);
+                                     logger);
     if (newState.equals(reached)) {
       return reached;
     } else if (newState.equals(successor)) {
@@ -112,11 +116,21 @@ class OctDomain implements AbstractDomain {
     Octagon newOctagon = reachedOct.getOctagon().getManager()
                             .widening(reachedOct.getOctagon(), successorOct.getOctagon());
 
+    //TODO this should not be necessary however it occurs that a widened state is bottom
+    if (reachedOct.getOctagon().getManager().isEmpty(newOctagon)) {
+      newOctagon = reachedOct.getOctagon().getManager()
+                        .union(reachedOct.getOctagon(), successorOct.getOctagon());
+      logger.log(Level.WARNING, "bottom state occured where it should not be, using union instead of widening as a fallback");
+      if (reachedOct.getOctagon().getManager().isEmpty(newOctagon)) {
+         throw new AssertionError("bottom state occured where it should not be");
+      }
+    }
+
     OctState newState = new OctState(newOctagon,
                                      successorOct.getVariableToIndexMap(),
                                      successorOct.getVariableToTypeMap(),
                                      successorOct.getBlock(),
-                                     logger, handleFloats);
+                                     logger);
     if (newState.equals(successorOct)) {
       return successorOct;
     } else if (newState.equals(reachedOct)) {

@@ -307,8 +307,7 @@ public class CFunctionPointerResolver {
     if (nameExp instanceof CPointerExpression) {
       CExpression operand = ((CPointerExpression)nameExp).getOperand();
       CType operandType = operand.getExpressionType().getCanonicalType();
-      if (operand instanceof CIdExpression
-          && operandType instanceof CPointerType
+      if (operandType instanceof CPointerType
           && ((CPointerType)operandType).getType() instanceof CFunctionType) {
         // *fp is the same as fp
         nameExp = operand;

@@ -154,10 +154,10 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
   public boolean adjustPrecision() {
     MaxLoopIterationAdjuster maxLoopIterationAdjuster = this.maxLoopIterationAdjusterFactory.getMaxLoopIterationAdjuster(this);
     if (maxLoopIterationAdjuster.canAdjust(maxLoopIterations)) {
-      maxLoopIterations = maxLoopIterationAdjuster.adjust(maxLoopIterations);
+      int maxLoopIterations = maxLoopIterationAdjuster.adjust(this.maxLoopIterations);
       logger.log(Level.INFO, "Adjusting maxLoopIterations to " + maxLoopIterations);
       try {
-        this.transferRelation.setDelegate(new LoopstackTransferRelation(maxLoopIterations, this.cfa));
+        setMaxLoopIterations(maxLoopIterations);
       } catch (InvalidCFAException e) {
         logger.logException(Level.WARNING, e,
             "Exception while trying to adjust the maximum amount of loop iterations.");
@@ -361,5 +361,14 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
   @Override
   public String getName() {
     return "Loopstack CPA";
+  }
+
+  public void setMaxLoopIterations(int pMaxLoopIterations) throws InvalidCFAException {
+    this.maxLoopIterations = pMaxLoopIterations;
+    this.transferRelation.setDelegate(new LoopstackTransferRelation(maxLoopIterations, this.cfa));
+  }
+
+  public int getMaxLoopIterations() {
+    return this.maxLoopIterations;
   }
 }

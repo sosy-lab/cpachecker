@@ -59,12 +59,12 @@ public class SmtInterpolSolverFactory implements SolverFactory {
 
   @Override
   public ProverEnvironment createProver(FormulaManager pMgr) {
-    return ((SmtInterpolFormulaManager)pMgr).createProver();
+    return ((SmtInterpolFormulaManager)pMgr).getEnvironment().createProver((SmtInterpolFormulaManager)pMgr);
   }
 
   @Override
   public InterpolatingProverEnvironment<?> createInterpolatingProver(FormulaManager pMgr) {
-    return ((SmtInterpolFormulaManager)pMgr).createInterpolator();
+    return ((SmtInterpolFormulaManager)pMgr).getEnvironment().createInterpolator((SmtInterpolFormulaManager)pMgr);
   }
 
 }

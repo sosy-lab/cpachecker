@@ -65,7 +65,7 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
   public PartialReachedSetStrategy(Configuration pConfig, LogManager pLogger,
       ShutdownNotifier pShutdownNotifier, PropertyCheckerCPA pCpa) throws InvalidConfigurationException {
     super(pConfig, pLogger, pShutdownNotifier, pCpa);
-    pConfig.inject(this);
+    pConfig.inject(this, PartialReachedSetStrategy.class);
     switch (new PartialCertificateTypeProvider(pConfig, true).getCertificateType()) {
     case ARG:
       certificateConstructor = new ARGBasedPartialReachedSetConstructionAlgorithm(false);

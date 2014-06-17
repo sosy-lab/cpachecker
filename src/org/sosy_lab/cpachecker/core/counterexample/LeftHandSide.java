@@ -21,42 +21,44 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.octagon.coefficients;
+package org.sosy_lab.cpachecker.core.counterexample;
 
-import org.sosy_lab.cpachecker.cpa.octagon.OctState;
-import org.sosy_lab.cpachecker.util.octagon.NumArray;
-import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
+public abstract class LeftHandSide {
 
-public final class OctEmptyCoefficients extends AOctCoefficients {
+  private final String name;
+  private final String functionName;
 
-  public static final OctEmptyCoefficients INSTANCE = new OctEmptyCoefficients();
+  public LeftHandSide(String pName, String pFunctionName) {
+    name = pName;
+    functionName = pFunctionName;
+  }
 
-  private OctEmptyCoefficients() {
-    super(0, null);
+  public LeftHandSide(String pName) {
+    name = pName;
+    functionName = null;
+  }
+
+  public String getName() {
+    return name;
+  }
+
+  public String getFunctionName() {
+    assert functionName != null;
+    return functionName;
+  }
+
+  public boolean isGlobal() {
+    return functionName == null;
   }
 
   @Override
-  public OctEmptyCoefficients expandToSize(int pSize, OctState oct) {
-    return this;
-  }
+  public abstract boolean equals(Object pObj);
 
   @Override
-  public OctEmptyCoefficients add(IOctCoefficients pOther) {
-    return INSTANCE;
-  }
+  public abstract int hashCode();
 
   @Override
-  public OctEmptyCoefficients sub(IOctCoefficients pOther) {
-    return INSTANCE;
-  }
-
-  @Override
-  public boolean hasOnlyConstantValue() {
-    return false;
-  }
-
-  @Override
-  public NumArray getNumArray(OctagonManager manager) {
-    return null;
+  public String toString() {
+    return functionName == null ? name : functionName + "::" + name;
   }
 }

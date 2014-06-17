@@ -101,8 +101,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
-import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -468,8 +466,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   protected ValueAnalysisState handleDeclarationEdge(ADeclarationEdge declarationEdge, IADeclaration declaration)
     throws UnrecognizedCCodeException {
 
-    if (!(declaration instanceof AVariableDeclaration)
-        || (declaration.getType() instanceof JType && !(declaration.getType() instanceof JSimpleType))) {
+    if (!(declaration instanceof AVariableDeclaration)) {
       // nothing interesting to see here, please move along
       return state;
     }
@@ -679,8 +676,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     Value value;
     if (exp instanceof JRightHandSide) {
-       // value = ((JRightHandSide) exp).accept(visitor); TODO
-      value = Value.UnknownValue.getInstance();
+       value = ((JRightHandSide) exp).accept(visitor); // TODO - find out whether something's wrong with this
+      //value = Value.UnknownValue.getInstance();
     } else if (exp instanceof CRightHandSide) {
        value = visitor.evaluate((CRightHandSide) exp, (CType) lType);
     } else {
