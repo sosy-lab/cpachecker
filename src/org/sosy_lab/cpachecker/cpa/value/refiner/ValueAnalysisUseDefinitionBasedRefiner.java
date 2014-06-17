@@ -75,6 +75,7 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
   private final CFA cfa;
 
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
 
   public static ValueAnalysisUseDefinitionBasedRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
@@ -114,8 +115,9 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
       final CFA pCfa) throws CPAException, InvalidConfigurationException {
     super(pCpa);
 
-    cfa    = pCfa;
-    logger = pLogger;
+    cfa               = pCfa;
+    logger            = pLogger;
+    shutdownNotifier  = pShutdownNotifier;
   }
 
   @Override
@@ -124,8 +126,7 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
 
     // if path is infeasible, try to refine the precision
     if (isPathFeasable(errorPath)) {
-      //TODO Get ShutDownNotifier
-      ValueAnalysisConcreteErrorPathAllocator va = new ValueAnalysisConcreteErrorPathAllocator(logger, null);
+      ValueAnalysisConcreteErrorPathAllocator va = new ValueAnalysisConcreteErrorPathAllocator(logger, shutdownNotifier);
 
       Model model = va.allocateAssignmentsToPath(errorPath, cfa.getMachineModel());
 
