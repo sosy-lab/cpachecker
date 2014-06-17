@@ -108,7 +108,7 @@ public class PrincessTheoremProver extends PrincessAbstractProver implements Pro
       stack.push(1);
       while (stack.checkSat()) {
         shutdownNotifier.shutdownIfNecessary();
-        final SimpleAPI.PartialModel model = stack.getModel();
+        final SimpleAPI.PartialModel model = stack.getPartialModel();
 
         IFormula newFormula = new IBoolLit(true); // neutral element for AND
         final Map<IFormula, Boolean> partialModel = new HashMap<>();

@@ -121,7 +121,7 @@ class PrincessModel {
 
     assert stack.checkSat() : "model is only available for SAT environments";
 
-    SimpleAPI.PartialModel partialModel = stack.getModel();
+    SimpleAPI.PartialModel partialModel = stack.getPartialModel();
 
     for (IExpression lKeyTerm : keys) {
       Option<SimpleAPI.ModelValue> value = partialModel.evalExpression(lKeyTerm);

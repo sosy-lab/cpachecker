@@ -47,7 +47,7 @@ public interface PrincessStack {
 
   boolean checkSat();
 
-  SimpleAPI.PartialModel getModel();
+  SimpleAPI.PartialModel getPartialModel();
 
   List<IFormula> getInterpolants(Set<Integer>... partitions);
 

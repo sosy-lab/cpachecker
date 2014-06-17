@@ -132,7 +132,7 @@ class SymbolTrackingPrincessStack implements PrincessStack {
   }
 
   @Override
-  public SimpleAPI.PartialModel getModel() {
+  public SimpleAPI.PartialModel getPartialModel() {
     return api.partialModel();
   }
 

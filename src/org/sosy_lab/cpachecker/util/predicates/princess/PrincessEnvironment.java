@@ -47,6 +47,7 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -168,22 +169,22 @@ class PrincessEnvironment {
   }
 
   private SimpleAPI getNewApi(boolean useForInterpolation) {
-    final SimpleAPI api;
+    final SimpleAPI newApi;
     if (logAllQueries && smtLogfile != null) {
-      api = SimpleAPI.spawnWithLogNoSanitise(getFilename(smtLogfile));
+      newApi = SimpleAPI.spawnWithLogNoSanitise(getFilename(smtLogfile));
     } else {
-      api = SimpleAPI.spawnNoSanitise();
+      newApi = SimpleAPI.spawnNoSanitise();
     }
     // we do not use 'sanitise', because variable-names contain special chars like "@" and ":"
 
     if (useForInterpolation) {
-      api.setConstructProofs(true); // needed for interpolation
+      newApi.setConstructProofs(true); // needed for interpolation
     }
-    return api;
+    return newApi;
   }
 
   void unregisterStack(SymbolTrackingPrincessStack stack) {
-    assert registeredStacks.contains(stack) : "cannot remove api, it is not registered";
+    assert registeredStacks.contains(stack) : "cannot remove stack, it is not registered";
     registeredStacks.remove(stack);
   }
 
@@ -236,7 +237,10 @@ class PrincessEnvironment {
    * Princess has no support for typed params, only their number is important. */
   public FunctionType declareFun(String name, Type resultType, Type[] args) {
     if (functionsCache.containsKey(name)) {
-      return functionsCache.get(name);
+      FunctionType function = functionsCache.get(name);
+      assert function.getResultType() == resultType;
+      assert Arrays.equals(function.getArgs(), args);
+      return function;
     } else {
       final FunctionType type = declareFun0(name, resultType, args);
       functionsCache.put(name, type);
