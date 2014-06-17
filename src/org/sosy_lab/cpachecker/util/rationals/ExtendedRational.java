@@ -45,18 +45,18 @@ public class ExtendedRational implements Comparable<ExtendedRational>{
     // Like java's Double, UNDEFINED is bigger than everything (when sorting).
   }
 
-  private BigInteger num;
-  private BigInteger den;
+  private final BigInteger num;
+  private final BigInteger den;
 
   // -- Just some shortcuts for BigIntegers --
-  static private BigInteger b_zero = BigInteger.ZERO;
-  static private BigInteger b_one = BigInteger.ONE;
-  static private BigInteger b_m_one = BigInteger.ONE.negate();
+  static private final BigInteger b_zero = BigInteger.ZERO;
+  static private final BigInteger b_one = BigInteger.ONE;
+  static private final BigInteger b_m_one = BigInteger.ONE.negate();
 
-  public static ExtendedRational ZERO = new ExtendedRational(b_zero, b_one);
-  public static ExtendedRational INFTY = new ExtendedRational(b_one, b_zero);
-  public static ExtendedRational NEG_INFTY = new ExtendedRational(b_m_one, b_zero);
-  public static ExtendedRational NaN = new ExtendedRational(b_zero, b_zero);
+  public static final ExtendedRational ZERO = new ExtendedRational(b_zero, b_one);
+  public static final ExtendedRational INFTY = new ExtendedRational(b_one, b_zero);
+  public static final ExtendedRational NEG_INFTY = new ExtendedRational(b_m_one, b_zero);
+  public static final ExtendedRational NaN = new ExtendedRational(b_zero, b_zero);
 
   /**
    * If the denominator and the numerator is zero, create NaN number.
@@ -66,16 +66,17 @@ public class ExtendedRational implements Comparable<ExtendedRational>{
    */
   public ExtendedRational(BigInteger numerator, BigInteger denominator) {
     if (!isZero(denominator)) {
-      // Otherwise, reduce fraction
+      // Make {@code denominator} positive.
+      if (isNeg(denominator)) {
+        denominator = denominator.negate();
+        numerator = numerator.negate();
+      }
+
+      // Reduce by GCD.
       BigInteger gcd = numerator.gcd(denominator);
       num = numerator.divide(gcd);
       den = denominator.divide(gcd);
 
-      // only needed for negative numbers
-      if (isNeg(den)) {
-        den = den.negate();
-        num = num.negate();
-      }
     } else {
       num = BigInteger.valueOf(numerator.signum());
       den = denominator;
@@ -235,18 +236,13 @@ public class ExtendedRational implements Comparable<ExtendedRational>{
         BigInteger f = a.num.gcd(b.num);
         BigInteger g = a.den.gcd(b.den);
 
-        // add cross-product terms for numerator
-        ExtendedRational s = new ExtendedRational(
-            (
-                a.num.divide(f)).multiply(b.den.divide(g)
-            ).add(
-                b.num.divide(f).multiply(a.den.divide(g))
-            ),
-            lcm(a.den, b.den)
-        );
-
-        s.num = s.num.multiply(f); // Multiply back in.
-        return s;
+        BigInteger num = ((
+              a.num.divide(f)).multiply(b.den.divide(g)
+          ).add(
+              b.num.divide(f).multiply(a.den.divide(g))
+          )).multiply(f);
+        BigInteger den = lcm(a.den, b.den);
+        return new ExtendedRational(num, den);
       } else {
         return a;
       }
