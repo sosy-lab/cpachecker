@@ -74,14 +74,12 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -285,10 +283,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
         ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
 
         List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath,
-            new ValueAnalysisPrecision("",
-                Configuration.builder().build(),
-                Optional.<VariableClassification>absent(),
-                new ValueAnalysisPrecision.FullPrecision()),
+            ValueAnalysisPrecision.createDefaultPrecision(),
             interpolant.createValueAnalysisState());
 
         errorPath = new ErrorPathClassifier(cfa.getVarClassification()).obtainPrefixWithLowestScore(prefixes);
