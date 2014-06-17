@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 
 @Options(prefix="cpa.value.interpolation")
 public class ValueAnalysisInterpolator {
@@ -171,7 +170,7 @@ public class ValueAnalysisInterpolator {
           .transform(MemoryLocation.FROM_STRING_TO_MEMORYLOCATION).toSet());
     }
 
-    for (MemoryLocation currentMemoryLocation : optimizeForInterpolation(initialSuccessor)) {
+    for (MemoryLocation currentMemoryLocation : initialSuccessor.getTrackedMemoryLocations()) {
       shutdownNotifier.shutdownIfNecessary();
 
       // temporarily remove the value of the current memory location from the candidate interpolant
@@ -195,27 +194,6 @@ public class ValueAnalysisInterpolator {
    */
   private boolean isSuffixContradicting(Iterable<CFAEdge> errorPath) throws CPATransferException {
     return !isRemainingPathFeasible(errorPath, new ValueAnalysisState(), assumptionsAreRelevant);
-  }
-
-  /**
-   * This method returns a (possibly) reordered collection of memory locations to interpolate, which favors non-loop variables
-   * to be part of the interpolant.
-   *
-   * @param valueAnalysisState the collection of interpolation candidates, encoded in an value-analysis state
-   * @return a (possibly) reordered and reduced collection of memory locations to interpolate
-   */
-  private Collection<MemoryLocation> optimizeForInterpolation(ValueAnalysisState valueAnalysisState) {
-
-    return Sets.newHashSet(valueAnalysisState.getTrackedMemoryLocations());/*
-
-    ArrayDeque<MemoryLocation> reOrderedMemoryLocations = new ArrayDeque<>();
-
-    // move loop-variables to the front - being checked for relevance earlier minimizes their impact on feasibility
-    for(MemoryLocation currentMemoryLocation : trackedMemoryLocations) {
-      reOrderedMemoryLocations.addLast(currentMemoryLocation);
-    }
-
-    return reOrderedMemoryLocations;*/
   }
 
   /**
