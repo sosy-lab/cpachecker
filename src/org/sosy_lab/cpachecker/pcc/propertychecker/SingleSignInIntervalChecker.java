@@ -31,16 +31,16 @@ public class SingleSignInIntervalChecker extends PerElementPropertyChecker {
   private final SingleSignChecker signChecker;
   private final InIntervalChecker intervalChecker;
 
-  public SingleSignInIntervalChecker(final String pLabel, final String pVarNameSign, final String pVarNameInterval,
+  public SingleSignInIntervalChecker(final String pLabel, final String pVarName,
       final String pSignVal, final String pIntervalMode, final String pIntervalBound) {
-    signChecker = new SingleSignChecker(pVarNameSign, pSignVal, pLabel);
-    intervalChecker = new InIntervalChecker(pVarNameInterval, pLabel, pIntervalMode, pIntervalBound);
+    signChecker = new SingleSignChecker(pVarName, pSignVal, pLabel);
+    intervalChecker = new InIntervalChecker(pVarName, pLabel, pIntervalMode, pIntervalBound);
   }
 
-  public SingleSignInIntervalChecker(final String pLabel, final String pVarNameSign, final String pVarNameInterval,
+  public SingleSignInIntervalChecker(final String pLabel, final String pVarName,
       final String pSignVal, final String pIntervalMode, final String pMinBound, final String pMaxBound) {
-    signChecker = new SingleSignChecker(pVarNameSign, pSignVal, pLabel);
-    intervalChecker = new InIntervalChecker(pVarNameInterval, pLabel, pIntervalMode, pMinBound, pMaxBound);
+    signChecker = new SingleSignChecker(pVarName, pSignVal, pLabel);
+    intervalChecker = new InIntervalChecker(pVarName, pLabel, pIntervalMode, pMinBound, pMaxBound);
   }
 
 
