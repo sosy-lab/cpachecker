@@ -27,6 +27,8 @@ import org.junit.Test;
 import org.sosy_lab.common.configuration.Builder;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
@@ -60,6 +62,10 @@ public class SolverTest {
   private void init(String solver) throws Exception {
     ConfigurationBuilder builder = new Builder();
     builder.setOption("cpa.predicate.solver", solver);
+
+    // FileOption-Converter for correct output-paths, otherwise files are written in current working directory.
+    builder.addConverter(FileOption.class, new FileTypeConverter(Configuration.defaultConfiguration()));
+
     Configuration config = builder.build();
 
     factory = new FormulaManagerFactory(config, logger, ShutdownNotifier.create());
