@@ -60,6 +60,18 @@ public interface ProverEnvironment extends AutoCloseable {
   boolean isUnsat() throws InterruptedException;
 
   /**
+   * Perform the maximization of the variable {@code f}, subject to the
+   * constraints returned by the context.
+   *
+   * @param f Variable to maximize.
+   * @param maximize Iff true, perform maximization. Minimization otherwise.
+   * @return Status of the optimization problem.
+   * The solution can be obtained from the model.
+   * @throws InterruptedException
+   */
+  OptResult isOpt(Formula f, boolean maximize) throws InterruptedException;
+
+  /**
    * Get a satisfying assignment.
    * This should be called only immediately after an {@link #isUnsat()} call that returned <code>false</code>.
    */
@@ -101,5 +113,15 @@ public interface ProverEnvironment extends AutoCloseable {
      * {@link Integer#MAX_VALUE} if this number is infinite.
      */
     public int getCount();
+  }
+
+  /**
+   * Optimization result.
+   */
+  enum OptResult {
+    OPT, // All good, the solution was found.
+    UNSAT,  // SMT problem is unsatisfiable.
+    UNDEF, // The result is unknown.
+    UNBOUNDED // The optimization problem is unbounded.
   }
 }
