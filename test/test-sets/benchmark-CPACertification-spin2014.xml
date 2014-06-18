@@ -7,7 +7,7 @@
      Programs for which verification timed out after 5 minutes for the coarsest analysis are completely excluded. 
      Programs for which verification timed out after 5 minutes for another analysis are excluded from the respective
      rundefinition of that analysis.
-     The time limit used for evaluation was 15 minutes.
+     The time limit used for evaluation was 5 minutes.
 -->    
 <benchmark tool="cpachecker" timelimit="300" memlimit="3000">
 <option name="-heap">2500M</option>
