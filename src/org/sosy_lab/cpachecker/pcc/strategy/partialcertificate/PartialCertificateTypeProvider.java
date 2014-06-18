@@ -32,6 +32,7 @@ import org.sosy_lab.common.configuration.Options;
 public class PartialCertificateTypeProvider {
 
   public enum PartialCertificateTypes {
+    ALL,
     HEURISTIC,
     ARG,
     MONOTONESTOPARG;

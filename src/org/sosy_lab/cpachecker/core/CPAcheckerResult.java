@@ -62,6 +62,8 @@ public class CPAcheckerResult {
 
   private final @Nullable Statistics stats;
 
+  private @Nullable Statistics proofGeneratorStats = null;
+
   CPAcheckerResult(Result result, Set<ViolatedProperty> pProperties,
         @Nullable ReachedSet reached, @Nullable Statistics stats) {
     if (result == Result.FALSE) {
@@ -90,6 +92,10 @@ public class CPAcheckerResult {
     return reached;
   }
 
+  public void addProofGeneratorStatistics(Statistics pProofGeneratorStatistics) {
+    proofGeneratorStats = pProofGeneratorStatistics;
+  }
+
   /**
    * Write the statistics to a given PrintWriter. Additionally some output files
    * may be written here, if configuration says so.
@@ -97,6 +103,9 @@ public class CPAcheckerResult {
   public void printStatistics(PrintStream target) {
     if (stats != null) {
       stats.printStatistics(target, result, reached);
+    }
+    if (proofGeneratorStats != null) {
+      proofGeneratorStats.printStatistics(target, result, reached);
     }
   }
 

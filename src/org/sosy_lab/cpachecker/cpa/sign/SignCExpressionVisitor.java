@@ -133,6 +133,9 @@ public class SignCExpressionVisitor
     case DIVIDE:
       result = evaluateDivideOperator(pLeft, pRight);
       break;
+    case MODULO:
+      result = evaluateModuloOperator(pLeft, pRight);
+      break;
     case BINARY_AND:
       result = evaluateAndOperator(pLeft, pRight);
       break;
@@ -283,6 +286,16 @@ public class SignCExpressionVisitor
       return SIGN.ALL;
     }
     return evaluateMulOperator(left, right);
+  }
+
+  private SIGN evaluateModuloOperator(SIGN pLeft, SIGN pRight) {
+    if (pLeft == SIGN.ZERO) {
+      return SIGN.ZERO;
+    }
+    if (pLeft == SIGN.PLUS && pRight == SIGN.PLUS || pLeft == SIGN.MINUS && pRight == SIGN.MINUS) {
+      return SIGN.PLUS0;
+    }
+    return SIGN.ALL;
   }
 
 

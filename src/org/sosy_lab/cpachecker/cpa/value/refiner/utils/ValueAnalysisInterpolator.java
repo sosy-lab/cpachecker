@@ -24,6 +24,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
+import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.skip;
 
 import java.util.ArrayDeque;
@@ -63,23 +64,14 @@ import com.google.common.collect.Iterables;
 
 @Options(prefix="cpa.value.interpolation")
 public class ValueAnalysisInterpolator {
-  @Option(description="whether or not to ignore the semantics of loop-leaving-assume-edges during interpolation - "
-      + "this avoids to have loop-counters in the interpolant")
-  private boolean ignoreLoopsExitAssumes = true;
-
-  @Option(description="whether or not to use use-definition information from the error paths" +
-      "to optimize the interpolation process")
-  private boolean applyUseDefInformation = true;
+  @Option(name="weakenInterpolant", description="whether or not to heuristically weaken the candidate interpolant "
+      + "prior to the interpolation process")
+  private boolean weakenInterpolant = false;
 
   /**
    * the shutdownNotifier in use
    */
   private final ShutdownNotifier shutdownNotifier;
-
-  /**
-   * the current cfa
-   */
-  private final CFA cfa;
 
   /**
    * the transfer relation in use
@@ -102,16 +94,6 @@ public class ValueAnalysisInterpolator {
   private Set<String> relevantVariables = new HashSet<>();
 
   /**
-   * the set of assume edges leading out of loops
-   */
-  private final Set<CAssumeEdge> loopExitAssumes = new HashSet<>();
-
-  /**
-   * the set of memory locations appearing in assume edges leading out of loops
-   */
-  private final Set<MemoryLocation> loopExitMemoryLocations = new HashSet<>();
-
-  /**
    * the boolean flag that indicates, if assignments through assumptions are needed for excluding the target state
    */
   private Boolean assumptionsAreRelevant = null;
@@ -130,17 +112,12 @@ public class ValueAnalysisInterpolator {
 
     pConfig.inject(this);
 
-
     try {
       shutdownNotifier  = pShutdownNotifier;
       assumeCollector   = new AssumptionUseDefinitionCollector();
-
-      cfa               = pCfa;
       transfer          = new ValueAnalysisTransferRelation(Configuration.builder().build(), pLogger, pCfa);
       precision         = new ValueAnalysisPrecision("", Configuration.builder().build(),
           Optional.<VariableClassification>absent());
-
-      initializeLoopInformation();
     }
     catch (InvalidConfigurationException e) {
       throw new InvalidConfigurationException("Invalid configuration for checking path: " + e.getMessage(), e);
@@ -181,33 +158,29 @@ public class ValueAnalysisInterpolator {
     }
 
     // if initial state and successor are equal, return the input interpolant
+    // in general, this returned interpolant might be stronger than needed, but only in very rare cases,
+    // the weaker interpolant would be different from the input interpolant, so we spare the effort
     if (initialState.equals(initialSuccessor)) {
       return pInputInterpolant;
-    }
-
-    // check if the input-interpolant, after the initial transition, is still strong enough
-    if (applyUseDefInformation && !isUseDefInformationAffected(pErrorPath, initialState, initialSuccessor)) {
-      return new ValueAnalysisInterpolant(new HashMap<>(initialSuccessor.getConstantsMapView()));
     }
 
     // if the current edge just changes the names of variables (e.g. function arguments, returned variables)
     // then return the input interpolant with those renamings
     if (isOnlyVariableRenamingEdge(pErrorPath.get(pOffset))) {
-      return new ValueAnalysisInterpolant(new HashMap<>(initialSuccessor.getConstantsMapView()));
+      return initialSuccessor.createInterpolant();
     }
 
-    // if the remaining path is infeasible by itself, i.e., contradicting by itself, skip interpolation
     Iterable<CFAEdge> remainingErrorPath = skip(pErrorPath, pOffset + 1);
-    if (initialSuccessor.getSize() > 1 && !isRemainingPathFeasible(
-            remainingErrorPath, new ValueAnalysisState(), assumptionsAreRelevant, new ArrayDeque<ValueAnalysisState>(/*empty*/))) {
+
+    // if the remaining path, i.e., the suffix, is contradicting by itself, then return the TRUE interpolant
+    if (initialSuccessor.getSize() > 1 && isSuffixContradicting(remainingErrorPath, new ArrayDeque<ValueAnalysisState>(/*empty*/))) {
       return ValueAnalysisInterpolant.TRUE;
     }
 
-    // optimization, which however, leads to too strong interpolants, as the successor is used directly as interpolant
-    //if (!isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
-      //return new ValueAnalysisInterpolant(initialSuccessor.getConstantsMapView());
-    //}
-
+    if(weakenInterpolant) {
+      initialSuccessor.retainAll(from(relevantVariables)
+          .transform(MemoryLocation.FROM_STRING_TO_MEMORYLOCATION).toSet());
+    }
 
     // try to forget a variable:
     // first search such a variable in all callstack-states, then the current initialState
@@ -219,13 +192,13 @@ public class ValueAnalysisInterpolator {
     //}
     checkPathWithoutVariable(remainingErrorPath, new ArrayDeque<>(callStack), initialSuccessor, initialSuccessor);
 
-    return new ValueAnalysisInterpolant(new HashMap<>(initialSuccessor.getConstantsMapView()));
+    return initialSuccessor.createInterpolant();
   }
 
   private void checkPathWithoutVariable( Iterable<CFAEdge> remainingErrorPath, ArrayDeque<ValueAnalysisState> callStack,
           ValueAnalysisState initialSuccessor, ValueAnalysisState modifiableState)
           throws InterruptedException, CPATransferException {
-    for (MemoryLocation currentMemoryLocation : optimizeForInterpolation(initialSuccessor)) {
+    for (MemoryLocation currentMemoryLocation : initialSuccessor.getTrackedMemoryLocations()) {
       shutdownNotifier.shutdownIfNecessary();
 
       // temporarily remove the value of the current memory location from the rawInterpolant
@@ -239,27 +212,14 @@ public class ValueAnalysisInterpolator {
   }
 
   /**
-   * This method returns a (possibly) reordered collection of interpolation candidates, which favors non-loop variables
-   * to be part of the interpolant.
+   * This method checks, if the given error path is contradicting in itself.
    *
-   * @param valueAnalysisState the collection of interpolation candidates, encoded in an value-analysis state
-   * @return a (possibly) reordered collection of interpolation candidates
+   * @param errorPath the error path to check.
+   * @return true, if the given error path is contradicting in itself, else false
+   * @throws CPATransferException
    */
-  private Collection<MemoryLocation> optimizeForInterpolation(ValueAnalysisState valueAnalysisState) {
-    Set<MemoryLocation> trackedMemoryLocations = valueAnalysisState.getTrackedMemoryLocations();
-
-    ArrayDeque<MemoryLocation> reOrderedMemoryLocations = new ArrayDeque<>();
-
-    // move loop-variables to the front - being checked for relevance earlier minimizes their impact on feasibility
-    for(MemoryLocation currentMemoryLocation : trackedMemoryLocations) {
-      if(loopExitMemoryLocations.contains(currentMemoryLocation)) {
-        reOrderedMemoryLocations.addFirst(currentMemoryLocation);
-      } else {
-        reOrderedMemoryLocations.addLast(currentMemoryLocation);
-      }
-    }
-
-    return reOrderedMemoryLocations;
+  private boolean isSuffixContradicting(Iterable<CFAEdge> errorPath, ArrayDeque<ValueAnalysisState> callstack) throws CPATransferException {
+    return !isRemainingPathFeasible(errorPath, new ValueAnalysisState(), assumptionsAreRelevant, callstack);
   }
 
   /**
@@ -312,20 +272,15 @@ public class ValueAnalysisInterpolator {
    *
    * @param remainingErrorPath the error path to check feasibility on
    * @param state the (pseudo) initial state
-   * @param ignoreAssumptions whether or not to ignore the assigning semantics of assume edges
+   * @param pAssumptionsAreRelevant whether or not to ignore the assigning semantics of assume edges
    * @return true, it the path is feasible, else false
    * @throws CPATransferException
    */
-  private boolean isRemainingPathFeasible(Iterable<CFAEdge> remainingErrorPath, ValueAnalysisState state,
-                                          boolean ignoreAssumptions, final Deque<ValueAnalysisState> callstack)
+  private boolean isRemainingPathFeasible(Iterable<CFAEdge> remainingErrorPath, ValueAnalysisState state, boolean pAssumptionsAreRelevant, ArrayDeque<ValueAnalysisState> callstack)
       throws CPATransferException {
     numberOfInterpolationQueries++;
 
-    for(CFAEdge currentEdge : remainingErrorPath) {
-      if(loopExitAssumes.contains(currentEdge)) {
-        continue;
-      }
-
+    for (CFAEdge currentEdge : remainingErrorPath) {
       // we enter a function, so lets add the previous state to the stack
       if (currentEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
         callstack.addLast(state);
@@ -347,11 +302,11 @@ public class ValueAnalysisInterpolator {
         precision,
         currentEdge);
 
-      if(successors.isEmpty()) {
+      if (successors.isEmpty()) {
         return false;
       }
 
-      state = extractSingletonSuccessor(state, currentEdge, ignoreAssumptions, successors);
+      state = extractSingletonSuccessor(state, currentEdge, pAssumptionsAreRelevant, successors);
     }
     return true;
   }
@@ -365,41 +320,18 @@ public class ValueAnalysisInterpolator {
    * @return the only successor or null, if no set of successors is empty
    */
   private ValueAnalysisState extractSingletonSuccessor(ValueAnalysisState predecessor,
-      CFAEdge currentEdge, boolean ignoreAssumptions, Collection<ValueAnalysisState> successors) {
+      CFAEdge currentEdge, boolean pAssumptionsAreRelevant, Collection<ValueAnalysisState> successors) {
     if(successors.isEmpty()) {
       return null;
     }
 
-    else if(!ignoreAssumptions && currentEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+    else if(!pAssumptionsAreRelevant && currentEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
       return predecessor.clone();
     }
 
     else {
       return Iterables.getOnlyElement(successors);
     }
-  }
-
-  /**
-   * This method checks if through the initial edge, memory locations in the use-def chain got changed.
-   *
-   * @param pErrorPath the error current path
-   * @param initialState the initial state
-   * @param initialSuccessor the immediate successor of the initial state
-   * @return true, if memory locations in the use-def chain got changed, else false
-   */
-  private boolean isUseDefInformationAffected(final List<CFAEdge> pErrorPath,
-      ValueAnalysisState initialState, ValueAnalysisState initialSuccessor) {
-
-    boolean isUseDefInformationAffected = false;
-    for(MemoryLocation memoryLocation : initialState.getDifference(initialSuccessor)) {
-      if(relevantVariables.contains(memoryLocation.getAsSimpleString())) {
-        isUseDefInformationAffected = true;
-      } else {
-        initialSuccessor.forget(memoryLocation.getAsSimpleString());
-      }
-    }
-
-    return isUseDefInformationAffected;
   }
 
   /**
@@ -422,38 +354,5 @@ public class ValueAnalysisInterpolator {
         //|| cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge
         //|| cfaEdge.getEdgeType() == CFAEdgeType.ReturnStatementEdge
         ;
-  }
-
-  /**
-   * This method initializes the loop-information which is used during interpolation.
-   */
-  private void initializeLoopInformation() {
-    for(Loop l : cfa.getLoopStructure().get().values()) {
-      for(CFAEdge currentEdge : l.getOutgoingEdges()) {
-        if(currentEdge instanceof CAssumeEdge) {
-          loopExitAssumes.add((CAssumeEdge)currentEdge);
-        }
-      }
-    }
-
-    for(CAssumeEdge assumeEdge : loopExitAssumes) {
-      CIdExpressionCollectorVisitor collector = new CIdExpressionCollectorVisitor();
-      assumeEdge.getExpression().accept(collector);
-
-      for (CIdExpression id : collector.getReferencedIdExpressions()) {
-        String scope = ForwardingTransferRelation.isGlobal(id) ? null : assumeEdge.getPredecessor().getFunctionName();
-
-        if(scope == null) {
-          loopExitMemoryLocations.add(MemoryLocation.valueOf(id.getName()));
-        } else {
-          loopExitMemoryLocations.add(MemoryLocation.valueOf(scope, id.getName(), 0));
-        }
-      }
-    }
-
-    // clear the set of assume edges if the respective option is not set
-    if(!ignoreLoopsExitAssumes) {
-      loopExitAssumes.clear();
-    }
   }
 }

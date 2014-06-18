@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.sign;
 
+import java.io.IOException;
+import java.io.ObjectStreamException;
+import java.io.Serializable;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithTargetVariable;
@@ -33,10 +37,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
-import com.google.common.collect.Sets;
 
 
-public class SignState implements AbstractStateWithTargetVariable, TargetableWithPredicatedAnalysis {
+public class SignState implements AbstractStateWithTargetVariable, TargetableWithPredicatedAnalysis, Serializable {
+
+  private static final long serialVersionUID = -2507059869178203119L;
 
   private static final boolean DEBUG = false;
 
@@ -55,6 +60,7 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
   }
 
   public final static SignState TOP = new SignState();
+  private final static SerialProxySign proxy = new SerialProxySign();
 
   private SignState(SignMap pSignMap, Optional<SignState> pStateBeforeEnteredFunction) {
     signMap = pSignMap;
@@ -74,11 +80,19 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
     if (isSubsetOf(pToJoin)) { return pToJoin; }
 
     SignState result = SignState.TOP;
-    for (String varIdent : Sets.union(signMap.keySet(), pToJoin.signMap.keySet())) {
-      result = result.assignSignToVariable(varIdent,
-          signMap.getSignForVariable(varIdent).combineWith(pToJoin.signMap.getSignForVariable(varIdent))); // TODO performance
+    ImmutableMap.Builder<String, SIGN> mapBuilder = ImmutableMap.builder();
+    SIGN combined;
+    for (String varIdent : signMap.keySet()) {
+      // only add those variables that are contained in both states (otherwise one has value ALL (not saved))
+      if (pToJoin.signMap.containsKey(varIdent)) {
+        combined = signMap.getSignForVariable(varIdent).combineWith(pToJoin.signMap.getSignForVariable(varIdent));
+        if (!combined.isAll()) {
+          mapBuilder.put(varIdent, combined);
+        }
+      }
     }
-    return result;
+    ImmutableMap<String, SIGN> newMap = mapBuilder.build();
+    return newMap.size()>0?new SignState(new SignMap(newMap), stateBeforeEnteredFunction):result;
   }
 
   public boolean isSubsetOf(SignState pSuperset) {
@@ -90,8 +104,13 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
       if (pSuperset.stateBeforeEnteredFunction.isPresent()) { return false; }
     }
     // is subset if for every variable all sign assumptions are considered in pSuperset
-    for (String varIdent : Sets.union(signMap.keySet(), pSuperset.signMap.keySet())) {
+    // check that all variables with SIGN != ALL are covered
+    for (String varIdent : signMap.keySet()) {
       if (!signMap.getSignForVariable(varIdent).isSubsetOf(pSuperset.signMap.getSignForVariable(varIdent))) { return false; }
+    }
+    // check that all variables in superset with value SIGN != ALL have also a value SIGN!=ALL in subset
+    for (String varIdent : pSuperset.signMap.keySet()) {
+      if (!signMap.containsKey(varIdent)) { return false; }
     }
     return true;
   }
@@ -174,6 +193,33 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
   @Override
   public String getTargetVariableName() {
     return targetChecker == null ? "" : targetChecker.getErrorVariableName();
+  }
+
+  private Object writeReplace() throws ObjectStreamException {
+    if (this == TOP) {
+      return proxy;
+    } else {
+      return this;
+    }
+  }
+
+  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    out.defaultWriteObject();
+  }
+
+  private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+    in.defaultReadObject();
+  }
+
+  private static class SerialProxySign implements Serializable {
+
+    private static final long serialVersionUID = 2843708585446089623L;
+
+    public SerialProxySign() {}
+
+    private Object readResolve() throws ObjectStreamException {
+      return TOP;
+    }
   }
 
 }

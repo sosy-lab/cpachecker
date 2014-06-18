@@ -13,9 +13,9 @@ public class ConditionalExpression1 {
 
         n2 = 10;
 
-        n1 = n1 == n2 ? n1 : n2;
+        n1 = n1 == n2 ? n1 : n2; // n1 = n2
 
-        assert n1 == n2 : "The Values are not equal";
+        assert n1 == n2 : "The Values are not equal"; // always true
 
         }
 }

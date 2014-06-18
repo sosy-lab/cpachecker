@@ -18,16 +18,18 @@ public class FunctionCall3 {
         des();
 
         if(n1 != n2){
-
+            // branch entered
             n2 = 1;
 
             if(n1 != n3){
+                // branch entered
                 n3 = 1;
 
             }
 
             if(n1 == n3){
-                n1 = n1 + n2 + n3;
+                // branch entered
+                n1 = n1 + n2 + n3; // n1 = 3
                 des();
             }else {
                 assert(false);
@@ -36,9 +38,9 @@ public class FunctionCall3 {
             if(n1 == n1 + n2){
             assert(false);
             } else if(n1 == n1 + n2 + n3){
-
+                // branch entered
             des();
-            assert(n1 == n1 + n2 + n3);
+            assert(n1 == n1 + n2 + n3); // always true
 
             }
 
@@ -48,7 +50,7 @@ public class FunctionCall3 {
 
         }
 
-          des();
+        des();
 
     }
 
@@ -59,7 +61,7 @@ public class FunctionCall3 {
       int n2 = 1;
 
         if(n1 == n2){
-
+            // always entered
 
 
         } else {

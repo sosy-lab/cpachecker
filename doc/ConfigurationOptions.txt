@@ -410,6 +410,14 @@ coverage.file = "coverage.%s.info"
 # CPA to use (see doc/Configuration.txt for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
 
+# Use this to change the underlying abstract domain in the APRON library
+cpa.apron.domain = "OCTAGON"
+  allowed values: [BOX, OCTAGON, POLKA, POLKA_STRICT, POLKA_EQ]
+
+# which merge operator to use for ApronCPA?
+cpa.apron.merge = "SEP"
+  allowed values: [SEP, JOIN]
+
 # export one variable assignment for error path to file, if one is found
 cpa.arg.errorPath.assignment = "ErrorPath.%d.assignment.txt"
 
@@ -744,11 +752,6 @@ cpa.invariants.conditionAdjusterFactory = COMPOUND
 cpa.invariants.edgeBasedAbstractionStrategyFactory = VISITED_EDGES
   enum:     [ALWAYS, VISITED_EDGES, NEVER]
 
-# the maximum number of predicates to consider as interesting. -1 one
-# disables the limit, but this is not recommended. 0 means that guessing
-# interesting predicates is disabled.
-cpa.invariants.interestingPredicatesLimit = 0
-
 # the maximum number of variables to consider as interesting. -1 one disables
 # the limit, but this is not recommended. 0 means that guessing interesting
 # variables is disabled.
@@ -758,15 +761,8 @@ cpa.invariants.interestingVariableLimit = 2
 cpa.invariants.maximumFormulaDepth = 4
 
 # which merge operator to use for InvariantCPA
-cpa.invariants.merge = "JOIN"
-  allowed values: [JOIN, SEP]
-
-# whether or not to collect information about binary variable interrelations.
-cpa.invariants.useBinaryVariableInterrelations = true
-
-# whether or not to use a bit vector formula manager when extracting
-# invariant approximations from states.
-cpa.invariants.useBitvectors = false
+cpa.invariants.merge = "PRECISIONDEPENDENT"
+  allowed values: [JOIN, SEP, PRECISIONDEPENDENT]
 
 # this option controls how the maxLoopIterations condition is adjusted when a
 # condition adjustment is invoked.
@@ -793,8 +789,6 @@ cpa.monitor.limit = 0
 cpa.monitor.pathcomputationlimit = 0
 
 # with this option the evaluation of float variables can be toggled.
-# Additionally the used number representation in the library will be changed
-# between floats and ints.
 cpa.octagon.handleFloats = false
 
 # whether or not to use use-definition information from the error pathsto
@@ -818,6 +812,11 @@ cpa.octagon.mergeop.onlyJoinEdgesInSameBlock = false
 # widening instead of a join
 cpa.octagon.mergeop.type = "NORMAL"
   allowed values: [NORMAL, WIDENING]
+
+# with this option the number representation in the library will be changed
+# between floats and ints.
+cpa.octagon.octagonLibrary = "INT"
+  allowed values: [INT, FLOAT]
 
 # turn the refiner on or off, default is off
 cpa.octagon.refiner = false
@@ -1457,13 +1456,9 @@ cpa.value.initAssumptionVars = false
 # get an initial precison from file
 cpa.value.initialPrecisionFile = no default value
 
-# whether or not to use use-definition information from the error pathsto
-# optimize the interpolation process
-cpa.value.interpolation.applyUseDefInformation = true
-
-# whether or not to ignore the semantics of loop-leaving-assume-edges during
-# interpolation - this avoids to have loop-counters in the interpolant
-cpa.value.interpolation.ignoreLoopsExitAssumes = true
+# whether or not to heuristically weaken the candidate interpolant prior to
+# the interpolation process
+cpa.value.interpolation.weakenInterpolant = false
 
 # which merge operator to use for ValueAnalysisCPA
 cpa.value.merge = "SEP"
@@ -1638,7 +1633,11 @@ pcc.parallel.io.enableParallelCheck = false
 
 # Selects the strategy used for partial certificate construction
 pcc.partial.certificateType = HEURISTIC
-  enum:     [HEURISTIC, ARG, MONOTONESTOPARG]
+  enum:     [ALL, HEURISTIC, ARG, MONOTONESTOPARG]
+
+# If enabled, distributes checking of partial elements depending on actual
+# checking costs, else uses the number of elements
+pcc.partial.enableLoadDistribution = false
 
 # Enables proper PCC but may not work correctly for heuristics. Stops adding
 # newly computed elements to reached set if size saved in proof is reached.

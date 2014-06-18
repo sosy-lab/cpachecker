@@ -21,31 +21,10 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.counterexample;
 
-import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
-
-
-public class Assignment {
-
-  private final AssignableTerm term;
-  private final Object value;
-
-  public Assignment(AssignableTerm pTerm, Object pValue) {
-    term = pTerm;
-    value = pValue;
-  }
-
-  public AssignableTerm getTerm() {
-    return term;
-  }
-
-  public Object getValue() {
-    return value;
-  }
-
-  @Override
-  public String toString() {
-    return "term: " + term.toString() + "value: " + value.toString();
-  }
-}
+/**
+ * Sub-project by the University of Paderborn, implementing
+ * proof-carrying code (generating and checking certificates
+ * for verification).
+ */
+package org.sosy_lab.cpachecker.pcc;

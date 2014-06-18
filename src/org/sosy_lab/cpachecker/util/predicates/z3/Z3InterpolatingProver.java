@@ -94,8 +94,8 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
 
     smtLogger.logCheck();
 
-    Preconditions.checkState(result != Z3_L_UNDEF);
-    return result == Z3_L_FALSE;
+    Preconditions.checkState(result != Z3_LBOOL.Z3_L_UNDEF.status);
+    return result == Z3_LBOOL.Z3_L_FALSE.status;
   }
 
   @Override
@@ -140,7 +140,7 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
     int isSat = interpolateSeq(
         z3context, interpolationFormulas, itps, model, labels, 0, theory);
 
-    assert isSat != Z3_L_TRUE;
+    assert isSat != Z3_LBOOL.Z3_L_TRUE.status;
     BooleanFormula f = mgr.encapsulate(BooleanFormula.class, itps[0]);
 
     // cleanup

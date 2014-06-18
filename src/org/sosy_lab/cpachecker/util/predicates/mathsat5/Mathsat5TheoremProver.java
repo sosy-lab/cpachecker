@@ -36,11 +36,13 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager.RegionBuilder;
 
 import com.google.common.base.Preconditions;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 public class Mathsat5TheoremProver extends Mathsat5AbstractProver implements ProverEnvironment {
 
@@ -68,6 +70,11 @@ public class Mathsat5TheoremProver extends Mathsat5AbstractProver implements Pro
     Preconditions.checkState(curEnv != 0);
     msat_push_backtrack_point(curEnv);
     msat_assert_formula(curEnv, getMsatTerm(f));
+  }
+
+  @Override
+  public OptResult isOpt(Formula f, boolean maximize) throws InterruptedException {
+    throw new NotImplementedException();
   }
 
   @Override

@@ -1,9 +1,6 @@
 
 public class Loop6 {
 
-
-
-
   public static void main(
       String[] args) {
 
@@ -12,10 +9,9 @@ public class Loop6 {
 
        for(c = 0 ; c < 10 ; c++){
 
-
        }
 
-       assert (c == 10);
+       assert (c == 10); // always true
 
 
    }

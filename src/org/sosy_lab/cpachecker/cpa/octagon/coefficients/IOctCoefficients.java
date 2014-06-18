@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.octagon.coefficients;
 
 import org.sosy_lab.cpachecker.cpa.octagon.OctState;
+import org.sosy_lab.cpachecker.cpa.octagon.values.OctInterval;
+import org.sosy_lab.cpachecker.cpa.octagon.values.OctNumericValue;
 import org.sosy_lab.cpachecker.util.octagon.NumArray;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
@@ -31,6 +33,7 @@ import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
  * Class for representing Coeffecients which show the value of a variable
  * dependant on all other variables and a constant value.
  */
+@SuppressWarnings("rawtypes")
 public interface IOctCoefficients {
 
   /**
@@ -49,18 +52,32 @@ public interface IOctCoefficients {
    * Adds two OctCoefficients.
    * @return The new added Coefficient.
    */
-  IOctCoefficients add(IOctCoefficients other);
+  IOctCoefficients add(IOctCoefficients summand);
 
   /**
    * Substracts two OctCoefficients.
    * @return The new substracted Coefficient.
    */
-  IOctCoefficients sub(IOctCoefficients other);
+  IOctCoefficients sub(IOctCoefficients subtrahend);
+
+  IOctCoefficients mul(IOctCoefficients factor);
+
+  IOctCoefficients mul(OctNumericValue factor);
+
+  IOctCoefficients mul(OctInterval interval);
+
+  IOctCoefficients div(IOctCoefficients divisor);
+
+  IOctCoefficients div(OctNumericValue divisor);
+
+  IOctCoefficients div(OctInterval interval);
 
   /**
    * Indicates whether the Coefficient List only consists of a constant value.
    */
   boolean hasOnlyConstantValue();
+  boolean hasOnlyOneValue();
+  int getVariableIndex();
 
   @Override
   boolean equals(Object obj);

@@ -24,8 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.List;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -45,6 +47,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.Sets;
 
 public class ValueAnalysisFeasibilityChecker {
 
@@ -109,23 +112,42 @@ public class ValueAnalysisFeasibilityChecker {
   }
 
   /**
-   * This method obtains the prefix of the path, that is infeasible by itself.
+   * This method obtains the shortest prefix of the path, that is infeasible by itself.
    * If the path is feasible, the whole path is returned.
    * We assume that the path starts at the CFA-root-node and does not skip any edge on its way.
    *
    * @param path the path to check
    * @param pPrecision the precision to use
    * @param pInitial the initial state
-   * @return the prefix of the path that is feasible by itself
+   * @return the shortest prefix of the path that is feasible by itself
    * @throws CPAException
    * @throws InterruptedException
    */
   public ARGPath getInfeasilbePrefix(final ARGPath path, final ValueAnalysisPrecision pPrecision, final ValueAnalysisState pInitial)
       throws CPAException, InterruptedException {
+    return getInfeasilbePrefixes(path, pPrecision, pInitial).get(0);
+  }
+
+  /**
+   * This method obtains a list of prefixes of the path, that are infeasible by themselves. If the path is feasible, the whole path
+   * is returned as the only element of the list.
+   *
+   * @param path the path to check
+   * @param pPrecision the precision to use
+   * @param pInitial the initial state
+   * @return the list of prefix of the path that are feasible by themselves
+   * @throws CPAException
+   * @throws InterruptedException
+   */
+  public List<ARGPath> getInfeasilbePrefixes(final ARGPath path, final ValueAnalysisPrecision pPrecision, final ValueAnalysisState pInitial)
+      throws CPAException, InterruptedException {
+
+    List<ARGPath> prefixes = new ArrayList<>();
+
     try {
       ValueAnalysisState next = pInitial;
 
-      ARGPath prefix = new ARGPath();
+      ARGPath currentPrefix = new ARGPath();
 
       // we need a callstack to handle recursive functioncalls,
       // because they override variables of current scope and we have to rebuild them.
@@ -152,19 +174,27 @@ public class ValueAnalysisFeasibilityChecker {
             pPrecision,
             edge);
 
-
-        prefix.addLast(pathElement);
+        currentPrefix.addLast(pathElement);
 
         // no successors => path is infeasible
         if(successors.isEmpty()) {
-          break;
+          prefixes.add(currentPrefix);
+
+          currentPrefix = new ARGPath();
+          successors    = Sets.newHashSet(next);
         }
 
         // get successor state and apply precision
         next = pPrecision.computeAbstraction(successors.iterator().next(),
             AbstractStates.extractLocation(pathElement.getFirst()));
       }
-      return prefix;
+
+      // prefixes is empty => path is feasible, so add complete path
+      if(prefixes.isEmpty()) {
+        prefixes.add(path);
+      }
+
+      return prefixes;
     } catch (CPATransferException e) {
       throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
     }

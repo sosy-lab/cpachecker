@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 import java.util.Collection;
 import java.util.Map;
 
+import de.uni_freiburg.informatik.ultimate.logic.Script;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
@@ -134,19 +135,15 @@ class SmtInterpolModel {
     }
   }
 
-  static Model createSmtInterpolModel(SmtInterpolFormulaManager mgr, Collection<Term> terms) {
-    SmtInterpolEnvironment env = mgr.getEnvironment();
+  static Model createSmtInterpolModel(Script stack, Collection<Term> terms) {
     // model can only return values for keys, not for terms
     Term[] keys = SmtInterpolUtil.getVars(terms);
 
     ImmutableMap.Builder<AssignableTerm, Object> model = ImmutableMap.builder();
 
-    try {
-      assert env.checkSat() : "model is only available for SAT environments";
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-    }
-    Map<Term, Term> val = env.getValue(keys);
+    assert stack.checkSat() == Script.LBool.SAT: "model is only available for SAT environments";
+
+    Map<Term, Term> val = stack.getValue(keys);
 
     for (Term lKeyTerm : keys) {
       Term lValueTerm = val.get(lKeyTerm);

@@ -23,10 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -57,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 
 /**
@@ -117,6 +121,16 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
     collectedVariables.addAll(dependingVariables);
 
     return collectedVariables;
+  }
+
+  /**
+   * This method collects the respective referenced variables in the given ARG path.
+   *
+   * @param path the path to analyze
+   * @return the mapping of location to referenced variables in the given path
+   */
+  public Set<String> obtainUseDefInformation(ARGPath pFullArgPath) {
+    return obtainUseDefInformation(from(pFullArgPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList());
   }
 
   /**
@@ -248,8 +262,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
       break;
 
     case AssumeEdge:
-      CAssumeEdge assumeEdge = (CAssumeEdge)edge;
-      collectVariables(assumeEdge, assumeEdge.getExpression());
+      handleAssumption(edge);
       break;
 
     case StatementEdge:
@@ -278,6 +291,16 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
   }
 
   /**
+   * This method collects variables from a given assume edge.
+   *
+   * @param edge the assume edge from which to collect variables
+   */
+  protected void handleAssumption(CFAEdge edge) {
+    CAssumeEdge assumeEdge = (CAssumeEdge)edge;
+    collectVariables(assumeEdge, assumeEdge.getExpression());
+  }
+
+  /**
    * This method prefixes the name of a non-global variable with a given function name.
    *
    * @param variableName the variable name
@@ -298,7 +321,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
    * @param edge the edge to analyze
    * @param rightHandSide the right hand side of the assignment
    */
-  private void collectVariables(CFAEdge edge, CRightHandSide rightHandSide) {
+  protected void collectVariables(CFAEdge edge, CRightHandSide rightHandSide) {
     rightHandSide.accept(new CollectVariablesVisitor(edge));
   }
 

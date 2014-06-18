@@ -36,10 +36,16 @@ public class Z3NativeApiConstants {
 
   // CONSTANT VALUES, TODO should we make enums?
 
-  // Z3_l_bool
-  public static final int Z3_L_FALSE = -1;
-  public static final int Z3_L_UNDEF = 0;
-  public static final int Z3_L_TRUE = 1;
+  public static enum Z3_LBOOL {
+    Z3_L_FALSE(-1),
+    Z3_L_UNDEF(0),
+    Z3_L_TRUE(1);
+
+    final int status;
+    Z3_LBOOL(int status) {
+       this.status = status;
+    }
+  }
 
   // Z3_ast_kind
   public static final int Z3_NUMERAL_AST = 0;

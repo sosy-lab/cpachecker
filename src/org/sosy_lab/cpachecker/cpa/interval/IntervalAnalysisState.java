@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,8 +34,9 @@ import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-public class IntervalAnalysisState implements AbstractState, TargetableWithPredicatedAnalysis {
+public class IntervalAnalysisState implements AbstractState, TargetableWithPredicatedAnalysis, Serializable {
 
+  private static final long serialVersionUID = -2030700797958100666L;
   private static IntervalTargetChecker targetChecker;
   private static boolean ignoreRefInMerge;
 

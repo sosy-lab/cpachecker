@@ -536,7 +536,10 @@ public class PredicateAbstractionManager {
       BooleanFormula instantiatedPredicate = fmgr.instantiate(predicateTerm, ssa);
       Set<String> predVariables = fmgr.extractVariables(instantiatedPredicate);
 
-      if (!Sets.intersection(predVariables, variables).isEmpty()) {
+      if (predVariables.isEmpty()
+          || !Sets.intersection(predVariables, variables).isEmpty()) {
+        // Predicates without variables occur (for example, talking about UFs).
+        // We do not know whether they are relevant, so we have to add them.
         predicateBuilder.add(predicate);
       } else {
         logger.log(Level.FINEST, "Ignoring predicate about variables", predVariables);

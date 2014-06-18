@@ -32,12 +32,11 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -46,7 +45,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
@@ -71,15 +69,19 @@ import org.sosy_lab.cpachecker.cpa.value.Value;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -111,9 +113,10 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
   private UniqueAssignmentsInPathConditionState assignments = null;
 
   // statistics
-  private int totalInterpolations       = 0;
-  private int totalInterpolationQueries = 0;
-  private Timer timerInterpolation      = new Timer();
+  private StatCounter totalInterpolations   = new StatCounter("Number of interpolations");
+  private StatInt totalInterpolationQueries = new StatInt(StatKind.SUM, "Number of interpolation queries");
+  private StatInt sizeOfInterpolant         = new StatInt(StatKind.AVG, "Size of interpolant");
+  private StatTimer timerInterpolation      = new StatTimer("Time for interpolation");
 
   private final CFA cfa;
   private final LogManager logger;
@@ -135,12 +138,15 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
   protected Map<ARGState, ValueAnalysisInterpolant> performInterpolation(ARGPath errorPath,
       ValueAnalysisInterpolant interpolant) throws CPAException, InterruptedException {
-    totalInterpolations++;
+    totalInterpolations.inc();
     timerInterpolation.start();
 
     interpolationOffset = -1;
 
-    List<CFAEdge> errorTrace = obtainErrorTrace(errorPath, interpolant);
+    errorPath = obtainErrorPathPrefix(errorPath, interpolant);
+
+    List<CFAEdge> errorTrace = obtainErrorTrace(errorPath);
+
     Map<ARGState, ValueAnalysisInterpolant> pathInterpolants = new LinkedHashMap<>(errorPath.size());
     final Deque<ValueAnalysisState> callstack = new ArrayDeque<>();
 
@@ -151,10 +157,18 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
         interpolant = interpolator.deriveInterpolant(errorTrace, i, interpolant, callstack);
       }
 
-      totalInterpolationQueries = totalInterpolationQueries + interpolator.getNumberOfInterpolationQueries();
+      totalInterpolationQueries.setNextValue(interpolator.getNumberOfInterpolationQueries());
 
       if(!interpolant.isTrivial() && interpolationOffset == -1) {
         interpolationOffset = i + 1;
+      }
+
+      if(interpolant.isTrivial()) {
+        sizeOfInterpolant.setNextValue(0);
+      }
+
+      else {
+        sizeOfInterpolant.setNextValue(interpolant.assignment.size());
       }
 
       pathInterpolants.put(errorPath.get(i + 1).getFirst(), interpolant);
@@ -247,35 +261,42 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
   }
 
   /**
-   * This method obtains, from the error path, the list of CFA edges to be interpolated. This might not include all CFA
-   * edges from the original path, but might be limited to the infeasible prefix.
+   * This method obtains, from the error path, the list of CFA edges to be interpolated.
    *
    * @param errorPath the error path
-   * @param interpolant the input interpolant
    * @return the list of CFA edges to be interpolated
+   */
+  private List<CFAEdge> obtainErrorTrace(ARGPath errorPath) {
+    return from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
+  }
+
+  /**
+   * This path obtains a (sub)path of the error path which is given to the interpolation procedure.
+   *
+   * @param errorPath the original error path
+   * @param interpolant the initial interpolant, i.e. the initial state, with which to check the error path.
+   * @return a (sub)path of the error path which is given to the interpolation procedure
    * @throws CPAException
    * @throws InterruptedException
    */
-  private List<CFAEdge> obtainErrorTrace(ARGPath errorPath,
-      ValueAnalysisInterpolant interpolant) throws CPAException,
-      InterruptedException {
-
+  private ARGPath obtainErrorPathPrefix(ARGPath errorPath, ValueAnalysisInterpolant interpolant)
+          throws CPAException, InterruptedException {
     if(interpolateInfeasiblePrefix) {
-      ValueAnalysisFeasibilityChecker checker;
       try {
-        checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
-        errorPath = checker.getInfeasilbePrefix(errorPath,
-            new ValueAnalysisPrecision("",
-                Configuration.builder().build(),
-                Optional.<VariableClassification>absent(),
-                new ValueAnalysisPrecision.FullPrecision()),
+        ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
+
+        List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath,
+            ValueAnalysisPrecision.createDefaultPrecision(),
             interpolant.createValueAnalysisState());
+
+        errorPath = new ErrorPathClassifier(cfa.getVarClassification()).obtainPrefixWithLowestScore(prefixes);
+
       } catch (InvalidConfigurationException e) {
         throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
       }
     }
 
-    return from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
+    return errorPath;
   }
 
   /**
@@ -373,10 +394,11 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-    out.println("  Number of interpolations:          " + String.format(Locale.US, "%9d",totalInterpolations));
-    out.println("  Number of interpolation queries:   " + String.format(Locale.US, "%9d",totalInterpolationQueries));
-    out.println("  Max. time for singe interpolation:     " + timerInterpolation.getMaxTime().formatAs(TimeUnit.SECONDS));
-    out.println("  Total time for interpolation:          " + timerInterpolation);
+    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out).beginLevel();
+    writer.put(totalInterpolations);
+    writer.put(totalInterpolationQueries);
+    writer.put(sizeOfInterpolant);
+    writer.put(timerInterpolation);
   }
 
   public int getInterpolationOffset() {
@@ -563,6 +585,33 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
       }
 
       return strengthened;
+    }
+
+    /**
+     * This method weakens the interpolant to the given set of memory location identifiers.
+     *
+     * As the information on what to retain is derived in a static syntactical analysis, the set to retain is a
+     * collection of memory location identifiers, instead of {@link MemoryLocation}s, as offsets cannot be provided.
+     *
+     * @param toRetain the set of memory location identifiers to retain in the interpolant.
+     * @return the weakened interpolant
+     */
+    public ValueAnalysisInterpolant weaken(Set<String> toRetain) {
+      if (isTrivial()) {
+        return this;
+      }
+
+      ValueAnalysisInterpolant weakenedItp = new ValueAnalysisInterpolant(new HashMap<>(assignment));
+
+      for(Iterator<MemoryLocation> it = weakenedItp.assignment.keySet().iterator(); it.hasNext(); ) {
+        MemoryLocation current = it.next();
+
+        if(!toRetain.contains(current.getAsSimpleString())) {
+          it.remove();
+        }
+      }
+
+      return weakenedItp;
     }
   }
 }

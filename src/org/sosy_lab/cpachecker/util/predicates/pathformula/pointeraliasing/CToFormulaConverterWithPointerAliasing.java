@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -323,7 +324,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           offset += getSizeof(memberType);
         }
       }
-    } else {
+    } else if (!(baseType instanceof CFunctionType)) {
+      // This adds a constraint *a = a for the case where we previously tracked
+      // a variable directly and now via its address (we do not want to loose
+      // the value previously stored in the variable).
       // Make sure to not add invalid-deref constraints for this dereference
       constraints.addConstraint(fmgr.makeEqual(makeSafeDereference(baseType, address, ssa),
                                                makeVariable(base.getName(), baseType, ssa)));
@@ -600,14 +604,14 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       }
     }
 
-    // Special handling for string literal initializers -- convert them into character arrays
+    declareSharedBase(declaration, false, constraints, pts);
+
     final CIdExpression lhs =
         new CIdExpression(declaration.getFileLocation(), declaration);
     final AssignmentHandler assignmentHandler = new AssignmentHandler(this, declarationEdge, function, ssa, pts, constraints, errorConditions);
+    final BooleanFormula result;
     if (initializer instanceof CInitializerExpression || initializer == null) {
-      declareSharedBase(declaration, false, constraints, pts);
 
-      final BooleanFormula result;
       if (initializer != null) {
         result = assignmentHandler.handleAssignment(lhs, ((CInitializerExpression) initializer).getExpression(), false, null);
       } else if (isRelevantVariable(declaration)) {
@@ -616,33 +620,29 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         result = bfmgr.makeBoolean(true);
       }
 
-      if (CTypeUtils.containsArray(declarationType)) {
-        addPreFilledBase(declaration.getQualifiedName(), declarationType, true, false, constraints, pts);
-      }
-
-      return result;
     } else if (initializer instanceof CInitializerList) {
-      declareSharedBase(declaration, false, constraints, pts);
 
       List<CExpressionAssignmentStatement> assignments =
         CInitializers.convertToAssignments(declaration, declarationEdge);
       if (options.handleStringLiteralInitializers()) {
+        // Special handling for string literal initializers -- convert them into character arrays
         assignments = expandStringLiterals(assignments);
       }
       if (options.handleImplicitInitialization()) {
         assignments = expandAssignmentList(declaration, assignments);
       }
 
-      final BooleanFormula result = assignmentHandler.handleInitializationAssignments(lhs, assignments);
+      result = assignmentHandler.handleInitializationAssignments(lhs, assignments);
 
-      if (CTypeUtils.containsArray(declarationType)) {
-        addPreFilledBase(declaration.getQualifiedName(), declarationType, true, false, constraints, pts);
-      }
-
-      return result;
     } else {
       throw new UnrecognizedCCodeException("Unrecognized initializer", declarationEdge, initializer);
     }
+
+    if (CTypeUtils.containsArray(declarationType)) {
+      addPreFilledBase(declaration.getQualifiedName(), declarationType, true, false, constraints, pts);
+    }
+
+    return result;
   }
 
   @Override

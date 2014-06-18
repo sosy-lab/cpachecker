@@ -168,6 +168,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 
 import com.google.common.base.Function;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 @Options(prefix="cfa")
@@ -801,23 +802,31 @@ class ASTConverter {
     }
 
     CType ownerType = owner.getExpressionType().getCanonicalType();
-    if (ownerType instanceof CPointerType) {
-      ownerType = ((CPointerType) ownerType).getType();
-      while (ownerType instanceof CPointerType) {
+    CExpression fullFieldReference;
+    List<Pair<String, CType>> wayToInnerField = ImmutableList.of();
+    if (!(ownerType instanceof CProblemType)) {
+      if (ownerType instanceof CPointerType) {
         ownerType = ((CPointerType) ownerType).getType();
+        while (ownerType instanceof CPointerType) {
+          ownerType = ((CPointerType) ownerType).getType();
+        }
+        ownerType = ownerType.getCanonicalType();
       }
-      ownerType = ownerType.getCanonicalType();
-    }
-    List<Pair<String, CType>> wayToInnerField = getWayToInnerField(ownerType, fieldName, loc, new ArrayList<Pair<String, CType>>());
-    CExpression fullFieldReference = owner;
-    if (!wayToInnerField.isEmpty()) {
-      boolean isPointerDereference = e.isPointerDereference();
-      for (Pair<String, CType> field : wayToInnerField) {
-        fullFieldReference = new CFieldReference(loc, field.getSecond(), field.getFirst(), fullFieldReference, isPointerDereference);
-        isPointerDereference = false;
+      wayToInnerField = getWayToInnerField(ownerType, fieldName, loc, new ArrayList<Pair<String, CType>>());
+      if (!wayToInnerField.isEmpty()) {
+        fullFieldReference = owner;
+        boolean isPointerDereference = e.isPointerDereference();
+        for (Pair<String, CType> field : wayToInnerField) {
+          fullFieldReference = new CFieldReference(loc, field.getSecond(), field.getFirst(), fullFieldReference, isPointerDereference);
+          isPointerDereference = false;
+        }
+      } else {
+        throw new CFAGenerationRuntimeException("Accessing unknown field " + fieldName + " in " + ownerType + " in file " + staticVariablePrefix.split("__")[0], e);
       }
     } else {
-      throw new CFAGenerationRuntimeException("Accessing unknown field " + fieldName + " in " + ownerType + " in file " + staticVariablePrefix.split("__")[0], e);
+      fullFieldReference = new CFieldReference(loc,
+          typeConverter.convert(e.getExpressionType()), fieldName, owner,
+          e.isPointerDereference());
     }
 
     // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
@@ -993,6 +1002,16 @@ class ASTConverter {
 
         return binExprBuilder.buildBinaryExpression(params.get(0), params.get(1), BinaryOperator.EQUALS);
       }
+    }
+
+    CType functionNameType = functionName.getExpressionType().getCanonicalType();
+    if (functionNameType instanceof CPointerType
+        && ((CPointerType)functionNameType).getType() instanceof CFunctionType) {
+      // Function pointers can be called either via "*fp" or simply "fp".
+      // We add the dereference operator, if it is missing.
+
+      functionName = new CPointerExpression(functionName.getFileLocation(),
+          ((CPointerType)functionNameType).getType(), functionName);
     }
 
     CType returnType = typeConverter.convert(e.getExpressionType());

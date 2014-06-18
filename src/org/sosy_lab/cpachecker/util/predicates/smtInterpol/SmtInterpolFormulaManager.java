@@ -83,14 +83,6 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
             booleanTheory, integerTheory, rationalTheory);
   }
 
-  public SmtInterpolInterpolatingProver createInterpolator() {
-    return getEnvironment().getInterpolator(this);
-  }
-
-  SmtInterpolTheoremProver createProver() {
-    return getEnvironment().createProver(this);
-  }
-
   BooleanFormula encapsulateBooleanFormula(Term t) {
     return getFormulaCreator().encapsulate(BooleanFormula.class, t);
   }
@@ -167,13 +159,6 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
   @Override
   public String getVersion() {
     return getEnvironment().getVersion();
-  }
-
-  /** This method returns a 'shared' environment or
-   * a complete new environment. */
-  SmtInterpolEnvironment createEnvironment() {
-    assert getEnvironment() != null;
-    return getEnvironment();
   }
 
   @Override

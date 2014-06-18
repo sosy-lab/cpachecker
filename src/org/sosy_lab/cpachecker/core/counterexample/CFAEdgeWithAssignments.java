@@ -23,31 +23,29 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
-import java.util.Set;
+import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-
-import com.google.common.collect.ImmutableSet;
 
 
 public class CFAEdgeWithAssignments {
 
   private final CFAEdge edge;
-  private final Set<Assignment> assignments;
-  private final String edgeCode;
+  private final List<IAssignment> assignments;
   private final String comment;
 
-  public CFAEdgeWithAssignments(CFAEdge pEdge, Set<Assignment> pAssignments,
-      @Nullable String pEdgeCode, @Nullable String pComment) {
+  public CFAEdgeWithAssignments(CFAEdge pEdge, List<IAssignment> pAssignments, @Nullable String pComment) {
+    assert pAssignments != null;
     edge = pEdge;
-    assignments = ImmutableSet.copyOf(pAssignments);
-    edgeCode = pEdgeCode;
+    assignments = pAssignments;
     comment = pComment;
   }
 
-  public Set<Assignment> getAssignments() {
+  public List<IAssignment> getAssignments() {
     return assignments;
   }
 
@@ -55,8 +53,48 @@ public class CFAEdgeWithAssignments {
     return edge;
   }
 
+  @Nullable
   public String getAsCode() {
-    return edgeCode;
+
+    if (assignments.size() == 0) {
+      return null;
+    }
+
+    StringBuilder result = new StringBuilder();
+
+    for (IAssignment assignment : assignments) {
+      if (assignment instanceof CAssignment) {
+        result.append(assignment.toASTString());
+      } else {
+        return null;
+      }
+    }
+
+    return result.toString();
+  }
+
+  @Nullable
+  public String prettyPrintCode(int numberOfTabsPerLine) {
+
+    if (assignments.size() == 0) {
+      return null;
+    }
+
+    StringBuilder result = new StringBuilder();
+
+    for (IAssignment assignment : assignments) {
+      if (assignment instanceof CAssignment) {
+        for (int c = 0; c < numberOfTabsPerLine; c++) {
+          result.append("\t");
+        }
+        result.append(assignment.toASTString());
+        result.append(System.lineSeparator());
+      } else {
+        return null;
+      }
+    }
+
+    return result.toString();
   }
 
   @Override
@@ -64,6 +102,7 @@ public class CFAEdgeWithAssignments {
     return edge.toString() + " " + assignments.toString();
   }
 
+  @Nullable
   public String getComment() {
     return comment;
   }

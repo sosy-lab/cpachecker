@@ -1,9 +1,9 @@
 
 public class Loop4 {
 
-
-
-
+  /*
+   * Will always throw an AssertionError, if assertions allowed
+   */
   public static void main(
       String[] args) {
 
@@ -15,7 +15,7 @@ public class Loop4 {
 
         do{
 
-        assert false ;
+        assert false ; // happens always
 
         } while( false  );
 

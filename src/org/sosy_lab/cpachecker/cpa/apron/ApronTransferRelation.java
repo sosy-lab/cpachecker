@@ -184,12 +184,13 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
 
     setInfo(abstractState, abstractPrecision, cfaEdge);
 
-    // TODO
+    // TODO the creation of the additional ApronManager which then is never used
+    // should not be necessary, however, without this constructor call the library
+    // does not work properly
     if (!done) {
     try {
       new ApronManager(Configuration.defaultConfiguration());
     } catch (InvalidConfigurationException e) {
-      // TODO Auto-generated catch block
       e.printStackTrace();
     }
     done = true;
@@ -304,7 +305,8 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
         if(truthAssumption) {
           possibleStates.add(state.addConstraint(new Tcons0(Tcons0.EQ, coeff)));
         } else {
-          possibleStates.add(state.addConstraint(new Tcons0(Tcons0.DISEQ, coeff)));
+          possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP, coeff)));
+          possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP, new Texpr0UnNode(Texpr0UnNode.OP_NEG, coeff))));
         }
       }
       return possibleStates;
@@ -388,7 +390,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
             Tcons0 act;
             if (left instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode)left).dim)
                 || right instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode)right).dim)) {
-              Texpr0BinNode increasedRight = new Texpr0BinNode(Texpr0BinNode.OP_ADD, left, constantMin);
+              Texpr0BinNode increasedRight = new Texpr0BinNode(Texpr0BinNode.OP_ADD, right, constantMin);
               act = new Tcons0(Tcons0.SUP,
                                new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
                                                 left,

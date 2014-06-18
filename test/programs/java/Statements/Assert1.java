@@ -14,7 +14,7 @@ public class Assert1 {
           b1 = true;
       }
 
-        assert b1  : "Wrong";
+        assert b1  : "Wrong"; // b1 always true
 
 
 
