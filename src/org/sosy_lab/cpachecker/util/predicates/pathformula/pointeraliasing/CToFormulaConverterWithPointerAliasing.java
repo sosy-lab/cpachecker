@@ -334,8 +334,23 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     }
   }
 
+  /**
+   * Expand a string literal to a array of characters.
+   *
+   * http://stackoverflow.com/a/6915917
+   * As the C99 Draft Specification's 32nd Example in §6.7.8 (p. 130) states
+   *    char s[] = "abc", t[3] = "abc";
+   *  is identical to:
+   *    char s[] = { 'a', 'b', 'c', '\0' }, t[] = { 'a', 'b', 'c' };
+   *
+   * @param e     The string that has to be expanded
+   * @param type
+   * @return      List of character-literal expressions
+   */
   private static List<CCharLiteralExpression> expandStringLiteral(final CStringLiteralExpression e,
                                                                   final CArrayType type) {
+    // The string is either NULL terminated, or not.
+    // If the length is not provided explicitly, NULL termination is used
     Integer length = CTypeUtils.getArrayLength(type);
     final String s = e.getContentString();
     if (length == null) {
@@ -343,9 +358,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     }
     assert length >= s.length();
 
-    // http://stackoverflow.com/a/6915917
-    // As the C99 Draft Specification's 32nd Example in §6.7.8 (p. 130) states
-    // char s[] = "abc", t[3] = "abc"; is identical to: char s[] = { 'a', 'b', 'c', '\0' }, t[] = { 'a', 'b', 'c' };
+    // create one CharLiteralExpression for each character of the string
     final List<CCharLiteralExpression> result = new ArrayList<>();
     for (int i = 0; i < s.length(); i++) {
       result.add(new CCharLiteralExpression(e.getFileLocation(), CNumericTypes.SIGNED_CHAR, s.charAt(i)));
