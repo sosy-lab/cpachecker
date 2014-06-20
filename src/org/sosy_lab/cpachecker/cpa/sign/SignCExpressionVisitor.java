@@ -292,8 +292,11 @@ public class SignCExpressionVisitor
     if (pLeft == SIGN.ZERO) {
       return SIGN.ZERO;
     }
-    if (pLeft == SIGN.PLUS && pRight == SIGN.PLUS || pLeft == SIGN.MINUS && pRight == SIGN.MINUS) {
+    if (pLeft == SIGN.PLUS && (pRight == SIGN.PLUS || pRight == SIGN.MINUS)) {
       return SIGN.PLUS0;
+    }
+    if (pLeft == SIGN.MINUS && (pRight == SIGN.MINUS || pRight == SIGN.PLUS)) {
+      return SIGN.MINUS0;
     }
     return SIGN.ALL;
   }

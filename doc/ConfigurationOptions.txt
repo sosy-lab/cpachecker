@@ -1231,6 +1231,10 @@ cpa.predicate.useInvariantsForAbstraction = false
 # add special information to formulas about non-deterministic functions
 cpa.predicate.useNondetFlags = false
 
+# Insert tmp-variables for parameters at function-entries. The variables are
+# similar to return-variables at function-exit.
+cpa.predicate.useParameterVariables = false
+
 # Qualified name for class which checks that the computed abstraction adheres
 # to the desired property.
 cpa.propertychecker.className = "org.sosy_lab.cpachecker.pcc.propertychecker.DefaultPropertyChecker"
