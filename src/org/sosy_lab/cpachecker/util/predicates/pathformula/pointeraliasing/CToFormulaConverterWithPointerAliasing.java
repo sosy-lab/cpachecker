@@ -517,14 +517,14 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   @Override
   protected BooleanFormula makeAssignment(
-      final CLeftHandSide lhs, final CRightHandSide rhs,
+      final CLeftHandSide lhs, final CLeftHandSide lhsForChecking, final CRightHandSide rhs,
       final CFAEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
           throws UnrecognizedCCodeException, InterruptedException {
 
     AssignmentHandler assignmentHandler = new AssignmentHandler(this, edge, function, ssa, pts, constraints, errorConditions);
-    return assignmentHandler.handleAssignment(lhs, rhs, false, null);
+    return assignmentHandler.handleAssignment(lhs, lhsForChecking, rhs, false, null);
   }
 
   private static String getLogMessage(final String msg, final CFAEdge edge) {
@@ -626,9 +626,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     if (initializer instanceof CInitializerExpression || initializer == null) {
 
       if (initializer != null) {
-        result = assignmentHandler.handleAssignment(lhs, ((CInitializerExpression) initializer).getExpression(), false, null);
+        result = assignmentHandler.handleAssignment(lhs, lhs, ((CInitializerExpression) initializer).getExpression(), false, null);
       } else if (isRelevantVariable(declaration)) {
-        result = assignmentHandler.handleAssignment(lhs, null, false, null);
+        result = assignmentHandler.handleAssignment(lhs, lhs, null, false, null);
       } else {
         result = bfmgr.makeBoolean(true);
       }
@@ -694,7 +694,17 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     for (CParameterDeclaration formalParameter : entryNode.getFunctionParameters()) {
       final CType parameterType = CTypeUtils.simplifyType(formalParameter.getType());
-      declareSharedBase(formalParameter.asVariableDeclaration(), CTypeUtils.containsArray(parameterType), constraints, pts);
+      final CVariableDeclaration formalDeclaration = formalParameter.asVariableDeclaration();
+      final CVariableDeclaration declaration;
+      if (options.useParameterVariables()) {
+        CParameterDeclaration tmpParameter = new CParameterDeclaration(
+                formalParameter.getFileLocation(), formalParameter.getType(), formalParameter.getName() + PARAM_VARIABLE_NAME);
+        tmpParameter.setQualifiedName(formalParameter.getQualifiedName() + PARAM_VARIABLE_NAME);
+        declaration = tmpParameter.asVariableDeclaration();
+      } else {
+        declaration = formalDeclaration;
+      }
+      declareSharedBase(declaration, CTypeUtils.containsArray(parameterType), constraints, pts);
     }
 
     return result;

@@ -75,6 +75,10 @@ public class FormulaEncodingOptions {
   @Option(description = "Ignore variables that are not relevant for reachability properties.")
   private boolean ignoreIrrelevantVariables = true;
 
+  @Option(description = "Insert tmp-variables for parameters at function-entries. " +
+          "The variables are similar to return-variables at function-exit.")
+  private boolean useParameterVariables = false;
+
   public FormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this, FormulaEncodingOptions.class);
   }
@@ -102,5 +106,9 @@ public class FormulaEncodingOptions {
 
   public boolean ignoreIrrelevantVariables() {
     return ignoreIrrelevantVariables;
+  }
+
+  public boolean useParameterVariables() {
+    return useParameterVariables;
   }
 }

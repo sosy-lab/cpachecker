@@ -134,6 +134,7 @@ public class CtoFormulaConverter {
 
   //names for special variables needed to deal with functions
   protected static final String RETURN_VARIABLE_NAME = "__retval__";
+  protected static final String PARAM_VARIABLE_NAME = "__param__";
 
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of(
       "printf", "printk"
@@ -505,11 +506,6 @@ public class CtoFormulaConverter {
       throws CPATransferException, InterruptedException {
     // this is where the "meat" is... We have to parse the statement
     // attached to the edge, and convert it to the appropriate formula
-    if (edge.getEdgeType() == CFAEdgeType.BlankEdge) {
-
-      // in this case there's absolutely nothing to do, so take a shortcut
-      return oldFormula;
-    }
 
     String function = (edge.getPredecessor() != null)
                           ? edge.getPredecessor().getFunctionName() : null;
@@ -517,6 +513,10 @@ public class CtoFormulaConverter {
     SSAMapBuilder ssa = oldFormula.getSsa().builder();
     Constraints constraints = new Constraints(bfmgr);
     PointerTargetSetBuilder pts = createPointerTargetSetBuilder(oldFormula.getPointerTargetSet());
+
+    if (options.useParameterVariables() && edge.getPredecessor() instanceof CFunctionEntryNode) {
+      addParameterConstraints(edge, function, ssa, pts, constraints, errorConditions, (CFunctionEntryNode)edge.getPredecessor());
+    }
 
     BooleanFormula edgeFormula = createFormulaForEdge(edge, function, ssa, pts, constraints, errorConditions);
 
@@ -536,6 +536,30 @@ public class CtoFormulaConverter {
     BooleanFormula newFormula = bfmgr.and(oldFormula.getFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;
     return new PathFormula(newFormula, newSsa, newPts, newLength);
+  }
+
+
+  /** create and add constraints about parameters: param1=tmp_param1, param2=tmp_param2, ...
+   * The tmp-variables are also used before the function-entry as "argument-constraints". */
+  private void addParameterConstraints(final CFAEdge edge, final String function,
+                                       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+                                       final Constraints constraints, final ErrorConditions errorConditions,
+                                       final CFunctionEntryNode entryNode)
+          throws UnrecognizedCCodeException, InterruptedException {
+    for (CParameterDeclaration formalParam : entryNode.getFunctionParameters()) {
+
+      // create expressions for each formal param: "f::x" --> "f::x__param__"
+      CParameterDeclaration tmpParameterExpression = new CParameterDeclaration(
+              formalParam.getFileLocation(), formalParam.getType(), formalParam.getName() + PARAM_VARIABLE_NAME);
+      tmpParameterExpression.setQualifiedName(formalParam.getQualifiedName() + PARAM_VARIABLE_NAME);
+
+      CIdExpression lhs = new CIdExpression(formalParam.getFileLocation(), formalParam);
+      CIdExpression rhs = new CIdExpression(formalParam.getFileLocation(), tmpParameterExpression);
+
+      // add assignment to constraints: "f::x" = "f::x__param__"
+      BooleanFormula eq = makeAssignment(lhs, rhs, edge, function, ssa, pts, constraints, errorConditions);
+      constraints.addConstraint(eq);
+    }
   }
 
   /**
@@ -575,7 +599,6 @@ public class CtoFormulaConverter {
     }
 
     case BlankEdge: {
-      assert false : "Handled above";
       return bfmgr.makeBoolean(true);
     }
 
@@ -797,8 +820,18 @@ public class CtoFormulaConverter {
     for (CParameterDeclaration formalParam : formalParams) {
       CExpression paramExpression = actualParams.get(i++);
       CIdExpression lhs = new CIdExpression(paramExpression.getFileLocation(), formalParam);
+      final CIdExpression paramLHS;
+      if (options.useParameterVariables()) {
+        // make assignments: tmp_param1==arg1, tmp_param2==arg2, ...
+        CParameterDeclaration tmpParameter = new CParameterDeclaration(
+                formalParam.getFileLocation(), formalParam.getType(), formalParam.getName() + PARAM_VARIABLE_NAME);
+        tmpParameter.setQualifiedName(formalParam.getQualifiedName() + PARAM_VARIABLE_NAME);
+        paramLHS = new CIdExpression(paramExpression.getFileLocation(), tmpParameter);
+      } else {
+        paramLHS = lhs;
+      }
 
-      BooleanFormula eq = makeAssignment(lhs, paramExpression, edge, callerFunction, ssa, pts, constraints, errorConditions);
+      BooleanFormula eq = makeAssignment(paramLHS, lhs, paramExpression, edge, callerFunction, ssa, pts, constraints, errorConditions);
       result = bfmgr.and(result, eq);
     }
 
@@ -847,19 +880,41 @@ public class CtoFormulaConverter {
 
   /**
    * Creates formula for the given assignment.
-   * @param assignment the assignment to process
+   * @param lhs the left-hand-side of the assignment
+   * @param rhs the right-hand-side of the assignment
    * @return the assignment formula
    * @throws UnrecognizedCCodeException
    * @throws InterruptedException
    */
-  protected BooleanFormula makeAssignment(
+  private BooleanFormula makeAssignment(
       final CLeftHandSide lhs, CRightHandSide rhs,
       final CFAEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
           throws UnrecognizedCCodeException, InterruptedException {
+    // lhs is used twice, also as lhsForChecking!
+    return makeAssignment(lhs, lhs, rhs, edge, function, ssa, pts, constraints, errorConditions);
+  }
 
-    if (!isRelevantLeftHandSide(lhs)) {
+  /**
+   * Creates formula for the given assignment.
+   * @param lhs the left-hand-side of the assignment
+   * @param lhsForChecking a left-hand-side of the assignment (for most cases: lhs == lhsForChecking),
+   *                       that is used to check, if the assignment is important.
+   *                       If the assignment is not important, we return TRUE.
+   * @param rhs the right-hand-side of the assignment
+   * @return the assignment formula
+   * @throws UnrecognizedCCodeException
+   * @throws InterruptedException
+   */
+  protected BooleanFormula makeAssignment(
+          final CLeftHandSide lhs, final CLeftHandSide lhsForChecking, CRightHandSide rhs,
+          final CFAEdge edge, final String function,
+          final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+          final Constraints constraints, final ErrorConditions errorConditions)
+          throws UnrecognizedCCodeException, InterruptedException {
+
+    if (!isRelevantLeftHandSide(lhsForChecking)) {
       // Optimization for unused variables and fields
       return bfmgr.makeBoolean(true);
     }
