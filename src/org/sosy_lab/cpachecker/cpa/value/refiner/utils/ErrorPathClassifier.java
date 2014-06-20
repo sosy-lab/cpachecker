@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -34,7 +35,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
-
 
 public class ErrorPathClassifier {
 
@@ -44,7 +44,8 @@ public class ErrorPathClassifier {
 
   final Optional<VariableClassification> classification;
 
-  public ErrorPathClassifier(Optional<VariableClassification> pClassification) {
+
+  public ErrorPathClassifier(Optional<VariableClassification> pClassification) throws InvalidConfigurationException {
     classification = pClassification;
   }
 
@@ -55,8 +56,8 @@ public class ErrorPathClassifier {
     }
 
     ARGPath currentErrorPath  = new ARGPath();
-    long lowestScore          = Long.MAX_VALUE;
-    int lowestIndex           = 0;
+    Long bestScore            = null;
+    int bestIndex             = 0;
 
     for(ARGPath currentPrefix : pPrefixes) {
       assert(currentPrefix.getLast().getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
@@ -67,13 +68,15 @@ public class ErrorPathClassifier {
 
       long score = obtainScoreForVariables(useDefinitionInformation);
 
-      if(score <= lowestScore) {
-        lowestScore = score;
-        lowestIndex = pPrefixes.indexOf(currentPrefix);
+      // score <= bestScore chooses the last, based on iteration order, that has the best or equal-to-best score
+      // maybe a real tie-breaker rule would be better, e.g. total number of variables, number of reverences, etc.
+      if(bestScore == null || score <= bestScore) {
+        bestScore = score;
+        bestIndex = pPrefixes.indexOf(currentPrefix);
       }
     }
 
-    return buildPath(lowestIndex, pPrefixes);
+    return buildPath(bestIndex, pPrefixes);
   }
 
   private Set<String> obtainUseDefInformationOfErrorPath(ARGPath currentErrorPath) {
