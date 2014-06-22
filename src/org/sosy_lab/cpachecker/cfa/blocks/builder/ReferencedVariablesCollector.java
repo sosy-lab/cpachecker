@@ -29,8 +29,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -44,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
@@ -58,8 +57,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 
 /**
@@ -91,6 +94,14 @@ public class ReferencedVariablesCollector {
 
     // collect information
     for (CFANode node : nodes) {
+      // Function parameters have to be considered (see ticket #155)!
+      if (node instanceof CFunctionEntryNode) {
+        CFunctionEntryNode entry = (CFunctionEntryNode) node;
+        for (CParameterDeclaration param: entry.getFunctionParameters()) {
+          allVars.add(param.getQualifiedName());
+        }
+      }
+      // ...
       for (CFAEdge leavingEdge : CFAUtils.leavingEdges(node)) {
         if (nodes.contains(leavingEdge.getSuccessor()) || (leavingEdge instanceof CFunctionCallEdge)) {
           collectVars(leavingEdge);
