@@ -39,7 +39,7 @@ import apron.SetUp;
 public class ApronManager {
 
   static {
-    SetUp.init();
+    SetUp.init("lib/native/x86_64-linux/apron/");
   }
 
   @Option(name="domain", toUppercase=true, values={"BOX", "OCTAGON", "POLKA", "POLKA_STRICT", "POLKA_EQ"},
