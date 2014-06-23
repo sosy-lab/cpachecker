@@ -40,17 +40,16 @@ import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
 /**
  * Tests for the opti-z3 branch.
  */
-public class TestZ3Maximization {
+public class Z3MaximizationTest {
 
   /**
    * Tests only get to run if Z3 can be loaded.
    */
-  public boolean canLoadZ3() {
+  public void loadZ3() {
     try {
       NativeLibraries.loadLibrary("z3j");
-      return true;
-    } catch (Throwable t) {
-      return false;
+    } catch (UnsatisfiedLinkError t) {
+      Assume.assumeNoException("libfoci.so is needed for Z3 to load", t);
     }
   }
 
@@ -59,7 +58,7 @@ public class TestZ3Maximization {
       InvalidConfigurationException,
       SolverException, InterruptedException {
 
-    Assume.assumeTrue(canLoadZ3());
+    loadZ3();
     Configuration config = Configuration.defaultConfiguration();
     Z3FormulaManager mgr = Z3FormulaManager.create(null, config);
     Z3RationalFormulaManager rfmgr =
