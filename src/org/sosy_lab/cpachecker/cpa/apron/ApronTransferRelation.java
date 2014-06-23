@@ -41,7 +41,6 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -127,7 +126,6 @@ import apron.Texpr0UnNode;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 
-@Options(prefix="cpa.octagon")
 public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronState>, ApronState, ApronPrecision> {
 
   private static final String FUNCTION_RETURN_VAR = "___cpa_temp_result_var_";

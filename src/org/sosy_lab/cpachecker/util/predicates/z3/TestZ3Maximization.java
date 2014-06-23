@@ -57,7 +57,7 @@ public class TestZ3Maximization {
   @Test
   public void testMaximization() throws
       InvalidConfigurationException,
-      SolverException {
+      SolverException, InterruptedException {
 
     Assume.assumeTrue(canLoadZ3());
     Configuration config = Configuration.defaultConfiguration();
@@ -65,26 +65,27 @@ public class TestZ3Maximization {
     Z3RationalFormulaManager rfmgr =
         (Z3RationalFormulaManager) mgr.getRationalFormulaManager();
 
-    Z3TheoremProver prover = new Z3TheoremProver(mgr);
+    try (ProverEnvironment prover = new Z3TheoremProver(mgr)) {
 
-    NumeralFormula.RationalFormula x = rfmgr.makeVariable("x");
-    NumeralFormula.RationalFormula ten = rfmgr.makeNumber("10");
+      NumeralFormula.RationalFormula x = rfmgr.makeVariable("x");
+      NumeralFormula.RationalFormula ten = rfmgr.makeNumber("10");
 
-    // Assert x <= 10.
-    BooleanFormula f = rfmgr.lessOrEquals(x, ten);
-    prover.push(f);
+      // Assert x <= 10.
+      BooleanFormula f = rfmgr.lessOrEquals(x, ten);
+      prover.push(f);
 
-    // Maximize for x.
-    ProverEnvironment.OptResult response = prover.isOpt((Z3Formula) x, true);
+      // Maximize for x.
+      ProverEnvironment.OptResult response = prover.isOpt(x, true);
 
-    Assert.assertEquals(response, ProverEnvironment.OptResult.OPT);
+      Assert.assertEquals(response, ProverEnvironment.OptResult.OPT);
 
-    // Check the value.
-    Model model = prover.getModel();
+      // Check the value.
+      Model model = prover.getModel();
 
-    ExtendedRational value = (ExtendedRational) model.get(new Model.Constant("x", Model.TermType.Real));
+      ExtendedRational value = (ExtendedRational) model.get(new Model.Constant("x", Model.TermType.Real));
 
-    Assert.assertEquals(value, ExtendedRational.ofString("10"));
+      Assert.assertEquals(value, ExtendedRational.ofString("10"));
+    }
   }
 
 }

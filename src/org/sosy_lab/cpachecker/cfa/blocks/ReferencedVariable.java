@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks;
 
-import java.util.Objects;
 import java.util.Set;
 
 /**

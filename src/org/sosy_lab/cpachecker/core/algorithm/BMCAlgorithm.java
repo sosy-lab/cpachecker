@@ -277,6 +277,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
 
       try (ProverEnvironment prover = solver.newProverEnvironmentWithModelGeneration();
+          @SuppressWarnings("resource")
           KInductionProver kInductionProver = induction ? new KInductionProver() : null) {
 
         do {
