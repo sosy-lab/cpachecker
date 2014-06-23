@@ -1601,7 +1601,7 @@ class ASTConverter {
       IASTInitializer initializer = null;
       String name = null;
 
-      // Descend into the nested chain of declators.
+      // Descend into the nested chain of declarators.
       // Find out the name and the initializer, and collect all modifiers.
       IASTDeclarator currentDecl = d;
       while (currentDecl != null) {
@@ -1663,6 +1663,27 @@ class ASTConverter {
       // add last array modifiers if necessary
       for (int i = tmpArrMod.size() -1; i >= 0; i--) {
         type = convert(tmpArrMod.get(i), type);
+      }
+
+      // Arrays with unknown length but an initializer
+      // have their length calculated from the initializer.
+      // Example: int a[] = { 1, 2 };
+      // will be converted as int a[2] = { 1, 2 };
+      if (type instanceof CArrayType) {
+        CArrayType arrayType = (CArrayType)type;
+
+        if (arrayType.getLength() == null
+            && initializer instanceof IASTEqualsInitializer) {
+          IASTInitializerClause initClause = ((IASTEqualsInitializer)initializer).getInitializerClause();
+          if (initClause instanceof IASTInitializerList) {
+            int length = ((IASTInitializerList)initClause).getClauses().length;
+            CExpression lengthExp = new CIntegerLiteralExpression(
+                getLocation(initializer), CNumericTypes.INT, BigInteger.valueOf(length));
+
+            type = new CArrayType(arrayType.isConst(), arrayType.isVolatile(),
+                arrayType.getType(), lengthExp);
+          }
+        }
       }
 
       return Triple.of(type, initializer, name);
