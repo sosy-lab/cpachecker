@@ -31,7 +31,6 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -40,10 +39,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.octagon.OctPrecision;
 import org.sosy_lab.cpachecker.cpa.octagon.OctState;
 import org.sosy_lab.cpachecker.cpa.octagon.OctTransferRelation;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
+import org.sosy_lab.cpachecker.cpa.octagon.precision.IOctPrecision;
+import org.sosy_lab.cpachecker.cpa.octagon.precision.RefineableOctPrecision;
+import org.sosy_lab.cpachecker.cpa.octagon.precision.StaticFullOctPrecision;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.AssumptionUseDefinitionCollector;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -65,20 +66,10 @@ public class OctagonAnalysisFeasabilityChecker {
     shutdownNotifier = pShutdownNotifier;
 
     // use the normal configuration for creating the transferrelation
-    transfer  = new OctTransferRelation(logger, cfa);
+    transfer  = new OctTransferRelation(logger, cfa, cpa.getOctagonOptions());
     checkedPath = path;
 
-    // use a new configuration which only has the default values for the precision
-    // we do not want any special options to be set there
-    String handleFloats = cpa.getConfiguration().getProperty("cpa.octagon.handleFloats");
-    // if nothing is in the configuration we use the default value
-    if (handleFloats == null) {
-      handleFloats = "false";
-    }
-    foundPath = getInfeasiblePrefix(new OctPrecision(Configuration.builder()
-                                                                  .setOption("cpa.octagon.handleFloats",
-                                                                             handleFloats)
-                                                                   .build()),
+    foundPath = getInfeasiblePrefix(new StaticFullOctPrecision(cpa.getOctagonOptions()),
                                     new OctState(logger, cpa.getManager()));
   }
 
@@ -94,7 +85,7 @@ public class OctagonAnalysisFeasabilityChecker {
       return checkedPath.size() == foundPath.size();
   }
 
-  public Set<String> getPrecisionIncrement(OctPrecision precision) {
+  public Set<String> getPrecisionIncrement(RefineableOctPrecision precision) {
     if (isFeasible()) {
       return Collections.emptySet();
     } else {
@@ -126,7 +117,7 @@ public class OctagonAnalysisFeasabilityChecker {
    * @throws CPAException
    * @throws InterruptedException
    */
-  private ARGPath getInfeasiblePrefix(final OctPrecision pPrecision, final OctState pInitial)
+  private ARGPath getInfeasiblePrefix(final IOctPrecision pPrecision, final OctState pInitial)
       throws CPAException, InterruptedException {
     try {
       Collection<OctState> next = Lists.newArrayList(pInitial);

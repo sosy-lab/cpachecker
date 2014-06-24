@@ -106,10 +106,12 @@ import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.octagon.OctState.Type;
+import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA.OctagonOptions;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.IOctCoefficients;
-import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctUniversalCoefficients;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctIntervalCoefficients;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctSimpleCoefficients;
+import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctUniversalCoefficients;
+import org.sosy_lab.cpachecker.cpa.octagon.precision.IOctPrecision;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctDoubleValue;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctIntValue;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctNumericValue;
@@ -125,7 +127,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 
 @SuppressWarnings("rawtypes")
-public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState>, OctState, OctPrecision> {
+public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState>, OctState, IOctPrecision> {
 
   private static final String FUNCTION_RETURN_VAR = "___cpa_temp_result_var_";
   private static final String TEMP_VAR_PREFIX = "___cpa_temp_var_";
@@ -144,6 +146,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
       = ImmutableMap.of("pthread_create", "threads");
 
   private final LogManager logger;
+  private final OctagonOptions octagonOptions;
 
   private final Map<CFAEdge, Loop> loopEntryEdges;
 
@@ -152,8 +155,9 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
    * @throws InvalidCFAException
    * @throws InvalidConfigurationException
    */
-  public OctTransferRelation(LogManager log, CFA cfa) throws InvalidCFAException {
+  public OctTransferRelation(LogManager log, CFA cfa, OctagonOptions options) throws InvalidCFAException {
     logger = log;
+    octagonOptions = options;
 
     if (!cfa.getLoopStructure().isPresent()) {
       throw new InvalidCFAException("OctagonCPA does not work without loop information!");
@@ -482,7 +486,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
     if (var instanceof CArraySubscriptExpression
         || var instanceof CFieldReference
         || var instanceof CPointerExpression
-        || (!precision.shouldHandleFloats() && var instanceof CFloatLiteralExpression)
+        || (!octagonOptions.shouldHandleFloats() && var instanceof CFloatLiteralExpression)
         || var instanceof CStringLiteralExpression
         || (var instanceof CFieldReference && ((CFieldReference)var).isPointerDereference())) {
       return false;
@@ -554,7 +558,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
       rightVal = OctIntValue.of(((CIntegerLiteralExpression) right).asLong());
     } else if (right instanceof CCharLiteralExpression) {
       rightVal = OctIntValue.of(((CCharLiteralExpression) right).getCharacter());
-    } else if (right instanceof CFloatLiteralExpression && precision.shouldHandleFloats()) {
+    } else if (right instanceof CFloatLiteralExpression && octagonOptions.shouldHandleFloats()) {
       rightVal = new OctDoubleValue(((CFloatLiteralExpression) right).getValue().doubleValue());
 
     // we cannot handle strings, so just return the previous state
@@ -1569,7 +1573,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<Set<OctState
     @Override
     public Set<Pair<IOctCoefficients, OctState>> visit(CFloatLiteralExpression e) throws CPATransferException {
       // only handle floats when specified in the configuration
-      if (precision.shouldHandleFloats()) {
+      if (octagonOptions.shouldHandleFloats()) {
         return Collections.singleton(Pair.of((IOctCoefficients)new OctSimpleCoefficients(visitorState.sizeOfVariables(), new OctDoubleValue(e.getValue().doubleValue()), visitorState), visitorState));
       } else {
         return Collections.singleton(Pair.of((IOctCoefficients)OctUniversalCoefficients.INSTANCE, visitorState));

@@ -54,8 +54,9 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.octagon.OctPrecision;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
+import org.sosy_lab.cpachecker.cpa.octagon.precision.IOctPrecision;
+import org.sosy_lab.cpachecker.cpa.octagon.precision.RefineableOctPrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
@@ -127,36 +128,22 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
       throw new InvalidConfigurationException(OctDelegatingRefiner.class.getSimpleName() + " needs an OctagonCPA");
     }
 
-    OctDelegatingRefiner refiner = initialiseValueAnalysisRefiner(cpa, octagonCPA);
+    OctDelegatingRefiner refiner = new OctDelegatingRefiner(cpa,
+                                                            octagonCPA);
 
     return refiner;
   }
 
-  private static OctDelegatingRefiner initialiseValueAnalysisRefiner(
-      ConfigurableProgramAnalysis cpa, OctagonCPA pOctagonCPA)
-          throws CPAException, InvalidConfigurationException {
-    LogManager logger                 = pOctagonCPA.getLogger();
-
-    return new OctDelegatingRefiner(
-        logger,
-        pOctagonCPA.getShutdownNotifier(),
-        cpa,
-        pOctagonCPA);
-  }
-
-  protected OctDelegatingRefiner(
-      final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier,
-      final ConfigurableProgramAnalysis pCpa,
-      final OctagonCPA pOctagonCPA) throws CPAException, InvalidConfigurationException {
+  private OctDelegatingRefiner(final ConfigurableProgramAnalysis pCpa, final OctagonCPA pOctagonCPA)
+      throws CPAException, InvalidConfigurationException {
     super(pCpa);
     pOctagonCPA.getConfiguration().inject(this);
 
     cfa                   = pOctagonCPA.getCFA();
-    logger                = pLogger;
-    shutdownNotifier      = pShutdownNotifier;
+    logger                = pOctagonCPA.getLogger();
+    shutdownNotifier      = pOctagonCPA.getShutdownNotifier();
     octagonCPA            = pOctagonCPA;
-    interpolatingRefiner  = new OctInterpolationBasedRefiner(pOctagonCPA.getConfiguration(), pLogger, pShutdownNotifier, cfa);
+    interpolatingRefiner  = new OctInterpolationBasedRefiner(pOctagonCPA.getConfiguration(), logger, shutdownNotifier, cfa);
   }
 
   @Override
@@ -198,12 +185,12 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
 
     UnmodifiableReachedSet reachedSet = reached.asReachedSet();
     Precision precision               = reachedSet.getPrecision(reachedSet.getLastState());
-    OctPrecision octPrecision         = Precisions.extractPrecisionByType(precision, OctPrecision.class);
+    RefineableOctPrecision octPrecision         = Precisions.extractPrecisionByType(precision, RefineableOctPrecision.class);
 
     ArrayList<Precision> refinedPrecisions = new ArrayList<>(1);
     ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(1);
 
-    OctPrecision refinedOctPrecision;
+    RefineableOctPrecision refinedOctPrecision;
     Pair<ARGState, CFAEdge> refinementRoot;
 
 
@@ -220,9 +207,9 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
       refinementRoot = interpolatingRefiner.determineRefinementRoot(errorPath, increment, true);
     }
 
-    refinedOctPrecision  = new OctPrecision(octPrecision, increment);
+    refinedOctPrecision  = new RefineableOctPrecision(octPrecision, increment);
     refinedPrecisions.add(refinedOctPrecision);
-    newPrecisionTypes.add(OctPrecision.class);
+    newPrecisionTypes.add(RefineableOctPrecision.class);
 
     if (valueAnalysisRefinementWasSuccessful(errorPath, octPrecision.getValueAnalysisPrecision(), refinedOctPrecision.getValueAnalysisPrecision())) {
       numberOfSuccessfulValueAnalysisRefinements++;
@@ -244,7 +231,7 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
   private boolean performOctagonAnalysisRefinement(final ARGReachedSet reached, final OctagonAnalysisFeasabilityChecker checker) {
     UnmodifiableReachedSet reachedSet = reached.asReachedSet();
     Precision precision               = reachedSet.getPrecision(reachedSet.getLastState());
-    OctPrecision octPrecision         = Precisions.extractPrecisionByType(precision, OctPrecision.class);
+    RefineableOctPrecision octPrecision         = Precisions.extractPrecisionByType(precision, RefineableOctPrecision.class);
 
     Set<String> increment = checker.getPrecisionIncrement(octPrecision);
     // no newly tracked variables, so the refinement was not successful
@@ -254,8 +241,8 @@ public class OctDelegatingRefiner extends AbstractARGBasedRefiner implements Sta
 
     ArrayList<Precision> refinedPrecisions = new ArrayList<>(1);
     ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(1);
-    refinedPrecisions.add(new OctPrecision(octPrecision, increment));
-    newPrecisionTypes.add(OctPrecision.class);
+    refinedPrecisions.add(new RefineableOctPrecision(octPrecision, increment));
+    newPrecisionTypes.add(IOctPrecision.class);
 
     reached.removeSubtree(((ARGState)reachedSet.getFirstState()).getChildren().iterator().next(), refinedPrecisions, newPrecisionTypes);
     logger.log(Level.INFO, "Refinement successful, precision incremented, following variables are now tracked additionally:\n" + increment);

@@ -791,6 +791,10 @@ cpa.monitor.pathcomputationlimit = 0
 # with this option the evaluation of float variables can be toggled.
 cpa.octagon.handleFloats = false
 
+# this option determines which initial precision should be used
+cpa.octagon.initialPrecisionType = "STATIC_FULL"
+  allowed values: [STATIC_FULL, REFINEABLE_EMPTY]
+
 # whether or not to use use-definition information from the error pathsto
 # optimize the interpolation process
 cpa.octagon.interpolation.applyUseDefInformation = true

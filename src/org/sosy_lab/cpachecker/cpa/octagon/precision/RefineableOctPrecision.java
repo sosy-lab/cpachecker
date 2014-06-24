@@ -21,9 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.octagon;
-
-import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.*;
+package org.sosy_lab.cpachecker.cpa.octagon.precision;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -31,12 +29,8 @@ import java.util.Set;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -44,22 +38,13 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 import com.google.common.base.Optional;
 import com.google.common.collect.Multimap;
 
-@Options(prefix="cpa.octagon")
-public class OctPrecision implements Precision {
 
+public class RefineableOctPrecision implements IOctPrecision {
   private final Set<String> trackedVars;
   private final ValueAnalysisPrecision valuePrecision;
 
-  @Option(name="handleFloats",
-      description="with this option the evaluation of float variables can be toggled.")
-  private boolean handleFloats = false;
-
-  @Option(name="refiner", description="turn the refiner on or off, default is off")
-  private boolean refiner = false;
-
-  public OctPrecision(Configuration config) throws InvalidConfigurationException {
+  public RefineableOctPrecision(Configuration config) throws InvalidConfigurationException  {
     valuePrecision = new ValueAnalysisPrecision("", config, Optional.<VariableClassification>absent());
-    config.inject(this);
     trackedVars = new HashSet<>();
   }
 
@@ -67,10 +52,8 @@ public class OctPrecision implements Precision {
    * A constructor which increments the included ValueAnalysisPrecision and the
    * OctPrecision.
    */
-  public OctPrecision(OctPrecision pOctPrecision, Multimap<CFANode, MemoryLocation> pIncrement) {
+  public RefineableOctPrecision(RefineableOctPrecision pOctPrecision, Multimap<CFANode, MemoryLocation> pIncrement) {
     valuePrecision = new ValueAnalysisPrecision(pOctPrecision.valuePrecision, pIncrement);
-    handleFloats = pOctPrecision.handleFloats;
-    refiner = pOctPrecision.refiner;
     trackedVars = new HashSet<>();
     trackedVars.addAll(pOctPrecision.trackedVars);
     for (MemoryLocation mem : pIncrement.values()) {
@@ -82,10 +65,8 @@ public class OctPrecision implements Precision {
    * A constructor which only increments the OctPrecision, and lets the included
    * ValueAnalysisPrecision as it was.
    */
-  public OctPrecision(OctPrecision pOctPrecision, Set<String> pIncrement) {
+  public RefineableOctPrecision(RefineableOctPrecision pOctPrecision, Set<String> pIncrement) {
     valuePrecision = pOctPrecision.valuePrecision;
-    handleFloats = pOctPrecision.handleFloats;
-    refiner = pOctPrecision.refiner;
     trackedVars = new HashSet<>();
     trackedVars.addAll(pOctPrecision.trackedVars);
     trackedVars.addAll(pIncrement);
@@ -99,21 +80,9 @@ public class OctPrecision implements Precision {
     return trackedVars.size();
   }
 
+  @Override
   public boolean isTracked(String varName, CType type) {
-    if(!refiner) {
-      if (!handleFloats) {
-        return !(type instanceof CSimpleType
-                   && (((CSimpleType)type).getType() == FLOAT
-                   || ((CSimpleType)type).getType() == DOUBLE));
-      } else {
-        return true;
-      }
-    }
     return trackedVars.contains(varName);
-  }
-
-  public boolean shouldHandleFloats() {
-    return handleFloats;
   }
 
   public ValueAnalysisPrecision getValueAnalysisPrecision() {
