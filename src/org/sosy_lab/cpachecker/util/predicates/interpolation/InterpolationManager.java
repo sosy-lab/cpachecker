@@ -638,6 +638,7 @@ public final class InterpolationManager {
     if (dumpInterpolationProblems) {
       dumpFormulaToFile("interpolant", itp, end_of_A);
     }
+
     return itp;
   }
 
