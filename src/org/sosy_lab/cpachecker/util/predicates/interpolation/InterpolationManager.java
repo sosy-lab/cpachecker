@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
@@ -49,6 +50,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -58,9 +60,13 @@ import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -68,6 +74,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -201,14 +208,6 @@ public final class InterpolationManager {
     } else {
       interpolator = null;
     }
-
-    if (wellScopedPredicates) {
-      throw new InvalidConfigurationException("wellScopedPredicates are currently disabled");
-    }
-//    if (inlineFunctions && wellScopedPredicates) {
-//      logger.log(Level.WARNING, "Well scoped predicates not possible with function inlining, disabling them.");
-//      wellScopedPredicates = false;
-//    }
   }
 
   public Appender dumpCounterexample(CounterexampleTraceInfo cex) {
@@ -221,18 +220,24 @@ public final class InterpolationManager {
    * This is used to detect timeouts for interpolation
    *
    * @param pFormulas the formulas for the path
+   * @param pAbstractionStates the abstraction states between the formulas and the last state of the path.
+   *                           The first state (root) of the path is missing, because it is always TRUE.
+   *                           (can be empty, if well-scoped interpolation is disabled or not required)
    * @param elementsOnPath the ARGElements on the path (may be empty if no branching information is required)
    * @throws CPAException
    * @throws InterruptedException
    */
   public CounterexampleTraceInfo buildCounterexampleTrace(
       final List<BooleanFormula> pFormulas,
+      final List<AbstractState> pAbstractionStates,
       final Set<ARGState> elementsOnPath,
       final boolean computeInterpolants) throws CPAException, InterruptedException {
 
+    assert pAbstractionStates.isEmpty() || pFormulas.size() == pAbstractionStates.size();
+
     // if we don't want to limit the time given to the solver
     if (itpTimeLimit == 0) {
-      return buildCounterexampleTrace0(pFormulas, elementsOnPath, computeInterpolants);
+      return buildCounterexampleTrace0(pFormulas, pAbstractionStates, elementsOnPath, computeInterpolants);
     }
 
     assert executor != null;
@@ -240,7 +245,7 @@ public final class InterpolationManager {
     Callable<CounterexampleTraceInfo> tc = new Callable<CounterexampleTraceInfo>() {
       @Override
       public CounterexampleTraceInfo call() throws CPAException, InterruptedException {
-        return buildCounterexampleTrace0(pFormulas, elementsOnPath, computeInterpolants);
+        return buildCounterexampleTrace0(pFormulas, pAbstractionStates, elementsOnPath, computeInterpolants);
       }
     };
 
@@ -265,12 +270,20 @@ public final class InterpolationManager {
 
   public CounterexampleTraceInfo buildCounterexampleTrace(
       final List<BooleanFormula> pFormulas,
+      final List<AbstractState> pAbstractionStates,
       final Set<ARGState> elementsOnPath) throws CPAException, InterruptedException {
-    return buildCounterexampleTrace(pFormulas, elementsOnPath, true);
+    return buildCounterexampleTrace(pFormulas, pAbstractionStates, elementsOnPath, true);
+  }
+
+  public CounterexampleTraceInfo buildCounterexampleTrace(
+          final List<BooleanFormula> pFormulas) throws CPAException, InterruptedException {
+    return buildCounterexampleTrace(
+            pFormulas, Collections.<AbstractState>emptyList(), Collections.<ARGState>emptySet(), true);
   }
 
   private CounterexampleTraceInfo buildCounterexampleTrace0(
       final List<BooleanFormula> pFormulas,
+      final List<AbstractState> pAbstractionStates,
       final Set<ARGState> elementsOnPath,
       final boolean computeInterpolants) throws CPAException, InterruptedException {
 
@@ -309,7 +322,7 @@ public final class InterpolationManager {
       }
 
       try {
-        return currentInterpolator.buildCounterexampleTrace(f, elementsOnPath, computeInterpolants);
+        return currentInterpolator.buildCounterexampleTrace(f, pAbstractionStates, elementsOnPath, computeInterpolants);
       } finally {
         if (!reuseInterpolationEnvironment) {
           currentInterpolator.close();
@@ -365,7 +378,7 @@ public final class InterpolationManager {
     try (ProverEnvironment thmProver = solver.newProverEnvironment()) {
 
     logger.log(Level.ALL, "DEBUG_1", "Calling getUsefulBlocks on path",
-        "of length:", f.size());
+            "of length:", f.size());
 
     final BooleanFormula[] needed = new BooleanFormula[f.size()];
     for (int i = 0; i < needed.length; ++i) {
@@ -470,12 +483,14 @@ public final class InterpolationManager {
    * Put the list of formulas into the order in which they should be given to
    * the solver, as defined by the {@link #direction} configuration option.
    * @param traceFormulas The list of formulas to check.
-   * @return The same list of formulas in different order, and each formula has its position in the original list as second element of the pair.
+   * @return The same list of formulas in different order,
+   *         and each formula has its position in the original list as third element of the pair.
    */
-  private List<Pair<BooleanFormula, Integer>> orderFormulas(final List<BooleanFormula> traceFormulas) {
+  private List<Triple<BooleanFormula, AbstractState, Integer>> orderFormulas(
+          final List<BooleanFormula> traceFormulas, final List<AbstractState> pAbstractionStates) {
 
     // In this list are all formulas together with their position in the original list
-    ImmutableList.Builder<Pair<BooleanFormula, Integer>> orderedFormulas = ImmutableList.builder();
+    ImmutableList.Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas = ImmutableList.builder();
 
     if (direction == CexTraceAnalysisDirection.ZIGZAG) {
       int e = traceFormulas.size()-1;
@@ -485,7 +500,7 @@ public final class InterpolationManager {
         int i = fromStart ? s++ : e--;
         fromStart = !fromStart;
 
-        orderedFormulas.add(Pair.of(traceFormulas.get(i), i));
+        orderedFormulas.add(Triple.of(traceFormulas.get(i), pAbstractionStates.get(i), i));
       }
 
     } else {
@@ -496,14 +511,14 @@ public final class InterpolationManager {
            backwards ? i >= 0 : i < traceFormulas.size();
            i += increment) {
 
-        orderedFormulas.add(Pair.of(traceFormulas.get(i), i));
+        orderedFormulas.add(Triple.of(traceFormulas.get(i), pAbstractionStates.get(i), i));
       }
     }
 
-    ImmutableList<Pair<BooleanFormula, Integer>> result = orderedFormulas.build();
+    ImmutableList<Triple<BooleanFormula, AbstractState, Integer>> result = orderedFormulas.build();
     assert traceFormulas.size() == result.size();
-    assert ImmutableMultiset.copyOf(from(result).transform(Pair.getProjectionToFirst()))
-                             .equals(ImmutableMultiset.copyOf(traceFormulas))
+    assert ImmutableMultiset.copyOf(from(result).transform(Triple.getProjectionToFirst()))
+            .equals(ImmutableMultiset.copyOf(traceFormulas))
             : "Ordered list does not contain the same formulas with the same count";
     return result;
   }
@@ -514,62 +529,116 @@ public final class InterpolationManager {
    *
    * @param pItpProver The solver.
    * @param itpGroupsIds The references to the interpolation groups
+   * @param orderedFormulas list of formulas with their (nullable) successor-state and the index in the "correct" order.
    * @return A list of all the interpolants.
    */
   private <T> List<BooleanFormula> getInterpolants(
-      InterpolatingProverEnvironment<T> pItpProver, List<T> itpGroupsIds) throws InterruptedException {
+      InterpolatingProverEnvironment<T> pItpProver, List<T> itpGroupsIds,
+      List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas) throws InterruptedException {
+
+    assert itpGroupsIds.size() == orderedFormulas.size();
 
     List<BooleanFormula> interpolants = Lists.newArrayListWithExpectedSize(itpGroupsIds.size()-1);
 
     // The counterexample is spurious. Get the interpolants.
 
-    // how to partition the trace into (A, B) depends on whether
-    // there are function calls involved or not: in general, A
-    // is the trace from the entry point of the current function
-    // to the current point, and B is everything else. To implement
-    // this, we keep track of which function we are currently in.
-    // if we don't want "well-scoped" predicates, A always starts at the beginning
-    Deque<Integer> entryPoints = null;
-    if (wellScopedPredicates) {
-      entryPoints = new ArrayDeque<>();
-      entryPoints.push(0);
-    }
+    // how to partition the trace into partitions (A, B) depends on whether
+    // we want well-scoped interpolants or not:
+    //   1. For well-scoped interpolants, A is the trace from the entry point
+    // of the current function to the current point, and B is everything else.
+    // To implement this, we keep track of which function we are currently in.
+    // Then we return each interpolant for i={0..n-1} for the partitions
+    // A=[lastFunctionEntryIndex .. i] and B=[0 .. lastFunctionEntryIndex-1 , i+1 .. n].
+    //   2. If we do not want well-scoped interpolants, A always starts at the
+    // beginning (start=0). Then we simply return each interpolant for i={0..n-1}
+    // for the partitions A=[0 .. i] and B=[i+1 .. n].
 
-    for (int i = 0; i < itpGroupsIds.size()-1; ++i) {
-      shutdownNotifier.shutdownIfNecessary();
+    assert interpolants.isEmpty();
+
+    Deque<Pair<Integer, CFANode>> callstack = wellScopedPredicates ? new ArrayDeque<Pair<Integer, CFANode>>() : null;
+
+    for (int end_of_A = 0; end_of_A < itpGroupsIds.size() - 1; end_of_A++) {
       // last iteration is left out because B would be empty
-      final int start_of_a = (wellScopedPredicates ? entryPoints.peek() : 0);
 
-      logger.log(Level.ALL, "Looking for interpolant for formulas from",
-          start_of_a, "to", i);
-
-      getInterpolantTimer.start();
-      BooleanFormula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_a, i+1));
-      getInterpolantTimer.stop();
-
-      if (dumpInterpolationProblems) {
-        dumpFormulaToFile("interpolant", itp, i);
+      final int start_of_A;
+      if (wellScopedPredicates) {
+        start_of_A = getWellScopedStartOfA(orderedFormulas, callstack, end_of_A);
+      } else {
+        start_of_A = 0; // if not well-scoped interpolation: we always start at 0.
       }
 
-      interpolants.add(itp);
-
-      // TODO wellScopedPredicates have been disabled
-
-      // TODO the following code relies on the fact that there is always an abstraction on function call and return
-
-      // If we are entering or exiting a function, update the stack
-      // of entry points
-      // TODO checking if the abstraction node is a new function
-//        if (wellScopedPredicates && e.getAbstractionLocation() instanceof FunctionEntryNode) {
-//          entryPoints.push(i);
-//        }
-        // TODO check we are returning from a function
-//        if (wellScopedPredicates && e.getAbstractionLocation().getEnteringSummaryEdge() != null) {
-//          entryPoints.pop();
-//        }
+      final int depth = callstack == null ? 0 : callstack.size(); // just for logging
+      interpolants.add(getInterpolantFromSublist(pItpProver, itpGroupsIds, start_of_A, end_of_A, depth));
     }
 
     return interpolants;
+  }
+
+  private int getWellScopedStartOfA(List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas,
+                                    Deque<Pair<Integer, CFANode>> callstack, int end_of_A) {
+
+    checkState(direction == CexTraceAnalysisDirection.FORWARDS,
+            "well-scoped predicated need to traverse the error-trace in a normal way.");
+    // TODO check backward (should be working) and ZIGZAG (???)
+
+    // TODO the following code relies on the fact that there is always an abstraction on function-calls and -returns
+
+    if (end_of_A == 0) {
+      return 0;
+    }
+
+    // If we have entered or exited a function, update the stack of entry points
+    final AbstractState abstractionState = checkNotNull(orderedFormulas.get(end_of_A-1).getSecond());
+    final CFANode node = AbstractStates.extractLocation(abstractionState);
+    if (node instanceof FunctionEntryNode) {
+      callstack.addLast(Pair.of(end_of_A, node));
+    }
+
+    // we are returning from a function,
+    // TODO one node to early or to late in the CFA? or only for BAM? -> see BlockOperator for BlockEnd!
+    // TODO matching node can be wrong in case of recursion of multiple calls to the same function?
+    if (!callstack.isEmpty()) {
+      final CFANode lastEntryNode = callstack.getLast().getSecond();
+      if ((node instanceof FunctionExitNode
+              && ((FunctionExitNode) node).getEntryNode() == lastEntryNode)
+        //|| (node.getEnteringSummaryEdge() != null
+        //       && node.getEnteringSummaryEdge().getPredecessor().getLeavingEdge(0).getSuccessor() == lastEntryNode)
+              ) {
+        callstack.removeLast();
+      }
+    }
+
+    if (callstack.isEmpty()) {
+      return 0; // we are in the main-function, so A starts at 0.
+    } else {
+      return callstack.getLast().getFirst();
+    }
+  }
+
+  /**
+   * Precondition: The solver-stack contains all formulas and is UNSAT.
+   * Get the interpolant between the Sublist of formulas and the other formulas on the solver-stack.
+   * Each formula is identified by its GroupId,
+   * The sublist is taken from the list of GroupIds, including both start and end of A.
+   */
+  private <T> BooleanFormula getInterpolantFromSublist(final InterpolatingProverEnvironment<T> pItpProver,
+        final List<T> itpGroupsIds, final int start_of_A, final int end_of_A, final int depth) throws InterruptedException {
+    shutdownNotifier.shutdownIfNecessary();
+
+    logger.log(Level.FINE, "Looking for interpolant for formulas from", start_of_A, "to", end_of_A,
+            "(depth", depth, ")",
+            itpGroupsIds.subList(start_of_A, end_of_A + 1));
+
+    getInterpolantTimer.start();
+    final BooleanFormula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_A, end_of_A + 1));
+    getInterpolantTimer.stop();
+
+    logger.log(Level.FINE, "Received interpolant", itp);
+
+    if (dumpInterpolationProblems) {
+      dumpFormulaToFile("interpolant", itp, end_of_A);
+    }
+    return itp;
   }
 
   private <T> void verifyInterpolants(List<BooleanFormula> interpolants, List<BooleanFormula> formulas, InterpolatingProverEnvironment<T> prover) throws SolverException, InterruptedException {
@@ -732,7 +801,7 @@ public final class InterpolationManager {
   private class Interpolator<T> {
 
     private InterpolatingProverEnvironment<T> itpProver;
-    private final List<Pair<BooleanFormula, T>> currentlyAssertedFormulas = new ArrayList<>();
+    private final List<Triple<BooleanFormula, AbstractState, T>> currentlyAssertedFormulas = new ArrayList<>();
 
     Interpolator() {
       itpProver = newEnvironment();
@@ -753,8 +822,10 @@ public final class InterpolationManager {
      * @return counterexample info with predicated information
      * @throws CPAException
      */
-    CounterexampleTraceInfo buildCounterexampleTrace(
-        List<BooleanFormula> f, Set<ARGState> elementsOnPath,
+    private CounterexampleTraceInfo buildCounterexampleTrace(
+        List<BooleanFormula> f,
+        List<AbstractState> pAbstractionStates,
+        Set<ARGState> elementsOnPath,
         boolean computeInterpolants) throws CPAException, InterruptedException {
 
       // Check feasibility of counterexample
@@ -763,6 +834,13 @@ public final class InterpolationManager {
 
       boolean spurious;
       List<T> itpGroupsIds;
+      List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas;
+
+      if (pAbstractionStates.isEmpty()) {
+        pAbstractionStates = new ArrayList<>(Collections.<AbstractState>nCopies(f.size(), null));
+      }
+      assert pAbstractionStates.size() == f.size() : "each pathFormula must end with an abstract State";
+
       try {
 
         if (getUsefulBlocks) {
@@ -774,7 +852,8 @@ public final class InterpolationManager {
         }
 
         // re-order formulas if needed
-        List<Pair<BooleanFormula, Integer>> orderedFormulas = orderFormulas(f);
+        orderedFormulas = orderFormulas(f, pAbstractionStates);
+        assert orderedFormulas.size() == f.size();
 
         // initialize all interpolation group ids with "null"
         itpGroupsIds = new ArrayList<>(Collections.<T>nCopies(f.size(), null));
@@ -796,7 +875,7 @@ public final class InterpolationManager {
       if (spurious) {
 
         if (computeInterpolants) {
-          List<BooleanFormula> interpolants = getInterpolants(itpProver, itpGroupsIds);
+          List<BooleanFormula> interpolants = getInterpolants(itpProver, itpGroupsIds, orderedFormulas);
           if (verifyInterpolants) {
             verifyInterpolants(interpolants, f, itpProver);
           }
@@ -830,37 +909,37 @@ public final class InterpolationManager {
      * list that is used if {@link #reuseInterpolationEnvironment} is enabled.
      *
      * @param traceFormulas The list of formulas to check, each formula with its index of where it should be added in the list of interpolation groups.
-     * @param itpGroupsIds The list where to store the references to the interpolation groups.
+     * @param itpGroupsIds The list where to store the references to the interpolation groups. This is just a list of 'identifiers' for the formulas.
      * @param itpProver The solver to use.
      * @return True if the formulas are unsatisfiable.
      * @throws InterruptedException
      */
-    private boolean checkInfeasabilityOfTrace(List<Pair<BooleanFormula, Integer>> traceFormulas,
+    private boolean checkInfeasabilityOfTrace(List<Triple<BooleanFormula, AbstractState, Integer>> traceFormulas,
         List<T> itpGroupsIds) throws InterruptedException {
 
       // first identify which formulas are already on the solver stack,
       // which formulas need to be removed from the solver stack,
       // and which formulas need to be added to the solver stack
-      ListIterator<Pair<BooleanFormula, Integer>> todoIterator = traceFormulas.listIterator();
-      ListIterator<Pair<BooleanFormula, T>> assertedIterator = currentlyAssertedFormulas.listIterator();
+      ListIterator<Triple<BooleanFormula, AbstractState, Integer>> todoIterator = traceFormulas.listIterator();
+      ListIterator<Triple<BooleanFormula, AbstractState, T>> assertedIterator = currentlyAssertedFormulas.listIterator();
 
       int firstBadIndex = -1; // index of first mis-matching formula in both lists
 
       while (assertedIterator.hasNext()) {
-        Pair<BooleanFormula, T> assertedFormula = assertedIterator.next();
+        Triple<BooleanFormula, AbstractState, T> assertedFormula = assertedIterator.next();
 
         if (!todoIterator.hasNext()) {
           firstBadIndex = assertedIterator.previousIndex();
           break;
         }
 
-        Pair<BooleanFormula, Integer> todoFormula = todoIterator.next();
+        Triple<BooleanFormula, AbstractState, Integer> todoFormula = todoIterator.next();
 
         if (todoFormula.getFirst().equals(assertedFormula.getFirst())) {
           // formula is already in solver stack in correct location
           @SuppressWarnings("unchecked")
-          T itpGroupId = assertedFormula.getSecond();
-          itpGroupsIds.set(todoFormula.getSecond(), itpGroupId);
+          T itpGroupId = assertedFormula.getThird();
+          itpGroupsIds.set(todoFormula.getThird(), itpGroupId);
 
         } else {
           firstBadIndex = assertedIterator.previousIndex();
@@ -885,7 +964,7 @@ public final class InterpolationManager {
         assert firstBadIndex > 0;
         // list with all formulas on solver stack that we need to remove
         // (= remaining formulas in currentlyAssertedFormulas list)
-        List<Pair<BooleanFormula, T>> toDeleteFormulas =
+        List<Triple<BooleanFormula, AbstractState, T>> toDeleteFormulas =
             currentlyAssertedFormulas.subList(firstBadIndex,
                                               currentlyAssertedFormulas.size());
 
@@ -908,14 +987,15 @@ public final class InterpolationManager {
 
       // add remaining formulas to the solver stack
       while (todoIterator.hasNext()) {
-        Pair<BooleanFormula, Integer> p = todoIterator.next();
+        Triple<BooleanFormula, AbstractState, Integer> p = todoIterator.next();
         BooleanFormula f = p.getFirst();
-        int index = p.getSecond();
+        AbstractState state = p.getSecond();
+        int index = p.getThird();
 
         assert itpGroupsIds.get(index) == null;
         T itpGroupId = itpProver.push(f);
         itpGroupsIds.set(index, itpGroupId);
-        currentlyAssertedFormulas.add(Pair.of(f, itpGroupId));
+        currentlyAssertedFormulas.add(Triple.of(f, state, itpGroupId));
 
         if (incrementalCheck && isStillFeasible && !bfmgr.isTrue(f)) {
           if (itpProver.isUnsat()) {
@@ -926,8 +1006,8 @@ public final class InterpolationManager {
         }
       }
 
-      assert Iterables.elementsEqual(from(traceFormulas).transform(Pair.getProjectionToFirst()),
-                                      from(currentlyAssertedFormulas).transform(Pair.getProjectionToFirst()));
+      assert Iterables.elementsEqual(from(traceFormulas).transform(Triple.getProjectionToFirst()),
+              from(currentlyAssertedFormulas).transform(Triple.getProjectionToFirst()));
 
       if (incrementalCheck) {
         // we did unsat checks
