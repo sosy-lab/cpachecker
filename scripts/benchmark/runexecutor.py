@@ -83,7 +83,7 @@ class RunExecutor():
 
         cgroupCpuset = self.cgroupsParents[CPUSET]
         if not cgroupCpuset:
-            logging.warning("Cannot limit the number of CPU curse without cpuset cgroup.")
+            logging.warning("Cannot limit the number of CPU cores without cpuset cgroup.")
         else:
             # Read available cpus:
             cpuStr = readFile(cgroupCpuset, 'cpuset.cpus')
