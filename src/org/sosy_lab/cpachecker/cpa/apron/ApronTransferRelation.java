@@ -104,6 +104,7 @@ import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.apron.ApronState.Type;
+import org.sosy_lab.cpachecker.cpa.apron.precision.IApronPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -126,7 +127,7 @@ import apron.Texpr0UnNode;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 
-public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronState>, ApronState, ApronPrecision> {
+public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronState>, ApronState, IApronPrecision> {
 
   private static final String FUNCTION_RETURN_VAR = "___cpa_temp_result_var_";
 

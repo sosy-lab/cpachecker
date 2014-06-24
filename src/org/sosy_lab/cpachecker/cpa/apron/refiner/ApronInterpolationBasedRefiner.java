@@ -79,7 +79,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
-@Options(prefix="cpa.octagon.refiner")
+@Options(prefix="cpa.apron.refiner")
 public class ApronInterpolationBasedRefiner implements Statistics {
   /**
    * whether or not to do lazy-abstraction, i.e., when true, the re-starting node

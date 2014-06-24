@@ -128,11 +128,11 @@ public class ApronState implements AbstractState {
     if (!(pObj instanceof ApronState)) {
       return false;
     }
-    ApronState otherOct = (ApronState) pObj;
+    ApronState otherApron = (ApronState) pObj;
 logger.log(Level.FINEST, "apron state: isEqual");
-    return Objects.equals(integerToIndexMap, otherOct.integerToIndexMap)
-           && Objects.equals(realToIndexMap, otherOct.realToIndexMap)
-           && this.apronState.isEqual(apronManager.getManager(), otherOct.apronState);
+    return Objects.equals(integerToIndexMap, otherApron.integerToIndexMap)
+           && Objects.equals(realToIndexMap, otherApron.realToIndexMap)
+           && this.apronState.isEqual(apronManager.getManager(), otherApron.apronState);
   }
 
   @Override

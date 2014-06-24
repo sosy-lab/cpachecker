@@ -44,6 +44,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.apron.precision.RefineableApronPrecision;
+import org.sosy_lab.cpachecker.cpa.apron.precision.StaticFullApronPrecision;
 import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
 
 import apron.ApronException;
@@ -59,6 +61,10 @@ public final class ApronCPA implements ConfigurableProgramAnalysis {
       description="which merge operator to use for ApronCPA?")
   private String mergeType = "SEP";
 
+  @Option(name="initialPrecisionType", toUppercase=true, values={"STATIC_FULL", "REFINEABLE_EMPTY"},
+      description="this option determines which initial precision should be used")
+  private String precisionType = "STATIC_FULL";
+
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
@@ -69,41 +75,48 @@ public final class ApronCPA implements ConfigurableProgramAnalysis {
   private final Configuration config;
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
-  private final ApronManager octagonManager;
+  private final ApronManager apronManager;
 
   private ApronCPA(Configuration config, LogManager log,
                      ShutdownNotifier shutdownNotifier, CFA cfa)
                      throws InvalidConfigurationException, InvalidCFAException {
     config.inject(this);
     logger = log;
-    ApronDomain octagonDomain = new ApronDomain(logger);
+    ApronDomain apronDomain = new ApronDomain(logger);
 
-    octagonManager = new ApronManager(config);
+    apronManager = new ApronManager(config);
 
     this.transferRelation = new ApronTransferRelation(logger, cfa);
 
-    MergeOperator octagonMergeOp = null;
+    MergeOperator apronMergeOp = null;
     if (mergeType.equals("JOIN")) {
-      octagonMergeOp = new ApronMergeJoinOperator(octagonDomain, config);
+      apronMergeOp = new ApronMergeJoinOperator(apronDomain, config);
     } else {
       // default is sep
-      octagonMergeOp = MergeSepOperator.getInstance();
+      apronMergeOp = MergeSepOperator.getInstance();
     }
 
-    StopOperator octagonStopOp = new StopSepOperator(octagonDomain);
+    StopOperator apronStopOp = new StopSepOperator(apronDomain);
 
-    this.abstractDomain = octagonDomain;
-    this.mergeOperator = octagonMergeOp;
-    this.stopOperator = octagonStopOp;
+    this.abstractDomain = apronDomain;
+    this.mergeOperator = apronMergeOp;
+    this.stopOperator = apronStopOp;
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     this.config = config;
     this.shutdownNotifier = shutdownNotifier;
     this.cfa = cfa;
-    precision = new ApronPrecision(config);
+
+    if (precisionType.equals("REFINEABLE_EMPTY")) {
+      precision = new RefineableApronPrecision(config);
+
+      // static full precision is default
+    } else {
+      precision = new StaticFullApronPrecision();
+    }
   }
 
   public ApronManager getManager() {
-    return octagonManager;
+    return apronManager;
   }
 
   @Override
@@ -134,7 +147,7 @@ public final class ApronCPA implements ConfigurableProgramAnalysis {
   @Override
   public AbstractState getInitialState(CFANode node) {
     try {
-      return new ApronState(logger, octagonManager);
+      return new ApronState(logger, apronManager);
     } catch (ApronException e) {
       throw new RuntimeException("An error occured while operating with the apron library", e);
     }

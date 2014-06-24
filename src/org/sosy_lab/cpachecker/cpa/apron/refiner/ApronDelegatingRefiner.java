@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.apron.ApronCPA;
-import org.sosy_lab.cpachecker.cpa.apron.ApronPrecision;
+import org.sosy_lab.cpachecker.cpa.apron.precision.RefineableApronPrecision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -75,7 +75,7 @@ import com.google.common.collect.Sets;
  * Refiner implementation that delegates to {@link ApronInterpolationBasedRefiner},
  * and if this fails, optionally delegates also to {@link PredicateCPARefiner}.
  */
-@Options(prefix="cpa.octagon.refiner")
+@Options(prefix="cpa.apron.refiner")
 public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements Statistics, StatisticsProvider {
 
   /**
@@ -96,7 +96,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
 
   @Option(description="Timelimit (in seconds) for the backup feasibility check with the octagon analysis."
       + " Zero means there is no timelimit.")
-  private int timeForOctagonFeasibilityCheck = 0;
+  private int timeForApronFeasibilityCheck = 0;
 
   // statistics
   private int numberOfValueAnalysisRefinements           = 0;
@@ -111,54 +111,40 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
    * value analysis refinements will make no sense any more because they are too
    * imprecise
    */
-  private boolean existsExplicitOctagonRefinement = false;
+  private boolean existsExplicitApronRefinement = false;
 
   private final CFA cfa;
-  private final ApronCPA octagonCPA;
+  private final ApronCPA apronCPA;
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
   public static ApronDelegatingRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
-      throw new InvalidConfigurationException(ApronDelegatingRefiner.class.getSimpleName() + " could not find the OctagonCPA");
+      throw new InvalidConfigurationException(ApronDelegatingRefiner.class.getSimpleName() + " could not find the ApronCPA");
     }
 
-    ApronCPA octagonCPA = ((WrapperCPA)cpa).retrieveWrappedCpa(ApronCPA.class);
-    if (octagonCPA == null) {
-      throw new InvalidConfigurationException(ApronDelegatingRefiner.class.getSimpleName() + " needs an OctagonCPA");
+    ApronCPA apronCPA = ((WrapperCPA)cpa).retrieveWrappedCpa(ApronCPA.class);
+    if (apronCPA == null) {
+      throw new InvalidConfigurationException(ApronDelegatingRefiner.class.getSimpleName() + " needs an ApronCPA");
     }
 
-    ApronDelegatingRefiner refiner = initialiseValueAnalysisRefiner(cpa, octagonCPA);
+    ApronDelegatingRefiner refiner = new ApronDelegatingRefiner(cpa,
+                                                                apronCPA);
 
     return refiner;
   }
 
-  private static ApronDelegatingRefiner initialiseValueAnalysisRefiner(
-      ConfigurableProgramAnalysis cpa, ApronCPA pOctagonCPA)
-          throws CPAException, InvalidConfigurationException {
-    LogManager logger                 = pOctagonCPA.getLogger();
-
-    return new ApronDelegatingRefiner(
-        logger,
-        pOctagonCPA.getShutdownNotifier(),
-        cpa,
-        pOctagonCPA);
-  }
-
-  protected ApronDelegatingRefiner(
-      final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier,
-      final ConfigurableProgramAnalysis pCpa,
-      final ApronCPA pOctagonCPA) throws CPAException, InvalidConfigurationException {
+  private ApronDelegatingRefiner(final ConfigurableProgramAnalysis pCpa, final ApronCPA pApronCPA)
+      throws CPAException, InvalidConfigurationException {
     super(pCpa);
-    pOctagonCPA.getConfiguration().inject(this);
+    pApronCPA.getConfiguration().inject(this);
 
-    cfa                   = pOctagonCPA.getCFA();
-    logger                = pLogger;
-    shutdownNotifier      = pShutdownNotifier;
-    octagonCPA            = pOctagonCPA;
-    interpolatingRefiner  = new ApronInterpolationBasedRefiner(pOctagonCPA.getConfiguration(), pLogger, pShutdownNotifier, cfa);
+    cfa                  = pApronCPA.getCFA();
+    logger               = pApronCPA.getLogger();
+    shutdownNotifier     = pApronCPA.getShutdownNotifier();
+    apronCPA             = pApronCPA;
+    interpolatingRefiner = new ApronInterpolationBasedRefiner(pApronCPA.getConfiguration(), logger, shutdownNotifier, cfa);
   }
 
   @Override
@@ -166,24 +152,24 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
       throws CPAException, InterruptedException {
 
     // if path is infeasible, try to refine the precision
-    if (!isPathFeasable(errorPath) && !existsExplicitOctagonRefinement) {
+    if (!isPathFeasable(errorPath) && !existsExplicitApronRefinement) {
       if (performValueAnalysisRefinement(reached, errorPath)) {
         return CounterexampleInfo.spurious();
       }
     }
 
     // if the path is infeasible, try to refine the precision, this time
-    // only with octagons, this is more precise than only using the value analysis
+    // only with apron states, this is more precise than only using the value analysis
     // refinement
-    ApronAnalysisFeasabilityChecker octChecker;
+    ApronAnalysisFeasabilityChecker apronChecker;
     try {
-      octChecker = createOctagonFeasibilityChecker(errorPath);
+      apronChecker = createApronFeasibilityChecker(errorPath);
     } catch (ApronException e) {
       throw new RuntimeException("An error occured while operating with the apron library", e);
     }
-    if (!octChecker.isFeasible()) {
-      if (performOctagonAnalysisRefinement(reached, octChecker)) {
-        existsExplicitOctagonRefinement = true;
+    if (!apronChecker.isFeasible()) {
+      if (performApronAnalysisRefinement(reached, apronChecker)) {
+        existsExplicitApronRefinement = true;
         return CounterexampleInfo.spurious();
       }
     }
@@ -203,14 +189,14 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
   private boolean performValueAnalysisRefinement(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException, InterruptedException {
     numberOfValueAnalysisRefinements++;
 
-    UnmodifiableReachedSet reachedSet = reached.asReachedSet();
-    Precision precision               = reachedSet.getPrecision(reachedSet.getLastState());
-    ApronPrecision octPrecision         = Precisions.extractPrecisionByType(precision, ApronPrecision.class);
+    UnmodifiableReachedSet reachedSet       = reached.asReachedSet();
+    Precision precision                     = reachedSet.getPrecision(reachedSet.getLastState());
+    RefineableApronPrecision apronPrecision = Precisions.extractPrecisionByType(precision, RefineableApronPrecision.class);
 
     ArrayList<Precision> refinedPrecisions = new ArrayList<>(1);
     ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(1);
 
-    ApronPrecision refinedOctPrecision;
+    RefineableApronPrecision refinedApronPrecision;
     Pair<ARGState, CFAEdge> refinementRoot;
 
 
@@ -227,14 +213,14 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
       refinementRoot = interpolatingRefiner.determineRefinementRoot(errorPath, increment, true);
     }
 
-    refinedOctPrecision  = new ApronPrecision(octPrecision, increment);
-    refinedPrecisions.add(refinedOctPrecision);
-    newPrecisionTypes.add(ApronPrecision.class);
+    refinedApronPrecision  = new RefineableApronPrecision(apronPrecision, increment);
+    refinedPrecisions.add(refinedApronPrecision);
+    newPrecisionTypes.add(RefineableApronPrecision.class);
 
-    if (valueAnalysisRefinementWasSuccessful(errorPath, octPrecision.getValueAnalysisPrecision(), refinedOctPrecision.getValueAnalysisPrecision())) {
+    if (valueAnalysisRefinementWasSuccessful(errorPath, apronPrecision.getValueAnalysisPrecision(), refinedApronPrecision.getValueAnalysisPrecision())) {
       numberOfSuccessfulValueAnalysisRefinements++;
       reached.removeSubtree(refinementRoot.getFirst(), refinedPrecisions, newPrecisionTypes);
-      Set<String> strIncrement = Sets.difference(refinedOctPrecision.getTrackedVars(), octPrecision.getTrackedVars());
+      Set<String> strIncrement = Sets.difference(refinedApronPrecision.getTrackedVars(), apronPrecision.getTrackedVars());
       if (strIncrement.isEmpty()) {
         logger.log(Level.INFO, "Refinement successful, additional variables were not found, but a new error path.");
       } else {
@@ -248,12 +234,12 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
     }
   }
 
-  private boolean performOctagonAnalysisRefinement(final ARGReachedSet reached, final ApronAnalysisFeasabilityChecker checker) {
-    UnmodifiableReachedSet reachedSet = reached.asReachedSet();
-    Precision precision               = reachedSet.getPrecision(reachedSet.getLastState());
-    ApronPrecision octPrecision         = Precisions.extractPrecisionByType(precision, ApronPrecision.class);
+  private boolean performApronAnalysisRefinement(final ARGReachedSet reached, final ApronAnalysisFeasabilityChecker checker) {
+    UnmodifiableReachedSet reachedSet       = reached.asReachedSet();
+    Precision precision                     = reachedSet.getPrecision(reachedSet.getLastState());
+    RefineableApronPrecision apronPrecision = Precisions.extractPrecisionByType(precision, RefineableApronPrecision.class);
 
-    Set<String> increment = checker.getPrecisionIncrement(octPrecision);
+    Set<String> increment = checker.getPrecisionIncrement(apronPrecision);
     // no newly tracked variables, so the refinement was not successful
     if (increment.isEmpty()) {
     //  return false;
@@ -261,8 +247,8 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
 
     ArrayList<Precision> refinedPrecisions = new ArrayList<>(1);
     ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(1);
-    refinedPrecisions.add(new ApronPrecision(octPrecision, increment));
-    newPrecisionTypes.add(ApronPrecision.class);
+    refinedPrecisions.add(new RefineableApronPrecision(apronPrecision, increment));
+    newPrecisionTypes.add(RefineableApronPrecision.class);
 
     reached.removeSubtree(((ARGState)reachedSet.getFirstState()).getChildren().iterator().next(), refinedPrecisions, newPrecisionTypes);
     logger.log(Level.INFO, "Refinement successful, precision incremented, following variables are now tracked additionally:\n" + increment);
@@ -315,7 +301,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
 
   @Override
   public String getName() {
-    return "OctagonAnalysisDelegatingRefiner";
+    return "ApronAnalysisDelegatingRefiner";
   }
 
   @Override
@@ -347,21 +333,21 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
    * Creates a new OctagonAnalysisPathChecker, which checks the given path at full precision.
    * @throws ApronException
    */
-  private ApronAnalysisFeasabilityChecker createOctagonFeasibilityChecker(ARGPath path) throws CPAException, ApronException {
+  private ApronAnalysisFeasabilityChecker createApronFeasibilityChecker(ARGPath path) throws CPAException, ApronException {
     try {
       ApronAnalysisFeasabilityChecker checker;
 
       // no specific timelimit set for octagon feasibility check
-      if (timeForOctagonFeasibilityCheck == 0) {
-        checker = new ApronAnalysisFeasabilityChecker(cfa, logger, shutdownNotifier, path, octagonCPA);
+      if (timeForApronFeasibilityCheck == 0) {
+        checker = new ApronAnalysisFeasabilityChecker(cfa, logger, shutdownNotifier, path, apronCPA);
 
       } else {
         ShutdownNotifier notifier = ShutdownNotifier.createWithParent(shutdownNotifier);
-        FeasabilityCheckTimeLimit l = new FeasabilityCheckTimeLimit(timeForOctagonFeasibilityCheck*(long)1000000);
+        FeasabilityCheckTimeLimit l = new FeasabilityCheckTimeLimit(timeForApronFeasibilityCheck*(long)1000000);
         ResourceLimitChecker limits = new ResourceLimitChecker(notifier, Lists.newArrayList((ResourceLimit)l));
 
         limits.start();
-        checker = new ApronAnalysisFeasabilityChecker(cfa, logger, notifier, path, octagonCPA);
+        checker = new ApronAnalysisFeasabilityChecker(cfa, logger, notifier, path, apronCPA);
         limits.cancel();
       }
 
