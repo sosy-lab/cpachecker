@@ -163,7 +163,7 @@ def getResultCategory(filename, status, propertyFile=None):
             if not searchedProperties:
                 # filename gives no hint on the searched bug or
                 # we are searching for a property, that has nothing to do with the file
-                category = CATEGORY_UNKNOWN
+                category = CATEGORY_MISSING
 
             elif status is STR_TRUE:
                 if all(prop.startswith(STR_TRUE) for prop in searchedProperties):
