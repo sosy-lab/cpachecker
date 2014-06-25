@@ -801,7 +801,7 @@ def getCategoryCount(categoryList):
     # warning: read next lines carefully, there are some brackets and commas!
     return (
         # correctTrue, correctFalseLabel, correctProperty
-            counts[result.CATEGORY_CORRECT, result.STR_TRUE],
+            counts[result.CATEGORY_CORRECT, result.STR_TRUE_PROP],
             counts[result.CATEGORY_CORRECT, result.STR_FALSE_REACH],
             counts[result.CATEGORY_CORRECT, result.STR_FALSE_DEREF] \
           + counts[result.CATEGORY_CORRECT, result.STR_FALSE_FREE] \
@@ -809,7 +809,7 @@ def getCategoryCount(categoryList):
           + counts[result.CATEGORY_CORRECT, result.STR_FALSE_TERMINATION],
 
         # wrongTrue, wrongFalseLabel, wrongProperty
-            counts[result.CATEGORY_WRONG, result.STR_TRUE],
+            counts[result.CATEGORY_WRONG, result.STR_TRUE_PROP],
             counts[result.CATEGORY_WRONG, result.STR_FALSE_REACH],
             counts[result.CATEGORY_WRONG, result.STR_FALSE_DEREF] \
           + counts[result.CATEGORY_WRONG, result.STR_FALSE_FREE] \
@@ -817,7 +817,7 @@ def getCategoryCount(categoryList):
           + counts[result.CATEGORY_WRONG, result.STR_FALSE_TERMINATION],
           
         # missing
-            counts[result.CATEGORY_MISSING, result.STR_TRUE] \
+            counts[result.CATEGORY_MISSING, result.STR_TRUE_PROP] \
           + counts[result.CATEGORY_MISSING, result.STR_FALSE_REACH] \
           + counts[result.CATEGORY_MISSING, result.STR_FALSE_DEREF] \
           + counts[result.CATEGORY_MISSING, result.STR_FALSE_FREE] \
@@ -844,7 +844,7 @@ def getStatsOfNumberColumn(values, categoryList, columnTitle):
 
     return (StatValue.fromList(valueList),
             StatValue.fromList(valuesPerCategory[result.CATEGORY_CORRECT, None]), # None as DUMMY
-            StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STR_TRUE]),
+            StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STR_TRUE_PROP]),
             StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_REACH]),
             StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_DEREF] +
                                valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_FREE] +

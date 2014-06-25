@@ -18,7 +18,7 @@ class Tool(benchmark.tools.template.BaseTool):
             if line.startswith('0 safe, 1 unsafe'):
                 status = result.STR_FALSE_REACH
             elif line.startswith('1 safe, 0 unsafe'):
-                status = result.STR_TRUE
+                status = result.STR_TRUE_PROP
             elif returnsignal == 9:
                 if isTimeout:
                     status = 'TIMEOUT'

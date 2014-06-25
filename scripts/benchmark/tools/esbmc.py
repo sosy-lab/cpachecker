@@ -74,7 +74,7 @@ class Tool(benchmark.tools.template.BaseTool):
                       output):
             status = result.STR_FALSE_MEMTRACK
         elif 'VERIFICATION SUCCESSFUL' in output:
-            status = result.STR_TRUE
+            status = result.STR_TRUE_PROP
 
         if status == result.STR_UNKNOWN:
             if isTimeout:

@@ -74,7 +74,7 @@ class Tool(benchmark.tools.template.BaseTool):
                     if "--no-unwinding-assertions" in self.options:
                         status = result.STR_UNKNOWN
                     else:
-                        status = result.STR_TRUE
+                        status = result.STR_TRUE_PROP
 
             except Exception as e: # catch all exceptions
                 if isTimeout:

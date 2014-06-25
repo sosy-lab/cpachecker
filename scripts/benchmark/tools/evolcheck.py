@@ -72,11 +72,11 @@ class Tool(benchmark.tools.template.BaseTool):
             elif 'The program models are identical' in line:
                 status = self.previousStatus
             elif 'Assertion(s) hold trivially.' in line:
-                status = result.STR_TRUE
+                status = result.STR_TRUE_PROP
 
         if status is None:
             if verificationSuccessfulFound and not verificationFailedFound:
-                status = result.STR_TRUE
+                status = result.STR_TRUE_PROP
             else:
                 status = result.STR_UNKNOWN
 

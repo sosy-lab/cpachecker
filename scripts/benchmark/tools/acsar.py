@@ -63,7 +63,7 @@ class Tool(benchmark.tools.template.BaseTool):
             status = "KILLED"
 
         elif "Error Location <<ERROR_LOCATION>> is not reachable" in output:
-            status = result.STR_TRUE
+            status = result.STR_TRUE_PROP
 
         elif "Error Location <<ERROR_LOCATION>> is reachable via the following path" in output:
             status = result.STR_FALSE_REACH

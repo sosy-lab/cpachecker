@@ -101,7 +101,7 @@ class Tool(benchmark.tools.cpachecker.Tool):
             elif line.startswith('Verification result: '):
                 line = line[21:].strip()
                 if line.startswith('TRUE'):
-                    newStatus = result.STR_TRUE
+                    newStatus = result.STR_TRUE_PROP
                 elif line.startswith('FALSE'):
                   newStatus = result.STR_FALSE_REACH
                   match = re.match('.* Violation of propert[a-z]* (.*) found by chosen configuration.*', line)

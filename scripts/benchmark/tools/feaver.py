@@ -53,7 +53,7 @@ class Tool(benchmark.tools.template.BaseTool):
             status = result.STR_FALSE_REACH
 
         elif "No Errors Found" in output:
-            status = result.STR_TRUE
+            status = result.STR_TRUE_PROP
 
         else:
             status = result.STR_UNKNOWN
