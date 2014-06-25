@@ -33,7 +33,7 @@ public class Octagon {
 
   private final long octId;
   private final OctagonManager manager;
-  private static List<OctPhantomReference> phantomReferences = new ArrayList<>();
+  private static List<OctagonPhantomReference> phantomReferences = new ArrayList<>();
   private static ReferenceQueue<Octagon> referenceQueue = new ReferenceQueue<>();
 
   Octagon(long l, OctagonManager manager) {
@@ -43,13 +43,13 @@ public class Octagon {
   }
 
   private static void registerPhantomReference(Octagon oct) {
-    phantomReferences.add(new OctPhantomReference(oct, referenceQueue));
+    phantomReferences.add(new OctagonPhantomReference(oct, referenceQueue));
   }
 
   public static void removePhantomReferences() {
     Reference<? extends Octagon> reference;
     while ((reference = referenceQueue.poll()) != null) {
-      ((OctPhantomReference)reference).cleanup();
+      ((OctagonPhantomReference)reference).cleanup();
     }
   }
 
