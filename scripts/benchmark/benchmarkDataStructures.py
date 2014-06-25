@@ -57,18 +57,18 @@ def substituteVars(oldList, runSet, sourcefile=None):
     keyValueList = [('${benchmark_name}',     benchmark.name),
                     ('${benchmark_date}',     benchmark.date),
                     ('${benchmark_instance}', benchmark.instance),
-                    ('${benchmark_path}',     benchmark.baseDir),
+                    ('${benchmark_path}',     benchmark.baseDir or '.'),
                     ('${benchmark_path_abs}', os.path.abspath(benchmark.baseDir)),
                     ('${benchmark_file}',     os.path.basename(benchmark.benchmarkFile)),
                     ('${benchmark_file_abs}', os.path.abspath(os.path.basename(benchmark.benchmarkFile))),
-                    ('${logfile_path}',       os.path.dirname(runSet.logFolder)),
+                    ('${logfile_path}',       os.path.dirname(runSet.logFolder) or '.'),
                     ('${logfile_path_abs}',   os.path.abspath(runSet.logFolder)),
                     ('${rundefinition_name}', runSet.realName if runSet.realName else ''),
                     ('${test_name}',          runSet.realName if runSet.realName else '')]
 
     if sourcefile:
         keyValueList.append(('${sourcefile_name}', os.path.basename(sourcefile)))
-        keyValueList.append(('${sourcefile_path}', os.path.dirname(sourcefile)))
+        keyValueList.append(('${sourcefile_path}', os.path.dirname(sourcefile) or '.'))
         keyValueList.append(('${sourcefile_path_abs}', os.path.dirname(os.path.abspath(sourcefile))))
 
     # do not use keys twice
