@@ -51,9 +51,9 @@ class Tool(benchmark.tools.template.BaseTool):
         elif 'UNSAFE' in output:
             status = result.STATUS_FALSE_REACH
         else:
-            status = result.STR_UNKNOWN
+            status = result.STATUS_UNKNOWN
 
-        if status == result.STR_UNKNOWN and isTimeout:
+        if status == result.STATUS_UNKNOWN and isTimeout:
             status = 'TIMEOUT'
 
         return status

@@ -78,7 +78,7 @@ class Tool(benchmark.tools.template.BaseTool):
             if verificationSuccessfulFound and not verificationFailedFound:
                 status = result.STATUS_TRUE_PROP
             else:
-                status = result.STR_UNKNOWN
+                status = result.STATUS_UNKNOWN
 
         self.previousStatus = status
 

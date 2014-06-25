@@ -46,7 +46,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
-        status = result.STR_UNKNOWN
+        status = result.STATUS_UNKNOWN
 
         if self.allInText(['Violated property:',
                       'dereference failure: dynamic object lower bound',
@@ -76,7 +76,7 @@ class Tool(benchmark.tools.template.BaseTool):
         elif 'VERIFICATION SUCCESSFUL' in output:
             status = result.STATUS_TRUE_PROP
 
-        if status == result.STR_UNKNOWN:
+        if status == result.STATUS_UNKNOWN:
             if isTimeout:
                 status = 'TIMEOUT'
             elif output.endswith(('Z3 Error 9', 'Z3 Error 9\n')):

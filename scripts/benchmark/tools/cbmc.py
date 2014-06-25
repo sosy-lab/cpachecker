@@ -65,14 +65,14 @@ class Tool(benchmark.tools.template.BaseTool):
                     assert returncode == 10
                     reason = tree.find('goto_trace').find('failure').findtext('reason')
                     if 'unwinding assertion' in reason:
-                        status = result.STR_UNKNOWN
+                        status = result.STATUS_UNKNOWN
                     else:
                         status = result.STATUS_FALSE_REACH
 
                 elif status == "SUCCESS":
                     assert returncode == 0
                     if "--no-unwinding-assertions" in self.options:
-                        status = result.STR_UNKNOWN
+                        status = result.STATUS_UNKNOWN
                     else:
                         status = result.STATUS_TRUE_PROP
 

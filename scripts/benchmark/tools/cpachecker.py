@@ -183,14 +183,14 @@ class Tool(benchmark.tools.template.BaseTool):
                     if match:
                         newStatus = result.STR_FALSE + '(' + match.group(1) + ')'
                 else:
-                    newStatus = result.STR_UNKNOWN if not status.startswith('ERROR') else None
+                    newStatus = result.STATUS_UNKNOWN if not status.startswith('ERROR') else None
                 if newStatus:
                     status = newStatus if not status else "{0} ({1})".format(status, newStatus)
 
         if status == 'KILLED (UNKNOWN)':
             status = 'KILLED'
         if not status:
-            status = result.STR_UNKNOWN
+            status = result.STATUS_UNKNOWN
         return status
 
 

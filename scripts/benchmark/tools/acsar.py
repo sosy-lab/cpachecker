@@ -69,7 +69,7 @@ class Tool(benchmark.tools.template.BaseTool):
             status = result.STATUS_FALSE_REACH
 
         else:
-            status = result.STR_UNKNOWN
+            status = result.STATUS_UNKNOWN
 
         # delete tmp-files
         os.remove(self.prepSourcefile)

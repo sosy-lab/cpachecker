@@ -109,14 +109,14 @@ class Tool(benchmark.tools.cpachecker.Tool):
                       newStatus = result.STR_FALSE + '(' + match.group(1) + ')'
 
                 else:
-                    newStatus = result.STR_UNKNOWN if not status.startswith('ERROR') else None
+                    newStatus = result.STATUS_UNKNOWN if not status.startswith('ERROR') else None
                 if newStatus and not status:
                     status = newStatus
 
         if status == 'KILLED (UNKNOWN)':
             status = 'KILLED'
         if not status or undef:
-            status = result.STR_UNKNOWN
+            status = result.STATUS_UNKNOWN
         return status
 
 

@@ -37,7 +37,7 @@ CATEGORY_ERROR   = 'error'
 CATEGORY_MISSING = 'missing'
 
 STR_TRUE = 'true'
-STR_UNKNOWN = 'unknown'
+STATUS_UNKNOWN = 'unknown'
 STR_FALSE = 'false' # only for special cases. STR_FALSE is no official result, because property is missing
 
 PROP_REACH =        'reach'
@@ -57,7 +57,7 @@ STATUS_FALSE_MEMTRACK =     STR_FALSE + '(' + PROP_MEMTRACK    + ')'
 
 # list of all public constants,
 # if a tool-result is not in this list, it is handled as CATEGORY_ERROR
-STR_LIST = [STATUS_TRUE_PROP, STR_UNKNOWN,
+STATUS_LIST = [STATUS_TRUE_PROP, STATUS_UNKNOWN,
             STATUS_FALSE_REACH, STATUS_FALSE_TERMINATION, 
             STATUS_FALSE_DEREF, STATUS_FALSE_FREE, STATUS_FALSE_MEMTRACK]
 
@@ -144,9 +144,9 @@ def getResultCategory(filename, status, propertyFile=None):
     that shows the relation between status and file.
     '''
 
-    if status == STR_UNKNOWN:
+    if status == STATUS_UNKNOWN:
         category = CATEGORY_UNKNOWN
-    elif status in STR_LIST:
+    elif status in STATUS_LIST:
 
         # Without propertyfile we do not return correct or wrong results, but always UNKNOWN.
         if propertyFile is None:

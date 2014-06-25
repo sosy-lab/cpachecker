@@ -56,7 +56,7 @@ class Tool(benchmark.tools.template.BaseTool):
             status = result.STATUS_TRUE_PROP
 
         else:
-            status = result.STR_UNKNOWN
+            status = result.STATUS_UNKNOWN
 
         # delete tmp-files
         for tmpfile in [self.prepSourcefile, self.prepSourcefile[0:-1] + "M",

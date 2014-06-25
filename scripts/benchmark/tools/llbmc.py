@@ -52,7 +52,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
-        status = result.STR_UNKNOWN
+        status = result.STATUS_UNKNOWN
 
         for line in output.splitlines():
             if 'Error detected.' in line:

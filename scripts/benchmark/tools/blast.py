@@ -43,7 +43,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
-        status = result.STR_UNKNOWN
+        status = result.STATUS_UNKNOWN
         for line in output.splitlines():
             if line.startswith('Error found! The system is unsafe :-('):
                 status = result.STATUS_FALSE_REACH
