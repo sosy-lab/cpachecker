@@ -176,9 +176,9 @@ class Tool(benchmark.tools.template.BaseTool):
             elif line.startswith('Verification result: '):
                 line = line[21:].strip()
                 if line.startswith('TRUE'):
-                    newStatus = result.STR_TRUE_PROP
+                    newStatus = result.STATUS_TRUE_PROP
                 elif line.startswith('FALSE'):
-                    newStatus = result.STR_FALSE_REACH
+                    newStatus = result.STATUS_FALSE_REACH
                     match = re.match('.* Violation of propert[a-z]* (.*) found by chosen configuration.*', line)
                     if match:
                         newStatus = result.STR_FALSE + '(' + match.group(1) + ')'

@@ -50,10 +50,10 @@ class Tool(benchmark.tools.template.BaseTool):
             status = "ERROR"
 
         elif "Error Found:" in output:
-            status = result.STR_FALSE_REACH
+            status = result.STATUS_FALSE_REACH
 
         elif "No Errors Found" in output:
-            status = result.STR_TRUE_PROP
+            status = result.STATUS_TRUE_PROP
 
         else:
             status = result.STR_UNKNOWN

@@ -67,14 +67,14 @@ class Tool(benchmark.tools.template.BaseTool):
                     if 'unwinding assertion' in reason:
                         status = result.STR_UNKNOWN
                     else:
-                        status = result.STR_FALSE_REACH
+                        status = result.STATUS_FALSE_REACH
 
                 elif status == "SUCCESS":
                     assert returncode == 0
                     if "--no-unwinding-assertions" in self.options:
                         status = result.STR_UNKNOWN
                     else:
-                        status = result.STR_TRUE_PROP
+                        status = result.STATUS_TRUE_PROP
 
             except Exception as e: # catch all exceptions
                 if isTimeout:

@@ -62,7 +62,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
         for line in output.splitlines():
             if 'A real bug found.' in line:
-                status = result.STR_FALSE_REACH
+                status = result.STATUS_FALSE_REACH
             elif 'VERIFICATION SUCCESSFUL' in line:
                 verificationSuccessfulFound = True
             elif 'VERIFICATION FAILED' in line:
@@ -72,11 +72,11 @@ class Tool(benchmark.tools.template.BaseTool):
             elif 'The program models are identical' in line:
                 status = self.previousStatus
             elif 'Assertion(s) hold trivially.' in line:
-                status = result.STR_TRUE_PROP
+                status = result.STATUS_TRUE_PROP
 
         if status is None:
             if verificationSuccessfulFound and not verificationFailedFound:
-                status = result.STR_TRUE_PROP
+                status = result.STATUS_TRUE_PROP
             else:
                 status = result.STR_UNKNOWN
 

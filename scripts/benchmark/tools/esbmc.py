@@ -52,29 +52,29 @@ class Tool(benchmark.tools.template.BaseTool):
                       'dereference failure: dynamic object lower bound',
                       'VERIFICATION FAILED'],
                       output):
-            status = result.STR_FALSE_DEREF
+            status = result.STATUS_FALSE_DEREF
         elif self.allInText(['Violated property:',
                       'Operand of free must have zero pointer offset',
                       'VERIFICATION FAILED'],
                       output):
-            status = result.STR_FALSE_FREE
+            status = result.STATUS_FALSE_FREE
         elif self.allInText(['Violated property:',
                       'error label',
                       'VERIFICATION FAILED'],
                       output):
-            status = result.STR_FALSE_REACH
+            status = result.STATUS_FALSE_REACH
         elif self.allInText(['Violated property:',
                       'assertion',
                       'VERIFICATION FAILED'],
                       output):
-            status = result.STR_FALSE_REACH
+            status = result.STATUS_FALSE_REACH
         elif self.allInText(['Violated property:',
                       'dereference failure: forgotten memory',
                       'VERIFICATION FAILED'],
                       output):
-            status = result.STR_FALSE_MEMTRACK
+            status = result.STATUS_FALSE_MEMTRACK
         elif 'VERIFICATION SUCCESSFUL' in output:
-            status = result.STR_TRUE_PROP
+            status = result.STATUS_TRUE_PROP
 
         if status == result.STR_UNKNOWN:
             if isTimeout:

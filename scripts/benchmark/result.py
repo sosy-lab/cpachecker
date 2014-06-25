@@ -36,40 +36,40 @@ CATEGORY_UNKNOWN = 'unknown'
 CATEGORY_ERROR   = 'error'
 CATEGORY_MISSING = 'missing'
 
-STR_TRUE_PROP = 'true'
+STATUS_TRUE_PROP = 'true'
 STR_UNKNOWN = 'unknown'
 STR_FALSE = 'false' # only for special cases. STR_FALSE is no official result, because property is missing
 
-STR_FALSE_REACH =       'false(reach)'
-STR_FALSE_TERMINATION = 'false(termination)'
-STR_FALSE_DEREF =        'false(valid-deref)'
-STR_FALSE_FREE =         'false(valid-free)'
-STR_FALSE_MEMTRACK =     'false(valid-memtrack)'
+STATUS_FALSE_REACH =       'false(reach)'
+STATUS_FALSE_TERMINATION = 'false(termination)'
+STATUS_FALSE_DEREF =        'false(valid-deref)'
+STATUS_FALSE_FREE =         'false(valid-free)'
+STATUS_FALSE_MEMTRACK =     'false(valid-memtrack)'
 
-STR_LIST = [STR_TRUE_PROP, STR_UNKNOWN, 
-            STR_FALSE_REACH, STR_FALSE_TERMINATION, 
-            STR_FALSE_DEREF, STR_FALSE_FREE, STR_FALSE_MEMTRACK]
+STR_LIST = [STATUS_TRUE_PROP, STR_UNKNOWN, 
+            STATUS_FALSE_REACH, STATUS_FALSE_TERMINATION, 
+            STATUS_FALSE_DEREF, STATUS_FALSE_FREE, STATUS_FALSE_MEMTRACK]
 
 # string searched in filenames to determine correct or incorrect status.
 # use lower case! the dict contains assignments 'filename' --> 'status'
-FALSE_SUBSTRINGS = {'_false-unreach-label':  STR_FALSE_REACH,
-                    '_false-unreach-call':   STR_FALSE_REACH,
-                    '_false-termination':    STR_FALSE_TERMINATION,
-                    '_false-valid-deref':    STR_FALSE_DEREF,
-                    '_false-valid-free':     STR_FALSE_FREE,
-                    '_false-valid-memtrack': STR_FALSE_MEMTRACK
+FALSE_SUBSTRINGS = {'_false-unreach-label':  STATUS_FALSE_REACH,
+                    '_false-unreach-call':   STATUS_FALSE_REACH,
+                    '_false-termination':    STATUS_FALSE_TERMINATION,
+                    '_false-valid-deref':    STATUS_FALSE_DEREF,
+                    '_false-valid-free':     STATUS_FALSE_FREE,
+                    '_false-valid-memtrack': STATUS_FALSE_MEMTRACK
                    }
 
 assert all('_false-' in k for k in FALSE_SUBSTRINGS.keys())
 
 
 # this map contains substring of property-files with their status
-PROPERTY_MATCHER = {'LTL(G ! label(':         STR_FALSE_REACH,
-                    'LTL(G ! call(__VERIFIER_error()))': STR_FALSE_REACH,
-                    'LTL(F end)':             STR_FALSE_TERMINATION,
-                    'LTL(G valid-free)':      STR_FALSE_FREE,
-                    'LTL(G valid-deref)' :    STR_FALSE_DEREF,
-                    'LTL(G valid-memtrack)' : STR_FALSE_MEMTRACK
+PROPERTY_MATCHER = {'LTL(G ! label(':         STATUS_FALSE_REACH,
+                    'LTL(G ! call(__VERIFIER_error()))': STATUS_FALSE_REACH,
+                    'LTL(F end)':             STATUS_FALSE_TERMINATION,
+                    'LTL(G valid-free)':      STATUS_FALSE_FREE,
+                    'LTL(G valid-deref)' :    STATUS_FALSE_DEREF,
+                    'LTL(G valid-memtrack)' : STATUS_FALSE_MEMTRACK
                    }
 
 
@@ -135,7 +135,7 @@ def getResultCategory(filename, status, propertyFile=None):
             fileStatuses = _statusesOfFile(filename)
             propertiesToCheck = _statusesOfPropertyFile(propertyFile)
             commonBugs = set(propertiesToCheck).intersection(set(fileStatuses)) # list of bugs, that are searched and part of the filename
-            if status == STR_TRUE_PROP and not commonBugs:
+            if status == STATUS_TRUE_PROP and not commonBugs:
                 category = CATEGORY_CORRECT
             elif status in commonBugs:
                 category = CATEGORY_CORRECT
@@ -149,9 +149,9 @@ def getResultCategory(filename, status, propertyFile=None):
 
 def calculateScore(category, status):
     if category == CATEGORY_CORRECT:
-        return SCORE_CORRECT_TRUE if status == STR_TRUE_PROP else SCORE_CORRECT_FALSE
+        return SCORE_CORRECT_TRUE if status == STATUS_TRUE_PROP else SCORE_CORRECT_FALSE
     elif category == CATEGORY_WRONG:
-        return SCORE_WRONG_TRUE if status == STR_TRUE_PROP else SCORE_WRONG_FALSE
+        return SCORE_WRONG_TRUE if status == STATUS_TRUE_PROP else SCORE_WRONG_FALSE
     elif category in [CATEGORY_UNKNOWN, CATEGORY_ERROR, CATEGORY_MISSING]:
         return SCORE_UNKNOWN
     else:

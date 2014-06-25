@@ -46,9 +46,9 @@ class Tool(benchmark.tools.template.BaseTool):
         status = result.STR_UNKNOWN
         for line in output.splitlines():
             if line.startswith('Error found! The system is unsafe :-('):
-                status = result.STR_FALSE_REACH
+                status = result.STATUS_FALSE_REACH
             elif line.startswith('No error found.  The system is safe :-)'):
-                status = result.STR_TRUE_PROP
+                status = result.STATUS_TRUE_PROP
             elif line.startswith('Fatal error: exception Out_of_memory'):
                 status = 'OUT OF MEMORY'
             elif line.startswith('Error: label \'ERROR\' appears multiple times'):

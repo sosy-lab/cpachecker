@@ -801,28 +801,28 @@ def getCategoryCount(categoryList):
     # warning: read next lines carefully, there are some brackets and commas!
     return (
         # correctTrue, correctFalseLabel, correctProperty
-            counts[result.CATEGORY_CORRECT, result.STR_TRUE_PROP],
-            counts[result.CATEGORY_CORRECT, result.STR_FALSE_REACH],
-            counts[result.CATEGORY_CORRECT, result.STR_FALSE_DEREF] \
-          + counts[result.CATEGORY_CORRECT, result.STR_FALSE_FREE] \
-          + counts[result.CATEGORY_CORRECT, result.STR_FALSE_MEMTRACK] \
-          + counts[result.CATEGORY_CORRECT, result.STR_FALSE_TERMINATION],
+            counts[result.CATEGORY_CORRECT, result.STATUS_TRUE_PROP],
+            counts[result.CATEGORY_CORRECT, result.STATUS_FALSE_REACH],
+            counts[result.CATEGORY_CORRECT, result.STATUS_FALSE_DEREF] \
+          + counts[result.CATEGORY_CORRECT, result.STATUS_FALSE_FREE] \
+          + counts[result.CATEGORY_CORRECT, result.STATUS_FALSE_MEMTRACK] \
+          + counts[result.CATEGORY_CORRECT, result.STATUS_FALSE_TERMINATION],
 
         # wrongTrue, wrongFalseLabel, wrongProperty
-            counts[result.CATEGORY_WRONG, result.STR_TRUE_PROP],
-            counts[result.CATEGORY_WRONG, result.STR_FALSE_REACH],
-            counts[result.CATEGORY_WRONG, result.STR_FALSE_DEREF] \
-          + counts[result.CATEGORY_WRONG, result.STR_FALSE_FREE] \
-          + counts[result.CATEGORY_WRONG, result.STR_FALSE_MEMTRACK] \
-          + counts[result.CATEGORY_WRONG, result.STR_FALSE_TERMINATION],
+            counts[result.CATEGORY_WRONG, result.STATUS_TRUE_PROP],
+            counts[result.CATEGORY_WRONG, result.STATUS_FALSE_REACH],
+            counts[result.CATEGORY_WRONG, result.STATUS_FALSE_DEREF] \
+          + counts[result.CATEGORY_WRONG, result.STATUS_FALSE_FREE] \
+          + counts[result.CATEGORY_WRONG, result.STATUS_FALSE_MEMTRACK] \
+          + counts[result.CATEGORY_WRONG, result.STATUS_FALSE_TERMINATION],
           
         # missing
-            counts[result.CATEGORY_MISSING, result.STR_TRUE_PROP] \
-          + counts[result.CATEGORY_MISSING, result.STR_FALSE_REACH] \
-          + counts[result.CATEGORY_MISSING, result.STR_FALSE_DEREF] \
-          + counts[result.CATEGORY_MISSING, result.STR_FALSE_FREE] \
-          + counts[result.CATEGORY_MISSING, result.STR_FALSE_MEMTRACK] \
-          + counts[result.CATEGORY_MISSING, result.STR_FALSE_TERMINATION] \
+            counts[result.CATEGORY_MISSING, result.STATUS_TRUE_PROP] \
+          + counts[result.CATEGORY_MISSING, result.STATUS_FALSE_REACH] \
+          + counts[result.CATEGORY_MISSING, result.STATUS_FALSE_DEREF] \
+          + counts[result.CATEGORY_MISSING, result.STATUS_FALSE_FREE] \
+          + counts[result.CATEGORY_MISSING, result.STATUS_FALSE_MEMTRACK] \
+          + counts[result.CATEGORY_MISSING, result.STATUS_FALSE_TERMINATION] \
             )
 
 
@@ -844,12 +844,12 @@ def getStatsOfNumberColumn(values, categoryList, columnTitle):
 
     return (StatValue.fromList(valueList),
             StatValue.fromList(valuesPerCategory[result.CATEGORY_CORRECT, None]), # None as DUMMY
-            StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STR_TRUE_PROP]),
-            StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_REACH]),
-            StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_DEREF] +
-                               valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_FREE] +
-                               valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_MEMTRACK] +
-                               valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_TERMINATION]
+            StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STATUS_TRUE_PROP]),
+            StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STATUS_FALSE_REACH]),
+            StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STATUS_FALSE_DEREF] +
+                               valuesPerCategory[result.CATEGORY_WRONG, result.STATUS_FALSE_FREE] +
+                               valuesPerCategory[result.CATEGORY_WRONG, result.STATUS_FALSE_MEMTRACK] +
+                               valuesPerCategory[result.CATEGORY_WRONG, result.STATUS_FALSE_TERMINATION]
                                ),
             )
 

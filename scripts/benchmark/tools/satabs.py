@@ -22,10 +22,10 @@ class Tool(benchmark.tools.template.BaseTool):
     def getStatus(self, returncode, returnsignal, output, isTimeout):
         if "VERIFICATION SUCCESSFUL" in output:
             assert returncode == 0
-            status = result.STR_TRUE_PROP
+            status = result.STATUS_TRUE_PROP
         elif "VERIFICATION FAILED" in output:
             assert returncode == 10
-            status = result.STR_FALSE_REACH
+            status = result.STATUS_FALSE_REACH
         elif returnsignal == 9:
             status = "TIMEOUT"
         elif returnsignal == 6:

@@ -17,4 +17,4 @@ class Tool(benchmark.tools.template.BaseTool):
         return [executable]
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
-        return result.STR_TRUE_PROP
+        return result.STATUS_TRUE_PROP

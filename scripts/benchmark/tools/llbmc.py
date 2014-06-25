@@ -56,9 +56,9 @@ class Tool(benchmark.tools.template.BaseTool):
 
         for line in output.splitlines():
             if 'Error detected.' in line:
-                status = result.STR_FALSE_REACH
+                status = result.STATUS_FALSE_REACH
             elif 'No error detected.' in line:
-                status = result.STR_TRUE_PROP
+                status = result.STATUS_TRUE_PROP
 
         # delete tmp-files
         try:

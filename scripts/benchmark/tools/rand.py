@@ -19,4 +19,4 @@ class Tool(benchmark.tools.template.BaseTool):
         return [executable]
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
-        return result.STR_TRUE_PROP if random() < 0.5 else result.STR_FALSE_REACH
+        return result.STATUS_TRUE_PROP if random() < 0.5 else result.STATUS_FALSE_REACH
