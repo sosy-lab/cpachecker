@@ -26,30 +26,30 @@ package org.sosy_lab.cpachecker.cpa.octagon.coefficients;
 import java.util.Arrays;
 import java.util.Objects;
 
-import org.sosy_lab.cpachecker.cpa.octagon.OctState;
-import org.sosy_lab.cpachecker.cpa.octagon.values.OctDoubleValue;
-import org.sosy_lab.cpachecker.cpa.octagon.values.OctIntValue;
-import org.sosy_lab.cpachecker.cpa.octagon.values.OctInterval;
-import org.sosy_lab.cpachecker.cpa.octagon.values.OctNumericValue;
+import org.sosy_lab.cpachecker.cpa.octagon.OctagonState;
+import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonDoubleValue;
+import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonIntValue;
+import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonInterval;
+import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonNumericValue;
 import org.sosy_lab.cpachecker.util.octagon.NumArray;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
 import com.google.common.base.Preconditions;
 
 @SuppressWarnings("rawtypes")
-public class OctIntervalCoefficients extends AOctCoefficients {
+public class OctagonIntervalCoefficients extends AOctagonCoefficients {
 
-  protected OctInterval[] coefficients;
+  protected OctagonInterval[] coefficients;
 
   /**
    * Create new Coefficients for #size variables.
    *
    * @param size The amount of variables for which coefficients should be stored
    */
-  public OctIntervalCoefficients(int size, OctState oct) {
+  public OctagonIntervalCoefficients(int size, OctagonState oct) {
     super(size, oct);
-    coefficients = new OctInterval[size+1];
-    Arrays.fill(coefficients, OctInterval.FALSE);
+    coefficients = new OctagonInterval[size+1];
+    Arrays.fill(coefficients, OctagonInterval.FALSE);
   }
 
   /**
@@ -59,11 +59,11 @@ public class OctIntervalCoefficients extends AOctCoefficients {
    * @param index The index of the variable which should be set by default to a given value
    * @param value The value to which the variable should be set
    */
-  public OctIntervalCoefficients(int size, int index, OctInterval bounds, OctState oct) {
+  public OctagonIntervalCoefficients(int size, int index, OctagonInterval bounds, OctagonState oct) {
     super(size, oct);
     Preconditions.checkArgument(index < size, "Index too big");
-    coefficients = new OctInterval[size+1];
-    Arrays.fill(coefficients, OctInterval.FALSE);
+    coefficients = new OctagonInterval[size+1];
+    Arrays.fill(coefficients, OctagonInterval.FALSE);
     coefficients[index] = bounds;
   }
 
@@ -75,22 +75,22 @@ public class OctIntervalCoefficients extends AOctCoefficients {
    * @param index The index of the variable which should be set by default to a given value
    * @param value The value to which the variable should be set
    */
-  public OctIntervalCoefficients(int size, OctInterval bounds, OctState oct) {
+  public OctagonIntervalCoefficients(int size, OctagonInterval bounds, OctagonState oct) {
     super(size, oct);
-    coefficients = new OctInterval[size+1];
-    Arrays.fill(coefficients, OctInterval.FALSE);
+    coefficients = new OctagonInterval[size+1];
+    Arrays.fill(coefficients, OctagonInterval.FALSE);
     coefficients[size] = bounds;
   }
 
   @Override
-  public OctIntervalCoefficients expandToSize(int size, OctState oct) {
+  public OctagonIntervalCoefficients expandToSize(int size, OctagonState oct) {
     Preconditions.checkArgument(this.size <= size, "new size too small");
 
     if (this.size == size) {
       return this;
     }
 
-    OctIntervalCoefficients newCoeffs = new OctIntervalCoefficients(size, oct);
+    OctagonIntervalCoefficients newCoeffs = new OctagonIntervalCoefficients(size, oct);
 
     for (int i = 0; i < coefficients.length-1; i++) {
       newCoeffs.coefficients[i] = coefficients[i];
@@ -104,29 +104,29 @@ public class OctIntervalCoefficients extends AOctCoefficients {
    * {@inheritDoc}
    */
   @Override
-  public IOctCoefficients add(IOctCoefficients other) {
-    if (other instanceof OctSimpleCoefficients) {
-      return add((OctSimpleCoefficients)other);
-    } else if (other instanceof OctIntervalCoefficients) {
-      return add((OctIntervalCoefficients)other);
-    } else if (other instanceof OctUniversalCoefficients) {
-      return OctUniversalCoefficients.INSTANCE;
+  public IOctagonCoefficients add(IOctagonCoefficients other) {
+    if (other instanceof OctagonSimpleCoefficients) {
+      return add((OctagonSimpleCoefficients)other);
+    } else if (other instanceof OctagonIntervalCoefficients) {
+      return add((OctagonIntervalCoefficients)other);
+    } else if (other instanceof OctagonUniversalCoefficients) {
+      return OctagonUniversalCoefficients.INSTANCE;
     }
     throw new IllegalArgumentException("Unkown subtype of OctCoefficients");
   }
 
-  private IOctCoefficients add(OctSimpleCoefficients other) {
+  private IOctagonCoefficients add(OctagonSimpleCoefficients other) {
     Preconditions.checkArgument(other.size() == size, "Different size of coefficients.");
-    OctIntervalCoefficients ret = new OctIntervalCoefficients(size, oct);
+    OctagonIntervalCoefficients ret = new OctagonIntervalCoefficients(size, oct);
     for (int i = 0; i < coefficients.length; i++) {
-      ret.coefficients[i] = coefficients[i].plus(new OctInterval(other.coefficients[i]));
+      ret.coefficients[i] = coefficients[i].plus(new OctagonInterval(other.coefficients[i]));
     }
     return ret;
   }
 
-  private IOctCoefficients add(OctIntervalCoefficients other) {
+  private IOctagonCoefficients add(OctagonIntervalCoefficients other) {
     Preconditions.checkArgument(other.size() == size, "Different size of coefficients.");
-    OctIntervalCoefficients ret = new OctIntervalCoefficients(size, oct);
+    OctagonIntervalCoefficients ret = new OctagonIntervalCoefficients(size, oct);
     for (int i = 0; i < coefficients.length; i++) {
       ret.coefficients[i] = coefficients[i].plus(other.coefficients[i]);
     }
@@ -137,29 +137,29 @@ public class OctIntervalCoefficients extends AOctCoefficients {
    * {@inheritDoc}
    */
   @Override
-  public IOctCoefficients sub(IOctCoefficients other) {
-    if (other instanceof OctSimpleCoefficients) {
-      return sub((OctSimpleCoefficients)other);
-    } else if (other instanceof OctIntervalCoefficients) {
-      return sub((OctIntervalCoefficients)other);
-    } else if (other instanceof OctUniversalCoefficients) {
-      return OctUniversalCoefficients.INSTANCE;
+  public IOctagonCoefficients sub(IOctagonCoefficients other) {
+    if (other instanceof OctagonSimpleCoefficients) {
+      return sub((OctagonSimpleCoefficients)other);
+    } else if (other instanceof OctagonIntervalCoefficients) {
+      return sub((OctagonIntervalCoefficients)other);
+    } else if (other instanceof OctagonUniversalCoefficients) {
+      return OctagonUniversalCoefficients.INSTANCE;
     }
     throw new IllegalArgumentException("Unkown subtype of OctCoefficients");
   }
 
-  private IOctCoefficients sub(OctSimpleCoefficients other) {
+  private IOctagonCoefficients sub(OctagonSimpleCoefficients other) {
     Preconditions.checkArgument(other.size() == size, "Different size of coefficients.");
-    OctIntervalCoefficients ret = new OctIntervalCoefficients(size, oct);
+    OctagonIntervalCoefficients ret = new OctagonIntervalCoefficients(size, oct);
     for (int i = 0; i < coefficients.length; i++) {
-      ret.coefficients[i] = coefficients[i].minus(new OctInterval(other.coefficients[i]));
+      ret.coefficients[i] = coefficients[i].minus(new OctagonInterval(other.coefficients[i]));
     }
     return ret;
   }
 
-  private IOctCoefficients sub(OctIntervalCoefficients other) {
+  private IOctagonCoefficients sub(OctagonIntervalCoefficients other) {
     Preconditions.checkArgument(other.size() == size, "Different size of coefficients.");
-    OctIntervalCoefficients ret = new OctIntervalCoefficients(size, oct);
+    OctagonIntervalCoefficients ret = new OctagonIntervalCoefficients(size, oct);
     for (int i = 0; i < coefficients.length; i++) {
       ret.coefficients[i] = coefficients[i].minus(other.coefficients[i]);
     }
@@ -167,20 +167,20 @@ public class OctIntervalCoefficients extends AOctCoefficients {
   }
 
   @Override
-  protected IOctCoefficients mulInner(IOctCoefficients other) {
+  protected IOctagonCoefficients mulInner(IOctagonCoefficients other) {
     assert hasOnlyOneValue();
 
     int index = 0;
-    OctInterval bounds = null;
+    OctagonInterval bounds = null;
     while (index < coefficients.length) {
       bounds = coefficients[index];
-      if (!bounds.equals(OctInterval.FALSE)) {
+      if (!bounds.equals(OctagonInterval.FALSE)) {
         break;
       }
       index++;
     }
 
-    OctInterval infBounds;
+    OctagonInterval infBounds;
 
     // this is a constant value
     if (index >= oct.sizeOfVariables()) {
@@ -191,20 +191,20 @@ public class OctIntervalCoefficients extends AOctCoefficients {
     }
 
     if (infBounds.isInfinite()) {
-      return OctUniversalCoefficients.INSTANCE;
+      return OctagonUniversalCoefficients.INSTANCE;
     }
 
     return other.mul(bounds.times(infBounds));
   }
 
   @Override
-  public IOctCoefficients mul(OctNumericValue factor) {
-    return mul(new OctInterval(factor));
+  public IOctagonCoefficients mul(OctagonNumericValue factor) {
+    return mul(new OctagonInterval(factor));
   }
 
   @Override
-  public IOctCoefficients mul(OctInterval interval) {
-    OctIntervalCoefficients ret = new OctIntervalCoefficients(size, oct);
+  public IOctagonCoefficients mul(OctagonInterval interval) {
+    OctagonIntervalCoefficients ret = new OctagonIntervalCoefficients(size, oct);
     for (int i = 0; i < coefficients.length; i++) {
         ret.coefficients[i] = coefficients[i].times(interval);
     }
@@ -212,24 +212,24 @@ public class OctIntervalCoefficients extends AOctCoefficients {
   }
 
   @Override
-  protected IOctCoefficients divInner(IOctCoefficients coeffs) {
+  protected IOctagonCoefficients divInner(IOctagonCoefficients coeffs) {
     assert coeffs.hasOnlyOneValue();
-    if (coeffs instanceof OctSimpleCoefficients) {
-      return divInner((OctSimpleCoefficients)coeffs);
-    } else if (coeffs instanceof OctIntervalCoefficients) {
-      return divInner((OctIntervalCoefficients)coeffs);
-    } else if (coeffs instanceof OctUniversalCoefficients) {
-      return OctUniversalCoefficients.INSTANCE;
+    if (coeffs instanceof OctagonSimpleCoefficients) {
+      return divInner((OctagonSimpleCoefficients)coeffs);
+    } else if (coeffs instanceof OctagonIntervalCoefficients) {
+      return divInner((OctagonIntervalCoefficients)coeffs);
+    } else if (coeffs instanceof OctagonUniversalCoefficients) {
+      return OctagonUniversalCoefficients.INSTANCE;
     }
     throw new IllegalArgumentException("Unkown subtype of OctCoefficients");
   }
 
-  private IOctCoefficients divInner(OctSimpleCoefficients coeffs) {
+  private IOctagonCoefficients divInner(OctagonSimpleCoefficients coeffs) {
     int index = 0;
-    OctNumericValue value = null;
+    OctagonNumericValue value = null;
     while (index < coeffs.coefficients.length) {
       value = coeffs.coefficients[index];
-      if (!value.isEqual(OctIntValue.ZERO)) {
+      if (!value.isEqual(OctagonIntValue.ZERO)) {
         break;
       }
       index++;
@@ -243,31 +243,31 @@ public class OctIntervalCoefficients extends AOctCoefficients {
       // divisions through zero should not be possible, thus this state
       // is there because of over-approximation
     } else if (index > oct.sizeOfVariables()) {
-      return OctUniversalCoefficients.INSTANCE;
+      return OctagonUniversalCoefficients.INSTANCE;
     }
 
-    OctInterval bounds = coeffs.oct.getVariableBounds(index);
+    OctagonInterval bounds = coeffs.oct.getVariableBounds(index);
     if (bounds.isInfinite()) {
-      return OctUniversalCoefficients.INSTANCE;
+      return OctagonUniversalCoefficients.INSTANCE;
     }
 
-    return div(bounds.times(new OctInterval(value)));
+    return div(bounds.times(new OctagonInterval(value)));
   }
 
-  private IOctCoefficients divInner(OctIntervalCoefficients coeffs) {
+  private IOctagonCoefficients divInner(OctagonIntervalCoefficients coeffs) {
     assert coeffs.hasOnlyOneValue();
 
     int index = 0;
-    OctInterval bounds = null;
+    OctagonInterval bounds = null;
     while (index < coeffs.coefficients.length) {
       bounds = coeffs.coefficients[index];
-      if (!bounds.equals(OctInterval.FALSE)) {
+      if (!bounds.equals(OctagonInterval.FALSE)) {
         break;
       }
       index++;
     }
 
-    OctInterval infBounds;
+    OctagonInterval infBounds;
 
     // this is a constant value
     if (index == coeffs.oct.sizeOfVariables()) {
@@ -282,33 +282,33 @@ public class OctIntervalCoefficients extends AOctCoefficients {
     }
 
     if (infBounds.isInfinite()) {
-      return OctUniversalCoefficients.INSTANCE;
+      return OctagonUniversalCoefficients.INSTANCE;
     }
 
     return div(infBounds.times(bounds));
   }
 
   @Override
-  public IOctCoefficients div(OctNumericValue pDivisor) {
-    OctIntervalCoefficients ret = new OctIntervalCoefficients(size, oct);
+  public IOctagonCoefficients div(OctagonNumericValue pDivisor) {
+    OctagonIntervalCoefficients ret = new OctagonIntervalCoefficients(size, oct);
     for (int i = 0; i < coefficients.length; i++) {
-      ret.coefficients[i] = coefficients[i].divide(new OctInterval(pDivisor));
+      ret.coefficients[i] = coefficients[i].divide(new OctagonInterval(pDivisor));
     }
     return ret;
   }
 
   @Override
-  public IOctCoefficients div(OctInterval interval) {
+  public IOctagonCoefficients div(OctagonInterval interval) {
     if (interval.isInfinite()) {
-      return OctUniversalCoefficients.INSTANCE;
+      return OctagonUniversalCoefficients.INSTANCE;
     }
 
     // TODO make configurable
-    if (interval.intersects(OctInterval.DELTA)) {
-      return OctUniversalCoefficients.INSTANCE;
+    if (interval.intersects(OctagonInterval.DELTA)) {
+      return OctagonUniversalCoefficients.INSTANCE;
     }
 
-    OctIntervalCoefficients ret = new OctIntervalCoefficients(size, oct);
+    OctagonIntervalCoefficients ret = new OctagonIntervalCoefficients(size, oct);
     for (int i = 0; i < coefficients.length; i++) {
       ret.coefficients[i] = coefficients[i].divide(interval);
     }
@@ -316,8 +316,8 @@ public class OctIntervalCoefficients extends AOctCoefficients {
     return ret;
   }
 
-  public OctIntervalCoefficients withConstantValue(OctInterval bounds) {
-    OctIntervalCoefficients ret = new OctIntervalCoefficients(size, oct);
+  public OctagonIntervalCoefficients withConstantValue(OctagonInterval bounds) {
+    OctagonIntervalCoefficients ret = new OctagonIntervalCoefficients(size, oct);
     ret.coefficients = Arrays.copyOf(coefficients, coefficients.length);
     ret.coefficients[coefficients.length-1] = bounds;
     return ret;
@@ -329,7 +329,7 @@ public class OctIntervalCoefficients extends AOctCoefficients {
   @Override
   public boolean hasOnlyConstantValue() {
     for (int i = 0; i < coefficients.length - 1; i++) {
-      if (!coefficients[i].equals(OctInterval.FALSE)) {
+      if (!coefficients[i].equals(OctagonInterval.FALSE)) {
         return false;
       }
     }
@@ -340,13 +340,13 @@ public class OctIntervalCoefficients extends AOctCoefficients {
   public int getVariableIndex() {
     assert hasOnlyOneValue() && !hasOnlyConstantValue() : "is no variable!";
     int counter = 0;
-    while (counter < size && coefficients[counter].equals(OctInterval.FALSE)) {
+    while (counter < size && coefficients[counter].equals(OctagonInterval.FALSE)) {
       counter++;
     }
     return counter;
   }
 
-  public OctInterval getConstantValue() {
+  public OctagonInterval getConstantValue() {
     return coefficients[coefficients.length-1];
   }
 
@@ -354,7 +354,7 @@ public class OctIntervalCoefficients extends AOctCoefficients {
   public boolean hasOnlyOneValue() {
     boolean foundValue = false;
     for (int i = 0; i < coefficients.length; i++) {
-      if (!coefficients[i].equals(OctInterval.FALSE)) {
+      if (!coefficients[i].equals(OctagonInterval.FALSE)) {
         if (foundValue) {
           return false;
         }
@@ -364,15 +364,15 @@ public class OctIntervalCoefficients extends AOctCoefficients {
     return true;
   }
 
-  public static OctIntervalCoefficients getNondetUIntCoeffs(int size, OctState oct) {
-    OctIntervalCoefficients result = new OctIntervalCoefficients(size, oct);
-    result.coefficients[result.coefficients.length-1] = new OctInterval(0, Double.POSITIVE_INFINITY);
+  public static OctagonIntervalCoefficients getNondetUIntCoeffs(int size, OctagonState oct) {
+    OctagonIntervalCoefficients result = new OctagonIntervalCoefficients(size, oct);
+    result.coefficients[result.coefficients.length-1] = new OctagonInterval(0, Double.POSITIVE_INFINITY);
     return result;
   }
 
-  public static OctIntervalCoefficients getNondetBoolCoeffs(int size, OctState oct) {
-    OctIntervalCoefficients result = new OctIntervalCoefficients(size, oct);
-    result.coefficients[result.coefficients.length-1] = new OctInterval(0, 1);
+  public static OctagonIntervalCoefficients getNondetBoolCoeffs(int size, OctagonState oct) {
+    OctagonIntervalCoefficients result = new OctagonIntervalCoefficients(size, oct);
+    result.coefficients[result.coefficients.length-1] = new OctagonInterval(0, 1);
     return result;
   }
 
@@ -391,11 +391,11 @@ public class OctIntervalCoefficients extends AOctCoefficients {
       return true;
     }
 
-    if (!(other instanceof OctIntervalCoefficients) || !super.equals(other)) {
+    if (!(other instanceof OctagonIntervalCoefficients) || !super.equals(other)) {
       return false;
     }
 
-    OctIntervalCoefficients oct = (OctIntervalCoefficients) other;
+    OctagonIntervalCoefficients oct = (OctagonIntervalCoefficients) other;
 
     return Arrays.equals(coefficients, oct.coefficients) && size == oct.size;
   }
@@ -430,13 +430,13 @@ public class OctIntervalCoefficients extends AOctCoefficients {
   public NumArray getNumArray(OctagonManager manager) {
     NumArray arr = manager.init_num_t(coefficients.length * 2);
     for (int i = 0; i < coefficients.length; i++) {
-      OctNumericValue low = coefficients[i].getLow();
-      OctNumericValue high = coefficients[i].getHigh();
+      OctagonNumericValue low = coefficients[i].getLow();
+      OctagonNumericValue high = coefficients[i].getHigh();
 
       if (low.isInfinite()) {
         manager.num_set_inf(arr, i*2+1);
       } else {
-        if (low instanceof OctDoubleValue) {
+        if (low instanceof OctagonDoubleValue) {
           manager.num_set_float(arr, i*2+1, low.getValue().doubleValue()*-1);
         } else {
           manager.num_set_int(arr, i*2+1, low.getValue().longValue()*-1);
@@ -446,7 +446,7 @@ public class OctIntervalCoefficients extends AOctCoefficients {
       if (high.isInfinite()) {
         manager.num_set_inf(arr, i*2);
       } else {
-        if (high instanceof OctDoubleValue) {
+        if (high instanceof OctagonDoubleValue) {
           manager.num_set_float(arr, i*2, high.getValue().doubleValue());
         } else {
           manager.num_set_int(arr, i*2, high.getValue().longValue());

@@ -39,12 +39,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.octagon.OctState;
-import org.sosy_lab.cpachecker.cpa.octagon.OctTransferRelation;
+import org.sosy_lab.cpachecker.cpa.octagon.OctagonState;
+import org.sosy_lab.cpachecker.cpa.octagon.OctagonTransferRelation;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
-import org.sosy_lab.cpachecker.cpa.octagon.precision.IOctPrecision;
-import org.sosy_lab.cpachecker.cpa.octagon.precision.RefineableOctPrecision;
-import org.sosy_lab.cpachecker.cpa.octagon.precision.StaticFullOctPrecision;
+import org.sosy_lab.cpachecker.cpa.octagon.precision.IOctagonPrecision;
+import org.sosy_lab.cpachecker.cpa.octagon.precision.RefineableOctagonPrecision;
+import org.sosy_lab.cpachecker.cpa.octagon.precision.StaticFullOctagonPrecision;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.AssumptionUseDefinitionCollector;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -54,7 +54,7 @@ import com.google.common.collect.Sets;
 
 public class OctagonAnalysisFeasabilityChecker {
 
-  private final OctTransferRelation transfer;
+  private final OctagonTransferRelation transfer;
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -66,11 +66,11 @@ public class OctagonAnalysisFeasabilityChecker {
     shutdownNotifier = pShutdownNotifier;
 
     // use the normal configuration for creating the transferrelation
-    transfer  = new OctTransferRelation(logger, cfa, cpa.getOctagonOptions());
+    transfer  = new OctagonTransferRelation(logger, cfa, cpa.getOctagonOptions());
     checkedPath = path;
 
-    foundPath = getInfeasiblePrefix(new StaticFullOctPrecision(cpa.getOctagonOptions()),
-                                    new OctState(logger, cpa.getManager()));
+    foundPath = getInfeasiblePrefix(new StaticFullOctagonPrecision(cpa.getOctagonOptions()),
+                                    new OctagonState(logger, cpa.getManager()));
   }
 
   /**
@@ -85,7 +85,7 @@ public class OctagonAnalysisFeasabilityChecker {
       return checkedPath.size() == foundPath.size();
   }
 
-  public Set<String> getPrecisionIncrement(RefineableOctPrecision precision) {
+  public Set<String> getPrecisionIncrement(RefineableOctagonPrecision precision) {
     if (isFeasible()) {
       return Collections.emptySet();
     } else {
@@ -117,18 +117,18 @@ public class OctagonAnalysisFeasabilityChecker {
    * @throws CPAException
    * @throws InterruptedException
    */
-  private ARGPath getInfeasiblePrefix(final IOctPrecision pPrecision, final OctState pInitial)
+  private ARGPath getInfeasiblePrefix(final IOctagonPrecision pPrecision, final OctagonState pInitial)
       throws CPAException, InterruptedException {
     try {
-      Collection<OctState> next = Lists.newArrayList(pInitial);
+      Collection<OctagonState> next = Lists.newArrayList(pInitial);
 
       ARGPath prefix = new ARGPath();
 
-      Collection<OctState> successors = new HashSet<>();
+      Collection<OctagonState> successors = new HashSet<>();
 
       for (Pair<ARGState, CFAEdge> pathElement : checkedPath) {
         successors.clear();
-        for (OctState st : next) {
+        for (OctagonState st : next) {
           successors.addAll(transfer.getAbstractSuccessors(
               st,
               pPrecision,

@@ -36,25 +36,25 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.octagon.Octagon;
 
-class OctDomain implements AbstractDomain {
+class OctagonDomain implements AbstractDomain {
 
   private static long totaltime = 0;
   private final LogManager logger;
 
-  public OctDomain(LogManager log) throws InvalidConfigurationException {
+  public OctagonDomain(LogManager log) throws InvalidConfigurationException {
     logger = log;
   }
 
   @Override
   public boolean isLessOrEqual(AbstractState element1, AbstractState element2) {
 
-    Map<OctState, Set<OctState>> covers = new HashMap<>();
+    Map<OctagonState, Set<OctagonState>> covers = new HashMap<>();
 
     long start = System.currentTimeMillis();
-    OctState octState1 = (OctState) element1;
-    OctState octState2 = (OctState) element2;
+    OctagonState octState1 = (OctagonState) element1;
+    OctagonState octState2 = (OctagonState) element2;
 
-    if (covers.containsKey(octState2) && ((HashSet<OctState>)(covers.get(octState2))).contains(octState1)) {
+    if (covers.containsKey(octState2) && ((HashSet<OctagonState>)(covers.get(octState2))).contains(octState1)) {
       return true;
     }
 
@@ -69,7 +69,7 @@ class OctDomain implements AbstractDomain {
       assert (result == 3);
       boolean included = octState1.getOctagon().getManager().isIncludedIn(octState1.getOctagon(), octState2.getOctagon());
       if (included) {
-        Set<OctState> s;
+        Set<OctagonState> s;
         if (covers.containsKey(octState2)) {
           s = covers.get(octState2);
         } else {
@@ -85,7 +85,7 @@ class OctDomain implements AbstractDomain {
 
   @Override
   public AbstractState join(AbstractState successor, AbstractState reached) {
-    Pair<OctState, OctState> shrinkedStates = getShrinkedStates((OctState)successor, (OctState)reached);
+    Pair<OctagonState, OctagonState> shrinkedStates = getShrinkedStates((OctagonState)successor, (OctagonState)reached);
     Octagon newOctagon = shrinkedStates.getFirst().getOctagon().getManager()
                            .union(shrinkedStates.getFirst().getOctagon(), shrinkedStates.getSecond().getOctagon());
 
@@ -94,10 +94,10 @@ class OctDomain implements AbstractDomain {
       throw new AssertionError("bottom state occured where it should not be");
     }
 
-    OctState newState = new OctState(newOctagon,
+    OctagonState newState = new OctagonState(newOctagon,
                                      shrinkedStates.getFirst().getVariableToIndexMap(),
                                      shrinkedStates.getFirst().getVariableToTypeMap(),
-                                     ((OctState)successor).getBlock(),
+                                     ((OctagonState)successor).getBlock(),
                                      logger);
     if (newState.equals(reached)) {
       return reached;
@@ -108,8 +108,8 @@ class OctDomain implements AbstractDomain {
     }
   }
 
-  public AbstractState joinWidening(OctState successorOct, OctState reachedOct) {
-    Pair<OctState, OctState> shrinkedStates = getShrinkedStates(successorOct, reachedOct);
+  public AbstractState joinWidening(OctagonState successorOct, OctagonState reachedOct) {
+    Pair<OctagonState, OctagonState> shrinkedStates = getShrinkedStates(successorOct, reachedOct);
     successorOct = shrinkedStates.getFirst();
     reachedOct = shrinkedStates.getSecond();
 
@@ -126,7 +126,7 @@ class OctDomain implements AbstractDomain {
       }
     }
 
-    OctState newState = new OctState(newOctagon,
+    OctagonState newState = new OctagonState(newOctagon,
                                      successorOct.getVariableToIndexMap(),
                                      successorOct.getVariableToTypeMap(),
                                      successorOct.getBlock(),
@@ -140,13 +140,13 @@ class OctDomain implements AbstractDomain {
     }
   }
 
-  private Pair<OctState, OctState> getShrinkedStates(OctState succ, OctState reached) {
+  private Pair<OctagonState, OctagonState> getShrinkedStates(OctagonState succ, OctagonState reached) {
     if (succ.sizeOfVariables() > reached.sizeOfVariables()) {
-      Pair<OctState, OctState> tmp = succ.shrinkToFittingSize(reached);
+      Pair<OctagonState, OctagonState> tmp = succ.shrinkToFittingSize(reached);
       succ = tmp.getFirst();
       reached = tmp.getSecond();
     } else {
-      Pair<OctState, OctState> tmp = reached.shrinkToFittingSize(succ);
+      Pair<OctagonState, OctagonState> tmp = reached.shrinkToFittingSize(succ);
       succ = tmp.getSecond();
       reached = tmp.getFirst();
     }

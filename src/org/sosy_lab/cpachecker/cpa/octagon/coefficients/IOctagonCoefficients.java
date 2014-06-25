@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon.coefficients;
 
-import org.sosy_lab.cpachecker.cpa.octagon.OctState;
-import org.sosy_lab.cpachecker.cpa.octagon.values.OctInterval;
-import org.sosy_lab.cpachecker.cpa.octagon.values.OctNumericValue;
+import org.sosy_lab.cpachecker.cpa.octagon.OctagonState;
+import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonInterval;
+import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonNumericValue;
 import org.sosy_lab.cpachecker.util.octagon.NumArray;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
  * dependant on all other variables and a constant value.
  */
 @SuppressWarnings("rawtypes")
-public interface IOctCoefficients {
+public interface IOctagonCoefficients {
 
   /**
    * Creates a NumArray out of the coefficient array.
@@ -46,31 +46,31 @@ public interface IOctCoefficients {
    */
   int size();
 
-  IOctCoefficients expandToSize(int size, OctState oct);
+  IOctagonCoefficients expandToSize(int size, OctagonState oct);
 
   /**
    * Adds two OctCoefficients.
    * @return The new added Coefficient.
    */
-  IOctCoefficients add(IOctCoefficients summand);
+  IOctagonCoefficients add(IOctagonCoefficients summand);
 
   /**
    * Substracts two OctCoefficients.
    * @return The new substracted Coefficient.
    */
-  IOctCoefficients sub(IOctCoefficients subtrahend);
+  IOctagonCoefficients sub(IOctagonCoefficients subtrahend);
 
-  IOctCoefficients mul(IOctCoefficients factor);
+  IOctagonCoefficients mul(IOctagonCoefficients factor);
 
-  IOctCoefficients mul(OctNumericValue factor);
+  IOctagonCoefficients mul(OctagonNumericValue factor);
 
-  IOctCoefficients mul(OctInterval interval);
+  IOctagonCoefficients mul(OctagonInterval interval);
 
-  IOctCoefficients div(IOctCoefficients divisor);
+  IOctagonCoefficients div(IOctagonCoefficients divisor);
 
-  IOctCoefficients div(OctNumericValue divisor);
+  IOctagonCoefficients div(OctagonNumericValue divisor);
 
-  IOctCoefficients div(OctInterval interval);
+  IOctagonCoefficients div(OctagonInterval interval);
 
   /**
    * Indicates whether the Coefficient List only consists of a constant value.

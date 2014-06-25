@@ -44,8 +44,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.octagon.precision.RefineableOctPrecision;
-import org.sosy_lab.cpachecker.cpa.octagon.precision.StaticFullOctPrecision;
+import org.sosy_lab.cpachecker.cpa.octagon.precision.RefineableOctagonPrecision;
+import org.sosy_lab.cpachecker.cpa.octagon.precision.StaticFullOctagonPrecision;
 import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
 import org.sosy_lab.cpachecker.util.octagon.OctagonFloatManager;
 import org.sosy_lab.cpachecker.util.octagon.OctagonIntManager;
@@ -107,7 +107,7 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
     config.inject(this);
     octagonOptions = pOctagonOptions;
     logger = log;
-    OctDomain octagonDomain = new OctDomain(logger);
+    OctagonDomain octagonDomain = new OctagonDomain(logger);
 
     if (octagonLibrary.equals("FLOAT")) {
       octagonManager = new OctagonFloatManager();
@@ -115,11 +115,11 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
       octagonManager = new OctagonIntManager();
     }
 
-    this.transferRelation = new OctTransferRelation(logger, cfa, octagonOptions);
+    this.transferRelation = new OctagonTransferRelation(logger, cfa, octagonOptions);
 
     MergeOperator octagonMergeOp = null;
     if (mergeType.equals("JOIN")) {
-      octagonMergeOp = new OctMergeJoinOperator(octagonDomain, config);
+      octagonMergeOp = new OctagonMergeJoinOperator(octagonDomain, config);
     } else {
       // default is sep
       octagonMergeOp = MergeSepOperator.getInstance();
@@ -136,11 +136,11 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
     this.cfa = cfa;
 
     if (precisionType.equals("REFINEABLE_EMPTY")) {
-      precision = new RefineableOctPrecision(config);
+      precision = new RefineableOctagonPrecision(config);
 
       // static full precision is default
     } else {
-      precision = new StaticFullOctPrecision(octagonOptions);
+      precision = new StaticFullOctagonPrecision(octagonOptions);
     }
 
   }
@@ -176,7 +176,7 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractState getInitialState(CFANode node) {
-    return new OctState(logger, octagonManager);
+    return new OctagonState(logger, octagonManager);
   }
 
   @Override

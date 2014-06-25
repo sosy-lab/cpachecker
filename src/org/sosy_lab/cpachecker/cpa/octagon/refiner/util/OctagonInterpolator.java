@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
-import org.sosy_lab.cpachecker.cpa.octagon.refiner.OctInterpolationBasedRefiner.ValueAnalysisInterpolant;
+import org.sosy_lab.cpachecker.cpa.octagon.refiner.OctagonInterpolationBasedRefiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.Value;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -62,7 +62,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 @Options(prefix="cpa.octagon.interpolation")
-public class OctInterpolator {
+public class OctagonInterpolator {
   @Option(description="whether or not to ignore the semantics of loop-leaving-assume-edges during interpolation - "
       + "this avoids to have loop-counters in the interpolant")
   private boolean ignoreLoopsExitAssumes = true;
@@ -124,7 +124,7 @@ public class OctInterpolator {
   /**
    * This method acts as the constructor of the class.
    */
-  public OctInterpolator(final Configuration pConfig,final LogManager pLogger,
+  public OctagonInterpolator(final Configuration pConfig,final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
           throws InvalidConfigurationException {
 

@@ -66,7 +66,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
-import org.sosy_lab.cpachecker.cpa.octagon.refiner.util.OctInterpolator;
+import org.sosy_lab.cpachecker.cpa.octagon.refiner.util.OctagonInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.Value;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
@@ -80,7 +80,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.octagon.refiner")
-public class OctInterpolationBasedRefiner implements Statistics {
+public class OctagonInterpolationBasedRefiner implements Statistics {
   /**
    * whether or not to do lazy-abstraction, i.e., when true, the re-starting node
    * for the re-exploration of the ARG will be the node closest to the root
@@ -111,9 +111,9 @@ public class OctInterpolationBasedRefiner implements Statistics {
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
-  private final OctInterpolator interpolator;
+  private final OctagonInterpolator interpolator;
 
-  protected OctInterpolationBasedRefiner(Configuration config,
+  protected OctagonInterpolationBasedRefiner(Configuration config,
       final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa)
       throws InvalidConfigurationException {
@@ -122,7 +122,7 @@ public class OctInterpolationBasedRefiner implements Statistics {
     logger           = pLogger;
     cfa              = pCfa;
     shutdownNotifier = pShutdownNotifier;
-    interpolator     = new OctInterpolator(config, logger, shutdownNotifier, cfa);
+    interpolator     = new OctagonInterpolator(config, logger, shutdownNotifier, cfa);
   }
 
   protected Map<ARGState, ValueAnalysisInterpolant> performInterpolation(ARGPath errorPath,

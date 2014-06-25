@@ -26,36 +26,19 @@ package org.sosy_lab.cpachecker.cpa.octagon.values;
 import java.util.Objects;
 
 @SuppressWarnings("rawtypes")
-public class OctIntValue extends OctNumericValue<Long> {
+public class OctagonDoubleValue extends OctagonNumericValue<Double> {
 
-  public static final OctIntValue ZERO = new OctIntValue(0);
-  public static final OctIntValue ONE = new OctIntValue(1);
-  public static final OctIntValue NEG_ONE = new OctIntValue(-1);
-
-
-  private OctIntValue(long value) {
+  public OctagonDoubleValue(double value) {
     super (value);
   }
 
-  public static OctIntValue of(long value) {
-    if (value == 0) {
-      return ZERO;
-    } else if (value == 1) {
-      return ONE;
-    } else if (value == -1) {
-      return NEG_ONE;
-    } else {
-      return new OctIntValue(value);
-    }
-  }
-
   @Override
-  public OctNumericValue min(OctNumericValue val1) {
+  public OctagonNumericValue min(OctagonNumericValue val1) {
     return val1.lessThan(value) ? val1 : this;
   }
 
   @Override
-  public OctNumericValue max(OctNumericValue val1) {
+  public OctagonNumericValue max(OctagonNumericValue val1) {
     return val1.greaterThan(value) ? val1 : this;
   }
 
@@ -72,7 +55,7 @@ public class OctIntValue extends OctNumericValue<Long> {
 
   @Override
   public boolean isInfinite() {
-    return false;
+    return value.isInfinite();
   }
 
   @Override
@@ -81,157 +64,157 @@ public class OctIntValue extends OctNumericValue<Long> {
   }
 
   @Override
-  public OctNumericValue add(OctNumericValue pVal) {
-    return pVal.add(value.longValue());
+  public OctagonNumericValue add(OctagonNumericValue pVal) {
+    return pVal.add(value.doubleValue());
   }
 
   @Override
-  public OctNumericValue add(long pVal) {
-    return OctIntValue.of(value.longValue() + pVal);
+  public OctagonNumericValue add(long pVal) {
+    return new OctagonDoubleValue(value.doubleValue() + pVal);
   }
 
   @Override
-  public OctNumericValue add(double pVal) {
-    return new OctDoubleValue(value.longValue() + pVal);
+  public OctagonNumericValue add(double pVal) {
+    return new OctagonDoubleValue(value.doubleValue() + pVal);
   }
 
   @Override
-  public OctNumericValue subtract(OctNumericValue pVal) {
-    if (pVal instanceof OctIntValue) {
-      return OctIntValue.of(value.longValue() - ((OctIntValue)pVal).value.longValue());
-    } else if (pVal instanceof OctDoubleValue) {
-      return new OctDoubleValue(value.longValue() - ((OctDoubleValue)pVal).value.doubleValue());
+  public OctagonNumericValue subtract(OctagonNumericValue pVal) {
+    if (pVal instanceof OctagonIntValue) {
+      return new OctagonDoubleValue(value.doubleValue() - ((OctagonIntValue)pVal).value.doubleValue());
+    } else if (pVal instanceof OctagonDoubleValue) {
+      return new OctagonDoubleValue(value.doubleValue() - ((OctagonDoubleValue)pVal).value.doubleValue());
     }
     throw new AssertionError("unknown subtype of octnumericvalue");
   }
 
   @Override
-  public OctNumericValue subtract(long pVal) {
-    return OctIntValue.of(value.longValue() - pVal);
+  public OctagonNumericValue subtract(long pVal) {
+    return new OctagonDoubleValue(value.doubleValue() - pVal);
   }
 
   @Override
-  public OctNumericValue subtract(double pVal) {
-    return new OctDoubleValue(value.longValue() - pVal);
+  public OctagonNumericValue subtract(double pVal) {
+    return new OctagonDoubleValue(value.doubleValue() - pVal);
   }
 
   @Override
-  public OctNumericValue mul(OctNumericValue pVal) {
+  public OctagonNumericValue mul(OctagonNumericValue pVal) {
     return pVal.mul(value);
   }
 
   @Override
-  public OctNumericValue mul(long pVal) {
-    return OctIntValue.of(value.longValue() * pVal);
+  public OctagonNumericValue mul(long pVal) {
+    return new OctagonDoubleValue(value.doubleValue() * pVal);
   }
 
   @Override
-  public OctNumericValue mul(double pVal) {
-    return new OctDoubleValue(value.longValue() * pVal);
+  public OctagonNumericValue mul(double pVal) {
+    return new OctagonDoubleValue(value.doubleValue() * pVal);
   }
 
   @Override
-  public OctNumericValue div(OctNumericValue pDivisor) {
-    if (pDivisor instanceof OctIntValue) {
-      return OctIntValue.of(value.longValue() / ((OctIntValue)pDivisor).value.longValue());
-    } else if (pDivisor instanceof OctDoubleValue) {
-      return new OctDoubleValue(value.longValue() / ((OctDoubleValue)pDivisor).value.doubleValue());
+  public OctagonNumericValue div(OctagonNumericValue pDivisor) {
+    if (pDivisor instanceof OctagonIntValue) {
+      return new OctagonDoubleValue(value.doubleValue() / ((OctagonIntValue)pDivisor).value.doubleValue());
+    } else if (pDivisor instanceof OctagonDoubleValue) {
+      return new OctagonDoubleValue(value.doubleValue() / ((OctagonDoubleValue)pDivisor).value.doubleValue());
     }
     throw new AssertionError("unknown subtype of octnumericvalue");
   }
 
   @Override
-  public OctNumericValue div(long pDivisor) {
-    return OctIntValue.of(value.longValue() / pDivisor);
+  public OctagonNumericValue div(long pDivisor) {
+    return new OctagonDoubleValue(value.doubleValue() / pDivisor);
   }
 
   @Override
-  public OctNumericValue div(double pDivisor) {
-    return new OctDoubleValue(value.longValue() / pDivisor);
+  public OctagonNumericValue div(double pDivisor) {
+    return new OctagonDoubleValue(value.doubleValue() / pDivisor);
   }
 
   @Override
-  public boolean greaterEqual(OctNumericValue pVal) {
+  public boolean greaterEqual(OctagonNumericValue pVal) {
     return pVal.lessEqual(value);
   }
 
   @Override
   public boolean greaterEqual(long pVal) {
-    return value.longValue() >= pVal;
+    return value.doubleValue() >= pVal;
   }
 
   @Override
   public boolean greaterEqual(double pVal) {
-    return value.longValue() >= pVal;
+    return value.doubleValue() >= pVal;
   }
 
   @Override
-  public boolean greaterThan(OctNumericValue pVal) {
+  public boolean greaterThan(OctagonNumericValue pVal) {
     return pVal.lessThan(value);
   }
 
   @Override
   public boolean greaterThan(long pVal) {
-    return value.longValue() > pVal;
+    return value.doubleValue() > pVal;
   }
 
   @Override
   public boolean greaterThan(double pVal) {
-    return value.longValue() > pVal;
+    return value.doubleValue() > pVal;
   }
 
   @Override
-  public boolean lessEqual(OctNumericValue pVal) {
+  public boolean lessEqual(OctagonNumericValue pVal) {
     return pVal.greaterEqual(value);
   }
 
   @Override
   public boolean lessEqual(long pVal) {
-    return value.longValue() <= pVal;
+    return value.doubleValue() <= pVal;
   }
 
   @Override
   public boolean lessEqual(double pVal) {
-    return value.longValue() <= pVal;
+    return value.doubleValue() <= pVal;
   }
 
   @Override
-  public boolean lessThan(OctNumericValue pVal) {
+  public boolean lessThan(OctagonNumericValue pVal) {
     return pVal.greaterThan(value);
   }
 
   @Override
   public boolean lessThan(long pVal) {
-    return value.longValue() < pVal;
+    return value.doubleValue() < pVal;
   }
 
   @Override
   public boolean lessThan(double pVal) {
-    return value.longValue() < pVal;
+    return value.doubleValue() < pVal;
   }
 
   @Override
-  public boolean isEqual(OctNumericValue pVal) {
+  public boolean isEqual(OctagonNumericValue pVal) {
     return pVal.isEqual(value);
   }
 
   @Override
   public boolean isEqual(long pVal) {
-    return value.longValue() == pVal;
+    return value.doubleValue() == pVal;
   }
 
   @Override
   public boolean isEqual(double pVal) {
-    return value.longValue() == pVal;
+    return value.doubleValue() == pVal;
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof OctIntValue)) {
+    if (!(obj instanceof OctagonDoubleValue)) {
       return false;
     }
 
-    OctIntValue other = (OctIntValue) obj;
+    OctagonDoubleValue other = (OctagonDoubleValue) obj;
 
     return value.equals(other.value);
   }
@@ -245,7 +228,7 @@ public class OctIntValue extends OctNumericValue<Long> {
   }
 
   @Override
-  public int compareTo(OctNumericValue val) {
+  public int compareTo(OctagonNumericValue val) {
     if (val.isEqual(value)) {
       return 0;
     } else if (val.lessThan(value)) {

@@ -39,11 +39,11 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Multimap;
 
 
-public class RefineableOctPrecision implements IOctPrecision {
+public class RefineableOctagonPrecision implements IOctagonPrecision {
   private final Set<String> trackedVars;
   private final ValueAnalysisPrecision valuePrecision;
 
-  public RefineableOctPrecision(Configuration config) throws InvalidConfigurationException  {
+  public RefineableOctagonPrecision(Configuration config) throws InvalidConfigurationException  {
     valuePrecision = new ValueAnalysisPrecision("", config, Optional.<VariableClassification>absent());
     trackedVars = new HashSet<>();
   }
@@ -52,7 +52,7 @@ public class RefineableOctPrecision implements IOctPrecision {
    * A constructor which increments the included ValueAnalysisPrecision and the
    * OctPrecision.
    */
-  public RefineableOctPrecision(RefineableOctPrecision pOctPrecision, Multimap<CFANode, MemoryLocation> pIncrement) {
+  public RefineableOctagonPrecision(RefineableOctagonPrecision pOctPrecision, Multimap<CFANode, MemoryLocation> pIncrement) {
     valuePrecision = new ValueAnalysisPrecision(pOctPrecision.valuePrecision, pIncrement);
     trackedVars = new HashSet<>();
     trackedVars.addAll(pOctPrecision.trackedVars);
@@ -65,7 +65,7 @@ public class RefineableOctPrecision implements IOctPrecision {
    * A constructor which only increments the OctPrecision, and lets the included
    * ValueAnalysisPrecision as it was.
    */
-  public RefineableOctPrecision(RefineableOctPrecision pOctPrecision, Set<String> pIncrement) {
+  public RefineableOctagonPrecision(RefineableOctagonPrecision pOctPrecision, Set<String> pIncrement) {
     valuePrecision = pOctPrecision.valuePrecision;
     trackedVars = new HashSet<>();
     trackedVars.addAll(pOctPrecision.trackedVars);

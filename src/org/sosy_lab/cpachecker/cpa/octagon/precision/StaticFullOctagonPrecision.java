@@ -23,11 +23,29 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon.precision;
 
+import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.*;
+
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA.OctagonOptions;
 
-public interface IOctPrecision extends Precision {
 
-  boolean isTracked(String varName, CType type);
+public class StaticFullOctagonPrecision implements IOctagonPrecision {
 
+  private final OctagonOptions options;
+
+  public StaticFullOctagonPrecision(OctagonOptions options) {
+    this.options = options;
+  }
+
+  @Override
+  public boolean isTracked(String varName, CType type) {
+    if (!options.shouldHandleFloats()) {
+      return !(type instanceof CSimpleType
+                 && (((CSimpleType)type).getType() == FLOAT
+                 || ((CSimpleType)type).getType() == DOUBLE));
+    } else {
+      return true;
+    }
+  }
 }
