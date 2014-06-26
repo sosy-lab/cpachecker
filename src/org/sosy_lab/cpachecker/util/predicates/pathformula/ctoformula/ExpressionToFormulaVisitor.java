@@ -212,7 +212,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     case MODULO:
       ret = conv.fmgr.makeModulo(f1, f2, signed);
 
-      FormulaType numberType = conv.fmgr.getFormulaType(f1);
+      FormulaType<Formula> numberType = conv.fmgr.getFormulaType(f1);
       Formula zero = conv.fmgr.makeNumber(numberType, 0L);
 
       BooleanFormulaManagerView bfmgr = conv.fmgr.getBooleanFormulaManager();

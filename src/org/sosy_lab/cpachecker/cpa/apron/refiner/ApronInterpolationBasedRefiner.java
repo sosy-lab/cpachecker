@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -79,7 +79,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
-@Options(prefix="cpa.octagon.refiner")
+@Options(prefix="cpa.apron.refiner")
 public class ApronInterpolationBasedRefiner implements Statistics {
   /**
    * whether or not to do lazy-abstraction, i.e., when true, the re-starting node

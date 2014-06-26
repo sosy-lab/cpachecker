@@ -23,23 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon.coefficients;
 
-import org.sosy_lab.cpachecker.cpa.octagon.OctState;
-import org.sosy_lab.cpachecker.cpa.octagon.values.OctInterval;
-import org.sosy_lab.cpachecker.cpa.octagon.values.OctNumericValue;
+import org.sosy_lab.cpachecker.cpa.octagon.OctagonState;
+import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonInterval;
+import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonNumericValue;
 import org.sosy_lab.cpachecker.util.octagon.NumArray;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
 @SuppressWarnings("rawtypes")
-public final class OctUniversalCoefficients extends AOctCoefficients {
+public final class OctagonUniversalCoefficients extends AOctagonCoefficients {
 
-  public static final OctUniversalCoefficients INSTANCE = new OctUniversalCoefficients();
+  public static final OctagonUniversalCoefficients INSTANCE = new OctagonUniversalCoefficients();
 
-  private OctUniversalCoefficients() {
+  private OctagonUniversalCoefficients() {
     super(0, null);
   }
 
   @Override
-  public OctUniversalCoefficients expandToSize(int pSize, OctState oct) {
+  public OctagonUniversalCoefficients expandToSize(int pSize, OctagonState oct) {
     return this;
   }
 
@@ -49,42 +49,42 @@ public final class OctUniversalCoefficients extends AOctCoefficients {
   }
 
   @Override
-  public OctUniversalCoefficients add(IOctCoefficients pOther) {
+  public OctagonUniversalCoefficients add(IOctagonCoefficients pOther) {
     return INSTANCE;
   }
 
   @Override
-  public OctUniversalCoefficients sub(IOctCoefficients pOther) {
+  public OctagonUniversalCoefficients sub(IOctagonCoefficients pOther) {
     return INSTANCE;
   }
 
   @Override
-  public IOctCoefficients mul(OctNumericValue pFactor) {
+  public IOctagonCoefficients mul(OctagonNumericValue pFactor) {
     return INSTANCE;
   }
 
   @Override
-  public IOctCoefficients mul(OctInterval interval) {
+  public IOctagonCoefficients mul(OctagonInterval interval) {
     return INSTANCE;
   }
 
   @Override
-  protected IOctCoefficients mulInner(IOctCoefficients pOct) {
+  protected IOctagonCoefficients mulInner(IOctagonCoefficients pOct) {
     return INSTANCE;
   }
 
   @Override
-  protected IOctCoefficients divInner(IOctCoefficients pOct) {
+  protected IOctagonCoefficients divInner(IOctagonCoefficients pOct) {
     return INSTANCE;
   }
 
   @Override
-  public IOctCoefficients div(OctNumericValue pDivisor) {
+  public IOctagonCoefficients div(OctagonNumericValue pDivisor) {
     return INSTANCE;
   }
 
   @Override
-  public IOctCoefficients div(OctInterval interval) {
+  public IOctagonCoefficients div(OctagonInterval interval) {
     return INSTANCE;
   }
 
@@ -105,7 +105,7 @@ public final class OctUniversalCoefficients extends AOctCoefficients {
 
   @Override
   public boolean equals(Object other) {
-    return other instanceof OctUniversalCoefficients;
+    return other instanceof OctagonUniversalCoefficients;
   }
 
 }

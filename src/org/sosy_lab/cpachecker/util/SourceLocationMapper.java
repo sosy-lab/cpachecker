@@ -287,7 +287,6 @@ public class SourceLocationMapper {
     while (!edges.isEmpty()) {
       CFAEdge edge = edges.pop();
       CFANode startNode = edge.getPredecessor();
-      CFANode endNode = edge.getSuccessor();
 
       if (overApproximateTokens) {
         result.add(edge.getLineNumber());

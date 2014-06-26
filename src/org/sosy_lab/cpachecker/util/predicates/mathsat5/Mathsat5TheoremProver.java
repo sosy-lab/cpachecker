@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager.RegionBuilder;
 
 import com.google.common.base.Preconditions;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 public class Mathsat5TheoremProver extends Mathsat5AbstractProver implements ProverEnvironment {
 
@@ -74,7 +73,7 @@ public class Mathsat5TheoremProver extends Mathsat5AbstractProver implements Pro
 
   @Override
   public OptResult isOpt(Formula f, boolean maximize) throws InterruptedException {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override

@@ -23,15 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon.coefficients;
 
-import org.sosy_lab.cpachecker.cpa.octagon.OctState;
+import org.sosy_lab.cpachecker.cpa.octagon.OctagonState;
 
 @SuppressWarnings("rawtypes")
-public abstract class AOctCoefficients implements IOctCoefficients {
+public abstract class AOctagonCoefficients implements IOctagonCoefficients {
 
   protected int size;
-  protected OctState oct;
+  protected OctagonState oct;
 
-  protected AOctCoefficients(int size, OctState oct) {
+  protected AOctagonCoefficients(int size, OctagonState oct) {
     this.size = size;
     this.oct = oct;
   }
@@ -51,18 +51,18 @@ public abstract class AOctCoefficients implements IOctCoefficients {
     return prime * result;
   }
 
-  abstract protected IOctCoefficients mulInner(IOctCoefficients oct);
-  abstract protected IOctCoefficients divInner(IOctCoefficients oct);
+  abstract protected IOctagonCoefficients mulInner(IOctagonCoefficients oct);
+  abstract protected IOctagonCoefficients divInner(IOctagonCoefficients oct);
 
   @Override
-  final public IOctCoefficients mul(IOctCoefficients other) {
-    if (other instanceof OctUniversalCoefficients) {
-      return OctUniversalCoefficients.INSTANCE;
-    } else if (other instanceof AOctCoefficients) {
+  final public IOctagonCoefficients mul(IOctagonCoefficients other) {
+    if (other instanceof OctagonUniversalCoefficients) {
+      return OctagonUniversalCoefficients.INSTANCE;
+    } else if (other instanceof AOctagonCoefficients) {
       if (hasOnlyOneValue()) {
         return mulInner(other);
       } else if (other.hasOnlyOneValue()) {
-        return ((AOctCoefficients)other).mulInner(this);
+        return ((AOctagonCoefficients)other).mulInner(this);
       }
       throw new IllegalArgumentException("At least one of the coefficients has to be a single variable or constant.");
     }
@@ -70,10 +70,10 @@ public abstract class AOctCoefficients implements IOctCoefficients {
   }
 
   @Override
-  final public IOctCoefficients div(IOctCoefficients other) {
-    if (other instanceof OctUniversalCoefficients) {
-      return OctUniversalCoefficients.INSTANCE;
-    } else if (other instanceof AOctCoefficients) {
+  final public IOctagonCoefficients div(IOctagonCoefficients other) {
+    if (other instanceof OctagonUniversalCoefficients) {
+      return OctagonUniversalCoefficients.INSTANCE;
+    } else if (other instanceof AOctagonCoefficients) {
       if (other.hasOnlyOneValue()) {
         return divInner(other);
       }
@@ -88,7 +88,7 @@ public abstract class AOctCoefficients implements IOctCoefficients {
       return true;
     }
 
-    if (!(other instanceof AOctCoefficients)) {
+    if (!(other instanceof AOctagonCoefficients)) {
       return false;
     }
 

@@ -92,6 +92,11 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     public void printStatistics(PrintStream out, Result pResult,
         ReachedSet pReached) {
       out.println("Number of iterations:            " + countIterations);
+      if (countIterations == 0) {
+        // Statistics not relevant, prevent division by zero
+        return;
+      }
+
       out.println("Max size of waitlist:            " + maxWaitlistSize);
       out.println("Average size of waitlist:        " + countWaitlistSize
           / countIterations);

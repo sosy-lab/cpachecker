@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-@Options(prefix="cpa.octagon.mergeop")
+@Options(prefix="cpa.apron.mergeop")
 public class ApronMergeJoinOperator implements MergeOperator {
 
   private final ApronDomain domain;

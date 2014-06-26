@@ -49,7 +49,7 @@ public class LocationCPABackwards implements ConfigurableProgramAnalysis {
   private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
 
   public LocationCPABackwards(CFA pCfa) {
-    stateFactory = new LocationStateFactory(pCfa);
+    stateFactory = new LocationStateFactory(pCfa, true);
     transferRelation = new LocationTransferRelationBackwards(stateFactory);
   }
 

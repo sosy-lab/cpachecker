@@ -37,39 +37,58 @@ CATEGORY_ERROR   = 'error'
 CATEGORY_MISSING = 'missing'
 
 STR_TRUE = 'true'
-STR_UNKNOWN = 'unknown'
+STATUS_UNKNOWN = 'unknown'
 STR_FALSE = 'false' # only for special cases. STR_FALSE is no official result, because property is missing
 
-STR_FALSE_REACH =       'false(reach)'
-STR_FALSE_TERMINATION = 'false(termination)'
-STR_FALSE_DEREF =        'false(valid-deref)'
-STR_FALSE_FREE =         'false(valid-free)'
-STR_FALSE_MEMTRACK =     'false(valid-memtrack)'
+PROP_REACH =        'reach'
+PROP_TERMINATION =  'termination'
+PROP_DEREF =        'valid-deref'
+PROP_FREE =         'valid-free'
+PROP_MEMTRACK =     'valid-memtrack'
 
-STR_LIST = [STR_TRUE, STR_UNKNOWN, 
-            STR_FALSE_REACH, STR_FALSE_TERMINATION, 
-            STR_FALSE_DEREF, STR_FALSE_FREE, STR_FALSE_MEMTRACK]
+# next lines are for public usage in tool-wrappers or in the scripts
+STATUS_TRUE_PROP =          STR_TRUE
+STATUS_FALSE_REACH =        STR_FALSE + '(' + PROP_REACH       + ')'
+STATUS_FALSE_TERMINATION =  STR_FALSE + '(' + PROP_TERMINATION + ')'
+STATUS_FALSE_DEREF =        STR_FALSE + '(' + PROP_DEREF       + ')'
+STATUS_FALSE_FREE =         STR_FALSE + '(' + PROP_FREE        + ')'
+STATUS_FALSE_MEMTRACK =     STR_FALSE + '(' + PROP_MEMTRACK    + ')'
 
-# string searched in filenames to determine correct or incorrect status.
-# use lower case! the dict contains assignments 'filename' --> 'status'
-FALSE_SUBSTRINGS = {'_false-unreach-label':  STR_FALSE_REACH,
-                    '_false-unreach-call':   STR_FALSE_REACH,
-                    '_false-termination':    STR_FALSE_TERMINATION,
-                    '_false-valid-deref':    STR_FALSE_DEREF,
-                    '_false-valid-free':     STR_FALSE_FREE,
-                    '_false-valid-memtrack': STR_FALSE_MEMTRACK
-                   }
 
-assert all('_false-' in k for k in FALSE_SUBSTRINGS.keys())
+# list of all public constants,
+# if a tool-result is not in this list, it is handled as CATEGORY_ERROR
+STATUS_LIST = [STATUS_TRUE_PROP, STATUS_UNKNOWN,
+            STATUS_FALSE_REACH, STATUS_FALSE_TERMINATION, 
+            STATUS_FALSE_DEREF, STATUS_FALSE_FREE, STATUS_FALSE_MEMTRACK]
+
+
+# strings searched in filenames to determine correct or incorrect status.
+# use lower case! the dict contains assignments 'substring' --> 'partial statuses'
+SUBSTRINGS = {
+              '_true-unreach-label':   (STR_TRUE, [PROP_REACH]),
+              '_true-unreach-call':    (STR_TRUE, [PROP_REACH]),
+              '_true-termination':     (STR_TRUE, [PROP_TERMINATION]),
+              '_true-valid-deref':     (STR_TRUE, [PROP_DEREF]),
+              '_true-valid-free':      (STR_TRUE, [PROP_FREE]),
+              '_true-valid-memtrack':  (STR_TRUE, [PROP_MEMTRACK]),
+              '_true-valid-memsafety': (STR_TRUE, [PROP_DEREF, PROP_FREE, PROP_MEMTRACK]),
+
+              '_false-unreach-label':  (STR_FALSE, [PROP_REACH]),
+              '_false-unreach-call':   (STR_FALSE, [PROP_REACH]),
+              '_false-termination':    (STR_FALSE, [PROP_TERMINATION]),
+              '_false-valid-deref':    (STR_FALSE, [PROP_DEREF]),
+              '_false-valid-free':     (STR_FALSE, [PROP_FREE]),
+              '_false-valid-memtrack': (STR_FALSE, [PROP_MEMTRACK])
+              }
 
 
 # this map contains substring of property-files with their status
-PROPERTY_MATCHER = {'LTL(G ! label(':         STR_FALSE_REACH,
-                    'LTL(G ! call(__VERIFIER_error()))': STR_FALSE_REACH,
-                    'LTL(F end)':             STR_FALSE_TERMINATION,
-                    'LTL(G valid-free)':      STR_FALSE_FREE,
-                    'LTL(G valid-deref)' :    STR_FALSE_DEREF,
-                    'LTL(G valid-memtrack)' : STR_FALSE_MEMTRACK
+PROPERTY_MATCHER = {'LTL(G ! label(':                    PROP_REACH,
+                    'LTL(G ! call(__VERIFIER_error()))': PROP_REACH,
+                    'LTL(F end)':                        PROP_TERMINATION,
+                    'LTL(G valid-free)':                 PROP_FREE,
+                    'LTL(G valid-deref)':                PROP_DEREF,
+                    'LTL(G valid-memtrack)':             PROP_MEMTRACK
                    }
 
 
@@ -83,18 +102,18 @@ SCORE_WRONG_TRUE = -8
 
 def _statusesOfFile(filename):
     """
-    This function returns all statuses of a file, 
-    this is the list of false-properties in the filename.
+    This function returns a list of all properties in the filename.
     """
-    statuses = [val for (key,val) in FALSE_SUBSTRINGS.items() if key in filename]
-    #TODO: enable next line, when all sourcefiles are renamed
-    #if not statuses: assert not '_false' in filename
+    statuses = []
+    for (substr, props) in SUBSTRINGS.items():
+        if substr in filename:
+            statuses.extend((props[0], prop) for prop in props[1])
     return statuses
 
 
 def _statusesOfPropertyFile(propertyFile):
     assert os.path.isfile(propertyFile)
-    
+
     statuses = []
     with open(propertyFile) as f:
         content = f.read()
@@ -111,11 +130,12 @@ def _statusesOfPropertyFile(propertyFile):
 
 # the functions fileIsFalse and fileIsTrue are only used tocount files,
 # not in any other logic. They should return complementary values.
+# TODO false or correct depends on the property! --> add property-check
 def fileIsFalse(filename):
-    return util.containsAny(filename, FALSE_SUBSTRINGS.keys())
+    return util.containsAny(filename, [key for (key,val) in SUBSTRINGS.items() if val[0] == STR_FALSE])
 
 def fileIsTrue(filename):
-    return not util.containsAny(filename, FALSE_SUBSTRINGS.keys())
+    return util.containsAny(filename, [key for (key,val) in SUBSTRINGS.items() if val[0] == STR_TRUE])
 
 
 def getResultCategory(filename, status, propertyFile=None):
@@ -124,20 +144,34 @@ def getResultCategory(filename, status, propertyFile=None):
     that shows the relation between status and file.
     '''
 
-    if status == STR_UNKNOWN:
+    if status == STATUS_UNKNOWN:
         category = CATEGORY_UNKNOWN
-    elif status in STR_LIST:
-        
+    elif status in STATUS_LIST:
+
         # Without propertyfile we do not return correct or wrong results, but always UNKNOWN.
-        if propertyFile is None: 
+        if propertyFile is None:
             category = CATEGORY_MISSING
         else:
             fileStatuses = _statusesOfFile(filename)
             propertiesToCheck = _statusesOfPropertyFile(propertyFile)
-            commonBugs = set(propertiesToCheck).intersection(set(fileStatuses)) # list of bugs, that are searched and part of the filename
-            if status == STR_TRUE and not commonBugs:
-                category = CATEGORY_CORRECT
-            elif status in commonBugs:
+
+            searchedProperties = []
+            for (flag,prop) in fileStatuses:
+                if prop in propertiesToCheck:
+                    searchedProperties.append(flag + '(' + prop + ')') # format must match with above!
+
+            if not searchedProperties:
+                # filename gives no hint on the searched bug or
+                # we are searching for a property, that has nothing to do with the file
+                category = CATEGORY_MISSING
+
+            elif status is STR_TRUE:
+                if all(prop.startswith(STR_TRUE) for prop in searchedProperties):
+                    category = CATEGORY_CORRECT
+                else:
+                    category = CATEGORY_WRONG
+
+            elif status in searchedProperties:
                 category = CATEGORY_CORRECT
             else:
                 category = CATEGORY_WRONG
@@ -149,9 +183,9 @@ def getResultCategory(filename, status, propertyFile=None):
 
 def calculateScore(category, status):
     if category == CATEGORY_CORRECT:
-        return SCORE_CORRECT_TRUE if status == STR_TRUE else SCORE_CORRECT_FALSE
+        return SCORE_CORRECT_TRUE if status == STATUS_TRUE_PROP else SCORE_CORRECT_FALSE
     elif category == CATEGORY_WRONG:
-        return SCORE_WRONG_TRUE if status == STR_TRUE else SCORE_WRONG_FALSE
+        return SCORE_WRONG_TRUE if status == STATUS_TRUE_PROP else SCORE_WRONG_FALSE
     elif category in [CATEGORY_UNKNOWN, CATEGORY_ERROR, CATEGORY_MISSING]:
         return SCORE_UNKNOWN
     else:

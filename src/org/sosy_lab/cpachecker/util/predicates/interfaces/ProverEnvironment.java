@@ -63,13 +63,16 @@ public interface ProverEnvironment extends AutoCloseable {
    * Perform the maximization of the variable {@code f}, subject to the
    * constraints returned by the context.
    *
+   * Optional operation, may not be supported by all solvers.
+   *
    * @param f Variable to maximize.
    * @param maximize Iff true, perform maximization. Minimization otherwise.
    * @return Status of the optimization problem.
    * The solution can be obtained from the model.
    * @throws InterruptedException
+   * @throws UnsupportedOperationException If solver does not support optimization.
    */
-  OptResult isOpt(Formula f, boolean maximize) throws InterruptedException;
+  OptResult isOpt(Formula f, boolean maximize) throws InterruptedException, UnsupportedOperationException;
 
   /**
    * Get a satisfying assignment.

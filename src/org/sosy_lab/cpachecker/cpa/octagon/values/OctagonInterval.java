@@ -27,29 +27,29 @@ import java.util.Arrays;
 import java.util.Collections;
 
 @SuppressWarnings("rawtypes")
-public class OctInterval {
+public class OctagonInterval {
 
   /**
    * the lower bound of the OctInterval
    */
-  private final OctNumericValue low;
+  private final OctagonNumericValue low;
 
   /**
    * the upper bound of the OctInterval
    */
-  private final OctNumericValue high;
+  private final OctagonNumericValue high;
 
   /**
    * an OctInterval representing an impossible OctInterval
    */
-  public static final OctInterval EMPTY = createEmptyOctInterval();
-  public static final OctInterval FALSE = new OctInterval(OctIntValue.ZERO, OctIntValue.ZERO);
-  public static final OctInterval DELTA = new OctInterval(-0.1, 0.1);
+  public static final OctagonInterval EMPTY = createEmptyOctInterval();
+  public static final OctagonInterval FALSE = new OctagonInterval(OctagonIntValue.ZERO, OctagonIntValue.ZERO);
+  public static final OctagonInterval DELTA = new OctagonInterval(-0.1, 0.1);
 
   /**
    * This method acts as constructor for an empty OctInterval.
    */
-  private OctInterval() {
+  private OctagonInterval() {
     this.low = null;
     this.high = null;
   }
@@ -59,9 +59,9 @@ public class OctInterval {
    *
    * @param value for the lower and upper bound
    */
-  public OctInterval(Long value) {
-    this.low  = OctIntValue.of(value);
-    this.high = OctIntValue.of(value);
+  public OctagonInterval(Long value) {
+    this.low  = OctagonIntValue.of(value);
+    this.high = OctagonIntValue.of(value);
   }
 
   /**
@@ -70,28 +70,28 @@ public class OctInterval {
    * @param low the lower bound
    * @param high the upper bound
    */
-  public OctInterval(Long low, Long high) {
-    this.low  = OctIntValue.of(low);
-    this.high = OctIntValue.of(high);
+  public OctagonInterval(Long low, Long high) {
+    this.low  = OctagonIntValue.of(low);
+    this.high = OctagonIntValue.of(high);
 
     isSane();
   }
 
-  public OctInterval(double low, double high) {
-    this.low  = new OctDoubleValue(low);
-    this.high = new OctDoubleValue(high);
+  public OctagonInterval(double low, double high) {
+    this.low  = new OctagonDoubleValue(low);
+    this.high = new OctagonDoubleValue(high);
 
     isSane();
   }
 
-  public OctInterval(OctNumericValue low, OctNumericValue high) {
+  public OctagonInterval(OctagonNumericValue low, OctagonNumericValue high) {
     this.low  = low;
     this.high = high;
 
     isSane();
   }
 
-  public OctInterval(OctNumericValue pValue) {
+  public OctagonInterval(OctagonNumericValue pValue) {
     this.low = pValue;
     this.high = pValue;
   }
@@ -106,11 +106,11 @@ public class OctInterval {
 
   public boolean isInfinite() {
     boolean isInfinite = false;
-    if (low instanceof OctDoubleValue) {
-      isInfinite = ((OctDoubleValue)low).getValue().isInfinite();
+    if (low instanceof OctagonDoubleValue) {
+      isInfinite = ((OctagonDoubleValue)low).getValue().isInfinite();
     }
-    if (!isInfinite && high instanceof OctDoubleValue) {
-      isInfinite = ((OctDoubleValue)high).getValue().isInfinite();
+    if (!isInfinite && high instanceof OctagonDoubleValue) {
+      isInfinite = ((OctagonDoubleValue)high).getValue().isInfinite();
     }
     return isInfinite;
   }
@@ -120,7 +120,7 @@ public class OctInterval {
    *
    * @return the lower bound
    */
-  public OctNumericValue getLow() {
+  public OctagonNumericValue getLow() {
     return low;
   }
 
@@ -129,7 +129,7 @@ public class OctInterval {
    *
    * @return the upper bound
    */
-  public OctNumericValue getHigh() {
+  public OctagonNumericValue getHigh() {
     return high;
   }
 
@@ -138,11 +138,11 @@ public class OctInterval {
    */
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof OctInterval)) {
+    if (!(obj instanceof OctagonInterval)) {
       return false;
     }
 
-    OctInterval other = (OctInterval)obj;
+    OctagonInterval other = (OctagonInterval)obj;
 
     if (isEmpty() && other.isEmpty()) {
       return true;
@@ -182,11 +182,11 @@ public class OctInterval {
    * @param other the other OctInterval
    * @return the new OctInterval with the respective bounds
    */
-  public OctInterval union(OctInterval other) {
+  public OctagonInterval union(OctagonInterval other) {
     if (isEmpty() || other.isEmpty()) {
       return createEmptyOctInterval();
     } else {
-      return new OctInterval(low.min(other.low), high.max(other.high));
+      return new OctagonInterval(low.min(other.low), high.max(other.high));
     }
   }
 
@@ -198,11 +198,11 @@ public class OctInterval {
    * @param other the other OctInterval
    * @return the new OctInterval with the respective bounds
    */
-  public OctInterval intersect(OctInterval other) {
-    OctInterval OctInterval = null;
+  public OctagonInterval intersect(OctagonInterval other) {
+    OctagonInterval OctInterval = null;
 
     if (this.intersects(other)) {
-      OctInterval = new OctInterval(low.max(other.low), high.max(other.high));
+      OctInterval = new OctagonInterval(low.max(other.low), high.max(other.high));
     } else {
       OctInterval = createEmptyOctInterval();
     }
@@ -216,7 +216,7 @@ public class OctInterval {
    * @param other OctInterval to compare with
    * @return true if the upper bound of this OctInterval is always strictly lower than the lower bound of the other OctInterval, else false
    */
-  public boolean isLessThan(OctInterval other) {
+  public boolean isLessThan(OctagonInterval other) {
     return !isEmpty() && !other.isEmpty() && high.lessThan(other.low);
   }
 
@@ -226,7 +226,7 @@ public class OctInterval {
    * @param other OctInterval to compare with
    * @return true if the lower bound of this OctInterval is always strictly greater than the upper bound of the other OctInterval, else false
    */
-  public boolean isGreaterThan(OctInterval other) {
+  public boolean isGreaterThan(OctagonInterval other) {
     return !isEmpty() && !other.isEmpty() && low.greaterThan(other.high);
   }
 
@@ -236,7 +236,7 @@ public class OctInterval {
    * @param other OctInterval to compare with
    * @return true if the lower bound of this OctInterval is strictly lower than the upper bound of the other OctInterval, else false
    */
-  public boolean mayBeLessThan(OctInterval other) {
+  public boolean mayBeLessThan(OctagonInterval other) {
     return isEmpty() || (!isEmpty() && !other.isEmpty() && low.lessThan(other.high));
   }
 
@@ -246,7 +246,7 @@ public class OctInterval {
    * @param other OctInterval to compare with
    * @return true if the lower bound of this OctInterval is strictly lower than the upper bound of the other OctInterval, else false
    */
-  public boolean mayBeLessOrEqualThan(OctInterval other) {
+  public boolean mayBeLessOrEqualThan(OctagonInterval other) {
     return isEmpty() || (!isEmpty() && !other.isEmpty() && low.lessEqual(other.high));
   }
 
@@ -256,7 +256,7 @@ public class OctInterval {
    * @param other OctInterval to compare with
    * @return true if the upper bound of this OctInterval is strictly greater than the lower bound of the other OctInterval, else false
    */
-  public boolean mayBeGreaterThan(OctInterval other) {
+  public boolean mayBeGreaterThan(OctagonInterval other) {
     return other.isEmpty() || (!isEmpty() && !other.isEmpty() && high.greaterEqual(other.low));
   }
 
@@ -266,7 +266,7 @@ public class OctInterval {
    * @param other OctInterval to compare with
    * @return true if the upper bound of this OctInterval is strictly greater than the lower bound of the other OctInterval, else false
    */
-  public boolean mayBeGreaterOrEqualThan(OctInterval other) {
+  public boolean mayBeGreaterOrEqualThan(OctagonInterval other) {
     return other.isEmpty() || (!isEmpty() && !other.isEmpty() && high.greaterEqual(other.low));
   }
 
@@ -285,8 +285,8 @@ public class OctInterval {
    * @param other the other OctInterval
    * @return the new OctInterval with the respective bounds
    */
-  public OctInterval minimum(OctInterval other) {
-    OctInterval OctInterval = new OctInterval(low.min(other.low), high.min(other.high));
+  public OctagonInterval minimum(OctagonInterval other) {
+    OctagonInterval OctInterval = new OctagonInterval(low.min(other.low), high.min(other.high));
 
     return OctInterval;
   }
@@ -297,8 +297,8 @@ public class OctInterval {
    * @param other the other OctInterval
    * @return the new OctInterval with the respective bounds
    */
-  public OctInterval maximum(OctInterval other) {
-    OctInterval OctInterval = new OctInterval(low.max(other.low), high.max(other.high));
+  public OctagonInterval maximum(OctagonInterval other) {
+    OctagonInterval OctInterval = new OctagonInterval(low.max(other.low), high.max(other.high));
 
     return OctInterval;
   }
@@ -309,13 +309,13 @@ public class OctInterval {
    * @param other the OctInterval to limit this OctInterval
    * @return the new OctInterval with the upper bound of this OctInterval and the lower bound set to the maximum of this OctInterval's and the other OctInterval's lower bound or an empty OctInterval if this OctInterval is less than the other OctInterval.
    */
-  public OctInterval limitLowerBoundBy(OctInterval other) {
-    OctInterval OctInterval = null;
+  public OctagonInterval limitLowerBoundBy(OctagonInterval other) {
+    OctagonInterval OctInterval = null;
 
     if (isEmpty() || other.isEmpty() || high.lessEqual(other.low)) {
       OctInterval = createEmptyOctInterval();
     } else {
-      OctInterval = new OctInterval(low.max(other.low), high);
+      OctInterval = new OctagonInterval(low.max(other.low), high);
     }
 
     return OctInterval;
@@ -327,13 +327,13 @@ public class OctInterval {
    * @param other the OctInterval to limit this OctInterval
    * @return the new OctInterval with the lower bound of this OctInterval and the upper bound set to the minimum of this OctInterval's and the other OctInterval's upper bound or an empty OctInterval if this OctInterval is greater than the other OctInterval.
    */
-  public OctInterval limitUpperBoundBy(OctInterval other) {
-    OctInterval OctInterval = null;
+  public OctagonInterval limitUpperBoundBy(OctagonInterval other) {
+    OctagonInterval OctInterval = null;
 
     if (isEmpty() || other.isEmpty() || low.greaterThan(other.high)) {
       OctInterval = createEmptyOctInterval();
     } else {
-      OctInterval = new OctInterval(low, high.min(other.high));
+      OctInterval = new OctagonInterval(low, high.min(other.high));
     }
 
     return OctInterval;
@@ -345,7 +345,7 @@ public class OctInterval {
    * @param other the other OctInterval
    * @return true if the OctIntervals intersect, else false
    */
-  public boolean intersects(OctInterval other) {
+  public boolean intersects(OctagonInterval other) {
       if (isEmpty() || other.isEmpty()) {
         return false;
       }
@@ -363,7 +363,7 @@ public class OctInterval {
    * @param other the other OctInterval
    * @return true if this OctInterval contains the other OctInterval, else false
    */
-  public boolean contains(OctInterval other) {
+  public boolean contains(OctagonInterval other) {
      return (!isEmpty() && !other.isEmpty()
                && low.lessEqual(other.low) && other.high.lessEqual(high));
   }
@@ -374,12 +374,12 @@ public class OctInterval {
    * @param OctInterval the OctInterval to add
    * @return a new OctInterval with the respective bounds
    */
-  public OctInterval plus(OctInterval OctInterval) {
+  public OctagonInterval plus(OctagonInterval OctInterval) {
     if (isEmpty() || OctInterval.isEmpty()) {
       return createEmptyOctInterval();
     }
 
-    return new OctInterval(scalarPlus(low, OctInterval.low), scalarPlus(high, OctInterval.high));
+    return new OctagonInterval(scalarPlus(low, OctInterval.low), scalarPlus(high, OctInterval.high));
   }
 
   /**
@@ -388,8 +388,8 @@ public class OctInterval {
    * @param offset the constant offset to add
    * @return a new OctInterval with the respective bounds
    */
-  public OctInterval plus(Long offset) {
-    return plus(new OctInterval(offset, offset));
+  public OctagonInterval plus(Long offset) {
+    return plus(new OctagonInterval(offset, offset));
   }
 
   /**
@@ -398,7 +398,7 @@ public class OctInterval {
    * @param other OctInterval to subtract
    * @return a new OctInterval with the respective bounds
    */
-  public OctInterval minus(OctInterval other) {
+  public OctagonInterval minus(OctagonInterval other) {
     return plus(other.negate());
   }
 
@@ -408,7 +408,7 @@ public class OctInterval {
    * @param offset the constant offset to subtract
    * @return a new OctInterval with the respective bounds
    */
-  public OctInterval minus(Long offset) {
+  public OctagonInterval minus(Long offset) {
     return plus(-offset);
   }
 
@@ -419,15 +419,15 @@ public class OctInterval {
    * @return new OctInterval that represents the result of the multiplication of the two OctIntervals
    */
   @SuppressWarnings("unchecked")
-  public OctInterval times(OctInterval other) {
-    OctNumericValue[] values = {
+  public OctagonInterval times(OctagonInterval other) {
+    OctagonNumericValue[] values = {
                       scalarTimes(low, other.low),
                       scalarTimes(low, other.high),
                       scalarTimes(high, other.low),
                       scalarTimes(high, other.high)
                     };
 
-    return new OctInterval(Collections.min(Arrays.asList(values)), Collections.max(Arrays.asList(values)));
+    return new OctagonInterval(Collections.min(Arrays.asList(values)), Collections.max(Arrays.asList(values)));
   }
 
   /**
@@ -437,19 +437,19 @@ public class OctInterval {
    * @return new OctInterval that represents the result of the division of the two OctIntervals
    */
   @SuppressWarnings("unchecked")
-  public OctInterval divide(OctInterval other) {
+  public OctagonInterval divide(OctagonInterval other) {
     // other OctInterval contains "0", return unbound OctInterval
     if (other.contains(FALSE)) {
       return createUnboundOctInterval();
     } else {
-      OctNumericValue[] values = {
+      OctagonNumericValue[] values = {
                         low.div(other.low),
                         low.div(other.high),
                         high.div(other.low),
                         high.div(other.high)
                       };
 
-      return new OctInterval(Collections.min(Arrays.asList(values)), Collections.max(Arrays.asList(values)));
+      return new OctagonInterval(Collections.min(Arrays.asList(values)), Collections.max(Arrays.asList(values)));
     }
   }
 
@@ -458,8 +458,8 @@ public class OctInterval {
    *
    * @return new negated OctInterval
    */
-  public OctInterval negate() {
-    return new OctInterval(high.mul(OctIntValue.NEG_ONE), low.mul(OctIntValue.NEG_ONE));
+  public OctagonInterval negate() {
+    return new OctagonInterval(high.mul(OctagonIntValue.NEG_ONE), low.mul(OctagonIntValue.NEG_ONE));
   }
 
   /**
@@ -484,8 +484,8 @@ public class OctInterval {
    *
    * @return an empty OctInterval
    */
-  private static OctInterval createEmptyOctInterval() {
-    return new OctInterval();
+  private static OctagonInterval createEmptyOctInterval() {
+    return new OctagonInterval();
   }
 
   /**
@@ -493,8 +493,8 @@ public class OctInterval {
    *
    * @return an unbounded OctInterval, i.e. the lower and upper bound are set to Long.MIN_VALUE and Long.MAX_VALUE respectively
    */
-  public static OctInterval createUnboundOctInterval() {
-    return new OctInterval(Long.MIN_VALUE, Long.MAX_VALUE);
+  public static OctagonInterval createUnboundOctInterval() {
+    return new OctagonInterval(Long.MIN_VALUE, Long.MAX_VALUE);
   }
 
   /**
@@ -502,8 +502,8 @@ public class OctInterval {
    *
    * @return an OctInterval representing the FALSE value, i.e. the lower and upper bound are set to 0
    */
-  public static OctInterval createFalseOctInterval() {
-    return new OctInterval(0L);
+  public static OctagonInterval createFalseOctInterval() {
+    return new OctagonInterval(0L);
   }
 
   /**
@@ -511,8 +511,8 @@ public class OctInterval {
    *
    * @return an OctInterval representing the TRUE value, i.e. the lower and upper bound are set to 1
    */
-  public static OctInterval createTrueOctInterval() {
-    return new OctInterval(1L);
+  public static OctagonInterval createTrueOctInterval() {
+    return new OctagonInterval(1L);
   }
 
   /**
@@ -522,8 +522,8 @@ public class OctInterval {
    * @param y the second scalar operand
    * @return the sum of the first and second scalar operand or on overflow Long.MAX_VALUE and Long.MIN_VALUE, respectively.
    */
-  private static OctNumericValue scalarPlus(OctNumericValue x, OctNumericValue y) {
-    OctNumericValue result = x.add(y);
+  private static OctagonNumericValue scalarPlus(OctagonNumericValue x, OctagonNumericValue y) {
+    OctagonNumericValue result = x.add(y);
 
     // TODO overflows
 
@@ -537,13 +537,13 @@ public class OctInterval {
    * @param y the second scalar operand
    * @return the product of the first and second scalar operand or on overflow Long.MAX_VALUE and Long.MIN_VALUE, respectively.
    */
-  private static OctNumericValue scalarTimes(OctNumericValue x, OctNumericValue y) {
+  private static OctagonNumericValue scalarTimes(OctagonNumericValue x, OctagonNumericValue y) {
     Long bound = (x.signum() == y.signum()) ? Long.MAX_VALUE : Long.MIN_VALUE;
 
     // if overflow occurs, return the respective bound
-    if (!x.isEqual(0) && (y.greaterThan(0) && y.greaterThan(OctIntValue.ONE.div(x).mul(bound))
-        || y.lessThan(0) && y.lessThan(OctIntValue.ONE.div(x).mul(bound)))) {
-      return OctIntValue.of(bound);
+    if (!x.isEqual(0) && (y.greaterThan(0) && y.greaterThan(OctagonIntValue.ONE.div(x).mul(bound))
+        || y.lessThan(0) && y.lessThan(OctagonIntValue.ONE.div(x).mul(bound)))) {
+      return OctagonIntValue.of(bound);
     } else {
       return x.mul(y);
     }

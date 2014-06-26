@@ -99,6 +99,7 @@ public class Z3TheoremProver implements ProverEnvironment {
     return result == Z3_LBOOL.Z3_L_FALSE.status;
   }
 
+  @Override
   public OptResult isOpt(Formula fvar, boolean maximize) {
     Z3Formula var = (Z3Formula) fvar;
     Preconditions.checkArgument(mgr.getUnsafeFormulaManager().isVariable(var),

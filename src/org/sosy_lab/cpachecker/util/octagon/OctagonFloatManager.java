@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.octagon;
 
 import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.*;
 
-import org.sosy_lab.cpachecker.cpa.octagon.values.OctInterval;
+import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonInterval;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 
 import com.google.common.collect.BiMap;
@@ -79,7 +79,7 @@ public class OctagonFloatManager extends OctagonManager {
   }
 
   @Override
-  public OctInterval getVariableBounds(Octagon oct, int id) {
+  public OctagonInterval getVariableBounds(Octagon oct, int id) {
     NumArray lower = init_num_t(1);
     NumArray upper = init_num_t(1);
     assert id < dimension(oct);
@@ -87,17 +87,17 @@ public class OctagonFloatManager extends OctagonManager {
     boolean lowerInfinite = J_num_infty(lower.getArray(), 0);
     boolean upperInfinite = J_num_infty(upper.getArray(), 0);
 
-    OctInterval retVal;
+    OctagonInterval retVal;
     if (lowerInfinite && upperInfinite) {
-      retVal = new OctInterval(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
+      retVal = new OctagonInterval(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
     } else if (lowerInfinite) {
-      retVal = new OctInterval(Double.NEGATIVE_INFINITY,
+      retVal = new OctagonInterval(Double.NEGATIVE_INFINITY,
                                J_num_get_float(upper.getArray(), 0));
     } else if (upperInfinite) {
-      retVal = new OctInterval(J_num_get_float(lower.getArray(), 0) * -1,
+      retVal = new OctagonInterval(J_num_get_float(lower.getArray(), 0) * -1,
                                Double.POSITIVE_INFINITY);
     } else {
-      retVal = new OctInterval(J_num_get_float(lower.getArray(), 0) * -1,
+      retVal = new OctagonInterval(J_num_get_float(lower.getArray(), 0) * -1,
                                J_num_get_float(upper.getArray(), 0));
     }
 

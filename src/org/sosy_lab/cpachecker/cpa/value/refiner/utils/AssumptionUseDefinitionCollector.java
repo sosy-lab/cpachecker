@@ -139,6 +139,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
    * @param path the path to check
    * @return true, if the path is incomplete, else false
    */
+  @SuppressWarnings("unused")
   private boolean isIncompletePath(List<CFAEdge> path) {
     return path.get(0).getPredecessor().getNumEnteringEdges() > 0;
   }

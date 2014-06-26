@@ -29,8 +29,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -58,8 +56,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 
 /**
@@ -162,10 +164,16 @@ public class ReferencedVariablesCollector {
         }
         break;
       }
+      case ReturnStatementEdge:
+        CExpression returnExpr = ((CReturnStatementEdge) edge).getExpression();
+        if (returnExpr != null) {
+          Set<String> vars = collectVars(returnExpr);
+          allVars.addAll(vars);
+        }
+        break;
       case BlankEdge:
       case CallToReturnEdge:
       case FunctionReturnEdge:
-      case ReturnStatementEdge:
         //nothing to do
         break;
       default:

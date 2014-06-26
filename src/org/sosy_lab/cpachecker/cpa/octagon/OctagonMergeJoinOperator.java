@@ -33,9 +33,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 @Options(prefix="cpa.octagon.mergeop")
-public class OctMergeJoinOperator implements MergeOperator {
+public class OctagonMergeJoinOperator implements MergeOperator {
 
-  private final OctDomain domain;
+  private final OctagonDomain domain;
 
   @Option(name="type", toUppercase=true, values={"NORMAL", "WIDENING"},
       description="of which type should the merge be? normal, for usual join, widening for"
@@ -47,7 +47,7 @@ public class OctMergeJoinOperator implements MergeOperator {
       + "of a loop is a different block, thus the precision of the analysis increases")
   private boolean onlyJoinEdgesInSameBlock = false;
 
-  public OctMergeJoinOperator(OctDomain domain, Configuration config) throws InvalidConfigurationException {
+  public OctagonMergeJoinOperator(OctagonDomain domain, Configuration config) throws InvalidConfigurationException {
     config.inject(this);
     this.domain = domain;
   }
@@ -55,14 +55,14 @@ public class OctMergeJoinOperator implements MergeOperator {
   @Override
   public AbstractState merge(AbstractState el1, AbstractState el2, Precision p) throws CPAException {
     if (onlyJoinEdgesInSameBlock) {
-      if (!((OctState)el1).areInSameBlock((OctState)el2)) {
+      if (!((OctagonState)el1).areInSameBlock((OctagonState)el2)) {
         return el2;
       }
     }
     if (joinType.equals("NORMAL")) {
       return domain.join(el1, el2);
     } else if (joinType.equals("WIDENING")) {
-        return domain.joinWidening((OctState)el1, (OctState)el2);
+        return domain.joinWidening((OctagonState)el1, (OctagonState)el2);
     } else {
       throw new CPAException("Invalid join type in Octagon merge join operator");
     }

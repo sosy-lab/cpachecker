@@ -40,51 +40,51 @@ import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
 /**
  * Tests for the opti-z3 branch.
  */
-public class TestZ3Maximization {
+public class Z3MaximizationTest {
 
   /**
    * Tests only get to run if Z3 can be loaded.
    */
-  public boolean canLoadZ3() {
+  public void loadZ3() {
     try {
       NativeLibraries.loadLibrary("z3j");
-      return true;
-    } catch (Throwable t) {
-      return false;
+    } catch (UnsatisfiedLinkError t) {
+      Assume.assumeNoException("libfoci.so is needed for Z3 to load", t);
     }
   }
 
   @Test
   public void testMaximization() throws
       InvalidConfigurationException,
-      SolverException {
+      SolverException, InterruptedException {
 
-    Assume.assumeTrue(canLoadZ3());
+    loadZ3();
     Configuration config = Configuration.defaultConfiguration();
     Z3FormulaManager mgr = Z3FormulaManager.create(null, config);
     Z3RationalFormulaManager rfmgr =
         (Z3RationalFormulaManager) mgr.getRationalFormulaManager();
 
-    Z3TheoremProver prover = new Z3TheoremProver(mgr);
+    try (ProverEnvironment prover = new Z3TheoremProver(mgr)) {
 
-    NumeralFormula.RationalFormula x = rfmgr.makeVariable("x");
-    NumeralFormula.RationalFormula ten = rfmgr.makeNumber("10");
+      NumeralFormula.RationalFormula x = rfmgr.makeVariable("x");
+      NumeralFormula.RationalFormula ten = rfmgr.makeNumber("10");
 
-    // Assert x <= 10.
-    BooleanFormula f = rfmgr.lessOrEquals(x, ten);
-    prover.push(f);
+      // Assert x <= 10.
+      BooleanFormula f = rfmgr.lessOrEquals(x, ten);
+      prover.push(f);
 
-    // Maximize for x.
-    ProverEnvironment.OptResult response = prover.isOpt((Z3Formula) x, true);
+      // Maximize for x.
+      ProverEnvironment.OptResult response = prover.isOpt(x, true);
 
-    Assert.assertEquals(response, ProverEnvironment.OptResult.OPT);
+      Assert.assertEquals(response, ProverEnvironment.OptResult.OPT);
 
-    // Check the value.
-    Model model = prover.getModel();
+      // Check the value.
+      Model model = prover.getModel();
 
-    ExtendedRational value = (ExtendedRational) model.get(new Model.Constant("x", Model.TermType.Real));
+      ExtendedRational value = (ExtendedRational) model.get(new Model.Constant("x", Model.TermType.Real));
 
-    Assert.assertEquals(value, ExtendedRational.ofString("10"));
+      Assert.assertEquals(value, ExtendedRational.ofString("10"));
+    }
   }
 
 }

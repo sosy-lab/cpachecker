@@ -21,22 +21,14 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.value;
+package org.sosy_lab.cpachecker.cpa.apron.precision;
 
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
-/**
- * Class for getting the value of the <code>symbolicValues</code> option.
- */
-@Options(prefix="cpa.value")
-public class SymbolicValuesOption {
 
-  @Option(name="symbolicValues", description="enables generation of symbolic values")
-  private boolean symbolicValues = false;
+public interface IApronPrecision extends Precision {
 
-  public boolean areSymbolicValuesEnabled() {
-    return symbolicValues;
-  }
+  boolean isTracked(String varName, CType type);
 
 }

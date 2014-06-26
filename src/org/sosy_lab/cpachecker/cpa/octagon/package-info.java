@@ -21,22 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.value;
-
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-
 /**
- * Class for getting the value of the <code>symbolicValues</code> option.
+ * The Octagon CPA is based on the Octagon Abstract Domain library.
  */
-@Options(prefix="cpa.value")
-public class SymbolicValuesOption {
-
-  @Option(name="symbolicValues", description="enables generation of symbolic values")
-  private boolean symbolicValues = false;
-
-  public boolean areSymbolicValuesEnabled() {
-    return symbolicValues;
-  }
-
-}
+package org.sosy_lab.cpachecker.cpa.octagon;

@@ -37,6 +37,7 @@ public class ExtendedRational implements Comparable<ExtendedRational>{
    * (0, 0) is UNDEFINED, (+n, 0) is INFTY, (-n, 0) is NEG_INFTY, everything
    * else is RATIONAL.
    */
+  @SuppressWarnings("hiding")
   static enum NumberType {
     NEG_INFTY,
     RATIONAL, // Normal rational.
@@ -122,6 +123,7 @@ public class ExtendedRational implements Comparable<ExtendedRational>{
    * a) String of the form num/den if the number is rational.
    * b) String containing INF | NEG_INF | NaN otherwise.
    */
+  @Override
   public String toString() {
     switch (getType()) {
       case RATIONAL:
@@ -142,9 +144,9 @@ public class ExtendedRational implements Comparable<ExtendedRational>{
    * d) a/b -> ExtendedRational(a, b)
    * e) a -> a/1
    *
+   * @param s Input string,
    * @throws NumberFormatException {@code s} is not a valid representation
    * of ExtendedRational.
-   * @param s Input string,
    * @return New {@link ExtendedRational}.
    */
   public static ExtendedRational ofString(String s) {
@@ -175,6 +177,7 @@ public class ExtendedRational implements Comparable<ExtendedRational>{
     return ret;
   }
 
+  @Override
   public int compareTo(ExtendedRational b) {
     NumberType us = getType();
     NumberType them = b.getType();
@@ -194,6 +197,7 @@ public class ExtendedRational implements Comparable<ExtendedRational>{
     }
   }
 
+  @Override
   public boolean equals(Object y) {
     if (y == null) return false;
     if (y.getClass() != this.getClass()) return false;
@@ -201,6 +205,7 @@ public class ExtendedRational implements Comparable<ExtendedRational>{
     return compareTo(b) == 0;
   }
 
+  @Override
   public int hashCode() {
     return this.toString().hashCode();
   }

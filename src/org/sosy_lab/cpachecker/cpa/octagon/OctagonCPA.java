@@ -44,6 +44,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.octagon.precision.RefineableOctagonPrecision;
+import org.sosy_lab.cpachecker.cpa.octagon.precision.StaticFullOctagonPrecision;
 import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
 import org.sosy_lab.cpachecker.util.octagon.OctagonFloatManager;
 import org.sosy_lab.cpachecker.util.octagon.OctagonIntManager;
@@ -53,7 +55,7 @@ import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 public final class OctagonCPA implements ConfigurableProgramAnalysis {
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(OctagonCPA.class);
+    return AutomaticCPAFactory.forType(OctagonCPA.class).withOptions(OctagonOptions.class);
   }
 
   @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
@@ -65,6 +67,27 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
           + " library will be changed between floats and ints.")
   private String octagonLibrary = "INT";
 
+  @Option(name="initialPrecisionType", toUppercase=true, values={"STATIC_FULL", "REFINEABLE_EMPTY"},
+      description="this option determines which initial precision should be used")
+  private String precisionType = "STATIC_FULL";
+
+  /**
+   * In this inner class the options which are needed in several classes of this
+   * cpa are kept.
+   */
+  @Options(prefix="cpa.octagon")
+  public static class OctagonOptions {
+
+    @Option(name="handleFloats",
+        description="with this option the evaluation of float variables can be toggled.")
+    private boolean handleFloats = false;
+
+    public boolean shouldHandleFloats() {
+      return handleFloats;
+    }
+  }
+
+  private final OctagonOptions octagonOptions;
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
@@ -78,11 +101,13 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
   private final OctagonManager octagonManager;
 
   private OctagonCPA(Configuration config, LogManager log,
-                     ShutdownNotifier shutdownNotifier, CFA cfa)
+                     ShutdownNotifier shutdownNotifier, CFA cfa,
+                     OctagonOptions pOctagonOptions)
                      throws InvalidConfigurationException, InvalidCFAException {
     config.inject(this);
+    octagonOptions = pOctagonOptions;
     logger = log;
-    OctDomain octagonDomain = new OctDomain(logger);
+    OctagonDomain octagonDomain = new OctagonDomain(logger);
 
     if (octagonLibrary.equals("FLOAT")) {
       octagonManager = new OctagonFloatManager();
@@ -90,11 +115,11 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
       octagonManager = new OctagonIntManager();
     }
 
-    this.transferRelation = new OctTransferRelation(logger, cfa);
+    this.transferRelation = new OctagonTransferRelation(logger, cfa, octagonOptions);
 
     MergeOperator octagonMergeOp = null;
     if (mergeType.equals("JOIN")) {
-      octagonMergeOp = new OctMergeJoinOperator(octagonDomain, config);
+      octagonMergeOp = new OctagonMergeJoinOperator(octagonDomain, config);
     } else {
       // default is sep
       octagonMergeOp = MergeSepOperator.getInstance();
@@ -109,7 +134,15 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
     this.config = config;
     this.shutdownNotifier = shutdownNotifier;
     this.cfa = cfa;
-    precision = new OctPrecision(config);
+
+    if (precisionType.equals("REFINEABLE_EMPTY")) {
+      precision = new RefineableOctagonPrecision(config);
+
+      // static full precision is default
+    } else {
+      precision = new StaticFullOctagonPrecision(octagonOptions);
+    }
+
   }
 
   public OctagonManager getManager() {
@@ -143,7 +176,7 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractState getInitialState(CFANode node) {
-    return new OctState(logger, octagonManager);
+    return new OctagonState(logger, octagonManager);
   }
 
   @Override
@@ -165,5 +198,9 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
 
   public CFA getCFA() {
     return cfa;
+  }
+
+  public OctagonOptions getOctagonOptions() {
+    return octagonOptions;
   }
 }

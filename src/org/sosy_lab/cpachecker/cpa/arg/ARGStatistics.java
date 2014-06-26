@@ -36,7 +36,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import com.google.common.collect.Lists;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -59,6 +58,7 @@ import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
 
 @Options(prefix="cpa.arg")
@@ -90,7 +90,6 @@ public class ARGStatistics implements Statistics {
 
   private Writer refinementGraphUnderlyingWriter = null;
   private ARGToDotWriter refinementGraphWriter = null;
-  private final ARGPathExport witnessExporter;
   private final CEXExporter cexExporter;
 
   public ARGStatistics(Configuration config, ARGCPA cpa) throws InvalidConfigurationException {
@@ -98,7 +97,6 @@ public class ARGStatistics implements Statistics {
 
     config.inject(this);
 
-    witnessExporter = new ARGPathExport(config);
     cexExporter = new CEXExporter(config, cpa.getLogger());
 
     if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null) {

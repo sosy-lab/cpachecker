@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.apron;
+package org.sosy_lab.cpachecker.cpa.octagon.precision;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -29,11 +29,8 @@ import java.util.Set;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -41,20 +38,13 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 import com.google.common.base.Optional;
 import com.google.common.collect.Multimap;
 
-@Options(prefix="cpa.octagon")
-public class ApronPrecision implements Precision {
 
+public class RefineableOctagonPrecision implements IOctagonPrecision {
   private final Set<String> trackedVars;
-  private final Configuration config;
   private final ValueAnalysisPrecision valuePrecision;
 
-  @Option(name="refiner", description="turn the refiner on or off, default is off")
-  private boolean refiner = false;
-
-  public ApronPrecision(Configuration pConfig) throws InvalidConfigurationException {
-    valuePrecision = new ValueAnalysisPrecision("", pConfig, Optional.<VariableClassification>absent());
-    config = pConfig;
-    config.inject(this);
+  public RefineableOctagonPrecision(Configuration config) throws InvalidConfigurationException  {
+    valuePrecision = new ValueAnalysisPrecision("", config, Optional.<VariableClassification>absent());
     trackedVars = new HashSet<>();
   }
 
@@ -62,10 +52,8 @@ public class ApronPrecision implements Precision {
    * A constructor which increments the included ValueAnalysisPrecision and the
    * OctPrecision.
    */
-  public ApronPrecision(ApronPrecision pOctPrecision, Multimap<CFANode, MemoryLocation> pIncrement) {
+  public RefineableOctagonPrecision(RefineableOctagonPrecision pOctPrecision, Multimap<CFANode, MemoryLocation> pIncrement) {
     valuePrecision = new ValueAnalysisPrecision(pOctPrecision.valuePrecision, pIncrement);
-    config = pOctPrecision.config;
-    refiner = pOctPrecision.refiner;
     trackedVars = new HashSet<>();
     trackedVars.addAll(pOctPrecision.trackedVars);
     for (MemoryLocation mem : pIncrement.values()) {
@@ -77,10 +65,8 @@ public class ApronPrecision implements Precision {
    * A constructor which only increments the OctPrecision, and lets the included
    * ValueAnalysisPrecision as it was.
    */
-  public ApronPrecision(ApronPrecision pOctPrecision, Set<String> pIncrement) {
+  public RefineableOctagonPrecision(RefineableOctagonPrecision pOctPrecision, Set<String> pIncrement) {
     valuePrecision = pOctPrecision.valuePrecision;
-    config = pOctPrecision.config;
-    refiner = pOctPrecision.refiner;
     trackedVars = new HashSet<>();
     trackedVars.addAll(pOctPrecision.trackedVars);
     trackedVars.addAll(pIncrement);
@@ -94,10 +80,8 @@ public class ApronPrecision implements Precision {
     return trackedVars.size();
   }
 
+  @Override
   public boolean isTracked(String varName, CType type) {
-    if(!refiner) {
-      return true;
-    }
     return trackedVars.contains(varName);
   }
 

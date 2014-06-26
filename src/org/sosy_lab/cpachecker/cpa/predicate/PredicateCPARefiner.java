@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
+import com.google.common.collect.Lists;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -49,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -212,11 +214,14 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       formulas = getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirst().getFirst());
     }
     assert abstractionStatesTrace.size() == formulas.size();
-
+    // a user would expect "abstractionStatesTrace.size() == formulas.size()+1",
+    // however we do not have the very first state in the trace,
+    // because the rootState has always abstraction "True".
 
     // build the counterexample
     buildCounterexampeTraceTime.start();
-    final CounterexampleTraceInfo counterexample = formulaManager.buildCounterexampleTrace(formulas, elementsOnPath, strategy.needsInterpolants());
+    final CounterexampleTraceInfo counterexample = formulaManager.buildCounterexampleTrace(
+            formulas, Lists.<AbstractState>newArrayList(abstractionStatesTrace), elementsOnPath, strategy.needsInterpolants());
     buildCounterexampeTraceTime.stop();
 
     // if error is spurious refine

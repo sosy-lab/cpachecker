@@ -77,7 +77,7 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
-  public static ValueAnalysisUseDefinitionBasedRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
+  public static ValueAnalysisUseDefinitionBasedRefiner create(ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(ValueAnalysisUseDefinitionBasedRefiner.class.getSimpleName() + " could not find the ValueAnalysisCPA");
     }
@@ -96,14 +96,13 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
 
   private static ValueAnalysisUseDefinitionBasedRefiner initialiseRefiner(
       ConfigurableProgramAnalysis cpa, ValueAnalysisCPA pValueAnalysisCpa)
-          throws CPAException, InvalidConfigurationException {
+          throws InvalidConfigurationException {
     LogManager logger = pValueAnalysisCpa.getLogger();
 
     return new ValueAnalysisUseDefinitionBasedRefiner(
         logger,
         pValueAnalysisCpa.getShutdownNotifier(),
         cpa,
-        pValueAnalysisCpa.getStaticRefiner(),
         pValueAnalysisCpa.getCFA());
   }
 
@@ -111,8 +110,7 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final ConfigurableProgramAnalysis pCpa,
-      ValueAnalysisStaticRefiner pValueAnalysisStaticRefiner,
-      final CFA pCfa) throws CPAException, InvalidConfigurationException {
+      final CFA pCfa) throws InvalidConfigurationException {
     super(pCpa);
 
     cfa               = pCfa;
@@ -153,10 +151,7 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
 
     try {
       ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
-      List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath,
-          ValueAnalysisPrecision.createDefaultPrecision(),
-          new ValueAnalysisState());
-
+      List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath, new ValueAnalysisState());
       errorPath = new ErrorPathClassifier(cfa.getVarClassification()).obtainPrefixWithLowestScore(prefixes);
     } catch (InvalidConfigurationException e) {
       throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
@@ -218,10 +213,7 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
    */
   boolean isPathFeasable(ARGPath path) throws CPAException {
     try {
-      // create a new ValueAnalysisChecker, which does check the given path at full precision
-      ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
-
-      return checker.isFeasible(path);
+      return new ValueAnalysisFeasibilityChecker(logger, cfa).isFeasible(path);
     }
     catch (InterruptedException | InvalidConfigurationException e) {
       throw new CPAException("counterexample-check failed: ", e);
