@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * Represents a state along the currently analysed path within the StatisticsCPA domain.
@@ -157,6 +158,11 @@ public class StatisticsState implements AbstractStateWithLocation, AbstractQuery
   @Override
   public CFANode getLocationNode() {
       return locationNode;
+  }
+
+  @Override
+  public Iterable<CFAEdge> getOutgoingEdges() {
+    return CFAUtils.leavingEdges(locationNode);
   }
 
   @Override

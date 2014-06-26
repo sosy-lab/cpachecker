@@ -87,6 +87,11 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
   }
 
   @Override
+  public Iterable<CFAEdge> getOutgoingEdges() {
+    return CFAUtils.leavingEdges(locationNode);
+  }
+
+  @Override
   public String toString() {
     return locationNode + " (number of node: " + locationNode.getNodeNumber() + ")";
   }
