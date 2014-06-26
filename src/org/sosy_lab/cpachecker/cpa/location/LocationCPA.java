@@ -62,7 +62,7 @@ public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurablePro
   private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
 
   public LocationCPA(CFA pCfa) {
-    stateFactory = new LocationStateFactory(pCfa);
+    stateFactory = new LocationStateFactory(pCfa, false);
     transferRelation = new LocationTransferRelation(stateFactory);
 
     Optional<CFAInfo> cfaInfo = GlobalInfo.getInstance().getCFAInfo();

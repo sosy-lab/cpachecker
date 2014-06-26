@@ -50,17 +50,20 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
   public static class LocationStateFactory {
     private final LocationState[] states;
 
-    public LocationStateFactory(CFA pCfa) {
-      states = initialize(checkNotNull(pCfa));
+    public LocationStateFactory(CFA pCfa, boolean backwards) {
+      states = initialize(checkNotNull(pCfa), backwards);
     }
 
-    private static LocationState[] initialize(CFA pCfa) {
+    private static LocationState[] initialize(CFA pCfa, boolean backwards) {
 
       SortedSet<CFANode> allNodes = ImmutableSortedSet.copyOf(pCfa.getAllNodes());
       int maxNodeNumber = allNodes.last().getNodeNumber();
       LocationState[] elements = new LocationState[maxNodeNumber+1];
       for (CFANode node : allNodes) {
-        elements[node.getNodeNumber()] = new LocationState(node);
+        LocationState state = backwards
+            ? new BackwardsLocationState(node)
+            : new LocationState(node);
+        elements[node.getNodeNumber()] = state;
       }
 
       return elements;
@@ -74,6 +77,17 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
     }
   }
 
+  private static class BackwardsLocationState extends LocationState {
+
+    protected BackwardsLocationState(CFANode locationNode) {
+      super(locationNode);
+    }
+
+    @Override
+    public Iterable<CFAEdge> getOutgoingEdges() {
+      return CFAUtils.enteringEdges(getLocationNode());
+    }
+  }
 
   private transient CFANode locationNode;
 
