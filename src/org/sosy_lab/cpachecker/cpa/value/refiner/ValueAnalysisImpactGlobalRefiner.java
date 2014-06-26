@@ -76,9 +76,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
@@ -241,13 +239,7 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
     }
 
     // for all other cases, check if the path is feasible when using the interpolant as initial state
-    try {
-      return checker.isFeasible(errorPath,
-          new ValueAnalysisPrecision("", Configuration.builder().build(), Optional.<VariableClassification>absent()),
-          initialItp.createValueAnalysisState());
-    } catch (InvalidConfigurationException e) {
-      throw new CPAException("Configuring ValueAnalysisImpactGlobalRefiner failed: " + e.getMessage(), e);
-    }
+    return checker.isFeasible(errorPath, initialItp.createValueAnalysisState());
   }
 
   private ValueAnalysisPrecision joinSubtreePrecisions(final ReachedSet pReached,
