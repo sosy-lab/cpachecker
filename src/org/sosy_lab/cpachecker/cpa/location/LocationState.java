@@ -74,98 +74,98 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
     }
   }
 
-    private transient CFANode locationNode;
 
-    private LocationState(CFANode locationNode) {
-        this.locationNode = locationNode;
-    }
+  private transient CFANode locationNode;
 
-    @Override
-    public CFANode getLocationNode() {
-        return locationNode;
-    }
+  private LocationState(CFANode locationNode) {
+      this.locationNode = locationNode;
+  }
 
-    @Override
-    public String toString() {
-      return locationNode + " (number of node: " + locationNode.getNodeNumber() + ")";
-    }
+  @Override
+  public CFANode getLocationNode() {
+      return locationNode;
+  }
 
-    @Override
-    public boolean checkProperty(String pProperty) throws InvalidQueryException {
-      String[] parts = pProperty.split("==");
-      if (parts.length != 2) {
-        throw new InvalidQueryException("The Query \"" + pProperty
-            + "\" is invalid. Could not split the property string correctly.");
-      } else {
-        if (parts[0].toLowerCase().equals("line")) {
-          try {
-            int queryLine = Integer.parseInt(parts[1]);
-            for (CFAEdge edge : CFAUtils.enteringEdges(this.locationNode)) {
-              if (edge.getLineNumber()  == queryLine) {
-                return true;
-              }
+  @Override
+  public String toString() {
+    return locationNode + " (number of node: " + locationNode.getNodeNumber() + ")";
+  }
+
+  @Override
+  public boolean checkProperty(String pProperty) throws InvalidQueryException {
+    String[] parts = pProperty.split("==");
+    if (parts.length != 2) {
+      throw new InvalidQueryException("The Query \"" + pProperty
+          + "\" is invalid. Could not split the property string correctly.");
+    } else {
+      if (parts[0].toLowerCase().equals("line")) {
+        try {
+          int queryLine = Integer.parseInt(parts[1]);
+          for (CFAEdge edge : CFAUtils.enteringEdges(this.locationNode)) {
+            if (edge.getLineNumber()  == queryLine) {
+              return true;
             }
-            return false;
-          } catch (NumberFormatException nfe) {
-            throw new InvalidQueryException("The Query \"" + pProperty
-                + "\" is invalid. Could not parse the integer \"" + parts[1] + "\"");
           }
-        } else if (parts[0].toLowerCase().equals("functionname")) {
-          return this.locationNode.getFunctionName().equals(parts[1]);
-        } else {
+          return false;
+        } catch (NumberFormatException nfe) {
           throw new InvalidQueryException("The Query \"" + pProperty
-              + "\" is invalid. \"" + parts[0] + "\" is no valid keyword");
+              + "\" is invalid. Could not parse the integer \"" + parts[1] + "\"");
         }
-      }
-    }
-
-    @Override
-    public void modifyProperty(String pModification)
-        throws InvalidQueryException {
-      throw new InvalidQueryException("The location CPA does not support modification.");
-    }
-
-    @Override
-    public String getCPAName() {
-      return "location";
-    }
-
-    @Override
-    public Object evaluateProperty(String pProperty)
-        throws InvalidQueryException {
-      if (pProperty.equalsIgnoreCase("lineno")) {
-        if (this.locationNode.getNumEnteringEdges() > 0) {
-          return this.locationNode.getEnteringEdge(0).getLineNumber();
-        }
-        return 0; // DUMMY
+      } else if (parts[0].toLowerCase().equals("functionname")) {
+        return this.locationNode.getFunctionName().equals(parts[1]);
       } else {
-        return Boolean.valueOf(checkProperty(pProperty));
+        throw new InvalidQueryException("The Query \"" + pProperty
+            + "\" is invalid. \"" + parts[0] + "\" is no valid keyword");
       }
     }
+  }
 
-    @Override
-    public Object getPartitionKey() {
-      return this;
-    }
+  @Override
+  public void modifyProperty(String pModification)
+      throws InvalidQueryException {
+    throw new InvalidQueryException("The location CPA does not support modification.");
+  }
 
-    // no equals and hashCode because there is always only one element per CFANode
+  @Override
+  public String getCPAName() {
+    return "location";
+  }
 
-    private Object writeReplace() throws ObjectStreamException {
-      return new SerialProxy(locationNode.getNodeNumber());
-    }
-
-    private static class SerialProxy implements Serializable {
-      private static final long serialVersionUID = 6889568471468710163L;
-      private final int nodeNumber;
-
-      public SerialProxy(int nodeNumber) {
-        this.nodeNumber = nodeNumber;
+  @Override
+  public Object evaluateProperty(String pProperty)
+      throws InvalidQueryException {
+    if (pProperty.equalsIgnoreCase("lineno")) {
+      if (this.locationNode.getNumEnteringEdges() > 0) {
+        return this.locationNode.getEnteringEdge(0).getLineNumber();
       }
+      return 0; // DUMMY
+    } else {
+      return Boolean.valueOf(checkProperty(pProperty));
+    }
+  }
 
-      private Object readResolve() throws ObjectStreamException {
-        CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
-        return cfaInfo.getLocationStateFactory().getState(cfaInfo.getNodeByNodeNumber(nodeNumber));
-      }
+  @Override
+  public Object getPartitionKey() {
+    return this;
+  }
+
+  // no equals and hashCode because there is always only one element per CFANode
+
+  private Object writeReplace() throws ObjectStreamException {
+    return new SerialProxy(locationNode.getNodeNumber());
+  }
+
+  private static class SerialProxy implements Serializable {
+    private static final long serialVersionUID = 6889568471468710163L;
+    private final int nodeNumber;
+
+    public SerialProxy(int nodeNumber) {
+      this.nodeNumber = nodeNumber;
     }
 
+    private Object readResolve() throws ObjectStreamException {
+      CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
+      return cfaInfo.getLocationStateFactory().getState(cfaInfo.getNodeByNodeNumber(nodeNumber));
+    }
+  }
 }
