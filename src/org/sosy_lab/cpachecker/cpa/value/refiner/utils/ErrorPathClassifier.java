@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
@@ -96,7 +97,19 @@ public class ErrorPathClassifier {
         factor = INTEQUAL_VAR;
       }
 
+      else if (classification.get().getLoopExitConditionVariables().contains(variableName)) {
+        factor = factor * 4;
+      }
+
+      else if (classification.get().getLoopExitIncDecConditionVariables().contains(variableName)) {
+        factor = factor * 4;
+      }
+
       score = score * factor;
+
+      if (factor == UNKNOWN_VAR && MemoryLocation.valueOf(variableName).getIdentifier().length() == 1) {
+        return Long.MAX_VALUE;
+      }
     }
 
     return score;
