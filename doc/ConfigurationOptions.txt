@@ -818,6 +818,7 @@ cpa.monitor.pathcomputationlimit = 0
 
 # with this option the evaluation of float variables can be toggled.
 cpa.octagon.handleFloats = false
+cpa.octagon.handleFloats = no default value
 
 # this option determines which initial precision should be used
 cpa.octagon.initialPrecisionType = "STATIC_FULL"
@@ -826,9 +827,13 @@ cpa.octagon.initialPrecisionType = "STATIC_FULL"
 # whether or not to use use-definition information from the error pathsto
 # optimize the interpolation process
 cpa.octagon.interpolation.applyUseDefInformation = true
+cpa.octagon.interpolation.applyUseDefInformation = no default value
+cpa.octagon.interpolation.applyUseDefInformation = true
 
 # whether or not to ignore the semantics of loop-leaving-assume-edges during
 # interpolation - this avoids to have loop-counters in the interpolant
+cpa.octagon.interpolation.ignoreLoopsExitAssumes = true
+cpa.octagon.interpolation.ignoreLoopsExitAssumes = no default value
 cpa.octagon.interpolation.ignoreLoopsExitAssumes = true
 
 # which merge operator to use for OctagonCPA?
@@ -839,10 +844,13 @@ cpa.octagon.merge = "SEP"
 # block, i.e. each iterationof a loop is a different block, thus the
 # precision of the analysis increases
 cpa.octagon.mergeop.onlyJoinEdgesInSameBlock = false
+cpa.octagon.mergeop.onlyJoinEdgesInSameBlock = no default value
 
 # of which type should the merge be? normal, for usual join, widening for a
 # widening instead of a join
 cpa.octagon.mergeop.type = "NORMAL"
+  allowed values: [NORMAL, WIDENING]
+cpa.octagon.mergeop.type = no default value
   allowed values: [NORMAL, WIDENING]
 
 # with this option the number representation in the library will be changed
@@ -850,19 +858,30 @@ cpa.octagon.mergeop.type = "NORMAL"
 cpa.octagon.octagonLibrary = "INT"
   allowed values: [INT, FLOAT]
 
+# turn the refiner on or off, default is off
+cpa.octagon.refiner = no default value
+
 # whether or not to avoid restarting at assume edges after a refinement
 cpa.octagon.refiner.avoidAssumes = false
+cpa.octagon.refiner.avoidAssumes = no default value
 
 # whether or not to check for repeated refinements, to then reset the
 # refinement root
 cpa.octagon.refiner.checkForRepeatedRefinements = true
+cpa.octagon.refiner.checkForRepeatedRefinements = no default value
 
 # whether or not to do lazy-abstraction
 cpa.octagon.refiner.doLazyAbstraction = true
+cpa.octagon.refiner.doLazyAbstraction = no default value
+
+# whether or not to interpolate the shortest infeasible prefix rather than
+# the whole error path
+cpa.octagon.refiner.interpolateInfeasiblePrefix = no default value
 
 # Timelimit (in seconds) for the backup feasibility check with the octagon
 # analysis. Zero means there is no timelimit.
 cpa.octagon.refiner.timeForOctagonFeasibilityCheck = 0
+cpa.octagon.refiner.timeForOctagonFeasibilityCheck = no default value
 
 # which merge operator to use for InvariantCPA
 cpa.pointer2.merge = "JOIN"

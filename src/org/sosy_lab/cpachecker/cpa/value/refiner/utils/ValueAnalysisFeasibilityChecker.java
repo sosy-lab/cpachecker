@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -46,11 +47,9 @@ import com.google.common.collect.Sets;
 
 public class ValueAnalysisFeasibilityChecker {
 
-  private final CFA cfa;
   private final LogManager logger;
   private final ValueAnalysisTransferRelation transfer;
   private final ValueAnalysisPrecision precision;
-  private final Configuration config;
 
   /**
    * This method acts as the constructor of the class.
@@ -61,11 +60,9 @@ public class ValueAnalysisFeasibilityChecker {
    * @throws InvalidConfigurationException
    */
   public ValueAnalysisFeasibilityChecker(LogManager pLogger, CFA pCfa) throws InvalidConfigurationException {
-    this.cfa    = pCfa;
-    this.logger = pLogger;
+    logger    = pLogger;
 
-    config    = Configuration.builder().build();
-    transfer  = new ValueAnalysisTransferRelation(config, logger, cfa);
+    transfer  = new ValueAnalysisTransferRelation(Configuration.builder().build(), pLogger, pCfa);
     precision = ValueAnalysisPrecision.createDefaultPrecision();
   }
 
@@ -140,6 +137,7 @@ public class ValueAnalysisFeasibilityChecker {
 
         // no successors => path is infeasible
         if(successors.isEmpty()) {
+          logger.log(Level.FINE, "found infeasible prefix: ", pathElement.getSecond(), " did not yield a successor");
           prefixes.add(currentPrefix);
 
           currentPrefix = new ARGPath();
@@ -152,6 +150,7 @@ public class ValueAnalysisFeasibilityChecker {
 
       // prefixes is empty => path is feasible, so add complete path
       if(prefixes.isEmpty()) {
+        logger.log(Level.FINE, "no infeasible prefixes found - path is feasible");
         prefixes.add(path);
       }
 
