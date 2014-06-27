@@ -97,14 +97,6 @@ public class ErrorPathClassifier {
         factor = INTEQUAL_VAR;
       }
 
-      else if (classification.get().getLoopExitConditionVariables().contains(variableName)) {
-        factor = factor * 4;
-      }
-
-      else if (classification.get().getLoopExitIncDecConditionVariables().contains(variableName)) {
-        factor = factor * 4;
-      }
-
       score = score * factor;
 
       if (factor == UNKNOWN_VAR && MemoryLocation.valueOf(variableName).getIdentifier().length() == 1) {
