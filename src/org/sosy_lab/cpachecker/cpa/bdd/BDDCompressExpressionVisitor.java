@@ -29,6 +29,7 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -169,5 +170,13 @@ public class BDDCompressExpressionVisitor
       }
     }
     return predMgr.createPredicate(idExp.getDeclaration().getQualifiedName(), size, precision);
+  }
+
+  @Override
+  public Region[] visit(final CCastExpression castExpression) {
+    // We do not expect a changing value through a cast, because then this code would be unsound!
+    // This assumption might be unrealistic, but it works in many cases.
+    // This code also matches the code in VariableClassification, line 1413, where casts are ignored for intEQ.
+    return castExpression.getOperand().accept(this);
   }
 }
