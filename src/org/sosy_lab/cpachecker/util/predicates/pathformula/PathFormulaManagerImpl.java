@@ -549,4 +549,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     }
     return preds;
   }
+
+  @Override
+  public CtoFormulaTypeHandler getTypeHandler() {
+    return typeHandler;
+  }
 }

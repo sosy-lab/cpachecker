@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 
 /**
  * Implementation of {@link PathFormulaManager} that delegates to another
@@ -163,5 +164,10 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   @Override
   public Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Model pModel) {
     return delegate.getBranchingPredicateValuesFromModel(pModel);
+  }
+
+  @Override
+  public CtoFormulaTypeHandler getTypeHandler() {
+    return delegate.getTypeHandler();
   }
 }

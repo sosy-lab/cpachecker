@@ -488,8 +488,7 @@ public class BAMPredicateReducer implements Reducer {
             builder.setIndex(var.getKey(), var.getValue(), incrementedIndex); // increment index to have a new variable
           }
 
-          // TODO get correct formulatype: rational, integer, bv
-          final FormulaType type = fmgr.getIntegerFormulaManager().getFormulaType();
+          final FormulaType type = pmgr.getTypeHandler().getFormulaTypeFromCType(rootSSA.getType(var.getKey()));
           final Formula oldVarFormula = fmgr.makeVariable(type, var.getKey(), rootIndex);
           final Formula newVarFormula = fmgr.makeVariable(type, var.getKey(), incrementedIndex);
 

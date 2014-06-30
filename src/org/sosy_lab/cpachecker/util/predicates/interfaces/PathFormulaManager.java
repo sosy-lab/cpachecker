@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 
 public interface PathFormulaManager {
 
@@ -62,6 +63,9 @@ public interface PathFormulaManager {
   PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM);
 
   PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException;
+
+  /** The TypeHandler converts CTypes into FormulaTypes. */
+  CtoFormulaTypeHandler getTypeHandler();
 
   /**
    * Build a formula containing a predicate for all branching situations in the
