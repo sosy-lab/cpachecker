@@ -26,4 +26,4 @@
  * It provides an HTML interface for humans,
  * and a JSON API.
  */
-package org.sosy_lab.cpachecker.core.interfaces;
+package org.sosy_lab.cpachecker.appengine;
