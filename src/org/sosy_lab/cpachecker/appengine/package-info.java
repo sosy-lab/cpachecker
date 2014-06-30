@@ -22,7 +22,8 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * The waitlist, which stores the to-be-processed abstract states during the analysis.
- * It is also responsible for the traversal strategy.
+ * A web interface for CPAchecker for the Google App Engine.
+ * It provides an HTML interface for humans,
+ * and a JSON API.
  */
-package org.sosy_lab.cpachecker.core.waitlist;
+package org.sosy_lab.cpachecker.core.interfaces;

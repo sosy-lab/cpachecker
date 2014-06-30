@@ -22,7 +22,7 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * The waitlist, which stores the to-be-processed abstract states during the analysis.
- * It is also responsible for the traversal strategy.
+ * Implementation of the algorithm of the tool IMPACT,
+ * which was specified in "Lazy Abstraction with Interpolants", Ken McMillan, CAV06.
  */
-package org.sosy_lab.cpachecker.core.waitlist;
+package org.sosy_lab.cpachecker.core.algorithm.impact;

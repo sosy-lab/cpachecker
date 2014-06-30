@@ -22,7 +22,7 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * The waitlist, which stores the to-be-processed abstract states during the analysis.
- * It is also responsible for the traversal strategy.
+ * Post-processing for the CFA that simplifies expressions,
+ * executed (optionally) between parsing and returning the finished CFA.
  */
-package org.sosy_lab.cpachecker.core.waitlist;
+package org.sosy_lab.cpachecker.cfa.simplification;

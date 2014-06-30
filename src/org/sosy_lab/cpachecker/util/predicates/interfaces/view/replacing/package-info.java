@@ -22,7 +22,11 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * The waitlist, which stores the to-be-processed abstract states during the analysis.
- * It is also responsible for the traversal strategy.
+ * A wrapper layer around an SMT solver that allows to replace a theory
+ * with another one, simulating the semantics of the replaced theory
+ * with other theories.
+ * This can be used to allow working with {@link org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula}
+ * even if the solver does not support the theory of bitvectors.
+ * Bitvectors will then be approximated with rationals or integers.
  */
-package org.sosy_lab.cpachecker.core.waitlist;
+package org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing;

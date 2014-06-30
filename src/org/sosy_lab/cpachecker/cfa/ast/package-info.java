@@ -22,7 +22,9 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * The waitlist, which stores the to-be-processed abstract states during the analysis.
- * It is also responsible for the traversal strategy.
+ * The classes that are used to represent single program statements, declarations,
+ * and expressions in form of an abstract syntax tree (AST).
+ * Sub-packages contain language-specific sub-classes
+ * for representation of features of specific languages.
  */
-package org.sosy_lab.cpachecker.core.waitlist;
+package org.sosy_lab.cpachecker.cfa.ast;

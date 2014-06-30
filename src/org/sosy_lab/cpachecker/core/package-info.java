@@ -22,7 +22,12 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * The waitlist, which stores the to-be-processed abstract states during the analysis.
- * It is also responsible for the traversal strategy.
+ * The core of CPAchecker,
+ * including (in sub-packages)
+ * the verification algorithms,
+ * the central data structures such as reached set and waitlist,
+ * and the main interfaces that are used for communication between the components.
+ * This package itself contains the class CPAchecker with the central entry point
+ * and some related classes.
  */
-package org.sosy_lab.cpachecker.core.waitlist;
+package org.sosy_lab.cpachecker.core;

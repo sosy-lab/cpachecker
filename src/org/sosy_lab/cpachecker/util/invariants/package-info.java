@@ -24,4 +24,5 @@
 /**
  * Unfinished project for finding linear invariants using RedLog solver.
  */
+@Deprecated
 package org.sosy_lab.cpachecker.util.invariants;

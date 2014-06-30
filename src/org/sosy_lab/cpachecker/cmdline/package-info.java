@@ -22,7 +22,8 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * The waitlist, which stores the to-be-processed abstract states during the analysis.
- * It is also responsible for the traversal strategy.
+ * The frontend of CPAchecker for using it as a standalone application
+ * on the command line.
+ * This includes parsing the command-line arguments, and setting up the CPAchecker core.
  */
-package org.sosy_lab.cpachecker.core.waitlist;
+package org.sosy_lab.cpachecker.cmdline;

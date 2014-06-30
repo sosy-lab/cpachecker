@@ -22,7 +22,9 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * The waitlist, which stores the to-be-processed abstract states during the analysis.
- * It is also responsible for the traversal strategy.
+ * Extensions of the pure {@link org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager}
+ * interface and its related interfaces
+ * that make it easier to use by client code.
+ * This package can be used regardless of which SMT solver is the backend.
  */
-package org.sosy_lab.cpachecker.core.waitlist;
+package org.sosy_lab.cpachecker.util.predicates.interfaces.view;

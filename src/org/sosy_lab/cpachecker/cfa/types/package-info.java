@@ -22,7 +22,9 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * The waitlist, which stores the to-be-processed abstract states during the analysis.
- * It is also responsible for the traversal strategy.
+ * The classes that model types of variables and expressions.
+ * Such types are attached to the classes in AST.
+ * Sub-packages contain language-specific sub-classes
+ * for representation of features of specific languages.
  */
-package org.sosy_lab.cpachecker.core.waitlist;
+package org.sosy_lab.cpachecker.cfa.types;

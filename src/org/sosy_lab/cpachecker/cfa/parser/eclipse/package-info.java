@@ -22,7 +22,8 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * The waitlist, which stores the to-be-processed abstract states during the analysis.
- * It is also responsible for the traversal strategy.
+ * Parsers based on packages from the Eclipse project, e.g. CDT and JDT.
+ * The responsibility of a parser in this package is to implement the Parser interface,
+ * and build CFAs for each method/function in a program.
  */
-package org.sosy_lab.cpachecker.core.waitlist;
+package org.sosy_lab.cpachecker.cfa.parser.eclipse;

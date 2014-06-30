@@ -22,7 +22,11 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * The waitlist, which stores the to-be-processed abstract states during the analysis.
- * It is also responsible for the traversal strategy.
+ * This package and its sub-packages contain
+ * the complete internal representation of the analyzed program (CFA)
+ * and the parsing code that creates it.
+ * This package itself contains the main entry point for creating the CFA
+ * (class CFACreator) and the result (interface CFA),
+ * and some helper classes for CFA creation that are not parser-dependent.
  */
-package org.sosy_lab.cpachecker.core.waitlist;
+package org.sosy_lab.cpachecker.cfa;

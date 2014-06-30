@@ -22,7 +22,8 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * The waitlist, which stores the to-be-processed abstract states during the analysis.
- * It is also responsible for the traversal strategy.
+ * Encoding of (possibly-aliased) C pointers into formulas,
+ * including conditional updates for maybe-aliased pointers.
+ * This package assumes that pointers of different types are never aliased.
  */
-package org.sosy_lab.cpachecker.core.waitlist;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;

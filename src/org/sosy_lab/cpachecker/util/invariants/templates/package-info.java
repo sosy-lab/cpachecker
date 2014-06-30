@@ -22,7 +22,7 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * The waitlist, which stores the to-be-processed abstract states during the analysis.
- * It is also responsible for the traversal strategy.
+ * Unfinished project for finding linear invariants using RedLog solver.
  */
-package org.sosy_lab.cpachecker.core.waitlist;
+@Deprecated
+package org.sosy_lab.cpachecker.util.invariants.templates;

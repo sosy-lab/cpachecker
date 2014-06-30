@@ -22,7 +22,9 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * The waitlist, which stores the to-be-processed abstract states during the analysis.
- * It is also responsible for the traversal strategy.
+ * The classes from which the CFA is created,
+ * primarily CFANode and CFAEdge as well as specializations of them.
+ * Sub-packages contain language-specific sub-classes
+ * for representation of features of specific languages.
  */
-package org.sosy_lab.cpachecker.core.waitlist;
+package org.sosy_lab.cpachecker.cfa.model;

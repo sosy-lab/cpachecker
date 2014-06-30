@@ -66,6 +66,12 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 
 import com.google.common.collect.Lists;
 
+/**
+ * Refiner based on finding loop invariants using an external solver such as RedLog.
+ * Unfinished and not working.
+ */
+@SuppressWarnings("deprecation")
+@Deprecated
 public class InvariantRefiner extends AbstractARGBasedRefiner {
 
   private final PredicateAbstractionRefinementStrategy predicateRefinementStrategy;
