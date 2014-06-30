@@ -298,6 +298,7 @@ public class BAMTransferRelation implements TransferRelation {
    * Also cleanup and update the ARG with the new build state. */
   private AbstractState getRebuildState(final AbstractState rootState, final AbstractState entryState, final AbstractState expandedState) {
     logger.log(Level.FINEST, "rebuilding state with root state", rootState);
+    logger.log(Level.FINEST, "rebuilding state with entry state", entryState);
     logger.log(Level.FINEST, "rebuilding state with expanded state", expandedState);
     final AbstractState rebuildState = wrappedReducer.rebuildStateAfterFunctionCall(rootState, entryState, expandedState);
     logger.log(Level.FINEST, "rebuilding finished with state", rebuildState);

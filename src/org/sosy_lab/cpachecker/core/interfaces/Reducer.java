@@ -54,6 +54,9 @@ public interface Reducer {
   AbstractState getVariableExpandedStateForProofChecking(AbstractState rootState, Block reducedContext, AbstractState reducedState);
 
   /**
+   * Use the expandedState as basis for a new state,
+   * that can be used as rebuildState for the next funcion-return-edge.
+   *
    * @param rootState state before the function-call. this is the predecessor of the block-start-state, that will be reduced.
    * @param entryState state after the function-call. this is the block-start-state, that will be reduced.
    * @param expandedState expanded state at function-return, before the function-return-dge.
@@ -66,11 +69,11 @@ public interface Reducer {
    *     |function-                              |         function-         |
    *     |summary-                               |         execution         |
    *     |edge                                   |            |              |
-   *     |                                       |            |              |
-   *     V     functionReturnEdge             expand          V              |
-   * returnState <------------ expandedState <- - - - - reducedExitState     |
-   *                                             |                           |
-   *                                             +---------------------------+
+   *     |                                    expand          V              |
+   *     |                     expandedState <- - - - - reducedExitState     |
+   *     |                         | | |         |                           |
+   *     V     functionReturnEdge  V V V         +---------------------------+
+   * returnState <------------  rebuildState
    */
   AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState, AbstractState expandedState);
   }
