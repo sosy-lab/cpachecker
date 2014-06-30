@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.PrintWriter;
 
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 
 import de.uni_freiburg.informatik.ultimate.logic.Term;
@@ -38,8 +37,8 @@ class LoggingSmtInterpolInterpolatingProver extends SmtInterpolInterpolatingProv
   private final PrintWriter out;
 
   LoggingSmtInterpolInterpolatingProver(SmtInterpolFormulaManager pMgr,
-        ShutdownNotifier shutdownNotifier, PrintWriter pOut) {
-    super(pMgr, shutdownNotifier);
+      PrintWriter pOut) {
+    super(pMgr);
     out = checkNotNull(pOut);
   }
 

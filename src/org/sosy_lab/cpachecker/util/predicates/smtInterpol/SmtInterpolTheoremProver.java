@@ -40,15 +40,29 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager.RegionBuilder;
 
+import com.google.common.base.Preconditions;
+
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
-class SmtInterpolTheoremProver extends SmtInterpolAbstractProver implements ProverEnvironment {
+class SmtInterpolTheoremProver implements ProverEnvironment {
 
+  private final SmtInterpolFormulaManager mgr;
+  private final ShutdownNotifier shutdownNotifier;
+  private SmtInterpolEnvironment env;
   private final List<Term> assertedTerms;
 
   SmtInterpolTheoremProver(SmtInterpolFormulaManager pMgr, ShutdownNotifier pShutdownNotifier) {
-    super(pMgr, pShutdownNotifier);
+    this.mgr = pMgr;
+    this.shutdownNotifier = checkNotNull(pShutdownNotifier);
+
     assertedTerms = new ArrayList<>();
+    env = mgr.createEnvironment();
+    checkNotNull(env);
+  }
+
+  @Override
+  public boolean isUnsat() throws InterruptedException {
+    return !env.checkSat();
   }
 
   @Override
@@ -58,38 +72,40 @@ class SmtInterpolTheoremProver extends SmtInterpolAbstractProver implements Prov
 
   @Override
   public Model getModel() {
-    return SmtInterpolModel.createSmtInterpolModel(stack, assertedTerms);
+    Preconditions.checkNotNull(env);
+    return SmtInterpolModel.createSmtInterpolModel(mgr, assertedTerms);
   }
 
   @Override
   public void pop() {
+    Preconditions.checkNotNull(env);
     assertedTerms.remove(assertedTerms.size()-1); // remove last term
-    stack.pop(1);
-    mgr.getEnvironment().pop(1);
+    env.pop(1);
   }
 
   @Override
   public void push(BooleanFormula f) {
+    Preconditions.checkNotNull(env);
     final Term t = mgr.getTerm(f);
     assertedTerms.add(t);
-    stack.push(1);
-    mgr.getEnvironment().push(1);
-    stack.assertTerm(t);
+    env.push(1);
+    env.assertTerm(t);
   }
 
   @Override
   public void close() {
+    Preconditions.checkNotNull(env);
     if (!assertedTerms.isEmpty()) {
-      stack.pop(assertedTerms.size());
-      mgr.getEnvironment().pop(assertedTerms.size());
+      env.pop(assertedTerms.size());
       assertedTerms.clear();
     }
-    super.close();
+    env = null;
   }
 
   @Override
   public List<BooleanFormula> getUnsatCore() {
-    Term[] terms = stack.getUnsatCore();
+    Preconditions.checkNotNull(env);
+    Term[] terms = env.getUnsatCore();
     List<BooleanFormula> result = new ArrayList<>(terms.length);
     for (Term t : terms) {
       result.add(mgr.encapsulateBooleanFormula(t));
@@ -105,6 +121,9 @@ class SmtInterpolTheoremProver extends SmtInterpolAbstractProver implements Prov
     checkNotNull(enumTime);
     checkArgument(!formulas.isEmpty());
 
+    SmtInterpolEnvironment allsatEnv = env;
+    checkNotNull(allsatEnv);
+
     // create new allSatResult
     SmtInterpolAllSatCallback result = new SmtInterpolAllSatCallback(rmgr, solveTime, enumTime);
 
@@ -118,19 +137,13 @@ class SmtInterpolTheoremProver extends SmtInterpolAbstractProver implements Prov
 
     solveTime.start();
     try {
-      stack.push(1);
-
-      // We actually terminate SmtInterpol during the analysis
-      // by using a shutdown listener. However, SmtInterpol resets the
-      // mStopEngine flag in DPLLEngine before starting to solve,
-      // so we check here, too.
-      shutdownNotifier.shutdownIfNecessary();
-      for (Term[] model : stack.checkAllsat(importantTerms)) {
+      allsatEnv.push(1);
+      for (Term[] model : allsatEnv.checkAllSat(importantTerms)) {
         shutdownNotifier.shutdownIfNecessary();
         result.callback(model);
       }
       shutdownNotifier.shutdownIfNecessary();
-      stack.pop(1);
+      allsatEnv.pop(1);
 
     } finally {
       if (solveTime.isRunning()) {
