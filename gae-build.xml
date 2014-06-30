@@ -2,7 +2,7 @@
 <project basedir="." default="server" name="CPAchecker on Google App Engine" xmlns:ivy="antlib:org.apache.ivy.ant">
 
   <!-- use this to set the SDK version -->
-  <property name="gae-sdk.name" value="appengine-java-sdk-1.9.5" />
+  <property name="gae-sdk.name" value="appengine-java-sdk-1.9.6" />
 
   <property name="specification.dir" value="${basedir}/config/specification" />
   <property name="configuration.dir" value="${basedir}/config" />
