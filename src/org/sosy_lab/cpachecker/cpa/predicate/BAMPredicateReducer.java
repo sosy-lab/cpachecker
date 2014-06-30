@@ -436,7 +436,7 @@ public class BAMPredicateReducer implements Reducer {
   }
 
   @Override
-  public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState pExpandedState) {
+  public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState entryState, AbstractState pExpandedState) {
     final PredicateAbstractState rootState = (PredicateAbstractState) pRootState;
     final PredicateAbstractState expandedState = (PredicateAbstractState) pExpandedState;
 

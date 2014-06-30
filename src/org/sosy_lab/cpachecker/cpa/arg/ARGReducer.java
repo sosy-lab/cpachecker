@@ -92,10 +92,11 @@ public class ARGReducer implements Reducer {
   }
 
   @Override
-  public AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState expandedState) {
+  public AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState, AbstractState expandedState) {
     return new ARGState(
             wrappedReducer.rebuildStateAfterFunctionCall(
                     ((ARGState) rootState).getWrappedState(),
+                    ((ARGState) entryState).getWrappedState(),
                     ((ARGState) expandedState).getWrappedState()),
             null);
   }

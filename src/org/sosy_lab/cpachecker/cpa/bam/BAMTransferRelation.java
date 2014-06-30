@@ -299,7 +299,7 @@ public class BAMTransferRelation implements TransferRelation {
   private AbstractState getRebuildState(final AbstractState rootState, final AbstractState entryState, final AbstractState expandedState) {
     logger.log(Level.FINEST, "rebuilding state with root state", rootState);
     logger.log(Level.FINEST, "rebuilding state with expanded state", expandedState);
-    final AbstractState rebuildState = wrappedReducer.rebuildStateAfterFunctionCall(rootState, expandedState);
+    final AbstractState rebuildState = wrappedReducer.rebuildStateAfterFunctionCall(rootState, entryState, expandedState);
     logger.log(Level.FINEST, "rebuilding finished with state", rebuildState);
 
     // in the ARG of the outer block we have now the connection "rootState <-> expandedState"

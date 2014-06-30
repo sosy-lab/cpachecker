@@ -54,7 +54,23 @@ public interface Reducer {
   AbstractState getVariableExpandedStateForProofChecking(AbstractState rootState, Block reducedContext, AbstractState reducedState);
 
   /**
-   * @param rootState state before the function-call, this is the predecessor of the block-start-state.
-   * @param expandedState expanded state at function-return */
-  AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState expandedState);
+   * @param rootState state before the function-call. this is the predecessor of the block-start-state, that will be reduced.
+   * @param entryState state after the function-call. this is the block-start-state, that will be reduced.
+   * @param expandedState expanded state at function-return, before the function-return-dge.
+   *
+   *                                             +---------- BLOCK ----------+
+   *                                             |                           |
+   * rootState ---------------> entryState - - - - - -> reducedEntryState    |
+   *     |     functionCallEdge               reduce          |              |
+   *     |                                       |            V              |
+   *     |function-                              |         function-         |
+   *     |summary-                               |         execution         |
+   *     |edge                                   |            |              |
+   *     |                                       |            |              |
+   *     V     functionReturnEdge             expand          V              |
+   * returnState <------------ expandedState <- - - - - reducedExitState     |
+   *                                             |                           |
+   *                                             +---------------------------+
+   */
+  AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState, AbstractState expandedState);
   }

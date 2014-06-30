@@ -115,7 +115,7 @@ class TimedReducer implements Reducer {
   }
 
   @Override
-  public AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState expandedState) {
-    return wrappedReducer.rebuildStateAfterFunctionCall(rootState, expandedState);
+  public AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState, AbstractState expandedState) {
+    return wrappedReducer.rebuildStateAfterFunctionCall(rootState, entryState, expandedState);
   }
 }
