@@ -122,7 +122,11 @@ public class OctagonIntValue extends OctagonNumericValue<Long> {
 
   @Override
   public OctagonNumericValue mul(long pVal) {
-    return OctagonIntValue.of(value.longValue() * pVal);
+    long newValue = value.longValue() * pVal;
+    if (newValue < 0 && value.longValue() < 0 && pVal < 0) {
+      newValue = Long.MAX_VALUE;
+    }
+    return OctagonIntValue.of(newValue);
   }
 
   @Override
