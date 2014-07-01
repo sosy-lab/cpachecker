@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
@@ -70,7 +69,7 @@ public class ErrorPathClassifier {
       long score = obtainScoreForVariables(useDefinitionInformation);
 
       // score <= bestScore chooses the last, based on iteration order, that has the best or equal-to-best score
-      // maybe a real tie-breaker rule would be better, e.g. total number of variables, number of reverences, etc.
+      // maybe a real tie-breaker rule would be better, e.g. total number of variables, number of references, etc.
       if(bestScore == null || score <= bestScore) {
         bestScore = score;
         bestIndex = pPrefixes.indexOf(currentPrefix);
@@ -99,7 +98,7 @@ public class ErrorPathClassifier {
 
       score = score * factor;
 
-      if (factor == UNKNOWN_VAR && MemoryLocation.valueOf(variableName).getIdentifier().length() == 1) {
+      if (classification.get().getLoopIncDecVariables().contains(variableName)) {
         return Long.MAX_VALUE;
       }
     }

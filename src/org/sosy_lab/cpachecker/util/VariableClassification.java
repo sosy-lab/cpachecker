@@ -165,7 +165,7 @@ public class VariableClassification {
   private Set<String> intAddVars;
 
   private Set<String> loopExitConditionVariables;
-  private Set<String> loopExitIncDecConditionVariables;
+  private Set<String> loopIncDecVariables;
 
   /** These sets contain all variables even ones of array, pointer or structure types.
    *  Such variables cannot be classified even as Int, so they are only kept in these sets in order
@@ -270,7 +270,7 @@ public class VariableClassification {
       intAddVars = new HashSet<>();
 
       loopExitConditionVariables = new HashSet<>();
-      loopExitIncDecConditionVariables = new HashSet<>();
+      loopIncDecVariables = new HashSet<>();
 
       assignedVariables = new HashSet<>();
       relevantVariables = new HashSet<>();
@@ -395,35 +395,55 @@ public class VariableClassification {
 
         // Get all variables that are incremented or decrement by literal values
         for (CFAEdge e : l.getInnerLoopEdges()) {
-          if (e instanceof CStatementEdge) {
-            CStatementEdge stmtEdge = (CStatementEdge) e;
-            if (stmtEdge.getStatement() instanceof CAssignment) {
-              CAssignment assign = (CAssignment) stmtEdge.getStatement();
-              if (assign.getLeftHandSide() instanceof CIdExpression) {
-                CIdExpression assignementToId = (CIdExpression) assign.getLeftHandSide();
-                String assignToVar = scopeVar(assignementToId);
-                if (loopExitConditionVariables.contains(assignToVar)) {
-                  if (assign.getRightHandSide() instanceof CBinaryExpression) {
-                    CBinaryExpression binExpr = (CBinaryExpression) assign.getRightHandSide();
-                    BinaryOperator op = binExpr.getOperator();
-                    if (op == BinaryOperator.PLUS || op == BinaryOperator.MINUS) {
-                      if (binExpr.getOperand1() instanceof CLiteralExpression
-                          || binExpr.getOperand2() instanceof CLiteralExpression) {
-                        CIdExpression operandId = null;
-                        if (binExpr.getOperand1() instanceof CIdExpression) {
-                          operandId = (CIdExpression) binExpr.getOperand1();
-                        }
-                        if (binExpr.getOperand2() instanceof CIdExpression) {
-                          operandId = (CIdExpression) binExpr.getOperand2();
-                        }
-                        if (operandId != null) {
-                          String operandVar = scopeVar(operandId);
-                          if (assignToVar.equals(operandVar)) {
-                            loopExitIncDecConditionVariables.add(assignToVar);
-                          }
-                        }
-                      }
-                    }
+          if(e instanceof MultiEdge) {
+            for(CFAEdge singleEdge: ((MultiEdge)e).getEdges()) {
+              obtainIncDecVariables(singleEdge);
+            }
+          }
+
+          else {
+            obtainIncDecVariables(e);
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * This method obtains variables referenced in this edge that are incremented or decremented by a constant.
+   * @param e the edge from which to obtain variables
+   */
+  private void obtainIncDecVariables(CFAEdge e) {
+    if (e instanceof CStatementEdge) {
+      CStatementEdge stmtEdge = (CStatementEdge) e;
+      if (stmtEdge.getStatement() instanceof CAssignment) {
+        CAssignment assign = (CAssignment) stmtEdge.getStatement();
+
+        if (assign.getLeftHandSide() instanceof CIdExpression) {
+          CIdExpression assignementToId = (CIdExpression) assign.getLeftHandSide();
+          String assignToVar = scopeVar(assignementToId);
+
+          if (assign.getRightHandSide() instanceof CBinaryExpression) {
+            CBinaryExpression binExpr = (CBinaryExpression) assign.getRightHandSide();
+            BinaryOperator op = binExpr.getOperator();
+
+            if (op == BinaryOperator.PLUS || op == BinaryOperator.MINUS) {
+
+              if (binExpr.getOperand1() instanceof CLiteralExpression
+                  || binExpr.getOperand2() instanceof CLiteralExpression) {
+                CIdExpression operandId = null;
+
+                if (binExpr.getOperand1() instanceof CIdExpression) {
+                  operandId = (CIdExpression) binExpr.getOperand1();
+                }
+                if (binExpr.getOperand2() instanceof CIdExpression) {
+                  operandId = (CIdExpression) binExpr.getOperand2();
+                }
+
+                if (operandId != null) {
+                  String operandVar = scopeVar(operandId);
+                  if (assignToVar.equals(operandVar)) {
+                    loopIncDecVariables.add(assignToVar);
                   }
                 }
               }
@@ -448,7 +468,7 @@ public class VariableClassification {
           if (loopExitConditionVariables.contains(var)) {
             type += 8;
           }
-          if (loopExitIncDecConditionVariables.contains(var)) {
+          if (loopIncDecVariables.contains(var)) {
             type += 16;
           }
           w.append(String.format("%s\t%d%n", var, type));
@@ -558,6 +578,15 @@ public class VariableClassification {
   public Set<String> getLoopExitConditionVariables() {
     build();
     return loopExitConditionVariables;
+  }
+
+  /**
+   * Possible loop variables of the program that are increment or decremented by a constant
+   * in form of a collection of (functionName, varNames)
+   */
+  public Set<String> getLoopIncDecVariables() {
+    build();
+    return loopIncDecVariables;
   }
 
   /** This function returns a collection of scoped names.
