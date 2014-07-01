@@ -41,7 +41,6 @@ import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -104,11 +103,9 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
       Collection<? extends AbstractState> successors;
 
       Multimap<CFANode, AbstractState> coveringInCurrentPartition = HashMultimap.create();
-Timer waiting = new Timer();
+
       for (int i = 0; i < ioHelper.getNumPartitions() && checkResult.get(); i++) {
-        waiting.start();
         partitionsAvailable.acquire();
-        waiting.stop();
 
         index = certificate.size();
         coveringInCurrentPartition.clear();
@@ -119,7 +116,7 @@ Timer waiting = new Timer();
         for (AbstractState checkState : ioHelper.getPartition(i).getFirst()) {
           certificate.add(checkState);
         }
-System.out.println(ioHelper.getPartition(i).getFirst().length);
+
         // add adjacent nodes of other partition
         addToCurrentCoveringNodes(coveringInCurrentPartition, ioHelper.getPartition(i).getSecond());
 
@@ -186,11 +183,6 @@ System.out.println(ioHelper.getPartition(i).getFirst().length);
       } finally {
         stats.getPropertyCheckingTimer().stop();
       }
-/*System.out.println(waiting.getMaxTime());
-System.out.println(waiting.getAvgTime());
-System.out.println(waiting.getSumTime());
-System.out.println(waiting.getNumberOfIntervals());
-System.out.println(ioHelper.getNumPartitions()); TODO delete*/
       return true;
     } finally {
       checkResult.set(false);
@@ -239,24 +231,19 @@ System.out.println(ioHelper.getNumPartitions()); TODO delete*/
     public void run() {
       Triple<InputStream, ZipInputStream, ObjectInputStream> streams = null;
       try {
-        Timer read = new Timer();
         streams = openProofStream();
         ObjectInputStream o = streams.getThird();
         ioHelper.readMetadata(o, false);
 
         for (int i = 0; i < ioHelper.getNumPartitions() && checkResult.get(); i++) {
-          read.start();
           ioHelper.readPartition(o);
-          read.stop();
-          //System.out.println(read.getLengthOfLastInterval()); TODO delete
+
           if (shutdownNotifier.shouldShutdown()) {
             abortPreparation();
             break;
           }
           mainSemaphore.release();
-        }/*System.out.println(read.getAvgTime()); TODO delete
-        System.out.println(read.getMaxTime());
-        System.out.println(read.getSumTime());*/
+        }
       } catch (IOException | ClassNotFoundException e) {
         logger.log(Level.SEVERE, "Partition reading failed. Stop checking");
         abortPreparation();
