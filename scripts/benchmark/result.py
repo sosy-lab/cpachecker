@@ -40,6 +40,7 @@ STR_TRUE = 'true'
 STR_UNKNOWN = 'unknown'
 STR_FALSE = 'false' # only for special cases. STR_FALSE is no official result, because property is missing
 
+STR_FALSE_LABEL =       'false(label)'
 STR_FALSE_REACH =       'false(reach)'
 STR_FALSE_TERMINATION = 'false(termination)'
 STR_FALSE_DEREF =        'false(valid-deref)'
@@ -47,7 +48,7 @@ STR_FALSE_FREE =         'false(valid-free)'
 STR_FALSE_MEMTRACK =     'false(valid-memtrack)'
 
 STR_LIST = [STR_TRUE, STR_UNKNOWN, 
-            STR_FALSE_REACH, STR_FALSE_TERMINATION, 
+            STR_FALSE_LABEL, STR_FALSE_REACH, STR_FALSE_TERMINATION, 
             STR_FALSE_DEREF, STR_FALSE_FREE, STR_FALSE_MEMTRACK]
 
 # string searched in filenames to determine correct or incorrect status.
@@ -69,7 +70,8 @@ PROPERTY_MATCHER = {'LTL(G ! label(':         STR_FALSE_REACH,
                     'LTL(F end)':             STR_FALSE_TERMINATION,
                     'LTL(G valid-free)':      STR_FALSE_FREE,
                     'LTL(G valid-deref)' :    STR_FALSE_DEREF,
-                    'LTL(G valid-memtrack)' : STR_FALSE_MEMTRACK
+                    'LTL(G valid-memtrack)' : STR_FALSE_MEMTRACK,
+                    'OBSERVER AUTOMATON': STR_FALSE_REACH
                    }
 
 
@@ -98,7 +100,7 @@ def _statusesOfPropertyFile(propertyFile):
     statuses = []
     with open(propertyFile) as f:
         content = f.read()
-        assert 'CHECK' in content, "Invalid property {0}".format(content)
+        assert 'CHECK' in content or 'OBSERVER' in content, "Invalid property {0}".format(content)
 
         # TODO: should we switch to regex or line-based reading?
         for substring, status in PROPERTY_MATCHER.items():
