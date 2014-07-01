@@ -48,7 +48,7 @@ import com.google.common.base.Preconditions;
 public class BAMCache {
 
   @Option(description = "if enabled, cache queries also consider blocks with non-matching precision for reuse.")
-  private boolean aggressiveCaching = true;
+  private boolean aggressiveCaching = false;
 
   @Option(description = "if enabled, the reached set cache is analysed for each cache miss to find the cause of the miss.")
   boolean gatherCacheMissStatistics = false;

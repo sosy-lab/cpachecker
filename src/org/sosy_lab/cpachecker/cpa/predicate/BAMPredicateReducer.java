@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 
 
 public class BAMPredicateReducer implements Reducer {
@@ -436,8 +437,9 @@ public class BAMPredicateReducer implements Reducer {
   }
 
   @Override
-  public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState entryState, AbstractState pExpandedState) {
+  public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState pEntryState, AbstractState pExpandedState) {
     final PredicateAbstractState rootState = (PredicateAbstractState) pRootState;
+    final PredicateAbstractState entryState = (PredicateAbstractState) pEntryState;
     final PredicateAbstractState expandedState = (PredicateAbstractState) pExpandedState;
 
     // TODO why did I copy the next if-statement? when is it used?
@@ -445,10 +447,10 @@ public class BAMPredicateReducer implements Reducer {
       return expandedState;
     }
 
-    // we build a new state from:
-    // - local variables from rootState,               -> update indizes & assign for equality
-    // - local variables from expandedState,           -> delete indizes
-    // - global variables from expandedState,          -> ignore them
+    // we build a new SSA from:
+    // - local variables from rootSSA,               -> update indizes & assign for equality (their indices will have "holes")
+    // - local variables from expandedSSA,             -> delete indizes (by incrementing them)
+    // - global variables from expandedSSA,            -> ignore them (we have to keep them)
     // - the local return variable from expandedState. -> ignore it // TODO check for non-existance in rootState?
     // we copy expandedState and override all local values.
 
@@ -459,15 +461,19 @@ public class BAMPredicateReducer implements Reducer {
     final SSAMapBuilder builder = expandedSSA.builder();
 
     // we do not need inner variables after this point,so lets 'delete' them
-    // -> local variables from expandedState, -> delete indizes
+    // except the return-var,which is needed beyond this point.
+    // -> local variables from expandedState -> delete indizes through incrementing
     for (Map.Entry<String, CType> var : expandedSSA.allVariablesWithTypes()) {
-      if (var.getKey().contains("::")) { // var is scoped -> not global
+      if (var.getKey().contains("::") && !isReturnVar(var.getKey())) { // var is scoped -> not global
         final int rootIndex = rootSSA.getIndex(var.getKey());
         final int expandedIndex = expandedSSA.getIndex(var.getKey());
         assert expandedIndex != SSAMap.INDEX_NOT_CONTAINED : "iteration uses variable, that does not exist";
         if (rootIndex != expandedIndex) { // variable was changed during block-traversal
           builder.setIndex(var.getKey(), var.getValue(), expandedIndex + 1); // increment index to have a new variable
         }
+      } else {
+          // global variable -> keep it 'as is'
+          // or return-variable, which is needed after this -> also keep it 'as is'
       }
     }
 
@@ -503,9 +509,30 @@ public class BAMPredicateReducer implements Reducer {
     final PathFormula newPathFormula = pmgr.makeNewPathFormula(expandedPathFormula, newSSA);
 
     final PersistentMap<CFANode, Integer> abstractionLocations = expandedState.getAbstractionLocationsOnPath();
-    final AbstractionFormula abstractionFormula = expandedState.getAbstractionFormula();
+    final AbstractionFormula expandedFormula = expandedState.getAbstractionFormula();
+    final AbstractionFormula entryFormula = entryState.getAbstractionFormula();
+
+    final AbstractionFormula rebuildFormula = pamgr.makeAnd(
+            new AbstractionFormula(fmgr,
+                    entryFormula.asRegion(),
+                    entryFormula.asFormula(),
+                    entryFormula.asInstantiatedFormula(),
+                    newPathFormula,
+                    entryFormula.getIdsOfStoredAbstractionReused()),
+            new AbstractionFormula(fmgr,
+                    expandedFormula.asRegion(),
+                    expandedFormula.asFormula(),
+                    expandedFormula.asInstantiatedFormula(),
+                    newPathFormula,
+                    expandedFormula.getIdsOfStoredAbstractionReused())
+    );
 
     return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
-            abstractionFormula, abstractionLocations, expandedState.getViolatedProperty());
+            rebuildFormula, abstractionLocations, expandedState.getViolatedProperty());
+  }
+
+  private boolean isReturnVar(String var) {
+      return var.contains("::") &&
+              CtoFormulaConverter.RETURN_VARIABLE_NAME.equals(var.substring(var.indexOf("::") + 2));
   }
 }

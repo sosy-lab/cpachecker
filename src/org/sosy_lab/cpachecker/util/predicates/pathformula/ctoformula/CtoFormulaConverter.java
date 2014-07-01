@@ -132,7 +132,7 @@ public class CtoFormulaConverter {
       = ImmutableMap.of("pthread_create", "threads");
 
   //names for special variables needed to deal with functions
-  protected static final String RETURN_VARIABLE_NAME = "__retval__";
+  public static final String RETURN_VARIABLE_NAME = "__retval__";
   protected static final String PARAM_VARIABLE_NAME = "__param__";
 
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of(
