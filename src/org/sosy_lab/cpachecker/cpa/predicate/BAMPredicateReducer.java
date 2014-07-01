@@ -460,49 +460,11 @@ public class BAMPredicateReducer implements Reducer {
 
     final SSAMapBuilder builder = expandedSSA.builder();
 
-    // we do not need inner variables after this point,so lets 'delete' them
-    // except the return-var,which is needed beyond this point.
-    // -> local variables from expandedState -> delete indizes through incrementing
-    for (Map.Entry<String, CType> var : expandedSSA.allVariablesWithTypes()) {
-      if (var.getKey().contains("::") && !isReturnVar(var.getKey())) { // var is scoped -> not global
-        final int rootIndex = rootSSA.getIndex(var.getKey());
-        final int expandedIndex = expandedSSA.getIndex(var.getKey());
-        assert expandedIndex != SSAMap.INDEX_NOT_CONTAINED : "iteration uses variable, that does not exist";
-        if (rootIndex != expandedIndex) { // variable was changed during block-traversal
-          builder.setIndex(var.getKey(), var.getValue(), expandedIndex + 1); // increment index to have a new variable
-        }
-      } else {
-          // global variable -> keep it 'as is'
-          // or return-variable, which is needed after this -> also keep it 'as is'
-      }
-    }
+    // we do not need variables from inner scope after this point, so lets 'delete' them
+    deleteInnerVariables(rootSSA, expandedSSA, builder);
 
-    // oldSSA might not contain correct indices for the local variables of calling function-scope,
-    // -> local variables from rootState -> update indizes & assign for equality
-    for (Map.Entry<String, CType> var : rootSSA.allVariablesWithTypes()) {
-      if (var.getKey().contains("::")) { // var is scoped -> not global
-
-        final int rootIndex = rootSSA.getIndex(var.getKey());
-        assert rootIndex != SSAMap.INDEX_NOT_CONTAINED : "iteration uses variable, that does not exist";
-        final int expandedIndex = expandedSSA.getIndex(var.getKey());
-
-        if (rootIndex != expandedIndex) { // variable was changed during block-traversal
-
-          final int incrementedIndex = expandedIndex + 1;
-
-          if (expandedIndex != SSAMap.INDEX_NOT_CONTAINED) { // if variable is used
-            builder.setIndex(var.getKey(), var.getValue(), incrementedIndex); // increment index to have a new variable
-          }
-
-          final FormulaType type = pmgr.getTypeHandler().getFormulaTypeFromCType(rootSSA.getType(var.getKey()));
-          final Formula oldVarFormula = fmgr.makeVariable(type, var.getKey(), rootIndex);
-          final Formula newVarFormula = fmgr.makeVariable(type, var.getKey(), incrementedIndex);
-
-          final BooleanFormula equality = fmgr.assignment(oldVarFormula, newVarFormula);
-          expandedPathFormula = pmgr.makeAnd(expandedPathFormula, equality);
-        }
-      }
-    }
+    // rebuild indices from outer scope
+    expandedPathFormula = updateLocalIndices(rootSSA, expandedSSA, builder, expandedPathFormula);
 
     final SSAMap newSSA = builder.build();
 
@@ -529,6 +491,71 @@ public class BAMPredicateReducer implements Reducer {
 
     return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
             rebuildFormula, abstractionLocations, expandedState.getViolatedProperty());
+  }
+
+  /**
+   * 'delete' all variables from the inner function-scope,
+   * (except the return-var, which is needed for further processing.)
+   * For all local variables from expandedState: delete indizes through incrementing.
+   *
+   * Optimisation: only delete vars, that are assigned in inner scope (rootIndex != expandedIndex)
+   *
+   * @param rootSSA SSA before function-call
+   * @param expandedSSA SSA before function-return
+   * @param builder new SSA
+   */
+  private void deleteInnerVariables(SSAMap rootSSA, SSAMap expandedSSA, SSAMapBuilder builder) {
+    for (Map.Entry<String, CType> var : expandedSSA.allVariablesWithTypes()) {
+      if (var.getKey().contains("::") && !isReturnVar(var.getKey())) { // var is scoped -> not global
+        final int rootIndex = rootSSA.getIndex(var.getKey());
+        final int expandedIndex = expandedSSA.getIndex(var.getKey());
+        assert expandedIndex != SSAMap.INDEX_NOT_CONTAINED : "iteration uses variable, that does not exist";
+        if (rootIndex != expandedIndex) { // variable was changed during block-traversal
+          builder.setIndex(var.getKey(), var.getValue(), expandedIndex + 1); // increment index to have a new variable
+        }
+      } else {
+          // global variable -> keep it 'as is'
+          // or return-variable, which is needed after this -> also keep it 'as is'
+      }
+    }
+  }
+
+  /**
+   * The new SSA-builder might not contain correct indices for the local variables of calling function-scope.
+   * For all local variables from rootState: update indizes & assign equality of old and new variable.
+   *
+   * @param rootSSA SSA before function-call
+   * @param expandedSSA SSA before function-return
+   * @param builder new SSA
+   * @param expandedPathFormula path until current node
+   * @return expandedPathFormula AND (for all var from outer scope: var_oldIndex == var_newIndex)
+   */
+  private PathFormula updateLocalIndices(SSAMap rootSSA, SSAMap expandedSSA, SSAMapBuilder builder, PathFormula expandedPathFormula) {
+    for (Map.Entry<String, CType> var : rootSSA.allVariablesWithTypes()) {
+      if (var.getKey().contains("::")) { // var is scoped -> not global
+
+        final int rootIndex = rootSSA.getIndex(var.getKey());
+        assert rootIndex != SSAMap.INDEX_NOT_CONTAINED : "iteration uses variable, that does not exist";
+        final int expandedIndex = expandedSSA.getIndex(var.getKey());
+
+        if (rootIndex != expandedIndex) { // variable was changed during block-traversal
+
+          final int incrementedIndex = expandedIndex + 1;
+
+          if (expandedIndex != SSAMap.INDEX_NOT_CONTAINED) { // if variable is used
+            builder.setIndex(var.getKey(), var.getValue(), incrementedIndex); // increment index to have a new variable
+          }
+
+          final FormulaType type = pmgr.getTypeHandler().getFormulaTypeFromCType(rootSSA.getType(var.getKey()));
+          final Formula oldVarFormula = fmgr.makeVariable(type, var.getKey(), rootIndex);
+          final Formula newVarFormula = fmgr.makeVariable(type, var.getKey(), incrementedIndex);
+
+          final BooleanFormula equality = fmgr.assignment(oldVarFormula, newVarFormula);
+          expandedPathFormula = pmgr.makeAnd(expandedPathFormula, equality);
+        }
+      }
+    }
+    return expandedPathFormula;
   }
 
   private boolean isReturnVar(String var) {
