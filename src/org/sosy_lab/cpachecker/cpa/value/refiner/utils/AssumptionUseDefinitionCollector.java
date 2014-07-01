@@ -61,7 +61,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
 /**
  * Helper class that collects the set of variables on which all assume edges in the given path depend on (i.e. the transitive closure).
@@ -236,7 +236,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 
             collectedVariables.add(assignedVariable);
             // also add special FUNCTION_RETURN_VAR as relevant variable
-            collectedVariables.add(scoped(ValueAnalysisTransferRelation.FUNCTION_RETURN_VAR, returnStatementEdge.getPredecessor().getFunctionName()));
+            collectedVariables.add(VariableClassification.createFunctionReturnVariable(returnStatementEdge.getPredecessor().getFunctionName()));
             collectVariables(returnStatementEdge, returnStatementEdge.getExpression());
           }
         }
