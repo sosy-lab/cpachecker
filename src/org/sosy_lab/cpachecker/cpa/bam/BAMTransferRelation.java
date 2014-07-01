@@ -200,7 +200,14 @@ public class BAMTransferRelation implements TransferRelation {
     }
 
     // we are a the entryNode of a new block, so we have to start a recursive analysis
-    return doRecursiveAnalysis(pState, pPrecision, node);
+    logger.log(Level.FINER, "Starting recursive analysis of depth", ++depth);
+    maxRecursiveDepth = Math.max(depth, maxRecursiveDepth);
+
+    final Collection<? extends AbstractState> resultStates = doRecursiveAnalysis(pState, pPrecision, node);
+
+    logger.log(Level.FINER, "Finished recursive analysis of depth", depth--);
+
+    return resultStates;
   }
 
   private boolean stackContainsCoveringLevel(final List<Triple<AbstractState, Precision, Block>> stack,
@@ -210,8 +217,16 @@ public class BAMTransferRelation implements TransferRelation {
       for (Triple<AbstractState, Precision, Block> level : stack) {
         if (level.getThird() == currentLevel.getThird()
                 && bamCPA.isCoveredBy(currentLevel.getFirst(), level.getFirst())) {
-          // previously reached state contains 'less' information, it is a super-state of the current state.
-          // Thus we would have an endless recursion (with current ).
+          // previously reached state contains 'less' information, it is a super-state of the currentState.
+          // From currentState we could reach the levelState again (with further unrolling).
+          // Thus we would have found an endless recursion (with current information (precision/state)).
+
+          // Checking coverage the other way (level isCoveredBy currentLevel) would be wrong,
+          // because there could be an Error in the next unrolling,
+          // that is reachable with further unrolling and would not be detected, if we stop unrolling here.
+          // Thus we unroll recursion until we get a currentLevel,
+          // that does not contain less information than any level before (-> it is covered by some previous level).
+
           // TODO how to compare precisions? equality would be enough
           return true;
         }
@@ -231,7 +246,6 @@ public class BAMTransferRelation implements TransferRelation {
     final Collection<Pair<AbstractState, Precision>> reducedResult =
             getReducedResult(entryState, reducedInitialState, reducedInitialPrecision);
 
-    logger.log(Level.FINER, "Analysis of block ", depth--, "finished");
     logger.log(Level.ALL, "Resulting states:", reducedResult);
 
     addBlockAnalysisInfo(reducedInitialState);
@@ -339,9 +353,7 @@ public class BAMTransferRelation implements TransferRelation {
     // -> return these states as successor
     // -> cache the result
 
-    logger.log(Level.FINER, "Starting recursive analysis of depth", ++depth);
     logger.log(Level.ALL, "Starting state:", initialState);
-    maxRecursiveDepth = Math.max(depth, maxRecursiveDepth);
 
     final Block outerSubtree = currentBlock;
     currentBlock = partitioning.getBlockForCallNode(node);
