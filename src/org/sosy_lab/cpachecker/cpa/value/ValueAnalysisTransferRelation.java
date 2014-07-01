@@ -115,6 +115,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -138,11 +139,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   private boolean automatonAssumesAsStatements = false;
 
   private final Set<String> javaNonStaticVariables = new HashSet<>();
-
-  /**
-   * name for the special variable used as container for return values of functions
-   */
-  public static final String FUNCTION_RETURN_VAR = "___cpa_temp_result_var_";
 
   private JRightHandSide missingInformationRightJExpression = null;
   private String missingInformationLeftJVariable = null;
@@ -300,7 +296,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
 
     if (expression!= null) {
-      MemoryLocation functionReturnVar = MemoryLocation.valueOf(functionName, FUNCTION_RETURN_VAR, 0);
+      MemoryLocation functionReturnVar = MemoryLocation.valueOf(VariableClassification.createFunctionReturnVariable(functionName));
 
       return handleAssignmentToVariable(functionReturnVar,
           returnEdge.getSuccessor().getEntryNode().getFunctionDefinition().getType().getReturnType(), // TODO easier way to get type?
@@ -322,7 +318,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     throws UnrecognizedCodeException {
 
     ValueAnalysisState newElement  = state.clone();
-    MemoryLocation returnVarName = MemoryLocation.valueOf(functionName, FUNCTION_RETURN_VAR, 0);
+    MemoryLocation returnVarName = MemoryLocation.valueOf(VariableClassification.createFunctionReturnVariable(functionName));
 
     // expression is an assignment operation, e.g. a = g(b);
 
