@@ -638,6 +638,9 @@ public abstract class AbstractExpressionValueVisitor
     if (unaryOperator == UnaryOperator.SIZEOF) {
       return new NumericValue(machineModel.getSizeof(unaryOperand.getExpressionType()));
     }
+    if (unaryOperator == UnaryOperator.ALIGNOF) {
+      return new NumericValue(machineModel.getAlignof(unaryOperand.getExpressionType()));
+    }
     if (unaryOperator == UnaryOperator.AMPER) {
       return Value.UnknownValue.getInstance();
     }
