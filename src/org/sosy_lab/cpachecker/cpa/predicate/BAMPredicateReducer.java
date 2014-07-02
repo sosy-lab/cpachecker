@@ -504,7 +504,7 @@ public class BAMPredicateReducer implements Reducer {
    * @param expandedSSA SSA before function-return
    * @param builder new SSA
    */
-  private void deleteInnerVariables(SSAMap rootSSA, SSAMap expandedSSA, SSAMapBuilder builder) {
+  protected void deleteInnerVariables(SSAMap rootSSA, SSAMap expandedSSA, SSAMapBuilder builder) {
     for (Map.Entry<String, CType> var : expandedSSA.allVariablesWithTypes()) {
       if (var.getKey().contains("::") && !isReturnVar(var.getKey())) { // var is scoped -> not global
         final int rootIndex = rootSSA.getIndex(var.getKey());
@@ -530,7 +530,7 @@ public class BAMPredicateReducer implements Reducer {
    * @param expandedPathFormula path until current node
    * @return expandedPathFormula AND (for all var from outer scope: var_oldIndex == var_newIndex)
    */
-  private PathFormula updateLocalIndices(SSAMap rootSSA, SSAMap expandedSSA, SSAMapBuilder builder, PathFormula expandedPathFormula) {
+  protected PathFormula updateLocalIndices(SSAMap rootSSA, SSAMap expandedSSA, SSAMapBuilder builder, PathFormula expandedPathFormula) {
     for (Map.Entry<String, CType> var : rootSSA.allVariablesWithTypes()) {
       if (var.getKey().contains("::")) { // var is scoped -> not global
 
@@ -553,6 +553,9 @@ public class BAMPredicateReducer implements Reducer {
           final BooleanFormula equality = fmgr.assignment(oldVarFormula, newVarFormula);
           expandedPathFormula = pmgr.makeAnd(expandedPathFormula, equality);
         }
+      } else {
+        // global variable in rootSSA is outdated, the correct index is in expandedSSA.
+        // the new SSA is based on expandedSSA, so we can ignore it
       }
     }
     return expandedPathFormula;

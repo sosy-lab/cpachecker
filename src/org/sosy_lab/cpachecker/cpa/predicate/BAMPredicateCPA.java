@@ -96,7 +96,7 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
   }
 
   @Override
-  public Reducer getReducer() {
+  public BAMPredicateReducer getReducer() {
     return reducer;
   }
 
