@@ -81,7 +81,7 @@ class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term,
     if (isVariable(t)) {
       return dequote(t.toString());
     } else if (isUF(t)) {
-      return ((ApplicationTerm)t).getFunction().toString();
+      return ((ApplicationTerm)t).getFunction().getName();
     } else {
       throw new IllegalArgumentException("The Term " + t + " has no name!");
     }
