@@ -28,7 +28,8 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smgfork.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.ReadableSMG;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGObject;
 
 import com.google.common.collect.Iterables;
@@ -44,15 +45,15 @@ final class SMGJoinSubSMGs {
   private SMGJoinStatus status;
   private boolean defined = false;
 
-  private SMG inputSMG1;
-  private SMG inputSMG2;
-  private SMG destSMG;
+  private ReadableSMG inputSMG1;
+  private ReadableSMG inputSMG2;
+  private WritableSMG destSMG;
 
   private SMGNodeMapping mapping1 = null;
   private SMGNodeMapping mapping2 = null;
 
   public SMGJoinSubSMGs(SMGJoinStatus initialStatus,
-                        SMG pSMG1, SMG pSMG2, SMG pDestSMG,
+                        ReadableSMG pSMG1, ReadableSMG pSMG2, WritableSMG pDestSMG,
                         SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
                         SMGObject pObj1, SMGObject pObj2, SMGObject pNewObject) throws SMGInconsistentException{
 
@@ -114,15 +115,15 @@ final class SMGJoinSubSMGs {
     return status;
   }
 
-  public SMG getSMG1() {
+  public ReadableSMG getSMG1() {
     return inputSMG1;
   }
 
-  public SMG getSMG2() {
+  public ReadableSMG getSMG2() {
     return inputSMG2;
   }
 
-  public SMG getDestSMG() {
+  public ReadableSMG getDestSMG() {
     return destSMG;
   }
 

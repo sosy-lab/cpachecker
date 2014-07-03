@@ -27,16 +27,17 @@ import java.util.Collection;
 
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGValueFactory;
-import org.sosy_lab.cpachecker.cpa.smgfork.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.ReadableSMG;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGObject;
 
 final class SMGJoinMapTargetAddress {
-  private SMG smg;
+  private WritableSMG smg;
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
   private Integer value;
 
-  public SMGJoinMapTargetAddress(SMG pSMG1, SMG pSMG2, SMG destSMG,
+  public SMGJoinMapTargetAddress(ReadableSMG pSMG1, ReadableSMG pSMG2, WritableSMG destSMG,
                              SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
                              Integer pAddress1, Integer pAddress2) {
     smg = destSMG;
@@ -67,7 +68,7 @@ final class SMGJoinMapTargetAddress {
     mapping2.map(pAddress2, value);
   }
 
-  public SMG getSMG() {
+  public WritableSMG getSMG() {
     return smg;
   }
 

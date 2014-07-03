@@ -31,23 +31,23 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smgfork.AnonymousTypes;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGValueFactory;
-import org.sosy_lab.cpachecker.cpa.smgfork.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.SMGFactory;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.DummyAbstraction;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.sll.SMGSingleLinkedList;
 
-
 public class SMGJoinMatchObjectsTest {
 
   static private final CType mockType2b = AnonymousTypes.createTypeWithLength(2);
 
-  private SMG smg1;
-  private SMG smg2;
+  private WritableSMG smg1;
+  private WritableSMG smg2;
 
   final private SMGObject srcObj1 = new SMGRegion(8, "Source object 1");
   final private SMGObject destObj1 = new SMGRegion(8, "Destination object 1");
-  final private SMGObject srcObj2 = new SMGRegion(8, "Source object 2");
+  final private SMGRegion srcObj2 = new SMGRegion(8, "Source object 2");
   final private SMGObject destObj2 = new SMGRegion(8, "Destination object 2");
 
   private SMGNodeMapping mapping1;
@@ -55,8 +55,8 @@ public class SMGJoinMatchObjectsTest {
 
   @Before
   public void setUp() {
-    smg1 = new SMG(MachineModel.LINUX64);
-    smg2 = new SMG(MachineModel.LINUX64);
+    smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
     mapping1 = new SMGNodeMapping();
     mapping2 = new SMGNodeMapping();
@@ -120,7 +120,8 @@ public class SMGJoinMatchObjectsTest {
     SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL,  smg1, smg2, mapping1, mapping2, srcObj1, diffSizeObject);
     Assert.assertFalse(mo.isDefined());
 
-    smg2.addObject(srcObj2, false);
+    smg2.addObject(srcObj2);
+    smg2.setValidity(srcObj2, false);
     mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
     Assert.assertFalse(mo.isDefined());
   }

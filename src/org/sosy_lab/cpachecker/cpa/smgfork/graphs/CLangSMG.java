@@ -49,7 +49,7 @@ import com.google.common.collect.Sets;
  *  - separation of global, heap and stack objects
  *  - null object and value
  */
-public class CLangSMG extends SMG {
+public class CLangSMG extends SMG implements WritableSMG, ReadableSMG {
   /**
    * A container for object found on the stack:
    *  - local variables
@@ -157,6 +157,7 @@ public class CLangSMG extends SMG {
 
    * @param pObject Object to add
    */
+  @Override
   public void addGlobalObject(SMGRegion pObject) {
     if (CLangSMG.performChecks() && global_objects.values().contains(pObject)) {
       throw new IllegalArgumentException("Global object already in the SMG: [" + pObject + "]");
@@ -184,6 +185,7 @@ public class CLangSMG extends SMG {
    *
    * TODO: Shall we need an extension for putting objects to upper frames?
    */
+  @Override
   public void addStackObject(SMGRegion pObject) {
     super.addObject(pObject);
     stack_objects.peek().addStackVariable(pObject.getLabel(), pObject);
@@ -196,6 +198,7 @@ public class CLangSMG extends SMG {
    *
    * @param pFunctionDeclaration A function for which to create a new stack frame
    */
+  @Override
   public void addStackFrame(CFunctionDeclaration pFunctionDeclaration) {
     CLangStackFrame newFrame = new CLangStackFrame(pFunctionDeclaration, getMachineModel());
 
@@ -364,6 +367,7 @@ public class CLangSMG extends SMG {
    *
    * @return Stack of frames
    */
+  @Override
   public ArrayDeque<CLangStackFrame> getStackFrames() {
     //TODO: [FRAMES-STACK-STRUCTURE] This still allows modification, as queues
     // do not have the appropriate unmodifiable method. There is probably some good
@@ -376,6 +380,7 @@ public class CLangSMG extends SMG {
    *
    * @return Unmodifiable view of the set of the heap objects
    */
+  @Override
   public Set<SMGObject> getHeapObjects() {
     return Collections.unmodifiableSet(heap_objects);
   }
@@ -398,6 +403,7 @@ public class CLangSMG extends SMG {
    *
    * @return Unmodifiable map from variable names to global objects.
    */
+  @Override
   public Map<String, SMGRegion> getGlobalObjects() {
     return Collections.unmodifiableMap(global_objects);
   }

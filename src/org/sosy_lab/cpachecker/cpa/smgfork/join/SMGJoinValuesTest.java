@@ -30,14 +30,14 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGValueFactory;
-import org.sosy_lab.cpachecker.cpa.smgfork.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.SMGFactory;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGRegion;
 
-
 public class SMGJoinValuesTest {
-  private SMG smg1;
-  private SMG smg2;
-  private SMG smgDest;
+  private WritableSMG smg1;
+  private WritableSMG smg2;
+  private WritableSMG smgDest;
 
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
@@ -48,9 +48,9 @@ public class SMGJoinValuesTest {
 
   @Before
   public void setUp() {
-    smg1 = new SMG(MachineModel.LINUX64);
-    smg2 = new SMG(MachineModel.LINUX64);
-    smgDest = new SMG(MachineModel.LINUX64);
+    smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    smgDest = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
     mapping1 = new SMGNodeMapping();
     mapping2 = new SMGNodeMapping();

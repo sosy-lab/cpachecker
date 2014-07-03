@@ -48,8 +48,8 @@ public class SMGTest {
   private SMG smg;
   CType mockType = AnonymousTypes.createTypeWithLength(4);
 
-  SMGObject obj1 = new SMGRegion(8, "object-1");
-  SMGObject obj2 = new SMGRegion(8, "object-2");
+  SMGRegion obj1 = new SMGRegion(8, "object-1");
+  SMGRegion obj2 = new SMGRegion(8, "object-2");
 
   Integer val1 = Integer.valueOf(1);
   Integer val2 = Integer.valueOf(2);
@@ -252,13 +252,6 @@ public class SMGTest {
     Assert.assertFalse(smg_copy.isObjectValid(smg_copy.getNullObject()));
     Assert.assertTrue(smg_copy.isObjectValid(obj1));
     Assert.assertTrue(smg_copy.isObjectValid(obj2));
-  }
-
-  @Test
-  public void consistencyViolationValidNullTest() {
-    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
-    smg.setValidity(smg.getNullObject(), true);
-    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg));
   }
 
   @Test

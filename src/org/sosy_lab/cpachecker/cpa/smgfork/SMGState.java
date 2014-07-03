@@ -770,7 +770,13 @@ public class SMGState implements AbstractQueryableState, Targetable {
       return;
     }
 
-    heap.setValidity(smgObject, false);
+    if (! (smgObject instanceof SMGRegion)) {
+      setInvalidFree();
+      return;
+    }
+
+
+    heap.setValidity((SMGRegion)smgObject, false);
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(smgObject);
 
     List<SMGEdgeHasValue> to_remove = new ArrayList<>();

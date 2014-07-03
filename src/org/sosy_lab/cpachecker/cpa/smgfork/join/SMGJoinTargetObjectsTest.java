@@ -30,15 +30,16 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGValueFactory;
-import org.sosy_lab.cpachecker.cpa.smgfork.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.SMGFactory;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGRegion;
 
 
 public class SMGJoinTargetObjectsTest {
-  private SMG smg1;
-  private SMG smg2;
-  private SMG destSMG;
+  private WritableSMG smg1;
+  private WritableSMG smg2;
+  private WritableSMG destSMG;
 
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
@@ -55,9 +56,9 @@ public class SMGJoinTargetObjectsTest {
 
   @Before
   public void setUp() {
-    smg1 = new SMG(MachineModel.LINUX64);
-    smg2 = new SMG(MachineModel.LINUX64);
-    destSMG = new SMG(MachineModel.LINUX64);
+    smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    destSMG = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
     mapping1 = new SMGNodeMapping();
     mapping2 = new SMGNodeMapping();
@@ -142,7 +143,7 @@ public class SMGJoinTargetObjectsTest {
     smg1.addPointsToEdge(pt1null);
     smg2.addPointsToEdge(pt2null);
 
-    SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(new SMG(smg1), new SMG(smg2), new SMG(destSMG),
+    SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(SMGFactory.createWritableCopy(smg1), SMGFactory.createWritableCopy(smg2), SMGFactory.createWritableCopy(destSMG),
                                                       new SMGNodeMapping(mapping1), new SMGNodeMapping(mapping2),
                                                       value1, value2);
     SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, value1, value2);

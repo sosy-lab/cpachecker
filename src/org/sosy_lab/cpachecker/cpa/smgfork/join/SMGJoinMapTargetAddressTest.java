@@ -29,15 +29,17 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGValueFactory;
-import org.sosy_lab.cpachecker.cpa.smgfork.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.ReadableSMG;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.SMGFactory;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGRegion;
 
 
 public class SMGJoinMapTargetAddressTest {
 
-  private SMG smg1;
-  private SMG destSMG;
+  private WritableSMG smg1;
+  private WritableSMG destSMG;
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
 
@@ -52,15 +54,15 @@ public class SMGJoinMapTargetAddressTest {
 
   @Before
   public void setUp() {
-    smg1 = new SMG(MachineModel.LINUX64);
-    destSMG = new SMG(MachineModel.LINUX64);
+    smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    destSMG = SMGFactory.createWritableSMG(MachineModel.LINUX64);
     mapping1 = new SMGNodeMapping();
     mapping2 = new SMGNodeMapping();
   }
 
   @Test
   public void mapTargetAddressExistingNull() {
-    SMG origDestSMG = new SMG(destSMG);
+    ReadableSMG origDestSMG = SMGFactory.createWritableCopy(destSMG);
     SMGNodeMapping origMapping1 = new SMGNodeMapping(mapping1);
 
     SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(smg1, null, destSMG, mapping1, null, smg1.getNullValue(), null);
@@ -85,7 +87,7 @@ public class SMGJoinMapTargetAddressTest {
     mapping1.map(obj1, destObj);
 
     SMGNodeMapping origMapping1 = new SMGNodeMapping(mapping1);
-    SMG origDestSMG = new SMG(destSMG);
+    ReadableSMG origDestSMG = SMGFactory.createWritableCopy(destSMG);
 
     SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(smg1, null, destSMG, mapping1, null, value1, null);
     Assert.assertEquals(origDestSMG, mta.getSMG());
@@ -106,7 +108,7 @@ public class SMGJoinMapTargetAddressTest {
 
     SMGNodeMapping origMapping1 = new SMGNodeMapping(mapping1);
     SMGNodeMapping origMapping2 = new SMGNodeMapping(mapping2);
-    SMG origDestSMG = new SMG(destSMG);
+    ReadableSMG origDestSMG = SMGFactory.createWritableCopy(destSMG);
 
     SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(smg1, null, destSMG, mapping1, mapping2, value1, value2);
     Assert.assertNotEquals(origDestSMG, mta.getSMG());

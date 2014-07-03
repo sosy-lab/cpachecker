@@ -37,7 +37,9 @@ import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGValueFactory;
-import org.sosy_lab.cpachecker.cpa.smgfork.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.ReadableSMG;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.SMGFactory;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGRegion;
 
 import com.google.common.collect.Iterables;
@@ -47,16 +49,16 @@ public class SMGJoinFieldsTest {
   static private final CType mockType4b = AnonymousTypes.createTypeWithLength(4);
   static private final CType mockType8b = AnonymousTypes.createTypeWithLength(8);
 
-  private SMG smg1;
-  private SMG smg2;
+  private WritableSMG smg1;
+  private WritableSMG smg2;
 
   final private Integer value1 = SMGValueFactory.getNewValue();
   final private Integer value2 = SMGValueFactory.getNewValue();
 
   @Before
   public void setUp() {
-    smg1 = new SMG(MachineModel.LINUX64);
-    smg2 = new SMG(MachineModel.LINUX64);
+    smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
   }
 
   @Test
@@ -255,13 +257,13 @@ public class SMGJoinFieldsTest {
     smg1.addValue(value1);
     smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, value1));
 
-    SMGJoinFields jf = new SMGJoinFields(new SMG(smg1), new SMG(smg2), obj1, obj2);
-    SMG resultSMG = jf.getSMG2();
+    SMGJoinFields jf = new SMGJoinFields(SMGFactory.createWritableCopy(smg1), SMGFactory.createWritableCopy(smg2), obj1, obj2);
+    ReadableSMG resultSMG = jf.getSMG2();
 
     Set<SMGEdgeHasValue> edges = resultSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2));
     Assert.assertTrue(edges.size() > 0);
 
-    jf = new SMGJoinFields(new SMG(smg2), new SMG(smg1), obj2, obj1);
+    jf = new SMGJoinFields(SMGFactory.createWritableCopy(smg2), SMGFactory.createWritableCopy(smg1), obj2, obj1);
     resultSMG = jf.getSMG1();
 
     edges = resultSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2));
@@ -273,10 +275,10 @@ public class SMGJoinFieldsTest {
     SMGRegion object = new SMGRegion(8, "Object");
     smg1.addObject(object);
 
-    SMG smg04 = new SMG(smg1);
-    SMG smg48 = new SMG(smg1);
-    SMG smg26 = new SMG(smg1);
-    SMG smg08 = new SMG(smg1);
+    WritableSMG smg04 = SMGFactory.createWritableCopy(smg1);
+    WritableSMG smg48 = SMGFactory.createWritableCopy(smg1);
+    WritableSMG smg26 = SMGFactory.createWritableCopy(smg1);
+    WritableSMG smg08 = SMGFactory.createWritableCopy(smg1);
 
     smg04.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, object, smg04.getNullValue()));
     smg48.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 4, object, smg48.getNullValue()));
@@ -329,8 +331,8 @@ public class SMGJoinFieldsTest {
   public void differentSizeCheckTest(){
     SMGRegion obj1 = new SMGRegion(8, "Object 1");
     SMGRegion obj2 = new SMGRegion(12, "Object 2");
-    SMG smg1 = new SMG(MachineModel.LINUX64);
-    SMG smg2 = new SMG(MachineModel.LINUX64);
+    WritableSMG smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    WritableSMG smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
     smg1.addObject(obj1);
     smg2.addObject(obj2);
 
@@ -340,8 +342,8 @@ public class SMGJoinFieldsTest {
 
   @Test
   public void consistencyCheckTest() throws SMGInconsistentException {
-    SMG smg1 = new SMG(MachineModel.LINUX64);
-    SMG smg2 = new SMG(MachineModel.LINUX32);
+    WritableSMG smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    WritableSMG smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
     SMGRegion obj1 = new SMGRegion(32, "Object 1");
     SMGRegion obj2 = new SMGRegion(32, "Object 2");
@@ -381,8 +383,8 @@ public class SMGJoinFieldsTest {
 
   @Test(expected=SMGInconsistentException.class)
   public void consistencyCheckNegativeTest1() throws SMGInconsistentException {
-    SMG smg1 = new SMG(MachineModel.LINUX64);
-    SMG smg2 = new SMG(MachineModel.LINUX32);
+    WritableSMG smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    ReadableSMG smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
     SMGRegion obj1 = new SMGRegion(32, "Object 1");
     SMGRegion obj2 = new SMGRegion(32, "Object 2");
@@ -394,8 +396,8 @@ public class SMGJoinFieldsTest {
 
   @Test(expected=SMGInconsistentException.class)
   public void consistencyCheckNegativeTest2() throws SMGInconsistentException {
-    SMG smg1 = new SMG(MachineModel.LINUX64);
-    SMG smg2 = new SMG(MachineModel.LINUX32);
+    WritableSMG smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    WritableSMG smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
     SMGRegion obj1 = new SMGRegion(32, "Object 1");
     SMGRegion obj2 = new SMGRegion(32, "Object 2");
@@ -407,8 +409,8 @@ public class SMGJoinFieldsTest {
 
   @Test(expected=SMGInconsistentException.class)
   public void consistencyCheckNegativeTest3() throws SMGInconsistentException {
-    SMG smg1 = new SMG(MachineModel.LINUX64);
-    SMG smg2 = new SMG(MachineModel.LINUX32);
+    WritableSMG smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    WritableSMG smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
     SMGRegion obj1 = new SMGRegion(32, "Object 1");
     SMGRegion obj2 = new SMGRegion(32, "Object 2");
@@ -421,8 +423,8 @@ public class SMGJoinFieldsTest {
 
   @Test(expected=SMGInconsistentException.class)
   public void consistencyCheckNegativeTest4() throws SMGInconsistentException {
-    SMG smg1 = new SMG(MachineModel.LINUX64);
-    SMG smg2 = new SMG(MachineModel.LINUX32);
+    WritableSMG smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    WritableSMG smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
     SMGRegion obj1 = new SMGRegion(32, "Object 1");
     SMGRegion obj2 = new SMGRegion(32, "Object 2");
@@ -439,8 +441,8 @@ public class SMGJoinFieldsTest {
 
   @Test(expected=SMGInconsistentException.class)
   public void consistencyCheckNegativeTest5() throws SMGInconsistentException {
-    SMG smg1 = new SMG(MachineModel.LINUX64);
-    SMG smg2 = new SMG(MachineModel.LINUX32);
+    WritableSMG smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    WritableSMG smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
     SMGRegion obj1 = new SMGRegion(32, "Object 1");
     SMGRegion obj2 = new SMGRegion(32, "Object 2");
@@ -453,8 +455,8 @@ public class SMGJoinFieldsTest {
 
   @Test
   public void consistencyCheckPositiveTest1() throws SMGInconsistentException {
-    SMG smg1 = new SMG(MachineModel.LINUX64);
-    SMG smg2 = new SMG(MachineModel.LINUX32);
+    WritableSMG smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    WritableSMG smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
     SMGRegion obj1 = new SMGRegion(32, "Object 1");
     SMGRegion obj2 = new SMGRegion(32, "Object 2");
@@ -471,8 +473,8 @@ public class SMGJoinFieldsTest {
 
   @Test(expected=IllegalArgumentException.class)
   public void nonMemberObjectTest1(){
-    SMG smg1 = new SMG(MachineModel.LINUX64);
-    SMG smg2 = new SMG(MachineModel.LINUX32);
+    ReadableSMG smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    WritableSMG smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
     SMGRegion obj1 = new SMGRegion(32, "Object 1");
     SMGRegion obj2 = new SMGRegion(32, "Object 2");
@@ -484,8 +486,8 @@ public class SMGJoinFieldsTest {
 
   @Test(expected=IllegalArgumentException.class)
   public void nonMemberObjectTest2(){
-    SMG smg1 = new SMG(MachineModel.LINUX64);
-    SMG smg2 = new SMG(MachineModel.LINUX32);
+    WritableSMG smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
+    ReadableSMG smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
     SMGRegion obj1 = new SMGRegion(32, "Object 1");
     SMGRegion obj2 = new SMGRegion(32, "Object 2");

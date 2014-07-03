@@ -32,17 +32,19 @@ import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGValueFactory;
-import org.sosy_lab.cpachecker.cpa.smgfork.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.ReadableSMG;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.SMGFactory;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.WritableSMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGObject;
 
 import com.google.common.collect.Iterables;
 
 class SMGJoinFields {
-  private final SMG newSMG1;
-  private final SMG newSMG2;
+  private final ReadableSMG finalSMG1;
+  private final ReadableSMG finalSMG2;
   private SMGJoinStatus status = SMGJoinStatus.EQUAL;
 
-  public SMGJoinFields(SMG pSMG1, SMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
+  public SMGJoinFields(ReadableSMG pSMG1, ReadableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
     if (pObj1.getSize() != pObj2.getSize()) {
       throw new IllegalArgumentException("SMGJoinFields object arguments need to have identical size");
     }
@@ -53,41 +55,41 @@ class SMGJoinFields {
     Set<SMGEdgeHasValue> H1Prime = getCompatibleHVEdgeSet(pSMG1, pSMG2, pObj1, pObj2);
     Set<SMGEdgeHasValue> H2Prime = getCompatibleHVEdgeSet(pSMG2, pSMG1, pObj2, pObj1);
 
-    SMG origSMG1 = new SMG(pSMG1);
-    SMG origSMG2 = new SMG(pSMG2);
+    WritableSMG newSMG1 = SMGFactory.createWritableCopy(pSMG1);
+    WritableSMG newSMG2 = SMGFactory.createWritableCopy(pSMG2);
 
-    pSMG1.replaceHVSet(H1Prime);
-    pSMG2.replaceHVSet(H2Prime);
+    newSMG1.replaceHVSet(H1Prime);
+    newSMG2.replaceHVSet(H2Prime);
 
-    status = joinFieldsRelaxStatus(origSMG1, pSMG1, status, SMGJoinStatus.RIGHT_ENTAIL, pObj1);
-    status = joinFieldsRelaxStatus(origSMG2, pSMG2, status, SMGJoinStatus.LEFT_ENTAIL, pObj2);
+    status = joinFieldsRelaxStatus(pSMG1, newSMG1, status, SMGJoinStatus.RIGHT_ENTAIL, pObj1);
+    status = joinFieldsRelaxStatus(pSMG2, newSMG2, status, SMGJoinStatus.LEFT_ENTAIL, pObj2);
 
-    Set<SMGEdgeHasValue> smg2Extension = mergeNonNullHasValueEdges(pSMG1, pSMG2, pObj1, pObj2);
-    Set<SMGEdgeHasValue> smg1Extension = mergeNonNullHasValueEdges(pSMG2, pSMG1, pObj2, pObj1);
+    Set<SMGEdgeHasValue> smg2Extension = mergeNonNullHasValueEdges(newSMG1, newSMG2, pObj1, pObj2);
+    Set<SMGEdgeHasValue> smg1Extension = mergeNonNullHasValueEdges(newSMG2, newSMG1, pObj2, pObj1);
 
     H1Prime.addAll(smg1Extension);
     H2Prime.addAll(smg2Extension);
 
-    pSMG1.replaceHVSet(H1Prime);
-    pSMG2.replaceHVSet(H2Prime);
+    newSMG1.replaceHVSet(H1Prime);
+    newSMG2.replaceHVSet(H2Prime);
 
-    newSMG1 = pSMG1;
-    newSMG2 = pSMG2;
+    finalSMG1 = newSMG1;
+    finalSMG2 = newSMG2;
   }
 
   public SMGJoinStatus getStatus() {
     return status;
   }
 
-  public SMG getSMG1() {
-    return newSMG1;
+  public ReadableSMG getSMG1() {
+    return finalSMG1;
   }
 
-  public SMG getSMG2() {
-    return newSMG2;
+  public ReadableSMG getSMG2() {
+    return finalSMG2;
   }
 
-  public static Set<SMGEdgeHasValue> mergeNonNullHasValueEdges(SMG pSMG1, SMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
+  public static Set<SMGEdgeHasValue> mergeNonNullHasValueEdges(ReadableSMG pSMG1, ReadableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
     Set<SMGEdgeHasValue> returnSet = new HashSet<>();
 
     SMGEdgeHasValueFilter filterForSMG1 = SMGEdgeHasValueFilter.objectFilter(pObj1);
@@ -105,7 +107,7 @@ class SMGJoinFields {
     return Collections.unmodifiableSet(returnSet);
   }
 
-  public static SMGJoinStatus joinFieldsRelaxStatus(SMG pOrigSMG, SMG pNewSMG,
+  public static SMGJoinStatus joinFieldsRelaxStatus(ReadableSMG pOrigSMG, ReadableSMG pNewSMG,
       SMGJoinStatus pCurStatus, SMGJoinStatus pNewStatus, SMGObject pObject) {
     BitSet origNull = pOrigSMG.getNullBytesForObject(pObject);
     BitSet newNull = pNewSMG.getNullBytesForObject(pObject);
@@ -119,7 +121,7 @@ class SMGJoinFields {
     return pCurStatus;
   }
 
-  static public Set<SMGEdgeHasValue> getCompatibleHVEdgeSet(SMG pSMG1, SMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
+  static public Set<SMGEdgeHasValue> getCompatibleHVEdgeSet(ReadableSMG pSMG1, ReadableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
     Set<SMGEdgeHasValue> newHVSet = SMGJoinFields.getHVSetWithoutNullValuesOnObject(pSMG1, pObj1);
 
     newHVSet.addAll(SMGJoinFields.getHVSetOfCommonNullValues(pSMG1, pSMG2, pObj1, pObj2));
@@ -128,7 +130,7 @@ class SMGJoinFields {
     return newHVSet;
   }
 
-  static public Set<SMGEdgeHasValue> getHVSetOfMissingNullValues(SMG pSMG1, SMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
+  static public Set<SMGEdgeHasValue> getHVSetOfMissingNullValues(ReadableSMG pSMG1, ReadableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
     Set<SMGEdgeHasValue> retset = new HashSet<>();
 
     SMGEdgeHasValueFilter nonNullPtrInSmg2 = SMGEdgeHasValueFilter.objectFilter(pObj2);
@@ -157,7 +159,7 @@ class SMGJoinFields {
     return retset;
   }
 
-  static public Set<SMGEdgeHasValue> getHVSetOfCommonNullValues(SMG pSMG1, SMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
+  static public Set<SMGEdgeHasValue> getHVSetOfCommonNullValues(ReadableSMG pSMG1, ReadableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
     Set<SMGEdgeHasValue> retset = new HashSet<>();
     BitSet nullBytes = pSMG1.getNullBytesForObject(pObj1);
 
@@ -177,7 +179,7 @@ class SMGJoinFields {
     return Collections.unmodifiableSet(retset);
   }
 
-  static public Set<SMGEdgeHasValue> getHVSetWithoutNullValuesOnObject(SMG pSMG, SMGObject pObj) {
+  static public Set<SMGEdgeHasValue> getHVSetWithoutNullValuesOnObject(ReadableSMG pSMG, SMGObject pObj) {
     Set<SMGEdgeHasValue> retset = new HashSet<>();
     retset.addAll(pSMG.getHVEdges());
 
@@ -189,8 +191,8 @@ class SMGJoinFields {
     return retset;
   }
 
-  private static void checkResultConsistencySingleSide(SMG pSMG1, SMGEdgeHasValueFilter nullEdges1,
-                                                       SMG pSMG2, SMGObject pObj2, BitSet nullBytesInSMG2) throws SMGInconsistentException {
+  private static void checkResultConsistencySingleSide(ReadableSMG pSMG1, SMGEdgeHasValueFilter nullEdges1,
+                                                       ReadableSMG pSMG2, SMGObject pObj2, BitSet nullBytesInSMG2) throws SMGInconsistentException {
     for (SMGEdgeHasValue edgeInSMG1 : pSMG1.getHVEdges(nullEdges1)) {
       int start = edgeInSMG1.getOffset();
       int byte_after_end = start + edgeInSMG1.getSizeInBytes(pSMG1.getMachineModel());
@@ -213,7 +215,7 @@ class SMGJoinFields {
 
   }
 
-  public static void checkResultConsistency(SMG pSMG1, SMG pSMG2, SMGObject pObj1, SMGObject pObj2) throws SMGInconsistentException {
+  public static void checkResultConsistency(ReadableSMG pSMG1, ReadableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) throws SMGInconsistentException {
     SMGEdgeHasValueFilter nullEdges1 = SMGEdgeHasValueFilter.objectFilter(pObj1).filterHavingValue(pSMG1.getNullValue());
     SMGEdgeHasValueFilter nullEdges2 = SMGEdgeHasValueFilter.objectFilter(pObj2).filterHavingValue(pSMG2.getNullValue());
     BitSet nullBytesInSMG1 = pSMG1.getNullBytesForObject(pObj1);
