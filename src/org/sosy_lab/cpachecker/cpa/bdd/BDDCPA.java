@@ -28,12 +28,16 @@ import java.util.Collection;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -52,6 +56,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 
+@Options(prefix="cpa.bdd")
 public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
 
   public static CPAFactory factory() {
@@ -67,19 +72,35 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
   private final StopOperator stopOperator;
   private final BDDTransferRelation transferRelation;
   private final BDDReducer reducer;
+  private final ShutdownNotifier shutdownNotifier;
+  private final Configuration config;
+  private final LogManager logger;
+  private final CFA cfa;
 
-  private BDDCPA(CFA cfa, Configuration config, LogManager logger)
+  @Option(description="mergeType")
+  private String merge = "sep";
+
+  private BDDCPA(CFA pCfa, Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
+    pConfig.inject(this);
+
+    config            = pConfig;
+    logger            = pLogger;
+    cfa               = pCfa;
+    shutdownNotifier  = pShutdownNotifier;
+
     BDDRegionManager rmgr = BDDRegionManager.getInstance(config, logger);
-    manager = new NamedRegionManager(rmgr);
-    bvmgr = new BitvectorManager(config, rmgr);
-    abstractDomain = new BDDDomain();
-    precision = new BDDPrecision(config, cfa.getVarClassification());
-    mergeOperator = new MergeJoinOperator(abstractDomain);
-    stopOperator = new StopSepOperator(abstractDomain);
-    predmgr = new PredicateManager(config, manager, precision, cfa);
-    transferRelation = new BDDTransferRelation(manager, bvmgr, predmgr, logger, config, cfa);
-    reducer = new BDDReducer(manager, predmgr);
+
+    abstractDomain    = new BDDDomain();
+    stopOperator      = new StopSepOperator(abstractDomain);
+    mergeOperator     = (merge.equals("sep")) ? MergeSepOperator.getInstance() : new MergeJoinOperator(abstractDomain);
+    precision         = new BDDPrecision(config, cfa.getVarClassification());
+
+    manager           = new NamedRegionManager(rmgr);
+    bvmgr             = new BitvectorManager(config, rmgr);
+    predmgr           = new PredicateManager(config, manager, precision, cfa);
+    transferRelation  = new BDDTransferRelation(manager, bvmgr, predmgr, logger, config, cfa);
+    reducer           = new BDDReducer(manager, predmgr);
   }
 
   public NamedRegionManager getManager() {
@@ -141,4 +162,22 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
   public Reducer getReducer() {
     return reducer;
   }
+
+  public Configuration getConfiguration() {
+    return config;
+  }
+
+  public LogManager getLogger() {
+    return logger;
+  }
+
+  public CFA getCFA() {
+    return cfa;
+  }
+
+  public ShutdownNotifier getShutdownNotifier() {
+    return shutdownNotifier;
+  }
+
+
 }

@@ -121,7 +121,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
   private final ValueAnalysisInterpolator interpolator;
 
-  protected ValueAnalysisInterpolationBasedRefiner(Configuration pConfig,
+  public ValueAnalysisInterpolationBasedRefiner(Configuration pConfig,
       final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa)
       throws InvalidConfigurationException {
@@ -176,7 +176,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
     return pathInterpolants;
   }
 
-  protected Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(ARGPath errorPath)
+  public Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(ARGPath errorPath)
       throws CPAException, InterruptedException {
 
     assignments = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
@@ -219,7 +219,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
    * @return the new refinement root
    * @throws RefinementFailedException if no refinement root can be determined
    */
-  Pair<ARGState, CFAEdge> determineRefinementRoot(ARGPath errorPath, Multimap<CFANode, MemoryLocation> increment,
+  public Pair<ARGState, CFAEdge> determineRefinementRoot(ARGPath errorPath, Multimap<CFANode, MemoryLocation> increment,
       boolean isRepeatedRefinement) throws RefinementFailedException {
 
     if(interpolationOffset == -1) {
