@@ -831,6 +831,10 @@ cpa.octagon.interpolation.applyUseDefInformation = true
 # interpolation - this avoids to have loop-counters in the interpolant
 cpa.octagon.interpolation.ignoreLoopsExitAssumes = true
 
+# whether or not to heuristically weaken the candidate interpolant prior to
+# the interpolation process
+cpa.octagon.interpolation.weakenInterpolant = false
+
 # which merge operator to use for OctagonCPA?
 cpa.octagon.merge = "SEP"
   allowed values: [SEP, JOIN]
@@ -859,6 +863,10 @@ cpa.octagon.refiner.checkForRepeatedRefinements = true
 
 # whether or not to do lazy-abstraction
 cpa.octagon.refiner.doLazyAbstraction = true
+
+# whether or not to interpolate the shortest infeasible prefix rather than
+# the whole error path
+cpa.octagon.refiner.interpolateInfeasiblePrefix = false
 
 # Timelimit (in seconds) for the backup feasibility check with the octagon
 # analysis. Zero means there is no timelimit.
