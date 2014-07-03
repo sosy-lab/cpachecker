@@ -28,8 +28,14 @@ import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -119,6 +125,13 @@ public class ErrorPathClassifier {
       }
     }
 
+    // add bogus transition to prefix - needed, because during interpolation,
+    // the last edge is never interpolated (assumed to be the error state),
+    // so we need to add an extra transition, e.g., duplicate the last edge,
+    // so that the assertion holds that the last transition is infeasible and
+    // yields an interpolant that represents FALSE / a contradiction
+    errorPath.add(BOGUS_TRANSITION);
+
     return errorPath;
   }
 
@@ -130,4 +143,15 @@ public class ErrorPathClassifier {
 
     return errorPath;
   }
+
+  /**
+   * a bogus transition, containing the null-state, and a declaration edge, with basically no side effect (may not be a
+   * blank edge, due to implementation details)
+   */
+  private static final Pair<ARGState, CFAEdge> BOGUS_TRANSITION = Pair.<ARGState, CFAEdge>of(null,
+      new CDeclarationEdge("",
+          FileLocation.DUMMY,
+          new CFANode("bogus"),
+          new CFANode("bogus"),
+          new CVariableDeclaration(FileLocation.DUMMY, false, CStorageClass.AUTO, CNumericTypes.INT, "", "", "", null)));
 }
