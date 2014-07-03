@@ -599,6 +599,9 @@ cpa.bdd.initiallyEmptyPrecision = false
 # Dump tracked variables to a file.
 cpa.bdd.logfile = "BDDCPA_tracked_variables.log"
 
+# mergeType
+cpa.bdd.merge = "join"
+
 # whether or not to add newly-found variables only to the exact program
 # location or to the whole scope of the variable.
 cpa.bdd.precision.refinement.useScopedInterpolation = false
@@ -831,10 +834,6 @@ cpa.octagon.interpolation.applyUseDefInformation = true
 # interpolation - this avoids to have loop-counters in the interpolant
 cpa.octagon.interpolation.ignoreLoopsExitAssumes = true
 
-# whether or not to heuristically weaken the candidate interpolant prior to
-# the interpolation process
-cpa.octagon.interpolation.weakenInterpolant = false
-
 # which merge operator to use for OctagonCPA?
 cpa.octagon.merge = "SEP"
   allowed values: [SEP, JOIN]
@@ -854,19 +853,9 @@ cpa.octagon.mergeop.type = "NORMAL"
 cpa.octagon.octagonLibrary = "INT"
   allowed values: [INT, FLOAT]
 
-# whether or not to avoid restarting at assume edges after a refinement
-cpa.octagon.refiner.avoidAssumes = false
-
 # whether or not to check for repeated refinements, to then reset the
 # refinement root
 cpa.octagon.refiner.checkForRepeatedRefinements = true
-
-# whether or not to do lazy-abstraction
-cpa.octagon.refiner.doLazyAbstraction = true
-
-# whether or not to interpolate the shortest infeasible prefix rather than
-# the whole error path
-cpa.octagon.refiner.interpolateInfeasiblePrefix = false
 
 # Timelimit (in seconds) for the backup feasibility check with the octagon
 # analysis. Zero means there is no timelimit.
