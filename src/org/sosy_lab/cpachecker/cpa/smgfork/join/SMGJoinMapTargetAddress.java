@@ -25,9 +25,9 @@ package org.sosy_lab.cpachecker.cpa.smgfork.join;
 
 import java.util.Collection;
 
-import org.sosy_lab.cpachecker.cpa.smgfork.SMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGObject;
 
 final class SMGJoinMapTargetAddress {

@@ -27,9 +27,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cpa.smgfork.SMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGObject;
 

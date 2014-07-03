@@ -27,10 +27,10 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.smgfork.SMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGRegion;
 
 

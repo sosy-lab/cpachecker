@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smgfork;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.sll.SMGSingleLinkedListFinder;
 
 

@@ -30,9 +30,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cpa.smgfork.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGRegion;
 

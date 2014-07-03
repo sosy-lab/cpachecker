@@ -27,7 +27,7 @@ import java.util.Collections;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cpa.smgfork.SMG;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGObject;
 
 

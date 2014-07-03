@@ -25,10 +25,10 @@ package org.sosy_lab.cpachecker.cpa.smgfork.join;
 
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cpa.smgfork.SMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGObject;
 
 import com.google.common.collect.Iterables;

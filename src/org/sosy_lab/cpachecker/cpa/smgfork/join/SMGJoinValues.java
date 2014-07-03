@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.smgfork.join;
 
-import org.sosy_lab.cpachecker.cpa.smgfork.SMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.SMG;
 
 final class SMGJoinValues {
   private SMGJoinStatus status;

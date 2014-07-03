@@ -47,6 +47,8 @@ import org.sosy_lab.cpachecker.cpa.smgfork.SMGTransferRelation.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGTransferRelation.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.CLangSMGConsistencyVerifier;
 import org.sosy_lab.cpachecker.cpa.smgfork.join.SMGJoin;
 import org.sosy_lab.cpachecker.cpa.smgfork.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGObject;
