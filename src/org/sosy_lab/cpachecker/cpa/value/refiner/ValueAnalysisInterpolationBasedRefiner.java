@@ -440,11 +440,11 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      *
      * @return
      */
-    static ValueAnalysisInterpolant createInitial() {
+    public static ValueAnalysisInterpolant createInitial() {
       return new ValueAnalysisInterpolant();
     }
 
-    Set<MemoryLocation> getMemoryLocations() {
+    public Set<MemoryLocation> getMemoryLocations() {
       return isFalse()
           ? Collections.<MemoryLocation>emptySet()
           : Collections.unmodifiableSet(assignment.keySet());
@@ -516,7 +516,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      *
      * @return true, if the interpolant represents "true", else false
      */
-    private boolean isTrue() {
+    public boolean isTrue() {
       return assignment.isEmpty();
     }
 
@@ -525,7 +525,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      *
      * @return true, if the interpolant represents "false", else true
      */
-    boolean isFalse() {
+    public boolean isFalse() {
       return assignment == null;
     }
 
@@ -534,7 +534,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      *
      * @return true, if the interpolant is trivial, else false
      */
-    boolean isTrivial() {
+    public boolean isTrivial() {
       return isFalse() || isTrue();
     }
 

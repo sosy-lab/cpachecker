@@ -27,10 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -39,7 +36,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -67,9 +63,10 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.octagon.refiner.util.OctagonInterpolator;
-import org.sosy_lab.cpachecker.cpa.value.Value;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationBasedRefiner.ValueAnalysisInterpolant;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -91,6 +88,9 @@ public class OctagonInterpolationBasedRefiner implements Statistics {
 
   @Option(description="whether or not to avoid restarting at assume edges after a refinement")
   private boolean avoidAssumes = false;
+
+  @Option(description="whether or not to interpolate the shortest infeasible prefix rather than the whole error path")
+  private boolean interpolateInfeasiblePrefix = false;
 
   /**
    * the offset in the path from where to cut-off the subtree, and restart the analysis
@@ -132,7 +132,10 @@ public class OctagonInterpolationBasedRefiner implements Statistics {
 
     interpolationOffset = -1;
 
-    List<CFAEdge> errorTrace = from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
+    errorPath = obtainErrorPathPrefix(errorPath, interpolant);
+
+    List<CFAEdge> errorTrace = obtainErrorTrace(errorPath);
+
     Map<ARGState, ValueAnalysisInterpolant> pathInterpolants = new LinkedHashMap<>(errorPath.size());
 
     for (int i = 0; i < errorPath.size() - 1; i++) {
@@ -143,12 +146,6 @@ public class OctagonInterpolationBasedRefiner implements Statistics {
       }
 
       totalInterpolationQueries = totalInterpolationQueries + interpolator.getNumberOfInterpolationQueries();
-
-      // remove variables from the interpolant that belong to the scope of the returning function
-      // this is done one iteration after returning from the function, as the special FUNCTION_RETURN_VAR is needed that long
-      if (i > 0 && errorPath.get(i - 1).getSecond().getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
-        interpolant.clearScope(errorPath.get(i - 1).getSecond().getSuccessor().getFunctionName());
-      }
 
       if(!interpolant.isTrivial() && interpolationOffset == -1) {
         interpolationOffset = i + 1;
@@ -161,6 +158,43 @@ public class OctagonInterpolationBasedRefiner implements Statistics {
 
     timerInterpolation.stop();
     return pathInterpolants;
+  }
+
+  /**
+   * This method obtains, from the error path, the list of CFA edges to be interpolated.
+   *
+   * @param errorPath the error path
+   * @return the list of CFA edges to be interpolated
+   */
+  private List<CFAEdge> obtainErrorTrace(ARGPath errorPath) {
+    return from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
+  }
+
+  /**
+   * This path obtains a (sub)path of the error path which is given to the interpolation procedure.
+   *
+   * @param errorPath the original error path
+   * @param interpolant the initial interpolant, i.e. the initial state, with which to check the error path.
+   * @return a (sub)path of the error path which is given to the interpolation procedure
+   * @throws CPAException
+   * @throws InterruptedException
+   */
+  private ARGPath obtainErrorPathPrefix(ARGPath errorPath, ValueAnalysisInterpolant interpolant)
+          throws CPAException, InterruptedException {
+    if(interpolateInfeasiblePrefix) {
+      try {
+        ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
+
+        List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath, interpolant.createValueAnalysisState());
+
+        errorPath = new ErrorPathClassifier(cfa.getVarClassification()).obtainPrefixWithLowestScore(prefixes);
+
+      } catch (InvalidConfigurationException e) {
+        throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
+      }
+    }
+
+    return errorPath;
   }
 
   protected Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(ARGPath errorPath)
@@ -346,205 +380,5 @@ public class OctagonInterpolationBasedRefiner implements Statistics {
 
   public int getInterpolationOffset() {
     return interpolationOffset;
-  }
-
-  /**
-   * This class represents a Value-Analysis interpolant, itself, just a mere wrapper around a map
-   * from memory locations to values, representing a variable assignment.
-   */
-  public static class ValueAnalysisInterpolant {
-    /**
-     * the variable assignment of the interpolant
-     */
-    private final Map<MemoryLocation, Value> assignment;
-
-    /**
-     * the interpolant representing "true"
-     */
-    public static final ValueAnalysisInterpolant TRUE  = new ValueAnalysisInterpolant();
-
-    /**
-     * the interpolant representing "false"
-     */
-    public static final ValueAnalysisInterpolant FALSE = new ValueAnalysisInterpolant((Map<MemoryLocation, Value>)null);
-
-    /**
-     * Constructor for a new, empty interpolant, i.e. the interpolant representing "true"
-     */
-    private ValueAnalysisInterpolant() {
-      assignment = new HashMap<>();
-    }
-
-    /**
-     * Constructor for a new interpolant representing the given variable assignment
-     *
-     * @param pAssignment the variable assignment to be represented by the interpolant
-     */
-    public ValueAnalysisInterpolant(Map<MemoryLocation, Value> pAssignment) {
-      assignment = pAssignment;
-    }
-
-    /**
-     * This method serves as factory method for an initial, i.e. an interpolant representing "true"
-     *
-     * @return
-     */
-    static ValueAnalysisInterpolant createInitial() {
-      return new ValueAnalysisInterpolant();
-    }
-
-    Set<MemoryLocation> getMemoryLocations() {
-      return isFalse()
-          ? Collections.<MemoryLocation>emptySet()
-          : Collections.unmodifiableSet(assignment.keySet());
-    }
-
-    /**
-     * This method joins to value-analysis interpolants. If the underlying map contains different values for a key
-     * contained in both maps, the behaviour is undefined.
-     *
-     * @param other the value-analysis interpolant to join with this one
-     * @return a new value-analysis interpolant containing the joined mapping of this and the other value-analysis
-     * interpolant
-     */
-    public ValueAnalysisInterpolant join(ValueAnalysisInterpolant other) {
-
-      if(assignment == null || other.assignment == null) {
-        return ValueAnalysisInterpolant.FALSE;
-      }
-
-      Map<MemoryLocation, Value> newAssignment = new HashMap<>(assignment);
-
-      // add other itp mapping - one by one for now, to check for correctness
-      // newAssignment.putAll(other.assignment);
-      for(Map.Entry<MemoryLocation, Value> entry : other.assignment.entrySet()) {
-        if(newAssignment.containsKey(entry.getKey())) {
-          assert(entry.getValue().equals(other.assignment.get(entry.getKey()))) : "interpolants mismatch in " + entry.getKey();
-        }
-
-        newAssignment.put(entry.getKey(), entry.getValue());
-      }
-
-
-      return new ValueAnalysisInterpolant(newAssignment);
-    }
-
-    @Override
-    public int hashCode() {
-      return (assignment == null) ? 0 : assignment.hashCode();
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      if (this == obj) {
-        return true;
-      }
-
-      if (obj == null) {
-        return false;
-      }
-
-      if (getClass() != obj.getClass()) {
-        return false;
-      }
-
-      ValueAnalysisInterpolant other = (ValueAnalysisInterpolant) obj;
-      if ((assignment == null && other.assignment != null) || (assignment != null && other.assignment == null)) {
-        return false;
-      }
-
-      else if (!assignment.equals(other.assignment)) {
-        return false;
-      }
-
-      return true;
-    }
-
-    /**
-     * The method checks for trueness of the interpolant.
-     *
-     * @return true, if the interpolant represents "true", else false
-     */
-    private boolean isTrue() {
-      return assignment.isEmpty();
-    }
-
-    /**
-     * The method checks for falseness of the interpolant.
-     *
-     * @return true, if the interpolant represents "false", else true
-     */
-    boolean isFalse() {
-      return assignment == null;
-    }
-
-    /**
-     * The method checks if the interpolant is a trivial one, i.e. if it represents either true or false
-     *
-     * @return true, if the interpolant is trivial, else false
-     */
-    boolean isTrivial() {
-      return isFalse() || isTrue();
-    }
-
-    /**
-     * This method clears memory locations from the assignment that belong to the given function.
-     *
-     * @param functionName the name of the function for which to remove assignments
-     */
-    private void clearScope(String functionName) {
-      if(isTrivial()) {
-        return;
-      }
-
-      for (Iterator<MemoryLocation> variableNames = assignment.keySet().iterator(); variableNames.hasNext(); ) {
-        if (variableNames.next().isOnFunctionStack(functionName)) {
-          variableNames.remove();
-        }
-      }
-    }
-
-    /**
-     * This method serves as factory method to create a value-analysis state from the interpolant
-     *
-     * @return a value-analysis state that represents the same variable assignment as the interpolant
-     */
-    public ValueAnalysisState createValueAnalysisState() {
-      return new ValueAnalysisState(PathCopyingPersistentTreeMap.copyOf(assignment));
-    }
-
-    @Override
-    public String toString() {
-      if(isFalse()) {
-        return "FALSE";
-      }
-
-      if(isTrue()) {
-        return "TRUE";
-      }
-
-      return assignment.toString();
-    }
-
-    public boolean strengthen(ValueAnalysisState valueState, ARGState argState) {
-      if (isTrivial()) {
-        return false;
-      }
-
-      boolean strengthened = false;
-
-      for (Map.Entry<MemoryLocation, Value> itp : assignment.entrySet()) {
-        if(!valueState.contains(itp.getKey())) {
-          valueState.assignConstant(itp.getKey(), itp.getValue());
-          strengthened = true;
-        }
-
-        else if(valueState.contains(itp.getKey()) && valueState.getValueFor(itp.getKey()).asNumericValue().longValue() != itp.getValue().asNumericValue().longValue()) {
-          assert false : "state and interpolant do not match in value for variable " + itp.getKey() + "[state = " + valueState.getValueFor(itp.getKey()).asNumericValue().longValue() + " != " + itp.getValue() + " = itp] for state " + argState.getStateId();
-        }
-      }
-
-      return strengthened;
-    }
   }
 }
