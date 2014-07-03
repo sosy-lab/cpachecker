@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.smgfork;
 
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGObject;
 
-
 public class SMGEdgePointsTo extends SMGEdge {
   final private int offset;
 

@@ -469,7 +469,6 @@ public class SMGExpressionEvaluator {
     public final SMGState getSmgState() {
       return smgState;
     }
-
   }
 
   /**

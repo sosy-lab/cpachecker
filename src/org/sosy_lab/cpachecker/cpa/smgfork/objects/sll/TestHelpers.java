@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cpa.smgfork.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGRegion;
 
-
 public final class TestHelpers {
   static public final Integer createList(CLangSMG pSmg, int pLength, int pSize, int pOffset, String pPrefix) {
     Integer value = null;

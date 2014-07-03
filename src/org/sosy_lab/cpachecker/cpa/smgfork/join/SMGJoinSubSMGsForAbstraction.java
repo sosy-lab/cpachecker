@@ -30,7 +30,6 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cpa.smgfork.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGObject;
 
-
 final public class SMGJoinSubSMGsForAbstraction {
   private SMGJoinStatus status = null;
   final private SMG resultSMG = null;
