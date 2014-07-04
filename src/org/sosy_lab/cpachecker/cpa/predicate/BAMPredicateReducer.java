@@ -532,7 +532,10 @@ public class BAMPredicateReducer implements Reducer {
    */
   protected PathFormula updateLocalIndices(SSAMap rootSSA, SSAMap expandedSSA, SSAMapBuilder builder, PathFormula expandedPathFormula) {
     for (Map.Entry<String, CType> var : rootSSA.allVariablesWithTypes()) {
-      if (var.getKey().contains("::")) { // var is scoped -> not global
+
+      // ignore return-variables, they are needed beyond function-calls and must not be changed during rebuilding.
+      // ignore parameter-variables, they are not needed beyond function-calls.
+      if (var.getKey().contains("::") && !isReturnVar(var.getKey()) && !isParamVar(var.getKey())) { // var is scoped -> not global
 
         final int rootIndex = rootSSA.getIndex(var.getKey());
         assert rootIndex != SSAMap.INDEX_NOT_CONTAINED : "iteration uses variable, that does not exist";
@@ -564,5 +567,10 @@ public class BAMPredicateReducer implements Reducer {
   private boolean isReturnVar(String var) {
       return var.contains("::") &&
               CtoFormulaConverter.RETURN_VARIABLE_NAME.equals(var.substring(var.indexOf("::") + 2));
+  }
+
+  private boolean isParamVar(String var) {
+    return var.contains("::") &&
+            var.substring(var.indexOf("::") + 2).endsWith(CtoFormulaConverter.PARAM_VARIABLE_NAME);
   }
 }

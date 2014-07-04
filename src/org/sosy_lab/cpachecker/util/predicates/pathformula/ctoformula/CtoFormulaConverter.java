@@ -133,7 +133,7 @@ public class CtoFormulaConverter {
 
   //names for special variables needed to deal with functions
   public static final String RETURN_VARIABLE_NAME = "__retval__";
-  protected static final String PARAM_VARIABLE_NAME = "__param__";
+  public static final String PARAM_VARIABLE_NAME = "__param__";
 
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of(
       "printf", "printk"

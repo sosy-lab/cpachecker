@@ -285,12 +285,10 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
           assert currentState.getParents().size() == 1 : "there should be only one parent, because of the special ARG structure";
           finishedFormulas.clear(); // free some memory
 
-          ARGState parent = getOnlyElement(currentState.getParents());
-
           // start new block with empty formula
           currentFormula = getOnlyElement(currentFormulas);
           abstractionFormulas.add(currentFormula.getFormula());
-          finishedFormulas.put(currentState, pfmgr.makeEmptyPathFormula(currentFormula));
+          currentFormula = pfmgr.makeEmptyPathFormula(currentFormula);
 
         } else {
           // merge the formulas
@@ -301,6 +299,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
           }
         }
 
+        assert !finishedFormulas.containsKey(currentState) : "a state should only be finished once";
         finishedFormulas.put(currentState, currentFormula);
         waitlist.addAll(currentState.getChildren());
       }
