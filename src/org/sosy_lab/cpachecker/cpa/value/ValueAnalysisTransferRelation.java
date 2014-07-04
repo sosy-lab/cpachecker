@@ -185,9 +185,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   @Override
   protected Collection<ValueAnalysisState> postProcessing(ValueAnalysisState successor) {
-    if (successor != null){
+    // only maintain the delta if needed (for later abstraction) and if there is a successor
+    if (successor != null && !(precision.getRefinablePrecision() instanceof ValueAnalysisPrecision.FullPrecision)) {
       successor.addToDelta(state);
     }
+
     return super.postProcessing(successor);
   }
 
