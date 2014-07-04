@@ -36,9 +36,9 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.IOctagonCoefficients;
-import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctagonUniversalCoefficients;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctagonIntervalCoefficients;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctagonSimpleCoefficients;
+import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctagonUniversalCoefficients;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonDoubleValue;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonIntValue;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonInterval;
@@ -105,35 +105,6 @@ public class OctagonState implements AbstractState {
     INT, FLOAT;
   }
 
-  public static class Block {
-    private static int numBlocks = 0;
-
-    private final int id;
-
-    Block() {
-      numBlocks++;
-      id = numBlocks;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      if (obj == this) {
-        return true;
-      }
-      if (!(obj instanceof Block)) {
-        return false;
-      }
-      return id == ((Block)obj).id;
-    }
-
-    @Override
-    public int hashCode() {
-      final int prime = 31;
-      int result = 7;
-      result = prime * result + id;
-      return result;
-    }
-  }
 
   // the octagon representation
   private Octagon octagon;
@@ -142,7 +113,7 @@ public class OctagonState implements AbstractState {
   // mapping from variable name to its identifier
   private BiMap<String, Integer> variableToIndexMap;
   private Map<String, Type> variableToTypeMap;
-  private final Block block;
+  private final boolean isLoopHead;
 
   private LogManager logger;
 
@@ -152,23 +123,43 @@ public class OctagonState implements AbstractState {
     octagonManager = manager;
     variableToIndexMap = HashBiMap.create();
     variableToTypeMap = new HashMap<>();
-    block = new Block();
+    isLoopHead = false;
     logger = log;
 
     // cleanup old octagons
     Octagon.removePhantomReferences();
   }
 
-  public OctagonState(Octagon oct, BiMap<String, Integer> map, Map<String, Type> typeMap, Block block, LogManager log) {
+  public OctagonState(Octagon oct, BiMap<String, Integer> map, Map<String, Type> typeMap, LogManager log) {
     octagon = oct;
     octagonManager = octagon.getManager();
     variableToIndexMap = map;
     variableToTypeMap = typeMap;
-    this.block = block;
+    isLoopHead = false;
     logger = log;
 
     // cleanup old octagons
     Octagon.removePhantomReferences();
+  }
+
+  private OctagonState(Octagon oct, BiMap<String, Integer> map, Map<String, Type> typeMap, LogManager log, boolean pIsLoopHead) {
+    octagon = oct;
+    octagonManager = octagon.getManager();
+    variableToIndexMap = map;
+    variableToTypeMap = typeMap;
+    isLoopHead = pIsLoopHead;
+    logger = log;
+
+    // cleanup old octagons
+    Octagon.removePhantomReferences();
+  }
+
+  public OctagonState asLoopHead() {
+    return new OctagonState(octagon, variableToIndexMap, variableToTypeMap, logger, true);
+  }
+
+  public boolean isLoopHead() {
+    return isLoopHead;
   }
 
   @Override
@@ -179,7 +170,8 @@ public class OctagonState implements AbstractState {
     }
     OctagonState otherOct = (OctagonState) pObj;
 
-    return Objects.equals(variableToIndexMap, otherOct.variableToIndexMap)
+    return isLoopHead == otherOct.isLoopHead
+           && Objects.equals(variableToIndexMap, otherOct.variableToIndexMap)
            && this.octagon.equals(otherOct.octagon);
   }
 
@@ -230,7 +222,7 @@ public class OctagonState implements AbstractState {
         newTypeMap1.remove(newMap1.inverse().remove(i));
       }
       Octagon newOct1 = octagonManager.removeDimension(octagon, variableToIndexMap.size()-(maxEqualIndex+1));
-      newState1 =  new OctagonState(newOct1, newMap1, newTypeMap1, block, logger);
+      newState1 =  new OctagonState(newOct1, newMap1, newTypeMap1, logger, isLoopHead);
     } else {
       newState1 = this;
     }
@@ -243,20 +235,12 @@ public class OctagonState implements AbstractState {
         newTypeMap2.remove(newMap2.inverse().remove(i));
       }
       Octagon newOct2 =  octagonManager.removeDimension(oct.octagon, oct.variableToIndexMap.size()-(maxEqualIndex+1));
-      newState2 = new OctagonState(newOct2, newMap2, newTypeMap2, block, logger);
+      newState2 = new OctagonState(newOct2, newMap2, newTypeMap2, logger, isLoopHead);
     } else {
       newState2 = oct;
     }
 
     return Pair.of(newState1, newState2);
-  }
-
-  public boolean areInSameBlock(OctagonState other) {
-    return block.equals(other.block);
-  }
-
-  public Block getBlock() {
-    return block;
   }
 
   @Override
@@ -266,6 +250,7 @@ public class OctagonState implements AbstractState {
     int result = 7;
     result = prime * result + Objects.hashCode(variableToIndexMap);
     result = prime * result + Objects.hashCode(variableToTypeMap);
+    result = prime * result + Objects.hashCode(isLoopHead);
     return result;
   }
 
@@ -307,7 +292,6 @@ public class OctagonState implements AbstractState {
     return new OctagonState(octagonManager.forget(octagon, varIdx),
                         HashBiMap.create(variableToIndexMap),
                         new HashMap<>(variableToTypeMap),
-                        block,
                         logger);
   }
 
@@ -339,7 +323,6 @@ public class OctagonState implements AbstractState {
     OctagonState newState = new OctagonState(octagonManager.addDimensionAndEmbed(octagon, 1),
                                      HashBiMap.create(variableToIndexMap),
                                      new HashMap<>(variableToTypeMap),
-                                     block,
                                      logger);
     newState.variableToIndexMap.put(varName, sizeOfVariables());
     newState.variableToTypeMap.put(varName, type);
@@ -380,7 +363,6 @@ public class OctagonState implements AbstractState {
     OctagonState newState = new OctagonState(octagonManager.assingVar(octagon, varIdx, arr),
                                      HashBiMap.create(variableToIndexMap),
                                      new HashMap<>(variableToTypeMap),
-                                     block,
                                      logger);
     octagonManager.num_clear_n(arr, oct.size());
     return newState;
@@ -407,7 +389,6 @@ public class OctagonState implements AbstractState {
     OctagonState newState = new OctagonState(octagonManager.intervAssingVar(octagon, varIdx, arr),
                                      HashBiMap.create(variableToIndexMap),
                                      new HashMap<>(variableToTypeMap),
-                                     block,
                                      logger);
     octagonManager.num_clear_n(arr, oct.size());
     return newState;
@@ -430,7 +411,6 @@ public class OctagonState implements AbstractState {
     OctagonState newState = new OctagonState(octagonManager.addBinConstraint(octagon, 1, arr),
                                      HashBiMap.create(variableToIndexMap),
                                      new HashMap<>(variableToTypeMap),
-                                     block,
                                      logger);
     octagonManager.num_clear_n(arr, 4);
     return newState;
@@ -704,7 +684,6 @@ public class OctagonState implements AbstractState {
     return new OctagonState(octagonManager.intersection(octagon, other.octagon),
                         HashBiMap.create(variableToIndexMap),
                         new HashMap<>(variableToTypeMap),
-                        block,
                         logger);
   }
 
@@ -744,7 +723,6 @@ public class OctagonState implements AbstractState {
     OctagonState newState = new OctagonState(octagonManager.removeDimension(octagon, keysToRemove.size()),
                                      HashBiMap.create(variableToIndexMap),
                                      new HashMap<>(variableToTypeMap),
-                                     block,
                                      logger);
     newState.variableToIndexMap.keySet().removeAll(keysToRemove);
     newState.variableToTypeMap.keySet().removeAll(keysToRemove);

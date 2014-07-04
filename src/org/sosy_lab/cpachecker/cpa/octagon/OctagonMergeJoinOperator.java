@@ -55,7 +55,7 @@ public class OctagonMergeJoinOperator implements MergeOperator {
   @Override
   public AbstractState merge(AbstractState el1, AbstractState el2, Precision p) throws CPAException {
     if (onlyJoinEdgesInSameBlock) {
-      if (!((OctagonState)el1).areInSameBlock((OctagonState)el2)) {
+      if (!(((OctagonState)el1).isLoopHead() && ((OctagonState)el2).isLoopHead())) {
         return el2;
       }
     }
