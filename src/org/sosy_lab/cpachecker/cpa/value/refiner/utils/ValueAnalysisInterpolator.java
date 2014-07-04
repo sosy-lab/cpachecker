@@ -249,9 +249,6 @@ public class ValueAnalysisInterpolator {
       argErrorPath.add(Pair.<ARGState, CFAEdge>of(null, edge));
     }
 
-    // add bogus edge
-    argErrorPath.add(Pair.<ARGState, CFAEdge>of(null, Iterables.getLast(remainingErrorPath)));
-
     return checker.isFeasible(argErrorPath, state);
   }
 
