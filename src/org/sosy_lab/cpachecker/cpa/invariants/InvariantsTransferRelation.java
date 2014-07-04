@@ -36,26 +36,34 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.IALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
@@ -65,6 +73,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
@@ -73,6 +85,7 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -119,56 +132,59 @@ public enum InvariantsTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(
-      AbstractState pElement, Precision pPrecision, CFAEdge pEdge)
+      AbstractState pState, Precision pPrecision, CFAEdge pEdge)
       throws CPATransferException {
 
-    InvariantsState element = (InvariantsState) pElement;
+    InvariantsState state = (InvariantsState) pState;
     InvariantsPrecision precision = (InvariantsPrecision) pPrecision;
 
-    element = getSuccessor(pEdge, precision, element);
+    state = getSuccessor(pEdge, precision, state);
 
-    if (element == null) {
+    if (state == null) {
       return Collections.emptySet();
     }
-    return Collections.singleton(element);
+
+    state = state.updateAbstractionStrategy(precision, pEdge);
+
+    return Collections.singleton(state);
   }
 
   private InvariantsState getSuccessor(CFAEdge pEdge, InvariantsPrecision pPrecision, InvariantsState pState) throws UnrecognizedCFAEdgeException, UnrecognizedCCodeException {
-    InvariantsState element = pState.setTypes(getInvolvedVariables(pEdge));
+    InvariantsState state = pState.setTypes(getInvolvedVariables(pEdge));
     switch (pEdge.getEdgeType()) {
     case BlankEdge:
       break;
     case FunctionReturnEdge:
-      element = handleFunctionReturn(element, (CFunctionReturnEdge) pEdge, pPrecision);
+      state = handleFunctionReturn(state, (CFunctionReturnEdge) pEdge, pPrecision);
       break;
     case ReturnStatementEdge:
-      element = handleReturnStatement(element, (CReturnStatementEdge) pEdge, pPrecision);
+      state = handleReturnStatement(state, (CReturnStatementEdge) pEdge, pPrecision);
       break;
     case AssumeEdge:
-      element = handleAssume(element, (CAssumeEdge) pEdge, pPrecision);
+      state = handleAssume(state, (CAssumeEdge) pEdge, pPrecision);
       break;
     case DeclarationEdge:
-      element = handleDeclaration(element, (CDeclarationEdge) pEdge, pPrecision);
+      state = handleDeclaration(state, (CDeclarationEdge) pEdge, pPrecision);
       break;
     case FunctionCallEdge:
-      element = handleFunctionCall(element, (CFunctionCallEdge) pEdge, pPrecision);
+      state = handleFunctionCall(state, (CFunctionCallEdge) pEdge, pPrecision);
       break;
     case StatementEdge:
-      element = handleStatement(element, (CStatementEdge) pEdge, pPrecision);
+      state = handleStatement(state, (CStatementEdge) pEdge, pPrecision);
       break;
     case MultiEdge:
       Iterator<CFAEdge> edgeIterator = ((MultiEdge) pEdge).iterator();
-      while (element != null && edgeIterator.hasNext()) {
-        element = getSuccessor(edgeIterator.next(), pPrecision, element);
+      while (state != null && edgeIterator.hasNext()) {
+        state = getSuccessor(edgeIterator.next(), pPrecision, state);
       }
       break;
     default:
       throw new UnrecognizedCFAEdgeException(pEdge);
     }
-    if (element != null && pPrecision != null && !pPrecision.isRelevant(pEdge)) {
-      element = element.clear();
+    if (state != null && pPrecision != null && !pPrecision.isRelevant(pEdge)) {
+      state = state.clear();
     }
-    return element;
+    return state;
   }
 
   private InvariantsState handleAssume(InvariantsState pElement, CAssumeEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCCodeException {
@@ -340,35 +356,43 @@ public enum InvariantsTransferRelation implements TransferRelation {
 
       InvariantsFormula<CompoundInterval> value = CompoundIntervalFormulaManager.INSTANCE.asVariable(returnValueName);
 
+      InvariantsState result = pElement;
+
       // expression is an assignment operation, e.g. a = g(b);
       if (expression instanceof CFunctionCallAssignmentStatement) {
         CFunctionCallAssignmentStatement funcExp = (CFunctionCallAssignmentStatement) expression;
 
-        return handleAssignment(pElement, pFunctionReturnEdge.getSuccessor().getFunctionName(), pFunctionReturnEdge, funcExp.getLeftHandSide(), value, pPrecision);
-      }
-
-      Iterator<CExpression> actualParamIterator = summaryEdge.getExpression().getFunctionCallExpression().getParameterExpressions().iterator();
-      InvariantsState result = pElement;
-      for (String formalParamName : pFunctionReturnEdge.getPredecessor().getEntryNode().getFunctionParameterNames()) {
-        if (!actualParamIterator.hasNext()) {
-          break;
-        }
-        CExpression actualParam = actualParamIterator.next();
-        InvariantsFormula<CompoundInterval> actualParamFormula = actualParam.accept(getExpressionToFormulaVisitor(summaryEdge, pElement));
-        if (actualParamFormula instanceof Variable) {
-          String actualParamName = ((Variable<?>) actualParamFormula).getName();
-          String formalParamPrefixDeref = calledFunctionName + "::" + formalParamName + "->";
-          String formalParamPrefixAccess = calledFunctionName + "::" + formalParamName + ".";
-          for (Entry<? extends String, ? extends InvariantsFormula<CompoundInterval>> entry : pElement.getEnvironment().entrySet()) {
-            String varName = entry.getKey();
-            if (varName.startsWith(formalParamPrefixDeref)) {
-              String formalParamSuffix = varName.substring(formalParamPrefixDeref.length());
-              result = result.assign(actualParamName + "->" + formalParamSuffix, entry.getValue(), summaryEdge);
-            } else if (varName.startsWith(formalParamPrefixAccess)) {
-              String formalParamSuffix = varName.substring(formalParamPrefixAccess.length());
-              result = result.assign(actualParamName + "." + formalParamSuffix, entry.getValue(), summaryEdge);
+        result = handleAssignment(pElement, pFunctionReturnEdge.getSuccessor().getFunctionName(), pFunctionReturnEdge, funcExp.getLeftHandSide(), value, pPrecision);
+      } else {
+        Iterator<CExpression> actualParamIterator = summaryEdge.getExpression().getFunctionCallExpression().getParameterExpressions().iterator();
+        for (String formalParamName : pFunctionReturnEdge.getPredecessor().getEntryNode().getFunctionParameterNames()) {
+          if (!actualParamIterator.hasNext()) {
+            break;
+          }
+          CExpression actualParam = actualParamIterator.next();
+          InvariantsFormula<CompoundInterval> actualParamFormula = actualParam.accept(getExpressionToFormulaVisitor(summaryEdge, pElement));
+          if (actualParamFormula instanceof Variable) {
+            String actualParamName = ((Variable<?>) actualParamFormula).getName();
+            String formalParamPrefixDeref = calledFunctionName + "::" + formalParamName + "->";
+            String formalParamPrefixAccess = calledFunctionName + "::" + formalParamName + ".";
+            for (Entry<? extends String, ? extends InvariantsFormula<CompoundInterval>> entry : pElement.getEnvironment().entrySet()) {
+              String varName = entry.getKey();
+              if (varName.startsWith(formalParamPrefixDeref)) {
+                String formalParamSuffix = varName.substring(formalParamPrefixDeref.length());
+                result = result.assign(actualParamName + "->" + formalParamSuffix, entry.getValue(), summaryEdge);
+              } else if (varName.startsWith(formalParamPrefixAccess)) {
+                String formalParamSuffix = varName.substring(formalParamPrefixAccess.length());
+                result = result.assign(actualParamName + "." + formalParamSuffix, entry.getValue(), summaryEdge);
+              }
             }
           }
+        }
+      }
+
+      // Remove all variables that are in the scope of the returning function
+      for (String variableName : result.getEnvironment().keySet()) {
+        if (isFunctionScoped(variableName, calledFunctionName)) {
+          result = result.clear(variableName);
         }
       }
 
@@ -433,6 +457,10 @@ public enum InvariantsTransferRelation implements TransferRelation {
 
   static String scope(String pVar, String pFunction) {
     return pFunction + "::" + pVar;
+  }
+
+  private boolean isFunctionScoped(String pScopedVariableName, String pFunction) {
+    return pScopedVariableName.startsWith(pFunction + "::");
   }
 
   @Override
@@ -568,12 +596,12 @@ public enum InvariantsTransferRelation implements TransferRelation {
    *
    * @return the variables involved in the given edge.
    */
-  public static Map<String, CType> getInvolvedVariables(CFAEdge pCfaEdge) {
+  public Map<String, CType> getInvolvedVariables(CFAEdge pCfaEdge) {
     switch (pCfaEdge.getEdgeType()) {
     case AssumeEdge: {
       AssumeEdge assumeEdge = (AssumeEdge) pCfaEdge;
       IAExpression expression = assumeEdge.getExpression();
-      return getInvolvedVariables(expression);
+      return getInvolvedVariables(expression, pCfaEdge);
     }
     case MultiEdge: {
       MultiEdge multiEdge = (MultiEdge) pCfaEdge;
@@ -602,12 +630,12 @@ public enum InvariantsTransferRelation implements TransferRelation {
         Map<String, CType> result = new HashMap<>();
         result.put(declaredVariable, type);
         if (initializer instanceof AInitializerExpression) {
-          result.putAll(getInvolvedVariables(((AInitializerExpression) initializer).getExpression()));
+          result.putAll(getInvolvedVariables(((AInitializerExpression) initializer).getExpression(), pCfaEdge));
         } else if (initializer instanceof CInitializer) {
-          result.putAll(getInvolvedVariables((CInitializer) initializer));
+          result.putAll(getInvolvedVariables((CInitializer) initializer, pCfaEdge));
         } else if (initializer instanceof JArrayInitializer) {
           for (IAExpression expression : ((JArrayInitializer) initializer).getInitializerExpressions()) {
-            result.putAll(getInvolvedVariables(expression));
+            result.putAll(getInvolvedVariables(expression, pCfaEdge));
           }
         }
         return result;
@@ -619,16 +647,24 @@ public enum InvariantsTransferRelation implements TransferRelation {
       FunctionCallEdge functionCallEdge = (FunctionCallEdge) pCfaEdge;
       Map<String, CType> result = new HashMap<>();
       for (IAExpression argument : functionCallEdge.getArguments()) {
-        result.putAll(getInvolvedVariables(argument));
+        result.putAll(getInvolvedVariables(argument, pCfaEdge));
       }
       for (IAExpression parameter : functionCallEdge.getSummaryEdge().getExpression().getFunctionCallExpression().getParameterExpressions()) {
-        result.putAll(getInvolvedVariables(parameter));
+        result.putAll(getInvolvedVariables(parameter, pCfaEdge));
       }
       return result;
     }
     case ReturnStatementEdge: {
       AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) pCfaEdge;
-      return getInvolvedVariables(returnStatementEdge.getExpression());
+      IAExpression returnExpression = returnStatementEdge.getExpression();
+      if (returnExpression != null) {
+        Map<String, CType> result = new HashMap<>();
+        result.put(scope(RETURN_VARIABLE_BASE_NAME, pCfaEdge.getSuccessor().getFunctionName()),
+            (CType) returnExpression.getExpressionType());
+        result.putAll(getInvolvedVariables(returnExpression, pCfaEdge));
+        return result;
+      }
+      return Collections.emptyMap();
     }
     case StatementEdge: {
       AStatementEdge statementEdge = (AStatementEdge) pCfaEdge;
@@ -636,33 +672,48 @@ public enum InvariantsTransferRelation implements TransferRelation {
       if (statement instanceof AExpressionAssignmentStatement) {
         AExpressionAssignmentStatement expressionAssignmentStatement = (AExpressionAssignmentStatement) statement;
         Map<String, CType> result = new HashMap<>();
-        result.putAll(getInvolvedVariables(expressionAssignmentStatement.getLeftHandSide()));
-        result.putAll(getInvolvedVariables(expressionAssignmentStatement.getRightHandSide()));
+        result.putAll(getInvolvedVariables(expressionAssignmentStatement.getLeftHandSide(), pCfaEdge));
+        result.putAll(getInvolvedVariables(expressionAssignmentStatement.getRightHandSide(), pCfaEdge));
         return result;
       } else if (statement instanceof AExpressionStatement) {
-        return getInvolvedVariables(((AExpressionStatement) statement).getExpression());
+        return getInvolvedVariables(((AExpressionStatement) statement).getExpression(), pCfaEdge);
       } else if (statement instanceof AFunctionCallAssignmentStatement) {
         AFunctionCallAssignmentStatement functionCallAssignmentStatement = (AFunctionCallAssignmentStatement) statement;
         Map<String, CType> result = new HashMap<>();
-        result.putAll(getInvolvedVariables(functionCallAssignmentStatement.getLeftHandSide()));
-        for (IAExpression expression : functionCallAssignmentStatement.getFunctionCallExpression().getParameterExpressions()) {
-          result.putAll(getInvolvedVariables(expression));
+        result.putAll(getInvolvedVariables(functionCallAssignmentStatement.getLeftHandSide(), pCfaEdge));
+        AFunctionCallExpression functionCallExpression = functionCallAssignmentStatement.getFunctionCallExpression();
+        for (IAExpression expression : functionCallExpression.getParameterExpressions()) {
+          result.putAll(getInvolvedVariables(expression, pCfaEdge));
         }
         return result;
       } else if (statement instanceof AFunctionCallStatement) {
         AFunctionCallStatement functionCallStatement = (AFunctionCallStatement) statement;
         Map<String, CType> result = new HashMap<>();
         for (IAExpression expression : functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
-          result.putAll(getInvolvedVariables(expression));
+          result.putAll(getInvolvedVariables(expression, pCfaEdge));
         }
         return result;
       } else {
         return Collections.emptyMap();
       }
     }
+    case FunctionReturnEdge:
+      FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge) pCfaEdge;
+      AFunctionCall functionCall = functionReturnEdge.getSummaryEdge().getExpression();
+      if (functionCall instanceof AFunctionCallAssignmentStatement) {
+        AFunctionCallAssignmentStatement functionCallAssignmentStatement = (AFunctionCallAssignmentStatement) functionCall;
+        AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
+        if (functionCallExpression != null) {
+          Map<String, CType> result = new HashMap<>();
+          result.put(scope(RETURN_VARIABLE_BASE_NAME, pCfaEdge.getPredecessor().getFunctionName()),
+              (CType) functionCallExpression.getExpressionType());
+          result.putAll(getInvolvedVariables(functionCallAssignmentStatement.getLeftHandSide(), pCfaEdge));
+          return result;
+        }
+      }
+      return Collections.emptyMap();
     case BlankEdge:
     case CallToReturnEdge:
-    case FunctionReturnEdge:
     default:
       return Collections.emptyMap();
     }
@@ -676,16 +727,16 @@ public enum InvariantsTransferRelation implements TransferRelation {
    *
    * @return the variables involved in the given CInitializer.
    */
-  private static Map<String, CType> getInvolvedVariables(CInitializer pCInitializer) {
+  private Map<String, CType> getInvolvedVariables(CInitializer pCInitializer, CFAEdge pCfaEdge) {
     if (pCInitializer instanceof CDesignatedInitializer) {
-      return getInvolvedVariables(((CDesignatedInitializer) pCInitializer).getRightHandSide());
+      return getInvolvedVariables(((CDesignatedInitializer) pCInitializer).getRightHandSide(), pCfaEdge);
     } else if (pCInitializer instanceof CInitializerExpression) {
-      return getInvolvedVariables(((CInitializerExpression) pCInitializer).getExpression());
+      return getInvolvedVariables(((CInitializerExpression) pCInitializer).getExpression(), pCfaEdge);
     } else if (pCInitializer instanceof CInitializerList) {
       CInitializerList initializerList = (CInitializerList) pCInitializer;
       Map<String, CType> result = new HashMap<>();
       for (CInitializer initializer : initializerList.getInitializers()) {
-        result.putAll(getInvolvedVariables(initializer));
+        result.putAll(getInvolvedVariables(initializer, pCfaEdge));
       }
       return result;
     }
@@ -700,19 +751,103 @@ public enum InvariantsTransferRelation implements TransferRelation {
    *
    * @return the variables involved in the given expression.
    */
-  private static Map<String, CType> getInvolvedVariables(IAExpression pExpression) {
+  public Map<String, CType> getInvolvedVariables(IAExpression pExpression, CFAEdge pCfaEdge) {
     if (pExpression == null) {
       return Collections.emptyMap();
     } if (pExpression instanceof CExpression) {
       Map<String, CType> result = new HashMap<>();
-      CIdExpressionCollectorVisitor collector = new CIdExpressionCollectorVisitor();
 
-      ((CExpression) pExpression).accept(collector);
+      for (IALeftHandSide leftHandSide : ((CExpression) pExpression).accept(new CExpressionVisitor<Iterable<IALeftHandSide>, RuntimeException>() {
 
-      for (CIdExpression id : collector.getReferencedIdExpressions()) {
-        String assignToVar = id.getDeclaration().getQualifiedName();
-        result.put(assignToVar, id.getExpressionType());
+        @Override
+        public Iterable<IALeftHandSide> visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
+          return Collections.<IALeftHandSide>singleton(pIastArraySubscriptExpression);
+        }
+
+        @Override
+        public Iterable<IALeftHandSide> visit(CFieldReference pIastFieldReference) {
+          return Collections.<IALeftHandSide>singleton(pIastFieldReference);
+        }
+
+        @Override
+        public Iterable<IALeftHandSide> visit(CIdExpression pIastIdExpression) {
+          return Collections.<IALeftHandSide>singleton(pIastIdExpression);
+        }
+
+        @Override
+        public Iterable<IALeftHandSide> visit(CPointerExpression pPointerExpression) {
+          return Collections.<IALeftHandSide>singleton(pPointerExpression);
+        }
+
+        @Override
+        public Iterable<IALeftHandSide> visit(CComplexCastExpression pComplexCastExpression) {
+          return pComplexCastExpression.getOperand().accept(this);
+        }
+
+        @Override
+        public Iterable<IALeftHandSide> visit(CBinaryExpression pIastBinaryExpression) {
+          return Iterables.concat(pIastBinaryExpression.getOperand1().accept(this), pIastBinaryExpression.getOperand2().accept(this));
+        }
+
+        @Override
+        public Iterable<IALeftHandSide> visit(CCastExpression pIastCastExpression) {
+          return pIastCastExpression.getOperand().accept(this);
+        }
+
+        @Override
+        public Iterable<IALeftHandSide> visit(CCharLiteralExpression pIastCharLiteralExpression) {
+          return Collections.emptySet();
+        }
+
+        @Override
+        public Iterable<IALeftHandSide> visit(CFloatLiteralExpression pIastFloatLiteralExpression) {
+          return Collections.emptySet();
+        }
+
+        @Override
+        public Iterable<IALeftHandSide> visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) {
+          return Collections.emptySet();
+        }
+
+        @Override
+        public Iterable<IALeftHandSide> visit(CStringLiteralExpression pIastStringLiteralExpression) {
+          return Collections.emptySet();
+        }
+
+        @Override
+        public Iterable<IALeftHandSide> visit(CTypeIdExpression pIastTypeIdExpression) {
+          return Collections.emptySet();
+        }
+
+        @Override
+        public Iterable<IALeftHandSide> visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression) {
+          return Collections.emptySet();
+        }
+
+        @Override
+        public Iterable<IALeftHandSide> visit(CUnaryExpression pIastUnaryExpression) {
+          return pIastUnaryExpression.getOperand().accept(this);
+        }
+
+        @Override
+        public Iterable<IALeftHandSide> visit(CImaginaryLiteralExpression pIastLiteralExpression) {
+          return Collections.emptySet();
+        }
+
       }
+        )) {
+        InvariantsFormula<CompoundInterval> formula;
+        try {
+          formula = ((CExpression) leftHandSide).accept(getExpressionToFormulaVisitor(pCfaEdge));
+
+          for (String variableName : formula.accept(COLLECT_VARS_VISITOR)) {
+            result.put(variableName, (CType) leftHandSide.getExpressionType());
+          }
+        } catch (UnrecognizedCCodeException e) {
+          // Don't record the variable name then
+        }
+      }
+
       return result;
     } else {
       throw new UnsupportedOperationException("Only C expressions are supported");

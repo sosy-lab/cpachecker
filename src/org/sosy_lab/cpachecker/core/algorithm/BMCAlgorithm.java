@@ -613,6 +613,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     private Set<CFANode> targetLocations = null;
 
+    private boolean targetLocationsChanged = false;
+
     private BooleanFormula previousFormula = null;
 
     private int previousK = -1;
@@ -778,7 +780,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     private BooleanFormula getCurrentInvariants() throws CPAException, InterruptedException {
       if (!bfmgr.isFalse(currentInvariants)) {
         UnmodifiableReachedSet currentInvariantsReachedSet = invariantGenerator.get();
-        if (currentInvariantsReachedSet != invariantsReachedSet) {
+        if (currentInvariantsReachedSet != invariantsReachedSet || targetLocationsChanged) {
           CFANode loopHead = Iterables.getOnlyElement(getLoop().getLoopHeads());
           currentInvariants = extractInvariantsAt(currentInvariantsReachedSet, loopHead);
         }
@@ -956,7 +958,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           safePredecessors, // k consecutive iterations are SAFE
           unsafeSuccessor); // and the k+1st iteration is UNSAFE
 
-      targetLocations = from(targetStates).transform(AbstractStates.EXTRACT_LOCATION).toSet();
+      Set<CFANode> newTargetLocations = from(targetStates).transform(AbstractStates.EXTRACT_LOCATION).toSet();
+      if (!newTargetLocations.equals(targetLocations)) {
+        targetLocations = newTargetLocations;
+        targetLocationsChanged = true;
+      }
 
       ProverEnvironment prover = getProver();
 
@@ -1203,7 +1209,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
             CFANode successor = leavingEdge.getSuccessor();
             if (loopNodes.contains(successor)) {
-              boolean variableIsInvolved = InvariantsTransferRelation.getInvolvedVariables(leavingEdge).keySet().contains(variable);
+              boolean variableIsInvolved = InvariantsTransferRelation.INSTANCE.getInvolvedVariables(leavingEdge).keySet().contains(variable);
               boolean isAssumeEdge = leavingEdge.getEdgeType() == CFAEdgeType.AssumeEdge;
               if (!variableIsInvolved || isAssumeEdge) {
                 waitlist.add(successor);
@@ -1304,7 +1310,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           } else {
             boolean isInLoop = pLoop.getLoopNodes().contains(successor);
             boolean isBeforeLoopHead = isInLoop && !loopHeadReachedLocal;
-            Iterable<String> involvedVariables = InvariantsTransferRelation.getInvolvedVariables(leavingEdge).keySet();
+            Iterable<String> involvedVariables = InvariantsTransferRelation.INSTANCE.getInvolvedVariables(leavingEdge).keySet();
             involvedVariables = from(involvedVariables).filter(not(in(pVariableClassification.getIrrelevantVariables())));
             if (isBeforeLoopHead && !isFreeOfSideEffects(leavingEdge)
                 || !isBeforeLoopHead && (Iterables.contains(involvedVariables, pVariable) && !(Iterables.all(involvedVariables, equalTo(pVariable)) && leavingEdge.getEdgeType() == CFAEdgeType.DeclarationEdge))) {

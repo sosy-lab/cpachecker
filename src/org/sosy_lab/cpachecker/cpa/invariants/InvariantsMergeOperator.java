@@ -36,6 +36,9 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
+
 
 public class InvariantsMergeOperator implements MergeOperator {
 
@@ -45,13 +48,48 @@ public class InvariantsMergeOperator implements MergeOperator {
     InvariantsState state1 = (InvariantsState) pState1;
     InvariantsState state2 = (InvariantsState) pState2;
     InvariantsPrecision precision = (InvariantsPrecision) pPrecision;
-    if (!environmentsEqualWithRespectToInterestingVariables(state1, state2, precision)) {
-      return state2;
+    boolean isMergeAllowed = isMergeAllowed(state1, state2, precision);
+    Set<String> wideningTargets = state1.determineAbstractionStrategy(precision).determineWideningTargets(state2.determineAbstractionStrategy(precision));
+    state1 = state1.widen(state2, precision, wideningTargets);
+    if (state1 != pState1 && definitelyImplies(state2, reduceToGivenVariables(reduceToInterestingVariables(state1, precision), Sets.difference(state1.getEnvironment().keySet(), wideningTargets)))) {
+      isMergeAllowed = true;
     }
-    return state1.join(state2, precision);
+    InvariantsState result = state2;
+    if (isMergeAllowed) {
+      result = state1.join(state2, precision);
+    }
+    return result;
   }
 
-  private boolean environmentsEqualWithRespectToInterestingVariables(InvariantsState pState1, InvariantsState pState2, InvariantsPrecision pPrecision) {
+  private static boolean isMergeAllowed(InvariantsState pState1, InvariantsState pState2, InvariantsPrecision pPrecision) {
+    return environmentsEqualWithRespectToInterestingVariables(pState1, pState2, pPrecision)
+        || definitelyImplies(pState2, reduceToInterestingVariables(pState1, pPrecision));
+  }
+
+  private static boolean definitelyImplies(InvariantsState pState1, InvariantsState pState2) {
+    for (InvariantsFormula<CompoundInterval> assumption : pState2.getEnvironmentAsAssumptions()) {
+      if (!pState1.definitelyImplies(assumption)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private static InvariantsState reduceToInterestingVariables(InvariantsState pState, InvariantsPrecision pPrecision) {
+    return reduceToGivenVariables(pState, pPrecision.getInterestingVariables());
+  }
+
+  private static InvariantsState reduceToGivenVariables(InvariantsState pState, Iterable<? extends String> pVariables) {
+    InvariantsState result = pState;
+    for (String variableName : pState.getEnvironment().keySet()) {
+      if (!Iterables.contains(pVariables, variableName)) {
+        result = result.clear(variableName);
+      }
+    }
+    return result;
+  }
+
+  private static boolean environmentsEqualWithRespectToInterestingVariables(InvariantsState pState1, InvariantsState pState2, InvariantsPrecision pPrecision) {
     Set<String> checkedVariables = new HashSet<>();
     Queue<String> waitlist = new ArrayDeque<>(pPrecision.getInterestingVariables());
     Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> environment1 = pState1.getEnvironment();
