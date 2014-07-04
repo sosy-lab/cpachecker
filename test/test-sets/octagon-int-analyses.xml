@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" softtimelimit="500" hardtimelimit="550" memlimit="32000" cpuCores="2">
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+  <option name="-heap">2000M</option>
+  <option name="-noout"/>
+  <option name="-disable-java-assertions"/>
+
+  <sourcefiles name="Simple">
+    <includesfile>../programs/benchmarks/Simple.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="ControlFlowInteger">
+    <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="DeviceDrivers64">
+    <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
+    <option name="-64"/>
+  </sourcefiles>
+  <sourcefiles name="Loops">
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="ProductLines">
+    <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="Sequentialized">
+    <include>../programs/benchmarks/systemc/*_false-unreach-call*.cil.c</include>
+    <include>../programs/benchmarks/systemc/*_true-unreach-call*.cil.c</include>
+  </sourcefiles>
+
+<!-- Analyses with a single run -->
+
+ <rundefinition name="octagonAnalysis-mergeSep">
+    <option name="-octagonAnalysis"/>
+ </rundefinition>
+ <rundefinition name="octagonAnalysis-mergeJoin-cexCheck">
+    <option name="-octagonAnalysis-mergeJoin-cexCheck"/>
+ </rundefinition>
+ <rundefinition name="octagonAnalysis-mergeJoinOnlyBlocks-cexCheck">
+    <option name="-octagonAnalysis-mergeJoin-cexCheck"/>
+    <option name="-setprop">cpa.octagon.mergeop.onlyJoinEdgesInSameBlock=true</option>
+ </rundefinition>
+ <rundefinition name="octagonAnalysis-mergeWidening-cexCheck">
+    <option name="-octagonAnalysis-mergeWidening-cexCheck"/>
+ </rundefinition>
+ <rundefinition name="octagonAnalysis-mergeWideningOnlyBlocks-cexCheck">
+    <option name="-octagonAnalysis-mergeWidening-cexCheck"/>
+    <option name="-setprop">cpa.octagon.mergeop.onlyJoinEdgesInSameBlock=true</option>
+ </rundefinition>
+  <rundefinition name="octagonAnalysis-refiner-false">
+    <option name="-octagonAnalysis-refiner"/>
+    <option name="-setprop">cpa.value.refiner.interpolateInfeasiblePrefix=false</option>
+ </rundefinition> 
+ <rundefinition name="octagonAnalysis-refiner-true">
+    <option name="-octagonAnalysis-refiner"/>
+    <option name="-setprop">cpa.value.refiner.interpolateInfeasiblePrefix=true</option>
+ </rundefinition> 
+
+<!-- Analyses with a sequential combination of runs -->
+
+ <rundefinition name="octagonAnalysis-restart-int-refiner-widening">
+    <option name="-octagonAnalysis-restart-int"/>
+ </rundefinition>
+ <rundefinition name="octagonAnalysis-restart-int-refiner-join">
+    <option name="-octagonAnalysis-restart-int"/>
+    <option name="-setprop">restartAlgorithm.configFiles=config/octagonAnalysis-mergeJoin-cexCheck.properties,config/octagonAnalysis-refiner-restart-int.properties</option>
+ </rundefinition>
+
+
+</benchmark>
