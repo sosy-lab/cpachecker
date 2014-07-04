@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -49,25 +50,10 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -89,16 +75,13 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState.EdgeBasedAbstractionStrategyFactories;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaManager;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor.VariableNameExtractor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptAllVariableSelection;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptSpecifiedVariableSelection;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 import com.google.common.base.Optional;
@@ -301,7 +284,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
       }
     }
     if (shutdownNotifier.shouldShutdown()) {
-      return new InvariantsState(new AcceptAllVariableSelection<CompoundInterval>(), machineModel);
+      return new InvariantsState(new AcceptAllVariableSelection<CompoundInterval>(), machineModel, options.edgeBasedAbstractionStrategyFactory.getAbstractionStrategy());
     }
     if (options.analyzeTargetPathsOnly && determineTargetLocations) {
       relevantLocations.addAll(targetLocations);
@@ -310,7 +293,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     }
 
     // Collect relevant edges and guess that information might be interesting
-    Set<CFAEdge> relevantEdges = new HashSet<>();
+    Set<CFAEdge> relevantEdges = new LinkedHashSet<>();
     Set<InvariantsFormula<CompoundInterval>> interestingPredicates = new LinkedHashSet<>();
     Set<String> interestingVariables;
     synchronized (this.interestingVariables) {
@@ -325,61 +308,37 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     // Iterate backwards from all relevant locations to find the relevant edges
     for (CFANode location : relevantLocations) {
       Queue<CFANode> nodes = new ArrayDeque<>();
-      Queue<Integer> distances = new ArrayDeque<>();
       nodes.offer(location);
-      distances.offer(0);
       while (!nodes.isEmpty()) {
         location = nodes.poll();
-        int distance = distances.poll();
         for (int i = 0; i < location.getNumEnteringEdges(); ++i) {
           CFAEdge edge = location.getEnteringEdge(i);
           if (relevantEdges.add(edge)) {
             nodes.offer(edge.getPredecessor());
-            if (edge instanceof AssumeEdge) {
-              if (guessInterestingInformation) {
-                try {
-                  InvariantsFormula<CompoundInterval> formula = ((CAssumeEdge) edge).getExpression().accept(InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(edge));
-                  if (interestingVariableLimit != 0) {
-                    addAll(interestingVariables, formula.accept(COLLECT_VARS_VISITOR), interestingVariableLimit);
-                  }
-                } catch (UnrecognizedCCodeException e) {
-                  logManager.logException(Level.SEVERE, e, "Found unrecognized C code on an edge. Cannot guess interesting information.");
-                  guessInterestingInformation = false;
-                }
-              }
-              distances.offer(distance + 1);
-            } else {
-              distances.offer(distance);
-            }
           }
         }
       }
     }
 
     if (shutdownNotifier.shouldShutdown()) {
-      return new InvariantsState(new AcceptAllVariableSelection<CompoundInterval>(), machineModel);
+      return new InvariantsState(new AcceptAllVariableSelection<CompoundInterval>(), machineModel, options.edgeBasedAbstractionStrategyFactory.getAbstractionStrategy());
     }
 
     // Try to specify all relevant variables
-    Set<String> relevantVariables = new HashSet<>();
+    Set<String> relevantVariables = new LinkedHashSet<>();
     boolean specifyRelevantVariables = options.analyzeRelevantVariablesOnly;
-    // Collect all variables from relevant edges
-    for (CFAEdge edge : relevantEdges) {
-      ExpressionToFormulaVisitor etfv = InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(edge);
-      if (edge instanceof CAssumeEdge) {
-        try {
-          InvariantsFormula<CompoundInterval> assumption = ((CAssumeEdge) edge).getExpression().accept(etfv);
-          relevantVariables.addAll(assumption.accept(COLLECT_VARS_VISITOR));
-        } catch (UnrecognizedCCodeException e) {
-          logManager.logException(Level.WARNING, e, "Found unrecognized C code on an edge. Cannot specify relevant variables explicitly. Considering all variables as relevant.");
-          specifyRelevantVariables = false;
-        }
-      }
-    }
+
     final VariableSelection<CompoundInterval> variableSelection;
     if (specifyRelevantVariables) {
       // Collect all variables related to variables found on relevant assume edges from other edges with a fix point iteration
-      expand(relevantVariables, relevantEdges, -1);
+      expandFixpoint(relevantVariables, targetLocations, -1);
+      for (String variable : relevantVariables) {
+        if (interestingVariables.size() >= interestingVariableLimit) {
+          break;
+        }
+        interestingVariables.add(variable);
+        expandFixpoint(interestingVariables, targetLocations, interestingVariableLimit);
+      }
       variableSelection = new AcceptSpecifiedVariableSelection<>(relevantVariables);
     } else {
       variableSelection = new AcceptAllVariableSelection<>();
@@ -407,11 +366,11 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
     InvariantsState invariant = invariants.get(pNode);
     if (invariant != null) {
-      return new InvariantsState(variableSelection, machineModel, invariant);
+      return new InvariantsState(variableSelection, machineModel, invariant, options.edgeBasedAbstractionStrategyFactory.getAbstractionStrategy());
     }
 
     // Create the configured initial state
-    return new InvariantsState(variableSelection, machineModel);
+    return new InvariantsState(variableSelection, machineModel, options.edgeBasedAbstractionStrategyFactory.getAbstractionStrategy());
   }
 
   @Override
@@ -459,66 +418,115 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     conditionAdjuster.adjustReachedSet(pReachedSet);
   }
 
-  private static void expand(Set<String> pRelevantVariables, Collection<CFAEdge> pCfaEdges, int pLimit) {
-    if (reachesLimit(pRelevantVariables, pLimit)) {
-      return;
-    }
-    int size = 0;
-    while (pRelevantVariables.size() > size && !reachesLimit(pRelevantVariables, pLimit)) {
-      size = pRelevantVariables.size();
-      for (CFAEdge edge : pCfaEdges) {
-        try {
-          expand(pRelevantVariables, edge, pLimit);
-        } catch (UnrecognizedCCodeException e) {
-          // If an exception occurred, we simply do not expand the set of variables but may continue
-        }
-      }
-    }
-    assert !exceedsLimit(pRelevantVariables, pLimit);
-  }
-
-  private static <T> boolean exceedsLimit(Collection<T> pCollection, int pLimit) {
-    return pLimit >= 0 && pCollection.size() > pLimit;
-  }
-
   private static <T> boolean reachesLimit(Collection<T> pCollection, int pLimit) {
     return pLimit >= 0 && pCollection.size() >= pLimit;
   }
 
-  private static void expand(Set<String> pRelevantVariables, CFAEdge pCfaEdge, int pLimit) throws UnrecognizedCCodeException {
-    if (reachesLimit(pRelevantVariables, pLimit)) {
-      return;
+  private static void expandFixpoint(Set<String> pRelevantVariables, Set<CFANode> pRelevantLocations, int pLimit) {
+    for (CFANode relevantLocation : pRelevantLocations) {
+      expandFixpoint(pRelevantVariables, relevantLocation, pLimit);
     }
-    switch (pCfaEdge.getEdgeType()) {
-    case AssumeEdge:
-      // Assume that all assume edge variables are already recorded
-      break;
-    case BlankEdge:
-      break;
-    case CallToReturnEdge:
-      break;
-    case DeclarationEdge:
-      handleDeclaration((CDeclarationEdge) pCfaEdge, pRelevantVariables, pLimit);
-      break;
-    case FunctionCallEdge:
-      handleFunctionCall((CFunctionCallEdge) pCfaEdge, pRelevantVariables, pLimit);
-      break;
-    case FunctionReturnEdge:
-      handleFunctionReturn((CFunctionReturnEdge) pCfaEdge, pRelevantVariables, pLimit);
-      break;
-    case MultiEdge:
-      expand(pRelevantVariables, ((MultiEdge) pCfaEdge).getEdges(), pLimit);
-      break;
-    case ReturnStatementEdge:
-      handleReturnStatement((CReturnStatementEdge) pCfaEdge, pRelevantVariables, pLimit);
-      break;
-    case StatementEdge:
-      handleStatementEdge((CStatementEdge) pCfaEdge, pRelevantVariables, pLimit);
-      break;
-    default:
-      break;
+  }
+
+  private static void expandFixpoint(Set<String> pRelevantVariables, CFANode pRelevantLocation, int pLimit) {
+    int prevSize = -1;
+    while (pRelevantVariables.size() > prevSize && !reachesLimit(pRelevantVariables, pLimit)) {
+      prevSize = pRelevantVariables.size();
+      expandOnce(pRelevantVariables, pRelevantLocation, pLimit);
     }
-    assert !exceedsLimit(pRelevantVariables, pLimit);
+  }
+
+  private static void expandOnce(Set<String> pRelevantVariables, CFANode pRelevantLocation, int pLimit) {
+
+    Set<CFANode> pVisitedNodes = new HashSet<>();
+
+    Queue<CFANode> relevantLocations = new ArrayDeque<>();
+    pVisitedNodes.add(pRelevantLocation);
+    relevantLocations.offer(pRelevantLocation);
+    while (!relevantLocations.isEmpty() && !reachesLimit(pRelevantVariables, pLimit)) {
+      CFANode currentRelevantLocation = relevantLocations.poll();
+
+      Set<Pair<AssumeEdge, List<CFAEdge>>> assumeEdgesAndPaths = new HashSet<>();
+
+      Queue<Pair<CFANode, List<CFAEdge>>> waitlist = new ArrayDeque<>();
+      waitlist.offer(Pair.of(currentRelevantLocation, Collections.<CFAEdge>emptyList()));
+
+      while (!waitlist.isEmpty()) {
+        Pair<CFANode, List<CFAEdge>> currentPair = waitlist.poll();
+        CFANode currentNode = currentPair.getFirst();
+        List<CFAEdge> currentPath = currentPair.getSecond();
+        for (CFAEdge enteringEdge : CFAUtils.enteringEdges(currentNode)) {
+          if (enteringEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+            assumeEdgesAndPaths.add(Pair.of((AssumeEdge) enteringEdge, currentPath));
+          } else if (pVisitedNodes.add(enteringEdge.getPredecessor())) {
+            List<CFAEdge> newPath = new ArrayList<>(currentPath);
+            newPath.add(enteringEdge);
+            waitlist.offer(Pair.of(enteringEdge.getPredecessor(), newPath));
+            addTransitivelyRelevantInvolvedVariables(pRelevantVariables, enteringEdge, pLimit);
+          }
+        }
+      }
+
+      for (Pair<AssumeEdge, List<CFAEdge>> assumeEdgeAndPath : assumeEdgesAndPaths) {
+        AssumeEdge assumeEdge = assumeEdgeAndPath.getFirst();
+        CFANode predecessor = assumeEdge.getPredecessor();
+        if (pVisitedNodes.add(predecessor)) {
+          addTransitivelyRelevantInvolvedVariables(pRelevantVariables, assumeEdge, pLimit);
+          for (CFAEdge sisterEdge : CFAUtils.leavingEdges(predecessor)) {
+            if (!assumeEdge.equals(sisterEdge)) {
+              CFANode brotherNode = sisterEdge.getSuccessor();
+              if (!mustReach(brotherNode, currentRelevantLocation)
+                  || anyOnPath(assumeEdgeAndPath.getSecond(), pRelevantVariables)) {
+                addInvolvedVariables(pRelevantVariables, assumeEdge, pLimit);
+              }
+            }
+          }
+          relevantLocations.add(predecessor);
+        }
+      }
+    }
+  }
+
+  private static boolean anyOnPath(List<CFAEdge> pPath, Set<String> pRelevantVariables) {
+    for (CFAEdge edge : pPath) {
+      if (!Collections.disjoint(InvariantsTransferRelation.INSTANCE.getInvolvedVariables(edge).keySet(), pRelevantVariables)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static boolean mustReach(CFANode pStart, final CFANode pTarget) {
+    Set<CFANode> visited = new HashSet<>();
+    visited.add(pStart);
+    Queue<CFANode> waitlist = new ArrayDeque<>();
+    waitlist.offer(pStart);
+    while (!waitlist.isEmpty()) {
+      CFANode current = waitlist.poll();
+      if (!current.equals(pTarget)) {
+        FluentIterable<CFANode> successors = CFAUtils.successorsOf(current);
+        if (successors.isEmpty()) {
+          return false;
+        }
+        for (CFANode successor : successors) {
+          if (visited.add(successor)) {
+            waitlist.offer(successor);
+          }
+        }
+      }
+    }
+    return true;
+  }
+
+  private static void addTransitivelyRelevantInvolvedVariables(Set<String> pRelevantVariables, CFAEdge pEdge, int pLimit) {
+    Set<String> involvedVariables = InvariantsTransferRelation.INSTANCE.getInvolvedVariables(pEdge).keySet();
+    if (!Collections.disjoint(pRelevantVariables, involvedVariables)) {
+      addAll(pRelevantVariables, involvedVariables, pLimit);
+    }
+  }
+
+  private static void addInvolvedVariables(Set<String> pRelevantVariables, CFAEdge pEdge, int pLimit) {
+    addAll(pRelevantVariables, InvariantsTransferRelation.INSTANCE.getInvolvedVariables(pEdge).keySet(), pLimit);
   }
 
   private static <T> void addAll(Collection<T> pTarget, Collection<T> pSource, int pLimit) {
@@ -526,129 +534,6 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     while (!reachesLimit(pTarget, pLimit) && elementIterator.hasNext()) {
       pTarget.add(elementIterator.next());
     }
-  }
-
-  private static void handleFunctionCall(final CFunctionCallEdge pEdge, Set<String> pRelevantVariables, int pLimit) throws UnrecognizedCCodeException {
-
-    List<String> formalParams = pEdge.getSuccessor().getFunctionParameterNames();
-    List<CExpression> actualParams = pEdge.getArguments();
-    int limit = Math.min(formalParams.size(), actualParams.size());
-    formalParams = FluentIterable.from(formalParams).limit(limit).toList();
-    actualParams = FluentIterable.from(actualParams).limit(limit).toList();
-
-    for (Pair<String, CExpression> param : Pair.zipList(formalParams, actualParams)) {
-      CExpression actualParam = param.getSecond();
-
-      InvariantsFormula<CompoundInterval> value = actualParam.accept(InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(new VariableNameExtractor() {
-
-        @Override
-        public String extract(CExpression pCExpression) throws UnrecognizedCCodeException {
-          return InvariantsTransferRelation.getVarName(pCExpression, pEdge, pEdge.getPredecessor().getFunctionName());
-        }
-      }));
-
-      String formalParam = InvariantsTransferRelation.scope(param.getFirst(), pEdge.getSuccessor().getFunctionName());
-      if (pRelevantVariables.contains(formalParam)) {
-        addAll(pRelevantVariables, value.accept(COLLECT_VARS_VISITOR), pLimit);
-      }
-    }
-
-    return;
-  }
-
-  private static void handleDeclaration(CDeclarationEdge pEdge, Set<String> pRelevantVariables, int pLimit) throws UnrecognizedCCodeException {
-    if (!(pEdge.getDeclaration() instanceof CVariableDeclaration)) {
-      return;
-    }
-
-    CVariableDeclaration decl = (CVariableDeclaration) pEdge.getDeclaration();
-
-    String varName = decl.getName();
-    if (!decl.isGlobal()) {
-      varName = InvariantsTransferRelation.scope(varName, pEdge.getSuccessor().getFunctionName());
-    }
-
-    final InvariantsFormula<CompoundInterval> value;
-    if (decl.getInitializer() != null && decl.getInitializer() instanceof CInitializerExpression) {
-      CExpression init = ((CInitializerExpression)decl.getInitializer()).getExpression();
-      value = init.accept(InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(pEdge));
-    } else {
-      value = CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
-    }
-
-    if (pRelevantVariables.contains(varName)) {
-      addAll(pRelevantVariables, value.accept(COLLECT_VARS_VISITOR), pLimit);
-    }
-  }
-
-  private static void handleStatementEdge(CStatementEdge pCStatementEdge, Set<String> pRelevantVariables, int pLimit) throws UnrecognizedCCodeException {
-    ExpressionToFormulaVisitor etfv = InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(pCStatementEdge);
-    CStatementEdge statementEdge = pCStatementEdge;
-    CStatement statement = statementEdge.getStatement();
-    if (statement instanceof CAssignment) {
-      CAssignment assignment = (CAssignment) statement;
-      handleAssignment(pCStatementEdge.getPredecessor().getFunctionName(), pCStatementEdge, assignment.getLeftHandSide(), assignment.getRightHandSide().accept(etfv), pRelevantVariables, pLimit);
-    }
-  }
-
-  private static void handleAssignment(String pFunctionName, CFAEdge pCfaEdge, CExpression leftHandSide, InvariantsFormula<CompoundInterval> pValue, Set<String> pRelevantVariables, int pLimit) throws UnrecognizedCCodeException {
-    ExpressionToFormulaVisitor etfv = InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(pCfaEdge);
-    final String varName;
-    if (leftHandSide instanceof CArraySubscriptExpression) {
-      CArraySubscriptExpression arraySubscriptExpression = (CArraySubscriptExpression) leftHandSide;
-      varName = InvariantsTransferRelation.getVarName(arraySubscriptExpression.getArrayExpression(), pCfaEdge, pFunctionName);
-      InvariantsFormula<CompoundInterval> subscript = arraySubscriptExpression.getSubscriptExpression().accept(etfv);
-      for (String relevantVar : pRelevantVariables) {
-        if (relevantVar.equals(varName) || relevantVar.startsWith(varName + "[")) {
-          addAll(pRelevantVariables, pValue.accept(COLLECT_VARS_VISITOR), pLimit);
-          if (!reachesLimit(pRelevantVariables, pLimit)) {
-            pRelevantVariables.add(varName);
-          }
-          addAll(pRelevantVariables, subscript.accept(COLLECT_VARS_VISITOR), pLimit);
-          break;
-        }
-      }
-    } else {
-      varName = InvariantsTransferRelation.getVarName(leftHandSide, pCfaEdge, pFunctionName);
-      if (pRelevantVariables.contains(varName)) {
-        addAll(pRelevantVariables, pValue.accept(COLLECT_VARS_VISITOR), pLimit);
-      }
-    }
-  }
-
-  private static void handleReturnStatement(CReturnStatementEdge pCStatementEdge, Set<String> pRelevantVariables, int pLimit) throws UnrecognizedCCodeException {
-    String calledFunctionName = pCStatementEdge.getPredecessor().getFunctionName();
-    CExpression returnedExpression = pCStatementEdge.getExpression();
-    // If the return edge has no statement, no return value is passed: "return;"
-    if (returnedExpression == null) {
-      return;
-    }
-    ExpressionToFormulaVisitor etfv = InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(pCStatementEdge);
-    InvariantsFormula<CompoundInterval> returnedInvExpression = returnedExpression.accept(etfv);
-    String returnValueName = InvariantsTransferRelation.scope(InvariantsTransferRelation.RETURN_VARIABLE_BASE_NAME, calledFunctionName);
-    if (pRelevantVariables.contains(returnValueName)) {
-      addAll(pRelevantVariables, returnedInvExpression.accept(COLLECT_VARS_VISITOR), pLimit);
-    }
-  }
-
-  private static void handleFunctionReturn(CFunctionReturnEdge pFunctionReturnEdge, Set<String> pRelevantVariables, int pLimit)
-      throws UnrecognizedCCodeException {
-      CFunctionSummaryEdge summaryEdge = pFunctionReturnEdge.getSummaryEdge();
-
-      CFunctionCall expression = summaryEdge.getExpression();
-
-      String calledFunctionName = pFunctionReturnEdge.getPredecessor().getFunctionName();
-
-      String returnValueName = InvariantsTransferRelation.scope(InvariantsTransferRelation.RETURN_VARIABLE_BASE_NAME, calledFunctionName);
-
-      InvariantsFormula<CompoundInterval> value = CompoundIntervalFormulaManager.INSTANCE.asVariable(returnValueName);
-
-      // expression is an assignment operation, e.g. a = g(b);
-      if (expression instanceof CFunctionCallAssignmentStatement) {
-        CFunctionCallAssignmentStatement funcExp = (CFunctionCallAssignmentStatement)expression;
-
-        handleAssignment(pFunctionReturnEdge.getSuccessor().getFunctionName(), pFunctionReturnEdge, funcExp.getLeftHandSide(), value, pRelevantVariables, pLimit);
-      }
   }
 
   public static interface ConditionAdjuster {
