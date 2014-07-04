@@ -48,8 +48,9 @@ public class ErrorPathClassifier {
   public static final int INTEQUAL_VAR  = 4;
   public static final int UNKNOWN_VAR   = 16;
 
-  final Optional<VariableClassification> classification;
+  public static final int MAX_LENGTH    = 1000;
 
+  private final Optional<VariableClassification> classification;
 
   public ErrorPathClassifier(Optional<VariableClassification> pClassification) throws InvalidConfigurationException {
     classification = pClassification;
@@ -72,11 +73,11 @@ public class ErrorPathClassifier {
 
       Set<String> useDefinitionInformation = obtainUseDefInformationOfErrorPath(currentErrorPath);
 
-      long score = obtainScoreForVariables(useDefinitionInformation);
+      Long score = obtainScoreForVariables(useDefinitionInformation);
 
       // score <= bestScore chooses the last, based on iteration order, that has the best or equal-to-best score
       // maybe a real tie-breaker rule would be better, e.g. total number of variables, number of references, etc.
-      if(bestScore == null || score <= bestScore) {
+      if(bestScore == null || isBestScore(score, bestScore, currentErrorPath)) {
         bestScore = score;
         bestIndex = pPrefixes.indexOf(currentPrefix);
       }
@@ -85,12 +86,35 @@ public class ErrorPathClassifier {
     return buildPath(bestIndex, pPrefixes);
   }
 
+  /**
+   * This method checks if the currentScore is better then the current optimum.
+   *
+   * A lower score is always favored. In case of a draw, the later, deeper score
+   * is favored, unless the error path exceeds the {@link #MAX_LENGTH} limit,
+   * then the earlier, more shallow score is favored. This avoids extremely long
+   * error traces (that take longer during interpolation).
+   *
+   * @param currentScore the current score
+   * @param currentBestScore the current optimum
+   * @param currentErrorPath the current error path
+   * @return true, if the current score is a new optimum, else false
+   */
+  private boolean isBestScore(Long currentScore, Long currentBestScore, ARGPath currentErrorPath) {
+    if(currentErrorPath.size() < MAX_LENGTH) {
+      return currentScore <= currentBestScore;
+    }
+
+    else {
+      return currentScore < currentBestScore;
+    }
+  }
+
   private Set<String> obtainUseDefInformationOfErrorPath(ARGPath currentErrorPath) {
     return new InitialAssumptionUseDefinitionCollector().obtainUseDefInformation(currentErrorPath);
   }
 
-  private long obtainScoreForVariables(Set<String> useDefinitionInformation) {
-    long score = 1;
+  private Long obtainScoreForVariables(Set<String> useDefinitionInformation) {
+    Long score = 1L;
     for(String variableName : useDefinitionInformation) {
       int factor = UNKNOWN_VAR;
 
