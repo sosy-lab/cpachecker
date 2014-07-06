@@ -85,6 +85,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.value.Value.UnknownValue;
@@ -705,17 +706,21 @@ public abstract class AbstractExpressionValueVisitor
     final Value rValue = rVarInBinaryExp.accept(this);
     if (rValue.isUnknown() || !rValue.isNumericValue()) { return UnknownValue.getInstance(); }
 
-    if (isFloatType(lValType) || isFloatType(rValType)) {
-      final double lVal = ((NumericValue) lValue).doubleValue();
-      final double rVal = ((NumericValue) rValue).doubleValue();
+    if (lValue instanceof NumericValue && rValue instanceof NumericValue) {
+      if (isFloatType(lValType) || isFloatType(rValType)) {
+        final double lVal = ((NumericValue) lValue).doubleValue();
+        final double rVal = ((NumericValue) rValue).doubleValue();
 
-      return calculateBinaryOperation(lVal, rVal, binaryOperator);
+        return calculateBinaryOperation(lVal, rVal, binaryOperator);
 
+      } else {
+        final long lVal = ((NumericValue) lValue).longValue();
+        final long rVal = ((NumericValue) rValue).longValue();
+
+        return calculateBinaryOperation(lVal, rVal, binaryOperator);
+      }
     } else {
-      final long lVal = ((NumericValue) lValue).longValue();
-      final long rVal = ((NumericValue) rValue).longValue();
-
-      return calculateBinaryOperation(lVal, rVal, binaryOperator);
+      return UnknownValue.getInstance();
     }
   }
 
@@ -1004,9 +1009,10 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(JEnumConstantExpression pJEnumConstantExpression) {
-    missingEnumComparisonInformation = true;
-    return UnknownValue.getInstance();
-//    return pJEnumConstantExpression.getConstantName();
+    JClassType enumType = pJEnumConstantExpression.getExpressionType();
+    String fullName = pJEnumConstantExpression.getConstantName();
+
+    return new EnumConstantValue(enumType, fullName);
   }
 
   @Override

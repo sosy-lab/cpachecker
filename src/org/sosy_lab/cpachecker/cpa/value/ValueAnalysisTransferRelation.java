@@ -522,7 +522,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     boolean complexType = decl.getType() instanceof JClassOrInterfaceType || decl.getType() instanceof JArrayType;
 
 
-    if (!complexType  && (missingInformationRightJExpression != null || !initialValue.isUnknown())) {
+    if ((!complexType  && (missingInformationRightJExpression != null || !initialValue.isUnknown()))
+        || initialValue instanceof JEnumConstantExpression) {
       if (missingFieldVariableObject) {
         fieldNameAndInitialValue = Pair.of(varName, initialValue);
       } else if (missingInformationRightJExpression == null) {
