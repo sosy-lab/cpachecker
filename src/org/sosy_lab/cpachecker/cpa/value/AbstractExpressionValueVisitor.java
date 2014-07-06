@@ -1065,7 +1065,7 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(JNullLiteralExpression pJNullLiteralExpression) throws RuntimeException {
-    return UnknownValue.getInstance();
+    return NullValue.getInstance();
   }
 
   @Override

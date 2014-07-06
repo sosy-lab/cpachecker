@@ -482,14 +482,18 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     // handle global variables
     if (decl.isGlobal()) {
-      if (decl instanceof JFieldDeclaration && !((JFieldDeclaration)decl).isStatic()) {
+      if (decl instanceof JFieldDeclaration && !((JFieldDeclaration) decl).isStatic()) {
         missingFieldVariableObject = true;
         javaNonStaticVariables.add(varName);
       }
 
-      // global variables without initializer are set to 0 in C
       if (init == null) {
-        initialValue = new NumericValue(0L);
+        if (decl.getType() instanceof JClassOrInterfaceType) {
+          initialValue = NullValue.getInstance();
+        } else {
+          // numeric variables without initializer are set to 0 in C and Java
+          initialValue = new NumericValue(0L);
+        }
       }
     }
 
