@@ -834,18 +834,20 @@ cpa.octagon.interpolation.applyUseDefInformation = true
 # interpolation - this avoids to have loop-counters in the interpolant
 cpa.octagon.interpolation.ignoreLoopsExitAssumes = true
 
-# which merge operator to use for OctagonCPA?
-cpa.octagon.merge = "SEP"
-  allowed values: [SEP, JOIN]
-
 # with this option enabledmergeJoin is only used on edges within the same
 # block, i.e. each iterationof a loop is a different block, thus the
 # precision of the analysis increases
-cpa.octagon.mergeop.onlyJoinEdgesInSameBlock = false
+cpa.octagon.mergeop.onlyJoinEdgesInSameBlock = no default value
 
+# with this option enabled the states are only merged at loop heads
+cpa.octagon.mergeop.onlyMergeAtLoopHeads = false
+
+# of which type should the merge be?
 # of which type should the merge be? normal, for usual join, widening for a
 # widening instead of a join
-cpa.octagon.mergeop.type = "NORMAL"
+cpa.octagon.mergeop.type = "SEP"
+  allowed values: [SEP, JOIN, WIDENING]
+cpa.octagon.mergeop.type = no default value
   allowed values: [NORMAL, WIDENING]
 
 # with this option the number representation in the library will be changed

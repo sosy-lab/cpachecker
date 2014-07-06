@@ -110,7 +110,7 @@ class OctagonDomain implements AbstractDomain {
     }
   }
 
-  public AbstractState joinWidening(OctagonState successorOct, OctagonState reachedOct) {
+  public AbstractState widening(OctagonState successorOct, OctagonState reachedOct) {
     Pair<OctagonState, OctagonState> shrinkedStates = getShrinkedStates(successorOct, reachedOct);
     successorOct = shrinkedStates.getFirst();
     reachedOct = shrinkedStates.getSecond();

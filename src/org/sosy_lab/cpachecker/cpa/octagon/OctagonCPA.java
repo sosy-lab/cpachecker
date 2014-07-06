@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -57,10 +56,6 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(OctagonCPA.class).withOptions(OctagonOptions.class);
   }
-
-  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
-      description="which merge operator to use for OctagonCPA?")
-  private String mergeType = "SEP";
 
   @Option(name="octagonLibrary", toUppercase=true, values={"INT", "FLOAT"},
       description="with this option the number representation in the"
@@ -117,13 +112,7 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
 
     this.transferRelation = new OctagonTransferRelation(logger, cfa, octagonOptions);
 
-    MergeOperator octagonMergeOp = null;
-    if (mergeType.equals("JOIN")) {
-      octagonMergeOp = new OctagonMergeJoinOperator(octagonDomain, config);
-    } else {
-      // default is sep
-      octagonMergeOp = MergeSepOperator.getInstance();
-    }
+    MergeOperator octagonMergeOp = OctagonMergeOperator.getInstance(octagonDomain, config);
 
     StopOperator octagonStopOp = new StopSepOperator(octagonDomain);
 
