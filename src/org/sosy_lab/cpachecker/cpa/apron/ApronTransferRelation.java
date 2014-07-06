@@ -23,13 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.apron;
 
-import static com.google.common.base.Predicates.*;
-import static com.google.common.collect.Iterables.filter;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -79,6 +75,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
@@ -125,6 +122,8 @@ import apron.Texpr0Node;
 import apron.Texpr0UnNode;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Multimap;
 
 public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronState>, ApronState, IApronPrecision> {
@@ -145,7 +144,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
 
   private final LogManager logger;
 
-  private final Map<CFAEdge, Loop> loopEntryEdges;
+  private final Set<CFANode> loopHeads;
 
   /**
    * Class constructor.
@@ -160,18 +159,13 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
     }
 
     Multimap<String, Loop> loops = cfa.getLoopStructure().get();
-    Map<CFAEdge, Loop> entryEdges = new HashMap<>();
 
+    Builder<CFANode> builder = new ImmutableSet.Builder<>();
     for (Loop l : loops.values()) {
       // function edges do not count as incoming/outgoing edges
-      Iterable<CFAEdge> incomingEdges = filter(l.getIncomingEdges(),
-                                               not(instanceOf(CFunctionReturnEdge.class)));
-
-      for (CFAEdge e : incomingEdges) {
-          entryEdges.put(e, l);
-      }
+          builder.addAll(l.getLoopHeads());
     }
-    loopEntryEdges = Collections.unmodifiableMap(entryEdges);
+    loopHeads = builder.build();
   }
 
   boolean done = false;
@@ -248,17 +242,12 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
 
 
     Set<ApronState> returnStates = new HashSet<>(successors);
-    if (loopEntryEdges.get(cfaEdge) != null) {
-      returnStates.clear();
+    if (loopHeads.contains(cfaEdge.getSuccessor())) {
+      Set<ApronState> newStates = new HashSet<>();
       for (ApronState s : successors) {
-        returnStates.add(new ApronState(s.getApronNativeState(),
-                                     s.getManager(),
-                                     s.getIntegerVariableToIndexMap(),
-                                     s.getRealVariableToIndexMap(),
-                                     s.getVariableToTypeMap(),
-                                     new ApronState.Block(),
-                                     logger));
+        newStates.add(s.asLoopHead());
       }
+      returnStates = newStates;
     }
 
     resetInfo();

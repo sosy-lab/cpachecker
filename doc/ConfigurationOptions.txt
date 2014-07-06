@@ -418,19 +418,12 @@ cpa.apron.domain = "OCTAGON"
 cpa.apron.initialPrecisionType = "STATIC_FULL"
   allowed values: [STATIC_FULL, REFINEABLE_EMPTY]
 
-# which merge operator to use for ApronCPA?
-cpa.apron.merge = "SEP"
-  allowed values: [SEP, JOIN]
+# with this option enabled the states are only merged at loop heads
+cpa.apron.mergeop.onlyMergeAtLoopHeads = false
 
-# with this option enabledmergeJoin is only used on edges within the same
-# block, i.e. each iterationof a loop is a different block, thus the
-# precision of the analysis increases
-cpa.apron.mergeop.onlyJoinEdgesInSameBlock = false
-
-# of which type should the merge be? normal, for usual join, widening for a
-# widening instead of a join
-cpa.apron.mergeop.type = "NORMAL"
-  allowed values: [NORMAL, WIDENING]
+# of which type should the merge be?
+cpa.apron.mergeop.type = "SEP"
+  allowed values: [SEP, JOIN, WIDENING]
 
 # whether or not to avoid restarting at assume edges after a refinement
 cpa.apron.refiner.avoidAssumes = false
@@ -834,21 +827,12 @@ cpa.octagon.interpolation.applyUseDefInformation = true
 # interpolation - this avoids to have loop-counters in the interpolant
 cpa.octagon.interpolation.ignoreLoopsExitAssumes = true
 
-# with this option enabledmergeJoin is only used on edges within the same
-# block, i.e. each iterationof a loop is a different block, thus the
-# precision of the analysis increases
-cpa.octagon.mergeop.onlyJoinEdgesInSameBlock = no default value
-
 # with this option enabled the states are only merged at loop heads
 cpa.octagon.mergeop.onlyMergeAtLoopHeads = false
 
 # of which type should the merge be?
-# of which type should the merge be? normal, for usual join, widening for a
-# widening instead of a join
 cpa.octagon.mergeop.type = "SEP"
   allowed values: [SEP, JOIN, WIDENING]
-cpa.octagon.mergeop.type = no default value
-  allowed values: [NORMAL, WIDENING]
 
 # with this option the number representation in the library will be changed
 # between floats and ints.

@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -56,10 +55,6 @@ public final class ApronCPA implements ConfigurableProgramAnalysis {
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ApronCPA.class);
   }
-
-  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
-      description="which merge operator to use for ApronCPA?")
-  private String mergeType = "SEP";
 
   @Option(name="initialPrecisionType", toUppercase=true, values={"STATIC_FULL", "REFINEABLE_EMPTY"},
       description="this option determines which initial precision should be used")
@@ -88,13 +83,7 @@ public final class ApronCPA implements ConfigurableProgramAnalysis {
 
     this.transferRelation = new ApronTransferRelation(logger, cfa);
 
-    MergeOperator apronMergeOp = null;
-    if (mergeType.equals("JOIN")) {
-      apronMergeOp = new ApronMergeJoinOperator(apronDomain, config);
-    } else {
-      // default is sep
-      apronMergeOp = MergeSepOperator.getInstance();
-    }
+    MergeOperator apronMergeOp = ApronMergeOperator.getInstance(apronDomain, config);
 
     StopOperator apronStopOp = new StopSepOperator(apronDomain);
 

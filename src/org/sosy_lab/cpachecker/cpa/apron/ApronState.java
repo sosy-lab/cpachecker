@@ -57,36 +57,6 @@ public class ApronState implements AbstractState {
     INT, FLOAT;
   }
 
-  public static class Block {
-    private static int numBlocks = 0;
-
-    private final int id;
-
-    Block() {
-      numBlocks++;
-      id = numBlocks;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      if (obj == this) {
-        return true;
-      }
-      if (!(obj instanceof Block)) {
-        return false;
-      }
-      return id == ((Block)obj).id;
-    }
-
-    @Override
-    public int hashCode() {
-      final int prime = 31;
-      int result = 7;
-      result = prime * result + id;
-      return result;
-    }
-  }
-
   // the Apron state representation
   private Abstract0 apronState;
   private ApronManager apronManager;
@@ -95,7 +65,7 @@ public class ApronState implements AbstractState {
   private List<String> integerToIndexMap;
   private List<String> realToIndexMap;
   private Map<String, Type> variableToTypeMap;
-  private final Block block;
+  private final boolean isLoopHead;
 
   private LogManager logger;
 
@@ -109,17 +79,25 @@ public class ApronState implements AbstractState {
     integerToIndexMap = new LinkedList<>();
     realToIndexMap = new LinkedList<>();
     variableToTypeMap = new HashMap<>();
-    block = new Block();
+    isLoopHead = false;
   }
 
-  public ApronState(Abstract0 apronNativeState, ApronManager manager, List<String> intMap, List<String> realMap, Map<String, Type> typeMap, Block block, LogManager log) {
+  public ApronState(Abstract0 apronNativeState, ApronManager manager, List<String> intMap, List<String> realMap, Map<String, Type> typeMap, boolean pIsLoopHead, LogManager log) {
     apronState = apronNativeState;
     apronManager = manager;
     integerToIndexMap = intMap;
     realToIndexMap = realMap;
     variableToTypeMap = typeMap;
-    this.block = block;
+    isLoopHead = pIsLoopHead;
     logger = log;
+  }
+
+  public boolean isLoopHead() {
+    return isLoopHead;
+  }
+
+  public ApronState asLoopHead() {
+    return new ApronState(apronState, apronManager, integerToIndexMap, realToIndexMap, variableToTypeMap, isLoopHead, logger);
   }
 
   @Override
@@ -132,7 +110,8 @@ public class ApronState implements AbstractState {
 logger.log(Level.FINEST, "apron state: isEqual");
     return Objects.equals(integerToIndexMap, otherApron.integerToIndexMap)
            && Objects.equals(realToIndexMap, otherApron.realToIndexMap)
-           && this.apronState.isEqual(apronManager.getManager(), otherApron.apronState);
+           && this.apronState.isEqual(apronManager.getManager(), otherApron.apronState)
+           && isLoopHead == otherApron.isLoopHead;
   }
 
   @Override
@@ -143,6 +122,7 @@ logger.log(Level.FINEST, "apron state: isEqual");
     result = prime * result + Objects.hashCode(integerToIndexMap);
     result = prime * result + Objects.hash(realToIndexMap);
     result = prime * result + Objects.hashCode(variableToTypeMap);
+    result = prime * result + Objects.hash(isLoopHead);
     return result;
   }
 
@@ -214,7 +194,7 @@ logger.log(Level.FINEST, "apron state: isEqual");
       logger.log(Level.FINEST, "apron state: removeDimensionCopy: " + new Dimchange(amountInts, amountReals, placesRemoved));
       Abstract0 newApronState1 = apronState.removeDimensionsCopy(apronManager.getManager(),
                                                                  new Dimchange(amountInts, amountReals, placesRemoved));
-      newState1 =  new ApronState(newApronState1, apronManager, newIntMap1, newRealMap1, newTypeMap1, block, logger);
+      newState1 =  new ApronState(newApronState1, apronManager, newIntMap1, newRealMap1, newTypeMap1, isLoopHead, logger);
     } else {
       newState1 = this;
     }
@@ -242,20 +222,12 @@ logger.log(Level.FINEST, "apron state: isEqual");
       logger.log(Level.FINEST, "apron state: removeDimensionCopy: " + new Dimchange(amountInts, amountReals, placesRemoved));
       Abstract0 newApronState2 =  oldState.apronState.removeDimensionsCopy(oldState.apronManager.getManager(),
                                                                            new Dimchange(amountInts, amountReals, placesRemoved));
-      newState2 = new ApronState(newApronState2, oldState.apronManager, newIntMap2, newRealMap2, newTypeMap2, block, logger);
+      newState2 = new ApronState(newApronState2, oldState.apronManager, newIntMap2, newRealMap2, newTypeMap2, isLoopHead, logger);
     } else {
       newState2 = oldState;
     }
 
     return Pair.of(newState1, newState2);
-  }
-
-  public boolean areInSameBlock(ApronState other) {
-    return block.equals(other.block);
-  }
-
-  public Block getBlock() {
-    return block;
   }
 
   @Override
@@ -313,7 +285,7 @@ logger.log(Level.FINEST, "apron state: isEqual");
                           new LinkedList<>(integerToIndexMap),
                           new LinkedList<>(realToIndexMap),
                           new HashMap<>(variableToTypeMap),
-                          block,
+                          false,
                           logger);
   }
 
@@ -376,7 +348,7 @@ logger.log(Level.FINEST, "apron state: isEqual");
                                      new LinkedList<>(integerToIndexMap),
                                      new LinkedList<>(realToIndexMap),
                                      new HashMap<>(variableToTypeMap),
-                                     block,
+                                     false,
                                      logger);
     if (type == Type.INT) {
       newState.integerToIndexMap.add(varName);
@@ -399,7 +371,7 @@ logger.log(Level.FINEST, "apron state: isEqual");
                             integerToIndexMap,
                             realToIndexMap,
                             variableToTypeMap,
-                            block,
+                            false,
                             logger);
     } else {
       return forget(leftVarName);
@@ -422,7 +394,7 @@ logger.log(Level.FINEST, "apron state: isEqual");
                             integerToIndexMap,
                             realToIndexMap,
                             variableToTypeMap,
-                            block,
+                            false,
                             logger);
     } else {
       return forget(leftVarName);
@@ -437,7 +409,7 @@ logger.log(Level.FINEST, "apron state: isEqual");
                           integerToIndexMap,
                           realToIndexMap,
                           variableToTypeMap,
-                          block,
+                          false,
                           logger);
   }
 
@@ -448,7 +420,7 @@ logger.log(Level.FINEST, "apron state: isEqual");
                           integerToIndexMap,
                           realToIndexMap,
                           variableToTypeMap,
-                          block,
+                          false,
                           logger);
   }
 
@@ -500,7 +472,7 @@ logger.log(Level.FINEST, "apron state: isEqual");
                                          new LinkedList<>(integerToIndexMap),
                                          new LinkedList<>(realToIndexMap),
                                          new HashMap<>(variableToTypeMap),
-                                         block,
+                                         false,
                                          logger);
     newState.integerToIndexMap.removeAll(keysToRemove);
     newState.realToIndexMap.removeAll(keysToRemove);

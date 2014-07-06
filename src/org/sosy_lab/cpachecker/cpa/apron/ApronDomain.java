@@ -83,7 +83,7 @@ class ApronDomain implements AbstractDomain {
                                          shrinkedStates.getFirst().getIntegerVariableToIndexMap(),
                                          shrinkedStates.getFirst().getRealVariableToIndexMap(),
                                          shrinkedStates.getFirst().getVariableToTypeMap(),
-                                         ((ApronState)successor).getBlock(),
+                                         ((ApronState)successor).isLoopHead(),
                                          logger);
     if (newState.equals(reached)) {
       return reached;
@@ -94,7 +94,7 @@ class ApronDomain implements AbstractDomain {
     }
   }
 
-  public AbstractState joinWidening(ApronState successorState, ApronState reachedState) {
+  public AbstractState widening(ApronState successorState, ApronState reachedState) {
     Pair<ApronState, ApronState> shrinkedStates;
     Abstract0 newApronState;
     try {
@@ -113,7 +113,7 @@ class ApronDomain implements AbstractDomain {
                                          successorState.getIntegerVariableToIndexMap(),
                                          successorState.getRealVariableToIndexMap(),
                                          successorState.getVariableToTypeMap(),
-                                         successorState.getBlock(),
+                                         successorState.isLoopHead(),
                                          logger);
     if (newState.equals(successorState)) {
       return successorState;
