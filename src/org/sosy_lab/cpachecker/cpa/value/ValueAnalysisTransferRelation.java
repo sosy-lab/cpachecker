@@ -500,9 +500,9 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     MemoryLocation memoryLocation;
 
     // assign initial value if necessary
-    if(decl.isGlobal()) {
+    if (decl.isGlobal()) {
       memoryLocation = MemoryLocation.valueOf(varName,0);
-    }else {
+    } else {
       memoryLocation = MemoryLocation.valueOf(functionName, varName, 0);
     }
 
@@ -527,7 +527,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
 
     if ((!complexType  && (missingInformationRightJExpression != null || !initialValue.isUnknown()))
-        || initialValue instanceof JEnumConstantExpression) {
+        || initialValue instanceof EnumConstantValue || initialValue instanceof NullValue) {
       if (missingFieldVariableObject) {
         fieldNameAndInitialValue = Pair.of(varName, initialValue);
       } else if (missingInformationRightJExpression == null) {
