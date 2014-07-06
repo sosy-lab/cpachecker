@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 
+
 /**
  * An element of octagon abstract domain. This element contains an {@link Octagon} which
  * is the concrete representation of the octagon and a map which
@@ -109,6 +110,11 @@ public class OctagonState implements AbstractState {
   // the octagon representation
   private Octagon octagon;
   private OctagonManager octagonManager;
+
+  // the OADL compiled with floats is only able to handle smaller / greater equals constraints,
+  // thus we create a delta value in order to simulate a smaller / greater equal by adding / substracting
+  // the value from the constant
+  private final OctagonDoubleValue ASSUMPTION_DELTA = new OctagonDoubleValue(Double.MIN_NORMAL);
 
   // mapping from variable name to its identifier
   private BiMap<String, Integer> variableToIndexMap;
@@ -421,6 +427,11 @@ public class OctagonState implements AbstractState {
    * Note that this only works with integers!
    */
   public OctagonState addSmallerEqConstraint(String pRightVariableName, String pLeftVariableName) {
+    // use 0 as constant value, we don't need it
+    return addSmallerEqConstraint0(pRightVariableName, pLeftVariableName, OctagonIntValue.ZERO);
+  }
+
+  private OctagonState addSmallerEqConstraint0(String pRightVariableName, String pLeftVariableName, OctagonNumericValue pConstant) {
     int rVarIdx = getVariableIndexFor(pRightVariableName);
     int lVarIdx = getVariableIndexFor(pLeftVariableName);
 
@@ -428,8 +439,7 @@ public class OctagonState implements AbstractState {
       return this;
     }
 
-    // use 0 as constant value, we don't need it
-    return addConstraint(BinaryConstraints.PXMY, lVarIdx, rVarIdx, OctagonIntValue.ZERO);
+    return addConstraint(BinaryConstraints.PXMY, lVarIdx, rVarIdx, pConstant);
   }
 
   /**
@@ -473,7 +483,7 @@ public class OctagonState implements AbstractState {
     // the octagon library can only handle <= and >= constraints on floats
     if (variableToTypeMap.get(pRightVariableName) == Type.FLOAT
           || variableToTypeMap.get(pLeftVariableName) == Type.FLOAT) {
-        return addSmallerEqConstraint(pRightVariableName, pLeftVariableName);
+        return addSmallerEqConstraint0(pRightVariableName, pLeftVariableName, ASSUMPTION_DELTA);
     }
 
     // we want the lefthandside to be really smaller than the righthandside
@@ -494,7 +504,7 @@ public class OctagonState implements AbstractState {
 
     // the octagon library can only handle <= and >= constraints on floats
     if (variableToTypeMap.get(pVariableName) == Type.FLOAT) {
-      return addSmallerEqConstraint(pVariableName, pValueOfLiteral);
+      return addSmallerEqConstraint(pVariableName, pValueOfLiteral.subtract(ASSUMPTION_DELTA));
     }
 
     // set right index to -1 as it is not used
@@ -505,7 +515,7 @@ public class OctagonState implements AbstractState {
 
     // the octagon library can only handle <= and >= constraints on floats
     if (variableToTypeMap.get(pVariableName) == Type.FLOAT) {
-      return addSmallerEqConstraint(pVariableName, oct);
+      return addSmallerEqConstraint(pVariableName, oct.sub(new OctagonSimpleCoefficients(oct.size(), ASSUMPTION_DELTA, this)));
     }
 
     // TODO review coefficient handling
@@ -524,6 +534,11 @@ public class OctagonState implements AbstractState {
    * Note that this only works with integers!
    */
   public OctagonState addGreaterEqConstraint(String pRightVariableName, String pLeftVariableName) {
+    // use 0 as constant value, we don't need it
+    return addGreaterEqConstraint0(pRightVariableName, pLeftVariableName, OctagonIntValue.ZERO);
+  }
+
+  private OctagonState addGreaterEqConstraint0(String pRightVariableName, String pLeftVariableName, OctagonNumericValue pConstant) {
     int rVarIdx = getVariableIndexFor(pRightVariableName);
     int lVarIdx = getVariableIndexFor(pLeftVariableName);
 
@@ -531,8 +546,7 @@ public class OctagonState implements AbstractState {
       return this;
     }
 
-    // use 0 as constant value, we don't need it
-    return addConstraint(BinaryConstraints.MXPY, lVarIdx, rVarIdx, OctagonIntValue.ZERO);
+    return addConstraint(BinaryConstraints.MXPY, lVarIdx, rVarIdx, pConstant);
   }
 
   /**
@@ -576,7 +590,7 @@ public class OctagonState implements AbstractState {
     // the octagon library can only handle <= and >= constraints on floats
     if (variableToTypeMap.get(pRightVariableName) == Type.FLOAT
           || variableToTypeMap.get(pLeftVariableName) == Type.FLOAT) {
-      return addGreaterEqConstraint(pRightVariableName, pLeftVariableName);
+      return addGreaterEqConstraint0(pRightVariableName, pLeftVariableName, ASSUMPTION_DELTA.mul(-1));
     }
 
     // we want the lefthandside to be really greater than the righthandside
@@ -597,7 +611,7 @@ public class OctagonState implements AbstractState {
 
     // the octagon library can only handle <= and >= constraints on floats
     if (variableToTypeMap.get(pVariableName) == Type.FLOAT) {
-      return addGreaterEqConstraint(pVariableName, pValueOfLiteral);
+      return addGreaterEqConstraint(pVariableName, pValueOfLiteral.add(ASSUMPTION_DELTA));
     }
 
     // set right index to -1 as it is not used
@@ -608,7 +622,7 @@ public class OctagonState implements AbstractState {
 
     // the octagon library can only handle <= and >= constraints on floats
     if (variableToTypeMap.get(pVariableName) == Type.FLOAT) {
-      return addGreaterEqConstraint(pVariableName, oct);
+      return addGreaterEqConstraint(pVariableName, oct.add(new OctagonSimpleCoefficients(oct.size(), ASSUMPTION_DELTA, this)));
     }
 
     // TODO review coefficients
