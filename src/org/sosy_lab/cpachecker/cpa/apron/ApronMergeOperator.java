@@ -63,6 +63,7 @@ public class ApronMergeOperator {
     this.domain = domain;
   }
 
+  @Options(prefix="cpa.apron.mergeop")
   class ApronMergeJoinOperator extends ApronMergeOperator implements MergeOperator {
 
     private ApronMergeJoinOperator(ApronDomain domain, Configuration config) throws InvalidConfigurationException {
@@ -80,6 +81,7 @@ public class ApronMergeOperator {
     }
   }
 
+  @Options(prefix="cpa.apron.mergeop")
   class ApronMergeWideningOperator extends ApronMergeOperator implements MergeOperator {
 
     private ApronMergeWideningOperator(ApronDomain domain, Configuration config) throws InvalidConfigurationException {
