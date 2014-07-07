@@ -40,6 +40,8 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -142,7 +144,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    */
   private final VariableSelection<CompoundInterval> variableSelection;
 
-  private final Map<String, CType> variableTypes;
+  private final PersistentSortedMap<String, CType> variableTypes;
 
   private final PartialEvaluator partialEvaluator;
 
@@ -176,33 +178,55 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   public InvariantsState(VariableSelection<CompoundInterval> pVariableSelection,
       MachineModel pMachineModel,
       EdgeBasedAbstractionStrategy pEdgeBasedAbstractionStrategy) {
-    this.environment = new NonRecursiveEnvironment();
+    this.environment = NonRecursiveEnvironment.of();
     this.partialEvaluator = new PartialEvaluator(this.environment);
     this.variableSelection = pVariableSelection;
-    this.variableTypes = new HashMap<>();
+    this.variableTypes = PathCopyingPersistentTreeMap.of();
     this.machineModel = pMachineModel;
     this.edgeBasedAbstractionStrategy = pEdgeBasedAbstractionStrategy;
   }
 
   /**
-   * Creates a new state from the given state properties.
+   * Creates a new invariants state with the given data, reusing the given
+   * instance of the environment without copying.
    *
-   * @param pEnvironment the current environment.
    * @param pVariableSelection the selected variables.
    * @param pMachineModel the machine model used.
-   * @param pVariableTypes the types of the variables.
-   *
-   * @return a new state from the given state properties.
+   * @param pEdgeBasedAbstractionStrategy the abstraction strategy.
+   * @param pEnvironment the environment. This instance is reused and not copied.
+   * @param pVariableTypes the variable types.
    */
-  private static InvariantsState from(Map<String, InvariantsFormula<CompoundInterval>> pEnvironment,
+  private InvariantsState(VariableSelection<CompoundInterval> pVariableSelection,
+      MachineModel pMachineModel,
+      EdgeBasedAbstractionStrategy pEdgeBasedAbstractionStrategy,
+      NonRecursiveEnvironment pEnvironment,
+      PersistentSortedMap<String, CType> pVariableTypes) {
+    this.environment = pEnvironment;
+    this.partialEvaluator = new PartialEvaluator(this.environment);
+    this.variableSelection = pVariableSelection;
+    this.variableTypes = pVariableTypes;
+    this.machineModel = pMachineModel;
+    this.edgeBasedAbstractionStrategy = pEdgeBasedAbstractionStrategy;
+  }
+
+  /**
+   * Creates a new invariants state with a selection of
+   * variables, and the machine model used.
+   *
+   * @param pVariableSelection the selected variables.
+   * @param pMachineModel the machine model used.
+   */
+  private InvariantsState(Map<String, InvariantsFormula<CompoundInterval>> pEnvironment,
       VariableSelection<CompoundInterval> pVariableSelection,
       MachineModel pMachineModel,
-      Map<String, CType> pVariableTypes,
+      PersistentSortedMap<String, CType> pVariableTypes,
       EdgeBasedAbstractionStrategy pEdgeBasedAbstractionStrategy) {
-    InvariantsState result = new InvariantsState(pVariableSelection, pMachineModel, pEdgeBasedAbstractionStrategy);
-    result.environment.putAll(pEnvironment);
-    result.variableTypes.putAll(pVariableTypes);
-    return result;
+    this.environment = NonRecursiveEnvironment.copyOf(pEnvironment);
+    this.partialEvaluator = new PartialEvaluator(pEnvironment);
+    this.variableSelection = pVariableSelection;
+    this.variableTypes = pVariableTypes;
+    this.machineModel = pMachineModel;
+    this.edgeBasedAbstractionStrategy = pEdgeBasedAbstractionStrategy;
   }
 
   private EdgeBasedAbstractionStrategy determineAbstractionStrategy(EdgeBasedAbstractionStrategy pMasterStrategy) {
@@ -223,16 +247,14 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     if (strategy.equals(this.edgeBasedAbstractionStrategy)) {
       return this;
     }
-    return from(environment, variableSelection, machineModel, variableTypes, strategy);
+    return new InvariantsState(environment, variableSelection, machineModel, variableTypes, strategy);
   }
 
   public InvariantsState setType(String pVarName, CType pType) {
     if (pType.equals(variableTypes.get(pVarName))) {
       return this;
     }
-    InvariantsState result = from(environment, variableSelection, machineModel, variableTypes, edgeBasedAbstractionStrategy);
-    result.variableTypes.put(pVarName, pType);
-    return result;
+    return new InvariantsState(variableSelection, machineModel, edgeBasedAbstractionStrategy, environment, variableTypes.putAndCopy(pVarName, pType));
   }
 
   public InvariantsState setTypes(Map<String, CType> pVarTypes) {
@@ -246,9 +268,14 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     if (allContained) {
       return this;
     }
-    InvariantsState result = from(environment, variableSelection, machineModel, variableTypes, edgeBasedAbstractionStrategy);
-    result.variableTypes.putAll(pVarTypes);
-    return result;
+    PersistentSortedMap<String, CType> variableTypes = this.variableTypes;
+    for (Map.Entry<String, CType> entry : pVarTypes.entrySet()) {
+      String variableName = entry.getKey();
+      if (!variableTypes.containsKey(variableName)) {
+        variableTypes = variableTypes.putAndCopy(variableName, entry.getValue());
+      }
+    }
+    return new InvariantsState(variableSelection, machineModel, edgeBasedAbstractionStrategy, environment, variableTypes);
   }
 
   public InvariantsState assignArray(String pArray, InvariantsFormula<CompoundInterval> pSubscript, InvariantsFormula<CompoundInterval> pValue, CFAEdge pEdge) {
@@ -315,15 +342,14 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     VariableSelection<CompoundInterval> newVariableSelection = this.variableSelection.acceptAssignment(pVarName, pValue);
     if (newVariableSelection == null) {
       // Ensure that no information about the irrelevant assigned variable is retained
-      Map<String, InvariantsFormula<CompoundInterval>> newEnvironment = this.environment;
+      NonRecursiveEnvironment newEnvironment = this.environment;
       if (this.environment.containsKey(pVarName)) {
-        newEnvironment = new HashMap<>(this.environment);
-        newEnvironment.remove(pVarName);
+        newEnvironment.removeAndCopy(pVarName);
       }
       if (this.environment == newEnvironment) {
         return this;
       }
-      return from(newEnvironment,
+      return new InvariantsState(newEnvironment,
           variableSelection,
           machineModel,
           variableTypes,
@@ -394,18 +420,17 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   private InvariantsState assignInternal(String pVarName, InvariantsFormula<CompoundInterval> pValue, CFAEdge pEdge,
       VariableSelection<CompoundInterval> newVariableSelection,
       FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor, ReplaceVisitor<CompoundInterval> replaceVisitor) {
-    final InvariantsState result = new InvariantsState(newVariableSelection, machineModel, edgeBasedAbstractionStrategy);
-    result.variableTypes.putAll(variableTypes);
+    NonRecursiveEnvironment resultEnvironment = this.environment;
 
     for (Map.Entry<String, InvariantsFormula<CompoundInterval>> environmentEntry : this.environment.entrySet()) {
       if (!environmentEntry.getKey().equals(pVarName)) {
         InvariantsFormula<CompoundInterval> newEnvValue =
             environmentEntry.getValue().accept(replaceVisitor).accept(partialEvaluator, EVALUATION_VISITOR);
-        result.environment.put(environmentEntry.getKey(), newEnvValue);
+        resultEnvironment = resultEnvironment.putAndCopy(environmentEntry.getKey(), newEnvValue);
       }
     }
-    result.environment.put(pVarName, pValue.accept(replaceVisitor).accept(partialEvaluator, EVALUATION_VISITOR));
-    return result;
+    resultEnvironment = resultEnvironment.putAndCopy(pVarName, pValue.accept(replaceVisitor).accept(partialEvaluator, EVALUATION_VISITOR));
+    return new InvariantsState(newVariableSelection, machineModel, edgeBasedAbstractionStrategy, resultEnvironment, variableTypes);
   }
 
   /**
@@ -433,9 +458,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     if (environment.get(pVariableName) == null) {
       return this;
     }
-    InvariantsState result = from(environment, variableSelection, machineModel, variableTypes, edgeBasedAbstractionStrategy);
-    result.environment.remove(pVariableName);
-    return result;
+    return new InvariantsState(environment.removeAndCopy(pVariableName), variableSelection, machineModel, variableTypes, edgeBasedAbstractionStrategy);
   }
 
   /**
@@ -510,14 +533,19 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    *
    * @param pAssumptions the assumptions to be made.
    * @param pEvaluationVisitor the evaluation visitor to use for evaluating the assumptions' correctness.
+   * @param pNewVariableSelection
    * @return <code>true</code> if the state is still valid after the assumptions are made, <code>false</code> otherwise.
    */
-  private boolean assumeInternal(Collection<? extends InvariantsFormula<CompoundInterval>> pAssumptions,
-      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+  private InvariantsState assumeInternal(Collection<? extends InvariantsFormula<CompoundInterval>> pAssumptions,
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor, VariableSelection<CompoundInterval> pNewVariableSelection) {
+    InvariantsState result = this;
     for (InvariantsFormula<CompoundInterval> assumption : pAssumptions) {
-      if (!assumeInternal(assumption, pEvaluationVisitor)) { return false; }
+      result = assumeInternal(assumption, pEvaluationVisitor, pNewVariableSelection);
+      if (result == null) {
+        return null;
+      }
     }
-    return true;
+    return result;
   }
 
   /**
@@ -525,47 +553,49 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    *
    * @param pAssumption the assumption to be made.
    * @param pEvaluationVisitor the evaluation visitor to use for evaluating the assumptions' correctness.
+   * @param pNewVariableSelection
    * @return <code>true</code> if the state is still valid after the assumptions are made, <code>false</code> otherwise.
    */
-  private boolean assumeInternal(InvariantsFormula<CompoundInterval> pAssumption,
-      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+  private InvariantsState assumeInternal(InvariantsFormula<CompoundInterval> pAssumption,
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor, VariableSelection<CompoundInterval> pNewVariableSelection) {
     InvariantsFormula<CompoundInterval> assumption = pAssumption.accept(this.partialEvaluator, pEvaluationVisitor);
     // If there are multiple assumptions combined with &&, split them up
     List<InvariantsFormula<CompoundInterval>> assumptionParts = assumption.accept(SPLIT_CONJUNCTIONS_VISITOR);
-    if (assumptionParts.size() > 1) { return assumeInternal(assumptionParts, pEvaluationVisitor); }
+    if (assumptionParts.size() > 1) { return assumeInternal(assumptionParts, pEvaluationVisitor, pNewVariableSelection); }
     // If the assumption is top, it adds no value
-    if (assumption.equals(TOP)) { return true; }
+    if (assumption.equals(TOP)) { return this; }
 
     if (assumption instanceof Constant<?>) {
-      return !((Constant<CompoundInterval>) assumption).getValue().isDefinitelyFalse();
+      return !((Constant<CompoundInterval>) assumption).getValue().isDefinitelyFalse() ? this : null;
     }
 
     // If the assumption is an obvious contradiction, it cannot be validly assumed
-    if (assumption.equals(BOTTOM)) { return false; }
+    if (assumption.equals(BOTTOM)) { return null; }
 
     CompoundInterval assumptionEvaluation = assumption.accept(pEvaluationVisitor, getEnvironment());
     // If the invariant evaluates to false or is bottom, it represents an invalid state
-    if (assumptionEvaluation.isDefinitelyFalse() || assumptionEvaluation.isBottom()) { return false; }
+    if (assumptionEvaluation.isDefinitelyFalse() || assumptionEvaluation.isBottom()) { return null; }
     // If the invariant evaluates to true, it adds no value for now
-    if (assumptionEvaluation.isDefinitelyTrue()) { return true; }
+    if (assumptionEvaluation.isDefinitelyTrue()) { return this; }
 
     // If exact evaluation is enabled or the expression relates a maximum of one variable
     // to constants, then environment information may be gained
     if (!(pEvaluationVisitor instanceof FormulaAbstractionVisitor)
         || assumption.accept(COLLECT_VARS_VISITOR).size() <= 1) {
+      Map<String, InvariantsFormula<CompoundInterval>> tmpEnvironment = new HashMap<>(this.environment);
       PushAssumptionToEnvironmentVisitor patev =
-          new PushAssumptionToEnvironmentVisitor(pEvaluationVisitor, this.environment);
+          new PushAssumptionToEnvironmentVisitor(pEvaluationVisitor, tmpEnvironment);
       if (!assumption.accept(patev, CompoundInterval.logicalTrue())) {
         assert !assumptionEvaluation.isDefinitelyTrue();
-        return false;
+        return null;
       }
       // Check all the assumption once more after the environment changed
       if (isDefinitelyFalse(assumption, pEvaluationVisitor)) {
-        return false;
+        return null;
       }
+      return new InvariantsState(this.environment.putAndCopyAll(tmpEnvironment), pNewVariableSelection, machineModel, variableTypes, edgeBasedAbstractionStrategy);
     }
-
-    return true;
+    return this;
   }
 
   /**
@@ -595,12 +625,9 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       return this;
     }
 
-    InvariantsState result = from(environment, newVariableSelection, machineModel, variableTypes, edgeBasedAbstractionStrategy);
-    if (result != null) {
-      if (!result.assumeInternal(assumption, evaluator)) { return null; }
-      if (equalsState(result)) {
-        return this;
-      }
+    InvariantsState result = assumeInternal(assumption, evaluator, newVariableSelection);
+    if (equalsState(result)) {
+      return this;
     }
     return result;
   }
@@ -715,8 +742,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       return this;
     }
 
-    // Prepare result state
-    InvariantsState result = from(environment, variableSelection, machineModel, variableTypes, edgeBasedAbstractionStrategy);
+    // Prepare result environment
+    NonRecursiveEnvironment resultEnvironment = this.environment;
 
     // Find entries that require widening
     Map<String, InvariantsFormula<CompoundInterval>> toDo = new HashMap<>();
@@ -729,7 +756,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
         CompoundIntervalFormulaManager.INSTANCE.union(
             currentFormula.accept(this.partialEvaluator, EVALUATION_VISITOR),
             oldFormula.accept(pOlderState.partialEvaluator, EVALUATION_VISITOR)).accept(new PartialEvaluator(), EVALUATION_VISITOR);
-        result.environment.put(varName, newValueFormula);
+        resultEnvironment = resultEnvironment.putAndCopy(varName, newValueFormula);
         toDo.put(varName, newValueFormula);
       }
     }
@@ -739,9 +766,9 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     for (Map.Entry<String, InvariantsFormula<CompoundInterval>> entry : toDo.entrySet()) {
       String varName = entry.getKey();
       InvariantsFormula<CompoundInterval> newValueFormula = entry.getValue();
-      CompoundInterval simpleExactValue = newValueFormula.accept(EVALUATION_VISITOR, result.environment);
+      CompoundInterval simpleExactValue = newValueFormula.accept(EVALUATION_VISITOR, resultEnvironment);
       if (simpleExactValue.isSingleton()) {
-        result.environment.put(varName, CompoundIntervalFormulaManager.INSTANCE.asConstant(simpleExactValue));
+        resultEnvironment = resultEnvironment.putAndCopy(varName, CompoundIntervalFormulaManager.INSTANCE.asConstant(simpleExactValue));
       } else {
         InvariantsFormula<CompoundInterval> oldFormula = pOlderState.getEnvironmentValue(varName);
         InvariantsFormula<CompoundInterval> currentFormula = getEnvironmentValue(varName);
@@ -757,11 +784,16 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
             || oldExactValue.hasLowerBound() && (!currentExactValue.hasLowerBound() || oldExactValue.getLowerBound().compareTo(currentExactValue.getLowerBound()) > 0)) {
           newValue = oldExactValue.unionWith(currentExactValue).extendToNegativeInfinity();
         } else {
-          newValue = result.getEnvironmentValue(varName).accept(ABSTRACTION_VISITOR, result.environment);
+          InvariantsFormula<CompoundInterval> newFormula = resultEnvironment.get(varName);
+          if (newFormula == null) {
+            newFormula = TOP;
+          }
+          newValue = newFormula.accept(ABSTRACTION_VISITOR, resultEnvironment);
         }
-        result.environment.put(varName, CompoundIntervalFormulaManager.INSTANCE.asConstant(newValue));
+        resultEnvironment = resultEnvironment.putAndCopy(varName, CompoundIntervalFormulaManager.INSTANCE.asConstant(newValue));
       }
     }
+    InvariantsState result = new InvariantsState(resultEnvironment, variableSelection, machineModel, variableTypes, edgeBasedAbstractionStrategy);
     if (equals(result)) {
       return this;
     }
@@ -780,7 +812,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     } else if (state2.isLessThanOrEqualTo(state1)) {
       result = state1;
     } else {
-      Map<String, InvariantsFormula<CompoundInterval>> resultEnvironment = new NonRecursiveEnvironment();
+      NonRecursiveEnvironment resultEnvironment = NonRecursiveEnvironment.of();
 
       // Get some basic information by joining the environments
       {
@@ -793,7 +825,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
           if (rightFormula != null) {
             InvariantsFormula<CompoundInterval> leftFormula = getEnvironmentValue(varName);
             if (leftFormula.equals(rightFormula)) {
-              resultEnvironment.put(varName, leftFormula);
+              resultEnvironment = resultEnvironment.putAndCopy(varName, leftFormula);
             } else {
               todo.add(varName);
             }
@@ -823,10 +855,10 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
               InvariantsFormula<CompoundInterval> unionEquation = cifm.equal(variable, union);
               Iterable<InvariantsFormula<CompoundInterval>> candidateAssumptions = Iterables.concat(Collections.singleton(unionEquation), assumptions);
               if (CompoundIntervalFormulaManager.definitelyImplies(candidateAssumptions, leftEquation)) {
-                resultEnvironment.put(varName, leftFormula);
+                resultEnvironment = resultEnvironment.putAndCopy(varName, leftFormula);
                 done.add(varName);
               } else if (CompoundIntervalFormulaManager.definitelyImplies(candidateAssumptions, rightEquation)) {
-                resultEnvironment.put(varName, rightFormula);
+                resultEnvironment = resultEnvironment.putAndCopy(varName, rightFormula);
                 done.add(varName);
               }
             }
@@ -846,9 +878,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
                 leftFormula.accept(state1.partialEvaluator, EVALUATION_VISITOR),
                 rightFormula.accept(state2.partialEvaluator, EVALUATION_VISITOR)).accept(new PartialEvaluator(),
                 EVALUATION_VISITOR);
-            //resultEnvironment.put(varName, union);
             InvariantsFormula<CompoundInterval> evaluated = CompoundIntervalFormulaManager.INSTANCE.asConstant(union.accept(EVALUATION_VISITOR, resultEnvironment));
-            resultEnvironment.put(varName, evaluated);
+            resultEnvironment = resultEnvironment.putAndCopy(varName, evaluated);
           }
         }
 
@@ -856,20 +887,21 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
       VariableSelection<CompoundInterval> resultVariableSelection = state1.variableSelection.join(state2.variableSelection);
 
-      Map<String, CType> variableTypes = new HashMap<>(state1.variableTypes);
-      variableTypes.putAll(state2.variableTypes);
+      PersistentSortedMap<String, CType> variableTypes = state1.variableTypes;
+      for (Map.Entry<String, CType> entry : state2.variableTypes.entrySet()) {
+        if (!variableTypes.containsKey(entry.getKey())) {
+          variableTypes = variableTypes.putAndCopy(entry.getKey(), entry.getValue());
+        }
+      }
 
       EdgeBasedAbstractionStrategy edgeBasedAbstractionStrategy1 = determineAbstractionStrategy(pPrecision);
       EdgeBasedAbstractionStrategy edgeBasedAbstractionStrategy2 = pState2.determineAbstractionStrategy(pPrecision);
       EdgeBasedAbstractionStrategy edgeBasedAbstractionStrategy = edgeBasedAbstractionStrategy1.join(edgeBasedAbstractionStrategy2);
 
-      result = InvariantsState.from(resultEnvironment, resultVariableSelection,
-          machineModel, variableTypes, edgeBasedAbstractionStrategy);
+      result = new InvariantsState(resultVariableSelection, machineModel, edgeBasedAbstractionStrategy, resultEnvironment, variableTypes);
 
-      if (result != null) {
-        if (result.equalsState(state1)) {
-          result = state1;
-        }
+      if (result.equalsState(state1)) {
+        result = state1;
       }
     }
     return result;
