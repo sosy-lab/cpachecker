@@ -64,7 +64,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -73,6 +72,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.model.java.JReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JReferenceType;
@@ -160,14 +160,14 @@ public class RTTTransferRelation implements TransferRelation {
       break;
 
     case ReturnStatementEdge:
-      AReturnStatementEdge returnEdge = (AReturnStatementEdge) cfaEdge;
+      JReturnStatementEdge returnEdge = (JReturnStatementEdge) cfaEdge;
       // this statement is a function return, e.g. return (a);
       // note that this is different from return edge
       // this is a statement edge which leads the function to the
       // last node of its CFA, where return edge is from that last node
       // to the return site of the caller function
-      if (returnEdge.getExpression() != null) {
-        JExpression exp = (JExpression) returnEdge.getExpression();
+      if (returnEdge.getExpression().isPresent()) {
+        JExpression exp = returnEdge.getExpression().get();
         handleExitFromFunction(element, exp, returnEdge);
       }
       break;
@@ -278,7 +278,7 @@ public class RTTTransferRelation implements TransferRelation {
   }
 
   private void handleExitFromFunction(RTTState newElement,
-                  JExpression expression, AReturnStatementEdge returnEdge)
+                  JExpression expression, JReturnStatementEdge returnEdge)
                                         throws UnrecognizedCodeException {
 
     String methodName = returnEdge.getPredecessor().getFunctionName();
@@ -528,8 +528,8 @@ public class RTTTransferRelation implements TransferRelation {
    // A New Object is created, which is the new classObject scope
     } else if (functionCall instanceof JClassInstanceCreation) {
 
-      AReturnStatementEdge returnEdge =  (AReturnStatementEdge) functionEntryNode.getExitNode().getEnteringEdge(RETURN_EDGE);
-      String uniqueObject = ((JExpression) returnEdge.getExpression()).accept(new FunctionExitValueVisitor(returnEdge, newElement, calledFunctionName));
+      JReturnStatementEdge returnEdge =  (JReturnStatementEdge) functionEntryNode.getExitNode().getEnteringEdge(RETURN_EDGE);
+      String uniqueObject = returnEdge.getExpression().get().accept(new FunctionExitValueVisitor(returnEdge, newElement, calledFunctionName));
       newElement.assignThisAndNewObjectScope(uniqueObject);
 
       // A Referenced Method Invocation, the new scope is the unique Object
