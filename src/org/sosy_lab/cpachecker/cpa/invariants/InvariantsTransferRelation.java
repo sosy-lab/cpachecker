@@ -192,13 +192,17 @@ public enum InvariantsTransferRelation implements TransferRelation {
     // Create a formula representing the edge expression
     InvariantsFormula<CompoundInterval> expressionFormula = expression.accept(getExpressionToFormulaVisitor(pEdge, pElement));
 
+    return handleAssumption(pElement, pEdge, expressionFormula, pEdge.getTruthAssumption(), pPrecision);
+  }
+
+  private InvariantsState handleAssumption(InvariantsState pState, CFAEdge pEdge, InvariantsFormula<CompoundInterval> pAssumption, boolean pIsTruthAssumption, InvariantsPrecision pPrecision) {
     /*
      * If the expression definitely evaluates to false when truth is assumed or
      * the expression definitely evaluates to true when falsehood is assumed,
      * the state is unreachable.
      */
-    if (pEdge.getTruthAssumption() && pElement.definitelyImplies(CompoundIntervalFormulaManager.INSTANCE.logicalNot(expressionFormula))
-        || !pEdge.getTruthAssumption() && pElement.definitelyImplies(expressionFormula)) {
+    if (pIsTruthAssumption && pState.definitelyImplies(CompoundIntervalFormulaManager.INSTANCE.logicalNot(pAssumption))
+        || !pIsTruthAssumption && pState.definitelyImplies(pAssumption)) {
       return null;
     }
 
@@ -206,10 +210,10 @@ public enum InvariantsTransferRelation implements TransferRelation {
      * Assume the state of the expression:
      * If truth is assumed, any non-zero value, otherwise zero.
      */
-    if (!pEdge.getTruthAssumption()) {
-      expressionFormula = CompoundIntervalFormulaManager.INSTANCE.logicalNot(expressionFormula);
+    if (!pIsTruthAssumption) {
+      pAssumption = CompoundIntervalFormulaManager.INSTANCE.logicalNot(pAssumption);
     }
-    InvariantsState result = pElement.assume(expressionFormula, pEdge);
+    InvariantsState result = pState.assume(pAssumption, pEdge);
     return result;
   }
 
@@ -248,6 +252,20 @@ public enum InvariantsTransferRelation implements TransferRelation {
     List<CParameterDeclaration> declarations = pEdge.getSuccessor().getFunctionParameters();
     List<CExpression> actualParams = pEdge.getArguments();
     int limit = Math.min(formalParams.size(), actualParams.size());
+
+    ExpressionToFormulaVisitor actualParamExpressionToFormulaVisitor = getExpressionToFormulaVisitor(new VariableNameExtractor() {
+
+      @Override
+      public String extract(CExpression pCExpression) throws UnrecognizedCCodeException {
+        return getVarName(pCExpression, pEdge, pEdge.getPredecessor().getFunctionName(), pElement);
+      }
+    }, pElement);
+
+    if (limit == 1 && "__VERIFIER_assume".equals(pEdge.getSuccessor().getFunctionName())) {
+      return handleAssumption(pElement, pEdge, actualParams.get(0).accept(
+          actualParamExpressionToFormulaVisitor), true, pPrecision);
+    }
+
     formalParams = FluentIterable.from(formalParams).limit(limit).toList();
     actualParams = FluentIterable.from(actualParams).limit(limit).toList();
 
@@ -256,13 +274,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
       CExpression actualParam = param.getSecond();
       CParameterDeclaration declaration = declarationIterator.next();
 
-      InvariantsFormula<CompoundInterval> value = actualParam.accept(getExpressionToFormulaVisitor(new VariableNameExtractor() {
-
-        @Override
-        public String extract(CExpression pCExpression) throws UnrecognizedCCodeException {
-          return getVarName(pCExpression, pEdge, pEdge.getPredecessor().getFunctionName(), pElement);
-        }
-      }, pElement));
+      InvariantsFormula<CompoundInterval> value = actualParam.accept(actualParamExpressionToFormulaVisitor);
       if (containsArrayWildcard(value)) {
         value = toConstant(value, pElement);
       }
