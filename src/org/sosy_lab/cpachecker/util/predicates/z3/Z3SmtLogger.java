@@ -44,51 +44,67 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.FileWriteMode;
 
-@Options(prefix = "cpa.predicate.solver.z3.logger")
 public class Z3SmtLogger {
+
+  @Options(prefix="cpa.predicate.solver.z3.logger")
+  private static class Z3Settings {
+
+    @Option(description = "Export solver queries in Smtlib format into a file.")
+    private boolean logAllQueries = false;
+
+    @Option(name = "logfile", description = "Export solver queries in Smtlib2 format.")
+    @FileOption(FileOption.Type.OUTPUT_FILE)
+    private Path basicLogfile = Paths.get("z3smtlog.%d.smt2");
+    private static int logfileCounter = 0;
+
+    @Option(description = "Export solver queries in Smtlib2 format, " +
+            "there are small differences for different solvers, " +
+            "choose target-solver.",
+            values = { Z3, MATHSAT5 }, toUppercase = true)
+    private String target = Z3;
+
+    private Z3Settings(Configuration config) throws InvalidConfigurationException {
+      config.inject(this);
+    }
+  }
 
   private static final String MATHSAT5 = "MATHSAT5";
   private static final String Z3 = "Z3";
   // TODO support for smtinterpol?
 
-  @Option(name = "logfile", description = "Export solver queries in Smtlib2 format.")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path basicLogfile = Paths.get("z3smtlog.%d.smt2");
-  private static int logfileCounter = 0;
-
-  @Option(description = "Export solver queries in Smtlib2 format, " +
-      "there are small differences for different solvers, " +
-      "choose target-solver.",
-      values = { Z3, MATHSAT5 }, toUppercase = true)
-  private String target = Z3;
-
   private Path logfile;
-
+  private Z3Settings settings;
   private final long z3context;
+
   private final HashSet<Long> declarations = Sets.newHashSet();
 
   private int itpIndex = 0; // each interpolation gets its own index
   private final HashMap<Long, String> interpolationFormulas = Maps.newHashMap(); // for mathsat-compatibility
 
   public Z3SmtLogger(long z3context, Configuration config) throws InvalidConfigurationException {
-    config.inject(this);
+    this.settings = new Z3Settings(config);
     this.z3context = z3context;
-    initLogfile(basicLogfile);
+    initLogfile(settings.basicLogfile);
   }
 
-  /** copy constructor */
-  public Z3SmtLogger(Z3SmtLogger original) {
+  private Z3SmtLogger(Z3SmtLogger original) {
+    this.settings = original.settings;
     this.z3context = original.z3context;
-    initLogfile(original.basicLogfile);
+    initLogfile(settings.basicLogfile);
+  }
+
+  /** returns a new instance with a new logfile. */
+  public Z3SmtLogger cloneWithNewLogfile() {
+    return new Z3SmtLogger(this);
   }
 
   private void initLogfile(Path basicLogfile) {
-    if (basicLogfile == null) { // option noout
-      this.logfile = null;
-    } else {
-      String filename = String.format(basicLogfile.toAbsolutePath().getPath(), logfileCounter++);
+    if (settings.logAllQueries && basicLogfile != null) {
+      String filename = String.format(basicLogfile.toAbsolutePath().getPath(), settings.logfileCounter++);
       this.logfile = Paths.get(filename);
       log("", false); // create or clean the file
+    } else {
+      this.logfile = null;
     }
   }
 
@@ -138,7 +154,7 @@ public class Z3SmtLogger {
     itpIndex++;
     String formula = ast_to_string(z3context, expr);
 
-    switch (target) {
+    switch (settings.target) {
     case Z3:
       logBracket("assert " + formula);
       break;
@@ -168,7 +184,7 @@ public class Z3SmtLogger {
     if (logfile == null) { return; }
 
     String itpQuery = null;
-    switch (target) {
+    switch (settings.target) {
     case Z3:
       itpQuery = "get-interpolant " + ast_to_string(z3context, conjunctionA)
           + " " + ast_to_string(z3context, conjunctionB);
