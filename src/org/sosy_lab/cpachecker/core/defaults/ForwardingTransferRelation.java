@@ -242,7 +242,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
       // last node of its CFA, where return edge is from that last node
       // to the return site of the caller function
       final AReturnStatementEdge returnEdge = (AReturnStatementEdge) cfaEdge;
-      return handleReturnStatementEdge(returnEdge, returnEdge.getExpression());
+      return handleReturnStatementEdge(returnEdge);
 
     case BlankEdge:
       return handleBlankEdge((BlankEdge) cfaEdge);
@@ -431,25 +431,25 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
 
   /** This function handles functionStatements like "return (x)". */
-  protected S handleReturnStatementEdge(AReturnStatementEdge cfaEdge, @Nullable IAExpression expression)
+  protected S handleReturnStatementEdge(AReturnStatementEdge cfaEdge)
       throws CPATransferException {
     if (cfaEdge instanceof CReturnStatementEdge) {
-      return handleReturnStatementEdge((CReturnStatementEdge) cfaEdge, (CExpression) expression);
+      return handleReturnStatementEdge((CReturnStatementEdge) cfaEdge);
 
     } else if (cfaEdge instanceof JReturnStatementEdge) {
-      return handleReturnStatementEdge((JReturnStatementEdge) cfaEdge, (JExpression) expression);
+      return handleReturnStatementEdge((JReturnStatementEdge) cfaEdge);
 
     } else {
       throw new AssertionError("unknown edge");
     }
   }
 
-  protected S handleReturnStatementEdge(CReturnStatementEdge cfaEdge, @Nullable CExpression expression)
+  protected S handleReturnStatementEdge(CReturnStatementEdge cfaEdge)
       throws CPATransferException {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
-  protected S handleReturnStatementEdge(JReturnStatementEdge cfaEdge, @Nullable JExpression expression)
+  protected S handleReturnStatementEdge(JReturnStatementEdge cfaEdge)
       throws CPATransferException {
     throw new AssertionError(NOT_IMPLEMENTED);
   }

@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -155,9 +156,9 @@ class CFATransformations {
   private static void handleEdge(CFAEdge edge, MutableCFA cfa, Supplier<CFANode> targetNode, CBinaryExpressionBuilder builder) throws CParserException {
     ContainsPointerVisitor visitor = new ContainsPointerVisitor();
     if (edge instanceof CReturnStatementEdge) {
-      CExpression returnExp = ((CReturnStatementEdge)edge).getExpression();
-      if (returnExp != null) {
-        returnExp.accept(visitor);
+      Optional<CExpression> returnExp = ((CReturnStatementEdge)edge).getExpression();
+      if (returnExp.isPresent()) {
+        returnExp.get().accept(visitor);
       }
     } else if (edge instanceof CStatementEdge) {
       CStatement stmt = ((CStatementEdge)edge).getStatement();

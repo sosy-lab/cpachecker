@@ -167,6 +167,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -1342,7 +1343,8 @@ class ASTConverter {
   }
 
   public CReturnStatement convert(final IASTReturnStatement s) {
-    return new CReturnStatement(getLocation(s), convertExpressionWithoutSideEffects(s.getReturnValue()));
+    return new CReturnStatement(getLocation(s),
+        Optional.fromNullable(convertExpressionWithoutSideEffects(s.getReturnValue())));
   }
 
   public CFunctionDeclaration convert(final IASTFunctionDefinition f) {

@@ -140,13 +140,13 @@ public enum PointerTransferRelation implements TransferRelation {
 
   private PointerState handleReturnStatementEdge(PointerState pState, Precision pPrecision,
       CReturnStatementEdge pCfaEdge) throws UnrecognizedCCodeException {
-    if (pCfaEdge.getExpression() == null) {
+    if (!pCfaEdge.getExpression().isPresent()) {
       return pState;
     }
     return handleAssignment(pState,
         pPrecision,
         RETURN_VARIABLE_BASE_NAME + pCfaEdge.getSuccessor().getFunctionName(),
-        pCfaEdge.getExpression());
+        pCfaEdge.getExpression().get());
   }
 
   private PointerState handleFunctionCallEdge(PointerState pState, Precision pPrecision,

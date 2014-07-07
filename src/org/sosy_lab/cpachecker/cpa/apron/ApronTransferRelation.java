@@ -33,8 +33,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -897,12 +895,12 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
    * This is a return statement in a function
    */
   @Override
-  protected Set<ApronState> handleReturnStatementEdge(CReturnStatementEdge cfaEdge, @Nullable CExpression expression)
+  protected Set<ApronState> handleReturnStatementEdge(CReturnStatementEdge cfaEdge)
       throws CPATransferException {
 
     // this is for functions without return value, which just have returns
     // in them to end the function
-    if (expression == null) {
+    if (!cfaEdge.getExpression().isPresent()) {
       return Collections.singleton(state);
     }
 
@@ -915,7 +913,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
     }
 
     Set<ApronState> possibleStates = new HashSet<>();
-    Set<Texpr0Node> coeffsList = expression.accept(new CApronExpressionVisitor());
+    Set<Texpr0Node> coeffsList = cfaEdge.getExpression().get().accept(new CApronExpressionVisitor());
 
     if (coeffsList.isEmpty()) {
       return Collections.singleton(state);

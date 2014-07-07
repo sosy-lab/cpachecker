@@ -227,9 +227,8 @@ public class SourceLocationMapper {
           result.add(retStmt.getRawAST().get());
         }
 
-        CExpression expr = retStmt.getExpression();
-        if (expr != null) {
-          result.add(expr);
+        if (retStmt.getExpression().isPresent()) {
+          result.add(retStmt.getExpression().get());
         }
       break;
       case StatementEdge:
@@ -336,10 +335,10 @@ public class SourceLocationMapper {
         result.add(((CFunctionReturnEdge) edge).getLineNumber());
       break;
       case ReturnStatementEdge:
-        CExpression expr = ((CReturnStatementEdge) edge).getExpression();
         result.add(((CReturnStatementEdge) edge).getLineNumber());
-        if (expr != null) {
-          astNodes.add(expr);
+        Optional<CExpression> expr = ((CReturnStatementEdge) edge).getExpression();
+        if (expr.isPresent()) {
+          astNodes.add(expr.get());
         }
       break;
       case StatementEdge:
@@ -414,9 +413,9 @@ public class SourceLocationMapper {
       case FunctionReturnEdge:
       break;
       case ReturnStatementEdge:
-        CExpression expr = ((CReturnStatementEdge) edge).getExpression();
-        if (expr != null) {
-          idExs.addAll(expr.accept(visitor));
+        Optional<CExpression> expr = ((CReturnStatementEdge) edge).getExpression();
+        if (expr.isPresent()) {
+          idExs.addAll(expr.get().accept(visitor));
         }
       break;
       case StatementEdge:

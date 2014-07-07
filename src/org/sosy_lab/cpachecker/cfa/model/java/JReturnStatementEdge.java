@@ -43,11 +43,10 @@ public class JReturnStatementEdge extends AReturnStatementEdge {
 
   }
 
-
-
+  @SuppressWarnings("unchecked") // safe because Optional is covariant
   @Override
-  public JExpression getExpression() {
-    return (JExpression)rawAST.getReturnValue();
+  public Optional<JExpression> getExpression() {
+    return (Optional<JExpression>)rawAST.getReturnValue();
   }
 
   @Override

@@ -759,8 +759,8 @@ class CFAFunctionBuilder extends ASTVisitor {
     CReturnStatement returnstmt = astCreator.convert(returnStatement);
     prevNode = handleAllSideEffects(prevNode, fileloc, returnStatement.getRawSignature(), true);
 
-    if (returnstmt.getReturnValue() != null) {
-      returnstmt.getReturnValue().accept(checkBinding);
+    if (returnstmt.getReturnValue().isPresent()) {
+      returnstmt.getReturnValue().get().accept(checkBinding);
     }
     CReturnStatementEdge edge = new CReturnStatementEdge(returnStatement.getRawSignature(),
     returnstmt, fileloc, prevNode, functionExitNode);

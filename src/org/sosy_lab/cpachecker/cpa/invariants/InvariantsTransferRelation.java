@@ -345,13 +345,12 @@ public enum InvariantsTransferRelation implements TransferRelation {
 
   private InvariantsState handleReturnStatement(InvariantsState pElement, CReturnStatementEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCCodeException {
     String calledFunctionName = pEdge.getPredecessor().getFunctionName();
-    CExpression returnedExpression = pEdge.getExpression();
     // If the return edge has no statement, no return value is passed: "return;"
-    if (returnedExpression == null) {
+    if (!pEdge.getExpression().isPresent()) {
       return pElement;
     }
     ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
-    InvariantsFormula<CompoundInterval> returnedState = returnedExpression.accept(etfv);
+    InvariantsFormula<CompoundInterval> returnedState = pEdge.getExpression().get().accept(etfv);
     String returnValueName = scope(RETURN_VARIABLE_BASE_NAME, calledFunctionName);
     return pElement.assign(returnValueName, returnedState, pEdge);
   }
@@ -668,8 +667,8 @@ public enum InvariantsTransferRelation implements TransferRelation {
     }
     case ReturnStatementEdge: {
       AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) pCfaEdge;
-      IAExpression returnExpression = returnStatementEdge.getExpression();
-      if (returnExpression != null) {
+      if (returnStatementEdge.getExpression().isPresent()) {
+        IAExpression returnExpression = returnStatementEdge.getExpression().get();
         Map<String, CType> result = new HashMap<>();
         result.put(scope(RETURN_VARIABLE_BASE_NAME, pCfaEdge.getSuccessor().getFunctionName()),
             (CType) returnExpression.getExpressionType());

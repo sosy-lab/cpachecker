@@ -83,6 +83,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
+import com.google.common.base.Optional;
+
 @Options(prefix="cpa.interval")
 public class IntervalAnalysisTransferRelation implements TransferRelation {
   @Option(description="decides whether one (false) or two (true) successors should be created "
@@ -292,16 +294,16 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
    * @param CReturnStatementEdge the CFA edge corresponding to this statement
    * @return the successor elements
    */
-  private IntervalAnalysisState handleExitFromFunction(IntervalAnalysisState element, CExpression expression, CReturnStatementEdge returnEdge, CFAEdge edge)
+  private IntervalAnalysisState handleExitFromFunction(IntervalAnalysisState element,
+      Optional<CExpression> expression, CReturnStatementEdge returnEdge, CFAEdge edge)
     throws UnrecognizedCCodeException {
-    if (expression == null) {
-      expression = CNumericTypes.ZERO; // this is the default in C
-    }
+
+    CExpression exp = expression.or(CNumericTypes.ZERO); // 0 is the default in C
 
     ExpressionValueVisitor visitor = new ExpressionValueVisitor(element, returnEdge.getPredecessor().getFunctionName(), edge);
 
     // assign the value of the function return to a new variable
-    return handleAssignmentToVariable(RETURN_VARIABLE_BASE_NAME, expression, visitor);
+    return handleAssignmentToVariable(RETURN_VARIABLE_BASE_NAME, exp, visitor);
   }
 
   /**

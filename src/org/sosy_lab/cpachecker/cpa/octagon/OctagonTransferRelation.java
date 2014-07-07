@@ -34,8 +34,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -1186,12 +1184,12 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
    * This is a return statement in a function
    */
   @Override
-  protected Set<OctagonState> handleReturnStatementEdge(CReturnStatementEdge cfaEdge, @Nullable CExpression expression)
+  protected Set<OctagonState> handleReturnStatementEdge(CReturnStatementEdge cfaEdge)
       throws CPATransferException {
 
     // this is for functions without return value, which just have returns
     // in them to end the function
-    if (expression == null) {
+    if (!cfaEdge.getExpression().isPresent()) {
       return Collections.singleton(state);
     }
 
@@ -1205,7 +1203,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
 
     Set<OctagonState> possibleStates = new HashSet<>();
     COctagonCoefficientVisitor coeffVisitor = new COctagonCoefficientVisitor(state, cfaEdge.getPredecessor().getFunctionName());
-    Set<Pair<IOctagonCoefficients, OctagonState>> coeffsList = expression.accept(coeffVisitor);
+    Set<Pair<IOctagonCoefficients, OctagonState>> coeffsList = cfaEdge.getExpression().get().accept(coeffVisitor);
 
     for (Pair<IOctagonCoefficients, OctagonState> pairs : coeffsList) {
         possibleStates.add(pairs.getSecond().makeAssignment(tempVarName, pairs.getFirst()));

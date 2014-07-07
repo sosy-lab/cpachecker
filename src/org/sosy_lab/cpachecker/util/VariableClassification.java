@@ -848,11 +848,10 @@ public class VariableClassification {
       // this is the 'x' from 'return (x);
       // adding a new temporary FUNCTION_RETURN_VARIABLE, that is not global (-> false)
       CReturnStatementEdge returnStatement = (CReturnStatementEdge) edge;
-      CExpression rhs = returnStatement.getExpression();
-      if (rhs != null) {
+      if (returnStatement.getExpression().isPresent()) {
         String function = edge.getPredecessor().getFunctionName();
         handleExpression(edge,
-                         rhs,
+                         returnStatement.getExpression().get(),
                          scopeVar(function, FUNCTION_RETURN_VARIABLE),
                          VariableOrField.newVariable(createFunctionReturnVariable(function)));
       }

@@ -900,12 +900,12 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  protected BooleanFormula makeReturn(final CExpression rightExp,
+  protected BooleanFormula makeReturn(final Optional<CExpression> rightExp,
       final CReturnStatementEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
           throws CPATransferException, InterruptedException {
-    if (rightExp == null) {
+    if (!rightExp.isPresent()) {
       // this is a return from a void function, do nothing
       return bfmgr.makeBoolean(true);
     } else {
@@ -916,9 +916,9 @@ public class CtoFormulaConverter {
       // that will hold the return value
       final CFunctionDeclaration functionDeclaration =
           ((CFunctionEntryNode) edge.getSuccessor().getEntryNode()).getFunctionDefinition();
-      final CIdExpression lhs = createReturnVariable(rightExp.getFileLocation(), functionDeclaration);
+      final CIdExpression lhs = createReturnVariable(rightExp.get().getFileLocation(), functionDeclaration);
 
-      return makeAssignment(lhs, rightExp, edge, function, ssa, pts, constraints, errorConditions);
+      return makeAssignment(lhs, rightExp.get(), edge, function, ssa, pts, constraints, errorConditions);
     }
   }
 

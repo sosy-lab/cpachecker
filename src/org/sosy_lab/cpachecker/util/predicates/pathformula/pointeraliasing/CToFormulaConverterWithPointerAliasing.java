@@ -493,7 +493,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   @Override
-  protected BooleanFormula makeReturn(final CExpression resultExpression,
+  protected BooleanFormula makeReturn(final Optional<CExpression> resultExpression,
                                       final CReturnStatementEdge returnEdge,
                                       final String function,
                                       final SSAMapBuilder ssa,

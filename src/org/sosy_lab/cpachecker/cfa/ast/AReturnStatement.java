@@ -23,26 +23,31 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Objects;
+
+import com.google.common.base.Optional;
 
 public abstract class AReturnStatement extends AstNode implements IAReturnStatement {
 
-  private final IAExpression expression;
+  private final Optional<? extends IAExpression> expression;
 
-  public AReturnStatement(final FileLocation pFileLocation, final IAExpression pExpression) {
+  public AReturnStatement(final FileLocation pFileLocation,
+      final Optional<? extends IAExpression> pExpression) {
     super(pFileLocation);
-    expression = pExpression;
+    expression = checkNotNull(pExpression);
   }
 
   @Override
   public String toASTString() {
     return "return"
-        + (expression != null ? " " + expression.toASTString() : "")
+        + (expression.isPresent() ? " " + expression.get().toASTString() : "")
         + ";";
   }
 
   @Override
-  public IAExpression getReturnValue() {
+  public Optional<? extends IAExpression> getReturnValue() {
     return expression;
   }
 
