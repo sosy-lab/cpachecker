@@ -344,7 +344,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       // Ensure that no information about the irrelevant assigned variable is retained
       NonRecursiveEnvironment newEnvironment = this.environment;
       if (this.environment.containsKey(pVarName)) {
-        newEnvironment.removeAndCopy(pVarName);
+        newEnvironment = newEnvironment.removeAndCopy(pVarName);
       }
       if (this.environment == newEnvironment) {
         return this;
