@@ -140,9 +140,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
     interpolationOffset = -1;
 
-    errorPath = obtainErrorPathPrefix(errorPath, interpolant);
-
-    List<CFAEdge> errorTrace = obtainErrorTrace(errorPath);
+    List<CFAEdge> errorTrace = obtainErrorTrace(obtainErrorPathPrefix(errorPath, interpolant));
 
     Map<ARGState, ValueAnalysisInterpolant> pathInterpolants = new LinkedHashMap<>(errorPath.size());
 
@@ -168,9 +166,9 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
       }
 
       pathInterpolants.put(errorPath.get(i + 1).getFirst(), interpolant);
-    }
 
-    assert interpolant.isFalse() : "final interpolant is not false";
+      assert ((i != errorTrace.size() - 1) || interpolant.isFalse()) : "final interpolant is not false";
+    }
 
     timerInterpolation.stop();
     return pathInterpolants;
