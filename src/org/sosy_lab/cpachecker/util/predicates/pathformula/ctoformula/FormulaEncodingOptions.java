@@ -79,6 +79,10 @@ public class FormulaEncodingOptions {
           "The variables are similar to return-variables at function-exit.")
   private boolean useParameterVariables = false;
 
+  @Option(description = "Insert tmp-parameters for global variables at function-entries. " +
+          "The global variables are also encoded with return-variables at function-exit.")
+  private boolean useParameterVariablesForGlobals = false;
+
   public FormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this, FormulaEncodingOptions.class);
   }
@@ -110,5 +114,9 @@ public class FormulaEncodingOptions {
 
   public boolean useParameterVariables() {
     return useParameterVariables;
+  }
+
+  public boolean useParameterVariablesForGlobals() {
+    return useParameterVariablesForGlobals;
   }
 }

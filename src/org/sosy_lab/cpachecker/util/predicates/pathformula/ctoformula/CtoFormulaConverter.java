@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Cto
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -61,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -162,6 +164,8 @@ public class CtoFormulaConverter {
 
   private final FunctionFormulaType<?> stringUfDecl;
 
+  private final HashSet<CVariableDeclaration> globalDeclarations = new HashSet<>()
+          ;
   public CtoFormulaConverter(FormulaEncodingOptions pOptions, FormulaManagerView fmgr,
       MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification,
       LogManager logger, ShutdownNotifier pShutdownNotifier,
@@ -513,11 +517,21 @@ public class CtoFormulaConverter {
     Constraints constraints = new Constraints(bfmgr);
     PointerTargetSetBuilder pts = createPointerTargetSetBuilder(oldFormula.getPointerTargetSet());
 
-    if (options.useParameterVariables() && edge.getPredecessor() instanceof CFunctionEntryNode) {
+    // param-constraints must be added _before_ handling the edge (some lines below),
+    // because this edge could write a global value.
+    if (edge.getPredecessor() instanceof CFunctionEntryNode) {
       addParameterConstraints(edge, function, ssa, pts, constraints, errorConditions, (CFunctionEntryNode)edge.getPredecessor());
+      addGlobalAssignmentConstraints(edge, function, ssa, pts, constraints, errorConditions, PARAM_VARIABLE_NAME, false);
     }
 
+    // handle the edge
     BooleanFormula edgeFormula = createFormulaForEdge(edge, function, ssa, pts, constraints, errorConditions);
+
+    // result-constraints must be added _after_ handling the edge (some lines above),
+    // because this edge could write a global value.
+    if (edge.getSuccessor() instanceof FunctionExitNode) {
+      addGlobalAssignmentConstraints(edge, function, ssa, pts, constraints, errorConditions, RETURN_VARIABLE_NAME, true);
+    }
 
     edgeFormula = bfmgr.and(edgeFormula, constraints.get());
 
@@ -538,26 +552,67 @@ public class CtoFormulaConverter {
   }
 
 
-  /** create and add constraints about parameters: param1=tmp_param1, param2=tmp_param2, ...
+  /** this function is only executed, if the option useParameterVariables is used,
+   * otherwise it does nothing.
+   * create and add constraints about parameters: param1=tmp_param1, param2=tmp_param2, ...
    * The tmp-variables are also used before the function-entry as "argument-constraints". */
   private void addParameterConstraints(final CFAEdge edge, final String function,
                                        final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
                                        final Constraints constraints, final ErrorConditions errorConditions,
                                        final CFunctionEntryNode entryNode)
           throws UnrecognizedCCodeException, InterruptedException {
-    for (CParameterDeclaration formalParam : entryNode.getFunctionParameters()) {
 
-      // create expressions for each formal param: "f::x" --> "f::x__param__"
-      CParameterDeclaration tmpParameterExpression = new CParameterDeclaration(
-              formalParam.getFileLocation(), formalParam.getType(), formalParam.getName() + PARAM_VARIABLE_NAME);
-      tmpParameterExpression.setQualifiedName(formalParam.getQualifiedName() + PARAM_VARIABLE_NAME);
+    if (options.useParameterVariables()) {
+      for (CParameterDeclaration formalParam : entryNode.getFunctionParameters()) {
 
-      CIdExpression lhs = new CIdExpression(formalParam.getFileLocation(), formalParam);
-      CIdExpression rhs = new CIdExpression(formalParam.getFileLocation(), tmpParameterExpression);
+        // create expressions for each formal param: "f::x" --> "f::x__param__"
+        CParameterDeclaration tmpParameterExpression = new CParameterDeclaration(
+                formalParam.getFileLocation(), formalParam.getType(), formalParam.getName() + PARAM_VARIABLE_NAME);
+        tmpParameterExpression.setQualifiedName(formalParam.getQualifiedName() + PARAM_VARIABLE_NAME);
 
-      // add assignment to constraints: "f::x" = "f::x__param__"
-      BooleanFormula eq = makeAssignment(lhs, rhs, edge, function, ssa, pts, constraints, errorConditions);
-      constraints.addConstraint(eq);
+        CIdExpression lhs = new CIdExpression(formalParam.getFileLocation(), formalParam);
+        CIdExpression rhs = new CIdExpression(formalParam.getFileLocation(), tmpParameterExpression);
+
+        // add assignment to constraints: "f::x" = "f::x__param__"
+        BooleanFormula eq = makeAssignment(lhs, rhs, edge, function, ssa, pts, constraints, errorConditions);
+        constraints.addConstraint(eq);
+      }
+    }
+  }
+
+  /** this function is only executed, if the option useParameterVariablesForGlobals is used,
+   * otherwise it does nothing.
+   * create and add constraints about a global variable: tmp_1_f==global1, tmp_2_f==global2, ...
+   * @param tmpAsLHS if tmpAsLHS:  tmp_result1_f := global1
+   *                 else          global1       := tmp_result1_f
+   */
+  private void addGlobalAssignmentConstraints(final CFAEdge edge, final String function,
+                                              final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+                                              final Constraints constraints, final ErrorConditions errorConditions,
+                                              final String tmpNamePart, final boolean tmpAsLHS)
+          throws UnrecognizedCCodeException, InterruptedException {
+
+    if (options.useParameterVariablesForGlobals()) {
+
+      // make assignments: tmp_param1_f==global1, tmp_param2_f==global2, ...
+      // function-name is important, because otherwise the name is not unique over several function-calls.
+      for (final CVariableDeclaration decl : globalDeclarations) {
+        final CParameterDeclaration tmpParameter = new CParameterDeclaration(
+                decl.getFileLocation(), decl.getType(), decl.getName() + tmpNamePart + function);
+        tmpParameter.setQualifiedName(decl.getQualifiedName() + tmpNamePart + function);
+
+        final CIdExpression tmp = new CIdExpression(decl.getFileLocation(), tmpParameter);
+        final CIdExpression glob = new CIdExpression(decl.getFileLocation(), decl);
+
+        final BooleanFormula eq;
+        if (tmpAsLHS) {
+          eq = makeAssignment(tmp, glob, glob, edge, function, ssa, pts, constraints, errorConditions);
+        } else {
+          eq = makeAssignment(glob, glob, tmp, edge, function, ssa, pts, constraints, errorConditions);
+        }
+        constraints.addConstraint(eq);
+      }
+
     }
   }
 
@@ -684,6 +739,10 @@ public class CtoFormulaConverter {
       return bfmgr.makeBoolean(true);
     }
 
+    if (options.useParameterVariablesForGlobals() && decl.isGlobal()) {
+      globalDeclarations.add(decl);
+    }
+
     // if the var is unsigned, add the constraint that it should
     // be > 0
     //    if (((CSimpleType)spec).isUnsigned()) {
@@ -729,6 +788,8 @@ public class CtoFormulaConverter {
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
           throws CPATransferException, InterruptedException {
+
+    addGlobalAssignmentConstraints(ce, calledFunction, ssa, pts, constraints, errorConditions, RETURN_VARIABLE_NAME, false);
 
     CFunctionCall retExp = ce.getExpression();
     if (retExp instanceof CFunctionCallStatement) {
@@ -833,6 +894,8 @@ public class CtoFormulaConverter {
       BooleanFormula eq = makeAssignment(paramLHS, lhs, paramExpression, edge, callerFunction, ssa, pts, constraints, errorConditions);
       result = bfmgr.and(result, eq);
     }
+
+    addGlobalAssignmentConstraints(edge, fn.getFunctionName(), ssa, pts, constraints, errorConditions, PARAM_VARIABLE_NAME, true);
 
     return result;
   }
