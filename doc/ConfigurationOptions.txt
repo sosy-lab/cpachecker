@@ -1472,10 +1472,6 @@ cpa.value.initAssumptionVars = false
 # get an initial precison from file
 cpa.value.initialPrecisionFile = no default value
 
-# whether or not to heuristically weaken the candidate interpolant prior to
-# the interpolation process
-cpa.value.interpolation.weakenInterpolant = false
-
 # which merge operator to use for ValueAnalysisCPA
 cpa.value.merge = "SEP"
   allowed values: [SEP, JOIN]
@@ -1534,9 +1530,9 @@ cpa.value.refiner.checkForRepeatedRefinements = true
 # whether or not to do lazy-abstraction
 cpa.value.refiner.doLazyAbstraction = true
 
-# whether or not to interpolate the shortest infeasible prefix rather than
-# the whole error path
-cpa.value.refiner.interpolateInfeasiblePrefix = false
+# whether or not to interpolate the heuristically best infeasible prefix
+# rather than the whole error path
+cpa.value.refiner.interpolateInfeasiblePrefix = true
 
 # use heuristic to extract a precision from the CFA statically on first
 # refinement

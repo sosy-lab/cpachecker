@@ -96,8 +96,9 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
   @Option(description="whether or not to avoid restarting at assume edges after a refinement")
   private boolean avoidAssumes = false;
 
-  @Option(description="whether or not to interpolate the shortest infeasible prefix rather than the whole error path")
-  private boolean interpolateInfeasiblePrefix = false;
+  @Option(description="whether or not to interpolate the heuristically best infeasible prefix"
+      + " rather than the whole error path")
+  private boolean interpolateInfeasiblePrefix = true;
 
   /**
    * the offset in the path from where to cut-off the subtree, and restart the analysis

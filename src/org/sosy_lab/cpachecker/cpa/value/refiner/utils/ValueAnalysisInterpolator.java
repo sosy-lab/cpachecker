@@ -24,19 +24,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
-import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.skip;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -55,12 +50,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.collect.Iterables;
 
-@Options(prefix="cpa.value.interpolation")
 public class ValueAnalysisInterpolator {
-  @Option(name="weakenInterpolant", description="whether or not to heuristically weaken the candidate interpolant "
-      + "prior to the interpolation process")
-  private boolean weakenInterpolant = false;
-
   /**
    * the shutdownNotifier in use
    */
@@ -75,16 +65,6 @@ public class ValueAnalysisInterpolator {
    * the precision in use
    */
   private final ValueAnalysisPrecision precision;
-
-  /**
-   * the collector to get the use-definition information from an error trace
-   */
-  private final AssumptionUseDefinitionCollector assumeCollector;
-
-  /**
-   * the set of relevant variables found by the collector
-   */
-  private Set<String> relevantVariables = new HashSet<>();
 
   /**
    * the number of interpolations
@@ -112,7 +92,6 @@ public class ValueAnalysisInterpolator {
 
     try {
       shutdownNotifier  = pShutdownNotifier;
-      assumeCollector   = new AssumptionUseDefinitionCollector();
       checker           = new ValueAnalysisFeasibilityChecker(pLogger, pCfa);
       transfer          = new ValueAnalysisTransferRelation(Configuration.builder().build(), pLogger, pCfa);
       precision         = ValueAnalysisPrecision.createDefaultPrecision();
@@ -136,11 +115,6 @@ public class ValueAnalysisInterpolator {
       final int pOffset,
       final ValueAnalysisInterpolant pInputInterpolant) throws CPAException, InterruptedException {
     numberOfInterpolationQueries = 0;
-
-    // on initial iteration
-    if(pOffset == 0) {
-      relevantVariables = assumeCollector.obtainUseDefInformation(pErrorPath);
-    }
 
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
     ValueAnalysisState initialState      = pInputInterpolant.createValueAnalysisState();
@@ -168,11 +142,6 @@ public class ValueAnalysisInterpolator {
     // if the remaining path, i.e., the suffix, is contradicting by itself, then return the TRUE interpolant
     if (initialSuccessor.getSize() > 1 && isSuffixContradicting(remainingErrorPath)) {
       return ValueAnalysisInterpolant.TRUE;
-    }
-
-    if(weakenInterpolant) {
-      initialSuccessor.retainAll(from(relevantVariables)
-          .transform(MemoryLocation.FROM_STRING_TO_MEMORYLOCATION).toSet());
     }
 
     for (MemoryLocation currentMemoryLocation : initialSuccessor.getTrackedMemoryLocations()) {
