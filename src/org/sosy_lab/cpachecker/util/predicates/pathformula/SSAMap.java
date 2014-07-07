@@ -59,7 +59,7 @@ public class SSAMap implements Serializable {
   private static final long serialVersionUID = 7618801653203679876L;
 
   // Default value for the default value :p
-  static final int DEFAULT_DEFAULT_IDX = -1;
+  private static final int DEFAULT_DEFAULT_IDX = -1;
 
   private final int defaultValue;
 
@@ -134,9 +134,6 @@ public class SSAMap implements Serializable {
 
       if (idx > oldIdx) {
         vars = vars.putAndCopy(name, idx);
-
-        // wait wtf that's static.
-        // WAT. Which map are we dealing with?
         if (oldIdx != ssa.defaultValue) {
           varsHashCode -= mapEntryHashCode(name, oldIdx);
         }
@@ -290,11 +287,14 @@ public class SSAMap implements Serializable {
    * or the [defaultValue].
    */
   public int getIndex(String variable) {
-    return vars.getOrDefault(variable, defaultValue);
+    Integer value = vars.get(variable);
+    if (value == null) {
+      return defaultValue;
+    }
+    return value;
   }
 
   public boolean containsVariable(String variable) {
-    // HM I think that is correct.
     return vars.containsKey(variable);
   }
 
