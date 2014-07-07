@@ -569,8 +569,7 @@ public class AssignmentToPathAllocator {
     } else {
 
       while (upper >= 0 &&
-          (pSsaMaps.get(upper).getIndex(pVar.getName())
-            == SSAMap.INDEX_NOT_CONTAINED)) {
+          pSsaMaps.get(upper).containsVariable(pVar.getName())) {
         upper--;
       }
 

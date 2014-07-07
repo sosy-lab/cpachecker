@@ -155,6 +155,12 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
+  public PathFormula makePathFormulaWithCustomIdx(CFAEdge edge, int ssaIdx)
+       throws CPATransferException, InterruptedException {
+    return delegate.makePathFormulaWithCustomIdx(edge, ssaIdx);
+  }
+
+  @Override
   public BooleanFormula buildBranchingFormula(Iterable<ARGState> pElementsOnPath)
       throws CPATransferException, InterruptedException {
     return delegate.buildBranchingFormula(pElementsOnPath);

@@ -209,6 +209,17 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return makeAnd(pOldFormula, pEdge, errorConditions);
   }
 
+  public PathFormula makePathFormulaWithCustomIdx(CFAEdge edge, int ssaIdx)
+    throws CPATransferException, InterruptedException {
+    PathFormula empty = new PathFormula(
+        bfmgr.makeBoolean(true),
+        SSAMap.emptySSAMap().withDefault(ssaIdx),
+        PointerTargetSet.emptyPointerTargetSet(),
+        0
+    );
+    return makeAnd(empty, edge);
+  }
+
   @Override
   public PathFormula makeEmptyPathFormula() {
     return new PathFormula(bfmgr.makeBoolean(true),
@@ -309,6 +320,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       final int index1 = firstNonNull(symbolDifference.getSecond(), 1);
       final int index2 = firstNonNull(symbolDifference.getThird(), 1);
 
+      assert symbolName != null;
+      assert resultSSA != null;
       BooleanFormula mergeFormula;
       if (index1 > index2 && index1 > 1) {
         // i2:smaller, i1:bigger
