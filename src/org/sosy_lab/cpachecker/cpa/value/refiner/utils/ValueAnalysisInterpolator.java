@@ -88,8 +88,6 @@ public class ValueAnalysisInterpolator {
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
           throws InvalidConfigurationException {
 
-    pConfig.inject(this);
-
     try {
       shutdownNotifier  = pShutdownNotifier;
       checker           = new ValueAnalysisFeasibilityChecker(pLogger, pCfa);
