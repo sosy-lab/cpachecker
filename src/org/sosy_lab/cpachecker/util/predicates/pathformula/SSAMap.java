@@ -112,7 +112,7 @@ public class SSAMap implements Serializable {
     }
 
     public int getIndex(String variable) {
-      return ssa.getIndex(variable);
+      return SSAMap.getIndex(variable, vars, ssa.defaultValue);
     }
 
     public CType getType(String name) {
@@ -282,16 +282,20 @@ public class SSAMap implements Serializable {
     return new SSAMapBuilder(this);
   }
 
-  /**
-   * @return index of the variable in the map,
-   * or the [defaultValue].
-   */
-  public int getIndex(String variable) {
+  static int getIndex(String variable, Map<String, Integer> vars, int defaultValue) {
     Integer value = vars.get(variable);
     if (value == null) {
       return defaultValue;
     }
     return value;
+  }
+
+  /**
+   * @return index of the variable in the map,
+   * or the [defaultValue].
+   */
+  public int getIndex(String variable) {
+    return getIndex(variable, vars, defaultValue);
   }
 
   public boolean containsVariable(String variable) {
