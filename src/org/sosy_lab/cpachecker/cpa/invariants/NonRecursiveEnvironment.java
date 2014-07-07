@@ -193,7 +193,6 @@ public class NonRecursiveEnvironment implements Map<String, InvariantsFormula<Co
   @Override
   @Deprecated
   public void clear() {
-    //this.inner.clear();
     throw new UnsupportedOperationException();
   }
 
