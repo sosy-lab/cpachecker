@@ -30,6 +30,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -136,16 +137,22 @@ public class ErrorPathClassifier {
     return score;
   }
 
-  private ARGPath buildPath(int lastPrefixIndex, List<ARGPath> pPrefixes) {
+  /**
+   * This methods builds a new path from the given prefixes. It makes all
+   * contradicting assume edge but the last ineffective, so that only the last
+   * assumption leads to a contradiction.
+   *
+   * @param bestIndex the index of the prefix with the best score
+   * @param pPrefixes the list of prefixes
+   * @return a new path with the last assumption leading to a contradiction
+   */
+  private ARGPath buildPath(int bestIndex, List<ARGPath> pPrefixes) {
     ARGPath errorPath = new ARGPath();
-    for(int j = 0; j <= lastPrefixIndex; j++) {
+    for(int j = 0; j <= bestIndex; j++) {
       errorPath.addAll(pPrefixes.get(j));
 
-      // remove the last (assume) edge of all prefixes, except in the last prefix
-      if(j != lastPrefixIndex) {
-        Pair<ARGState, CFAEdge> lastStateOfCurrentPrefix = errorPath.removeLast();
-
-        assert(lastStateOfCurrentPrefix.getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
+      if(j != bestIndex) {
+        replaceAssumeEdgeWithBlankEdge(errorPath);
       }
     }
 
@@ -159,6 +166,25 @@ public class ErrorPathClassifier {
     return errorPath;
   }
 
+  /**
+   * This method replaces the final (assume) edge of each prefix, except for the
+   * last, with a blank edge, and as such, avoiding a contradiction along that
+   * path at the removed assumptions.
+   *
+   * @param pErrorPath the error path from which to remove the final assume edge
+   */
+  private void replaceAssumeEdgeWithBlankEdge(final ARGPath pErrorPath) {
+    Pair<ARGState, CFAEdge> assumeState = pErrorPath.removeLast();
+
+    assert(assumeState.getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
+
+    pErrorPath.add(Pair.<ARGState, CFAEdge>of(assumeState.getFirst(), new BlankEdge("",
+        FileLocation.DUMMY,
+        assumeState.getSecond().getPredecessor(),
+        assumeState.getSecond().getSuccessor(),
+        "replacement for assume edge")));
+  }
+
   private ARGPath concatPrefixes(List<ARGPath> pPrefixes) {
     ARGPath errorPath = new ARGPath();
     for(ARGPath currentPrefix : pPrefixes) {
@@ -168,14 +194,15 @@ public class ErrorPathClassifier {
     return errorPath;
   }
 
+  private static final CFAEdge BOGUS_EDGE = new CDeclarationEdge("",
+      FileLocation.DUMMY,
+      new CFANode("bogus"),
+      new CFANode("bogus"),
+      new CVariableDeclaration(FileLocation.DUMMY, false, CStorageClass.AUTO, CNumericTypes.INT, "", "", "", null));
+
   /**
    * a bogus transition, containing the null-state, and a declaration edge, with basically no side effect (may not be a
    * blank edge, due to implementation details)
    */
-  private static final Pair<ARGState, CFAEdge> BOGUS_TRANSITION = Pair.<ARGState, CFAEdge>of(null,
-      new CDeclarationEdge("",
-          FileLocation.DUMMY,
-          new CFANode("bogus"),
-          new CFANode("bogus"),
-          new CVariableDeclaration(FileLocation.DUMMY, false, CStorageClass.AUTO, CNumericTypes.INT, "", "", "", null)));
+  private static final Pair<ARGState, CFAEdge> BOGUS_TRANSITION = Pair.<ARGState, CFAEdge>of(null, BOGUS_EDGE);
 }
