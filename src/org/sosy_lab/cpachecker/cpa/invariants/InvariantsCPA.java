@@ -475,7 +475,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
           for (CFAEdge sisterEdge : CFAUtils.leavingEdges(predecessor)) {
             if (!assumeEdge.equals(sisterEdge)) {
               CFANode brotherNode = sisterEdge.getSuccessor();
-              if (!mustReach(brotherNode, currentRelevantLocation)
+              if (!mustReach(brotherNode, currentRelevantLocation, assumeEdge)
                   || anyOnPath(assumeEdgeAndPath.getSecond(), pRelevantVariables)) {
                 addInvolvedVariables(pRelevantVariables, assumeEdge, pLimit);
               }
@@ -496,7 +496,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     return false;
   }
 
-  private static boolean mustReach(CFANode pStart, final CFANode pTarget) {
+  private static boolean mustReach(CFANode pStart, final CFANode pTarget, final CFAEdge pForbiddenEdge) {
     Set<CFANode> visited = new HashSet<>();
     visited.add(pStart);
     Queue<CFANode> waitlist = new ArrayDeque<>();
@@ -504,14 +504,18 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     while (!waitlist.isEmpty()) {
       CFANode current = waitlist.poll();
       if (!current.equals(pTarget)) {
-        FluentIterable<CFANode> successors = CFAUtils.successorsOf(current);
-        if (successors.isEmpty()) {
-          return false;
-        }
-        for (CFANode successor : successors) {
-          if (visited.add(successor)) {
-            waitlist.offer(successor);
+        FluentIterable<CFAEdge> leavingEdges = CFAUtils.leavingEdges(current);
+        boolean continued = false;
+        for (CFAEdge leavingEdge : leavingEdges) {
+          if (!leavingEdge.equals(pForbiddenEdge)) {
+            CFANode successor = leavingEdge.getSuccessor();
+            if (continued |= visited.add(successor)) {
+              waitlist.offer(successor);
+            }
           }
+        }
+        if (!continued) {
+          return false;
         }
       }
     }
