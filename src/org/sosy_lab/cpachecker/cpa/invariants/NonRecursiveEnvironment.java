@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Set;
+import java.util.SortedSet;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -36,6 +36,8 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.ContainsVarVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvaluationVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaEvaluationVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
+
+import com.google.common.base.Preconditions;
 
 
 public class NonRecursiveEnvironment implements Map<String, InvariantsFormula<CompoundInterval>> {
@@ -103,36 +105,18 @@ public class NonRecursiveEnvironment implements Map<String, InvariantsFormula<Co
   @Deprecated
   public InvariantsFormula<CompoundInterval> put(String pVarName, InvariantsFormula<CompoundInterval> pValue) {
     throw new UnsupportedOperationException();
-    /*
-    if (pValue == null || pValue.equals(TOP)) {
-      return this.inner.remove(pVarName);
-    }
-    if (pValue.accept(containsVarVisitor, pVarName)) {
-      return put(pVarName, CompoundIntervalFormulaManager.INSTANCE.asConstant(pValue.accept(FORMULA_EVALUATION_VISITOR, this)));
-    }
-    InvariantsFormula<CompoundInterval> variable = CompoundIntervalFormulaManager.INSTANCE.asVariable(pVarName);
-    for (String containedVarName : pValue.accept(COLLECT_VARS_VISITOR)) {
-      if (variable.accept(containsVarVisitor, containedVarName)) {
-        return put(pVarName, CompoundIntervalFormulaManager.INSTANCE.asConstant(pValue.accept(FORMULA_EVALUATION_VISITOR, this)));
-      }
-    }
-    return this.inner.put(pVarName, pValue);*/
   }
 
   @Override
   @Deprecated
   public InvariantsFormula<CompoundInterval> remove(Object pKey) {
     throw new UnsupportedOperationException();
-    //return this.inner.remove(pKey);
   }
 
   @Override
   @Deprecated
   public void putAll(Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pM) {
     throw new UnsupportedOperationException();
-    /*for (Map.Entry<? extends String, ? extends InvariantsFormula<CompoundInterval>> entry : pM.entrySet()) {
-      put(entry.getKey(), entry.getValue());
-    }*/
   }
 
   private PersistentSortedMap<String, InvariantsFormula<CompoundInterval>> sanitizedInnerPutAndCopy(PersistentSortedMap<String, InvariantsFormula<CompoundInterval>> pTarget,
@@ -144,12 +128,18 @@ public class NonRecursiveEnvironment implements Map<String, InvariantsFormula<Co
       }
       return pTarget;
     }
-    if (pValue.accept(pContainsVarVisitor, pVarName)) {
+    InvariantsFormula<CompoundInterval> previous = pTarget.get(pVarName);
+    if (pValue.equals(previous)) {
+      return pTarget;
+    }
+    pTarget = pTarget.removeAndCopy(pVarName);
+    ContainsVarVisitor<CompoundInterval> containsVarVisitor = new ContainsVarVisitor<>(pTarget);
+    if (pValue.accept(containsVarVisitor, pVarName)) {
       return sanitizedInnerPutAndCopyInternal(pTarget, pVarName, CompoundIntervalFormulaManager.INSTANCE.asConstant(pValue.accept(FORMULA_EVALUATION_VISITOR, this)));
     }
     InvariantsFormula<CompoundInterval> variable = CompoundIntervalFormulaManager.INSTANCE.asVariable(pVarName);
     for (String containedVarName : pValue.accept(COLLECT_VARS_VISITOR)) {
-      if (variable.accept(pContainsVarVisitor, containedVarName)) {
+      if (variable.accept(containsVarVisitor, containedVarName)) {
         return sanitizedInnerPutAndCopyInternal(pTarget, pVarName, CompoundIntervalFormulaManager.INSTANCE.asConstant(pValue.accept(FORMULA_EVALUATION_VISITOR, this)));
       }
     }
@@ -158,12 +148,8 @@ public class NonRecursiveEnvironment implements Map<String, InvariantsFormula<Co
 
   private PersistentSortedMap<String, InvariantsFormula<CompoundInterval>> sanitizedInnerPutAndCopyInternal(PersistentSortedMap<String, InvariantsFormula<CompoundInterval>> pTarget,
       String pVarName, InvariantsFormula<CompoundInterval> pValue) {
-    if (pValue == null || pValue.equals(TOP)) {
-      if (pTarget.containsKey(pVarName)) {
-        return pTarget.removeAndCopy(pVarName);
-      }
-      return pTarget;
-    }
+    Preconditions.checkArgument(pValue != null && !pValue.equals(TOP), "Value must not be TOP");
+    Preconditions.checkArgument(!pTarget.containsKey(pVarName), "Variable must be TOP in previous environment");
     InvariantsFormula<CompoundInterval> previous = pTarget.get(pVarName);
     if (pValue.equals(previous)) {
       return pTarget;
@@ -197,7 +183,7 @@ public class NonRecursiveEnvironment implements Map<String, InvariantsFormula<Co
     return new NonRecursiveEnvironment(resultInner);
   }
 
-  public NonRecursiveEnvironment removeAndCopy(String pKey) {
+  public NonRecursiveEnvironment removeAndCopy(Object pKey) {
     if (!containsKey(pKey)) {
       return this;
     }
@@ -212,8 +198,8 @@ public class NonRecursiveEnvironment implements Map<String, InvariantsFormula<Co
   }
 
   @Override
-  public Set<String> keySet() {
-    return Collections.unmodifiableSet(this.inner.keySet());
+  public SortedSet<String> keySet() {
+    return this.inner.keySet();
   }
 
   @Override
@@ -222,8 +208,8 @@ public class NonRecursiveEnvironment implements Map<String, InvariantsFormula<Co
   }
 
   @Override
-  public Set<java.util.Map.Entry<String, InvariantsFormula<CompoundInterval>>> entrySet() {
-    return Collections.unmodifiableSet(this.inner.entrySet());
+  public SortedSet<java.util.Map.Entry<String, InvariantsFormula<CompoundInterval>>> entrySet() {
+    return this.inner.entrySet();
   }
 
   @Override
