@@ -230,6 +230,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     protected Timer propertyCheckingTimer = new Timer();
 
     protected int countIterations = 0;
+    protected int proofSize = 0;
 
     @Override
     public String getName() {
@@ -260,6 +261,8 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     public void printStatistics(PrintStream out, Result pResult,
         ReachedSet pReached) {
       out.println("Number of iterations:                     " + countIterations);
+      out.println();
+      out.println("Number of proof elements:                     " + proofSize);
       out.println();
       out.println("  Time for preparing proof for checking:          " + preparationTimer);
       out.println("  Time for abstract successor checks:     " + transferTimer + " (Calls: "
