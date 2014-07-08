@@ -75,7 +75,7 @@ import com.google.common.collect.TreeMultimap;
 /**
  * Testing the custom SSA implementation.
  */
-public class TestPathFormulaManagerImpl {
+public class PathFormulaManagerImplTest {
 
   public Triple<CFAEdge, CFAEdge, MutableCFA> createCFA() {
 
