@@ -271,6 +271,6 @@ public class MemoryStatistics implements Runnable {
   }
 
   private static String formatMem(long mem) {
-    return String.format("%9dMB", mem >> 20);
+    return String.format("%9dMB (%9d MiB)", mem/1000/1000, mem >> 20);
   }
 }
