@@ -235,19 +235,19 @@ public class MemoryStatistics implements Runnable {
       }
     }
 
-    out.println("Used heap memory:             " + formatMem(maxHeap) + " max (" + formatMem(sumHeap/count) + " avg, " + formatMem(heapPeak) + " peak)");
-    out.println("Used non-heap memory:         " + formatMem(maxNonHeap) + " max (" + formatMem(sumNonHeap/count) + " avg, " + formatMem(nonHeapPeak) + " peak)");
+    out.println("Used heap memory:             " + formatMem(maxHeap) + " max; " + formatMem(sumHeap/count) + " avg; " + formatMem(heapPeak) + " peak");
+    out.println("Used non-heap memory:         " + formatMem(maxNonHeap) + " max; " + formatMem(sumNonHeap/count) + " avg; " + formatMem(nonHeapPeak) + " peak");
 
     for (int i = 0; i < pools.length; i++) {
       String name = Strings.padEnd("Used in " + pools[i].getName() + " pool:", 30, ' ');
-      out.println(name + formatMem(maxHeapAllocatedPerPool[i]) + " max (" + formatMem(sumHeapAllocatedPerPool[i]/count) + " avg, " + formatMem(pools[i].getPeakUsage().getUsed()) + " peak)");
+      out.println(name + formatMem(maxHeapAllocatedPerPool[i]) + " max; " + formatMem(sumHeapAllocatedPerPool[i]/count) + " avg; " + formatMem(pools[i].getPeakUsage().getUsed()) + " peak");
     }
 
-    out.println("Allocated heap memory:        " + formatMem(maxHeapAllocated) + " max (" + formatMem(sumHeapAllocated/count) + " avg)");
-    out.println("Allocated non-heap memory:    " + formatMem(maxNonHeapAllocated) + " max (" + formatMem(sumNonHeapAllocated/count) + " avg)");
+    out.println("Allocated heap memory:        " + formatMem(maxHeapAllocated) + " max; " + formatMem(sumHeapAllocated/count) + " avg");
+    out.println("Allocated non-heap memory:    " + formatMem(maxNonHeapAllocated) + " max; " + formatMem(sumNonHeapAllocated/count) + " avg");
 
     if (osMbean != null) {
-      out.println("Total process virtual memory: " + formatMem(maxProcess) + " max (" + formatMem(sumProcess/count) + " avg)");
+      out.println("Total process virtual memory: " + formatMem(maxProcess) + " max; " + formatMem(sumProcess/count) + " avg");
     }
   }
 
@@ -271,6 +271,6 @@ public class MemoryStatistics implements Runnable {
   }
 
   private static String formatMem(long mem) {
-    return String.format("%9dMB (%9d MiB)", mem/1000/1000, mem >> 20);
+    return String.format("%6dMB (%6d MiB)", mem/1000/1000, mem >> 20);
   }
 }
