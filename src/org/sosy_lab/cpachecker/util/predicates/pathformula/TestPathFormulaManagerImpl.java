@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
-import com.google.common.collect.SortedSetMultimap;
-import com.google.common.collect.TreeMultimap;
+import java.math.BigInteger;
+import java.util.Collections;
+import java.util.SortedMap;
+import java.util.TreeMap;
+
 import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.common.Triple;
@@ -35,22 +38,39 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.*;
-import org.sosy_lab.cpachecker.cfa.model.*;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.*;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-import java.math.BigInteger;
-import java.util.Collections;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import com.google.common.collect.SortedSetMultimap;
+import com.google.common.collect.TreeMultimap;
 
 /**
  * Testing the custom SSA implementation.
@@ -228,10 +248,25 @@ public class TestPathFormulaManagerImpl {
     PathFormulaManager pathFormulaManager = getPathFormulaManager(cfa);
 
     int customIdx = 1337;
-    PathFormula p = pathFormulaManager.makePathFormulaWithCustomIdx(
-        a_to_b, customIdx);
+    PathFormula p = makePathFormulaWithCustomIdx(
+        a_to_b, customIdx, pathFormulaManager);
 
     // The SSA index should be incremented by one by the edge "x := x + 1".
     Assert.assertEquals(customIdx + 1, p.getSsa().getIndex("x"));
+  }
+
+  /**
+   * Creates a {@link PathFormula} with SSA indexing starting
+   * from the specified value.
+   * Useful for more fine-grained control over SSA indexes.
+   */
+  private static PathFormula makePathFormulaWithCustomIdx(CFAEdge edge, int ssaIdx,
+      PathFormulaManager pathFormulaManager) throws CPATransferException, InterruptedException {
+    PathFormula empty = pathFormulaManager.makeEmptyPathFormula();
+    PathFormula emptyWithCustomSSA = pathFormulaManager.makeNewPathFormula(
+        empty,
+        SSAMap.emptySSAMap().withDefault(ssaIdx));
+
+    return pathFormulaManager.makeAnd(emptyWithCustomSSA, edge);
   }
 }

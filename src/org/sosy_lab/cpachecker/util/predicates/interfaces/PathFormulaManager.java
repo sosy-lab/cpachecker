@@ -64,14 +64,6 @@ public interface PathFormulaManager {
   PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException;
 
   /**
-   * Creates a {@link PathFormula} with SSA indexing starting
-   * from the specified value.
-   * Useful for more fine-grained control over SSA indexes.
-   */
-  PathFormula makePathFormulaWithCustomIdx(CFAEdge edge, int ssaIdx)
-      throws CPATransferException, InterruptedException;
-
-  /**
    * Build a formula containing a predicate for all branching situations in the
    * ARG. If a satisfying assignment is created for this formula, it can be used
    * to find out which paths in the ARG are feasible.
