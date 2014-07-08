@@ -35,6 +35,7 @@ import java.util.zip.ZipInputStream;
 
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
+import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy.PCStrategyStatistics;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
 
 
@@ -51,10 +52,13 @@ public class ParallelPartitionReader implements Runnable {
   private final AbstractStrategy strategy;
   private final PartitioningIOHelper ioHelper;
 
+  private final PCStrategyStatistics stats;
+
   private static final Lock lock = new ReentrantLock();
 
   public ParallelPartitionReader(final int index, final AtomicBoolean pSuccess, final Semaphore pWaitRead,
-      final AbstractStrategy pStrategy, final PartitioningIOHelper pIOHelper, final boolean pReleaseSemaphoreIfRead) {
+      final AbstractStrategy pStrategy, final PartitioningIOHelper pIOHelper, final boolean pReleaseSemaphoreIfRead,
+      final PCStrategyStatistics pStats) {
     partitionIndex = index;
     success = pSuccess;
     waitRead = pWaitRead;
@@ -64,12 +68,13 @@ public class ParallelPartitionReader implements Runnable {
     checkingReadingLock = null;
     partitionReady = null;
     releaseSemaphoreIfReadFinished = pReleaseSemaphoreIfRead;
+    stats = pStats;
   }
 
   public ParallelPartitionReader(final int index, final AtomicBoolean pSuccess, final Semaphore pWaitRead,
       final AbstractStrategy pStrategy, final PartitioningIOHelper pIOHelper, final Condition pPartitionReady,
-      final Lock pCoordination, final boolean pReleaseSemaphoreIfRead) {
-    this(index, pSuccess, pWaitRead, pStrategy, pIOHelper, pReleaseSemaphoreIfRead);
+      final Lock pCoordination, final boolean pReleaseSemaphoreIfRead, final PCStrategyStatistics pStats) {
+    this(index, pSuccess, pWaitRead, pStrategy, pIOHelper, pReleaseSemaphoreIfRead, pStats);
     checkingReadingLock = pCoordination;
     partitionReady = pPartitionReady;
   }
@@ -85,7 +90,7 @@ public class ParallelPartitionReader implements Runnable {
     Triple<InputStream, ZipInputStream, ObjectInputStream> streams = null;
     try {
       streams = strategy.openAdditionalProofStream(partitionIndex);
-      ioHelper.readPartition(streams.getThird(), lock);
+      ioHelper.readPartition(streams.getThird(), stats, lock);
       giveSignal();
       if (releaseSemaphoreIfReadFinished) {
         waitRead.release();

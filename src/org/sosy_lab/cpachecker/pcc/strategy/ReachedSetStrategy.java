@@ -148,7 +148,7 @@ public class ReachedSetStrategy extends SequentialReadStrategy {
     if (!(pReadProof instanceof AbstractState[])) { throw new InvalidConfigurationException(
         "Proof Type requires reached set as set of abstract states."); }
     reachedSet = (AbstractState[])pReadProof;
-    stats.proofSize = reachedSet.length;
+    stats.increaseProofSize(reachedSet.length);
     orderReachedSetByLocation(reachedSet);
     } finally {
       stats.preparationTimer.stop();

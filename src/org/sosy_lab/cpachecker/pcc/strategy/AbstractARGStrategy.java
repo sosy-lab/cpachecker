@@ -58,7 +58,7 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
   public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) {
     if (correctReachedSetFormatForProof(pReached)) {
       root = (ARGState) pReached.getFirstState();
-      stats.proofSize = 1;
+      stats.increaseProofSize(1);
     }
   }
 

@@ -174,7 +174,7 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
       int numPartition = ioHelper.getNumPartitions();
 
       for (int i = 0; i < numPartition; i++) {
-        executor.execute(new ParallelPartitionReader(i, success, waitRead, this, ioHelper, true));
+        executor.execute(new ParallelPartitionReader(i, success, waitRead, this, ioHelper, true, stats));
       }
 
       try {

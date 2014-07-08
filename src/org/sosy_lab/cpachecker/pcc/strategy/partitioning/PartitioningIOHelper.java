@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.BalancedGraphPartitioner;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PartialReachedConstructionAlgorithm;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy.PCStrategyStatistics;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.ARGBasedPartialReachedSetConstructionAlgorithm;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.CompleteCertificateConstructionAlgorithm;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm;
@@ -159,9 +160,11 @@ public class PartitioningIOHelper {
     }
   }
 
-  public void readPartition(final ObjectInputStream pIn)
+  public void readPartition(final ObjectInputStream pIn, final PCStrategyStatistics pStats)
       throws ClassNotFoundException, IOException {
-    partitions.add(readPartitionContent(pIn));
+    Pair<AbstractState[], AbstractState[]> result = readPartitionContent(pIn);
+    partitions.add(result);
+    pStats.increaseProofSize(result.getFirst().length+result.getSecond().length);
   }
 
   private Pair<AbstractState[], AbstractState[]> readPartitionContent(final ObjectInputStream pIn)
@@ -169,12 +172,15 @@ public class PartitioningIOHelper {
     return Pair.of((AbstractState[]) pIn.readObject(), (AbstractState[]) pIn.readObject());
   }
 
-  public void readPartition(final ObjectInputStream pIn, final Lock pLock) throws ClassNotFoundException, IOException {
+  public void readPartition(final ObjectInputStream pIn, final PCStrategyStatistics pStats, final Lock pLock)
+      throws ClassNotFoundException, IOException {
     if (pLock == null) { throw new IllegalArgumentException("Cannot protect against parallel access"); }
     Pair<AbstractState[], AbstractState[]> result = readPartitionContent(pIn);
+    int partialProofSize = result.getFirst().length+result.getSecond().length;
     pLock.lock();
     try {
       partitions.add(result);
+      pStats.increaseProofSize(partialProofSize);
     } finally {
       pLock.unlock();
     }

@@ -222,7 +222,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     statsCollection.add(stats);
   }
 
-  protected static class PCStrategyStatistics implements Statistics {
+  public static class PCStrategyStatistics implements Statistics {
 
     protected Timer transferTimer = new Timer();
     protected Timer stopTimer = new Timer();
@@ -271,6 +271,10 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
           + stopTimer.getNumberOfIntervals()
           + ")");
       out.println(" Time for checking property:          "   + propertyCheckingTimer);
+    }
+
+    public void increaseProofSize(int pIncrement) {
+      proofSize+=pIncrement;
     }
 
   }
