@@ -133,7 +133,7 @@ class GlobalConditionsSimplePrecisionAdjustment extends SimplePrecisionAdjustmen
       return false;
     }
 
-    return ((memory.getHeapMemoryUsage().getUsed() / (1024*1024)) > threshold);
+    return ((memory.getHeapMemoryUsage().getUsed() / (1000*1000)) > threshold);
   }
 
   private boolean checkProcessMemory() {
@@ -163,7 +163,7 @@ class GlobalConditionsSimplePrecisionAdjustment extends SimplePrecisionAdjustmen
       return false;
     }
 
-    long memUsed = ((Long)memUsedObject) / (1024*1024);
+    long memUsed = ((Long)memUsedObject) / (1000*1000);
 
     return (memUsed > threshold);
   }

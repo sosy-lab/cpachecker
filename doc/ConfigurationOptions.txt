@@ -657,10 +657,12 @@ cpa.composite.merge = "AGREE"
 cpa.composite.precAdjust = "COMPOSITE"
   allowed values: [COMPOSITE, COMPONENT]
 
-# Limit for Java heap memory used by CPAchecker (in MiB; -1 for infinite)
+# Limit for Java heap memory used by CPAchecker (in MB, not MiB!; -1 for
+# infinite)
 cpa.conditions.global.memory.heap = -1
 
-# Limit for process memory used by CPAchecker (in MiB; -1 for infinite)
+# Limit for process memory used by CPAchecker (in MB, not MiB!; -1 for
+# infinite)
 cpa.conditions.global.memory.process = -1
 
 # Limit for size of reached set (-1 for infinite)
@@ -1205,6 +1207,9 @@ cpa.predicate.solver = MATHSAT5
 # log some solver actions, this may be slow!
 cpa.predicate.solver.useLogger = false
 
+# Export solver queries in Smtlib format into a file.
+cpa.predicate.solver.z3.logger.logAllQueries = false
+
 # Export solver queries in Smtlib2 format.
 cpa.predicate.solver.z3.logger.logfile = "z3smtlog.%d.smt2"
 
@@ -1246,6 +1251,10 @@ cpa.predicate.useNondetFlags = false
 # Insert tmp-variables for parameters at function-entries. The variables are
 # similar to return-variables at function-exit.
 cpa.predicate.useParameterVariables = false
+
+# Insert tmp-parameters for global variables at function-entries. The global
+# variables are also encoded with return-variables at function-exit.
+cpa.predicate.useParameterVariablesForGlobals = false
 
 # Qualified name for class which checks that the computed abstraction adheres
 # to the desired property.
