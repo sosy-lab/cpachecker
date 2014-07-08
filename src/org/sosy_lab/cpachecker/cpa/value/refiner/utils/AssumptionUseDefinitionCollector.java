@@ -237,8 +237,8 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
             collectedVariables.add(assignedVariable);
             // also add special FUNCTION_RETURN_VAR as relevant variable
             collectedVariables.add(VariableClassification.createFunctionReturnVariable(returnStatementEdge.getPredecessor().getFunctionName()));
-            // no need to handle "return;"
-            if (!returnStatementEdge.getExpression().isPresent()) {
+
+            if (returnStatementEdge.getExpression().isPresent()) {
               collectVariables(returnStatementEdge, returnStatementEdge.getExpression().get());
             }
           }
