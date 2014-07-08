@@ -8,9 +8,17 @@
 
   <sourcefiles name="Simple">
     <includesfile>../programs/benchmarks/Simple.set</includesfile>
+    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
   </sourcefiles>
   <sourcefiles name="ControlFlowInteger">
-    <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
+    <include>../programs/benchmarks/ntdrivers-simplified/*_false-unreach-call*.cil.c</include>
+    <include>../programs/benchmarks/ntdrivers-simplified/*_true-unreach-call*.cil.c</include>
+    <include>../programs/benchmarks/ssh-simplified/*_false-unreach-call*.cil.c</include>
+    <include>../programs/benchmarks/ssh-simplified/*_true-unreach-call*.cil.c</include>
+    <include>../programs/benchmarks/locks/*_false-unreach-call*.c</include>
+    <include>../programs/benchmarks/locks/*_true-unreach-call*.c</include>
+    <include>../programs/benchmarks/eca/Problem0*_false-unreach-call*.c</include>
+    <include>../programs/benchmarks/eca/Problem0*_true-unreach-call*.c</include>
   </sourcefiles>
   <sourcefiles name="DeviceDrivers64">
     <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
@@ -29,41 +37,70 @@
 
 <!-- Analyses with a single run -->
 
+ <rundefinition name="apronAnalysis-mergeSep">
+    <option name="-apronAnalysis"/>
+ </rundefinition>
  <rundefinition name="octagonAnalysis-mergeSep">
     <option name="-octagonAnalysis"/>
+ </rundefinition>
+ <rundefinition name="octagonAnalysis-mergeJoin">
+    <option name="-octagonAnalysis-mergeJoin-cexCheck"/>
+    <option name="-setprop">analysis.checkCounterexamples=false</option>
  </rundefinition>
  <rundefinition name="octagonAnalysis-mergeJoin-cexCheck">
     <option name="-octagonAnalysis-mergeJoin-cexCheck"/>
  </rundefinition>
  <rundefinition name="octagonAnalysis-mergeJoinOnlyBlocks-cexCheck">
     <option name="-octagonAnalysis-mergeJoin-cexCheck"/>
-    <option name="-setprop">cpa.octagon.mergeop.onlyJoinEdgesInSameBlock=true</option>
+    <option name="-setprop">cpa.octagon.mergeop.onlyMergeAtLoopHeads=true</option>
+ </rundefinition>
+ <rundefinition name="octagonAnalysis-mergeWidening">
+    <option name="-octagonAnalysis-mergeWidening-cexCheck"/>
+    <option name="-setprop">analysis.checkCounterexamples=false</option>
  </rundefinition>
  <rundefinition name="octagonAnalysis-mergeWidening-cexCheck">
     <option name="-octagonAnalysis-mergeWidening-cexCheck"/>
  </rundefinition>
  <rundefinition name="octagonAnalysis-mergeWideningOnlyBlocks-cexCheck">
     <option name="-octagonAnalysis-mergeWidening-cexCheck"/>
-    <option name="-setprop">cpa.octagon.mergeop.onlyJoinEdgesInSameBlock=true</option>
+    <option name="-setprop">cpa.octagon.mergeop.onlyMergeAtLoopHeads=true</option>
  </rundefinition>
-  <rundefinition name="octagonAnalysis-refiner-false">
+  <rundefinition name="octagonAnalysis-refiner">
     <option name="-octagonAnalysis-refiner"/>
-    <option name="-setprop">cpa.value.refiner.interpolateInfeasiblePrefix=false</option>
- </rundefinition> 
- <rundefinition name="octagonAnalysis-refiner-true">
-    <option name="-octagonAnalysis-refiner"/>
-    <option name="-setprop">cpa.value.refiner.interpolateInfeasiblePrefix=true</option>
  </rundefinition> 
 
 <!-- Analyses with a sequential combination of runs -->
-
- <rundefinition name="octagonAnalysis-restart-int-refiner-widening">
+ <rundefinition name="octagonAnalysis-restart-int-refiner-widening-100_400">
     <option name="-octagonAnalysis-restart-int"/>
+    <option name="-setprop">restartAlgorithm.configFiles=config/octagonAnalysis-mergeWidening-cexCheck-restart-int-100.properties,config/octagonAnalysis-refiner-restart-int.properties</option>
+ </rundefinition>
+ <rundefinition name="octagonAnalysis-restart-int-refiner-widening-100_350_50">
+    <option name="-octagonAnalysis-restart-int"/>
+    <option name="-setprop">restartAlgorithm.configFiles=config/octagonAnalysis-mergeWidening-cexCheck-restart-int-100.properties,config/octagonAnalysis-refiner-restart-int-350.properties,config/octagonAnalysis.properties</option>
  </rundefinition>
  <rundefinition name="octagonAnalysis-restart-int-refiner-join">
     <option name="-octagonAnalysis-restart-int"/>
     <option name="-setprop">restartAlgorithm.configFiles=config/octagonAnalysis-mergeJoin-cexCheck.properties,config/octagonAnalysis-refiner-restart-int.properties</option>
  </rundefinition>
+ <rundefinition name="octagonanalysis-restart-int-refiner-widening-250_250">
+   <option name="-octagonAnalysis-restart-int"/>
+ </rundefinition>
 
+<!-- Analyses which will be compared to the octagon ones -->
 
+ <rundefinition name="explicitAnalysis-noRefiner-noCBMC">
+    <option name="-heap">29000M</option>
+    <option name="-explicitAnalysis-NoRefiner"/>
+    <option name="-setprop">analysis.checkCounterexamples=false</option>
+ </rundefinition>
+ <rundefinition name="explicitAnalysis-ItpRefiner-noCBMC">
+    <option name="-heap">29000M</option>
+    <option name="-explicitAnalysis-ItpRefiner"/>
+    <option name="-setprop">analysis.checkCounterexamples=false</option>
+ </rundefinition>
+ <rundefinition name="predicateAnalysis">
+    <option name="-heap">25000M</option>
+    <option name="-predicateAnalysis"/>
+    <option name="-setprop">analysis.checkCounterexamples=false</option>
+ </rundefinition>
 </benchmark>
