@@ -57,9 +57,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -77,7 +76,7 @@ import com.google.common.collect.TreeMultimap;
  */
 public class PathFormulaManagerImplTest {
 
-  public Triple<CFAEdge, CFAEdge, MutableCFA> createCFA() {
+  private Triple<CFAEdge, CFAEdge, MutableCFA> createCFA() {
 
     CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(
         MachineModel.LINUX32, TestLogManager.getInstance()
@@ -103,13 +102,13 @@ public class PathFormulaManagerImplTest {
         FileLocation.DUMMY,
         false,
         CStorageClass.AUTO,
-        intType(),
+        CNumericTypes.INT,
         "x",
         "x",
         "x",
         new CInitializerExpression(
             FileLocation.DUMMY,
-            intConstant(BigInteger.ZERO)
+            CNumericTypes.ZERO
         )
     );
 
@@ -117,11 +116,11 @@ public class PathFormulaManagerImplTest {
     CExpression rhs = expressionBuilder.buildBinaryExpression(
         new CIdExpression(
             FileLocation.DUMMY,
-            intType(),
+            CNumericTypes.INT,
             "x",
             xDeclaration
         ),
-        intConstant(BigInteger.ONE), // expression B.
+        CNumericTypes.ONE, // expression B.
         CBinaryExpression.BinaryOperator.PLUS
     );
 
@@ -132,7 +131,7 @@ public class PathFormulaManagerImplTest {
             FileLocation.DUMMY,
             new CIdExpression(
                 FileLocation.DUMMY,
-                intType(),
+                CNumericTypes.INT,
                 "x",
                 xDeclaration
             ),
@@ -147,7 +146,7 @@ public class PathFormulaManagerImplTest {
     CExpression guard = expressionBuilder.buildBinaryExpression(
         new CIdExpression(
             FileLocation.DUMMY,
-            intType(),
+            CNumericTypes.INT,
             "x",
             xDeclaration
         ),
@@ -181,14 +180,14 @@ public class PathFormulaManagerImplTest {
     return Triple.of(a_to_b, b_to_a, cfa);
   }
 
-  CExpression intConstant(BigInteger constant) {
+  private CExpression intConstant(BigInteger constant) {
     return new CIntegerLiteralExpression(
-        FileLocation.DUMMY, intType(), constant
+        FileLocation.DUMMY, CNumericTypes.INT, constant
     );
   }
 
-  FunctionEntryNode dummyFunction(String name) {
-    CFunctionType functionType = new CFunctionType(false, false, boolType(),
+  private FunctionEntryNode dummyFunction(String name) {
+    CFunctionType functionType = new CFunctionType(false, false, CNumericTypes.BOOL,
         Collections.<CType>emptyList(), false);
 
     FunctionEntryNode main = new FunctionEntryNode(
@@ -205,23 +204,7 @@ public class PathFormulaManagerImplTest {
     return main;
   }
 
-  private CType boolType() {
-    return new CSimpleType(
-        false, false, CBasicType.BOOL,
-        false, false, false, false,
-        false, false, false);
-  }
-
-  private CType intType() {
-    // NOTE: is it OK for all of them to be false?
-    // anything else which needs to be done?
-    return new CSimpleType(
-        false, false, CBasicType.INT,
-        false, false, false, false,
-        false, false, false);
-  }
-
-  PathFormulaManager getPathFormulaManager(CFA cfa) throws InvalidConfigurationException {
+  private PathFormulaManager getPathFormulaManager(CFA cfa) throws InvalidConfigurationException {
     FormulaManagerFactory formulaManagerFactory = new FormulaManagerFactory(
         Configuration.defaultConfiguration(),
         TestLogManager.getInstance(), ShutdownNotifier.create());
