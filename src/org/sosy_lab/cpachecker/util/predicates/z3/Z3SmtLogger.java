@@ -72,8 +72,8 @@ public class Z3SmtLogger {
   private static final String Z3 = "Z3";
   // TODO support for smtinterpol?
 
-  private Path logfile;
-  private Z3Settings settings;
+  private final Path logfile;
+  private final Z3Settings settings;
   private final long z3context;
 
   private final HashSet<Long> declarations = Sets.newHashSet();
@@ -82,30 +82,25 @@ public class Z3SmtLogger {
   private final HashMap<Long, String> interpolationFormulas = Maps.newHashMap(); // for mathsat-compatibility
 
   public Z3SmtLogger(long z3context, Configuration config) throws InvalidConfigurationException {
-    this.settings = new Z3Settings(config);
-    this.z3context = z3context;
-    initLogfile(settings.basicLogfile);
+    this(z3context, new Z3Settings(config));
   }
 
-  private Z3SmtLogger(Z3SmtLogger original) {
-    this.settings = original.settings;
-    this.z3context = original.z3context;
-    initLogfile(settings.basicLogfile);
-  }
+  private Z3SmtLogger(long pZ3context, Z3Settings pSettings) {
+    z3context = pZ3context;
+    settings = pSettings;
 
-  /** returns a new instance with a new logfile. */
-  public Z3SmtLogger cloneWithNewLogfile() {
-    return new Z3SmtLogger(this);
-  }
-
-  private void initLogfile(Path basicLogfile) {
-    if (settings.logAllQueries && basicLogfile != null) {
-      String filename = String.format(basicLogfile.toAbsolutePath().getPath(), settings.logfileCounter++);
+    if (settings.logAllQueries && settings.basicLogfile != null) {
+      String filename = String.format(settings.basicLogfile.toAbsolutePath().getPath(), Z3Settings.logfileCounter++);
       this.logfile = Paths.get(filename);
       log("", false); // create or clean the file
     } else {
       this.logfile = null;
     }
+  }
+
+  /** returns a new instance with a new logfile. */
+  public Z3SmtLogger cloneWithNewLogfile() {
+    return new Z3SmtLogger(z3context, settings);
   }
 
   public void logOption(String option, String value) {
