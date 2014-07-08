@@ -112,6 +112,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.base.Preconditions;
@@ -119,6 +120,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
@@ -304,6 +306,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
           if (!safe) {
             return soundInner;
+          } else if (induction && !kInductionProver.isTrivial()) {
+            ImmutableSet<CFANode> targetLocations = kInductionProver.getCurrentPotentialTargetLocations();
+            if (targetLocations != null) {
+              kInductionProver.setPotentialLoopInvariants(guessLoopInvariants(reachedSet, targetLocations, prover, kInductionProver.getLoop()));
+            }
           }
 
           // second check soundness
@@ -336,6 +343,63 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         ReachedSetUtils.addReachedStatesToOtherReached(reachedSet, pReachedSet);
       }
     }
+  }
+
+  private ImmutableSet<BooleanFormula> guessLoopInvariants(ReachedSet pReachedSet, ImmutableSet<CFANode> pTargetLocations,
+      ProverEnvironment pProver, Loop pLoop) throws CPAException, InterruptedException {
+    final Set<CFAEdge> assumeEdges = new HashSet<>();
+    Set<CFANode> visited = new HashSet<>(pTargetLocations);
+    Queue<CFANode> waitlist = new ArrayDeque<>(pTargetLocations);
+    while (!waitlist.isEmpty()) {
+      CFANode current = waitlist.poll();
+      for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current)) {
+        CFANode predecessor = enteringEdge.getPredecessor();
+        if (enteringEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+          assumeEdges.add(enteringEdge);
+        } else if (visited.add(predecessor)) {
+          waitlist.add(predecessor);
+        }
+      }
+    }
+
+    if (assumeEdges.isEmpty()) {
+      return ImmutableSet.of();
+    }
+
+    Iterable<AbstractState> loopHeadStates = AbstractStates.filterLocations(pReachedSet, pLoop.getLoopHeads());
+
+    BooleanFormula loopHeadStatesFormula = createFormulaFor(loopHeadStates);
+
+    ImmutableSet.Builder<BooleanFormula> candidateInvariants = new ImmutableSet.Builder<>();
+
+    for (CFAEdge assumeEdge : assumeEdges) {
+      PathFormula invariantPathFormula = pmgr.makeFormulaForPath(Collections.singletonList(assumeEdge));
+      BooleanFormula negatedCandidateInvariant = fmgr.uninstantiate(invariantPathFormula.getFormula());
+
+      BooleanFormula invariantInvalidity = bfmgr.and(loopHeadStatesFormula, instantiateForAll(loopHeadStates, negatedCandidateInvariant));
+
+      pProver.push(invariantInvalidity);
+      if (pProver.isUnsat()) {
+        candidateInvariants.add(bfmgr.not(negatedCandidateInvariant));
+      }
+      pProver.pop();
+
+    }
+
+    return candidateInvariants.build();
+  }
+
+  private BooleanFormula instantiateForAll(Iterable<AbstractState> pStates, BooleanFormula pUninstantiatedFormula) {
+    Set<BooleanFormula> instantiatedInvariants = new HashSet<>();
+    BooleanFormula result = bfmgr.makeBoolean(true);
+    for (AbstractState loopHeadState : pStates) {
+      PathFormula loopHeadPathFormula = AbstractStates.extractStateByType(loopHeadState, PredicateAbstractState.class).getPathFormula();
+      BooleanFormula instantiatedInvariant = fmgr.instantiate(pUninstantiatedFormula, pmgr.makeEmptyPathFormula(loopHeadPathFormula).getSsa().withDefault(1));
+      if (instantiatedInvariants.add(instantiatedInvariant)) {
+        result = bfmgr.and(result, instantiatedInvariant);
+      }
+    }
+    return result;
   }
 
   /**
@@ -490,6 +554,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
    *
    * @param pReachedSet the reached set containing the target states.
    * @param prover the prover to be used.
+   * @param pTargetLocations the target locations.
    *
    * @return {@code true} if no target states are reachable, {@code false}
    * otherwise.
@@ -517,6 +582,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       if (safe) {
         pReachedSet.removeAll(targetStates);
       }
+
       return safe;
 
     } else {
@@ -611,13 +677,15 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     private int stackDepth = 0;
 
-    private Set<CFANode> targetLocations = null;
+    private ImmutableSet<CFANode> targetLocations = null;
 
     private boolean targetLocationsChanged = false;
 
     private BooleanFormula previousFormula = null;
 
     private int previousK = -1;
+
+    private ImmutableSet<BooleanFormula> potentialLoopInvariants = ImmutableSet.of();
 
     /**
      * Creates an instance of the KInductionProver.
@@ -671,6 +739,18 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       }
       this.reachedSet = reachedSet;
       this.loop = loop;
+    }
+
+    public void setPotentialLoopInvariants(ImmutableSet<BooleanFormula> pGuessLoopInvariants) {
+      synchronized (this) {
+        this.potentialLoopInvariants = pGuessLoopInvariants;
+      }
+    }
+
+    private ImmutableSet<BooleanFormula> getPotentialLoopInvariants() {
+      synchronized (this) {
+        return this.potentialLoopInvariants;
+      }
     }
 
     /**
@@ -887,6 +967,19 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       return invariant;
     }
 
+    public ImmutableSet<CFANode> getCurrentPotentialTargetLocations() {
+      synchronized (this) {
+        return this.targetLocations;
+      }
+    }
+
+    private void setCurrentPotentialTargetLocations(ImmutableSet<CFANode> pTargetLocations) {
+      synchronized (this) {
+        this.targetLocations = pTargetLocations;
+        this.targetLocationsChanged = true;
+      }
+    }
+
     /**
      * Attempts to perform the inductive check.
      *
@@ -924,7 +1017,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       LoopstackCPA loopstackCPA = CPAs.retrieveCPA(cpa, LoopstackCPA.class);
       int k = loopstackCPA.getMaxLoopIterations();
 
-      final BooleanFormula safePredecessors;
+      BooleanFormula safePredecessors;
       ReachedSet reached = getCurrentReachedSet();
 
       // Create the formula asserting the safety for k consecutive predecessors
@@ -945,23 +1038,28 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         safePredecessors = bfmgr.not(createFormulaFor(predecessorTargetStates));
       }
 
+      Iterable<AbstractState> loopHeadStates = AbstractStates.filterLocations(reached, loop.getLoopHeads());
+      BooleanFormula loopInvariantAssumption = bfmgr.makeBoolean(true);
+      for (BooleanFormula potentialLoopInvariant : getPotentialLoopInvariants()) {
+        loopInvariantAssumption = bfmgr.and(loopInvariantAssumption, instantiateForAll(loopHeadStates, potentialLoopInvariant));
+      }
+
       // Create the formula asserting the faultiness of the successor
       unroll(reached);
       Set<AbstractState> targetStates = from(reached).filter(IS_TARGET_STATE).toSet();
       BooleanFormula unsafeSuccessor = createFormulaFor(from(targetStates));
       this.previousFormula = unsafeSuccessor;
+
+      BooleanFormula loopInvariantContradiction = bfmgr.makeBoolean(false);
+      loopHeadStates = AbstractStates.filterLocations(reached, loop.getLoopHeads());
+      for (BooleanFormula potentialLoopInvariant : getPotentialLoopInvariants()) {
+        loopInvariantContradiction = bfmgr.or(loopInvariantContradiction, bfmgr.not(instantiateForAll(loopHeadStates, potentialLoopInvariant)));
+      }
       this.previousK = k;
 
-      // Create the induction formula:
-      // The program is safe, if the following is unsatisfiable:
-      BooleanFormula induction = bfmgr.and(
-          safePredecessors, // k consecutive iterations are SAFE
-          unsafeSuccessor); // and the k+1st iteration is UNSAFE
-
-      Set<CFANode> newTargetLocations = from(targetStates).transform(AbstractStates.EXTRACT_LOCATION).toSet();
+      ImmutableSet<CFANode> newTargetLocations = from(targetStates).transform(AbstractStates.EXTRACT_LOCATION).toSet();
       if (!newTargetLocations.equals(targetLocations)) {
-        targetLocations = newTargetLocations;
-        targetLocationsChanged = true;
+        setCurrentPotentialTargetLocations(newTargetLocations);
       }
 
       ProverEnvironment prover = getProver();
@@ -971,33 +1069,19 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       logger.log(Level.INFO, "Starting induction check...");
 
       stats.inductionCheck.start();
-      push(induction);
+
+      // First check with candidate loop invariant
+      push(safePredecessors); // k consecutive iterations are SAFE
+      push(loopInvariantAssumption); // loop invariant holds for predecessors
+      push(bfmgr.or(unsafeSuccessor, loopInvariantContradiction)); // combined contradiction to successor safety or loop invariant
       boolean sound = prover.isUnsat();
 
-      if (!sound) {/*
-        final List<Pair<ARGState, CounterexampleInfo>> counterexampleStorage = new ArrayList<>(1);
-        addCounterexampleTo(reached, prover, new CounterexampleStorage() {
-
-          @Override
-          public void addCounterexample(ARGState pTargetState, CounterexampleInfo pCounterexample) {
-            counterexampleStorage.add(Pair.of(pTargetState, pCounterexample));
-          }
-        });
-        if (!counterexampleStorage.isEmpty()) {
-          if (invariantGenerator instanceof CPAInvariantGenerator) {
-            Set<String> variables = new LinkedHashSet<>();
-            List<CFAEdge> edgeList = counterexampleStorage.get(0).getSecond().getTargetPath().asEdgesList();
-            ListIterator<CFAEdge> edgeIterator = edgeList.listIterator(edgeList.size());
-            while (edgeIterator.hasPrevious()) {
-              variables.addAll(InvariantsTransferRelation.getInvolvedVariables(edgeIterator.previous()).keySet());
-            }
-            ConfigurableProgramAnalysis invGenCpas = ((CPAInvariantGenerator) invariantGenerator).getInvariantsCPA();
-            InvariantsCPA invGenCPA = CPAs.retrieveCPA(invGenCpas, InvariantsCPA.class);
-            if (invGenCPA != null) {
-              //invGenCPA.addInterestingVariables(variables);
-            }
-          }
-        }*/
+      // If first check failed, check without the candidate loop invariant
+      if (!sound) {
+        pop(); // pop combined contradiction
+        pop(); // pop loop invariant assumption for predecessors
+        push(unsafeSuccessor); // push plain contradiction to successor safety
+        sound = prover.isUnsat();
       }
 
       if (!sound && logger.wouldBeLogged(Level.ALL)) {
