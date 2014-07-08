@@ -31,7 +31,8 @@
   </sourcefiles>
 
   <!-- Global options for all run definitions. -->
-  <!-- Set the Java heap size to some value lower than the memlimit. -->
+  <!-- Set the Java heap size to some value lower than the memlimit.
+       Note that Java does not use SI units, but IEC units (factor 1024). -->
   <option name="-heap">7000M</option>
 
   <!-- Set the time limit equal to the above value. -->

@@ -47,7 +47,7 @@ CPUACCT = 'cpuacct'
 CPUSET = 'cpuset'
 MEMORY = 'memory'
 
-_BYTE_FACTOR = 1024 # byte in kilobyte
+_BYTE_FACTOR = 1000 # byte in kilobyte
 _WALLTIME_LIMIT_OVERHEAD = 30 # seconds
 
 
@@ -424,7 +424,7 @@ def reduceFileSize(outputFileName, output, maxLogfileSize=-1):
     """
     if maxLogfileSize == -1: return output # disabled, nothing to do
 
-    rest = maxLogfileSize * 1000 * 1000 # as MB, we assume: #char == #byte
+    rest = maxLogfileSize * _BYTE_FACTOR * _BYTE_FACTOR # as MB, we assume: #char == #byte
 
     if sum(len(line) for line in output) < rest: return output # too small, nothing to do
 
