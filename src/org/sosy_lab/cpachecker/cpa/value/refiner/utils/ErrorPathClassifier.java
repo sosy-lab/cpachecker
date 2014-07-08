@@ -59,7 +59,7 @@ public class ErrorPathClassifier {
 
   public ARGPath obtainPrefixWithLowestScore(List<ARGPath> pPrefixes) {
 
-    if(!classification.isPresent()) {
+    if (!classification.isPresent()) {
       return concatPrefixes(pPrefixes);
     }
 
@@ -67,7 +67,7 @@ public class ErrorPathClassifier {
     Long bestScore            = null;
     int bestIndex             = 0;
 
-    for(ARGPath currentPrefix : pPrefixes) {
+    for (ARGPath currentPrefix : pPrefixes) {
       assert(currentPrefix.getLast().getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
 
       currentErrorPath.addAll(currentPrefix);
@@ -78,7 +78,7 @@ public class ErrorPathClassifier {
 
       // score <= bestScore chooses the last, based on iteration order, that has the best or equal-to-best score
       // maybe a real tie-breaker rule would be better, e.g. total number of variables, number of references, etc.
-      if(bestScore == null || isBestScore(score, bestScore, currentErrorPath)) {
+      if (bestScore == null || isBestScore(score, bestScore, currentErrorPath)) {
         bestScore = score;
         bestIndex = pPrefixes.indexOf(currentPrefix);
       }
@@ -101,7 +101,7 @@ public class ErrorPathClassifier {
    * @return true, if the current score is a new optimum, else false
    */
   private boolean isBestScore(Long currentScore, Long currentBestScore, ARGPath currentErrorPath) {
-    if(currentErrorPath.size() < MAX_LENGTH) {
+    if (currentErrorPath.size() < MAX_LENGTH) {
       return currentScore <= currentBestScore;
     }
 
@@ -116,21 +116,21 @@ public class ErrorPathClassifier {
 
   private Long obtainScoreForVariables(Set<String> useDefinitionInformation) {
     Long score = 1L;
-    for(String variableName : useDefinitionInformation) {
+    for (String variableName : useDefinitionInformation) {
       int factor = UNKNOWN_VAR;
 
-      if(classification.get().getIntBoolVars().contains(variableName)) {
+      if (classification.get().getIntBoolVars().contains(variableName)) {
         factor = BOOLEAN_VAR;
       }
 
-      else if(classification.get().getIntEqualVars().contains(variableName)) {
+      else if (classification.get().getIntEqualVars().contains(variableName)) {
         factor = INTEQUAL_VAR;
       }
 
       score = score * factor;
 
       if (classification.get().getLoopIncDecVariables().contains(variableName)) {
-        return Long.MAX_VALUE;
+        score = score + Integer.MAX_VALUE;
       }
     }
 
@@ -148,10 +148,10 @@ public class ErrorPathClassifier {
    */
   private ARGPath buildPath(int bestIndex, List<ARGPath> pPrefixes) {
     ARGPath errorPath = new ARGPath();
-    for(int j = 0; j <= bestIndex; j++) {
+    for (int j = 0; j <= bestIndex; j++) {
       errorPath.addAll(pPrefixes.get(j));
 
-      if(j != bestIndex) {
+      if (j != bestIndex) {
         replaceAssumeEdgeWithBlankEdge(errorPath);
       }
     }
@@ -187,7 +187,7 @@ public class ErrorPathClassifier {
 
   private ARGPath concatPrefixes(List<ARGPath> pPrefixes) {
     ARGPath errorPath = new ARGPath();
-    for(ARGPath currentPrefix : pPrefixes) {
+    for (ARGPath currentPrefix : pPrefixes) {
       errorPath.addAll(currentPrefix);
     }
 
