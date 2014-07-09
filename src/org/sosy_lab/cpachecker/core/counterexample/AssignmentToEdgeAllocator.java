@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -457,7 +458,7 @@ public class AssignmentToEdgeAllocator {
   }
 
   //TODO Move to Utility?
-  private FieldReference getFieldReferenceVariableName(CFieldReference pIastFieldReference,
+  private FieldReference getFieldReference(CFieldReference pIastFieldReference,
       String pFunctionName) {
 
     List<String> fieldNameList = new ArrayList<>();
@@ -576,7 +577,7 @@ public class AssignmentToEdgeAllocator {
 
       /* Fieldreferences are sometimes represented as variables,
          e.g a.b.c in main is main::a$b$c */
-      FieldReference fieldReference = getFieldReferenceVariableName(pIastFieldReference, functionName);
+      FieldReference fieldReference = getFieldReference(pIastFieldReference, functionName);
 
       if (fieldReference != null &&
           modelAtEdge.hasValueForLeftHandSide(fieldReference)) {
@@ -710,7 +711,7 @@ public class AssignmentToEdgeAllocator {
     }
 
     private Object lookupVariable(CSimpleDeclaration pVarDcl) {
-      IDExpression varName = getName(pVarDcl);
+      IDExpression varName = getIDExpression(pVarDcl);
 
       if (modelAtEdge.hasValueForLeftHandSide(varName)) {
         return modelAtEdge.getVariableValue(varName);
@@ -719,16 +720,13 @@ public class AssignmentToEdgeAllocator {
       }
     }
 
-    //TODO Change Name and Model, can be more than Variable
     //TODO Move to util
-    private IDExpression getName(CSimpleDeclaration pDcl) {
+    private IDExpression getIDExpression(CSimpleDeclaration pDcl) {
 
+      //TODO use original name?
       String name = pDcl.getName();
 
-      if (pDcl instanceof CParameterDeclaration ||
-          (pDcl instanceof CVariableDeclaration
-          && !((CVariableDeclaration) pDcl).isGlobal())) {
-
+      if (pDcl instanceof CDeclaration && ((CDeclaration) pDcl).isGlobal()) {
         return new IDExpression(name, functionName);
       } else {
         return new IDExpression(name);
@@ -788,7 +786,7 @@ public class AssignmentToEdgeAllocator {
 
       public Address getAddress(CSimpleDeclaration dcl) {
 
-        IDExpression name = getName(dcl);
+        IDExpression name = getIDExpression(dcl);
 
         if (modelAtEdge.hasAddressOfVaribable(name)) {
           return modelAtEdge.getVariableAddress(name);
@@ -877,7 +875,7 @@ public class AssignmentToEdgeAllocator {
       private Address lookupReferenceAddress(CFieldReference pIastFieldReference) {
         /* Fieldreferences are sometimes represented as variables,
         e.g a.b.c in main is main::a$b$c */
-        FieldReference fieldReferenceName = getFieldReferenceVariableName(pIastFieldReference, functionName);
+        FieldReference fieldReferenceName = getFieldReference(pIastFieldReference, functionName);
 
         if (fieldReferenceName != null) {
           if (modelAtEdge.hasAddressOfVaribable(fieldReferenceName)) {
@@ -1597,7 +1595,7 @@ public class AssignmentToEdgeAllocator {
         CFieldReference reference =
             new CFieldReference(prevSub.getFileLocation(), pMemberType, pFieldName, prevSub, false);
 
-        FieldReference fieldReferenceName = getFieldReferenceVariableName(reference, functionName);
+        FieldReference fieldReferenceName = getFieldReference(reference, functionName);
 
         if (modelAtEdge.hasValueForLeftHandSide(fieldReferenceName)) {
           Object referenceValue = modelAtEdge.getVariableValue(fieldReferenceName);
