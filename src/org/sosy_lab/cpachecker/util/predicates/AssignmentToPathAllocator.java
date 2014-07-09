@@ -387,9 +387,9 @@ public class AssignmentToPathAllocator {
   }
 
   private void removeHeapValue(Map<String, Map<Address, Object>> memory, Assignment pFunctionAssignment) {
-    Function function = (Function) pFunctionAssignment.getTerm(); //TODO Assumption
+    Function function = (Function) pFunctionAssignment.getTerm();
     String heapName = getName(function);
-    Map<Address, Object> heap = memory.get(heapName); //TODO Assumption
+    Map<Address, Object> heap = memory.get(heapName);
 
     if (function.getArity() == 1) {
       Address address = Address.valueOf(function.getArgument(FIRST));
@@ -400,7 +400,7 @@ public class AssignmentToPathAllocator {
   }
 
   private void addHeapValue(Map<String, Map<Address, Object>> memory, Assignment pFunctionAssignment) {
-    Function function = (Function) pFunctionAssignment.getTerm(); //TODO Assumption
+    Function function = (Function) pFunctionAssignment.getTerm();
     String heapName = getName(function);
     Map<Address, Object> heap;
 
