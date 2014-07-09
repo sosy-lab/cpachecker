@@ -1442,12 +1442,13 @@ public class AssignmentToEdgeAllocator {
 
         CPointerExpression pointerExp = new CPointerExpression(subExpression.getFileLocation(), expectedType, subExpression);
 
+        if(isStructOrUnionType(expectedType)) {
+          handleFieldPointerDereference(expectedType, pointerExp);
+        }
+
         Object value = modelAtEdge.getValueFromMemory(pointerExp, address);
 
         if (value == null) {
-          if(isStructOrUnionType(expectedType)) {
-            handleFieldPointerDereference(expectedType, pointerExp);
-          }
           return null;
         }
 
