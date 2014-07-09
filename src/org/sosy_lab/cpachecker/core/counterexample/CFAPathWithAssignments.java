@@ -168,7 +168,7 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
     return result;
   }
 
-  public static CFAPathWithAssignments valueOf(ConcreteStatePath statePath,
+  public static CFAPathWithAssignments of(ConcreteStatePath statePath,
       LogManager pLogger, MachineModel pMachineModel) {
 
     List<CFAEdgeWithAssignments> result = new ArrayList<>(statePath.size());
@@ -189,6 +189,7 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
     return new CFAPathWithAssignments(result);
   }
 
+  @Deprecated
   public static CFAPathWithAssignments valueOf(ConcreteStatePath statePath,
       LogManager pLogger, MachineModel pMachineModel,
       Multimap<CFAEdge, AssignableTerm> usedAssignableTerms) {
@@ -257,6 +258,7 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
     return pathWithAssignments.iterator();
   }
 
+  @Deprecated
   public Collection<AssignableTerm> getAllAssignedTerms(CFAEdge pEdge) {
     return allAssignableTerms.get(pEdge);
   }

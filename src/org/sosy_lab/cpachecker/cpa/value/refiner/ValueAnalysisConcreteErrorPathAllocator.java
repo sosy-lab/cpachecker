@@ -90,7 +90,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     }
 
     CFAPathWithAssignments pathWithAssignments =
-        CFAPathWithAssignments.valueOf(concreteStatePath, logger, pMachineModel);
+        CFAPathWithAssignments.of(concreteStatePath, logger, pMachineModel);
 
     Model model = Model.empty();
 
