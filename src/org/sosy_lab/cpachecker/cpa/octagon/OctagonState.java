@@ -114,7 +114,7 @@ public class OctagonState implements AbstractState {
   // the OADL compiled with floats is only able to handle smaller / greater equals constraints,
   // thus we create a delta value in order to simulate a smaller / greater equal by adding / substracting
   // the value from the constant
-  private final OctagonDoubleValue ASSUMPTION_DELTA = new OctagonDoubleValue(Double.MIN_NORMAL);
+  private final OctagonDoubleValue ASSUMPTION_DELTA = new OctagonDoubleValue(0.000000000000001);
 
   // mapping from variable name to its identifier
   private BiMap<String, Integer> variableToIndexMap;

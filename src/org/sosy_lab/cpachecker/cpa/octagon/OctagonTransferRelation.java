@@ -1440,7 +1440,9 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
             returnCoefficients.add(Pair.of((IOctagonCoefficients)OctagonSimpleCoefficients.getBoolFALSECoeffs(smaller.sizeOfVariables(), smaller), smaller));
           } else {
             OctagonState greater = state.addGreaterConstraint(varName, constraintCoeffs);
+            if (!greater.isEmpty()) {
             returnCoefficients.add(Pair.of((IOctagonCoefficients)OctagonSimpleCoefficients.getBoolFALSECoeffs(greater.sizeOfVariables(), greater), greater));
+            }
           }
         }
         break;
