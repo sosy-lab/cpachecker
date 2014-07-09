@@ -94,13 +94,18 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
           mapBuilder.put(varIdent, combined);
         }
       }
+    }
 
-      if(stateBeforeEnteredFunction!=pToJoin.stateBeforeEnteredFunction){
-        System.out.println("test");
-      }
-    }// TODO correctly deal with stateBeforeEnteredFunction
     ImmutableMap<String, SIGN> newMap = mapBuilder.build();
-    return newMap.size()>0?new SignState(new SignMap(newMap), stateBeforeEnteredFunction):result;
+
+    if (stateBeforeEnteredFunction.isPresent()) {
+      SignState newStateBefore;
+      newStateBefore = stateBeforeEnteredFunction.get().union(pToJoin.stateBeforeEnteredFunction.get());
+      return newMap.size() > 0 && newStateBefore != SignState.TOP ? new SignState(new SignMap(newMap),
+          Optional.of(newStateBefore)) : result;
+    } else {
+      return newMap.size() > 0 ? new SignState(new SignMap(newMap), stateBeforeEnteredFunction) : result;
+    }
   }
 
   public boolean isSubsetOf(SignState pSuperset) {
