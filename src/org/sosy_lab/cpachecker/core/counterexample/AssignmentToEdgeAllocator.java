@@ -1322,6 +1322,14 @@ public class AssignmentToEdgeAllocator {
             new CFieldReference(subExp.getFileLocation(),
                 expectedType, pType.getName(), subExp, isPointerDeref);
 
+        // Arrays and structs are represented as addresses
+        if(expectedType instanceof CArrayType || isStructOrUnionType(expectedType)) {
+          ValueLiteralVisitor v =
+              new ValueLiteralVisitor(fieldAddress, valueLiterals, fieldReference, visited);
+          expectedType.accept(v);
+          return;
+        }
+
         Object fieldValue = modelAtEdge.getValueFromMemory(fieldReference, fieldAddress);
 
         if(fieldValue == null) {
@@ -1388,6 +1396,16 @@ public class AssignmentToEdgeAllocator {
         CArraySubscriptExpression arraySubscript =
             new CArraySubscriptExpression(subExpression.getFileLocation(), pExpectedType, subExpression, litExp);
 
+        int arraySize = machineModel.getSizeof(pArrayType);
+
+        if (isStructOrUnionType(pExpectedType) || pExpectedType instanceof CArrayType) {
+          // Arrays and structs are represented as addresses
+
+          ValueLiteralVisitor v = new ValueLiteralVisitor(address, valueLiterals, arraySubscript, visited);
+          pExpectedType.accept(v);
+          return subscriptOffset < arraySize;
+        }
+
         Object value = modelAtEdge.getValueFromMemory(arraySubscript, address);
 
         if (value == null) {
@@ -1405,8 +1423,6 @@ public class AssignmentToEdgeAllocator {
         }
 
         boolean contin = false;
-
-        int arraySize = machineModel.getSizeof(pArrayType);
 
         if (!valueLiteral.isUnknown() && subscriptOffset < arraySize) {
 
@@ -1442,8 +1458,12 @@ public class AssignmentToEdgeAllocator {
 
         CPointerExpression pointerExp = new CPointerExpression(subExpression.getFileLocation(), expectedType, subExpression);
 
-        if(isStructOrUnionType(expectedType)) {
-          handleFieldPointerDereference(expectedType, pointerExp);
+        if(isStructOrUnionType(expectedType) || expectedType instanceof CArrayType) {
+          // Arrays and structs are represented as addresses
+
+          ValueLiteralVisitor v = new ValueLiteralVisitor(address, valueLiterals, pointerExp, visited);
+          expectedType.accept(v);
+          return null;
         }
 
         Object value = modelAtEdge.getValueFromMemory(pointerExp, address);
@@ -1487,13 +1507,6 @@ public class AssignmentToEdgeAllocator {
         }
 
         return null;
-      }
-
-      private void handleFieldPointerDereference(CType pExpectedType, CExpression pointerExpression) {
-        /* a->b <=> *(a).b */
-
-        ValueLiteralVisitor v = new ValueLiteralVisitor(address, valueLiterals, pointerExpression, visited);
-        pExpectedType.accept(v);
       }
     }
 
