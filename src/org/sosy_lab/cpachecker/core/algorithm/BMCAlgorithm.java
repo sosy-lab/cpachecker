@@ -30,6 +30,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.io.PrintStream;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -284,6 +285,20 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
         do {
           shutdownNotifier.shutdownIfNecessary();
+
+          ImmutableSet<CFANode> targetLocations = null;
+          if (induction) {
+             targetLocations = kInductionProver.getCurrentPotentialTargetLocations();
+            if (targetLocations != null && targetLocations.isEmpty()) {
+              logger.log(Level.INFO, "Invariant generation found no target states.");
+              invariantGenerator.cancel();
+              for (AbstractState waitlistState : new ArrayList<>(pReachedSet.getWaitlist())) {
+                pReachedSet.removeOnlyFromWaitlist(waitlistState);
+              }
+              return true;
+            }
+          }
+
           soundInner = unroll(reachedSet);
           if (from(reachedSet)
               .skip(1) // first state of reached is always an abstraction state, so skip it
@@ -307,7 +322,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           if (!safe) {
             return soundInner;
           } else if (induction && !kInductionProver.isTrivial()) {
-            ImmutableSet<CFANode> targetLocations = kInductionProver.getCurrentPotentialTargetLocations();
             if (targetLocations == null) {
               targetLocations = ImmutableSet.of();
             }
