@@ -248,10 +248,10 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     boolean determineTargetLocations = options.analyzeTargetPathsOnly || options.interestingVariableLimit != 0;
     if (determineTargetLocations) {
       targetLocations = tryGetTargetLocations(pNode);
+      determineTargetLocations = targetLocations != null;
       if (targetLocations == null) {
         targetLocations = ImmutableSet.of();
       }
-      determineTargetLocations = targetLocations == null;
     }
     if (shutdownNotifier.shouldShutdown()) {
       return new InvariantsState(new AcceptAllVariableSelection<CompoundInterval>(), machineModel, options.edgeBasedAbstractionStrategyFactory.getAbstractionStrategy());
