@@ -202,7 +202,8 @@ public class AssignmentToEdgeAllocator {
   private List<IAssignment> createAssignmentsAtEdge(CFAEdge pCFAEdge) {
 
     if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
-      return handleDeclaration(((ADeclarationEdge) pCFAEdge).getDeclaration());
+      return handleDeclaration(((ADeclarationEdge) pCFAEdge).getDeclaration(),
+          cfaEdge.getPredecessor().getFunctionName());
     } else if (cfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
       return handleStatement(((AStatementEdge) pCFAEdge).getStatement());
     } else if (cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
@@ -311,7 +312,7 @@ public class AssignmentToEdgeAllocator {
     List<IAssignment> assignments = new ArrayList<>();
 
     for(CParameterDeclaration dcl : dcls) {
-      assignments.addAll(handleDeclaration(dcl));
+      assignments.addAll(handleDeclaration(dcl, pFunctionCallEdge.getSuccessor().getFunctionName()));
     }
 
     return assignments;
@@ -384,15 +385,13 @@ public class AssignmentToEdgeAllocator {
     return Collections.emptyList();
   }
 
-  private List<IAssignment> handleDeclaration(IASimpleDeclaration dcl) {
+  private List<IAssignment> handleDeclaration(IASimpleDeclaration dcl, String pFunctionName) {
 
     if (dcl instanceof CSimpleDeclaration) {
 
       CSimpleDeclaration cDcl = (CSimpleDeclaration) dcl;
 
-      String functionName = cfaEdge.getPredecessor().getFunctionName();
-
-      Object value = getValueObject(cDcl, functionName);
+      Object value = getValueObject(cDcl, pFunctionName);
 
       if (value == null) {
         return Collections.emptyList();
@@ -401,7 +400,7 @@ public class AssignmentToEdgeAllocator {
       CIdExpression idExpression = new CIdExpression(dcl.getFileLocation(), cDcl);
 
       Type dclType = cDcl.getType();
-      ValueLiterals valueAsCode =  getValueAsCode(value, dclType, idExpression, functionName);
+      ValueLiterals valueAsCode =  getValueAsCode(value, dclType, idExpression, pFunctionName);
 
       CIdExpression idExp = new CIdExpression(FileLocation.DUMMY, cDcl);
 
