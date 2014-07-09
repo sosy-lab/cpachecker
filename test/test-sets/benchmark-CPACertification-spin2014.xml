@@ -9,7 +9,7 @@
      rundefinition of that analysis.
      The time limit used for evaluation was 5 minutes.
 -->    
-<benchmark tool="cpachecker" timelimit="300" memlimit="3000">
+<benchmark tool="cpachecker" timelimit="300" memlimit="3150">
 <option name="-heap">2500M</option>
 <option name="-noout"/>
 <option name="-disable-java-assertions"/>

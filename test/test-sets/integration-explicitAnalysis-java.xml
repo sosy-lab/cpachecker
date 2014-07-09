@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="10" hardtimelimit="30" memlimit="250" cpuCores="2">
+<benchmark tool="cpachecker" timelimit="10" hardtimelimit="30">
 
   <option name="-noout"/>
   <option name="-heap">150M</option>
@@ -13,64 +13,64 @@
     <requiredfiles>../programs/java/CallTests</requiredfiles>
     <option name="-cp">test/programs/java/CallTests</option>
     <withoutfile>pack1.BooleanOperators</withoutfile>
-    <withoutfile>pack1.CreateObjects</withoutfile>
+    <withoutfile>pack1.CreateObjects_true_assert</withoutfile>
     <withoutfile>pack1.Arrays1</withoutfile>
-    <withoutfile>pack1.DynamicBindingCall</withoutfile>
-    <withoutfile>pack1.FunctionCall</withoutfile>
-    <withoutfile>pack3.SimplestRTTTest</withoutfile>
-    <withoutfile>pack3.RTTBaExample1</withoutfile>
-    <withoutfile>pack3.RTTTest1</withoutfile>
-    <withoutfile>pack5.switchTest</withoutfile>
-    <withoutfile>pack5.CallTests</withoutfile>
+    <withoutfile>pack1.DynamicBindingCall_true_assert</withoutfile>
+    <withoutfile>pack1.FunctionCall_true_assert</withoutfile>
+    <withoutfile>pack3.SimplestRTTTest_true_assert</withoutfile>
+    <withoutfile>pack3.RTTBaExample1_true_assert</withoutfile>
+    <withoutfile>pack3.RTTTest1_true_assert</withoutfile>
+    <withoutfile>pack5.SwitchTest_true_assert</withoutfile>
+    <withoutfile>pack5.CallTests_true_assert</withoutfile>
   </sourcefiles>
 
   <sourcefiles>
     <requiredfiles>../programs/java/Misc</requiredfiles>
     <option name="-cp">test/programs/java/Misc</option>
-    <withoutfile>pack4.CastTest</withoutfile>
-    <withoutfile>pack4.class1</withoutfile>
-    <withoutfile>pack4.class2</withoutfile>
-    <withoutfile>pack4.SubType1</withoutfile>
-    <withoutfile>pack4.testContin</withoutfile>
+    <withoutfile>pack4.CastTest_true_assert</withoutfile>
+    <withoutfile>pack4.Class1_true_assert</withoutfile>
+    <withoutfile>pack4.Class2_true_assert</withoutfile>
+    <withoutfile>pack4.SubType1_true_assert</withoutfile>
+    <withoutfile>pack4.TestContin_true_assert</withoutfile>
   </sourcefiles>
 
   <sourcefiles>
     <requiredfiles>../programs/java/Statements</requiredfiles>
     <option name="-cp">test/programs/java/Statements</option>
-    <withoutfile>Assert1</withoutfile>
-    <withoutfile>Assert2</withoutfile>
-    <withoutfile>BigDouble</withoutfile>
-    <withoutfile>Casts</withoutfile>
-    <withoutfile>CastMixedExpression</withoutfile>
-    <withoutfile>ConditionalExpression1</withoutfile>
-    <withoutfile>FunctionCall2</withoutfile>
-    <withoutfile>FunctionCall3</withoutfile>
-    <withoutfile>FunctionCall4</withoutfile>
-    <withoutfile>FunctionCall5</withoutfile>
-    <withoutfile>FunctionCall</withoutfile>
-    <withoutfile>IfStatement2</withoutfile>
-    <withoutfile>IfStatement3</withoutfile>
-    <withoutfile>IfStatement4</withoutfile>
-    <withoutfile>IfStatement5</withoutfile>
-    <withoutfile>IfStatement</withoutfile>
-    <withoutfile>Label2</withoutfile>
-    <withoutfile>Label</withoutfile>
-    <withoutfile>Loop3</withoutfile>
-    <withoutfile>Loop4</withoutfile>
-    <withoutfile>Loop5</withoutfile>
-    <withoutfile>Loop6</withoutfile>
-    <withoutfile>Loop7</withoutfile>
-    <withoutfile>Loop8</withoutfile>
-    <withoutfile>RTTBA1</withoutfile>
+    <withoutfile>Assert1_true_assert</withoutfile>
+    <withoutfile>Assert2_true_assert</withoutfile>
+    <withoutfile>BigDouble_true_assert</withoutfile>
+    <withoutfile>CastMixedExpression_true_assert</withoutfile>
+    <withoutfile>Casts_true_assert</withoutfile>
+    <withoutfile>CompareObjectReferences_true_assert</withoutfile>
+    <withoutfile>ConditionalExpression1_true_assert</withoutfile>
+    <withoutfile>FunctionCall2_false_assert</withoutfile>
+    <withoutfile>FunctionCall3_true_assert</withoutfile>
+    <withoutfile>FunctionCall4_true_assert</withoutfile>
+    <withoutfile>FunctionCall5_true_assert</withoutfile>
+    <withoutfile>FunctionCall_true_assert</withoutfile>
+    <withoutfile>IfStatement2_true_assert</withoutfile>
+    <withoutfile>IfStatement3_true_assert</withoutfile>
+    <withoutfile>IfStatement4_true_assert</withoutfile>
+    <withoutfile>IfStatement5_true_assert</withoutfile>
+    <withoutfile>IfStatement_true_assert</withoutfile>
+    <withoutfile>Label2_true_assert</withoutfile>
+    <withoutfile>Label_true_assert</withoutfile>
+    <withoutfile>Loop3_true_assert</withoutfile>
+    <withoutfile>Loop4_false_assert</withoutfile>
+    <withoutfile>Loop5_true_assert</withoutfile>
+    <withoutfile>Loop6_true_assert</withoutfile>
+    <withoutfile>Loop7_true_assert</withoutfile>
+    <withoutfile>Loop8_true_assert</withoutfile>
     <withoutfile>Readable</withoutfile>
     <withoutfile>SuperClass</withoutfile>
-    <withoutfile>Switch2</withoutfile>
-    <withoutfile>Switch</withoutfile>
+    <withoutfile>Switch2_false_assert</withoutfile>
+    <withoutfile>Switch_true_assert</withoutfile>
     <withoutfile>SyntaxError</withoutfile>
-    <withoutfile>Type</withoutfile>
-    <withoutfile>WhileLoop2</withoutfile>
-    <withoutfile>Whileloop1</withoutfile>
-    <withoutfile>pack.AssertCondition</withoutfile>
+    <withoutfile>Type_true_assert</withoutfile>
+    <withoutfile>WhileLoop1_true_assert</withoutfile>
+    <withoutfile>WhileLoop2_true_assert</withoutfile>
+    <withoutfile>pack.AssertCondition_true_assert</withoutfile>
     <withoutfile>pack.Const</withoutfile>
     <withoutfile>pack.Declaration</withoutfile>
     <withoutfile>pack.DoWhileAnweisung</withoutfile>
@@ -78,15 +78,12 @@
     <withoutfile>pack.Expression</withoutfile>
     <withoutfile>pack.IFE</withoutfile>
     <withoutfile>pack.IfAnweisung</withoutfile>
-    <withoutfile>pack.IfStatement2</withoutfile>
+    <withoutfile>pack.IfStatement2_true_assert</withoutfile>
     <withoutfile>pack.LabeledAnweisung</withoutfile>
     <withoutfile>pack.MethodCall</withoutfile>
-    <withoutfile>pack.RTTBA1</withoutfile>
-    <withoutfile>pack.SimpleExample</withoutfile>
+    <withoutfile>pack.SimpleExample_false_assert</withoutfile>
     <withoutfile>pack.SubType</withoutfile>
     <withoutfile>pack.SwitchAnweisung</withoutfile>
-    <withoutfile>pack.Type1</withoutfile>
-    <withoutfile>pack.Type</withoutfile>
     <withoutfile>pack.WhileAnweisung</withoutfile>
     <withoutfile>pack.forAnweisung</withoutfile>
   </sourcefiles>
