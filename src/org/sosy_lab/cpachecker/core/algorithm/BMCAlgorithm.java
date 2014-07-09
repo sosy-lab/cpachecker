@@ -1076,18 +1076,20 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       push(bfmgr.or(unsafeSuccessor, loopInvariantContradiction)); // combined contradiction to successor safety or loop invariant
       boolean sound = prover.isUnsat();
 
+      pop(); // pop combined contradiction
+      pop(); // pop loop invariant assertion for predecessors
+
       // If first check failed, check without the candidate loop invariant
       if (!sound) {
-        pop(); // pop combined contradiction
-        pop(); // pop loop invariant assumption for predecessors
         push(unsafeSuccessor); // push plain contradiction to successor safety
         sound = prover.isUnsat();
+        if (!sound && logger.wouldBeLogged(Level.ALL)) {
+          logger.log(Level.ALL, "Model returned for induction check:", prover.getModel());
+        }
+        pop(); // pop plain contradiction to successor safety ("unsafe successor")
       }
+      pop(); // pop assertion of safe predecessors
 
-      if (!sound && logger.wouldBeLogged(Level.ALL)) {
-        logger.log(Level.ALL, "Model returned for induction check:", prover.getModel());
-      }
-      pop();
       stats.inductionCheck.stop();
 
       logger.log(Level.FINER, "Soundness after induction check:", sound);
