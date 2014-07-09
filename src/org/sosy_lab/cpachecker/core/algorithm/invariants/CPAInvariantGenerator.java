@@ -99,6 +99,10 @@ public class CPAInvariantGenerator implements InvariantGenerator {
 
   private Future<UnmodifiableReachedSet> invariantGenerationFuture = null;
 
+  public ConfigurableProgramAnalysis getCPAs() {
+    return invariantCPAs;
+  }
+
   public CPAInvariantGenerator(Configuration config, LogManager pLogger,
       ReachedSetFactory reachedSetFactory, ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException, CPAException {
     config.inject(this);

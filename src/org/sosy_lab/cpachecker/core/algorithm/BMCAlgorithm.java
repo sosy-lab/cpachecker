@@ -308,9 +308,10 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
             return soundInner;
           } else if (induction && !kInductionProver.isTrivial()) {
             ImmutableSet<CFANode> targetLocations = kInductionProver.getCurrentPotentialTargetLocations();
-            if (targetLocations != null) {
-              kInductionProver.setPotentialLoopInvariants(guessLoopInvariants(reachedSet, targetLocations, prover, kInductionProver.getLoop()));
+            if (targetLocations == null) {
+              targetLocations = ImmutableSet.of();
             }
+            kInductionProver.setPotentialLoopInvariants(guessLoopInvariants(reachedSet, targetLocations, prover, kInductionProver.getLoop()));
           }
 
           // second check soundness
@@ -347,9 +348,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   private ImmutableSet<BooleanFormula> guessLoopInvariants(ReachedSet pReachedSet, ImmutableSet<CFANode> pTargetLocations,
       ProverEnvironment pProver, Loop pLoop) throws CPAException, InterruptedException {
+    FluentIterable<AbstractState> targetStates = from(pReachedSet).filter(IS_TARGET_STATE);
     final Set<CFAEdge> assumeEdges = new HashSet<>();
-    Set<CFANode> visited = new HashSet<>(pTargetLocations);
-    Queue<CFANode> waitlist = new ArrayDeque<>(pTargetLocations);
+    Set<CFANode> targetLocations = from(Iterables.concat(pTargetLocations, targetStates.transform(EXTRACT_LOCATION))).toSet();
+    Set<CFANode> visited = new HashSet<>(targetLocations);
+    Queue<CFANode> waitlist = new ArrayDeque<>(targetLocations);
     while (!waitlist.isEmpty()) {
       CFANode current = waitlist.poll();
       for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current)) {
@@ -381,6 +384,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       pProver.push(invariantInvalidity);
       if (pProver.isUnsat()) {
         candidateInvariants.add(bfmgr.not(negatedCandidateInvariant));
+      } else {
+        System.out.println(pProver.getModel());
       }
       pProver.pop();
 
@@ -728,10 +733,17 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
             trivialResult = null;
             reachedSet = reachedSetFactory.create();
             CFANode loopHead = Iterables.getOnlyElement(loop.getLoopHeads());
-            Precision precision = cpa.getInitialPrecision(loopHead);
-            if (trivialResult == null) {
-              precision = excludeIgnorableEdges(precision);
+
+            if (invariantGenerator instanceof CPAInvariantGenerator) {
+              CPAInvariantGenerator invariantGenerator = (CPAInvariantGenerator) BMCAlgorithm.this.invariantGenerator;
+              InvariantsCPA invariantsCPA = CPAs.retrieveCPA(invariantGenerator.getCPAs(), InvariantsCPA.class);
+              if (invariantsCPA != null) {
+                targetLocations = invariantsCPA.tryGetTargetLocations(loopHead);
+              }
             }
+
+            Precision precision = cpa.getInitialPrecision(loopHead);
+            precision = excludeIgnorableEdges(precision);
             reachedSet.add(cpa.getInitialState(loopHead), precision);
           }
           stats.inductionPreparation.stop();
@@ -1085,8 +1097,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       pop(); // pop combined contradiction
       pop(); // pop loop invariant assertion for predecessors
 
-      // If first check failed, check without the candidate loop invariant
-      if (!sound) {
+      // If first check failed and a candidate loop invariant was tried out, check without the candidate loop invariant
+      if (!sound && !potentialLoopInvariants.isEmpty()) {
         push(unsafeSuccessor); // push plain contradiction to successor safety
         sound = prover.isUnsat();
         if (!sound && logger.wouldBeLogged(Level.ALL)) {
