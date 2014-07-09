@@ -1348,10 +1348,22 @@ public class AssignmentToEdgeAllocator {
 
         assert isStructOrUnionType(subExpression.getExpressionType().getCanonicalType());
 
-        //TODO resolve correct pointer dereference
+        CExpression subExp;
+        boolean isPointerDeref;
+
+        if (subExpression instanceof CPointerExpression) {
+          // *a.b <=> a->b
+          subExp = ((CPointerExpression) subExpression).getOperand();
+          isPointerDeref = true;
+        } else {
+          subExp = subExpression;
+          isPointerDeref = false;
+        }
+
+
         CFieldReference fieldReference =
-            new CFieldReference(subExpression.getFileLocation(),
-                expectedType, pType.getName(), subExpression, false);
+            new CFieldReference(subExp.getFileLocation(),
+                expectedType, pType.getName(), subExp, isPointerDeref);
 
         Object fieldValue = modelAtEdge.getValueFromMemory(fieldReference, fieldAddress);
 
