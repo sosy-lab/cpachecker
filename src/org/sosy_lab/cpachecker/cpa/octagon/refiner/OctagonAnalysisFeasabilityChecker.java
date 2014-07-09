@@ -39,9 +39,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonState;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonTransferRelation;
-import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
 import org.sosy_lab.cpachecker.cpa.octagon.precision.IOctagonPrecision;
 import org.sosy_lab.cpachecker.cpa.octagon.precision.RefineableOctagonPrecision;
 import org.sosy_lab.cpachecker.cpa.octagon.precision.StaticFullOctagonPrecision;
@@ -60,6 +60,7 @@ public class OctagonAnalysisFeasabilityChecker {
   private final ShutdownNotifier shutdownNotifier;
   private final ARGPath checkedPath;
   private final ARGPath foundPath;
+  private boolean wasInterrupted = false;
 
   public OctagonAnalysisFeasabilityChecker(CFA cfa, LogManager log, ShutdownNotifier pShutdownNotifier, ARGPath path, OctagonCPA cpa) throws InvalidConfigurationException, CPAException, InterruptedException {
     logger = log;
@@ -83,6 +84,10 @@ public class OctagonAnalysisFeasabilityChecker {
    */
   public boolean isFeasible() {
       return checkedPath.size() == foundPath.size();
+  }
+
+  public boolean wasInterrupted() {
+    return wasInterrupted;
   }
 
   public Set<String> getPrecisionIncrement(RefineableOctagonPrecision precision) {
@@ -140,6 +145,7 @@ public class OctagonAnalysisFeasabilityChecker {
           // reachable (over-approximation)
           if (shutdownNotifier.shouldShutdown()) {
             logger.log(Level.INFO, "Cancelling feasibility check with octagon Analysis, timelimit reached");
+            wasInterrupted = true;
             return checkedPath;
           }
         }

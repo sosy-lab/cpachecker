@@ -22,6 +22,8 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * Converting code to formulas.
+ * Converting code to formulas, and representation of program paths as formulas.
+ * This includes the handling of re-assigned variables,
+ * which get converted into SSA form.
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;

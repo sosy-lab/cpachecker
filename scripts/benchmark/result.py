@@ -88,7 +88,8 @@ PROPERTY_MATCHER = {'LTL(G ! label(':                    PROP_REACH,
                     'LTL(F end)':                        PROP_TERMINATION,
                     'LTL(G valid-free)':                 PROP_FREE,
                     'LTL(G valid-deref)':                PROP_DEREF,
-                    'LTL(G valid-memtrack)':             PROP_MEMTRACK
+                    'LTL(G valid-memtrack)':             PROP_MEMTRACK,
+                    'OBSERVER AUTOMATON':                PROP_REACH
                    }
 
 
@@ -117,7 +118,7 @@ def _statusesOfPropertyFile(propertyFile):
     statuses = []
     with open(propertyFile) as f:
         content = f.read()
-        assert 'CHECK' in content, "Invalid property {0}".format(content)
+        assert 'CHECK' in content or 'OBSERVER' in content, "Invalid property {0}".format(content)
 
         # TODO: should we switch to regex or line-based reading?
         for substring, status in PROPERTY_MATCHER.items():

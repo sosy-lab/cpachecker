@@ -147,7 +147,7 @@ public class PartialReachedSetPartitioningParallel extends AbstractStrategy{
       InvalidConfigurationException, IOException {
     ioHelper.readMetadata(pIn, true);
     for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
-      ioHelper.readPartition(pIn);
+      ioHelper.readPartition(pIn, stats);
     }
   }
 

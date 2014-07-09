@@ -22,7 +22,7 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * Another implementation for blocking nodes.
+ * Another implementation for grouping CFA nodes into blocks.
  * Similar to large block encoding (LBE).
  */
 package org.sosy_lab.cpachecker.util.blocking;

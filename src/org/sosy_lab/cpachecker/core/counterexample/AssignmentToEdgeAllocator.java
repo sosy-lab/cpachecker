@@ -47,11 +47,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -59,10 +61,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
@@ -102,7 +105,10 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
 
-
+/**
+ * Calculates the concrete values of the right hand side expressions {@link CRightHandSide}
+ * of assignments.
+ */
 public class AssignmentToEdgeAllocator {
 
   private final LogManager logger;
@@ -192,15 +198,16 @@ public class AssignmentToEdgeAllocator {
       return null;
     }
 
-    return "Symbolic address of declaration " + dcl.getName()
-        + " is " + address.getAsNumber().toString();
+    return "&" + dcl.getName()
+        + " = " + address.getAsNumber().toString();
   }
 
   @Nullable
   private List<IAssignment> createAssignmentsAtEdge(CFAEdge pCFAEdge) {
 
     if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
-      return handleDeclaration(((ADeclarationEdge) pCFAEdge).getDeclaration());
+      return handleDeclaration(((ADeclarationEdge) pCFAEdge).getDeclaration(),
+          cfaEdge.getPredecessor().getFunctionName());
     } else if (cfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
       return handleStatement(((AStatementEdge) pCFAEdge).getStatement());
     } else if (cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
@@ -309,7 +316,7 @@ public class AssignmentToEdgeAllocator {
     List<IAssignment> assignments = new ArrayList<>();
 
     for(CParameterDeclaration dcl : dcls) {
-      assignments.addAll(handleDeclaration(dcl));
+      assignments.addAll(handleDeclaration(dcl, pFunctionCallEdge.getSuccessor().getFunctionName()));
     }
 
     return assignments;
@@ -382,15 +389,13 @@ public class AssignmentToEdgeAllocator {
     return Collections.emptyList();
   }
 
-  private List<IAssignment> handleDeclaration(IASimpleDeclaration dcl) {
+  private List<IAssignment> handleDeclaration(IASimpleDeclaration dcl, String pFunctionName) {
 
     if (dcl instanceof CSimpleDeclaration) {
 
       CSimpleDeclaration cDcl = (CSimpleDeclaration) dcl;
 
-      String functionName = cfaEdge.getPredecessor().getFunctionName();
-
-      Object value = getValueObject(cDcl, functionName);
+      Object value = getValueObject(cDcl, pFunctionName);
 
       if (value == null) {
         return Collections.emptyList();
@@ -399,7 +404,7 @@ public class AssignmentToEdgeAllocator {
       CIdExpression idExpression = new CIdExpression(dcl.getFileLocation(), cDcl);
 
       Type dclType = cDcl.getType();
-      ValueLiterals valueAsCode =  getValueAsCode(value, dclType, idExpression, functionName);
+      ValueLiterals valueAsCode =  getValueAsCode(value, dclType, idExpression, pFunctionName);
 
       CIdExpression idExp = new CIdExpression(FileLocation.DUMMY, cDcl);
 
@@ -457,7 +462,7 @@ public class AssignmentToEdgeAllocator {
   }
 
   //TODO Move to Utility?
-  private ReferenceName getFieldReferenceVariableName(CFieldReference pIastFieldReference,
+  private FieldReference getFieldReference(CFieldReference pIastFieldReference,
       String pFunctionName) {
 
     List<String> fieldNameList = new ArrayList<>();
@@ -477,9 +482,9 @@ public class AssignmentToEdgeAllocator {
       CIdExpression idExpression = (CIdExpression) reference.getFieldOwner();
 
       if (ForwardingTransferRelation.isGlobal(idExpression)) {
-        return new ReferenceName(idExpression.getName(), fieldNameList);
+        return new FieldReference(idExpression.getName(), fieldNameList);
       } else {
-        return new ReferenceName(idExpression.getName(), pFunctionName, fieldNameList);
+        return new FieldReference(idExpression.getName(), pFunctionName, fieldNameList);
       }
     } else {
       return null;
@@ -548,6 +553,13 @@ public class AssignmentToEdgeAllocator {
         return null;
       }
 
+      CType type = pIastArraySubscriptExpression.getExpressionType().getCanonicalType();
+
+      /*The evaluation of an array or a struct is its address*/
+      if (type instanceof CArrayType || isStructOrUnionType(type)) {
+        return valueAddress.getAsNumber();
+      }
+
       Object value = modelAtEdge.getValueFromMemory(pIastArraySubscriptExpression,
           valueAddress);
 
@@ -563,6 +575,13 @@ public class AssignmentToEdgeAllocator {
         return lookupReference(pIastFieldReference);
       }
 
+      CType type = pIastFieldReference.getExpressionType().getCanonicalType();
+
+      /*The evaluation of an array or a struct is its address*/
+      if (type instanceof CArrayType || isStructOrUnionType(type)) {
+        return address.getAsNumber();
+      }
+
       Object value = modelAtEdge.getValueFromMemory(pIastFieldReference, address);
 
       if (value == null) {
@@ -576,7 +595,7 @@ public class AssignmentToEdgeAllocator {
 
       /* Fieldreferences are sometimes represented as variables,
          e.g a.b.c in main is main::a$b$c */
-      ReferenceName fieldReference = getFieldReferenceVariableName(pIastFieldReference, functionName);
+      FieldReference fieldReference = getFieldReference(pIastFieldReference, functionName);
 
       if (fieldReference != null &&
           modelAtEdge.hasValueForLeftHandSide(fieldReference)) {
@@ -641,76 +660,42 @@ public class AssignmentToEdgeAllocator {
     @Override
     public Object visit(CIdExpression pCIdExpression) {
 
+      CSimpleDeclaration dcl = pCIdExpression.getDeclaration();
+
+      Address address = evaluateAddress(pCIdExpression);
+
+      if(address == null) {
+        return lookupVariable(dcl);
+      }
+
       CType type = pCIdExpression.getExpressionType().getCanonicalType();
 
-      if (type instanceof CSimpleType || type instanceof CPointerType) {
-        return handleSimpleVariableDeclaration(pCIdExpression.getDeclaration());
-      }
-
-      if(type instanceof CArrayType || isStructOrUnionType(type)) {
-        /*The evaluation of an array is its address*/
-        Address address = evaluateAddress(pCIdExpression);
-
-        if(address != null) {
-          return address.getAsNumber();
-        }
-
-      }
-
-      return null;
-    }
-
-    @Nullable
-    private Object handleVariableDeclaration(CSimpleDeclaration pVarDcl) {
-
-      if (pVarDcl == null || functionName == null || (!(pVarDcl instanceof CVariableDeclaration)
-          && !(pVarDcl instanceof CParameterDeclaration))) {
-        return null;
-      }
-
-      CType type = pVarDcl.getType();
-
-      if (type instanceof CSimpleType || type instanceof CPointerType) {
-        return handleSimpleVariableDeclaration(pVarDcl);
-      }
-
+      /*The evaluation of an array or a struct is its address*/
       if (type instanceof CArrayType || isStructOrUnionType(type)) {
-        /*The evaluation of an array or a struct is its address*/
-        Address address = addressVisitor.getAddress(pVarDcl);
-
-        if (address != null) {
-          return address.getAsNumber();
-        }
-
+        return address.getAsNumber();
       }
 
-      return null;
-    }
-
-    private Object handleSimpleVariableDeclaration(CSimpleDeclaration pVarDcl) {
-
-      /* The variable might not exist anymore in the variable environment,
-         search in the address space of the function environment*/
-
-      Address address = addressVisitor.getAddress(pVarDcl);
-
-      if (address == null) {
-        return lookupVariable(pVarDcl);
-      }
-
-      CIdExpression idExp = new CIdExpression(FileLocation.DUMMY, pVarDcl);
-
-      Object value = modelAtEdge.getValueFromMemory(idExp, address);
+      Object value = modelAtEdge.getValueFromMemory(pCIdExpression, address);
 
       if (value == null) {
-        return lookupVariable(pVarDcl);
+        return lookupVariable(dcl);
       }
 
       return value;
     }
 
+    @Nullable
+    private Object handleVariableDeclaration(CSimpleDeclaration pDcl) {
+
+      // These declarations don't evaluate to a value //TODO Assumption
+      if (pDcl instanceof CFunctionDeclaration || pDcl instanceof CTypeDeclaration) { return null; }
+
+      CIdExpression representingIdExpression = new CIdExpression(pDcl.getFileLocation(), pDcl);
+      return this.visit(representingIdExpression);
+    }
+
     private Object lookupVariable(CSimpleDeclaration pVarDcl) {
-      Variable varName = getName(pVarDcl);
+      IDExpression varName = getIDExpression(pVarDcl);
 
       if (modelAtEdge.hasValueForLeftHandSide(varName)) {
         return modelAtEdge.getVariableValue(varName);
@@ -719,43 +704,35 @@ public class AssignmentToEdgeAllocator {
       }
     }
 
-    //TODO Change Name and Model, can be more than Variable
     //TODO Move to util
-    private Variable getName(CSimpleDeclaration pDcl) {
+    private IDExpression getIDExpression(CSimpleDeclaration pDcl) {
 
+      //TODO use original name?
       String name = pDcl.getName();
 
-      if (pDcl instanceof CParameterDeclaration ||
-          (pDcl instanceof CVariableDeclaration
-          && !((CVariableDeclaration) pDcl).isGlobal())) {
-
-        return new Variable(name, functionName);
+      if (pDcl instanceof CDeclaration && ((CDeclaration) pDcl).isGlobal()) {
+        return new IDExpression(name);
       } else {
-        return new Variable(name);
+        return new IDExpression(name, functionName);
       }
     }
 
     @Override
     public Object visit(CPointerExpression pPointerExpression) {
 
-      CExpression exp = pPointerExpression.getOperand();
-
       /*Quick jump to the necessary method.
        * the address of a dereference is the evaluation of its operand*/
-      Address address = evaluateNumericalValueAsAddress(exp);
+      Address address = evaluateAddress(pPointerExpression);
 
       if(address == null) {
         return null;
       }
 
-      CType type = exp.getExpressionType().getCanonicalType();
+      CType type = pPointerExpression.getExpressionType().getCanonicalType();
 
-      if (type instanceof CPointerType) {
-        type = ((CPointerType) type).getType();
-      } else if (type instanceof CArrayType) {
-        type = ((CArrayType) type).getType();
-      } else {
-        return null;
+      /*The evaluation of an array or a struct is its address*/
+      if (type instanceof CArrayType || isStructOrUnionType(type)) {
+        return address.getAsNumber();
       }
 
       return modelAtEdge.getValueFromMemory(pPointerExpression, address);
@@ -788,7 +765,7 @@ public class AssignmentToEdgeAllocator {
 
       public Address getAddress(CSimpleDeclaration dcl) {
 
-        Variable name = getName(dcl);
+        IDExpression name = getIDExpression(dcl);
 
         if (modelAtEdge.hasAddressOfVaribable(name)) {
           return modelAtEdge.getVariableAddress(name);
@@ -801,8 +778,7 @@ public class AssignmentToEdgeAllocator {
       public Address visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
         CExpression arrayExpression = pIastArraySubscriptExpression.getArrayExpression();
 
-        // we can evaluate this here, because arrays will be evaluated to their address
-        // TODO BUG!? what if array types are intermingled with pointer types
+        // This works because arrays and structs evaluate to their addresses
         Address address = evaluateNumericalValueAsAddress(arrayExpression);
 
         if(address == null) {
@@ -831,29 +807,8 @@ public class AssignmentToEdgeAllocator {
 
         CExpression fieldOwner = pIastFieldReference.getFieldOwner();
 
-        if (pIastFieldReference.isPointerDereference()) {
-
-          Address fieldOwneraddress = evaluateNumericalValueAsAddress(fieldOwner);
-
-          if (fieldOwneraddress == null) {
-            return null;
-          }
-
-          BigDecimal fieldOffset = getFieldOffset(pIastFieldReference);
-
-          if(fieldOffset == null) {
-            return null;
-          }
-
-          return fieldOwneraddress.addOffset(fieldOffset);
-        }
-
-        if (!(fieldOwner instanceof CLeftHandSide)) {
-          //TODO Investigate
-          return lookupReferenceAddress(pIastFieldReference);
-        }
-
-        Address fieldOwnerAddress = evaluateAddress((CLeftHandSide) fieldOwner);
+      //This works because arrays and structs evaluate to their addresses.
+        Address fieldOwnerAddress = evaluateNumericalValueAsAddress(fieldOwner);
 
         if (fieldOwnerAddress == null) {
           return lookupReferenceAddress(pIastFieldReference);
@@ -877,7 +832,7 @@ public class AssignmentToEdgeAllocator {
       private Address lookupReferenceAddress(CFieldReference pIastFieldReference) {
         /* Fieldreferences are sometimes represented as variables,
         e.g a.b.c in main is main::a$b$c */
-        ReferenceName fieldReferenceName = getFieldReferenceVariableName(pIastFieldReference, functionName);
+        FieldReference fieldReferenceName = getFieldReference(pIastFieldReference, functionName);
 
         if (fieldReferenceName != null) {
           if (modelAtEdge.hasAddressOfVaribable(fieldReferenceName)) {
@@ -901,7 +856,7 @@ public class AssignmentToEdgeAllocator {
 
       @Override
       public Address visit(CComplexCastExpression pComplexCastExpression) {
-        // TODO Implement complex Cast Expression when predicate models it.
+        // TODO Implement complex Cast Expression
         return null;
       }
     }
@@ -1004,18 +959,25 @@ public class AssignmentToEdgeAllocator {
 
           CExpression operand = pUnaryExpression.getOperand();
 
-          if (operand instanceof CLeftHandSide) {
-            //TODO assumed? Problems with casts
-
-            Address address = evaluateAddress((CLeftHandSide) operand);
-
-            if(address != null) {
-              return new NumericValue(address.getAsNumber());
-            }
-          }
+          return handleAmper(operand);
         }
 
         return super.visit(pUnaryExpression);
+      }
+
+      private Value handleAmper(CExpression pOperand) {
+        if (pOperand instanceof CLeftHandSide) {
+
+          Address address = evaluateAddress((CLeftHandSide) pOperand);
+
+          if (address != null) {
+            return new NumericValue(address.getAsNumber());
+          }
+        } else if (pOperand instanceof CCastExpression) {
+          return handleAmper(((CCastExpression) pOperand).getOperand());
+        }
+
+        return Value.UnknownValue.getInstance();
       }
 
       @Override
@@ -1146,7 +1108,7 @@ public class AssignmentToEdgeAllocator {
     @Override
     public ValueLiterals visit(CFunctionType pT) throws RuntimeException {
 
-      // TODO Investigate
+      // TODO Implement function resolving for comments
       return createUnknownValueLiterals();
     }
 
@@ -1315,7 +1277,7 @@ public class AssignmentToEdgeAllocator {
       public Void visit(CCompositeType compType) throws RuntimeException {
 
         if (compType.getKind() == ComplexTypeKind.ENUM) {
-          return null;
+          // TODO Enum
         }
 
         if(compType.getKind() == ComplexTypeKind.UNION) {
@@ -1348,10 +1310,29 @@ public class AssignmentToEdgeAllocator {
 
         assert isStructOrUnionType(subExpression.getExpressionType().getCanonicalType());
 
-        //TODO resolve correct pointer dereference
+        CExpression subExp;
+        boolean isPointerDeref;
+
+        if (subExpression instanceof CPointerExpression) {
+          // *a.b <=> a->b
+          subExp = ((CPointerExpression) subExpression).getOperand();
+          isPointerDeref = true;
+        } else {
+          subExp = subExpression;
+          isPointerDeref = false;
+        }
+
         CFieldReference fieldReference =
-            new CFieldReference(subExpression.getFileLocation(),
-                expectedType, pType.getName(), subExpression, false);
+            new CFieldReference(subExp.getFileLocation(),
+                expectedType, pType.getName(), subExp, isPointerDeref);
+
+        // Arrays and structs are represented as addresses
+        if(expectedType instanceof CArrayType || isStructOrUnionType(expectedType)) {
+          ValueLiteralVisitor v =
+              new ValueLiteralVisitor(fieldAddress, valueLiterals, fieldReference, visited);
+          expectedType.accept(v);
+          return;
+        }
 
         Object fieldValue = modelAtEdge.getValueFromMemory(fieldReference, fieldAddress);
 
@@ -1397,14 +1378,16 @@ public class AssignmentToEdgeAllocator {
 
         boolean memoryHasValue = true;
         while (memoryHasValue) {
-          memoryHasValue = handleArraySubscript(address, subscript, expectedType);
+          memoryHasValue = handleArraySubscript(address, subscript, expectedType, arrayType);
           subscript++;
         }
 
         return null;
       }
 
-      private boolean handleArraySubscript(Address pArrayAddress, int pSubscript, CType pExpectedType) {
+      private boolean handleArraySubscript(Address pArrayAddress,
+          int pSubscript, CType pExpectedType,
+          CArrayType pArrayType) {
 
         int typeSize = machineModel.getSizeof(pExpectedType);
         int subscriptOffset = pSubscript * typeSize;
@@ -1416,6 +1399,16 @@ public class AssignmentToEdgeAllocator {
             new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, subscript);
         CArraySubscriptExpression arraySubscript =
             new CArraySubscriptExpression(subExpression.getFileLocation(), pExpectedType, subExpression, litExp);
+
+        int arraySize = machineModel.getSizeof(pArrayType);
+
+        if (isStructOrUnionType(pExpectedType) || pExpectedType instanceof CArrayType) {
+          // Arrays and structs are represented as addresses
+
+          ValueLiteralVisitor v = new ValueLiteralVisitor(address, valueLiterals, arraySubscript, visited);
+          pExpectedType.accept(v);
+          return subscriptOffset < arraySize;
+        }
 
         Object value = modelAtEdge.getValueFromMemory(arraySubscript, address);
 
@@ -1435,19 +1428,18 @@ public class AssignmentToEdgeAllocator {
 
         boolean contin = false;
 
-        if (!valueLiteral.isUnknown()) {
+        if (!valueLiteral.isUnknown() && subscriptOffset < arraySize) {
 
           SubExpressionValueLiteral subExpressionValueLiteral =
               new SubExpressionValueLiteral(valueLiteral, arraySubscript);
 
           valueLiterals.addSubExpressionValueLiteral(subExpressionValueLiteral);
 
-          /*Stop, because it is highly
-           * unlikely that following values can be identified*/
+          //TODO Only full arrays can be resolved
           contin = true;
         }
 
-        if (valueAddress != null) {
+        if (valueAddress != null && subscriptOffset < arraySize) {
           Pair<CType, Address> visits = Pair.of(pExpectedType, valueAddress);
 
           if (visited.contains(visits)) {
@@ -1470,12 +1462,17 @@ public class AssignmentToEdgeAllocator {
 
         CPointerExpression pointerExp = new CPointerExpression(subExpression.getFileLocation(), expectedType, subExpression);
 
+        if(isStructOrUnionType(expectedType) || expectedType instanceof CArrayType) {
+          // Arrays and structs are represented as addresses
+
+          ValueLiteralVisitor v = new ValueLiteralVisitor(address, valueLiterals, pointerExp, visited);
+          expectedType.accept(v);
+          return null;
+        }
+
         Object value = modelAtEdge.getValueFromMemory(pointerExp, address);
 
         if (value == null) {
-          if(isStructOrUnionType(expectedType)) {
-            handleFieldPointerDereference(expectedType, pointerExp);
-          }
           return null;
         }
 
@@ -1514,13 +1511,6 @@ public class AssignmentToEdgeAllocator {
         }
 
         return null;
-      }
-
-      private void handleFieldPointerDereference(CType pExpectedType, CExpression pointerExpression) {
-        /* a->b <=> *(a).b */
-
-        ValueLiteralVisitor v = new ValueLiteralVisitor(address, valueLiterals, pointerExpression, visited);
-        pExpectedType.accept(v);
       }
     }
 
@@ -1582,11 +1572,11 @@ public class AssignmentToEdgeAllocator {
 
       private void handleField(String pFieldName, CType pMemberType) {
 
-        //TODO Resolve pointer dereference.
+        // Can't have pointer dereferences here.
         CFieldReference reference =
             new CFieldReference(prevSub.getFileLocation(), pMemberType, pFieldName, prevSub, false);
 
-        ReferenceName fieldReferenceName = getFieldReferenceVariableName(reference, functionName);
+        FieldReference fieldReferenceName = getFieldReference(reference, functionName);
 
         if (modelAtEdge.hasValueForLeftHandSide(fieldReferenceName)) {
           Object referenceValue = modelAtEdge.getVariableValue(fieldReferenceName);

@@ -24,30 +24,23 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
-import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.skip;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.Value;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -56,18 +49,10 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationBasedRefiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 
-@Options(prefix="cpa.value.interpolation")
 public class ValueAnalysisInterpolator {
-  @Option(name="weakenInterpolant", description="whether or not to heuristically weaken the candidate interpolant "
-      + "prior to the interpolation process")
-  private boolean weakenInterpolant = false;
-
   /**
    * the shutdownNotifier in use
    */
@@ -84,24 +69,19 @@ public class ValueAnalysisInterpolator {
   private final ValueAnalysisPrecision precision;
 
   /**
-   * the collector to get the use-definition information from an error trace
-   */
-  private final AssumptionUseDefinitionCollector assumeCollector;
-
-  /**
-   * the set of relevant variables found by the collector
-   */
-  private Set<String> relevantVariables = new HashSet<>();
-
-  /**
-   * the boolean flag that indicates, if assignments through assumptions are needed for excluding the target state
-   */
-  private Boolean assumptionsAreRelevant = null;
-
-  /**
    * the number of interpolations
    */
   private int numberOfInterpolationQueries = 0;
+
+  /**
+   * the error path checker to be used for feasibility checks
+   */
+  private final ValueAnalysisFeasibilityChecker checker;
+
+  /**
+   * constant to denote that a transition did not yield a successor
+   */
+  private static final ValueAnalysisState NO_SUCCESSOR = null;
 
   /**
    * This method acts as the constructor of the class.
@@ -110,14 +90,11 @@ public class ValueAnalysisInterpolator {
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
           throws InvalidConfigurationException {
 
-    pConfig.inject(this);
-
     try {
       shutdownNotifier  = pShutdownNotifier;
-      assumeCollector   = new AssumptionUseDefinitionCollector();
+      checker           = new ValueAnalysisFeasibilityChecker(pLogger, pCfa);
       transfer          = new ValueAnalysisTransferRelation(Configuration.builder().build(), pLogger, pCfa);
-      precision         = new ValueAnalysisPrecision("", Configuration.builder().build(),
-          Optional.<VariableClassification>absent());
+      precision         = ValueAnalysisPrecision.createDefaultPrecision();
     }
     catch (InvalidConfigurationException e) {
       throw new InvalidConfigurationException("Invalid configuration for checking path: " + e.getMessage(), e);
@@ -141,19 +118,13 @@ public class ValueAnalysisInterpolator {
       final Deque<ValueAnalysisState> callStack) throws CPAException, InterruptedException {
     numberOfInterpolationQueries = 0;
 
-    // on initial iteration
-    if (pOffset == 0) {
-      assumptionsAreRelevant = isRemainingPathFeasible(pErrorPath, new ValueAnalysisState(), false, new ArrayDeque<>(callStack));
-      relevantVariables = assumeCollector.obtainUseDefInformation(pErrorPath);
-    }
-
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
     ValueAnalysisState initialState = pInputInterpolant.createValueAnalysisState();
 
     // get successor and update callstack
     ValueAnalysisState initialSuccessor = getInitialSuccessor(initialState, pErrorPath.get(pOffset), callStack);
 
-    if (initialSuccessor == null) {
+    if (initialSuccessor == NO_SUCCESSOR) {
       return ValueAnalysisInterpolant.FALSE;
     }
 
@@ -177,11 +148,6 @@ public class ValueAnalysisInterpolator {
       return ValueAnalysisInterpolant.TRUE;
     }
 
-    if(weakenInterpolant) {
-      initialSuccessor.retainAll(from(relevantVariables)
-          .transform(MemoryLocation.FROM_STRING_TO_MEMORYLOCATION).toSet());
-    }
-
     // try to forget a variable:
     // first search such a variable in all callstack-states, then the current initialState
 
@@ -197,16 +163,16 @@ public class ValueAnalysisInterpolator {
 
   private void checkPathWithoutVariable( Iterable<CFAEdge> remainingErrorPath, ArrayDeque<ValueAnalysisState> callStack,
           ValueAnalysisState initialSuccessor, ValueAnalysisState modifiableState)
-          throws InterruptedException, CPATransferException {
+          throws InterruptedException, CPAException {
     for (MemoryLocation currentMemoryLocation : initialSuccessor.getTrackedMemoryLocations()) {
       shutdownNotifier.shutdownIfNecessary();
 
       // temporarily remove the value of the current memory location from the rawInterpolant
       Value value = modifiableState.forget(currentMemoryLocation);
 
-      // check if the remaining path now becomes feasible,
-      if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor, assumptionsAreRelevant, callStack)) {
-        modifiableState.assignConstant(currentMemoryLocation, value);
+      // check if the remaining path now becomes feasible
+      if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor, callStack)) {
+        initialSuccessor.assignConstant(currentMemoryLocation, value);
       }
     }
   }
@@ -216,10 +182,11 @@ public class ValueAnalysisInterpolator {
    *
    * @param errorPath the error path to check.
    * @return true, if the given error path is contradicting in itself, else false
-   * @throws CPATransferException
+   * @throws InterruptedException
+   * @throws CPAException
    */
-  private boolean isSuffixContradicting(Iterable<CFAEdge> errorPath, ArrayDeque<ValueAnalysisState> callstack) throws CPATransferException {
-    return !isRemainingPathFeasible(errorPath, new ValueAnalysisState(), assumptionsAreRelevant, callstack);
+  private boolean isSuffixContradicting(Iterable<CFAEdge> errorPath, ArrayDeque<ValueAnalysisState> callstack) throws CPAException, InterruptedException {
+    return !isRemainingPathFeasible(errorPath, new ValueAnalysisState(), callstack);
   }
 
   /**
@@ -264,7 +231,7 @@ public class ValueAnalysisInterpolator {
         precision,
         initialEdge);
 
-    return extractSingletonSuccessor(initialState, initialEdge, assumptionsAreRelevant, successors);
+    return Iterables.getOnlyElement(successors, NO_SUCCESSOR);
   }
 
   /**
@@ -272,67 +239,24 @@ public class ValueAnalysisInterpolator {
    *
    * @param remainingErrorPath the error path to check feasibility on
    * @param state the (pseudo) initial state
-   * @param pAssumptionsAreRelevant whether or not to ignore the assigning semantics of assume edges
    * @return true, it the path is feasible, else false
-   * @throws CPATransferException
+   * @throws InterruptedException
+   * @throws CPAException
    */
-  private boolean isRemainingPathFeasible(Iterable<CFAEdge> remainingErrorPath, ValueAnalysisState state, boolean pAssumptionsAreRelevant, ArrayDeque<ValueAnalysisState> callstack)
-      throws CPATransferException {
+  private boolean isRemainingPathFeasible(Iterable<CFAEdge> remainingErrorPath, ValueAnalysisState state,
+                                          ArrayDeque<ValueAnalysisState> callstack)
+      throws CPAException, InterruptedException {
     numberOfInterpolationQueries++;
 
-    for (CFAEdge currentEdge : remainingErrorPath) {
-      // we enter a function, so lets add the previous state to the stack
-      if (currentEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-        callstack.addLast(state);
-      }
+    ARGPath argErrorPath = new ARGPath();
 
-      // TODO revisit code for empty callStack?
-      // --> remainingErrorPath begins somewhere in the middle and is started with an empty state,
-      // --> rebuilding would be useless, because without information it changes nothing.
-
-      // we leave a function, so rebuild return-state before assigning the return-value.
-      if (currentEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge && !callstack.isEmpty()) {
-        // rebuild states with info from previous state
-        final ValueAnalysisState callState = callstack.removeLast();
-        state = state.rebuildStateAfterFunctionCall(callState);
-      }
-
-      Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessors(
-        state,
-        precision,
-        currentEdge);
-
-      if (successors.isEmpty()) {
-        return false;
-      }
-
-      state = extractSingletonSuccessor(state, currentEdge, pAssumptionsAreRelevant, successors);
+    for(CFAEdge currentEdge : remainingErrorPath) {
+        argErrorPath.add(Pair.<ARGState, CFAEdge>of(null, currentEdge));
     }
-    return true;
+
+    return checker.isFeasible(argErrorPath, state, callstack);
   }
 
-  /**
-   * This method extracts the single successor from the (empty or singleton) set of successors.
-   *
-   * @param predecessor the predecessor state
-   * @param currentEdge the current edge
-   * @param successors the (empty or singleton) set of successors
-   * @return the only successor or null, if no set of successors is empty
-   */
-  private ValueAnalysisState extractSingletonSuccessor(ValueAnalysisState predecessor,
-      CFAEdge currentEdge, boolean pAssumptionsAreRelevant, Collection<ValueAnalysisState> successors) {
-    if(successors.isEmpty()) {
-      return null;
-    }
-
-    else if(!pAssumptionsAreRelevant && currentEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
-      return predecessor.clone();
-    }
-
-    else {
-      return Iterables.getOnlyElement(successors);
-    }
-  }
 
   /**
    * This method checks, if the given edge is only renaming variables.

@@ -205,6 +205,6 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
 
   /** returns a new logger with a new logfile. */
   public Z3SmtLogger getSmtLogger() {
-    return new Z3SmtLogger(z3smtLogger);
+    return z3smtLogger.cloneWithNewLogfile();
   }
 }

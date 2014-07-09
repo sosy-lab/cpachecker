@@ -22,6 +22,7 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * Datastructures and traversal methods for to-be-processed abstract states.
+ * The waitlist, which stores the to-be-processed abstract states during the analysis.
+ * It is also responsible for the traversal strategy.
  */
 package org.sosy_lab.cpachecker.core.waitlist;

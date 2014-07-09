@@ -85,6 +85,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.value.Value.UnknownValue;
@@ -638,6 +639,9 @@ public abstract class AbstractExpressionValueVisitor
     if (unaryOperator == UnaryOperator.SIZEOF) {
       return new NumericValue(machineModel.getSizeof(unaryOperand.getExpressionType()));
     }
+    if (unaryOperator == UnaryOperator.ALIGNOF) {
+      return new NumericValue(machineModel.getAlignof(unaryOperand.getExpressionType()));
+    }
     if (unaryOperator == UnaryOperator.AMPER) {
       return Value.UnknownValue.getInstance();
     }
@@ -697,22 +701,40 @@ public abstract class AbstractExpressionValueVisitor
     JType rValType = rVarInBinaryExp.getExpressionType();
 
     final Value lValue = lVarInBinaryExp.accept(this);
-    if (lValue.isUnknown() || !lValue.isNumericValue()) { return UnknownValue.getInstance(); }
+    if (lValue.isUnknown()) { return UnknownValue.getInstance(); }
 
     final Value rValue = rVarInBinaryExp.accept(this);
-    if (rValue.isUnknown() || !rValue.isNumericValue()) { return UnknownValue.getInstance(); }
+    if (rValue.isUnknown()) { return UnknownValue.getInstance(); }
 
-    if (isFloatType(lValType) || isFloatType(rValType)) {
-      final double lVal = ((NumericValue) lValue).doubleValue();
-      final double rVal = ((NumericValue) rValue).doubleValue();
+    if (lValue instanceof NumericValue && rValue instanceof NumericValue) {
+      if (isFloatType(lValType) || isFloatType(rValType)) {
+        final double lVal = ((NumericValue) lValue).doubleValue();
+        final double rVal = ((NumericValue) rValue).doubleValue();
 
-      return calculateBinaryOperation(lVal, rVal, binaryOperator);
+        return calculateBinaryOperation(lVal, rVal, binaryOperator);
 
+      } else {
+        final long lVal = ((NumericValue) lValue).longValue();
+        final long rVal = ((NumericValue) rValue).longValue();
+
+        return calculateBinaryOperation(lVal, rVal, binaryOperator);
+      }
+
+    } else if (isEnumType(lValue) && isEnumType(rValue) && binaryOperator.equals(JBinaryExpression.BinaryOperator.EQUALS)) {
+      if (lValue instanceof NullValue && rValue instanceof NullValue) {
+        return new NumericValue(1L);
+
+      } else if (lValue instanceof NullValue || rValue instanceof NullValue) {
+        return new NumericValue(0L);
+
+      } else {
+        final EnumConstantValue lVal = (EnumConstantValue) lValue;
+        final EnumConstantValue rVal = (EnumConstantValue) rValue;
+
+        return calculateBinaryOperation(lVal, rVal, binaryOperator);
+      }
     } else {
-      final long lVal = ((NumericValue) lValue).longValue();
-      final long rVal = ((NumericValue) rValue).longValue();
-
-      return calculateBinaryOperation(lVal, rVal, binaryOperator);
+      return UnknownValue.getInstance();
     }
   }
 
@@ -895,6 +917,24 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
+  private Value calculateBinaryOperation(EnumConstantValue lValue, EnumConstantValue rValue, JBinaryExpression.BinaryOperator binaryOperator) {
+    if (!JBinaryExpression.BinaryOperator.EQUALS.equals(binaryOperator)) {
+      return UnknownValue.getInstance(); // Enums may only be compared for equality
+    }
+
+    assert lValue.getName() != null && rValue.getName() != null;
+
+    if (lValue.getName().equals(rValue.getName())) {
+      return new NumericValue(1L);
+    } else {
+      return new NumericValue(0L);
+    }
+  }
+
+  private boolean isEnumType(Value value) {
+    return value instanceof NullValue || value instanceof EnumConstantValue;
+  }
+
   @Override
   public Value visit(JIdExpression idExp) {
 
@@ -1001,9 +1041,10 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(JEnumConstantExpression pJEnumConstantExpression) {
-    missingEnumComparisonInformation = true;
-    return UnknownValue.getInstance();
-//    return pJEnumConstantExpression.getConstantName();
+    JClassType enumType = pJEnumConstantExpression.getExpressionType();
+    String fullName = pJEnumConstantExpression.getConstantName();
+
+    return new EnumConstantValue(enumType, fullName);
   }
 
   @Override
@@ -1056,7 +1097,7 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(JNullLiteralExpression pJNullLiteralExpression) throws RuntimeException {
-    return UnknownValue.getInstance();
+    return NullValue.getInstance();
   }
 
   @Override

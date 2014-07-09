@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcerteStatePathNode;
+import org.sosy_lab.cpachecker.core.counterexample.FieldReference;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
@@ -55,7 +56,6 @@ import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Constant;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Function;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Variable;
-import org.sosy_lab.cpachecker.core.counterexample.ReferenceName;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.collect.HashMultimap;
@@ -67,7 +67,6 @@ import com.google.common.collect.Multimap;
 
 public class AssignmentToPathAllocator {
 
-  //TODO check right prefix
   private static final String ADDRESS_PREFIX = "__ADDRESS_OF_";
 
   private static final int FIRST = 0;
@@ -131,6 +130,7 @@ public class AssignmentToPathAllocator {
     Map<String, Assignment> variableEnvoirment = new HashMap<>();
     Map<LeftHandSide, Object> variables = new HashMap<>();
     Multimap<String, Assignment> functionEnvoirment = HashMultimap.create();
+    //TODO Persistent Map
     Map<String, Map<Address, Object>> memory = new HashMap<>();
 
     int ssaMapIndex = 0;
@@ -145,7 +145,7 @@ public class AssignmentToPathAllocator {
 
         MultiEdge multiEdge = (MultiEdge) cfaEdge;
 
-        ConcreteState[] singleConcreteStates = new ConcreteState[multiEdge.getEdges().size()];
+        List<ConcreteState> singleConcreteStates = new ArrayList<>(multiEdge.getEdges().size());
 
         int multiEdgeIndex = 0;
 
@@ -159,10 +159,12 @@ public class AssignmentToPathAllocator {
 
           SSAMap ssaMap = pSSAMaps.get(ssaMapIndex);
 
-          singleConcreteStates[multiEdgeIndex] = createSingleConcreteState(
+          ConcreteState concreteState = createSingleConcreteState(
               singleCfaEdge, ssaMap, variableEnvoirment, variables,
               functionEnvoirment, memory, addressOfVariables, terms,
               pModel, pMachineModel, usedAssignableTerms);
+
+          singleConcreteStates.add(multiEdgeIndex, concreteState);
           ssaMapIndex++;
           multiEdgeIndex++;
         }
@@ -282,15 +284,15 @@ public class AssignmentToPathAllocator {
       fieldNames.remove(NAME_AND_FUNCTION);
 
       if (isNotGlobal) {
-        return new ReferenceName(name, function, fieldNames);
+        return new FieldReference(name, function, fieldNames);
       } else {
-        return new ReferenceName(name, fieldNames);
+        return new FieldReference(name, fieldNames);
       }
     } else {
       if (isNotGlobal) {
-        return new org.sosy_lab.cpachecker.core.counterexample.Variable(name, function);
+        return new org.sosy_lab.cpachecker.core.counterexample.IDExpression(name, function);
       } else {
-        return new org.sosy_lab.cpachecker.core.counterexample.Variable(name);
+        return new org.sosy_lab.cpachecker.core.counterexample.IDExpression(name);
       }
     }
   }
@@ -338,8 +340,6 @@ public class AssignmentToPathAllocator {
             LeftHandSide lhs = createLeftHandSide(variable);
             pVariables.remove(oldlhs);
             pVariables.put(lhs, assignment.getValue());
-
-
           }
         } else {
           //update variableEnvoirment for subsequent calculation
@@ -388,9 +388,9 @@ public class AssignmentToPathAllocator {
   }
 
   private void removeHeapValue(Map<String, Map<Address, Object>> memory, Assignment pFunctionAssignment) {
-    Function function = (Function) pFunctionAssignment.getTerm(); //TODO Assumption
+    Function function = (Function) pFunctionAssignment.getTerm();
     String heapName = getName(function);
-    Map<Address, Object> heap = memory.get(heapName); //TODO Assumption
+    Map<Address, Object> heap = memory.get(heapName);
 
     if (function.getArity() == 1) {
       Address address = Address.valueOf(function.getArgument(FIRST));
@@ -401,7 +401,7 @@ public class AssignmentToPathAllocator {
   }
 
   private void addHeapValue(Map<String, Map<Address, Object>> memory, Assignment pFunctionAssignment) {
-    Function function = (Function) pFunctionAssignment.getTerm(); //TODO Assumption
+    Function function = (Function) pFunctionAssignment.getTerm();
     String heapName = getName(function);
     Map<Address, Object> heap;
 
@@ -569,8 +569,7 @@ public class AssignmentToPathAllocator {
     } else {
 
       while (upper >= 0 &&
-          (pSsaMaps.get(upper).getIndex(pVar.getName())
-            == SSAMap.INDEX_NOT_CONTAINED)) {
+          pSsaMaps.get(upper).containsVariable(pVar.getName())) {
         upper--;
       }
 

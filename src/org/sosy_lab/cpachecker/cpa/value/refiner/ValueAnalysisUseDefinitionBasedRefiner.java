@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.io.PrintStream;
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.List;
 
@@ -151,7 +152,7 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
 
     try {
       ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
-      List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath, new ValueAnalysisState());
+      List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath, new ValueAnalysisState(), new ArrayDeque<ValueAnalysisState>());
       errorPath = new ErrorPathClassifier(cfa.getVarClassification()).obtainPrefixWithLowestScore(prefixes);
     } catch (InvalidConfigurationException e) {
       throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);

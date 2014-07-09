@@ -144,7 +144,8 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
   @Nullable
   public Map<ARGState, CFAEdgeWithAssignments> getExactVariableValues(ARGPath pPath) {
 
-    if (pPath.isEmpty() || pPath.size() != pathWithAssignments.size()) {
+
+    if (pPath.isEmpty() || pPath.size() != (pathWithAssignments.size() + 1)) {
       return null;
     }
 
@@ -152,9 +153,9 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
 
     int index = 0;
 
-    for (Pair<ARGState, CFAEdge> argPair : pPath) {
+    for (CFAEdgeWithAssignments edgeWithAssignment : pathWithAssignments) {
 
-      CFAEdgeWithAssignments edgeWithAssignment = pathWithAssignments.get(index);
+      Pair<ARGState, CFAEdge> argPair = pPath.get(index);
 
       if (!edgeWithAssignment.getCFAEdge().equals(argPair.getSecond())) {
         // path is not equivalent
@@ -168,7 +169,7 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
     return result;
   }
 
-  public static CFAPathWithAssignments valueOf(ConcreteStatePath statePath,
+  public static CFAPathWithAssignments of(ConcreteStatePath statePath,
       LogManager pLogger, MachineModel pMachineModel) {
 
     List<CFAEdgeWithAssignments> result = new ArrayList<>(statePath.size());
@@ -189,6 +190,7 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
     return new CFAPathWithAssignments(result);
   }
 
+  @Deprecated
   public static CFAPathWithAssignments valueOf(ConcreteStatePath statePath,
       LogManager pLogger, MachineModel pMachineModel,
       Multimap<CFAEdge, AssignableTerm> usedAssignableTerms) {
@@ -257,6 +259,7 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
     return pathWithAssignments.iterator();
   }
 
+  @Deprecated
   public Collection<AssignableTerm> getAllAssignedTerms(CFAEdge pEdge) {
     return allAssignableTerms.get(pEdge);
   }

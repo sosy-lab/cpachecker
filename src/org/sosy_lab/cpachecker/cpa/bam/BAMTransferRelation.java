@@ -150,7 +150,6 @@ public class BAMTransferRelation implements TransferRelation {
 
   void setBlockPartitioning(BlockPartitioning pManager) {
     partitioning = pManager;
-    currentBlock = partitioning.getMainBlock();
   }
 
   public BlockPartitioning getBlockPartitioning() {
@@ -190,12 +189,6 @@ public class BAMTransferRelation implements TransferRelation {
 
     if (((ARGState)pState).getParents().isEmpty()) {
       // we have already started a new block, so forward directly to wrappedTransfer
-      return wrappedTransfer.getAbstractSuccessors(pState, pPrecision, null); // edge is null
-    }
-
-    if (isHeadOfMainFunction(node)) {
-      // skip main function, TODO Why?
-      // TODO already handled in IF-block some lines above?
       return wrappedTransfer.getAbstractSuccessors(pState, pPrecision, null); // edge is null
     }
 
@@ -482,6 +475,7 @@ public class BAMTransferRelation implements TransferRelation {
       expandedToReducedCache.put(expandedState, reducedState);
 
       Precision expandedPrecision =
+              outerSubtree == null ? reducedPrecision : // special case: return from main
               wrappedReducer.getVariableExpandedPrecision(precision, outerSubtree, reducedPrecision);
 
       ((ARGState)expandedState).addParent((ARGState) state);
@@ -672,7 +666,7 @@ public class BAMTransferRelation implements TransferRelation {
 
     CFANode node = extractLocation(pState);
 
-    if (partitioning.isCallNode(node) && !isHeadOfMainFunction(node)
+    if (partitioning.isCallNode(node)
         && !partitioning.getBlockForCallNode(node).equals(currentBlock)) {
       // do not support nodes which are call nodes of multiple blocks
       Block analyzedBlock = partitioning.getBlockForCallNode(node);

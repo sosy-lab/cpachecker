@@ -27,18 +27,22 @@ import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 
-
-public final class ReferenceName extends LeftHandSide {
+/**
+ * Is used to represent a field reference without pointer dereferences.
+ *
+ * E.g a.b.h.
+ */
+public final class FieldReference extends LeftHandSide {
 
   private final List<String> fieldNames;
 
-  public ReferenceName(String pName, String pFunctionName, List<String> pFieldNames) {
+  public FieldReference(String pName, String pFunctionName, List<String> pFieldNames) {
     super(pName, pFunctionName);
     assert pFieldNames.size() > 0;
     fieldNames = ImmutableList.copyOf(pFieldNames);
   }
 
-  public ReferenceName(String pName, List<String> pFieldNames) {
+  public FieldReference(String pName, List<String> pFieldNames) {
     super(pName);
     assert pFieldNames.size() > 0;
     fieldNames = ImmutableList.copyOf(pFieldNames);
@@ -58,7 +62,7 @@ public final class ReferenceName extends LeftHandSide {
       return false;
     }
 
-    ReferenceName other = (ReferenceName) obj;
+    FieldReference other = (FieldReference) obj;
 
     if (isGlobal()) {
       if (!other.isGlobal()) {

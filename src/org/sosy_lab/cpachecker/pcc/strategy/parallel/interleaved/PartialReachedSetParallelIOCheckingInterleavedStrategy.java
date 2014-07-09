@@ -173,7 +173,7 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
       final Semaphore pPartitionChecked, final Lock pLock, final Condition pPartitionReady) {
     for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
       pReadingExecutor.execute(new ParallelPartitionReader(i, pCheckResult, pPartitionChecked, this, ioHelper,
-          pPartitionReady, pLock, false));
+          pPartitionReady, pLock, false, stats));
     }
   }
 

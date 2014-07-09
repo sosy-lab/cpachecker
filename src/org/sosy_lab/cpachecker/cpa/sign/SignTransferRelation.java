@@ -52,13 +52,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
@@ -96,13 +96,12 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
   }
 
   @Override
-  protected SignState handleReturnStatementEdge(AReturnStatementEdge pCfaEdge, IAExpression pExpression)
+  protected SignState handleReturnStatementEdge(CReturnStatementEdge pCfaEdge)
       throws CPATransferException {
-    if(pExpression == null) {
-      pExpression = CNumericTypes.ZERO; // default in c
-    }
+
+    CExpression expression = pCfaEdge.getExpression().or(CNumericTypes.ZERO); // 0 is the default in C
     String assignedVar = getScopedVariableName(FUNC_RET_VAR, functionName);
-    return handleAssignmentToVariable(state, assignedVar, pExpression);
+    return handleAssignmentToVariable(state, assignedVar, expression);
   }
 
   @Override
@@ -140,7 +139,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       String assignedVarName = getScopedVariableName(leftSide, pCallerFunctionName);
       logger.log(Level.FINE, "Leave function " + functionName + " with return assignment: " + assignedVarName + " = " + state.getSignMap().getSignForVariable(returnVarName));
       SignState result = state
-              .leaveFunction()
+              .leaveFunction(functionName)
               .assignSignToVariable(assignedVarName, state.getSignMap().getSignForVariable(returnVarName));
       return result;
     }
@@ -148,7 +147,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     // fun()
     if (pSummaryExpr instanceof AFunctionCallStatement) {
       logger.log(Level.FINE, "Leave function " + functionName);
-      return state.removeSignAssumptionOfVariable(getScopedVariableName(FUNC_RET_VAR, functionName));
+      return state.removeSignAssumptionOfVariable(getScopedVariableName(FUNC_RET_VAR, functionName)).leaveFunction(functionName);
     }
 
     throw new UnrecognizedCodeException("Unsupported code found", pCfaEdge);

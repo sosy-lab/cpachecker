@@ -99,6 +99,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
@@ -467,7 +468,11 @@ public class FunctionCloner implements CFAVisitor {
       }
 
     } else if (ast instanceof CReturnStatement) {
-      return new CReturnStatement(loc, cloneAst(((CReturnStatement) ast).getReturnValue()));
+      Optional<CExpression> returnExp = ((CReturnStatement) ast).getReturnValue();
+      if (returnExp.isPresent()) {
+        returnExp = Optional.of(cloneAst(returnExp.get()));
+      }
+      return new CReturnStatement(loc, returnExp);
 
     } else if (ast instanceof CDesignator) {
 

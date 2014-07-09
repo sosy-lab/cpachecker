@@ -116,6 +116,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -139,11 +140,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   private boolean automatonAssumesAsStatements = false;
 
   private final Set<String> javaNonStaticVariables = new HashSet<>();
-
-  /**
-   * name for the special variable used as container for return values of functions
-   */
-  public static final String FUNCTION_RETURN_VAR = "___cpa_temp_result_var_";
 
   private JRightHandSide missingInformationRightJExpression = null;
   private String missingInformationLeftJVariable = null;
@@ -190,9 +186,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   @Override
   protected Collection<ValueAnalysisState> postProcessing(ValueAnalysisState successor) {
-    if (successor != null){
+    // only maintain the delta if needed (for later abstraction) and if there is a successor
+    if (successor != null && precision.allowsAbstraction()) {
       successor.addToDelta(state);
     }
+
     return super.postProcessing(successor);
   }
 
@@ -312,7 +310,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   }
 
   @Override
-  protected ValueAnalysisState handleReturnStatementEdge(AReturnStatementEdge returnEdge, IAExpression expression)
+  protected ValueAnalysisState handleReturnStatementEdge(AReturnStatementEdge returnEdge)
           throws UnrecognizedCCodeException {
 
     // visitor must use the initial (previous) state, because there we have all information about variables
@@ -322,12 +320,13 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     state = state.clone();
     state.dropFrame(functionName);
 
+    IAExpression expression = returnEdge.getExpression().orNull();
     if (expression == null && returnEdge instanceof CReturnStatementEdge) {
       expression = CNumericTypes.ZERO; // this is the default in C
     }
 
     if (expression!= null) {
-      MemoryLocation functionReturnVar = MemoryLocation.valueOf(functionName, FUNCTION_RETURN_VAR, 0);
+      MemoryLocation functionReturnVar = MemoryLocation.valueOf(VariableClassification.createFunctionReturnVariable(functionName));
 
       return handleAssignmentToVariable(functionReturnVar,
           returnEdge.getSuccessor().getEntryNode().getFunctionDefinition().getType().getReturnType(), // TODO easier way to get type?
@@ -349,7 +348,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     throws UnrecognizedCodeException {
 
     ValueAnalysisState newElement  = state.clone();
-    MemoryLocation returnVarName = MemoryLocation.valueOf(functionName, FUNCTION_RETURN_VAR, 0);
+    MemoryLocation returnVarName = MemoryLocation.valueOf(VariableClassification.createFunctionReturnVariable(functionName));
 
     // expression is an assignment operation, e.g. a = g(b);
 
@@ -490,23 +489,27 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     // handle global variables
     if (decl.isGlobal()) {
-      if (decl instanceof JFieldDeclaration && !((JFieldDeclaration)decl).isStatic()) {
+      if (decl instanceof JFieldDeclaration && !((JFieldDeclaration) decl).isStatic()) {
         missingFieldVariableObject = true;
         javaNonStaticVariables.add(varName);
       }
 
-      // global variables without initializer are set to 0 in C
       if (init == null) {
-        initialValue = new NumericValue(0L);
+        if (decl.getType() instanceof JClassOrInterfaceType) {
+          initialValue = NullValue.getInstance();
+        } else {
+          // numeric variables without initializer are set to 0 in C and Java
+          initialValue = new NumericValue(0L);
+        }
       }
     }
 
     MemoryLocation memoryLocation;
 
     // assign initial value if necessary
-    if(decl.isGlobal()) {
+    if (decl.isGlobal()) {
       memoryLocation = MemoryLocation.valueOf(varName,0);
-    }else {
+    } else {
       memoryLocation = MemoryLocation.valueOf(functionName, varName, 0);
     }
 
@@ -530,7 +533,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     boolean complexType = decl.getType() instanceof JClassOrInterfaceType || decl.getType() instanceof JArrayType;
 
 
-    if (!complexType  && (missingInformationRightJExpression != null || !initialValue.isUnknown())) {
+    if ((!complexType  && (missingInformationRightJExpression != null || !initialValue.isUnknown()))
+        || initialValue instanceof EnumConstantValue || initialValue instanceof NullValue) {
       if (missingFieldVariableObject) {
         fieldNameAndInitialValue = Pair.of(varName, initialValue);
       } else if (missingInformationRightJExpression == null) {

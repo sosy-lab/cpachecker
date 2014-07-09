@@ -39,7 +39,6 @@ public class PartialReachedSetDirectedGraph {
   /* index of node is its position in <code>nodes</code>*/
   private final AbstractState[] nodes;
   private final int numNodes;
-  private final int[][] adjacencyMatrix;
   private final ImmutableList<ImmutableList<Integer>> adjacencyList;
 
   public PartialReachedSetDirectedGraph(final ARGState[] pNodes) {
@@ -47,12 +46,10 @@ public class PartialReachedSetDirectedGraph {
     if (pNodes == null) {
       nodes = new AbstractState[0];
       numNodes = 0;
-      adjacencyMatrix = new int[nodes.length][nodes.length];
       adjacencyList = new ArrayList<>(0);
     } else {
       nodes = pNodes;
       numNodes = nodes.length;
-      adjacencyMatrix = new int[nodes.length][nodes.length];
       adjacencyList = new ArrayList<>(nodes.length);
       for(int i=0;i<nodes.length;i++){
         adjacencyList.add(new ArrayList<Integer>());
@@ -79,15 +76,6 @@ public class PartialReachedSetDirectedGraph {
     return ImmutableList.copyOf(nodes);
   }
 
-  public int[][] getAdjacencyMatrix() {
-    int[][] returnMatrix = new int[nodes.length][nodes.length];
-    for (int i = 0; i < nodes.length; i++) {
-      for (int j = 0; j < nodes.length; j++) {
-        returnMatrix[i][j] = adjacencyMatrix[i][j];
-      }
-    }
-    return returnMatrix;
-  }
 
   public ImmutableList<ImmutableList<Integer>> getAdjacencyList() {
     return adjacencyList;
@@ -206,7 +194,6 @@ public class PartialReachedSetDirectedGraph {
           pNode = pNode.getCoveringState();
         }
         int indexSuccessor = nodeToIndex.get(pNode);
-        adjacencyMatrix[indexPredecessor][indexSuccessor] = 1;
         changeableAdjacencyList.get(indexPredecessor).add(indexSuccessor);
       }
     }

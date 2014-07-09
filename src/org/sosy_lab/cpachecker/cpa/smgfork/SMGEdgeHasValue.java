@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGObject;
 
-
 public class SMGEdgeHasValue extends SMGEdge {
   final private CType type;
   final private int offset;

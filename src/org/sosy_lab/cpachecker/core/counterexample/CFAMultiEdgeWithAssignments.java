@@ -28,11 +28,15 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 
 import com.google.common.collect.ImmutableList;
 
-
+/**
+ * This class is used if the error path contains multi edges {@link MultiEdge}.
+ * Every edge {@link CFAEdge} of a multi edge has its own assignment edge {@link CFAEdgeWithAssignments}.
+ */
 public final class CFAMultiEdgeWithAssignments extends CFAEdgeWithAssignments implements Iterable<CFAEdgeWithAssignments> {
 
   private final List<CFAEdgeWithAssignments> edgesWithAssignment;

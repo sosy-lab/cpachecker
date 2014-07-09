@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smgfork;
+package org.sosy_lab.cpachecker.cpa.smgfork.graphs;
 
 import static org.mockito.Mockito.mock;
 
@@ -40,6 +40,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.smgfork.AnonymousTypes;
+import org.sosy_lab.cpachecker.cpa.smgfork.CLangStackFrame;
+import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGRegion;
 

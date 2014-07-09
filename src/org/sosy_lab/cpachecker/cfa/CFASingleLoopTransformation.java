@@ -675,6 +675,7 @@ public class CFASingleLoopTransformation {
     for (CFANode node : pNodes) {
       this.shutdownNotifier.shutdownIfNecessary();
       for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
+
         CFANode successor = edge.getSuccessor();
         // Eliminate a direct self edge by introducing a dummy node in between
         if (successor == node) {
@@ -691,6 +692,33 @@ public class CFASingleLoopTransformation {
           addToNodes(dummyEdge);
 
           toAdd.add(dummy);
+
+          edge = dummyEdge;
+        }
+
+        // Replace obvious endless loop "while (x) {}" by "if (x) { TERMINATION NODE }"
+        if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+          CFANode assumePredecessor = edge.getPredecessor();
+          CFANode current = edge.getSuccessor();
+          FluentIterable<CFAEdge> leavingEdges;
+          CFAEdge leavingEdge = edge;
+          List<CFAEdge> edgesToRemove = new ArrayList<>();
+          edgesToRemove.add(leavingEdge);
+          while (!current.equals(assumePredecessor)
+             && (leavingEdges = CFAUtils.leavingEdges(current)).size() == 1
+             && (leavingEdge = Iterables.getOnlyElement(leavingEdges)).getEdgeType() == CFAEdgeType.BlankEdge) {
+            current = leavingEdge.getSuccessor();
+            edgesToRemove.add(leavingEdge);
+          }
+          if (current.equals(assumePredecessor)) {
+            for (CFAEdge toRemove : edgesToRemove) {
+              removeFromNodes(toRemove);
+            }
+            CFANode terminationNode = new CFATerminationNode(assumePredecessor.getFunctionName());
+            CFAEdge newEdge = copyCFAEdgeWithNewNodes(edge, assumePredecessor, terminationNode, SimpleMapAdapter.<CFANode, CFANode>createSimpleHashMap());
+            addToNodes(newEdge);
+            toAdd.add(terminationNode);
+          }
         }
       }
     }

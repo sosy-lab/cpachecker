@@ -28,8 +28,15 @@ import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -42,8 +49,9 @@ public class ErrorPathClassifier {
   public static final int INTEQUAL_VAR  = 4;
   public static final int UNKNOWN_VAR   = 16;
 
-  final Optional<VariableClassification> classification;
+  public static final int MAX_LENGTH    = 1000;
 
+  private final Optional<VariableClassification> classification;
 
   public ErrorPathClassifier(Optional<VariableClassification> pClassification) throws InvalidConfigurationException {
     classification = pClassification;
@@ -51,7 +59,7 @@ public class ErrorPathClassifier {
 
   public ARGPath obtainPrefixWithLowestScore(List<ARGPath> pPrefixes) {
 
-    if(!classification.isPresent()) {
+    if (!classification.isPresent()) {
       return concatPrefixes(pPrefixes);
     }
 
@@ -59,18 +67,18 @@ public class ErrorPathClassifier {
     Long bestScore            = null;
     int bestIndex             = 0;
 
-    for(ARGPath currentPrefix : pPrefixes) {
+    for (ARGPath currentPrefix : pPrefixes) {
       assert(currentPrefix.getLast().getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
 
       currentErrorPath.addAll(currentPrefix);
 
       Set<String> useDefinitionInformation = obtainUseDefInformationOfErrorPath(currentErrorPath);
 
-      long score = obtainScoreForVariables(useDefinitionInformation);
+      Long score = obtainScoreForVariables(useDefinitionInformation);
 
       // score <= bestScore chooses the last, based on iteration order, that has the best or equal-to-best score
-      // maybe a real tie-breaker rule would be better, e.g. total number of variables, number of reverences, etc.
-      if(bestScore == null || score <= bestScore) {
+      // maybe a real tie-breaker rule would be better, e.g. total number of variables, number of references, etc.
+      if (bestScore == null || isBestScore(score, bestScore, currentErrorPath)) {
         bestScore = score;
         bestIndex = pPrefixes.indexOf(currentPrefix);
       }
@@ -79,51 +87,122 @@ public class ErrorPathClassifier {
     return buildPath(bestIndex, pPrefixes);
   }
 
+  /**
+   * This method checks if the currentScore is better then the current optimum.
+   *
+   * A lower score is always favored. In case of a draw, the later, deeper score
+   * is favored, unless the error path exceeds the {@link #MAX_LENGTH} limit,
+   * then the earlier, more shallow score is favored. This avoids extremely long
+   * error traces (that take longer during interpolation).
+   *
+   * @param currentScore the current score
+   * @param currentBestScore the current optimum
+   * @param currentErrorPath the current error path
+   * @return true, if the current score is a new optimum, else false
+   */
+  private boolean isBestScore(Long currentScore, Long currentBestScore, ARGPath currentErrorPath) {
+    if (currentErrorPath.size() < MAX_LENGTH) {
+      return currentScore <= currentBestScore;
+    }
+
+    else {
+      return currentScore < currentBestScore;
+    }
+  }
+
   private Set<String> obtainUseDefInformationOfErrorPath(ARGPath currentErrorPath) {
     return new InitialAssumptionUseDefinitionCollector().obtainUseDefInformation(currentErrorPath);
   }
 
-  private long obtainScoreForVariables(Set<String> useDefinitionInformation) {
-    long score = 1;
-    for(String variableName : useDefinitionInformation) {
+  private Long obtainScoreForVariables(Set<String> useDefinitionInformation) {
+    Long score = 1L;
+    for (String variableName : useDefinitionInformation) {
       int factor = UNKNOWN_VAR;
 
-      if(classification.get().getIntBoolVars().contains(variableName)) {
+      if (classification.get().getIntBoolVars().contains(variableName)) {
         factor = BOOLEAN_VAR;
       }
 
-      else if(classification.get().getIntEqualVars().contains(variableName)) {
+      else if (classification.get().getIntEqualVars().contains(variableName)) {
         factor = INTEQUAL_VAR;
       }
 
       score = score * factor;
+
+      if (classification.get().getLoopIncDecVariables().contains(variableName)) {
+        score = score + Integer.MAX_VALUE;
+      }
     }
 
     return score;
   }
 
-  private ARGPath buildPath(int lastPrefixIndex, List<ARGPath> pPrefixes) {
+  /**
+   * This methods builds a new path from the given prefixes. It makes all
+   * contradicting assume edge but the last ineffective, so that only the last
+   * assumption leads to a contradiction.
+   *
+   * @param bestIndex the index of the prefix with the best score
+   * @param pPrefixes the list of prefixes
+   * @return a new path with the last assumption leading to a contradiction
+   */
+  private ARGPath buildPath(int bestIndex, List<ARGPath> pPrefixes) {
     ARGPath errorPath = new ARGPath();
-    for(int j = 0; j <= lastPrefixIndex; j++) {
+    for (int j = 0; j <= bestIndex; j++) {
       errorPath.addAll(pPrefixes.get(j));
 
-      // remove the last (assume) edge of all prefixes, except in the last prefix
-      if(j != lastPrefixIndex) {
-        Pair<ARGState, CFAEdge> lastStateOfCurrentPrefix = errorPath.removeLast();
-
-        assert(lastStateOfCurrentPrefix.getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
+      if (j != bestIndex) {
+        replaceAssumeEdgeWithBlankEdge(errorPath);
       }
     }
+
+    // add bogus transition to prefix - needed, because during interpolation,
+    // the last edge is never interpolated (assumed to be the error state),
+    // so we need to add an extra transition, e.g., duplicate the last edge,
+    // so that the assertion holds that the last transition is infeasible and
+    // yields an interpolant that represents FALSE / a contradiction
+    errorPath.add(BOGUS_TRANSITION);
 
     return errorPath;
   }
 
+  /**
+   * This method replaces the final (assume) edge of each prefix, except for the
+   * last, with a blank edge, and as such, avoiding a contradiction along that
+   * path at the removed assumptions.
+   *
+   * @param pErrorPath the error path from which to remove the final assume edge
+   */
+  private void replaceAssumeEdgeWithBlankEdge(final ARGPath pErrorPath) {
+    Pair<ARGState, CFAEdge> assumeState = pErrorPath.removeLast();
+
+    assert(assumeState.getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
+
+    pErrorPath.add(Pair.<ARGState, CFAEdge>of(assumeState.getFirst(), new BlankEdge("",
+        FileLocation.DUMMY,
+        assumeState.getSecond().getPredecessor(),
+        assumeState.getSecond().getSuccessor(),
+        "replacement for assume edge")));
+  }
+
   private ARGPath concatPrefixes(List<ARGPath> pPrefixes) {
     ARGPath errorPath = new ARGPath();
-    for(ARGPath currentPrefix : pPrefixes) {
+    for (ARGPath currentPrefix : pPrefixes) {
       errorPath.addAll(currentPrefix);
     }
 
     return errorPath;
   }
+
+  private static final CFAEdge BOGUS_EDGE = new CDeclarationEdge("",
+      FileLocation.DUMMY,
+      new CFANode("bogus"),
+      new CFANode("bogus"),
+      new CVariableDeclaration(FileLocation.DUMMY, false, CStorageClass.AUTO, CNumericTypes.INT, "", "", "", null));
+
+  /**
+   * a bogus transition, containing the null-state, and a declaration edge, with basically no side effect (may not be a
+   * blank edge, due to implementation details)
+   */
+  private static final Pair<ARGState, CFAEdge> BOGUS_TRANSITION = Pair.<ARGState, CFAEdge>of(null, BOGUS_EDGE);
 }

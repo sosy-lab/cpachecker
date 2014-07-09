@@ -222,7 +222,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     statsCollection.add(stats);
   }
 
-  protected static class PCStrategyStatistics implements Statistics {
+  public static class PCStrategyStatistics implements Statistics {
 
     protected Timer transferTimer = new Timer();
     protected Timer stopTimer = new Timer();
@@ -230,6 +230,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     protected Timer propertyCheckingTimer = new Timer();
 
     protected int countIterations = 0;
+    protected int proofSize = 0;
 
     @Override
     public String getName() {
@@ -261,6 +262,8 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
         ReachedSet pReached) {
       out.println("Number of iterations:                     " + countIterations);
       out.println();
+      out.println("Number of proof elements:                     " + proofSize);
+      out.println();
       out.println("  Time for preparing proof for checking:          " + preparationTimer);
       out.println("  Time for abstract successor checks:     " + transferTimer + " (Calls: "
           + transferTimer.getNumberOfIntervals() + ")");
@@ -268,6 +271,10 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
           + stopTimer.getNumberOfIntervals()
           + ")");
       out.println(" Time for checking property:          "   + propertyCheckingTimer);
+    }
+
+    public void increaseProofSize(int pIncrement) {
+      proofSize+=pIncrement;
     }
 
   }

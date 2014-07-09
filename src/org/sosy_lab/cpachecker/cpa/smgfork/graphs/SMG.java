@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smgfork;
+package org.sosy_lab.cpachecker.cpa.smgfork.graphs;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -38,7 +38,12 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdge;
+import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGRegion;
 
 
 public class SMG {
@@ -315,7 +320,7 @@ public class SMG {
    * @param pObj An object.
    * @param pValidity Validity to set.
    */
-  public void setValidity(SMGObject pObject, boolean pValidity) {
+  public void setValidity(SMGRegion pObject, boolean pValidity) {
     if (! objects.contains(pObject)) {
       throw new IllegalArgumentException("Object [" + pObject + "] not in SMG");
     }

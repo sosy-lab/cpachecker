@@ -509,7 +509,6 @@ public class BAMPredicateReducer implements Reducer {
       if (var.getKey().contains("::") && !isReturnVar(var.getKey())) { // var is scoped -> not global
         final int rootIndex = rootSSA.getIndex(var.getKey());
         final int expandedIndex = expandedSSA.getIndex(var.getKey());
-        assert expandedIndex != SSAMap.INDEX_NOT_CONTAINED : "iteration uses variable, that does not exist";
         if (rootIndex != expandedIndex) { // variable was changed during block-traversal
           builder.setIndex(var.getKey(), var.getValue(), expandedIndex + 1); // increment index to have a new variable
         }
@@ -538,16 +537,15 @@ public class BAMPredicateReducer implements Reducer {
       if (var.getKey().contains("::") && !isReturnVar(var.getKey()) && !isParamVar(var.getKey())) { // var is scoped -> not global
 
         final int rootIndex = rootSSA.getIndex(var.getKey());
-        assert rootIndex != SSAMap.INDEX_NOT_CONTAINED : "iteration uses variable, that does not exist";
         final int expandedIndex = expandedSSA.getIndex(var.getKey());
 
         if (rootIndex != expandedIndex) { // variable was changed during block-traversal
 
           final int incrementedIndex = expandedIndex + 1;
 
-          if (expandedIndex != SSAMap.INDEX_NOT_CONTAINED) { // if variable is used
+          //if (expandedIndex != SSAMap.INDEX_NOT_CONTAINED) { // if variable is used
             builder.setIndex(var.getKey(), var.getValue(), incrementedIndex); // increment index to have a new variable
-          }
+          //}
 
           final FormulaType type = pmgr.getTypeHandler().getFormulaTypeFromCType(rootSSA.getType(var.getKey()));
           final Formula oldVarFormula = fmgr.makeVariable(type, var.getKey(), rootIndex);

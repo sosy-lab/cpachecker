@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 
@@ -46,8 +45,6 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
   private static final boolean DEBUG = false;
 
   private static SignTargetChecker targetChecker;
-
-  private final Optional<SignState> stateBeforeEnteredFunction;
 
   static void init(Configuration config) throws InvalidConfigurationException {
     targetChecker = new SignTargetChecker(config);
@@ -62,14 +59,12 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
   public final static SignState TOP = new SignState();
   private final static SerialProxySign proxy = new SerialProxySign();
 
-  private SignState(SignMap pSignMap, Optional<SignState> pStateBeforeEnteredFunction) {
+  private SignState(SignMap pSignMap) {
     signMap = pSignMap;
-    stateBeforeEnteredFunction = pStateBeforeEnteredFunction;
   }
 
   private SignState() {
     signMap = new SignMap(ImmutableMap.<String, SIGN> of());
-    stateBeforeEnteredFunction = Optional.absent();
   }
 
   public SignState union(SignState pToJoin) {
@@ -91,18 +86,14 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
         }
       }
     }
+
     ImmutableMap<String, SIGN> newMap = mapBuilder.build();
-    return newMap.size()>0?new SignState(new SignMap(newMap), stateBeforeEnteredFunction):result;
+
+    return newMap.size() > 0 ? new SignState(new SignMap(newMap)) : result;
   }
 
   public boolean isSubsetOf(SignState pSuperset) {
     if (pSuperset.equals(this) || pSuperset.equals(TOP)) { return true; }
-    if (stateBeforeEnteredFunction.isPresent()) {
-      if (!pSuperset.stateBeforeEnteredFunction.isPresent()
-          || pSuperset.stateBeforeEnteredFunction.get() != stateBeforeEnteredFunction.get()) { return false; }
-    } else {
-      if (pSuperset.stateBeforeEnteredFunction.isPresent()) { return false; }
-    }
     // is subset if for every variable all sign assumptions are considered in pSuperset
     // check that all variables with SIGN != ALL are covered
     for (String varIdent : signMap.keySet()) {
@@ -117,14 +108,23 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
 
   public SignState enterFunction(ImmutableMap<String, SIGN> pArguments) {
     SignMap resultSignMap = signMap.mergeWith(new SignMap(pArguments));
-    return new SignState(resultSignMap, Optional.of(this));
+    return new SignState(resultSignMap);
   }
 
-  public SignState leaveFunction() {
-      if(stateBeforeEnteredFunction.isPresent()) {
-          return stateBeforeEnteredFunction.get();
+  public SignState leaveFunction(String pFunctionName) {
+    boolean changed = false;
+
+    ImmutableMap.Builder<String, SIGN> mapBuilder = ImmutableMap.builder();
+    for (String var : signMap.keySet()) {
+      if (var.startsWith(pFunctionName + "::")) {
+        changed = true;
+      } else {
+        mapBuilder.put(var, signMap.getSignForVariable(var));
       }
-      throw new IllegalStateException("No function has been entered before");
+    }
+
+    if (changed) { return new SignState(new SignMap(mapBuilder.build())); }
+    return this;
   }
 
   public SignState assignSignToVariable(String pVarIdent, SIGN sign) {
@@ -137,7 +137,7 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
         mapBuilder.put(varId, signMap.getSignForVariable(varId));
       }
     }
-    return new SignState(new SignMap(mapBuilder.build()), stateBeforeEnteredFunction);
+    return new SignState(new SignMap(mapBuilder.build()));
   }
 
   public SignState removeSignAssumptionOfVariable(String pVarIdent) {

@@ -418,19 +418,12 @@ cpa.apron.domain = "OCTAGON"
 cpa.apron.initialPrecisionType = "STATIC_FULL"
   allowed values: [STATIC_FULL, REFINEABLE_EMPTY]
 
-# which merge operator to use for ApronCPA?
-cpa.apron.merge = "SEP"
-  allowed values: [SEP, JOIN]
+# with this option enabled the states are only merged at loop heads
+cpa.apron.mergeop.onlyMergeAtLoopHeads = false
 
-# with this option enabledmergeJoin is only used on edges within the same
-# block, i.e. each iterationof a loop is a different block, thus the
-# precision of the analysis increases
-cpa.apron.mergeop.onlyJoinEdgesInSameBlock = false
-
-# of which type should the merge be? normal, for usual join, widening for a
-# widening instead of a join
-cpa.apron.mergeop.type = "NORMAL"
-  allowed values: [NORMAL, WIDENING]
+# of which type should the merge be?
+cpa.apron.mergeop.type = "SEP"
+  allowed values: [SEP, JOIN, WIDENING]
 
 # whether or not to avoid restarting at assume edges after a refinement
 cpa.apron.refiner.avoidAssumes = false
@@ -599,6 +592,9 @@ cpa.bdd.initiallyEmptyPrecision = false
 # Dump tracked variables to a file.
 cpa.bdd.logfile = "BDDCPA_tracked_variables.log"
 
+# mergeType
+cpa.bdd.merge = "join"
+
 # whether or not to add newly-found variables only to the exact program
 # location or to the whole scope of the variable.
 cpa.bdd.precision.refinement.useScopedInterpolation = false
@@ -661,10 +657,12 @@ cpa.composite.merge = "AGREE"
 cpa.composite.precAdjust = "COMPOSITE"
   allowed values: [COMPOSITE, COMPONENT]
 
-# Limit for Java heap memory used by CPAchecker (in MiB; -1 for infinite)
+# Limit for Java heap memory used by CPAchecker (in MB, not MiB!; -1 for
+# infinite)
 cpa.conditions.global.memory.heap = -1
 
-# Limit for process memory used by CPAchecker (in MiB; -1 for infinite)
+# Limit for process memory used by CPAchecker (in MB, not MiB!; -1 for
+# infinite)
 cpa.conditions.global.memory.process = -1
 
 # Limit for size of reached set (-1 for infinite)
@@ -831,34 +829,21 @@ cpa.octagon.interpolation.applyUseDefInformation = true
 # interpolation - this avoids to have loop-counters in the interpolant
 cpa.octagon.interpolation.ignoreLoopsExitAssumes = true
 
-# which merge operator to use for OctagonCPA?
-cpa.octagon.merge = "SEP"
-  allowed values: [SEP, JOIN]
+# with this option enabled the states are only merged at loop heads
+cpa.octagon.mergeop.onlyMergeAtLoopHeads = false
 
-# with this option enabledmergeJoin is only used on edges within the same
-# block, i.e. each iterationof a loop is a different block, thus the
-# precision of the analysis increases
-cpa.octagon.mergeop.onlyJoinEdgesInSameBlock = false
-
-# of which type should the merge be? normal, for usual join, widening for a
-# widening instead of a join
-cpa.octagon.mergeop.type = "NORMAL"
-  allowed values: [NORMAL, WIDENING]
+# of which type should the merge be?
+cpa.octagon.mergeop.type = "SEP"
+  allowed values: [SEP, JOIN, WIDENING]
 
 # with this option the number representation in the library will be changed
 # between floats and ints.
 cpa.octagon.octagonLibrary = "INT"
   allowed values: [INT, FLOAT]
 
-# whether or not to avoid restarting at assume edges after a refinement
-cpa.octagon.refiner.avoidAssumes = false
-
 # whether or not to check for repeated refinements, to then reset the
 # refinement root
 cpa.octagon.refiner.checkForRepeatedRefinements = true
-
-# whether or not to do lazy-abstraction
-cpa.octagon.refiner.doLazyAbstraction = true
 
 # Timelimit (in seconds) for the backup feasibility check with the octagon
 # analysis. Zero means there is no timelimit.
@@ -1222,6 +1207,9 @@ cpa.predicate.solver = MATHSAT5
 # log some solver actions, this may be slow!
 cpa.predicate.solver.useLogger = false
 
+# Export solver queries in Smtlib format into a file.
+cpa.predicate.solver.z3.logger.logAllQueries = false
+
 # Export solver queries in Smtlib2 format.
 cpa.predicate.solver.z3.logger.logfile = "z3smtlog.%d.smt2"
 
@@ -1263,6 +1251,10 @@ cpa.predicate.useNondetFlags = false
 # Insert tmp-variables for parameters at function-entries. The variables are
 # similar to return-variables at function-exit.
 cpa.predicate.useParameterVariables = false
+
+# Insert tmp-parameters for global variables at function-entries. The global
+# variables are also encoded with return-variables at function-exit.
+cpa.predicate.useParameterVariablesForGlobals = false
 
 # Qualified name for class which checks that the computed abstraction adheres
 # to the desired property.
@@ -1489,10 +1481,6 @@ cpa.value.initAssumptionVars = false
 # get an initial precison from file
 cpa.value.initialPrecisionFile = no default value
 
-# whether or not to heuristically weaken the candidate interpolant prior to
-# the interpolation process
-cpa.value.interpolation.weakenInterpolant = false
-
 # which merge operator to use for ValueAnalysisCPA
 cpa.value.merge = "SEP"
   allowed values: [SEP, JOIN]
@@ -1551,9 +1539,9 @@ cpa.value.refiner.checkForRepeatedRefinements = true
 # whether or not to do lazy-abstraction
 cpa.value.refiner.doLazyAbstraction = true
 
-# whether or not to interpolate the shortest infeasible prefix rather than
-# the whole error path
-cpa.value.refiner.interpolateInfeasiblePrefix = false
+# whether or not to interpolate the heuristically best infeasible prefix
+# rather than the whole error path
+cpa.value.refiner.interpolateInfeasiblePrefix = true
 
 # use heuristic to extract a precision from the CFA statically on first
 # refinement

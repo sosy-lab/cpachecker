@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
@@ -165,9 +166,9 @@ public class ReferencedVariablesCollector {
         break;
       }
       case ReturnStatementEdge:
-        CExpression returnExpr = ((CReturnStatementEdge) edge).getExpression();
-        if (returnExpr != null) {
-          Set<String> vars = collectVars(returnExpr);
+        Optional<CExpression> returnExpr = ((CReturnStatementEdge) edge).getExpression();
+        if (returnExpr.isPresent()) {
+          Set<String> vars = collectVars(returnExpr.get());
           allVars.addAll(vars);
         }
         break;

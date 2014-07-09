@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -49,11 +50,9 @@ import com.google.common.collect.Sets;
 
 public class ValueAnalysisFeasibilityChecker {
 
-  private final CFA cfa;
   private final LogManager logger;
   private final ValueAnalysisTransferRelation transfer;
   private final ValueAnalysisPrecision precision;
-  private final Configuration config;
 
   /**
    * This method acts as the constructor of the class.
@@ -64,11 +63,9 @@ public class ValueAnalysisFeasibilityChecker {
    * @throws InvalidConfigurationException
    */
   public ValueAnalysisFeasibilityChecker(LogManager pLogger, CFA pCfa) throws InvalidConfigurationException {
-    this.cfa    = pCfa;
-    this.logger = pLogger;
+    logger    = pLogger;
 
-    config    = Configuration.builder().build();
-    transfer  = new ValueAnalysisTransferRelation(config, logger, cfa);
+    transfer  = new ValueAnalysisTransferRelation(Configuration.builder().build(), pLogger, pCfa);
     precision = ValueAnalysisPrecision.createDefaultPrecision();
   }
 
@@ -81,7 +78,7 @@ public class ValueAnalysisFeasibilityChecker {
    * @throws InterruptedException
    */
   public boolean isFeasible(final ARGPath path) throws CPAException, InterruptedException {
-    return isFeasible(path, new ValueAnalysisState());
+    return isFeasible(path, new ValueAnalysisState(), new ArrayDeque<ValueAnalysisState>());
   }
 
   /**
@@ -89,14 +86,30 @@ public class ValueAnalysisFeasibilityChecker {
    *
    * @param path the path to check
    * @param pInitial the initial state
+   * @param pCallstack the initial callstack
    * @return true, if the path is feasible, else false
    * @throws CPAException
    * @throws InterruptedException
    */
   public boolean isFeasible(final ARGPath path, final ValueAnalysisState pInitial)
+          throws CPAException, InterruptedException {
+    return isFeasible(path, pInitial, new ArrayDeque<ValueAnalysisState>());
+  }
+
+  /**
+   * This method checks if the given path is feasible, starting with the given initial state.
+   *
+   * @param path the path to check
+   * @param pInitial the initial state
+   * @param pCallstack the initial callstack
+   * @return true, if the path is feasible, else false
+   * @throws CPAException
+   * @throws InterruptedException
+   */
+  public boolean isFeasible(final ARGPath path, final ValueAnalysisState pInitial, final Deque<ValueAnalysisState> pCallstack)
       throws CPAException, InterruptedException {
 
-    return path.size() == getInfeasilbePrefix(path, pInitial).size();
+    return path.size() == getInfeasilbePrefix(path, pInitial, pCallstack).size();
   }
 
   /**
@@ -106,13 +119,15 @@ public class ValueAnalysisFeasibilityChecker {
    *
    * @param path the path to check
    * @param pInitial the initial state
+   * @param pCallstack the initial callstack
    * @return the shortest prefix of the path that is feasible by itself
    * @throws CPAException
    * @throws InterruptedException
    */
-  public ARGPath getInfeasilbePrefix(final ARGPath path, final ValueAnalysisState pInitial)
-      throws CPAException, InterruptedException {
-    return getInfeasilbePrefixes(path, pInitial).get(0);
+  public ARGPath getInfeasilbePrefix(final ARGPath path, final ValueAnalysisState pInitial,
+                                     final Deque<ValueAnalysisState> pCallstack)
+          throws CPAException, InterruptedException {
+    return getInfeasilbePrefixes(path, pInitial, pCallstack).get(0);
   }
 
   /**
@@ -125,7 +140,9 @@ public class ValueAnalysisFeasibilityChecker {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public List<ARGPath> getInfeasilbePrefixes(final ARGPath path, final ValueAnalysisState pInitial)
+  public List<ARGPath> getInfeasilbePrefixes(final ARGPath path,
+                                             final ValueAnalysisState pInitial,
+                                             final Deque<ValueAnalysisState> callstack)
       throws CPAException, InterruptedException {
 
     List<ARGPath> prefixes = new ArrayList<>();
@@ -138,7 +155,6 @@ public class ValueAnalysisFeasibilityChecker {
       // we need a callstack to handle recursive functioncalls,
       // because they override variables of current scope and we have to rebuild them.
       // TODO optimisation: use only for recursion, currently every functioncall is rebuild
-      final Deque<ValueAnalysisState> callstack = new ArrayDeque<>();
 
       for (Pair<ARGState, CFAEdge> pathElement : path) {
         final CFAEdge edge = pathElement.getSecond();
@@ -164,6 +180,7 @@ public class ValueAnalysisFeasibilityChecker {
 
         // no successors => path is infeasible
         if(successors.isEmpty()) {
+          logger.log(Level.FINE, "found infeasible prefix: ", pathElement.getSecond(), " did not yield a successor");
           prefixes.add(currentPrefix);
 
           currentPrefix = new ARGPath();
@@ -176,6 +193,7 @@ public class ValueAnalysisFeasibilityChecker {
 
       // prefixes is empty => path is feasible, so add complete path
       if(prefixes.isEmpty()) {
+        logger.log(Level.FINE, "no infeasible prefixes found - path is feasible");
         prefixes.add(path);
       }
 

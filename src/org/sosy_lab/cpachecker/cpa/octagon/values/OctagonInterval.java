@@ -44,7 +44,7 @@ public class OctagonInterval {
    */
   public static final OctagonInterval EMPTY = createEmptyOctInterval();
   public static final OctagonInterval FALSE = new OctagonInterval(OctagonIntValue.ZERO, OctagonIntValue.ZERO);
-  public static final OctagonInterval DELTA = new OctagonInterval(-0.1, 0.1);
+  public static final OctagonInterval DELTA = new OctagonInterval(-0.00001, 0.00001);
 
   /**
    * This method acts as constructor for an empty OctInterval.
@@ -538,6 +538,12 @@ public class OctagonInterval {
    * @return the product of the first and second scalar operand or on overflow Long.MAX_VALUE and Long.MIN_VALUE, respectively.
    */
   private static OctagonNumericValue scalarTimes(OctagonNumericValue x, OctagonNumericValue y) {
+    if (x.equals(OctagonIntValue.ONE)) {
+      return y;
+    } else if (y.equals(OctagonIntValue.ONE)) {
+      return x;
+    }
+
     Long bound = (x.signum() == y.signum()) ? Long.MAX_VALUE : Long.MIN_VALUE;
 
     // if overflow occurs, return the respective bound

@@ -156,6 +156,19 @@ public class ValueAnalysisPrecision implements Precision {
         new ValueAnalysisPrecision.FullPrecision());
   }
 
+  /**
+   * This method determines if this precision allows for abstraction, i.e., if
+   * it ignores variables from some variable class, if it maintains a refinable
+   * precision, or if it contains a variable blacklist.
+   *
+   * @return true, if this precision allows for abstraction, else false
+   */
+  boolean allowsAbstraction() {
+     return ignoreBoolean || ignoreIntAdd || ignoreIntEqual
+         || !(refinablePrecision instanceof FullPrecision)
+         || !blackListPattern.toString().equals("");
+  }
+
   public RefinablePrecision getRefinablePrecision() {
     return refinablePrecision;
   }

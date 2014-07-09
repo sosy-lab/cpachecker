@@ -198,7 +198,7 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
         ObjectInputStream o = streams.getThird();
         ioHelper.readMetadata(o, false);
         for (int i = 0; i < ioHelper.getNumPartitions() && checkResult.get(); i++) {
-          ioHelper.readPartition(o);
+          ioHelper.readPartition(o, stats);
           if (shutdownNotifier.shouldShutdown()) {
             abortPreparation();
             break;

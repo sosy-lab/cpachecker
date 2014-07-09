@@ -81,12 +81,12 @@ class GlobalConditionsThresholds {
 
 
   @Option(name="memory.heap",
-      description="Limit for Java heap memory used by CPAchecker (in MiB; -1 for infinite)")
+      description="Limit for Java heap memory used by CPAchecker (in MB, not MiB!; -1 for infinite)")
   @IntegerOption(min=-1)
   private long heapMemory = -1;
 
   @Option(name="memory.process",
-      description="Limit for process memory used by CPAchecker (in MiB; -1 for infinite)")
+      description="Limit for process memory used by CPAchecker (in MB, not MiB!; -1 for infinite)")
   @IntegerOption(min=-1)
   private long processMemory = -1;
 

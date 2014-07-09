@@ -358,10 +358,13 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     singleConfigBuilder.copyFrom(globalConfig);
     singleConfigBuilder.clearOption("restartAlgorithm.configFiles");
     singleConfigBuilder.clearOption("analysis.restartAfterUnknown");
+    singleConfigBuilder.loadFromFile(singleConfigFileName);
+    if (globalConfig.hasProperty("specification")) {
+      singleConfigBuilder.copyOptionFrom(globalConfig, "specification");
+    }
+    Configuration singleConfig = singleConfigBuilder.build();
 
     RestartAlgorithmOptions singleOptions = new RestartAlgorithmOptions();
-    singleConfigBuilder.loadFromFile(singleConfigFileName);
-    Configuration singleConfig = singleConfigBuilder.build();
     singleConfig.inject(singleOptions);
 
     ResourceLimitChecker singleLimits = ResourceLimitChecker.fromConfiguration(singleConfig, logger, singleShutdownNotifier);

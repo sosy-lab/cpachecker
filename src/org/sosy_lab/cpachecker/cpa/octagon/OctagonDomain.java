@@ -97,8 +97,10 @@ class OctagonDomain implements AbstractDomain {
     OctagonState newState = new OctagonState(newOctagon,
                                      shrinkedStates.getFirst().getVariableToIndexMap(),
                                      shrinkedStates.getFirst().getVariableToTypeMap(),
-                                     ((OctagonState)successor).getBlock(),
                                      logger);
+    if (((OctagonState)reached).isLoopHead()) {
+      newState = newState.asLoopHead();
+    }
     if (newState.equals(reached)) {
       return reached;
     } else if (newState.equals(successor)) {
@@ -108,7 +110,7 @@ class OctagonDomain implements AbstractDomain {
     }
   }
 
-  public AbstractState joinWidening(OctagonState successorOct, OctagonState reachedOct) {
+  public AbstractState widening(OctagonState successorOct, OctagonState reachedOct) {
     Pair<OctagonState, OctagonState> shrinkedStates = getShrinkedStates(successorOct, reachedOct);
     successorOct = shrinkedStates.getFirst();
     reachedOct = shrinkedStates.getSecond();
@@ -129,8 +131,10 @@ class OctagonDomain implements AbstractDomain {
     OctagonState newState = new OctagonState(newOctagon,
                                      successorOct.getVariableToIndexMap(),
                                      successorOct.getVariableToTypeMap(),
-                                     successorOct.getBlock(),
                                      logger);
+    if (reachedOct.isLoopHead()) {
+      newState = newState.asLoopHead();
+    }
     if (newState.equals(successorOct)) {
       return successorOct;
     } else if (newState.equals(reachedOct)) {

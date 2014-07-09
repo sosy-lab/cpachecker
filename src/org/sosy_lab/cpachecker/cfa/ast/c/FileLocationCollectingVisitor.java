@@ -247,8 +247,8 @@ public class FileLocationCollectingVisitor implements CAstNodeVisitor<Set<FileLo
   @Override
   public Set<FileLocation> visit(CReturnStatement pNode) throws RuntimeException {
     Set<FileLocation> result = Collections.singleton(pNode.getFileLocation());
-    if (pNode.getReturnValue() != null) {
-      result = Sets.union(result, pNode.getReturnValue().accept(this));
+    if (pNode.getReturnValue().isPresent()) {
+      result = Sets.union(result, pNode.getReturnValue().get().accept(this));
     }
     return result;
   }

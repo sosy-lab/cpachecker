@@ -98,8 +98,9 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
   @Option(description="whether or not to avoid restarting at assume edges after a refinement")
   private boolean avoidAssumes = false;
 
-  @Option(description="whether or not to interpolate the shortest infeasible prefix rather than the whole error path")
-  private boolean interpolateInfeasiblePrefix = false;
+  @Option(description="whether or not to interpolate the heuristically best infeasible prefix"
+      + " rather than the whole error path")
+  private boolean interpolateInfeasiblePrefix = true;
 
   /**
    * the offset in the path from where to cut-off the subtree, and restart the analysis
@@ -123,7 +124,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
   private final ValueAnalysisInterpolator interpolator;
 
-  protected ValueAnalysisInterpolationBasedRefiner(Configuration pConfig,
+  public ValueAnalysisInterpolationBasedRefiner(Configuration pConfig,
       final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa)
       throws InvalidConfigurationException {
@@ -142,9 +143,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
     interpolationOffset = -1;
 
-    errorPath = obtainErrorPathPrefix(errorPath, interpolant);
-
-    List<CFAEdge> errorTrace = obtainErrorTrace(errorPath);
+    List<CFAEdge> errorTrace = obtainErrorTrace(obtainErrorPathPrefix(errorPath, interpolant));
 
     Map<ARGState, ValueAnalysisInterpolant> pathInterpolants = new LinkedHashMap<>(errorPath.size());
     final Deque<ValueAnalysisState> callstack = new ArrayDeque<>();
@@ -171,15 +170,15 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
       }
 
       pathInterpolants.put(errorPath.get(i + 1).getFirst(), interpolant);
-    }
 
-    assert interpolant.isFalse() : "final interpolant is not false: " + interpolant;
+      assert ((i != errorTrace.size() - 1) || interpolant.isFalse()) : "final interpolant is not false";
+    }
 
     timerInterpolation.stop();
     return pathInterpolants;
   }
 
-  protected Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(ARGPath errorPath)
+  public Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(ARGPath errorPath)
       throws CPAException, InterruptedException {
 
     assignments = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
@@ -222,7 +221,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
    * @return the new refinement root
    * @throws RefinementFailedException if no refinement root can be determined
    */
-  Pair<ARGState, CFAEdge> determineRefinementRoot(ARGPath errorPath, Multimap<CFANode, MemoryLocation> increment,
+  public Pair<ARGState, CFAEdge> determineRefinementRoot(ARGPath errorPath, Multimap<CFANode, MemoryLocation> increment,
       boolean isRepeatedRefinement) throws RefinementFailedException {
 
     if(interpolationOffset == -1) {
@@ -284,7 +283,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
       try {
         ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
 
-        List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath, interpolant.createValueAnalysisState());
+        List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath, interpolant.createValueAnalysisState(), new ArrayDeque<ValueAnalysisState>());
 
         errorPath = new ErrorPathClassifier(cfa.getVarClassification()).obtainPrefixWithLowestScore(prefixes);
 
@@ -443,11 +442,11 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      *
      * @return
      */
-    static ValueAnalysisInterpolant createInitial() {
+    public static ValueAnalysisInterpolant createInitial() {
       return new ValueAnalysisInterpolant();
     }
 
-    Set<MemoryLocation> getMemoryLocations() {
+    public Set<MemoryLocation> getMemoryLocations() {
       return isFalse()
           ? Collections.<MemoryLocation>emptySet()
           : Collections.unmodifiableSet(assignment.keySet());
@@ -519,7 +518,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      *
      * @return true, if the interpolant represents "true", else false
      */
-    private boolean isTrue() {
+    public boolean isTrue() {
       return assignment.isEmpty();
     }
 
@@ -528,7 +527,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      *
      * @return true, if the interpolant represents "false", else true
      */
-    boolean isFalse() {
+    public boolean isFalse() {
       return assignment == null;
     }
 
@@ -537,7 +536,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      *
      * @return true, if the interpolant is trivial, else false
      */
-    boolean isTrivial() {
+    public boolean isTrivial() {
       return isFalse() || isTrue();
     }
 

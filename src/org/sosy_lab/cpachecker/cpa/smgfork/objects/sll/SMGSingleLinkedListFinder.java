@@ -30,12 +30,12 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cpa.smgfork.AnonymousTypes;
-import org.sosy_lab.cpachecker.cpa.smgfork.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGAbstractionFinder;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGObject;
 
 public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {

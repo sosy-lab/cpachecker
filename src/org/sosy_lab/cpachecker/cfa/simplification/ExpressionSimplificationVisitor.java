@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.simplification;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.logging.Level;
 
@@ -33,14 +34,20 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
+import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
@@ -59,6 +66,11 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
   public ExpressionSimplificationVisitor(MachineModel mm, LogManagerWithoutDuplicates pLogger) {
     this.machineModel = mm;
     this.logger = pLogger;
+  }
+
+  /** return a simplified version of the expression. */
+  protected CExpression recursive(CExpression expr) {
+    return expr.accept(this);
   }
 
   private NumericValue getValue(CExpression expr) {
@@ -112,10 +124,10 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
   public CExpression visit(final CBinaryExpression expr) {
     final BinaryOperator binaryOperator = expr.getOperator();
 
-    final CExpression op1 = expr.getOperand1().accept(this);
+    final CExpression op1 = recursive(expr.getOperand1());
     final NumericValue value1 = getValue(op1);
 
-    final CExpression op2 = expr.getOperand2().accept(this);
+    final CExpression op2 = recursive(expr.getOperand2());
     final NumericValue value2 = getValue(op2);
 
     // if one side can not be evaluated, build new expression
@@ -142,7 +154,7 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
 
   @Override
   public CExpression visit(CCastExpression expr) {
-    final CExpression op = expr.getOperand().accept(this);
+    final CExpression op = recursive(expr.getOperand());
     final NumericValue value = getValue(op);
 
     // if expr can not be evaluated, build new expression
@@ -197,13 +209,21 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
           expr.getExpressionType(), BigInteger.valueOf(result));
     }
 
-    final CExpression op = expr.getOperand().accept(this);
+    final CExpression op = recursive(expr.getOperand());
     final NumericValue value = getValue(op);
 
-    if (unaryOperator == UnaryOperator.MINUS && value != null) {
-      final long negatedValue = -value.longValue();
-      return new CIntegerLiteralExpression(expr.getFileLocation(),
-                      expr.getExpressionType(), BigInteger.valueOf(negatedValue));
+    if (unaryOperator == UnaryOperator.MINUS && value != null && op.getExpressionType() instanceof CSimpleType) {
+      final NumericValue negatedValue = value.negate();
+      switch (((CSimpleType)op.getExpressionType()).getType()) {
+        case CHAR:
+        case INT:
+          return new CIntegerLiteralExpression(expr.getFileLocation(),
+                expr.getExpressionType(), BigInteger.valueOf(negatedValue.longValue()));
+        case FLOAT:
+        case DOUBLE:
+          return new CFloatLiteralExpression(expr.getFileLocation(),
+                expr.getExpressionType(), BigDecimal.valueOf(negatedValue.doubleValue()));
+      }
 
     }
 
@@ -217,5 +237,45 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
           op, unaryOperator);
     }
     return newExpr;
+  }
+
+  @Override
+  public CExpression visit(CIdExpression expr) {
+    final CSimpleDeclaration decl = expr.getDeclaration();
+    final CType type = expr.getExpressionType();
+
+    // enum constant
+    if (decl instanceof CEnumType.CEnumerator &&
+            ((CEnumType.CEnumerator)decl).hasValue()) {
+      final long v = ((CEnumType.CEnumerator)decl).getValue();
+      return new CIntegerLiteralExpression(expr.getFileLocation(),
+              type, BigInteger.valueOf(v));
+    }
+
+    // const variable, inline initializer
+    if (!(type instanceof CProblemType)
+        && type.isConst()
+        && decl instanceof CVariableDeclaration) {
+
+      final CInitializer init = ((CVariableDeclaration)decl).getInitializer();
+      if (init instanceof CExpression) {
+        NumericValue v = getValue((CExpression)init);
+
+        if (v != null && decl.getType() instanceof CSimpleType) {
+          switch (((CSimpleType) type).getType()) {
+            case CHAR:
+            case INT:
+              return new CIntegerLiteralExpression(expr.getFileLocation(),
+                      type, BigInteger.valueOf(v.longValue()));
+            case FLOAT:
+            case DOUBLE:
+              return new CFloatLiteralExpression(expr.getFileLocation(),
+                      type, BigDecimal.valueOf(v.doubleValue()));
+          }
+        }
+      }
+    }
+
+    return visitDefault(expr);
   }
 }

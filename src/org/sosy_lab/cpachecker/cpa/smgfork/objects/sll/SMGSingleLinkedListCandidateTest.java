@@ -29,9 +29,9 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smgfork.AnonymousTypes;
-import org.sosy_lab.cpachecker.cpa.smgfork.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGRegion;
 
