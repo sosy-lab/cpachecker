@@ -799,8 +799,7 @@ public class AssignmentToEdgeAllocator {
       public Address visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
         CExpression arrayExpression = pIastArraySubscriptExpression.getArrayExpression();
 
-        // we can evaluate this here, because arrays will be evaluated to their address
-        // TODO BUG!? what if array types are intermingled with pointer types
+        // This works because arrays and structs evaluate to addresses
         Address address = evaluateNumericalValueAsAddress(arrayExpression);
 
         if(address == null) {
