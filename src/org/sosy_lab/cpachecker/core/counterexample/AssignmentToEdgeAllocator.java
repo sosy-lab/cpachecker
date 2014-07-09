@@ -877,7 +877,7 @@ public class AssignmentToEdgeAllocator {
 
       @Override
       public Address visit(CComplexCastExpression pComplexCastExpression) {
-        // TODO Implement complex Cast Expression when predicate models it.
+        // TODO Implement complex Cast Expression
         return null;
       }
     }
@@ -980,18 +980,25 @@ public class AssignmentToEdgeAllocator {
 
           CExpression operand = pUnaryExpression.getOperand();
 
-          if (operand instanceof CLeftHandSide) {
-            //TODO assumed? Problems with casts
-
-            Address address = evaluateAddress((CLeftHandSide) operand);
-
-            if(address != null) {
-              return new NumericValue(address.getAsNumber());
-            }
-          }
+          return handleAmper(operand);
         }
 
         return super.visit(pUnaryExpression);
+      }
+
+      private Value handleAmper(CExpression pOperand) {
+        if (pOperand instanceof CLeftHandSide) {
+
+          Address address = evaluateAddress((CLeftHandSide) pOperand);
+
+          if (address != null) {
+            return new NumericValue(address.getAsNumber());
+          }
+        } else if (pOperand instanceof CCastExpression) {
+          return handleAmper(((CCastExpression) pOperand).getOperand());
+        }
+
+        return Value.UnknownValue.getInstance();
       }
 
       @Override
