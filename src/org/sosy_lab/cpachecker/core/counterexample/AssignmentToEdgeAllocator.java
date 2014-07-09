@@ -550,6 +550,13 @@ public class AssignmentToEdgeAllocator {
         return null;
       }
 
+      CType type = pIastArraySubscriptExpression.getExpressionType().getCanonicalType();
+
+      /*The evaluation of an array or a struct is its address*/
+      if (type instanceof CArrayType || isStructOrUnionType(type)) {
+        return valueAddress.getAsNumber();
+      }
+
       Object value = modelAtEdge.getValueFromMemory(pIastArraySubscriptExpression,
           valueAddress);
 
@@ -563,6 +570,13 @@ public class AssignmentToEdgeAllocator {
 
       if(address == null) {
         return lookupReference(pIastFieldReference);
+      }
+
+      CType type = pIastFieldReference.getExpressionType().getCanonicalType();
+
+      /*The evaluation of an array or a struct is its address*/
+      if (type instanceof CArrayType || isStructOrUnionType(type)) {
+        return address.getAsNumber();
       }
 
       Object value = modelAtEdge.getValueFromMemory(pIastFieldReference, address);
@@ -645,15 +659,15 @@ public class AssignmentToEdgeAllocator {
 
       CSimpleDeclaration dcl = pCIdExpression.getDeclaration();
 
-      CType type = pCIdExpression.getExpressionType().getCanonicalType();
-
       Address address = evaluateAddress(pCIdExpression);
 
       if(address == null) {
         return lookupVariable(dcl);
       }
 
-      /*The evaluation of an array is its address*/
+      CType type = pCIdExpression.getExpressionType().getCanonicalType();
+
+      /*The evaluation of an array or a struct is its address*/
       if (type instanceof CArrayType || isStructOrUnionType(type)) {
         return address.getAsNumber();
       }
@@ -709,6 +723,13 @@ public class AssignmentToEdgeAllocator {
 
       if(address == null) {
         return null;
+      }
+
+      CType type = pPointerExpression.getExpressionType().getCanonicalType();
+
+      /*The evaluation of an array or a struct is its address*/
+      if (type instanceof CArrayType || isStructOrUnionType(type)) {
+        return address.getAsNumber();
       }
 
       return modelAtEdge.getValueFromMemory(pPointerExpression, address);
