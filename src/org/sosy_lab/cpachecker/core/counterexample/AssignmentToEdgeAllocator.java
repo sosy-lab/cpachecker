@@ -457,7 +457,7 @@ public class AssignmentToEdgeAllocator {
   }
 
   //TODO Move to Utility?
-  private ReferenceName getFieldReferenceVariableName(CFieldReference pIastFieldReference,
+  private FieldReference getFieldReferenceVariableName(CFieldReference pIastFieldReference,
       String pFunctionName) {
 
     List<String> fieldNameList = new ArrayList<>();
@@ -477,9 +477,9 @@ public class AssignmentToEdgeAllocator {
       CIdExpression idExpression = (CIdExpression) reference.getFieldOwner();
 
       if (ForwardingTransferRelation.isGlobal(idExpression)) {
-        return new ReferenceName(idExpression.getName(), fieldNameList);
+        return new FieldReference(idExpression.getName(), fieldNameList);
       } else {
-        return new ReferenceName(idExpression.getName(), pFunctionName, fieldNameList);
+        return new FieldReference(idExpression.getName(), pFunctionName, fieldNameList);
       }
     } else {
       return null;
@@ -576,7 +576,7 @@ public class AssignmentToEdgeAllocator {
 
       /* Fieldreferences are sometimes represented as variables,
          e.g a.b.c in main is main::a$b$c */
-      ReferenceName fieldReference = getFieldReferenceVariableName(pIastFieldReference, functionName);
+      FieldReference fieldReference = getFieldReferenceVariableName(pIastFieldReference, functionName);
 
       if (fieldReference != null &&
           modelAtEdge.hasValueForLeftHandSide(fieldReference)) {
@@ -710,7 +710,7 @@ public class AssignmentToEdgeAllocator {
     }
 
     private Object lookupVariable(CSimpleDeclaration pVarDcl) {
-      Variable varName = getName(pVarDcl);
+      IDExpression varName = getName(pVarDcl);
 
       if (modelAtEdge.hasValueForLeftHandSide(varName)) {
         return modelAtEdge.getVariableValue(varName);
@@ -721,7 +721,7 @@ public class AssignmentToEdgeAllocator {
 
     //TODO Change Name and Model, can be more than Variable
     //TODO Move to util
-    private Variable getName(CSimpleDeclaration pDcl) {
+    private IDExpression getName(CSimpleDeclaration pDcl) {
 
       String name = pDcl.getName();
 
@@ -729,9 +729,9 @@ public class AssignmentToEdgeAllocator {
           (pDcl instanceof CVariableDeclaration
           && !((CVariableDeclaration) pDcl).isGlobal())) {
 
-        return new Variable(name, functionName);
+        return new IDExpression(name, functionName);
       } else {
-        return new Variable(name);
+        return new IDExpression(name);
       }
     }
 
@@ -788,7 +788,7 @@ public class AssignmentToEdgeAllocator {
 
       public Address getAddress(CSimpleDeclaration dcl) {
 
-        Variable name = getName(dcl);
+        IDExpression name = getName(dcl);
 
         if (modelAtEdge.hasAddressOfVaribable(name)) {
           return modelAtEdge.getVariableAddress(name);
@@ -877,7 +877,7 @@ public class AssignmentToEdgeAllocator {
       private Address lookupReferenceAddress(CFieldReference pIastFieldReference) {
         /* Fieldreferences are sometimes represented as variables,
         e.g a.b.c in main is main::a$b$c */
-        ReferenceName fieldReferenceName = getFieldReferenceVariableName(pIastFieldReference, functionName);
+        FieldReference fieldReferenceName = getFieldReferenceVariableName(pIastFieldReference, functionName);
 
         if (fieldReferenceName != null) {
           if (modelAtEdge.hasAddressOfVaribable(fieldReferenceName)) {
@@ -1597,7 +1597,7 @@ public class AssignmentToEdgeAllocator {
         CFieldReference reference =
             new CFieldReference(prevSub.getFileLocation(), pMemberType, pFieldName, prevSub, false);
 
-        ReferenceName fieldReferenceName = getFieldReferenceVariableName(reference, functionName);
+        FieldReference fieldReferenceName = getFieldReferenceVariableName(reference, functionName);
 
         if (modelAtEdge.hasValueForLeftHandSide(fieldReferenceName)) {
           Object referenceValue = modelAtEdge.getVariableValue(fieldReferenceName);

@@ -23,25 +23,15 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
-import java.util.List;
 
-import com.google.common.collect.ImmutableList;
+public final class IDExpression extends LeftHandSide {
 
-
-public final class ReferenceName extends LeftHandSide {
-
-  private final List<String> fieldNames;
-
-  public ReferenceName(String pName, String pFunctionName, List<String> pFieldNames) {
+  public IDExpression(String pName, String pFunctionName) {
     super(pName, pFunctionName);
-    assert pFieldNames.size() > 0;
-    fieldNames = ImmutableList.copyOf(pFieldNames);
   }
 
-  public ReferenceName(String pName, List<String> pFieldNames) {
+  public IDExpression(String pName) {
     super(pName);
-    assert pFieldNames.size() > 0;
-    fieldNames = ImmutableList.copyOf(pFieldNames);
   }
 
   @Override
@@ -58,7 +48,7 @@ public final class ReferenceName extends LeftHandSide {
       return false;
     }
 
-    ReferenceName other = (ReferenceName) obj;
+    IDExpression other = (IDExpression) obj;
 
     if (isGlobal()) {
       if (!other.isGlobal()) {
@@ -76,14 +66,6 @@ public final class ReferenceName extends LeftHandSide {
       return false;
     }
 
-    if (fieldNames == null) {
-      if (other.fieldNames != null) {
-        return false;
-      }
-    } else if (!fieldNames.equals(other.fieldNames)) {
-      return false;
-    }
-
     return true;
   }
 
@@ -93,18 +75,6 @@ public final class ReferenceName extends LeftHandSide {
     int result = 1;
     result = prime * result + ((isGlobal()) ? 0 : getFunctionName().hashCode());
     result = prime * result + ((getName() == null) ? 0 : getName().hashCode());
-    result = prime * result + ((fieldNames == null) ? 0 : fieldNames.hashCode());
     return result;
-  }
-
-  @Override
-  public String toString() {
-    StringBuilder result = new StringBuilder(super.toString());
-
-    for (String fieldName : fieldNames) {
-      result.append("$" + fieldName);
-    }
-
-    return result.toString();
   }
 }

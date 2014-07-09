@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Constant;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Function;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Variable;
-import org.sosy_lab.cpachecker.core.counterexample.ReferenceName;
+import org.sosy_lab.cpachecker.core.counterexample.FieldReference;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.collect.HashMultimap;
@@ -282,15 +282,15 @@ public class AssignmentToPathAllocator {
       fieldNames.remove(NAME_AND_FUNCTION);
 
       if (isNotGlobal) {
-        return new ReferenceName(name, function, fieldNames);
+        return new FieldReference(name, function, fieldNames);
       } else {
-        return new ReferenceName(name, fieldNames);
+        return new FieldReference(name, fieldNames);
       }
     } else {
       if (isNotGlobal) {
-        return new org.sosy_lab.cpachecker.core.counterexample.Variable(name, function);
+        return new org.sosy_lab.cpachecker.core.counterexample.IDExpression(name, function);
       } else {
-        return new org.sosy_lab.cpachecker.core.counterexample.Variable(name);
+        return new org.sosy_lab.cpachecker.core.counterexample.IDExpression(name);
       }
     }
   }

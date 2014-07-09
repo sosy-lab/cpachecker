@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
-import org.sosy_lab.cpachecker.core.counterexample.Variable;
+import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.Value;
@@ -129,20 +129,20 @@ public class ValueAnalysisConcreteErrorPathAllocator {
   private Map<LeftHandSide, Address> generateVariableAddresses(ARGPath pPath) {
 
     // Get all base IdExpressions for memory locations, ignoring the offset
-    Multimap<Variable, MemoryLocation> memoryLocationsInPath = getAllMemoryLocationInPath(pPath);
+    Multimap<IDExpression, MemoryLocation> memoryLocationsInPath = getAllMemoryLocationInPath(pPath);
 
     // Generate consistent Addresses, with non overlapping fields.
     return generateVariableAddresses(memoryLocationsInPath);
   }
 
-  private Map<LeftHandSide, Address> generateVariableAddresses(Multimap<Variable, MemoryLocation> pMemoryLocationsInPath) {
+  private Map<LeftHandSide, Address> generateVariableAddresses(Multimap<IDExpression, MemoryLocation> pMemoryLocationsInPath) {
 
     Map<LeftHandSide, Address> result = new HashMap<>(pMemoryLocationsInPath.size());
 
     // Start with Address 0
     Address nextAddressToBeAssigned = Address.valueOf(BigInteger.ZERO);
 
-    for (Variable variable : pMemoryLocationsInPath.keySet()) {
+    for (IDExpression variable : pMemoryLocationsInPath.keySet()) {
       result.put(variable, nextAddressToBeAssigned);
 
       // leave enough space for values between addresses
@@ -172,9 +172,9 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     return pNextAddressToBeAssigned.addOffset(offset);
   }
 
-  private Multimap<Variable, MemoryLocation> getAllMemoryLocationInPath(ARGPath pPath) {
+  private Multimap<IDExpression, MemoryLocation> getAllMemoryLocationInPath(ARGPath pPath) {
 
-    Multimap<Variable, MemoryLocation> result = HashMultimap.create();
+    Multimap<IDExpression, MemoryLocation> result = HashMultimap.create();
 
     for (Pair<ARGState, CFAEdge> edgeStatePair : pPath) {
 
@@ -182,7 +182,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
           AbstractStates.extractStateByType(edgeStatePair.getFirst(), ValueAnalysisState.class);
 
       for (MemoryLocation loc : valueState.getConstantsMapView().keySet()) {
-        Variable idExp = createBaseIdExpresssion(loc);
+        IDExpression idExp = createBaseIdExpresssion(loc);
 
         if (!result.containsEntry(idExp, loc)) {
           result.put(idExp, loc);
@@ -192,12 +192,12 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     return result;
   }
 
-  private Variable createBaseIdExpresssion(MemoryLocation pLoc) {
+  private IDExpression createBaseIdExpresssion(MemoryLocation pLoc) {
 
     if (!pLoc.isOnFunctionStack()) {
-      return new Variable(pLoc.getIdentifier());
+      return new IDExpression(pLoc.getIdentifier());
     } else {
-      return new Variable(pLoc.getIdentifier(), pLoc.getFunctionName());
+      return new IDExpression(pLoc.getIdentifier(), pLoc.getFunctionName());
     }
   }
 
