@@ -1129,7 +1129,7 @@ public class AssignmentToEdgeAllocator {
     @Override
     public ValueLiterals visit(CFunctionType pT) throws RuntimeException {
 
-      // TODO Investigate
+      // TODO Implement function resolving for comments
       return createUnknownValueLiterals();
     }
 
@@ -1298,7 +1298,7 @@ public class AssignmentToEdgeAllocator {
       public Void visit(CCompositeType compType) throws RuntimeException {
 
         if (compType.getKind() == ComplexTypeKind.ENUM) {
-          return null;
+          // TODO Enum
         }
 
         if(compType.getKind() == ComplexTypeKind.UNION) {
