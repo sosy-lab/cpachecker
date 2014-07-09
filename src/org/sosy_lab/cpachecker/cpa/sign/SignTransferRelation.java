@@ -139,7 +139,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       String assignedVarName = getScopedVariableName(leftSide, pCallerFunctionName);
       logger.log(Level.FINE, "Leave function " + functionName + " with return assignment: " + assignedVarName + " = " + state.getSignMap().getSignForVariable(returnVarName));
       SignState result = state
-              .leaveFunction()
+              .leaveFunction(functionName)
               .assignSignToVariable(assignedVarName, state.getSignMap().getSignForVariable(returnVarName));
       return result;
     }
@@ -147,7 +147,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     // fun()
     if (pSummaryExpr instanceof AFunctionCallStatement) {
       logger.log(Level.FINE, "Leave function " + functionName);
-      return state.removeSignAssumptionOfVariable(getScopedVariableName(FUNC_RET_VAR, functionName)).leaveFunction();
+      return state.removeSignAssumptionOfVariable(getScopedVariableName(FUNC_RET_VAR, functionName)).leaveFunction(functionName);
     }
 
     throw new UnrecognizedCodeException("Unsupported code found", pCfaEdge);
