@@ -1391,14 +1391,16 @@ public class AssignmentToEdgeAllocator {
 
         boolean memoryHasValue = true;
         while (memoryHasValue) {
-          memoryHasValue = handleArraySubscript(address, subscript, expectedType);
+          memoryHasValue = handleArraySubscript(address, subscript, expectedType, arrayType);
           subscript++;
         }
 
         return null;
       }
 
-      private boolean handleArraySubscript(Address pArrayAddress, int pSubscript, CType pExpectedType) {
+      private boolean handleArraySubscript(Address pArrayAddress,
+          int pSubscript, CType pExpectedType,
+          CArrayType pArrayType) {
 
         int typeSize = machineModel.getSizeof(pExpectedType);
         int subscriptOffset = pSubscript * typeSize;
@@ -1429,19 +1431,20 @@ public class AssignmentToEdgeAllocator {
 
         boolean contin = false;
 
-        if (!valueLiteral.isUnknown()) {
+        int arraySize = machineModel.getSizeof(pArrayType);
+
+        if (!valueLiteral.isUnknown() && subscriptOffset < arraySize) {
 
           SubExpressionValueLiteral subExpressionValueLiteral =
               new SubExpressionValueLiteral(valueLiteral, arraySubscript);
 
           valueLiterals.addSubExpressionValueLiteral(subExpressionValueLiteral);
 
-          /*Stop, because it is highly
-           * unlikely that following values can be identified*/
+          //TODO Only full arrays can be resolved
           contin = true;
         }
 
-        if (valueAddress != null) {
+        if (valueAddress != null && subscriptOffset < arraySize) {
           Pair<CType, Address> visits = Pair.of(pExpectedType, valueAddress);
 
           if (visited.contains(visits)) {
