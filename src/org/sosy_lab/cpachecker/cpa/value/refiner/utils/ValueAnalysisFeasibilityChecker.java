@@ -165,7 +165,7 @@ public class ValueAnalysisFeasibilityChecker {
         }
 
         // we leave a function, so rebuild return-state before assigning the return-value.
-        if (edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+        if (!callstack.isEmpty() && edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
           // rebuild states with info from previous state
           final ValueAnalysisState callState = callstack.removeLast();
           next = next.rebuildStateAfterFunctionCall(callState);
