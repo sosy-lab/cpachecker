@@ -1360,7 +1360,6 @@ public class AssignmentToEdgeAllocator {
           isPointerDeref = false;
         }
 
-
         CFieldReference fieldReference =
             new CFieldReference(subExp.getFileLocation(),
                 expectedType, pType.getName(), subExp, isPointerDeref);
@@ -1594,7 +1593,7 @@ public class AssignmentToEdgeAllocator {
 
       private void handleField(String pFieldName, CType pMemberType) {
 
-        //TODO Resolve pointer dereference.
+        // Can't have pointer dereferences here.
         CFieldReference reference =
             new CFieldReference(prevSub.getFileLocation(), pMemberType, pFieldName, prevSub, false);
 
