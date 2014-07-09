@@ -860,7 +860,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     private BooleanFormula getCurrentInvariants() throws CPAException, InterruptedException {
       if (!bfmgr.isFalse(currentInvariants)) {
         UnmodifiableReachedSet currentInvariantsReachedSet = invariantGenerator.get();
-        if (currentInvariantsReachedSet != invariantsReachedSet || targetLocationsChanged) {
+        if (currentInvariantsReachedSet != invariantsReachedSet || haveCurrentPotentialTargetLocationsChanged()) {
           CFANode loopHead = Iterables.getOnlyElement(getLoop().getLoopHeads());
           currentInvariants = extractInvariantsAt(currentInvariantsReachedSet, loopHead);
         }
@@ -977,6 +977,12 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       synchronized (this) {
         this.targetLocations = pTargetLocations;
         this.targetLocationsChanged = true;
+      }
+    }
+
+    private boolean haveCurrentPotentialTargetLocationsChanged() {
+      synchronized (this) {
+        return this.targetLocationsChanged;
       }
     }
 
