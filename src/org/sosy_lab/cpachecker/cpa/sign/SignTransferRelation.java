@@ -147,7 +147,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     // fun()
     if (pSummaryExpr instanceof AFunctionCallStatement) {
       logger.log(Level.FINE, "Leave function " + functionName);
-      return state.removeSignAssumptionOfVariable(getScopedVariableName(FUNC_RET_VAR, functionName));
+      return state.removeSignAssumptionOfVariable(getScopedVariableName(FUNC_RET_VAR, functionName)).leaveFunction();
     }
 
     throw new UnrecognizedCodeException("Unsupported code found", pCfaEdge);
