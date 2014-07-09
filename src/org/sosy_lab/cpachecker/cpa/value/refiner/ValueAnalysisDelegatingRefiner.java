@@ -83,6 +83,9 @@ import com.google.common.collect.Multimap;
  */
 @Options(prefix="cpa.value.refiner")
 public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner implements Statistics, StatisticsProvider {
+
+  private ShutdownNotifier shutDownNotifier;
+
   /**
    * the flag to determine if initial refinement was done already
    */
@@ -228,6 +231,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       final CFA pCfa) throws CPAException, InvalidConfigurationException {
     super(pCpa);
     pConfig.inject(this);
+    shutDownNotifier = pShutdownNotifier;
 
     interpolatingRefiner  = new ValueAnalysisInterpolationBasedRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
     predicatingRefiner    = pBackupRefiner;
@@ -255,8 +259,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     }
 
     else {
-      //TODO Get ShutDownNotifier
-      ValueAnalysisConcreteErrorPathAllocator va = new ValueAnalysisConcreteErrorPathAllocator(logger, null);
+      ValueAnalysisConcreteErrorPathAllocator va = new ValueAnalysisConcreteErrorPathAllocator(logger, shutDownNotifier);
 
       Model model = va.allocateAssignmentsToPath(errorPath, cfa.getMachineModel());
 

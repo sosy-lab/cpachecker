@@ -55,19 +55,17 @@ public final class ConcreteStatePath implements Iterable<ConcerteStatePathNode> 
     return new SingleConcreteState(cfaEdge, pConcreteState);
   }
 
-  public static ConcerteStatePathNode valueOfPathNode(ConcreteState[] pConcreteStates, MultiEdge multiEdge) {
+  public static ConcerteStatePathNode valueOfPathNode(List<ConcreteState> pConcreteStates, MultiEdge multiEdge) {
 
     List<CFAEdge> edges = multiEdge.getEdges();
 
-    assert pConcreteStates.length == edges.size();
+    assert pConcreteStates.size() == edges.size();
 
-    Preconditions.checkArgument(edges.size() == pConcreteStates.length);
-
-    List<SingleConcreteState> result = new ArrayList<>(pConcreteStates.length);
+    List<SingleConcreteState> result = new ArrayList<>(pConcreteStates.size());
 
     int concreteStateCounter = 0;
     for (CFAEdge edge : edges) {
-      result.add(new SingleConcreteState(edge, pConcreteStates[concreteStateCounter]));
+      result.add(new SingleConcreteState(edge, pConcreteStates.get(concreteStateCounter)));
       concreteStateCounter++;
     }
 

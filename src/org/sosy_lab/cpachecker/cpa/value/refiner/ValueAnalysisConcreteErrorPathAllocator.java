@@ -42,11 +42,11 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcerteStatePathNode;
+import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
-import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.Value;
@@ -113,7 +113,8 @@ public class ValueAnalysisConcreteErrorPathAllocator {
           AbstractStates.extractStateByType(edgeStatePair.getFirst(), ValueAnalysisState.class);
       CFAEdge edge = edgeStatePair.getSecond();
 
-      //TODO erase after multi Edges are implemented
+      //TODO erase after multi edges are implemented
+      // TODO generate the whole path only after a counterexample was found to be feasible
       if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
         return null;
       }

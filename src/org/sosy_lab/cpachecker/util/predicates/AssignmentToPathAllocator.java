@@ -130,6 +130,7 @@ public class AssignmentToPathAllocator {
     Map<String, Assignment> variableEnvoirment = new HashMap<>();
     Map<LeftHandSide, Object> variables = new HashMap<>();
     Multimap<String, Assignment> functionEnvoirment = HashMultimap.create();
+    //TODO Persistent Map
     Map<String, Map<Address, Object>> memory = new HashMap<>();
 
     int ssaMapIndex = 0;
@@ -144,7 +145,7 @@ public class AssignmentToPathAllocator {
 
         MultiEdge multiEdge = (MultiEdge) cfaEdge;
 
-        ConcreteState[] singleConcreteStates = new ConcreteState[multiEdge.getEdges().size()];
+        List<ConcreteState> singleConcreteStates = new ArrayList<>(multiEdge.getEdges().size());
 
         int multiEdgeIndex = 0;
 
@@ -158,10 +159,12 @@ public class AssignmentToPathAllocator {
 
           SSAMap ssaMap = pSSAMaps.get(ssaMapIndex);
 
-          singleConcreteStates[multiEdgeIndex] = createSingleConcreteState(
+          ConcreteState concreteState = createSingleConcreteState(
               singleCfaEdge, ssaMap, variableEnvoirment, variables,
               functionEnvoirment, memory, addressOfVariables, terms,
               pModel, pMachineModel, usedAssignableTerms);
+
+          singleConcreteStates.add(multiEdgeIndex, concreteState);
           ssaMapIndex++;
           multiEdgeIndex++;
         }
@@ -337,8 +340,6 @@ public class AssignmentToPathAllocator {
             LeftHandSide lhs = createLeftHandSide(variable);
             pVariables.remove(oldlhs);
             pVariables.put(lhs, assignment.getValue());
-
-
           }
         } else {
           //update variableEnvoirment for subsequent calculation
