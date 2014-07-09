@@ -75,6 +75,10 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
   public SignState union(SignState pToJoin) {
     if (pToJoin.equals(this)) { return pToJoin; }
     if (this.equals(TOP) || pToJoin.equals(TOP)) { return TOP; }
+    if (this.stateBeforeEnteredFunction.isPresent() && !pToJoin.stateBeforeEnteredFunction.isPresent()
+        || !stateBeforeEnteredFunction.isPresent() && pToJoin.stateBeforeEnteredFunction.isPresent()) {
+      return TOP;
+    }
 
     // assure termination of loops do not merge if  pToJoin covers this but return pToJoin
     if (isSubsetOf(pToJoin)) { return pToJoin; }
@@ -90,7 +94,11 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
           mapBuilder.put(varIdent, combined);
         }
       }
-    }
+
+      if(stateBeforeEnteredFunction!=pToJoin.stateBeforeEnteredFunction){
+        System.out.println("test");
+      }
+    }// TODO correctly deal with stateBeforeEnteredFunction
     ImmutableMap<String, SIGN> newMap = mapBuilder.build();
     return newMap.size()>0?new SignState(new SignMap(newMap), stateBeforeEnteredFunction):result;
   }
@@ -99,7 +107,8 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
     if (pSuperset.equals(this) || pSuperset.equals(TOP)) { return true; }
     if (stateBeforeEnteredFunction.isPresent()) {
       if (!pSuperset.stateBeforeEnteredFunction.isPresent()
-          || pSuperset.stateBeforeEnteredFunction.get() != stateBeforeEnteredFunction.get()) { return false; }
+          || pSuperset.stateBeforeEnteredFunction.get() != stateBeforeEnteredFunction.get()
+          && !stateBeforeEnteredFunction.get().isSubsetOf(pSuperset.stateBeforeEnteredFunction.get())) { return false; }
     } else {
       if (pSuperset.stateBeforeEnteredFunction.isPresent()) { return false; }
     }
@@ -123,6 +132,7 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
   public SignState leaveFunction() {
       if(stateBeforeEnteredFunction.isPresent()) {
           return stateBeforeEnteredFunction.get();
+          // TODO what about global variables
       }
       throw new IllegalStateException("No function has been entered before");
   }
