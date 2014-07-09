@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -61,9 +62,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
@@ -642,72 +643,38 @@ public class AssignmentToEdgeAllocator {
     @Override
     public Object visit(CIdExpression pCIdExpression) {
 
+      CSimpleDeclaration dcl = pCIdExpression.getDeclaration();
+
       CType type = pCIdExpression.getExpressionType().getCanonicalType();
 
-      if (type instanceof CSimpleType || type instanceof CPointerType) {
-        return handleSimpleVariableDeclaration(pCIdExpression.getDeclaration());
+      Address address = evaluateAddress(pCIdExpression);
+
+      if(address == null) {
+        return lookupVariable(dcl);
       }
 
-      if(type instanceof CArrayType || isStructOrUnionType(type)) {
-        /*The evaluation of an array is its address*/
-        Address address = evaluateAddress(pCIdExpression);
-
-        if(address != null) {
-          return address.getAsNumber();
-        }
-
-      }
-
-      return null;
-    }
-
-    @Nullable
-    private Object handleVariableDeclaration(CSimpleDeclaration pVarDcl) {
-
-      if (pVarDcl == null || functionName == null || (!(pVarDcl instanceof CVariableDeclaration)
-          && !(pVarDcl instanceof CParameterDeclaration))) {
-        return null;
-      }
-
-      CType type = pVarDcl.getType();
-
-      if (type instanceof CSimpleType || type instanceof CPointerType) {
-        return handleSimpleVariableDeclaration(pVarDcl);
-      }
-
+      /*The evaluation of an array is its address*/
       if (type instanceof CArrayType || isStructOrUnionType(type)) {
-        /*The evaluation of an array or a struct is its address*/
-        Address address = addressVisitor.getAddress(pVarDcl);
-
-        if (address != null) {
-          return address.getAsNumber();
-        }
-
+        return address.getAsNumber();
       }
 
-      return null;
-    }
-
-    private Object handleSimpleVariableDeclaration(CSimpleDeclaration pVarDcl) {
-
-      /* The variable might not exist anymore in the variable environment,
-         search in the address space of the function environment*/
-
-      Address address = addressVisitor.getAddress(pVarDcl);
-
-      if (address == null) {
-        return lookupVariable(pVarDcl);
-      }
-
-      CIdExpression idExp = new CIdExpression(FileLocation.DUMMY, pVarDcl);
-
-      Object value = modelAtEdge.getValueFromMemory(idExp, address);
+      Object value = modelAtEdge.getValueFromMemory(pCIdExpression, address);
 
       if (value == null) {
-        return lookupVariable(pVarDcl);
+        return lookupVariable(dcl);
       }
 
       return value;
+    }
+
+    @Nullable
+    private Object handleVariableDeclaration(CSimpleDeclaration pDcl) {
+
+      // These declarations don't evaluate to a value //TODO Assumption
+      if (pDcl instanceof CFunctionDeclaration || pDcl instanceof CTypeDeclaration) { return null; }
+
+      CIdExpression representingIdExpression = new CIdExpression(pDcl.getFileLocation(), pDcl);
+      return this.visit(representingIdExpression);
     }
 
     private Object lookupVariable(CSimpleDeclaration pVarDcl) {
@@ -736,23 +703,11 @@ public class AssignmentToEdgeAllocator {
     @Override
     public Object visit(CPointerExpression pPointerExpression) {
 
-      CExpression exp = pPointerExpression.getOperand();
-
       /*Quick jump to the necessary method.
        * the address of a dereference is the evaluation of its operand*/
-      Address address = evaluateNumericalValueAsAddress(exp);
+      Address address = evaluateAddress(pPointerExpression);
 
       if(address == null) {
-        return null;
-      }
-
-      CType type = exp.getExpressionType().getCanonicalType();
-
-      if (type instanceof CPointerType) {
-        type = ((CPointerType) type).getType();
-      } else if (type instanceof CArrayType) {
-        type = ((CArrayType) type).getType();
-      } else {
         return null;
       }
 
