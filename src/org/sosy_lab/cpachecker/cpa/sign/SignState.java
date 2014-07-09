@@ -136,10 +136,40 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
 
   public SignState leaveFunction() {
       if(stateBeforeEnteredFunction.isPresent()) {
-          return stateBeforeEnteredFunction.get();
-          // TODO what about global variables
+
+          return replaceGlobalVarsByCurrentValue(stateBeforeEnteredFunction.get());
       }
       throw new IllegalStateException("No function has been entered before");
+  }
+
+  private SignState replaceGlobalVarsByCurrentValue(SignState pStateBefore) {
+    boolean changed = false;
+
+    ImmutableMap.Builder<String, SIGN> mapBuilder = ImmutableMap.builder();
+    for (String var : pStateBefore.signMap.keySet()) {
+      if (var.contains("::")) {
+        mapBuilder.put(var, pStateBefore.signMap.getSignForVariable(var));
+      } else {
+        if (!signMap.containsKey(var)) {
+          changed = true;
+        }
+      }
+    }
+
+    SIGN currentValue;
+
+    for (String var : signMap.keySet()) {
+      if (!var.contains("::")) {
+        currentValue = signMap.getSignForVariable(var);
+        mapBuilder.put(var, currentValue);
+        if (!pStateBefore.signMap.containsKey(var) || pStateBefore.signMap.getSignForVariable(var) != currentValue) {
+          changed = true;
+        }
+      }
+    }
+
+    if (changed) { return new SignState(new SignMap(mapBuilder.build()), pStateBefore.stateBeforeEnteredFunction); }
+    return pStateBefore;
   }
 
   public SignState assignSignToVariable(String pVarIdent, SIGN sign) {
