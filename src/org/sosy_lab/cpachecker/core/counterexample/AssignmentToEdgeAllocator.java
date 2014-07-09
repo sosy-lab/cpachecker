@@ -727,9 +727,9 @@ public class AssignmentToEdgeAllocator {
       String name = pDcl.getName();
 
       if (pDcl instanceof CDeclaration && ((CDeclaration) pDcl).isGlobal()) {
-        return new IDExpression(name, functionName);
-      } else {
         return new IDExpression(name);
+      } else {
+        return new IDExpression(name, functionName);
       }
     }
 
@@ -799,7 +799,7 @@ public class AssignmentToEdgeAllocator {
       public Address visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
         CExpression arrayExpression = pIastArraySubscriptExpression.getArrayExpression();
 
-        // This works because arrays and structs evaluate to addresses
+        // This works because arrays and structs evaluate to their addresses
         Address address = evaluateNumericalValueAsAddress(arrayExpression);
 
         if(address == null) {
@@ -828,29 +828,8 @@ public class AssignmentToEdgeAllocator {
 
         CExpression fieldOwner = pIastFieldReference.getFieldOwner();
 
-        if (pIastFieldReference.isPointerDereference()) {
-
-          Address fieldOwneraddress = evaluateNumericalValueAsAddress(fieldOwner);
-
-          if (fieldOwneraddress == null) {
-            return null;
-          }
-
-          BigDecimal fieldOffset = getFieldOffset(pIastFieldReference);
-
-          if(fieldOffset == null) {
-            return null;
-          }
-
-          return fieldOwneraddress.addOffset(fieldOffset);
-        }
-
-        if (!(fieldOwner instanceof CLeftHandSide)) {
-          //TODO Investigate
-          return lookupReferenceAddress(pIastFieldReference);
-        }
-
-        Address fieldOwnerAddress = evaluateAddress((CLeftHandSide) fieldOwner);
+      //This works because arrays and structs evaluate to their addresses.
+        Address fieldOwnerAddress = evaluateNumericalValueAsAddress(fieldOwner);
 
         if (fieldOwnerAddress == null) {
           return lookupReferenceAddress(pIastFieldReference);
