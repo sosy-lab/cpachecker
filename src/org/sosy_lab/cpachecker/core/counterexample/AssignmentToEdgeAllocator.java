@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -104,7 +105,10 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
 
-
+/**
+ * Calculates the concrete values of the right hand side expressions {@link CRightHandSide}
+ * of assignments.
+ */
 public class AssignmentToEdgeAllocator {
 
   private final LogManager logger;

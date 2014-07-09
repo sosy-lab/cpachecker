@@ -31,7 +31,11 @@ import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
-
+/**
+ * Contains the concrete values of assignments {@link IAssignment} for a
+ * given statement, which is represented as cfa edge {@link CFAEdge},
+ * in the error path.
+ */
 public class CFAEdgeWithAssignments {
 
   private final CFAEdge edge;

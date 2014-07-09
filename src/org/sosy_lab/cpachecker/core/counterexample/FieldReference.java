@@ -27,7 +27,11 @@ import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 
-
+/**
+ * Is used to represent a field reference without pointer dereferences.
+ *
+ * E.g a.b.h.
+ */
 public final class FieldReference extends LeftHandSide {
 
   private final List<String> fieldNames;

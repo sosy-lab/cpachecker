@@ -35,11 +35,33 @@ import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcerteSta
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
-
+/**
+ * This class is used as a path of {@link CFAEdge} cfa edges
+ * and {@link ConcreteState} concrete States.
+ *
+ * It represents a concrete path to an error location in the program.
+ * The cfa edges represent the series of statements that lead to the
+ * error location. The concrete states hold the values of the
+ * variables along the path.
+ *
+ * An object of this class can be used to generate
+ * a {@link CFAPathWithAssignments} path with concrete assignments.
+ * In those paths, the right hand side expressions of the assigments
+ * are resolved where possible for each assignment along the path.
+ *
+ */
 public final class ConcreteStatePath implements Iterable<ConcerteStatePathNode> {
 
   private final List<ConcerteStatePathNode> list;
 
+  /**
+   * A object of this class can be constructed, when a list
+   * of pairs of concrete states {@link ConcreteState} and
+   * cfa edges {@link CFAEdge} are given.
+   *
+   * @param pList a list of pairs of concrete States {@link ConcreteState}
+   *  and cfa edges {@link CFAEdge}.
+   */
   public ConcreteStatePath(List<ConcerteStatePathNode> pList) {
     list = ImmutableList.copyOf(pList);
   }
@@ -49,12 +71,47 @@ public final class ConcreteStatePath implements Iterable<ConcerteStatePathNode> 
     return list.iterator();
   }
 
+  /**
+   * This method can be used to construct a pair of {@link ConcreteState}
+   * concrete states and {@link CFAEdge} cfa edges.
+   *
+   * The concrete state represents the state of the program
+   * after the statement of the {@link CFAEdge} is executed.
+   * A {@link ConcreteStatePath} path can be constructed
+   * by using a series of these pairs.
+   *
+   * Note that no {@link MultiEdge} edges are allowed as
+   * parameter for this method. Use the method
+   * 'valueOfPathNode(List<ConcreteState> pConcreteStates, MultiEdge multiEdge)'
+   * instead.
+   *
+   * @param pConcreteState the concrete state of the resulting pair.
+   * @param cfaEdge the cfa edge of the resulting pair.
+   *
+   * @return Returns a pair of {@link ConcreteState}
+   *  concrete states and {@link CFAEdge} cfa edges, represented
+   *  as {@link ConcerteStatePathNode} node of {@link ConcreteStatePath} path.
+   */
   public static ConcerteStatePathNode valueOfPathNode(ConcreteState pConcreteState, CFAEdge cfaEdge) {
 
     Preconditions.checkArgument(cfaEdge.getEdgeType() != CFAEdgeType.MultiEdge);
     return new SingleConcreteState(cfaEdge, pConcreteState);
   }
 
+  /**
+   * This method is used to constuct a list of pairs of {@link ConcreteState}
+   * concrete states and {@link CFAEdge} cfa edges.
+   *
+   * {@link MultiEdge} Multi edges contain a list of cfa edges.
+   * The concrete state i of the given list of concrete states represents
+   * the program state after the statement i, represented by the i-th cfa edge contained
+   * in the multi edge, is executed.
+   *
+   * @param pConcreteStates the list of concrete states representing the program states.
+   * @param multiEdge a list of cfa edges representing statements in the program
+   * @return Returns a sub path of the program {@link MultiConcreteState}, represented by
+   * the given list of concrete states {@link ConcreteState} and cfa edges {@link MultiEdge}.
+   */
   public static ConcerteStatePathNode valueOfPathNode(List<ConcreteState> pConcreteStates, MultiEdge multiEdge) {
 
     List<CFAEdge> edges = multiEdge.getEdges();

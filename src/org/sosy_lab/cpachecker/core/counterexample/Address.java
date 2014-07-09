@@ -27,8 +27,13 @@ import java.math.BigDecimal;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+
 import com.google.common.base.Preconditions;
 
+/**
+ * The concrete address of a left hand side expression {@link CLeftHandSide}.
+ */
 public final class Address {
 
   private final Number address;
