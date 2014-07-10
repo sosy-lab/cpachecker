@@ -950,7 +950,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
       @Override
       public boolean isLessThanOrEqualTo(EdgeBasedAbstractionStrategy pStrategy) {
-        return equals(this);
+        return equals(pStrategy);
       }
 
     },
