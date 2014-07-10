@@ -25,9 +25,7 @@ package org.sosy_lab.cpachecker.cpa.sign;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
@@ -77,8 +75,6 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
 
   LogManager logger;
 
-  private Set<String> globalVariables = new HashSet<>();
-
   public final static String FUNC_RET_VAR = "__func_ret__";
 
   public SignTransferRelation(LogManager pLogger) {
@@ -100,7 +96,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       throws CPATransferException {
 
     CExpression expression = pCfaEdge.getExpression().or(CNumericTypes.ZERO); // 0 is the default in C
-    String assignedVar = getScopedVariableName(FUNC_RET_VAR, functionName);
+    String assignedVar = getScopedVariableNameForNonGlobalVariable(FUNC_RET_VAR, functionName);
     return handleAssignmentToVariable(state, assignedVar, expression);
   }
 
@@ -117,7 +113,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       if(!(exp instanceof CRightHandSide)) {
         throw new UnrecognizedCodeException("Unsupported code found", pCfaEdge);
       }
-      String scopedVarId = getScopedVariableName(pParameters.get(i).getName(), pCalledFunctionName);
+      String scopedVarId = getScopedVariableNameForNonGlobalVariable(pParameters.get(i).getName(), pCalledFunctionName);
       mapBuilder.put(scopedVarId, ((CRightHandSide)exp).accept(new SignCExpressionVisitor(edge, state, this)));
     }
     ImmutableMap<String, SIGN> argumentMap = mapBuilder.build();
@@ -135,7 +131,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       IAExpression leftSide = assignStmt.getLeftHandSide();
       if (!(leftSide instanceof AIdExpression)) { throw new UnrecognizedCodeException("Unsupported code found",
           pCfaEdge); }
-      String returnVarName = getScopedVariableName(FUNC_RET_VAR, functionName);
+      String returnVarName = getScopedVariableNameForNonGlobalVariable(FUNC_RET_VAR, functionName);
       String assignedVarName = getScopedVariableName(leftSide, pCallerFunctionName);
       logger.log(Level.FINE, "Leave function " + functionName + " with return assignment: " + assignedVarName + " = " + state.getSignForVariable(returnVarName));
       SignState result = state
@@ -147,7 +143,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     // fun()
     if (pSummaryExpr instanceof AFunctionCallStatement) {
       logger.log(Level.FINE, "Leave function " + functionName);
-      return state.removeSignAssumptionOfVariable(getScopedVariableName(FUNC_RET_VAR, functionName)).leaveFunction(functionName);
+      return state.removeSignAssumptionOfVariable(getScopedVariableNameForNonGlobalVariable(FUNC_RET_VAR, functionName)).leaveFunction(functionName);
     }
 
     throw new UnrecognizedCodeException("Unsupported code found", pCfaEdge);
@@ -321,9 +317,8 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     String scopedId;
     if(decl.isGlobal()) {
       scopedId = decl.getName();
-      globalVariables.add(decl.getName());
     } else {
-      scopedId = getScopedVariableName(decl.getName(), functionName);
+      scopedId = getScopedVariableNameForNonGlobalVariable(decl.getName(), functionName);
     }
     IAInitializer init = decl.getInitializer();
     logger.log(Level.FINE, "Declaration: " + scopedId);
@@ -393,11 +388,8 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     return pCalledFunctionName + "::" + pVariableName.toASTString();
   }
 
-  private String getScopedVariableName(String pVariableName, String pCallFunctionName) {
-     if(globalVariables.contains(pVariableName)) {
-       return pVariableName;
-     }
-     return pCallFunctionName + "::" + pVariableName;
+  private String getScopedVariableNameForNonGlobalVariable(String pVariableName, String pCallFunctionName) {
+    return pCallFunctionName + "::" + pVariableName;
   }
 
 }
