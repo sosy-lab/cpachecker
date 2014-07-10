@@ -288,7 +288,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     if (parameter.isBottom()) {
       return false;
     }
-    // If the parameter is evaluates to a unique boolean value, hand it on
+    // If the parameter evaluates to a unique boolean value, hand it on
     if (parameter.isDefinitelyTrue() || parameter.isDefinitelyFalse()) {
       return pNot.getNegated().accept(this, parameter.logicalNot());
     }
