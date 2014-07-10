@@ -935,7 +935,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
       @Override
       public Set<String> determineWideningTargets(EdgeBasedAbstractionStrategy pOther) {
-        return null; // TODO better implementation would only widen variables involved in last edge(s)
+        return null;
       }
 
       @Override
