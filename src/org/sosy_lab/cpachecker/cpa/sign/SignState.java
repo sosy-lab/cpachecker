@@ -91,13 +91,9 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
     if (pSuperset.equals(this) || pSuperset.equals(TOP)) { return true; }
     if (signMap.size() < pSuperset.signMap.size()) { return false; }
     // is subset if for every variable all sign assumptions are considered in pSuperset
-    // check that all variables with SIGN != ALL are covered
-    for (String varIdent : signMap.keySet()) {
-      if (!getSignForVariable(varIdent).isSubsetOf(pSuperset.getSignForVariable(varIdent))) { return false; }
-    }
-    // check that all variables in superset with value SIGN != ALL have also a value SIGN!=ALL in subset
+    // check that all variables in superset with SIGN != ALL have no bigger assumptions in subset
     for (String varIdent : pSuperset.signMap.keySet()) {
-      if (!signMap.containsKey(varIdent)) { return false; }
+      if (!getSignForVariable(varIdent).isSubsetOf(pSuperset.getSignForVariable(varIdent))) { return false; }
     }
     return true;
   }
