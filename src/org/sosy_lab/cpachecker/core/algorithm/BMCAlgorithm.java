@@ -396,10 +396,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       BooleanFormula invariantInvalidity = bfmgr.and(loopHeadStatesFormula, instantiateForAll(loopHeadStates, negatedCandidateInvariant));
 
       pProver.push(invariantInvalidity);
+      BooleanFormula candidateInvariant = bfmgr.not(negatedCandidateInvariant);
       if (pProver.isUnsat()) {
-        candidateInvariants.add(bfmgr.not(negatedCandidateInvariant));
-      } else {
-        System.out.println(pProver.getModel());
+        candidateInvariants.add(candidateInvariant);
+      } else if (logger.wouldBeLogged(Level.ALL)) {
+        logger.log(Level.ALL, candidateInvariant, " is not an invariant: ", pProver.getModel());
       }
       pProver.pop();
 
