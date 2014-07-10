@@ -364,9 +364,11 @@ public class BAMTransferRelation implements TransferRelation {
     final AbstractState reducedInitialState = wrappedReducer.getVariableReducedState(initialState, currentBlock, node);
     final Precision reducedInitialPrecision = wrappedReducer.getVariableReducedPrecision(pPrecision, currentBlock);
 
-    final Collection<? extends AbstractState> resultStates;
+    final Triple<AbstractState, Precision, Block> currentLevel = Triple.of(reducedInitialState, reducedInitialPrecision, currentBlock);
+    stack.add(currentLevel);
+    logger.log(Level.FINEST, "current Stack:", stack);
 
-    assert !((ARGState)initialState).getParents().isEmpty();
+    final Collection<? extends AbstractState> resultStates;
 
     if (!(node instanceof FunctionEntryNode)) {
       // block is a loop-block
@@ -376,18 +378,14 @@ public class BAMTransferRelation implements TransferRelation {
       // function-entry and old block --> begin new block
       // TODO match only recursive function, not all functions
 
+      assert !((ARGState)initialState).getParents().isEmpty();
+
       // get the rootState, that is the abstract state of the functioncall.
       final CallstackState callstackState = extractStateByType(initialState, CallstackState.class);
       final CFANode rootNode = callstackState.getCallNode();
       Collection<ARGState> possibleRootStates = ((ARGState)initialState).getParents();
       assert possibleRootStates.size() == 1 : "too many functioncalls: " + possibleRootStates;
       AbstractState rootState = possibleRootStates.iterator().next();
-
-      final Triple<AbstractState, Precision, Block> currentLevel =
-            Triple.of(reducedInitialState, reducedInitialPrecision, currentBlock);
-
-      logger.log(Level.FINEST, "current Stack:", stack);
-      logger.log(Level.FINEST, "new Level:", currentLevel);
 
       if (stackContainsCoveringLevel(stack, currentLevel)) {
         // if level is twice in stack, we have endless recursion.
@@ -413,8 +411,6 @@ public class BAMTransferRelation implements TransferRelation {
 
       } else {
         // enter block of function-call and start recursive analysis
-        stack.add(currentLevel);
-
         final Collection<AbstractState> expandedFunctionReturnStates = analyseBlockAndExpand(
                 initialState, pPrecision, outerSubtree, reducedInitialState, reducedInitialPrecision);
 
@@ -432,13 +428,12 @@ public class BAMTransferRelation implements TransferRelation {
         }
         resultStates = rebuildStates;
 
-        final Triple<AbstractState, Precision, Block> lastLevel = stack.remove(stack.size() - 1);
-        assert lastLevel.equals(currentLevel);
-
         // current location is "before" the function-return-edge.
       }
     }
 
+    final Triple<AbstractState, Precision, Block> lastLevel = stack.remove(stack.size() - 1);
+    assert lastLevel.equals(currentLevel);
     currentBlock = outerSubtree;
 
     return resultStates;
