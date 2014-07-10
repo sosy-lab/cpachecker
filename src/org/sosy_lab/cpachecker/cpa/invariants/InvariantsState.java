@@ -925,7 +925,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
     public EdgeBasedAbstractionStrategy getAbstractionStrategy(EdgeBasedAbstractionStrategy pPrevious);
 
-    EdgeBasedAbstractionStrategy getAbstractionStrategy();
+    public EdgeBasedAbstractionStrategy getAbstractionStrategy();
 
   }
 
