@@ -578,9 +578,9 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     // If the invariant evaluates to true, it adds no value for now
     if (assumptionEvaluation.isDefinitelyTrue()) { return this; }
 
-    Map<String, InvariantsFormula<CompoundInterval>> tmpEnvironment = new HashMap<>(this.environment);
+    NonRecursiveEnvironment.Builder environmentBuilder = new NonRecursiveEnvironment.Builder(this.environment);
     PushAssumptionToEnvironmentVisitor patev =
-        new PushAssumptionToEnvironmentVisitor(pEvaluationVisitor, tmpEnvironment);
+        new PushAssumptionToEnvironmentVisitor(pEvaluationVisitor, environmentBuilder);
     if (!assumption.accept(patev, CompoundInterval.logicalTrue())) {
       assert !assumptionEvaluation.isDefinitelyTrue();
       return null;
@@ -589,7 +589,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     if (isDefinitelyFalse(assumption, pEvaluationVisitor)) {
       return null;
     }
-    return new InvariantsState(this.environment.putAndCopyAll(tmpEnvironment), pNewVariableSelection, machineModel, variableTypes, edgeBasedAbstractionStrategy);
+    return new InvariantsState(environmentBuilder.build(), pNewVariableSelection, machineModel, variableTypes, edgeBasedAbstractionStrategy);
   }
 
   /**

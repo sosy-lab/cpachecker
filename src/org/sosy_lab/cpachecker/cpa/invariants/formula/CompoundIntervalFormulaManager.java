@@ -35,6 +35,7 @@ import java.util.Queue;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
+import org.sosy_lab.cpachecker.cpa.invariants.NonRecursiveEnvironment;
 
 import com.google.common.collect.FluentIterable;
 
@@ -151,7 +152,7 @@ public enum CompoundIntervalFormulaManager {
     }
 
     // Build the environment defined by the assumptions and check whether it contradicts or implies the proposed implication
-    Map<String, InvariantsFormula<CompoundInterval>> tmpEnvironment = pInformationBaseEnvironment;
+    NonRecursiveEnvironment.Builder tmpEnvironment = NonRecursiveEnvironment.Builder.of(pInformationBaseEnvironment);
     PushAssumptionToEnvironmentVisitor patev = new PushAssumptionToEnvironmentVisitor(FORMULA_EVALUATION_VISITOR, tmpEnvironment);
     if (!pEnvironmentComplete) {
       for (InvariantsFormula<CompoundInterval> leftFormula : formulas) {
@@ -173,7 +174,7 @@ public enum CompoundIntervalFormulaManager {
       final Map<String, InvariantsFormula<CompoundInterval>> pCompleteEnvironment,
       final InvariantsFormula<CompoundInterval> pFormula) {
     // Build the environment defined by the proposed implication and check for contradictions
-    Map<String, InvariantsFormula<CompoundInterval>> tmpEnvironment2 = new HashMap<>();
+    NonRecursiveEnvironment.Builder tmpEnvironment2 = new NonRecursiveEnvironment.Builder();
     CachingEvaluationVisitor<CompoundInterval> cachingEvaluationVisitor = new CachingEvaluationVisitor<>(pCompleteEnvironment, FORMULA_EVALUATION_VISITOR);
     outer:
     for (InvariantsFormula<CompoundInterval> formula2Part : pFormula.accept(SPLIT_CONJUNCTIONS_VISITOR)) {
@@ -594,7 +595,7 @@ public enum CompoundIntervalFormulaManager {
     if (isDefinitelyTop(pOperand1) && isDefinitelyTop(pOperand2)) {
       return TOP;
     }
-    Map<String, InvariantsFormula<CompoundInterval>> tmpEnvironment = new HashMap<>();
+    NonRecursiveEnvironment.Builder tmpEnvironment = new NonRecursiveEnvironment.Builder();
     PushAssumptionToEnvironmentVisitor patev = new PushAssumptionToEnvironmentVisitor(FORMULA_EVALUATION_VISITOR, tmpEnvironment);
     if (!pOperand1.accept(patev, CompoundInterval.logicalTrue())) {
       return FALSE;
