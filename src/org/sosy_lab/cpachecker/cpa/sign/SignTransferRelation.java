@@ -137,10 +137,10 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
           pCfaEdge); }
       String returnVarName = getScopedVariableName(FUNC_RET_VAR, functionName);
       String assignedVarName = getScopedVariableName(leftSide, pCallerFunctionName);
-      logger.log(Level.FINE, "Leave function " + functionName + " with return assignment: " + assignedVarName + " = " + state.getSignMap().getSignForVariable(returnVarName));
+      logger.log(Level.FINE, "Leave function " + functionName + " with return assignment: " + assignedVarName + " = " + state.getSignForVariable(returnVarName));
       SignState result = state
               .leaveFunction(functionName)
-              .assignSignToVariable(assignedVarName, state.getSignMap().getSignForVariable(returnVarName));
+              .assignSignToVariable(assignedVarName, state.getSignForVariable(returnVarName));
       return result;
     }
 
@@ -302,11 +302,11 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     if(result.isPresent()) {
       logger.log(Level.FINE, "Assumption: " + (pTruthAssumption ? pExpression : "!(" + pExpression + ")") + " --> " + result.get().identifier + " = " + result.get().value);
       // assure that does not become more abstract after assumption
-      if (state.getSignMap().getSignForVariable(getScopedVariableName(result.get().identifier))
+      if (state.getSignForVariable(getScopedVariableName(result.get().identifier))
           .covers(result.get().value)) { return state.assignSignToVariable(
           getScopedVariableName(result.get().identifier), result.get().value); }
       // check if results distinct, then no successor exists
-      if (!result.get().value.intersects(state.getSignMap().getSignForVariable(
+      if (!result.get().value.intersects(state.getSignForVariable(
           getScopedVariableName(result.get().identifier)))) { return null; }
     }
     return state;

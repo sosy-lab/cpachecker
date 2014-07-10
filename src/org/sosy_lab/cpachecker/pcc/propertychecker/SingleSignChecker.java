@@ -49,7 +49,7 @@ public class SingleSignChecker extends PerElementPropertyChecker {
     if (node instanceof CLabelNode && ((CLabelNode) node).getLabel().equals(label)) {
       SignState state = AbstractStates.extractStateByType(pElemToCheck, SignState.class);
       if (state != null) {
-        if (state.getSignMap().getSignForVariable(varName) == value) { return true; }
+        if (state.getSignForVariable(varName) == value) { return true; }
       }
       return false;
     }

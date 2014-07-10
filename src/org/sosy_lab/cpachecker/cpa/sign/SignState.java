@@ -27,6 +27,8 @@ import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
 
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithTargetVariable;
@@ -35,7 +37,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 
 
 public class SignState implements AbstractStateWithTargetVariable, TargetableWithPredicatedAnalysis, Serializable {
@@ -50,21 +51,17 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
     targetChecker = new SignTargetChecker(config);
   }
 
-  private SignMap signMap;
-
-  public SignMap getSignMap() {
-    return signMap;
-  }
+  private PersistentMap<String, SIGN> signMap;
 
   public final static SignState TOP = new SignState();
   private final static SerialProxySign proxy = new SerialProxySign();
 
-  private SignState(SignMap pSignMap) {
+  private SignState(PersistentMap<String, SIGN> pSignMap) {
     signMap = pSignMap;
   }
 
   private SignState() {
-    signMap = new SignMap(ImmutableMap.<String, SIGN> of());
+    signMap = PathCopyingPersistentTreeMap.of();
   }
 
   public SignState union(SignState pToJoin) {
@@ -75,29 +72,28 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
     if (isSubsetOf(pToJoin)) { return pToJoin; }
 
     SignState result = SignState.TOP;
-    ImmutableMap.Builder<String, SIGN> mapBuilder = ImmutableMap.builder();
+    PersistentMap<String, SIGN> newMap = PathCopyingPersistentTreeMap.of();
     SIGN combined;
-    for (String varIdent : signMap.keySet()) {
+    for (String varIdent : pToJoin.signMap.keySet()) {
       // only add those variables that are contained in both states (otherwise one has value ALL (not saved))
-      if (pToJoin.signMap.containsKey(varIdent)) {
-        combined = signMap.getSignForVariable(varIdent).combineWith(pToJoin.signMap.getSignForVariable(varIdent));
+      if (signMap.containsKey(varIdent)) {
+        combined = getSignForVariable(varIdent).combineWith(pToJoin.getSignForVariable(varIdent));
         if (!combined.isAll()) {
-          mapBuilder.put(varIdent, combined);
+          newMap = newMap.putAndCopy(varIdent, combined);
         }
       }
     }
 
-    ImmutableMap<String, SIGN> newMap = mapBuilder.build();
-
-    return newMap.size() > 0 ? new SignState(new SignMap(newMap)) : result;
+    return newMap.size() > 0 ? new SignState(newMap) : result;
   }
 
   public boolean isSubsetOf(SignState pSuperset) {
     if (pSuperset.equals(this) || pSuperset.equals(TOP)) { return true; }
+    if (signMap.size() < pSuperset.signMap.size()) { return false; }
     // is subset if for every variable all sign assumptions are considered in pSuperset
     // check that all variables with SIGN != ALL are covered
     for (String varIdent : signMap.keySet()) {
-      if (!signMap.getSignForVariable(varIdent).isSubsetOf(pSuperset.signMap.getSignForVariable(varIdent))) { return false; }
+      if (!getSignForVariable(varIdent).isSubsetOf(pSuperset.getSignForVariable(varIdent))) { return false; }
     }
     // check that all variables in superset with value SIGN != ALL have also a value SIGN!=ALL in subset
     for (String varIdent : pSuperset.signMap.keySet()) {
@@ -107,41 +103,43 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
   }
 
   public SignState enterFunction(ImmutableMap<String, SIGN> pArguments) {
-    SignMap resultSignMap = signMap.mergeWith(new SignMap(pArguments));
-    return new SignState(resultSignMap);
+    PersistentMap<String, SIGN> newMap = signMap;
+
+    for (String var : pArguments.keySet()) {
+      if (!pArguments.get(var).equals(SIGN.ALL)) {
+        newMap = newMap.putAndCopy(var, pArguments.get(var));
+      }
+    }
+
+    return signMap == newMap ? this : new SignState(newMap);
   }
 
   public SignState leaveFunction(String pFunctionName) {
-    boolean changed = false;
+    PersistentMap<String, SIGN> newMap = signMap;
 
-    ImmutableMap.Builder<String, SIGN> mapBuilder = ImmutableMap.builder();
     for (String var : signMap.keySet()) {
       if (var.startsWith(pFunctionName + "::")) {
-        changed = true;
-      } else {
-        mapBuilder.put(var, signMap.getSignForVariable(var));
+        newMap = newMap.removeAndCopy(var);
       }
     }
 
-    if (changed) { return new SignState(new SignMap(mapBuilder.build())); }
-    return this;
+    return newMap == signMap ? this : new SignState(newMap);
   }
 
   public SignState assignSignToVariable(String pVarIdent, SIGN sign) {
-    Builder<String, SIGN> mapBuilder = ImmutableMap.builder();
-    if (!sign.isAll()) {
-      mapBuilder.put(pVarIdent, sign);
+    if (sign.isAll()) {
+      return signMap.containsKey(pVarIdent) ? new SignState(signMap.removeAndCopy(pVarIdent)) : this;
     }
-    for (String varId : signMap.keySet()) {
-      if (!varId.equals(pVarIdent)) {
-        mapBuilder.put(varId, signMap.getSignForVariable(varId));
-      }
-    }
-    return new SignState(new SignMap(mapBuilder.build()));
+    return signMap.containsKey(pVarIdent) && getSignForVariable(pVarIdent).equals(sign) ? this
+        : new SignState(signMap.putAndCopy(pVarIdent, sign));
   }
 
   public SignState removeSignAssumptionOfVariable(String pVarIdent) {
     return assignSignToVariable(pVarIdent, SIGN.ALL);
+  }
+
+  public SIGN getSignForVariable(String pVarIdent) {
+    return signMap.containsKey(pVarIdent) ? signMap.get(pVarIdent) : SIGN.ALL;
   }
 
   @Override
@@ -155,7 +153,7 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
         continue;
       }
       builder.append(loopDelim);
-      builder.append(key + "->" + signMap.getSignForVariable(key));
+      builder.append(key + "->" + getSignForVariable(key));
       loopDelim = delim;
     }
     builder.append("]");
@@ -165,7 +163,7 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
   @Override
   public boolean equals(Object pObj) {
     if (!(pObj instanceof SignState)) { return false; }
-    return ((SignState) pObj).getSignMap().equals(this.getSignMap());
+    return ((SignState) pObj).signMap.equals(this.signMap);
   }
 
   @Override
