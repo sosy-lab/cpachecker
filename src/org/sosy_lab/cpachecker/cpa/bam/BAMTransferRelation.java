@@ -297,7 +297,7 @@ public class BAMTransferRelation implements TransferRelation {
    * otherwise a recursive CPAAlgorithm is started. */
   private Collection<Pair<AbstractState, Precision>> performCompositeAnalysis(
           final AbstractState initialState, final Precision initialPrecision, final CFANode node)
-          throws InterruptedException, RecursiveAnalysisFailedException {
+          throws InterruptedException, CPATransferException {
 
     logger.log(Level.FINEST, "Reducing state", initialState);
     final AbstractState reducedInitialState = wrappedReducer.getVariableReducedState(initialState, currentBlock, node);
@@ -309,13 +309,13 @@ public class BAMTransferRelation implements TransferRelation {
     ReachedSet reached = pair.getFirst();
     final Collection<AbstractState> returnStates = pair.getSecond();
 
-    final Collection<Pair<AbstractState, Precision>> result;
+    final Collection<AbstractState> result;
 
     if (returnStates != null) {
       assert reached != null;
       // cache hit, return element from cache
       logger.log(Level.FINEST, "Cache hit");
-      result = imbueAbstractStatesWithPrecision(reached, returnStates);
+      result = returnStates;
 
     } else {
       if (reached == null) {
@@ -329,21 +329,31 @@ public class BAMTransferRelation implements TransferRelation {
       }
 
       try {
-        result = performCompositeAnalysisWithCPAAlgorithm(reached, reducedInitialState, reducedInitialPrecision);
+        result = performCompositeAnalysisWithCPAAlgorithm(reached, reducedInitialState);
       } catch (CPAException e) {
         throw new RecursiveAnalysisFailedException(e);
       }
     }
 
+    ARGState rootOfBlock = null;
+    if (PCCInformation.isPCCEnabled()) {
+      if (!(reached.getFirstState() instanceof ARGState)) {
+        throw new CPATransferException("Cannot build proof, ARG, for BAM analysis.");
+      }
+      rootOfBlock = BAMARGUtils.copyARG((ARGState) reached.getFirstState());
+    }
+    argCache.put(reducedInitialState, reached.getPrecision(reached.getFirstState()), currentBlock, result, rootOfBlock);
+
     abstractStateToReachedSet.put(initialState, reached);
-    return result;
+
+    return imbueAbstractStatesWithPrecision(reached, result);
   }
 
 
   /** Analyse the block with a 'recursive' call to the CPAAlgorithm.
    * Then analyse the result and get the returnStates. */
-  private Collection<Pair<AbstractState, Precision>> performCompositeAnalysisWithCPAAlgorithm(
-          final ReachedSet reached, final AbstractState reducedInitialState, final Precision reducedInitialPrecision)
+  private Collection<AbstractState> performCompositeAnalysisWithCPAAlgorithm(
+          final ReachedSet reached, final AbstractState reducedInitialState)
           throws InterruptedException, CPAException {
 
     // CPAAlgorithm is not re-entrant due to statistics
@@ -362,22 +372,13 @@ public class BAMTransferRelation implements TransferRelation {
       //no target state, but waiting elements
       //analysis failed -> also break this analysis
       breakAnalysis = true;
-      return Collections.singletonList(Pair.of(reducedInitialState, reducedInitialPrecision));
+      returnStates =  Collections.singletonList(lastState);
+
     } else {
       returnStates = AbstractStates.filterLocations(reached, currentBlock.getReturnNodes()).toList();
     }
 
-    ARGState rootOfBlock = null;
-    if (PCCInformation.isPCCEnabled()) {
-      if (!(reached.getFirstState() instanceof ARGState)) {
-        throw new CPATransferException("Cannot build proof, ARG, for BAM analysis.");
-      }
-      rootOfBlock = BAMARGUtils.copyARG((ARGState) reached.getFirstState());
-    }
-    argCache.put(reducedInitialState, reached.getPrecision(reached.getFirstState()),
-                 currentBlock, returnStates, rootOfBlock);
-
-    return imbueAbstractStatesWithPrecision(reached, returnStates);
+    return returnStates;
   }
 
   private List<Pair<AbstractState, Precision>> imbueAbstractStatesWithPrecision(
