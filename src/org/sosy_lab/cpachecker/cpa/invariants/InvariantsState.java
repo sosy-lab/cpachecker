@@ -578,24 +578,18 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     // If the invariant evaluates to true, it adds no value for now
     if (assumptionEvaluation.isDefinitelyTrue()) { return this; }
 
-    // If exact evaluation is enabled or the expression relates a maximum of one variable
-    // to constants, then environment information may be gained
-    if (!(pEvaluationVisitor instanceof FormulaAbstractionVisitor)
-        || assumption.accept(COLLECT_VARS_VISITOR).size() <= 1) {
-      Map<String, InvariantsFormula<CompoundInterval>> tmpEnvironment = new HashMap<>(this.environment);
-      PushAssumptionToEnvironmentVisitor patev =
-          new PushAssumptionToEnvironmentVisitor(pEvaluationVisitor, tmpEnvironment);
-      if (!assumption.accept(patev, CompoundInterval.logicalTrue())) {
-        assert !assumptionEvaluation.isDefinitelyTrue();
-        return null;
-      }
-      // Check all the assumption once more after the environment changed
-      if (isDefinitelyFalse(assumption, pEvaluationVisitor)) {
-        return null;
-      }
-      return new InvariantsState(this.environment.putAndCopyAll(tmpEnvironment), pNewVariableSelection, machineModel, variableTypes, edgeBasedAbstractionStrategy);
+    NonRecursiveEnvironment.Builder environmentBuilder = new NonRecursiveEnvironment.Builder(this.environment);
+    PushAssumptionToEnvironmentVisitor patev =
+        new PushAssumptionToEnvironmentVisitor(pEvaluationVisitor, environmentBuilder);
+    if (!assumption.accept(patev, CompoundInterval.logicalTrue())) {
+      assert !assumptionEvaluation.isDefinitelyTrue();
+      return null;
     }
-    return this;
+    // Check all the assumption once more after the environment changed
+    if (isDefinitelyFalse(assumption, pEvaluationVisitor)) {
+      return null;
+    }
+    return new InvariantsState(environmentBuilder.build(), pNewVariableSelection, machineModel, variableTypes, edgeBasedAbstractionStrategy);
   }
 
   /**
@@ -931,7 +925,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
     public EdgeBasedAbstractionStrategy getAbstractionStrategy(EdgeBasedAbstractionStrategy pPrevious);
 
-    EdgeBasedAbstractionStrategy getAbstractionStrategy();
+    public EdgeBasedAbstractionStrategy getAbstractionStrategy();
 
   }
 
@@ -941,7 +935,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
       @Override
       public Set<String> determineWideningTargets(EdgeBasedAbstractionStrategy pOther) {
-        return null; // TODO better implementation would only widen variables involved in last edge(s)
+        return null;
       }
 
       @Override
@@ -956,7 +950,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
       @Override
       public boolean isLessThanOrEqualTo(EdgeBasedAbstractionStrategy pStrategy) {
-        return equals(this);
+        return equals(pStrategy);
       }
 
     },

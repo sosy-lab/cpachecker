@@ -259,12 +259,11 @@ public class CFASingleLoopTransformation {
     String pcVarName = PROGRAM_COUNTER_VAR_NAME;
     CDeclaration pcDeclaration = new CVariableDeclaration(FileLocation.DUMMY, true, CStorageClass.AUTO, CNumericTypes.INT, pcVarName, pcVarName, pcVarName, null);
     CIdExpression pcIdExpression = new CIdExpression(FileLocation.DUMMY, pcDeclaration);
-    CFANode declarationDummy = new CFANode(oldMainFunctionEntryNode.getFunctionName());
+    //CFANode declarationDummy = new CFANode(oldMainFunctionEntryNode.getFunctionName());
+    CFANode declarationDummy = newSuccessorsToPC.get(pcValueOfStart);
     CFAEdge pcDeclarationEdge = new CDeclarationEdge(String.format("int %s = %d;", pcVarName, pcValueOfStart), FileLocation.DUMMY, start, declarationDummy, pcDeclaration);
 
     addToNodes(pcDeclarationEdge);
-
-    newPredecessorsToPC.put(pcValueOfStart, declarationDummy);
 
     // Remove trivial dummy subgraphs and other dummy edges etc.
     simplify(start, newPredecessorsToPC, newSuccessorsToPC, globalNewToOld);
@@ -991,19 +990,22 @@ public class CFASingleLoopTransformation {
        */
       if (newSuccessor.getNumEnteringEdges() > 0) {
         assert tmpMap.isEmpty();
-        CFANode dummySuccessor = pLoopHead.getEnteringAssignmentEdge(pcToSet).getPredecessor();
-        for (CFAEdge enteringEdge : CFAUtils.allEnteringEdges(newSuccessor).toList()) {
-          CFANode replacementSuccessor = tmpMap.get(enteringEdge.getSuccessor());
-          if (replacementSuccessor == null) {
-            replacementSuccessor = getOrCreateNewFromOld(enteringEdge.getSuccessor(), tmpMap);
-            CFAEdge connectionEdge = new BlankEdge("", FileLocation.DUMMY, replacementSuccessor, dummySuccessor, "");
-            addToNodes(connectionEdge);
+        ProgramCounterValueAssignmentEdge pcAssignmentEdge = pLoopHead.getEnteringAssignmentEdge(pcToSet);
+        if (pcAssignmentEdge != null) {
+          CFANode dummySuccessor = pcAssignmentEdge.getPredecessor();
+          for (CFAEdge enteringEdge : CFAUtils.allEnteringEdges(newSuccessor).toList()) {
+            CFANode replacementSuccessor = tmpMap.get(enteringEdge.getSuccessor());
+            if (replacementSuccessor == null) {
+              replacementSuccessor = getOrCreateNewFromOld(enteringEdge.getSuccessor(), tmpMap);
+              CFAEdge connectionEdge = new BlankEdge("", FileLocation.DUMMY, replacementSuccessor, dummySuccessor, "");
+              addToNodes(connectionEdge);
+            }
+            CFAEdge replacementEdge = copyCFAEdgeWithNewNodes(enteringEdge, enteringEdge.getPredecessor(), replacementSuccessor, tmpMap);
+            removeFromNodes(enteringEdge);
+            addToNodes(replacementEdge);
           }
-          CFAEdge replacementEdge = copyCFAEdgeWithNewNodes(enteringEdge, enteringEdge.getPredecessor(), replacementSuccessor, tmpMap);
-          removeFromNodes(enteringEdge);
-          addToNodes(replacementEdge);
+          tmpMap.clear();
         }
-        tmpMap.clear();
       }
 
       // Connect the subgraph entry nodes to the loop header by assuming the program counter value

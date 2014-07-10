@@ -262,9 +262,9 @@ public class BAMTransferRelation implements TransferRelation {
   private Collection<Pair<AbstractState, Precision>> getReducedResult(
           final AbstractState initialState,
           final AbstractState reducedInitialState, final Precision reducedInitialPrecision)
-          throws RecursiveAnalysisFailedException, InterruptedException {
+          throws CPATransferException, InterruptedException {
 
-    final Collection<Pair<AbstractState, Precision>> reducedResult;
+    final Collection<AbstractState> reducedResult;
 
     // try to get previously computed element from cache
     final Pair<ReachedSet, Collection<AbstractState>> pair =
@@ -276,7 +276,7 @@ public class BAMTransferRelation implements TransferRelation {
       assert reached != null;
       // cache hit, return element from cache
       logger.log(Level.FINEST, "Cache hit");
-      reducedResult = imbueAbstractStatesWithPrecision(reached, returnStates);
+      reducedResult = returnStates;
 
     } else {
       if (reached == null) {
@@ -290,7 +290,7 @@ public class BAMTransferRelation implements TransferRelation {
       }
 
       try {
-        reducedResult = performCompositeAnalysisWithCPAAlgorithm(reached, reducedInitialState, reducedInitialPrecision);
+        reducedResult = performCompositeAnalysisWithCPAAlgorithm(reached);
       } catch (CPAException e) {
         throw new RecursiveAnalysisFailedException(e);
       }
@@ -298,7 +298,16 @@ public class BAMTransferRelation implements TransferRelation {
 
     abstractStateToReachedSet.put(initialState, reached);
 
-    return reducedResult;
+    ARGState rootOfBlock = null;
+    if (PCCInformation.isPCCEnabled()) {
+      if (!(reached.getFirstState() instanceof ARGState)) {
+        throw new CPATransferException("Cannot build proof, ARG, for BAM analysis.");
+      }
+      rootOfBlock = BAMARGUtils.copyARG((ARGState) reached.getFirstState());
+    }
+    argCache.put(reducedInitialState, reached.getPrecision(reached.getFirstState()), currentBlock, reducedResult, rootOfBlock);
+
+    return imbueAbstractStatesWithPrecision(reached, reducedResult);
   }
 
   /** Reconstruct the resulting state from root-, entry- and expanded-state.
@@ -486,11 +495,10 @@ public class BAMTransferRelation implements TransferRelation {
     return expandedResult;
   }
 
-
   /** Analyse the block with a 'recursive' call to the CPAAlgorithm.
    * Then analyse the result and get the returnStates. */
-  private Collection<Pair<AbstractState, Precision>> performCompositeAnalysisWithCPAAlgorithm(
-          final ReachedSet reached, final AbstractState reducedInitialState, final Precision reducedInitialPrecision)
+  private Collection<AbstractState> performCompositeAnalysisWithCPAAlgorithm(
+          final ReachedSet reached)
           throws InterruptedException, CPAException {
 
     // CPAAlgorithm is not re-entrant due to statistics
@@ -509,7 +517,8 @@ public class BAMTransferRelation implements TransferRelation {
       //no target state, but waiting elements
       //analysis failed -> also break this analysis
       breakAnalysis = true;
-      return Collections.singletonList(Pair.of(reducedInitialState, reducedInitialPrecision));
+      returnStates =  Collections.singletonList(lastState);
+
     } else {
       // get only those states, that are at block-exit.
       // in case of recursion, the block-exit-nodes might also appear in the middle of the block,
@@ -522,17 +531,7 @@ public class BAMTransferRelation implements TransferRelation {
       }
     }
 
-    ARGState rootOfBlock = null;
-    if (PCCInformation.isPCCEnabled()) {
-      if (!(reached.getFirstState() instanceof ARGState)) {
-        throw new CPATransferException("Cannot build proof, ARG, for BAM analysis.");
-      }
-      rootOfBlock = BAMARGUtils.copyARG((ARGState) reached.getFirstState());
-    }
-    argCache.put(reducedInitialState, reached.getPrecision(reached.getFirstState()),
-                 currentBlock, returnStates, rootOfBlock);
-
-    return imbueAbstractStatesWithPrecision(reached, returnStates);
+    return returnStates;
   }
 
   private List<Pair<AbstractState, Precision>> imbueAbstractStatesWithPrecision(

@@ -189,30 +189,27 @@ public enum InvariantsTransferRelation implements TransferRelation {
 
   private InvariantsState handleAssume(InvariantsState pElement, CAssumeEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCCodeException {
     CExpression expression = pEdge.getExpression();
+
     // Create a formula representing the edge expression
     InvariantsFormula<CompoundInterval> expressionFormula = expression.accept(getExpressionToFormulaVisitor(pEdge, pElement));
+    if (!pEdge.getTruthAssumption()) {
+      expressionFormula = CompoundIntervalFormulaManager.INSTANCE.logicalNot(expressionFormula);
+    }
 
-    return handleAssumption(pElement, pEdge, expressionFormula, pEdge.getTruthAssumption(), pPrecision);
+    return handleAssumption(pElement, pEdge, expressionFormula, pPrecision);
   }
 
-  private InvariantsState handleAssumption(InvariantsState pState, CFAEdge pEdge, InvariantsFormula<CompoundInterval> pAssumption, boolean pIsTruthAssumption, InvariantsPrecision pPrecision) {
+  private InvariantsState handleAssumption(InvariantsState pState, CFAEdge pEdge, InvariantsFormula<CompoundInterval> pAssumption, InvariantsPrecision pPrecision) {
     /*
-     * If the expression definitely evaluates to false when truth is assumed or
-     * the expression definitely evaluates to true when falsehood is assumed,
-     * the state is unreachable.
+     * If the expression definitely evaluates to false, the state is unreachable.
      */
-    if (pIsTruthAssumption && pState.definitelyImplies(CompoundIntervalFormulaManager.INSTANCE.logicalNot(pAssumption))
-        || !pIsTruthAssumption && pState.definitelyImplies(pAssumption)) {
+    if (pState.definitelyImplies(CompoundIntervalFormulaManager.INSTANCE.logicalNot(pAssumption))) {
       return null;
     }
 
     /*
      * Assume the state of the expression:
-     * If truth is assumed, any non-zero value, otherwise zero.
      */
-    if (!pIsTruthAssumption) {
-      pAssumption = CompoundIntervalFormulaManager.INSTANCE.logicalNot(pAssumption);
-    }
     InvariantsState result = pState.assume(pAssumption, pEdge);
     return result;
   }
@@ -263,7 +260,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
 
     if (limit == 1 && "__VERIFIER_assume".equals(pEdge.getSuccessor().getFunctionName())) {
       return handleAssumption(pElement, pEdge, actualParams.get(0).accept(
-          actualParamExpressionToFormulaVisitor), true, pPrecision);
+          actualParamExpressionToFormulaVisitor), pPrecision);
     }
 
     formalParams = FluentIterable.from(formalParams).limit(limit).toList();

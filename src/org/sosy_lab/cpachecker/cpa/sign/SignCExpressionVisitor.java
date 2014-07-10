@@ -91,7 +91,7 @@ public class SignCExpressionVisitor
 
   @Override
   public SIGN visit(CFieldReference e) throws UnrecognizedCodeException {
-    return state.getSignMap().getSignForVariable(transferRel.getScopedVariableName(e));
+    return state.getSignForVariable(transferRel.getScopedVariableName(e));
   }
 
   @Override
@@ -102,7 +102,7 @@ public class SignCExpressionVisitor
 
   @Override
   public SIGN visit(CIdExpression pIastIdExpression) throws UnrecognizedCodeException {
-    return state.getSignMap().getSignForVariable(transferRel.getScopedVariableName(pIastIdExpression));
+    return state.getSignForVariable(transferRel.getScopedVariableName(pIastIdExpression));
   }
 
   @Override
