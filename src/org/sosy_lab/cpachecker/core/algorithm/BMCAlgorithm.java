@@ -400,7 +400,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       if (pProver.isUnsat()) {
         candidateInvariants.add(candidateInvariant);
       } else if (logger.wouldBeLogged(Level.ALL)) {
-        logger.log(Level.ALL, candidateInvariant, " is not an invariant: ", pProver.getModel());
+        logger.log(Level.ALL, candidateInvariant, "is not an invariant:", pProver.getModel());
       }
       pProver.pop();
 
