@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableList;
  * Is used to represent a field reference without pointer dereferences.
  *
  * E.g a.b.h.
+ * (is typically used with structs)
  */
 public final class FieldReference extends LeftHandSide {
 
