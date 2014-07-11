@@ -1082,7 +1082,12 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       Iterable<AbstractState> loopHeadStates = AbstractStates.filterLocations(reached, loop.getLoopHeads());
       BooleanFormula loopInvariantAssumption = bfmgr.makeBoolean(true);
       for (BooleanFormula potentialLoopInvariant : getPotentialLoopInvariants()) {
-        loopInvariantAssumption = bfmgr.and(loopInvariantAssumption, instantiateForAll(loopHeadStates, potentialLoopInvariant));
+        for (AbstractState loopHeadState : loopHeadStates) {
+          Iterable<AbstractState> loopHeadStateIterable = Collections.singleton(loopHeadState);
+          BooleanFormula invariantAssumption = bfmgr.or(bfmgr.not(createFormulaFor(loopHeadStateIterable)),
+              instantiateForAll(loopHeadStateIterable, potentialLoopInvariant));
+          loopInvariantAssumption = bfmgr.and(loopInvariantAssumption, invariantAssumption);
+        }
       }
 
       // Create the formula asserting the faultiness of the successor
@@ -1091,10 +1096,15 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       BooleanFormula unsafeSuccessor = createFormulaFor(from(targetStates));
       this.previousFormula = unsafeSuccessor;
 
-      BooleanFormula loopInvariantContradiction = bfmgr.makeBoolean(false);
       loopHeadStates = AbstractStates.filterLocations(reached, loop.getLoopHeads());
+      BooleanFormula loopInvariantContradiction = bfmgr.makeBoolean(false);
       for (BooleanFormula potentialLoopInvariant : getPotentialLoopInvariants()) {
-        loopInvariantContradiction = bfmgr.or(loopInvariantContradiction, bfmgr.not(instantiateForAll(loopHeadStates, potentialLoopInvariant)));
+        for (AbstractState loopHeadState : loopHeadStates) {
+          Iterable<AbstractState> loopHeadStateIterable = Collections.singleton(loopHeadState);
+          BooleanFormula invariantAssumption = bfmgr.or(bfmgr.not(createFormulaFor(loopHeadStateIterable)),
+              instantiateForAll(loopHeadStateIterable, potentialLoopInvariant));
+          loopInvariantContradiction = bfmgr.or(loopInvariantContradiction, bfmgr.not(invariantAssumption));
+        }
       }
       this.previousK = k;
 
