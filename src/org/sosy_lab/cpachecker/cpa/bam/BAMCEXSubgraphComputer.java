@@ -40,6 +40,7 @@ import java.util.TreeSet;
 import java.util.logging.Level;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.cpa.bam.AbstractBAMBasedRefiner.DUMMY_STATE_FOR_MISSING_BLOCK;
 
 public class BAMCEXSubgraphComputer {
 
@@ -68,6 +69,11 @@ public class BAMCEXSubgraphComputer {
   /** returns the root of a subtree, leading from the root element of the given reachedSet to the target state.
    * The subtree is represented using children and parents of ARGElements,
    * where newTreeTarget is the ARGState in the constructed subtree that represents target.
+   *
+   * If the target is reachable via a missing block (aka "hole"),
+   * the DUMMY_STATE_FOR_MISSING_BLOCK is returned.
+   * Then we expect, that the next actions are removing cache-entries from bam-cache,
+   * updating some waitlists and restarting the CPA-algorithm, so that the missing block is analyzed again.
    *
    * @param target a state from the reachedSet, is used as the last state of the returned subgraph.
    * @param reachedSet contains the target-state.
@@ -121,9 +127,9 @@ public class BAMCEXSubgraphComputer {
           // The current subtree (successors of child) is appended beyond the innerTree, to get a complete subgraph.
           final ARGState reducedTarget = (ARGState) expandedToReducedCache.get(child);
           BackwardARGState innerTree = computeCounterexampleSubgraphForBlock(currentState, reducedTarget, newChild);
-          if (innerTree == null) {
+          if (innerTree == DUMMY_STATE_FOR_MISSING_BLOCK) {
             ARGSubtreeRemover.removeSubtree(reachedSet, currentState);
-            return null;
+            return DUMMY_STATE_FOR_MISSING_BLOCK;
           }
 
           // reconnect ARG: replace the state 'innerTree' with the current state.
@@ -157,7 +163,12 @@ public class BAMCEXSubgraphComputer {
    * then looks for target in this reached set and constructs a tree from root to target
    * (recursively, if needed).
    *
-   * @param root the expanded initial state of the reachedSet of current block
+   * If the target is reachable via a missing block (aka "hole"),
+   * the DUMMY_STATE_FOR_MISSING_BLOCK is returned.
+   * Then we expect, that the next actions are removing cache-entries from bam-cache,
+   * updating some waitlists and restarting the CPA-algorithm, so that the missing block is analyzed again.
+   *
+   * @param expandedRoot the expanded initial state of the reachedSet of current block
    * @param reducedTarget exit-state of the reachedSet of current block
    * @param newTreeTarget copy of the exit-state of the reachedSet of current block.
    *                     newTreeTarget has only children, that are all part of the Pseudo-ARG
@@ -175,7 +186,7 @@ public class BAMCEXSubgraphComputer {
     if (reducedTarget.isDestroyed()) {
       logger.log(Level.FINE,
               "Target state refers to a destroyed ARGState, i.e., the cached subtree is outdated. Updating it.");
-      return null;
+      return DUMMY_STATE_FOR_MISSING_BLOCK;
     }
 
     // TODO why do we use 'abstractStateToReachedSet' to get the reachedSet and not 'bamCache'?
@@ -188,7 +199,7 @@ public class BAMCEXSubgraphComputer {
 
     // we found the target; now construct a subtree in the ARG starting with targetARGElement
     final BackwardARGState result = computeCounterexampleSubgraph(reducedTarget, new ARGReachedSet(reachedSet), newTreeTarget);
-    if (result == null) {
+    if (result == DUMMY_STATE_FOR_MISSING_BLOCK) {
       //enforce recomputation to update cached subtree
       logger.log(Level.FINE,
               "Target state refers to a destroyed ARGState, i.e., the cached subtree will be removed.");
