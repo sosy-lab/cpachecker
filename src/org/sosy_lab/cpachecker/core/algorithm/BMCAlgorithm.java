@@ -385,15 +385,23 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     Iterable<AbstractState> loopHeadStates = AbstractStates.filterLocations(pReachedSet, pLoop.getLoopHeads());
 
-    BooleanFormula loopHeadStatesFormula = createFormulaFor(loopHeadStates);
-
     ImmutableSet.Builder<BooleanFormula> candidateInvariants = new ImmutableSet.Builder<>();
 
     for (CFAEdge assumeEdge : assumeEdges) {
       PathFormula invariantPathFormula = pmgr.makeFormulaForPath(Collections.singletonList(assumeEdge));
       BooleanFormula negatedCandidateInvariant = fmgr.uninstantiate(invariantPathFormula.getFormula());
 
-      BooleanFormula invariantInvalidity = bfmgr.and(loopHeadStatesFormula, instantiateForAll(loopHeadStates, negatedCandidateInvariant));
+      // Is there any loop head state, where the assumption does not hold?
+      BooleanFormula invariantInvalidity = bfmgr.makeBoolean(false);
+      for (AbstractState loopHeadState : loopHeadStates) {
+        Iterable<AbstractState> loopHeadStateIterable = Collections.singleton(loopHeadState);
+        BooleanFormula loopHeadStateReachability = createFormulaFor(loopHeadStateIterable);
+        BooleanFormula instantiatedNegatedCandidateInvariant = instantiateForAll(loopHeadStateIterable, negatedCandidateInvariant);
+        // Is this loop head state reachable while the assumption does not hold?
+        BooleanFormula localInvalidity = bfmgr.and(loopHeadStateReachability, instantiatedNegatedCandidateInvariant);
+
+        invariantInvalidity = bfmgr.or(invariantInvalidity, localInvalidity);
+      }
 
       pProver.push(invariantInvalidity);
       BooleanFormula candidateInvariant = bfmgr.not(negatedCandidateInvariant);
@@ -1074,7 +1082,12 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       Iterable<AbstractState> loopHeadStates = AbstractStates.filterLocations(reached, loop.getLoopHeads());
       BooleanFormula loopInvariantAssumption = bfmgr.makeBoolean(true);
       for (BooleanFormula potentialLoopInvariant : getPotentialLoopInvariants()) {
-        loopInvariantAssumption = bfmgr.and(loopInvariantAssumption, instantiateForAll(loopHeadStates, potentialLoopInvariant));
+        for (AbstractState loopHeadState : loopHeadStates) {
+          Iterable<AbstractState> loopHeadStateIterable = Collections.singleton(loopHeadState);
+          BooleanFormula invariantAssumption = bfmgr.or(bfmgr.not(createFormulaFor(loopHeadStateIterable)),
+              instantiateForAll(loopHeadStateIterable, potentialLoopInvariant));
+          loopInvariantAssumption = bfmgr.and(loopInvariantAssumption, invariantAssumption);
+        }
       }
 
       // Create the formula asserting the faultiness of the successor
@@ -1083,10 +1096,15 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       BooleanFormula unsafeSuccessor = createFormulaFor(from(targetStates));
       this.previousFormula = unsafeSuccessor;
 
-      BooleanFormula loopInvariantContradiction = bfmgr.makeBoolean(false);
       loopHeadStates = AbstractStates.filterLocations(reached, loop.getLoopHeads());
+      BooleanFormula loopInvariantContradiction = bfmgr.makeBoolean(false);
       for (BooleanFormula potentialLoopInvariant : getPotentialLoopInvariants()) {
-        loopInvariantContradiction = bfmgr.or(loopInvariantContradiction, bfmgr.not(instantiateForAll(loopHeadStates, potentialLoopInvariant)));
+        for (AbstractState loopHeadState : loopHeadStates) {
+          Iterable<AbstractState> loopHeadStateIterable = Collections.singleton(loopHeadState);
+          BooleanFormula invariantAssumption = bfmgr.or(bfmgr.not(createFormulaFor(loopHeadStateIterable)),
+              instantiateForAll(loopHeadStateIterable, potentialLoopInvariant));
+          loopInvariantContradiction = bfmgr.or(loopInvariantContradiction, bfmgr.not(invariantAssumption));
+        }
       }
       this.previousK = k;
 

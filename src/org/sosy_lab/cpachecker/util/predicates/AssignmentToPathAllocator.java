@@ -68,13 +68,9 @@ import com.google.common.collect.Multimap;
 public class AssignmentToPathAllocator {
 
   private static final String ADDRESS_PREFIX = "__ADDRESS_OF_";
-
   private static final int FIRST = 0;
-
   private static final int IS_NOT_GLOBAL = 2;
-
   private static final int NAME_AND_FUNCTION = 0;
-
   private static final int IS_FIELD_REFERENCE = 1;
 
   @SuppressWarnings("unused")
@@ -97,6 +93,9 @@ public class AssignmentToPathAllocator {
     shutdownNotifier = pShutdownNotifier;
   }
 
+  /**
+   * Provide a path with concrete values (like a test case)
+   */
   public CFAPathWithAssignments allocateAssignmentsToPath(List<CFAEdge> pPath,
       Model pModel, List<SSAMap> pSSAMaps, MachineModel pMachineModel) throws InterruptedException {
 
@@ -109,15 +108,13 @@ public class AssignmentToPathAllocator {
   }
 
 
-  private Pair<ConcreteStatePath, Multimap<CFAEdge, AssignableTerm>> createConcreteStatePath(List<CFAEdge> pPath,
-      Model pModel, List<SSAMap> pSSAMaps, MachineModel pMachineModel) throws InterruptedException {
+  private Pair<ConcreteStatePath, Multimap<CFAEdge, AssignableTerm>> createConcreteStatePath(
+      List<CFAEdge> pPath, Model pModel, List<SSAMap> pSSAMaps, MachineModel pMachineModel)
+          throws InterruptedException {
 
     AssignableTermsInPath assignableTerms = assignTermsToPathPosition(pSSAMaps, pModel);
-
     List<ConcerteStatePathNode> pathWithAssignments = new ArrayList<>(pPath.size());
-
     Multimap<CFAEdge, AssignableTerm> usedAssignableTerms = HashMultimap.create();
-
     Map<LeftHandSide, Address> addressOfVariables = getVariableAddresses(assignableTerms, pModel);
 
     /* Its too inefficient to recreate every assignment from scratch,
@@ -142,13 +139,11 @@ public class AssignmentToPathAllocator {
       CFAEdge cfaEdge = pPath.get(pathIndex);
 
       if (cfaEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
-
         MultiEdge multiEdge = (MultiEdge) cfaEdge;
 
         List<ConcreteState> singleConcreteStates = new ArrayList<>(multiEdge.getEdges().size());
 
         int multiEdgeIndex = 0;
-
         for (CFAEdge singleCfaEdge : multiEdge) {
 
           variableEnvoirment = new HashMap<>(variableEnvoirment);
@@ -308,7 +303,9 @@ public class AssignmentToPathAllocator {
     }
   }
 
-  /*We need the variableEnvoirment and functionEnvoirment for their SSAIndeces.*/
+  /**
+   * We need the variableEnvoirment and functionEnvoirment for their SSAIndeces.
+   */
   private void createAssignments(Model pModel,
       Collection<AssignableTerm> terms,
       Set<Assignment> termSet,
@@ -350,6 +347,7 @@ public class AssignmentToPathAllocator {
         }
 
       } else if (term instanceof Function) {
+
         Function function = (Function) term;
         String name = getName(function);
 
@@ -551,9 +549,9 @@ public class AssignmentToPathAllocator {
   /**
    * Search through an (ordered) list of SSAMaps
    * for the first index where a given variable appears.
-   * @return -1 if the variable with the given index never occurs, or an index of pSsaMaps
+   * @return -1 if the variable with the given SSA-index never occurs, or an index of pSsaMaps
    */
-  private int findFirstOccurrenceOfVariable(Variable pVar, List<SSAMap> pSsaMaps) {
+  int findFirstOccurrenceOfVariable(Variable pVar, List<SSAMap> pSsaMaps) {
 
     // both indices are inclusive bounds of the range where we still need to look
     int lower = 0;
@@ -569,7 +567,7 @@ public class AssignmentToPathAllocator {
     } else {
 
       while (upper >= 0 &&
-          pSsaMaps.get(upper).containsVariable(pVar.getName())) {
+          !pSsaMaps.get(upper).containsVariable(pVar.getName())) {
         upper--;
       }
 
@@ -613,7 +611,7 @@ public class AssignmentToPathAllocator {
     }
   }
 
-  private int findFirstOccurrenceOfVariable(Function pTerm, List<SSAMap> pSsaMaps) {
+  int findFirstOccurrenceOfVariable(Function pTerm, List<SSAMap> pSsaMaps) {
 
     int lower = 0;
     int upper = pSsaMaps.size() - 1;
@@ -655,6 +653,7 @@ public class AssignmentToPathAllocator {
     }
   }
 
+  // TODO: Why is this generic class not in the package core.counterexample?
   private static final class Assignment {
 
     private final AssignableTerm term;

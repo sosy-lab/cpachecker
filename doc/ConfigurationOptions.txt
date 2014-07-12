@@ -540,7 +540,7 @@ cpa.automaton.inputFile = no default value
 
 # if enabled, cache queries also consider blocks with non-matching precision
 # for reuse.
-cpa.bam.aggressiveCaching = true
+cpa.bam.aggressiveCaching = false
 
 # export blocked ARG as .dot file
 cpa.bam.argFile = "BlockedARG.dot"

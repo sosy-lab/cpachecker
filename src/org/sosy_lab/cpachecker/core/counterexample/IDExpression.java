@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+
 
 /**
  * This class is used to represent a identifier of a C
@@ -33,6 +35,7 @@ package org.sosy_lab.cpachecker.core.counterexample;
  * calculate an address for it. It is also used to
  * define an address for a variable.
  *
+ * TODO: How is it different to {@link CIdExpression}?
  *
  */
 public final class IDExpression extends LeftHandSide {
