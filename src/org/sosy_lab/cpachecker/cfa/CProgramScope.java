@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimap;
@@ -115,8 +116,17 @@ public class CProgramScope implements Scope {
           }
         };
 
+    Predicate<? super CDeclaration> noName = new Predicate<CDeclaration>() {
+
+      @Override
+      public boolean apply(CDeclaration dcl) {
+        // TODO Auto-generated method stub
+        return dcl.getName() != null  && dcl.getQualifiedName() != null;
+      }
+    };
+
     FluentIterable<CDeclaration> dcls =
-        FluentIterable.from(nodes).transformAndConcat(transformToCDecl);
+        FluentIterable.from(nodes).transformAndConcat(transformToCDecl).filter(noName);
 
     Function<? super CDeclaration, String> transformToMultiMap = new Function<CDeclaration, String>() {
 
@@ -126,17 +136,20 @@ public class CProgramScope implements Scope {
       }
     };
 
-    simpleDeclarations = dcls.index(transformToMultiMap);
+    simpleDeclarations = ImmutableListMultimap.copyOf(dcls.index(transformToMultiMap));
 
-    Function<? super CDeclaration, String> transformToMap = new Function<CDeclaration, String>() {
+    //TODO qualified Names not unique?
+    //Function<? super CDeclaration, String> transformToMap = new Function<CDeclaration, String>() {
 
-      @Override
-      public String apply(CDeclaration dcl) {
-        return dcl.getQualifiedName();
-      }
-    };
+      //@Override
+      //public String apply(CDeclaration dcl) {
+        //return dcl.getQualifiedName();
+      //}
+    //};
 
-    qualifiedDeclarations = dcls.uniqueIndex(transformToMap);
+    //qualifiedDeclarations = dcls.uniqueIndex(transformToMap);
+
+    qualifiedDeclarations = Collections.emptyMap();
   }
 
   /**
