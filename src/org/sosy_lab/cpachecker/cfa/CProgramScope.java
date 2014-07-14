@@ -243,8 +243,8 @@ public class CProgramScope implements Scope {
 
   @Override
   public String createScopedNameOf(String pName) {
-    // TODO not implemented
-    return null;
+    // TODO no scope at the moment
+    return pName;
   }
 
   @Override
