@@ -313,6 +313,12 @@ public class BAMTransferRelation implements TransferRelation {
 
     if (returnStates != null) {
       assert reached != null;
+      assert !reached.hasWaitingState() ||
+              (returnStates.size() == 1
+                        && Iterables.getOnlyElement(returnStates) == reached.getLastState()
+                        && ((ARGState)reached.getLastState()).isTarget()) :
+              "cache hit only allowed for finished reached-sets or target-states";
+
       // cache hit, return element from cache
       logger.log(Level.FINEST, "Cache hit");
       result = returnStates;
