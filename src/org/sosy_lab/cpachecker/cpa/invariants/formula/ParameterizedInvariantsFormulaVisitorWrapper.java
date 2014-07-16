@@ -81,6 +81,11 @@ public class ParameterizedInvariantsFormulaVisitorWrapper<ConstantType, Paramete
   }
 
   @Override
+  public ReturnType visit(Exclusion<ConstantType> pExclusion, ParameterType pParameter) {
+    return this.wrapped.visit(pExclusion, pParameter);
+  }
+
+  @Override
   public ReturnType visit(LessThan<ConstantType> pLessThan, ParameterType pParameter) {
     return this.wrapped.visit(pLessThan, pParameter);
   }

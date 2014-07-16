@@ -194,7 +194,25 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
       return pEqual.getOperand1().accept(this, rightValue)
           && pEqual.getOperand2().accept(this, leftValue);
     }
-    // If the equation is definitely false, push inverted singletons (if any)
+    // The equation is definitely false
+
+    // Try to push an exclusion
+    InvariantsFormula<CompoundInterval> op1 = pEqual.getOperand1();
+    InvariantsFormula<CompoundInterval> op2 = pEqual.getOperand2();
+    if (op1 instanceof Variable) {
+      String varName = ((Variable<?>) op1).getName();
+      if (environment.get(varName) == null) {
+        environment.put(varName, CompoundIntervalFormulaManager.exclude(op2));
+      }
+    }
+    if (op2 instanceof Variable) {
+      String varName = ((Variable<?>) op2).getName();
+      if (environment.get(varName) == null) {
+        environment.put(varName, CompoundIntervalFormulaManager.exclude(op1));
+      }
+    }
+
+    // Push inverted singletons (if any)
     if (rightValue.isSingleton() && !pEqual.getOperand1().accept(this, rightValue.invert())) {
       return false;
     }
@@ -202,6 +220,14 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
       return false;
     }
     return true;
+  }
+
+  @Override
+  public Boolean visit(Exclusion<CompoundInterval> pExclusion, CompoundInterval pParameter) {
+    if (pParameter == null || pParameter.isBottom()) {
+      return false;
+    }
+    return evaluate(pExclusion).intersectsWith(pParameter);
   }
 
   @Override

@@ -225,6 +225,12 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
   }
 
   @Override
+  public BitvectorFormula visit(Exclusion<CompoundInterval> pExclusion,
+      Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+    return evaluate(pExclusion, pEnvironment);
+  }
+
+  @Override
   public BitvectorFormula visit(LessThan<CompoundInterval> pLessThan, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return fromBooleanFormula(pLessThan, pEnvironment);
   }
@@ -374,6 +380,11 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
       Integer size1 = pEqual.getOperand1().accept(this);
       Integer size2 = pEqual.getOperand2().accept(this);
       return decideSize(size1, size2);
+    }
+
+    @Override
+    public Integer visit(Exclusion<CompoundInterval> pExclusion) {
+      return pExclusion.getExcluded().accept(this);
     }
 
     @Override

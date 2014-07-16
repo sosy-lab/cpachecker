@@ -137,6 +137,10 @@ public enum InvariantsFormulaManager {
     return Equal.of(pOperand1, pOperand2);
   }
 
+  public <T> InvariantsFormula<T> exclude(InvariantsFormula<T> pToExclude) {
+    return Exclusion.of(pToExclude);
+  }
+
   /**
    * Gets an invariants formula representing a greater-than inequation over the
    * given operands.

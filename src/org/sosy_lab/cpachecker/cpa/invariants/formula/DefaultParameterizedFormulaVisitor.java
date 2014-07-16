@@ -87,6 +87,11 @@ public abstract class DefaultParameterizedFormulaVisitor<ConstantType, ParamType
   }
 
   @Override
+  public ReturnType visit(Exclusion<ConstantType> pExclusion, ParamType pParam) {
+    return visitDefault(pExclusion, pParam);
+  }
+
+  @Override
   public ReturnType visit(LessThan<ConstantType> pLessThan, ParamType pParam) {
     return visitDefault(pLessThan, pParam);
   }

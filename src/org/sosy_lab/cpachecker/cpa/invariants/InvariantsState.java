@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaManager;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Constant;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ContainsVarVisitor;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.Exclusion;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaAbstractionVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvaluationVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaDepthCountVisitor;
@@ -89,6 +90,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -482,10 +484,18 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     for (Entry<? extends String, ? extends InvariantsFormula<CompoundInterval>> entry : pEnvironment.entrySet()) {
       InvariantsFormula<CompoundInterval> variable = ifm.asVariable(entry.getKey());
 
+      InvariantsFormula<CompoundInterval> value = entry.getValue();
+
+      boolean isExclusion = false;
+      if (value instanceof Exclusion) {
+        isExclusion = true;
+        value = ((Exclusion<CompoundInterval>) value).getExcluded();
+      }
+
       atomic.clear();
       toCheck.clear();
 
-      toCheck.add(entry.getValue());
+      toCheck.add(value);
       while (!toCheck.isEmpty()) {
         InvariantsFormula<CompoundInterval> current = toCheck.poll();
         if (current instanceof Union<?>) {
@@ -498,12 +508,16 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       }
       assert !atomic.isEmpty();
       Iterator<InvariantsFormula<CompoundInterval>> iterator = atomic.iterator();
-      InvariantsFormula<CompoundInterval> equation = ifm.equal(variable, iterator.next());
+      InvariantsFormula<CompoundInterval> assumption = ifm.equal(variable, iterator.next());
       while (iterator.hasNext()) {
-        equation = ifm.logicalOr(equation, ifm.equal(variable, iterator.next()));
+        InvariantsFormula<CompoundInterval> equation = ifm.equal(variable, iterator.next());
+        if (isExclusion) {
+          equation = ifm.logicalNot(equation);
+        }
+        assumption = ifm.logicalOr(assumption, equation);
       }
 
-      environmentalAssumptions.add(equation);
+      environmentalAssumptions.add(assumption);
     }
     return environmentalAssumptions;
   }
@@ -692,7 +706,19 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
   @Override
   public String toString() {
-    return Joiner.on(", ").withKeyValueSeparator("=").join(environment);
+    return Joiner.on(", ").join(FluentIterable.from(environment.entrySet()).transform(new Function<Map.Entry<String, InvariantsFormula<CompoundInterval>>, String>() {
+
+      @Override
+      public String apply(Entry<String, InvariantsFormula<CompoundInterval>> pInput) {
+        String variableName = pInput.getKey();
+        InvariantsFormula<?> value = pInput.getValue();
+        if (value instanceof Exclusion) {
+          return String.format("%s\u2260%s", variableName, ((Exclusion<?>) value).getExcluded());
+        }
+        return String.format("%s=%s", variableName, value);
+      }
+
+    }));
   }
 
   public EdgeBasedAbstractionStrategy getAbstractionStrategy() {
