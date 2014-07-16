@@ -1016,6 +1016,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         return bfmgr.makeBoolean(true); // no invariants available
       }
 
+      Set<CFANode> targetLocations = getCurrentPotentialTargetLocations();
       // Check if the invariant generation was able to prove correctness for the program
       if (targetLocations != null && AbstractStates.filterLocations(pReachedSet, targetLocations).isEmpty()) {
         logger.log(Level.INFO, "Invariant generation found no target states.");
