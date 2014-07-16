@@ -285,12 +285,22 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
         ImmutableSet<BooleanFormula> potentialInvariants = null;
         Set<CFAEdge> relevantAssumeEdges = null;
+        ImmutableSet<CFANode> targetLocations = null;
         do {
           shutdownNotifier.shutdownIfNecessary();
 
-          ImmutableSet<CFANode> targetLocations = null;
           if (induction) {
-             targetLocations = kInductionProver.getCurrentPotentialTargetLocations();
+            if (targetLocations == null && invariantGenerator instanceof CPAInvariantGenerator) {
+              CPAInvariantGenerator invariantGenerator = (CPAInvariantGenerator) BMCAlgorithm.this.invariantGenerator;
+              InvariantsCPA invariantsCPA = CPAs.retrieveCPA(invariantGenerator.getCPAs(), InvariantsCPA.class);
+              if (invariantsCPA != null) {
+                targetLocations = invariantsCPA.tryGetTargetLocations(cfa.getMainFunction());
+              } else {
+                targetLocations = kInductionProver.getCurrentPotentialTargetLocations();
+              }
+            } else {
+              targetLocations = kInductionProver.getCurrentPotentialTargetLocations();
+            }
             if (targetLocations != null && targetLocations.isEmpty()) {
               logger.log(Level.INFO, "Invariant generation found no target states.");
               invariantGenerator.cancel();
