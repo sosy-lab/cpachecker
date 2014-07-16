@@ -24,9 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import java.io.Serializable;
-import java.util.HashMap;
 import java.util.Map;
 
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -48,32 +49,19 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
   /**
    * the intervals of the element
    */
-  private Map<String, Interval> intervals;
+  private PersistentMap<String, Interval> intervals;
 
   /**
    * the reference counts of the element
    */
-  private Map<String, Integer> referenceCounts;
-
-  /**
-   * the element from the previous context, used solely for return edges
-   */
-  private final IntervalAnalysisState previousState;
+  private PersistentMap<String, Integer> referenceCounts;
 
   /**
    *  This method acts as the default constructor, which initializes the intervals and reference counts to empty maps and the previous element to null.
    */
   public IntervalAnalysisState() {
-    this(new HashMap<String, Interval>(), new HashMap<String, Integer>(), null);
-  }
-
-  /**
-   * This method acts as constructor, which initializes the intervals and reference counts to empty maps and the previous element to the respective object.
-   *
-   * @param previousState from the previous context
-   */
-  public IntervalAnalysisState(IntervalAnalysisState previousElement) {
-    this(new HashMap<String, Interval>(), new HashMap<String, Integer>(), previousElement);
+    intervals = PathCopyingPersistentTreeMap.of();
+    referenceCounts = PathCopyingPersistentTreeMap.of();
   }
 
   /**
@@ -83,12 +71,10 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
    * @param referencesMap the reference counts
    * @param previousState from the previous context
    */
-  public IntervalAnalysisState(Map<String, Interval> intervals, Map<String, Integer> referencesMap, IntervalAnalysisState previousElement) {
+  public IntervalAnalysisState(PersistentMap<String, Interval> intervals, PersistentMap<String, Integer> referencesMap) {
     this.intervals        = intervals;
 
     this.referenceCounts  = referencesMap;
-
-    this.previousState  = previousElement;
   }
 
   /**
@@ -99,7 +85,7 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
    */
   // see ExplicitState::getValueFor
   public Interval getInterval(String variableName) {
-    return intervals.get(variableName);
+    return intervals.containsKey(variableName)?intervals.get(variableName):Interval.createUnboundInterval();
   }
 
   /**
@@ -127,15 +113,6 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
   }
 
   /**
-   * This method returns the previous element
-   *
-   * @return the previous element
-   */
-  public IntervalAnalysisState getPreviousState() {
-    return previousState;
-  }
-
-  /**
    * This method determines if this element contains an interval for a variable.
    *
    * @param variableName the name of the variable
@@ -155,14 +132,18 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
    */
   // see ExplicitState::assignConstant
   public IntervalAnalysisState addInterval(String variableName, Interval interval, int pThreshold) {
+    if(interval.isUnbound()){
+      removeInterval(variableName);
+      return this;
+    }
     // only add the interval if it is not already present
     if (!intervals.containsKey(variableName) || !intervals.get(variableName).equals(interval)) {
       int referenceCount = getReferenceCount(variableName);
 
       if (pThreshold == -1 || referenceCount < pThreshold) {
-        referenceCounts.put(variableName, referenceCount + 1);
+        referenceCounts = referenceCounts.putAndCopy(variableName, referenceCount + 1);
 
-        intervals.put(variableName, interval);
+        intervals = intervals.putAndCopy(variableName, interval);
       } else {
         removeInterval(variableName);
       }
@@ -180,10 +161,18 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
   // see ExplicitState::forget
   public IntervalAnalysisState removeInterval(String variableName) {
     if (intervals.containsKey(variableName)) {
-      intervals.remove(variableName);
+      intervals = intervals.removeAndCopy(variableName);
     }
 
     return this;
+  }
+
+  public void dropFrame(String pCalledFunctionName) {
+    for(String variableName : intervals.keySet()){
+      if(variableName.startsWith(pCalledFunctionName+"::")){
+        removeInterval(variableName);
+      }
+    }
   }
 
   /**
@@ -193,12 +182,10 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
    * @return a new state representing the join of this element and the reached state
    */
   public IntervalAnalysisState join(IntervalAnalysisState reachedState) {
-    Map<String, Interval> newIntervals = new HashMap<>(intervals);
-    Map<String, Integer> newReferences = new HashMap<>();
-
-    newReferences.putAll(referenceCounts);
-
     boolean changed = false;
+    PersistentMap<String, Interval> newIntervals = PathCopyingPersistentTreeMap.of();
+    PersistentMap<String, Integer> newReferences = referenceCounts;
+
     int newRefCount;
     Interval mergedInterval;
 
@@ -209,22 +196,25 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
         if (mergedInterval != reachedState.getInterval(variableName)) {
           changed = true;
         }
-        newIntervals.put(variableName,mergedInterval);
+
+        if (!mergedInterval.isUnbound()) {
+          newIntervals = newIntervals.putAndCopy(variableName, mergedInterval);
+        }
 
         // update the references
         newRefCount = Math.max(getReferenceCount(variableName), reachedState.getReferenceCount(variableName));
         if (!ignoreRefInMerge && newRefCount > reachedState.getReferenceCount(variableName)) {
-         changed = true;
+          changed = true;
         }
-        newReferences.put(variableName, newRefCount);
+        newReferences = newReferences.putAndCopy(variableName, newRefCount);
       } else {
-        newReferences.put(variableName, reachedState.getReferenceCount(variableName));
+        newReferences = newReferences.putAndCopy(variableName, reachedState.getReferenceCount(variableName));
         changed = true;
       }
     }
 
     if (changed) {
-      return new IntervalAnalysisState(newIntervals, newReferences, previousState);
+      return new IntervalAnalysisState(newIntervals, newReferences);
     } else {
       return reachedState;
     }
@@ -237,6 +227,7 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
    * @return true, if this element is less or equal than the reached state, based on the order imposed by the lattice
    */
   public boolean isLessOrEqual(IntervalAnalysisState reachedState) {
+    if (intervals.equals(reachedState.intervals)) { return true; }
     // this element is not less or equal than the reached state, if it contains less intervals
     if (intervals.size() < reachedState.intervals.size()) {
       return false;
@@ -255,18 +246,7 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
   }
 
   public static IntervalAnalysisState copyOf(IntervalAnalysisState old) {
-    IntervalAnalysisState newElement = new IntervalAnalysisState(old.previousState);
-
-    // clone the intervals ...
-    for (String variableName : old.intervals.keySet()) {
-      newElement.intervals.put(variableName, old.getInterval(variableName));
-    }
-
-    // ... and clone the reference count
-    for (String variableName : old.referenceCounts.keySet()) {
-      newElement.referenceCounts.put(variableName, old.getReferenceCount(variableName));
-    }
-
+    IntervalAnalysisState newElement = new IntervalAnalysisState(old.intervals,old.referenceCounts);
     return newElement;
   }
 
@@ -286,10 +266,6 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
     IntervalAnalysisState otherElement = (IntervalAnalysisState)other;
 
     if (intervals.size() != otherElement.intervals.size()) {
-      return false;
-    }
-
-    if (previousState != otherElement.previousState) {
       return false;
     }
 

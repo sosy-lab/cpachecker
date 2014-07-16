@@ -556,6 +556,10 @@ public class Interval implements Serializable{
     return low == null && high == null;
   }
 
+  public boolean isUnbound(){
+    return low == Long.MIN_VALUE && high == Long.MAX_VALUE;
+  }
+
   /* (non-Javadoc)
    * @see java.lang.Object#toString()
    */
