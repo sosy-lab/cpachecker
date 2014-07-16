@@ -191,12 +191,12 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
 
       ARGPath errorPath = interpolationTree.getNextPathForInterpolation();
 
-      logger.log(Level.FINEST, "errorPath |" + errorPath.size() + "|: " + errorPath.toString().hashCode() + "(" + uniqueTargetTraceCounter.containsKey(errorPath.toString().hashCode()) + ")");
+//System.out.println(totalRefinements + " ->  errorPath |" + errorPath.size() + "|: " + errorPath.toString().hashCode() + "(" + uniqueTargetTraceCounter.containsKey(errorPath.toString().hashCode()) + ")");
       if(errorPath.isEmpty()) {
         logger.log(Level.FINEST, "skipping interpolation, error path is empty, because initial interpolant is already false");
         continue;
       }
-
+      System.out.println(ARGUtils.getOnePathTo(errorPath.getLast().getFirst()).toString().hashCode());
 
       lastErrorPath = errorPath;
 
@@ -254,7 +254,6 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
     tryToCoverArg(lastErrorPath, reached);
 
     timerObtainPrecision.start();
-    boolean clear = false;
 
     for (Map.Entry<ARGState, ValueAnalysisInterpolant> itp : interpolationTree.interpolants.entrySet()) {
       ARGState currentState = itp.getKey();
@@ -274,10 +273,8 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
         timerReaddToWaitlist.start();
 
         if(!currentState.isCovered()) {
-          reached.readdToWaitlist(currentState, new ValueAnalysisPrecision(currentPrecision, increment), ValueAnalysisPrecision.class, clear);
+          reached.readdToWaitlist(currentState, new ValueAnalysisPrecision(currentPrecision, increment), ValueAnalysisPrecision.class);
         }
-
-clear = false;
 
         timerReaddToWaitlist.stop();
 
@@ -310,9 +307,10 @@ clear = false;
     return true;
   }
 
-  private void tryToCoverArg(ARGPath pLastErrorPath, ARGReachedSet reached) {
-    ARGState root = null;
-    boolean coverAll = false;
+  private void tryToCoverArg(ARGPath pLastErrorPath, ARGReachedSet reached) throws CPAException {
+    ARGState coverageRoot = null;
+
+    // traverse path top-to-bottom, trying to find a state covering a strengthened state in the error path ...
     for(int i = 0; i < pLastErrorPath.size(); i++) {
       Pair<ARGState, CFAEdge> elem = pLastErrorPath.get(i);
 
@@ -321,18 +319,21 @@ clear = false;
       if(strengthendStates.contains(state)) {
         try {
 
-          if(coverAll && !state.isCovered()) {
-            state.setCovered(root);
-            continue;
-          }
-
           if(reached.tryToCover(state, true)) {
-            coverAll = true;
-            root = state;
+            coverageRoot = state;
+            break;
           }
-        } catch (CPAException | InterruptedException e) {
-          // TODO Auto-generated catch block
-          e.printStackTrace();
+        } catch (InterruptedException e) {
+          throw new CPAException("Interrupted during impact refinement, when recomputing coverage");
+        }
+      }
+    }
+
+    // ... and if one was found, also set its subtree as covered
+    if(coverageRoot != null) {
+      for(ARGState toCover : coverageRoot.getSubgraph()) {
+        if(!toCover.isCovered()) {
+          toCover.setCovered(coverageRoot);
         }
       }
     }
@@ -398,6 +399,7 @@ clear = false;
       final ValueAnalysisPrecision subTreePrecision = joinSubtreePrecisions(pReached, targetsReachableFromRoot);
 
       Multimap<CFANode, MemoryLocation> extractPrecisionIncrement = interpolationTree.extractPrecisionIncrement(root);
+//System.out.println(new TreeSet<>(extractPrecisionIncrement.values()));
       ValueAnalysisPrecision currentPrecision = new ValueAnalysisPrecision(subTreePrecision, extractPrecisionIncrement);
 
       if (globalPrecision != null) {
@@ -787,6 +789,7 @@ clear = false;
         Set<ARGState> successors = successorRelation.get(currentState);
         todo.addAll(successors);
       }
+System.out.println(new TreeSet<>(increment.values()));
       return increment;
     }
 

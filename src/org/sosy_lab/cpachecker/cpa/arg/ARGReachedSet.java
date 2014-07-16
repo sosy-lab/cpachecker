@@ -36,7 +36,6 @@ import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.reachedset.DefaultReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
@@ -130,9 +129,9 @@ public class ARGReachedSet {
     }
   }
 
-  public void readdToWaitlist(ARGState e, Precision p, Class<? extends Precision> pPrecisionType, boolean clear) {
+  public void readdToWaitlist(ARGState e, Precision p, Class<? extends Precision> pPrecisionType) {
     mReached.updatePrecision(e, adaptPrecision(mReached.getPrecision(e), p, pPrecisionType));
-    ((DefaultReachedSet)mReached).reAddToWaitlist(e, clear);
+    mReached.reAddToWaitlist(e);
   }
 
   /**
@@ -216,7 +215,7 @@ public class ARGReachedSet {
     return Precisions.replaceByType(pOldPrecision, pNewPrecision, pPrecisionType);
   }
 
-  private Set<ARGState> removeSubtree0(ARGState e, boolean readdToWaitlist) {
+  private Set<ARGState> removeSubtree0(ARGState e) {
     Preconditions.checkNotNull(e);
     Preconditions.checkArgument(!e.getParents().isEmpty(), "May not remove the initial element from the ARG/reached set");
 
@@ -225,21 +224,16 @@ public class ARGReachedSet {
     Set<ARGState> toUnreach = e.getSubgraph();
 
     // collect all elements covered by the subtree
-    if(readdToWaitlist) {
-      List<ARGState> newToUnreach = new ArrayList<>();
-      for (ARGState ae : toUnreach) {
-        newToUnreach.addAll(ae.getCoveredByThis());
-      }
-      toUnreach.addAll(newToUnreach);
+    List<ARGState> newToUnreach = new ArrayList<>();
+
+    for (ARGState ae : toUnreach) {
+      newToUnreach.addAll(ae.getCoveredByThis());
     }
+    toUnreach.addAll(newToUnreach);
 
     Set<ARGState> toWaitlist = removeSet(toUnreach);
 
     return toWaitlist;
-  }
-
-  private Set<ARGState> removeSubtree0(ARGState e) {
-    return removeSubtree0(e, true);
   }
 
   private void dumpSubgraph(ARGState e) {
@@ -403,11 +397,25 @@ public class ARGReachedSet {
     return false;
   }
 
-  public boolean tryToCover(ARGState v, boolean quickMode) throws CPAException, InterruptedException {
+  /**
+   * Try covering an ARG state by other states in the reached set. This method
+   * deliberately allows to be unsound, by not caring about keeping the coverage
+   * relation in the ARG being consistent. When asked to be sound, this method
+   * delegates to {@link ARGReachedSet#tryToCover(ARGState)}
+   *
+   * @param v the state which should be covered if possible
+   * @param forceSoundness whether or not to force soundness
+   * @return whether the covering was successful
+   * @throws CPAException
+   */
+  public boolean tryToCover(ARGState v, boolean forceSoundness) throws CPAException, InterruptedException {
     assert v.mayCover();
 
-    cpa.getStopOperator().stop(v, mReached.getReached(v), mReached.getPrecision(v));
+    if (forceSoundness) {
+      return tryToCover(v);
+    }
 
+    cpa.getStopOperator().stop(v, mReached.getReached(v), mReached.getPrecision(v));
     return v.isCovered();
   }
 
