@@ -270,7 +270,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
       interestingVariables = new LinkedHashSet<>(this.interestingVariables);
     }
 
-    boolean guessInterestingInformation = options.interestingVariableLimit != 0;
+    boolean guessInterestingInformation = interestingVariableLimit != 0;
     if (guessInterestingInformation && !determineTargetLocations) {
       logManager.log(Level.WARNING, "Target states were not determined. Guessing interesting information is arbitrary.");
     }
@@ -363,13 +363,15 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
       String specificationPropertyName = "specification";
       ConfigurationBuilder configurationBuilder = extractOptionFrom(config, specificationPropertyName);
       configurationBuilder.setOption("output.disable", "true");
-      configurationBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPA");
+      configurationBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA");
       if (config.getProperty(specificationPropertyName) == null) {
         String specification = "config/specification/default.spc";
         configurationBuilder.setOption(specificationPropertyName, specification);
       }
       Configuration configuration = configurationBuilder.build();
-      ConfigurableProgramAnalysis cpa = new CPABuilder(configuration, logManager, shutdownNotifier, reachedSetFactory).buildCPAs(cfa);
+      CPABuilder cpaBuilder = new CPABuilder(configuration, logManager, shutdownNotifier, reachedSetFactory);
+      ConfigurableProgramAnalysis cpa = cpaBuilder.buildCPAs(cfa);
+
       ReachedSet reached = reachedSetFactory.create();
       reached.add(cpa.getInitialState(pInitialNode), cpa.getInitialPrecision(pInitialNode));
       CPAAlgorithm targetFindingAlgorithm = CPAAlgorithm.create(cpa, logManager, configuration, shutdownNotifier);
