@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -64,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -105,7 +107,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
@@ -247,7 +249,7 @@ public class CFASingleLoopTransformation {
     eliminateSelfLoops(nodes);
 
     Multimap<Integer, CFANode> newPredecessorsToPC = LinkedHashMultimap.create();
-    BiMap<Integer, CFANode> newSuccessorsToPC = HashBiMap.create();
+    Map<Integer, CFANode> newSuccessorsToPC = new LinkedHashMap<>();
     globalNewToOld.put(oldMainFunctionEntryNode, start);
 
     // Create new nodes and assume edges based on program counter values leading to the new nodes
@@ -257,16 +259,23 @@ public class CFASingleLoopTransformation {
 
     // Declare program counter and initialize it
     String pcVarName = PROGRAM_COUNTER_VAR_NAME;
-    CDeclaration pcDeclaration = new CVariableDeclaration(FileLocation.DUMMY, true, CStorageClass.AUTO, CNumericTypes.INT, pcVarName, pcVarName, pcVarName, null);
+    CInitializerExpression pcInitializer = new CInitializerExpression(FileLocation.DUMMY,
+        new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(pcValueOfStart)));
+    CDeclaration pcDeclaration = new CVariableDeclaration(FileLocation.DUMMY, true, CStorageClass.AUTO, CNumericTypes.INT, pcVarName, pcVarName, pcVarName, pcInitializer);
     CIdExpression pcIdExpression = new CIdExpression(FileLocation.DUMMY, pcDeclaration);
-    //CFANode declarationDummy = new CFANode(oldMainFunctionEntryNode.getFunctionName());
     CFANode declarationDummy = newSuccessorsToPC.get(pcValueOfStart);
     CFAEdge pcDeclarationEdge = new CDeclarationEdge(String.format("int %s = %d;", pcVarName, pcValueOfStart), FileLocation.DUMMY, start, declarationDummy, pcDeclaration);
+
+    ImmutableBiMap<Integer, CFANode> newSuccessorsToPCImmutable = ImmutableBiMap.copyOf(newSuccessorsToPC);
 
     addToNodes(pcDeclarationEdge);
 
     // Remove trivial dummy subgraphs and other dummy edges etc.
-    simplify(start, newPredecessorsToPC, newSuccessorsToPC, globalNewToOld);
+    simplify(start, newPredecessorsToPC, newSuccessorsToPC, newSuccessorsToPCImmutable, globalNewToOld);
+
+    if (newPredecessorsToPC.get(pcValueOfStart).isEmpty()) {
+      newSuccessorsToPC.remove(pcValueOfStart);
+    }
 
     /*
      * Connect the subgraph tails to their successors via the loop head by
@@ -282,7 +291,7 @@ public class CFASingleLoopTransformation {
      * Fix the summary edges broken by the indirection introduced by the
      * artificial loop.
      */
-    fixSummaryEdges(start, newSuccessorsToPC, globalNewToOld);
+    fixSummaryEdges(start, newSuccessorsToPCImmutable,  globalNewToOld);
 
     // Build the CFA from the syntactically reachable nodes
     return buildCFA(start, loopHead, pInputCFA.getMachineModel(),
@@ -300,9 +309,11 @@ public class CFASingleLoopTransformation {
    */
   private void simplify(CFANode pStartNode,
       Multimap<Integer, CFANode> pNewPredecessorsToPC,
-      BiMap<Integer, CFANode> pNewSuccessorsToPC,
+      Map<Integer, CFANode> pNewSuccessorsToPC,
+      BiMap<Integer, CFANode> pImmutableNewSuccessorsToPC,
       SimpleMap<CFANode, CFANode> pGlobalNewToOld) throws InterruptedException {
-    Map<CFANode, Integer> pcToNewSuccessors = pNewSuccessorsToPC.inverse();
+    Map<CFANode, Integer> pcToNewSuccessors = pImmutableNewSuccessorsToPC.inverse();
+
     for (int replaceablePCValue : new ArrayList<>(pNewPredecessorsToPC.keySet())) {
       this.shutdownNotifier.shutdownIfNecessary();
       CFANode newSuccessor = pNewSuccessorsToPC.get(replaceablePCValue);
@@ -315,7 +326,9 @@ public class CFASingleLoopTransformation {
             && isDummyEdge(dummyEdge = tailOfRedundantSubgraph.getEnteringEdge(0))
             && dummyEdge.getPredecessor().getNumEnteringEdges() == 0
             && (precedingPCValue = pcToNewSuccessors.get(dummyEdge.getPredecessor())) != null) {
-          Integer predToRemove = pcToNewSuccessors.remove(newSuccessor);
+          Integer predToRemove = pcToNewSuccessors.get(newSuccessor);
+          CFANode removed = pNewSuccessorsToPC.remove(predToRemove);
+          assert removed == newSuccessor;
           for (CFANode removedPredecessor : pNewPredecessorsToPC.removeAll(predToRemove)) {
             pNewPredecessorsToPC.put(precedingPCValue, removedPredecessor);
           }
@@ -376,7 +389,7 @@ public class CFASingleLoopTransformation {
    * @throws InterruptedException if a shutdown has been requested by the registered shutdown notifier.
    */
   private void fixSummaryEdges(FunctionEntryNode pStartNode,
-      BiMap<Integer, CFANode> pNewSuccessorsToPC,
+      ImmutableBiMap<Integer, CFANode> pNewSuccessorsToPC,
       SimpleMap<CFANode, CFANode> pGlobalNewToOld) throws InterruptedException {
     for (FunctionCallEdge fce : findEdges(FunctionCallEdge.class, pStartNode)) {
       FunctionEntryNode entryNode = fce.getSuccessor();
@@ -477,7 +490,7 @@ public class CFASingleLoopTransformation {
   private int buildProgramCounterValueMaps(FunctionEntryNode pOldMainFunctionEntryNode,
       Iterable<CFANode> pNodes,
       Multimap<Integer, CFANode> pNewPredecessorsToPC,
-      BiMap<Integer, CFANode> pNewSuccessorsToPC,
+      Map<Integer, CFANode> pNewSuccessorsToPC,
       SimpleMap<CFANode, CFANode> pGlobalNewToOld) throws InterruptedException {
     Set<CFANode> visited = new HashSet<>();
     SimpleMap<CFANode, CFANode> tmpMap = SimpleMapAdapter.createSimpleHashMap();
@@ -633,7 +646,7 @@ public class CFASingleLoopTransformation {
       CFANode pPredecessor,
       CFANode pSuccessor,
       Multimap<Integer, CFANode> pPredecessorsToPC,
-      BiMap<Integer, CFANode> pSuccessorsToPC) {
+      Map<Integer, CFANode> pSuccessorsToPC) {
     if (!(pPredecessor instanceof CFATerminationNode)) {
       int pcToSuccessor = pProgramCounterValueProvider.getPCValueFor(pSuccessor);
       pPredecessorsToPC.put(pcToSuccessor, pPredecessor);
@@ -2323,7 +2336,7 @@ public class CFASingleLoopTransformation {
      * @return a new simple hash map.
      */
     public static <S, T> SimpleMap<S, T> createSimpleHashMap() {
-      return adapt(new HashMap<S, T>());
+      return adapt(new LinkedHashMap<S, T>());
     }
 
     @Override
