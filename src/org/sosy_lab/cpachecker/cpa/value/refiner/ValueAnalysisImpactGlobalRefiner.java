@@ -319,7 +319,7 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
       if(strengthendStates.contains(state)) {
         try {
 
-          if(reached.tryToCover(state, true)) {
+          if(reached.tryToCover(state, false)) {
             coverageRoot = state;
             break;
           }
