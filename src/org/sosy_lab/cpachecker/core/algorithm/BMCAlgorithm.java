@@ -106,6 +106,7 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -314,7 +315,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
                 potentialInvariants = from(potentialInvariants).filter(not(in(kInductionProver.knownLoopHeadInvariants))).toSet();
               }
               potentialInvariants = guessLoopHeadInvariants(reachedSet, relevantAssumeEdges, prover, kInductionProver.getLoop(), potentialInvariants);
-              kInductionProver.setPotentialLoopHeadInvariants(potentialInvariants);
+              potentialInvariants = kInductionProver.setPotentialLoopHeadInvariants(potentialInvariants);
             }
           }
 
@@ -369,16 +370,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       if (pPreviousLoopHeadInvariants == null || pPreviousLoopHeadInvariants.contains(candidateInvariant)) {
 
         // Is there any loop head state, where the assumption does not hold?
-        BooleanFormula invariantInvalidity = bfmgr.makeBoolean(false);
-        for (AbstractState loopHeadState : loopHeadStates) {
-          Iterable<AbstractState> loopHeadStateIterable = Collections.singleton(loopHeadState);
-          BooleanFormula loopHeadStateReachability = createFormulaFor(loopHeadStateIterable);
-          BooleanFormula instantiatedNegatedCandidateInvariant = instantiateForAll(loopHeadStateIterable, negatedCandidateInvariant);
-          // Is this loop head state reachable while the assumption does not hold?
-          BooleanFormula localInvalidity = bfmgr.and(loopHeadStateReachability, instantiatedNegatedCandidateInvariant);
-
-          invariantInvalidity = bfmgr.or(invariantInvalidity, localInvalidity);
-        }
+        BooleanFormula invariantInvalidity = bfmgr.not(bfmgr.and(from(assertAt(loopHeadStates, candidateInvariant)).toList()));
 
         pProver.push(invariantInvalidity);
         if (pProver.isUnsat()) {
@@ -417,19 +409,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
     return assumeEdges;
-  }
-
-  private BooleanFormula instantiateForAll(Iterable<AbstractState> pStates, BooleanFormula pUninstantiatedFormula) {
-    Set<BooleanFormula> instantiatedInvariants = new HashSet<>();
-    BooleanFormula result = bfmgr.makeBoolean(true);
-    for (AbstractState loopHeadState : pStates) {
-      PathFormula loopHeadPathFormula = AbstractStates.extractStateByType(loopHeadState, PredicateAbstractState.class).getPathFormula();
-      BooleanFormula instantiatedInvariant = fmgr.instantiate(pUninstantiatedFormula, pmgr.makeEmptyPathFormula(loopHeadPathFormula).getSsa().withDefault(1));
-      if (instantiatedInvariants.add(instantiatedInvariant)) {
-        result = bfmgr.and(result, instantiatedInvariant);
-      }
-    }
-    return result;
   }
 
   /**
@@ -779,9 +758,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       this.loop = loop;
     }
 
-    public void setPotentialLoopHeadInvariants(ImmutableSet<BooleanFormula> pPotentialLoopHeadInvariants) {
+    public ImmutableSet<BooleanFormula> setPotentialLoopHeadInvariants(ImmutableSet<BooleanFormula> pPotentialLoopHeadInvariants) {
       synchronized (this) {
-        this.potentialLoopHeadInvariants = pPotentialLoopHeadInvariants;
+        return this.potentialLoopHeadInvariants = from(pPotentialLoopHeadInvariants).filter(not(in(knownLoopHeadInvariants))).toSet();
       }
     }
 
@@ -1083,32 +1062,21 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         safePredecessors = bfmgr.not(createFormulaFor(predecessorTargetStates));
       }
 
-      Map<BooleanFormula, Map<AbstractState, BooleanFormula>> assumptionsAtState = new HashMap<>();
+      Map<BooleanFormula, BooleanFormula> assumptionsAtState = new HashMap<>();
 
       Iterable<AbstractState> loopHeadStates = AbstractStates.filterLocations(reached, loop.getLoopHeads());
 
       for (BooleanFormula knownLoopHeadInvariant : knownLoopHeadInvariants) {
-        for (AbstractState loopHeadState : loopHeadStates) {
-          Iterable<AbstractState> loopHeadStateIterable = Collections.singleton(loopHeadState);
-          BooleanFormula invariantAssumption = bfmgr.or(
-              bfmgr.not(createFormulaFor(loopHeadStateIterable)),
-              instantiateForAll(loopHeadStateIterable, knownLoopHeadInvariant));
-          safePredecessors = bfmgr.and(safePredecessors, invariantAssumption);
-        }
+        // Assert the invariant at all loop head states
+        safePredecessors = bfmgr.and(safePredecessors,
+            bfmgr.and(from(assertAt(loopHeadStates, knownLoopHeadInvariant)).toList()));
       }
 
-      BooleanFormula loopInvariantAssumption = bfmgr.makeBoolean(true);
-      for (BooleanFormula potentialLoopInvariant : getPotentialLoopHeadInvariants()) {
-        Map<AbstractState, BooleanFormula> assumptionAtState = new HashMap<>();
-        for (AbstractState loopHeadState : loopHeadStates) {
-          Iterable<AbstractState> loopHeadStateIterable = Collections.singleton(loopHeadState);
-          BooleanFormula invariantAssumption = bfmgr.or(
-              bfmgr.not(createFormulaFor(loopHeadStateIterable)),
-              instantiateForAll(loopHeadStateIterable, potentialLoopInvariant));
-          assumptionAtState.put(loopHeadState, invariantAssumption);
-          loopInvariantAssumption = bfmgr.and(loopInvariantAssumption, invariantAssumption);
-        }
-        assumptionsAtState.put(potentialLoopInvariant, assumptionAtState);
+      BooleanFormula combinedPotentialLoopHeadInvariantAssertion = bfmgr.makeBoolean(true);
+      for (BooleanFormula potentialLoopHeadInvariant : getPotentialLoopHeadInvariants()) {
+        BooleanFormula potentialLoopHeadInvariantAssertion = bfmgr.and(from(assertAt(loopHeadStates, potentialLoopHeadInvariant)).toList());
+        combinedPotentialLoopHeadInvariantAssertion = bfmgr.and(combinedPotentialLoopHeadInvariantAssertion, potentialLoopHeadInvariant);
+        assumptionsAtState.put(potentialLoopHeadInvariant, potentialLoopHeadInvariantAssertion);
       }
 
       // Create the formula asserting the faultiness of the successor
@@ -1120,22 +1088,17 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       ProverEnvironment prover = getProver();
 
       loopHeadStates = AbstractStates.filterLocations(reached, loop.getLoopHeads());
-      BooleanFormula loopInvariantContradiction = bfmgr.makeBoolean(false);
-      for (BooleanFormula potentialLoopInvariant : getPotentialLoopHeadInvariants()) {
-        Map<AbstractState, BooleanFormula> assumptionAtState = assumptionsAtState.get(potentialLoopInvariant);
-        BooleanFormula assumptionContradiction = bfmgr.makeBoolean(false);
-        for (AbstractState loopHeadState : loopHeadStates) {
-          Iterable<AbstractState> loopHeadStateIterable = Collections.singleton(loopHeadState);
-          BooleanFormula invariantAssumption = bfmgr.or(bfmgr.not(createFormulaFor(loopHeadStateIterable)),
-              instantiateForAll(loopHeadStateIterable, potentialLoopInvariant));
-          assumptionContradiction = bfmgr.or(assumptionContradiction, bfmgr.not(invariantAssumption));
-          loopInvariantContradiction = bfmgr.or(loopInvariantContradiction, bfmgr.not(invariantAssumption));
-        }
-        BooleanFormula assumptionAssertion = bfmgr.and(from(assumptionAtState.values()).toList());
-        push(assumptionAssertion);
-        push(assumptionContradiction);
+      BooleanFormula combinedPotentialLoopHeadInvariantContradiction = bfmgr.makeBoolean(false);
+      for (BooleanFormula potentialLoopHeadInvariant : getPotentialLoopHeadInvariants()) {
+        BooleanFormula potentialLoopHeadInvariantAssertion = assumptionsAtState.get(potentialLoopHeadInvariant);
+        BooleanFormula potentialLoopHeadInvariantContradiction = bfmgr.not(bfmgr.and(from(assertAt(loopHeadStates, potentialLoopHeadInvariant)).toList()));
+        combinedPotentialLoopHeadInvariantContradiction = bfmgr.or(combinedPotentialLoopHeadInvariantContradiction, potentialLoopHeadInvariantContradiction);
+
+        // Try to prove the loop head invariant itself
+        push(potentialLoopHeadInvariantAssertion);
+        push(potentialLoopHeadInvariantContradiction);
         if (prover.isUnsat()) {
-          knownLoopHeadInvariants.add(potentialLoopInvariant);
+          knownLoopHeadInvariants.add(potentialLoopHeadInvariant);
         } else {
           pop();
         }
@@ -1154,15 +1117,15 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
       // First check with candidate loop invariant
       push(safePredecessors); // k consecutive iterations are SAFE
-      push(loopInvariantAssumption); // loop invariant holds for predecessors
-      push(bfmgr.or(unsafeSuccessor, loopInvariantContradiction)); // combined contradiction to successor safety or loop invariant
+      push(combinedPotentialLoopHeadInvariantAssertion); // loop invariant holds for predecessors
+      push(bfmgr.or(unsafeSuccessor, combinedPotentialLoopHeadInvariantContradiction)); // combined contradiction to successor safety or loop invariant
       boolean sound = prover.isUnsat();
 
       pop(); // pop combined contradiction
       pop(); // pop loop invariant assertion for predecessors
 
       // If first check failed and a candidate loop invariant was tried out, check without the candidate loop invariant
-      if (!sound && !potentialLoopHeadInvariants.isEmpty()) {
+      if (!sound && potentialLoopHeadInvariants.isEmpty()) {
         push(unsafeSuccessor); // push plain contradiction to successor safety
         sound = prover.isUnsat();
         if (!sound && logger.wouldBeLogged(Level.ALL)) {
@@ -1179,6 +1142,25 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       return sound;
     }
 
+  }
+
+  private Iterable<BooleanFormula> assertAt(Iterable<AbstractState> pStates, final BooleanFormula pUninstantiatedFormula) {
+    return from(pStates).transform(new Function<AbstractState, BooleanFormula>() {
+
+      @Override
+      public BooleanFormula apply(AbstractState pInput) {
+        return assertAt(pInput, pUninstantiatedFormula);
+      }
+
+    });
+  }
+
+  private BooleanFormula assertAt(AbstractState pState, BooleanFormula pUninstantiatedFormula) {
+    PredicateAbstractState pas = AbstractStates.extractStateByType(pState, PredicateAbstractState.class);
+    PathFormula pathFormula = pas.getPathFormula();
+    BooleanFormula instantiatedFormula = fmgr.instantiate(pUninstantiatedFormula, pathFormula.getSsa().withDefault(1));
+    BooleanFormula stateFormula = pathFormula.getFormula();
+    return bfmgr.or(bfmgr.not(stateFormula), instantiatedFormula);
   }
 
   /**
