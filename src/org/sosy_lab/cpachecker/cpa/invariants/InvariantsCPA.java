@@ -364,6 +364,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
       ConfigurationBuilder configurationBuilder = extractOptionFrom(config, specificationPropertyName);
       configurationBuilder.setOption("output.disable", "true");
       configurationBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA");
+      configurationBuilder.setOption("cpa.callstack.skipRecursion", "true");
       if (config.getProperty(specificationPropertyName) == null) {
         String specification = "config/specification/default.spc";
         configurationBuilder.setOption(specificationPropertyName, specification);
