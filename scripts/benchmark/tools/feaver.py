@@ -15,7 +15,7 @@ class Tool(benchmark.tools.template.BaseTool):
         return 'Feaver'
 
 
-    def getCmdline(self, executable, options, sourcefiles, propertyfile):
+    def getCmdline(self, executable, options, sourcefiles, propertyfile, rlimits):
         assert len(sourcefiles) == 1, "only one sourcefile supported"
         sourcefile = sourcefiles[0]
         
