@@ -42,6 +42,7 @@ if __name__ == "__main__":
 import benchmark.result as result
 import benchmark.util as Util
 import benchmark.tools.template
+from benchmark.benchmarkDataStructures import SOFTTIMELIMIT
 
 REQUIRED_PATHS = [
                   "lib/java/runtime",
@@ -51,6 +52,8 @@ REQUIRED_PATHS = [
                   "cpachecker.jar",
                   "config",
                   ]
+
+timeLimitWarningCounter = 10 # print the warning for 10 runs, then ignore silently.
 
 class Tool(benchmark.tools.template.BaseTool):
 
@@ -105,8 +108,23 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def getCmdline(self, executable, options, sourcefiles, propertyfile=None, rlimits={}):
+        if SOFTTIMELIMIT in rlimits:
+            if "-timelimit" in options:
+                global timeLimitWarningCounter
+                if timeLimitWarningCounter > 0: # print the warning for 10 runs, then ignore silently.
+                    timeLimitWarningCounter -= 1
+                    logging.warning('soft-time-limit already specified. ignoring benchmark-limit as tool-parameter.')
+            else:
+                options = options + ["-timelimit", str(rlimits[SOFTTIMELIMIT]) + "s"] # benchmark-xml uses seconds as unit
+
+        # if data.MEMLIMIT in rlimits:
+        #     if "-heap" not in options:
+        #         heapsize = rlimits[MEMLIMIT]*0.8 # 20% overhead for non-java-memory
+        #         options = options + ["-heap", str(int(heapsize)) + "MiB"] # benchmark-xml uses MiB as unit
+
         if ("-stats" not in options):
             options = options + ["-stats"]
+
         spec = ["-spec", propertyfile] if propertyfile is not None else []
         return [executable] + options + spec + sourcefiles
 
