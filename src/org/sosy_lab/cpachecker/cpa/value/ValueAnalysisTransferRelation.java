@@ -185,6 +185,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   @Override
   protected Collection<ValueAnalysisState> postProcessing(ValueAnalysisState successor) {
+    // always return a new state (requirement for strengthening states with interpolants)
+    if (successor != null) {
+      successor = successor.clone();
+    }
+
     // only maintain the delta if needed (for later abstraction) and if there is a successor
     if (successor != null && precision.allowsAbstraction()) {
       successor.addToDelta(state);
