@@ -195,33 +195,30 @@ public class BAMTransferRelation implements TransferRelation {
       // we are at the start of the program (root-node of CFA).
       resultStates = doFixpointIterationForRecursion(pState, pPrecision, node);
 
-    } else {
       // we are at some location inside the program,
       // this part is always and only reached as recursive call with 'doRecursiveAnalysis'
       // (except we have a full cache-hit).
 
-    if (!partitioning.isCallNode(node)) {
+    } else if (!partitioning.isCallNode(node)) {
       // the easy case: we are in the middle of a block, so just forward to wrapped CPAs
       List<AbstractState> result = new ArrayList<>();
       for (CFAEdge e : CFAUtils.leavingEdges(node)) {
         result.addAll(getAbstractSuccessors0(pState, pPrecision, e));
       }
       return result;
-    }
 
-    if (((ARGState)pState).getParents().isEmpty()) {
+    } else if (((ARGState)pState).getParents().isEmpty()) {
       // we have already started a new block, so forward directly to wrappedTransfer
       return wrappedTransfer.getAbstractSuccessors(pState, pPrecision, null); // edge is null
-    }
 
-    // we are a the entryNode of a new block, so we have to start a recursive analysis
-    logger.log(Level.FINER, "Starting recursive analysis of depth", ++depth);
-    maxRecursiveDepth = Math.max(depth, maxRecursiveDepth);
+    } else {
+      // we are a the entryNode of a new block, so we have to start a recursive analysis
+      logger.log(Level.FINER, "Starting recursive analysis of depth", ++depth);
+      maxRecursiveDepth = Math.max(depth, maxRecursiveDepth);
 
-    resultStates = doRecursiveAnalysis(pState, pPrecision, node);
+      resultStates = doRecursiveAnalysis(pState, pPrecision, node);
 
-    logger.log(Level.FINER, "Finished recursive analysis of depth", depth--);
-
+      logger.log(Level.FINER, "Finished recursive analysis of depth", depth--);
     }
 
     assert !Iterables.any(resultStates, IS_TARGET_STATE) || resultStates.size() == 1 :
@@ -306,25 +303,23 @@ public class BAMTransferRelation implements TransferRelation {
 
   private boolean stackContainsCoveringLevel(final List<Triple<AbstractState, Precision, Block>> stack,
                                 final Triple<AbstractState, Precision, Block> currentLevel)
-      throws CPAException, InterruptedException {
-      for (Triple<AbstractState, Precision, Block> level : stack.subList(0, stack.size() - 1)) {
-        if (level.getThird() == currentLevel.getThird()
-                && bamCPA.isCoveredBy(currentLevel.getFirst(), level.getFirst())) {
-          // previously reached state contains 'less' information, it is a super-state of the currentState.
-          // From currentState we could reach the levelState again (with further unrolling).
-          // Thus we would have found an endless recursion (with current information (precision/state)).
-
-          // Checking coverage the other way (level isCoveredBy currentLevel) would be wrong,
-          // because there could be an Error in the next unrolling,
-          // that is reachable with further unrolling and would not be detected, if we stop unrolling here.
-          // Thus we unroll recursion until we get a currentLevel,
-          // that does not contain less information than any level before (-> it is covered by some previous level).
-
-          // TODO how to compare precisions? equality would be enough
-          return true;
-        }
+    throws CPAException, InterruptedException {
+    for (Triple<AbstractState, Precision, Block> level : stack.subList(0, stack.size() - 1)) {
+      if (level.getThird() == currentLevel.getThird()
+              && bamCPA.isCoveredBy(currentLevel.getFirst(), level.getFirst())) {
+        // previously reached state contains 'less' information, it is a super-state of the currentState.
+        // From currentState we could reach the levelState again (with further unrolling).
+        // Thus we would have found an endless recursion (with current information (precision/state)).
+        // Checking coverage the other way (level isCoveredBy currentLevel) would be wrong,
+        // because there could be an Error in the next unrolling,
+        // that is reachable with further unrolling and would not be detected, if we stop unrolling here.
+        // Thus we unroll recursion until we get a currentLevel,
+        // that does not contain less information than any level before (-> it is covered by some previous level).
+        // TODO how to compare precisions? equality would be enough
+        return true;
       }
-      return false;
+    }
+    return false;
   }
 
   /** check, if all base-states are covered by the covering-states.
@@ -429,11 +424,7 @@ public class BAMTransferRelation implements TransferRelation {
         logger.log(Level.SEVERE, "Partial cache hit: starting recursive CPAAlgorithm with partial reached-set.");
       }
 
-      try {
-        reducedResult = performCompositeAnalysisWithCPAAlgorithm(reached);
-      } catch (CPAException e) {
-        throw new RecursiveAnalysisFailedException(e);
-      }
+      reducedResult = performCompositeAnalysisWithCPAAlgorithm(reached);
 
       assert reducedResult != null;
       if (cachedReturnStates == null) {
