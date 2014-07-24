@@ -1,6 +1,5 @@
 
 
-
 public class SuperClass {
 
   public static void main(String[] args) {
@@ -12,16 +11,16 @@ public class SuperClass {
   if (b) {
     obj = new SuperClass();
   } else {
-    obj = new SubCass();
+    obj = new SubClass();
   }
 
   int startMethodInvocation;
-  obj.method();
+    obj.method();
   int endMethodInvocation;
   }
 
   public void method() {
-  int startMethod;
-  int endMethod;
+    int startMethod;
+    int endMethod;
   }
 }

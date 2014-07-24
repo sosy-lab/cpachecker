@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import java.util.Collection;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -35,6 +34,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -106,15 +106,14 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
       // BDD specials
       final BDDState bddErrorState = AbstractStates.extractStateByType(lastState, BDDState.class);
       final Region errorBdd = bddErrorState.getRegion();
-      final String errorBddStr = manager.dumpRegion(errorBdd);
 
-      logger.log(Level.INFO, "ErrorBDD:", errorBddStr);
+      logger.log(Level.INFO, "ErrorBDD:", manager.dumpRegion(errorBdd));
       errorSummary = manager.makeOr(errorBdd, errorSummary);
 
       if (presenceConditionFile != null && cpa instanceof ARGCPA) {
         CounterexampleInfo counterEx = ((ARGCPA)cpa).getCounterexamples().get(lastState);
         if (counterEx != null) {
-          counterEx.addFurtherInformation(errorBddStr, presenceConditionFile);
+          counterEx.addFurtherInformation(manager.dumpRegion(errorBdd), presenceConditionFile);
         }
       }
 

@@ -39,11 +39,11 @@ import javax.annotation.Nonnull;
 
 import org.sosy_lab.common.ChildFirstPatternClassLoader;
 import org.sosy_lab.common.Classes;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -151,14 +151,14 @@ public class FormulaManagerFactory {
     return fmgr;
   }
 
-  public ProverEnvironment newProverEnvironment(boolean generateModels) {
+  public ProverEnvironment newProverEnvironment(boolean generateModels, boolean generateUnsatCore) {
     ProverEnvironment pe;
     switch (solver) {
     case SMTINTERPOL:
       pe = loadSmtInterpol().createProver(fmgr);
       break;
     case MATHSAT5:
-      pe = new Mathsat5TheoremProver((Mathsat5FormulaManager) fmgr, generateModels);
+      pe = new Mathsat5TheoremProver((Mathsat5FormulaManager) fmgr, generateModels, generateUnsatCore);
       break;
     case Z3:
       pe = new Z3TheoremProver((Z3FormulaManager) fmgr);

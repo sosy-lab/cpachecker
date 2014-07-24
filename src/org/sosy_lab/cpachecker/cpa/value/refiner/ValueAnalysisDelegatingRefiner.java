@@ -29,18 +29,20 @@ import java.util.Collection;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -53,11 +55,13 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDPrecision;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateStaticRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
+import org.sosy_lab.cpachecker.cpa.value.ComponentAwarePrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
@@ -79,6 +83,9 @@ import com.google.common.collect.Multimap;
  */
 @Options(prefix="cpa.value.refiner")
 public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner implements Statistics, StatisticsProvider {
+
+  private ShutdownNotifier shutDownNotifier;
+
   /**
    * the flag to determine if initial refinement was done already
    */
@@ -129,9 +136,15 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       throw new InvalidConfigurationException(ValueAnalysisDelegatingRefiner.class.getSimpleName() + " could not find the ValueAnalysisCPA");
     }
 
-    ValueAnalysisCPA valueAnalysisCpa = ((WrapperCPA)cpa).retrieveWrappedCpa(ValueAnalysisCPA.class);
+    WrapperCPA wrapperCpa = ((WrapperCPA)cpa);
+
+    ValueAnalysisCPA valueAnalysisCpa = wrapperCpa.retrieveWrappedCpa(ValueAnalysisCPA.class);
     if (valueAnalysisCpa == null) {
       throw new InvalidConfigurationException(ValueAnalysisDelegatingRefiner.class.getSimpleName() + " needs a ValueAnalysisCPA");
+    }
+
+    if(!(wrapperCpa.retrieveWrappedCpa(CompositeCPA.class).getPrecisionAdjustment() instanceof ComponentAwarePrecisionAdjustment)) {
+      throw new InvalidConfigurationException(ValueAnalysisDelegatingRefiner.class.getSimpleName() + " needs a ComponentAwarePrecisionAdjustment operator");
     }
 
     ValueAnalysisDelegatingRefiner refiner = initialiseValueAnalysisRefiner(cpa, valueAnalysisCpa);
@@ -155,6 +168,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
         Solver solver                               = predicateCpa.getSolver();
         PathFormulaManager pathFormulaManager       = predicateCpa.getPathFormulaManager();
         PredicateStaticRefiner extractor            = predicateCpa.getStaticRefiner();
+        MachineModel machineModel                   = predicateCpa.getMachineModel();
 
         InterpolationManager manager = new InterpolationManager(
             formulaManager,
@@ -165,7 +179,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
             predicateCpa.getShutdownNotifier(),
             logger);
 
-        PathChecker pathChecker = new PathChecker(logger, pathFormulaManager, solver);
+        PathChecker pathChecker = new PathChecker(logger, predicateCpa.getShutdownNotifier(), pathFormulaManager, solver, machineModel);
 
         RefinementStrategy backupRefinementStrategy = new PredicateAbstractionRefinementStrategy(
             config,
@@ -195,6 +209,8 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     LogManager logger                 = pValueAnalysisCpa.getLogger();
     PredicateCPARefiner backupRefiner = createBackupRefiner(config, logger, cpa);
 
+    pValueAnalysisCpa.injectRefinablePrecision();
+
     return new ValueAnalysisDelegatingRefiner(
         config,
         logger,
@@ -215,6 +231,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       final CFA pCfa) throws CPAException, InvalidConfigurationException {
     super(pCpa);
     pConfig.inject(this);
+    shutDownNotifier = pShutdownNotifier;
 
     interpolatingRefiner  = new ValueAnalysisInterpolationBasedRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
     predicatingRefiner    = pBackupRefiner;
@@ -242,7 +259,11 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     }
 
     else {
-      return CounterexampleInfo.feasible(errorPath, null);
+      ValueAnalysisConcreteErrorPathAllocator va = new ValueAnalysisConcreteErrorPathAllocator(logger, shutDownNotifier);
+
+      Model model = va.allocateAssignmentsToPath(errorPath, cfa.getMachineModel());
+
+      return CounterexampleInfo.feasible(errorPath, model);
     }
   }
 

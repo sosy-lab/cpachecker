@@ -31,11 +31,11 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -385,7 +385,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       fMore = predCPA.getFormulaManager().makeAnd(fLess, fMore);
 
       // check if conjunction of less precise does not imply conjunction of more precise
-      ProverEnvironment prover = predCPA.getFormulaManagerFactory().newProverEnvironment(false);
+      ProverEnvironment prover = predCPA.getFormulaManagerFactory().newProverEnvironment(false, false);
       prover.push(fMore);
       boolean result = prover.isUnsat();
       prover.close();

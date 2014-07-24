@@ -19,7 +19,7 @@ Main changes:
   The explicit-value analysis and the predicate analysis have gained support for precision reuse,
   a technique that allows much faster regression verification,
   i.e., verification of a new version of a program
-  (cf., "Precision Reuse for Efficient Regression Verification".
+  (cf. "Precision Reuse for Efficient Regression Verification".
   Dirk Beyer, Stefan Löwe, Evgeny Novikov, Andreas Stahlbauer, and Philipp Wendler.
   In Proc. ESEC/FSE, ACM, 2013).
 
@@ -38,7 +38,7 @@ Main changes:
 
 * Predicate Analysis
   A much improved pointer handling is implemented and enabled by default.
-  Support for a bitprecise handling of all int variables has been added
+  Furthermore, support for a bitprecise handling of all int variables has been added
   (including overflows and bitwise operators).
   This configuration is available as -predicateAnalysis-bitprecise.
 

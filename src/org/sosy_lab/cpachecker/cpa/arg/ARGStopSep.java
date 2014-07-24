@@ -27,11 +27,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;

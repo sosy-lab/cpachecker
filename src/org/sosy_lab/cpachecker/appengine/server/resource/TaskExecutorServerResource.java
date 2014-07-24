@@ -38,7 +38,7 @@ import org.restlet.engine.header.Header;
 import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
 import org.restlet.util.Series;
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.AbstractConfigurationBuilderFactory;
 import org.sosy_lab.common.configuration.Configuration;
@@ -69,7 +69,7 @@ import com.google.appengine.api.LifecycleManager;
 import com.google.appengine.api.LifecycleManager.ShutdownHook;
 import com.google.appengine.api.ThreadManager;
 import com.google.apphosting.api.ApiProxy;
-import com.google.common.base.Charsets;
+import java.nio.charset.StandardCharsets;
 import com.google.common.io.FileWriteMode;
 
 
@@ -333,7 +333,7 @@ public class TaskExecutorServerResource extends WadlServerResource implements Ta
     if (config != null && config.getProperty("configuration.dumpFile") != null && !config.getProperty("configuration.dumpFile").equals("")) {
       Path configurationDumpFile = Paths.get(config.getProperty("configuration.dumpFile"));
       if (configurationDumpFile != null) {
-        configurationDumpFile.asCharSink(Charsets.UTF_8).write(config.asPropertiesString());
+        configurationDumpFile.asCharSink(StandardCharsets.UTF_8).write(config.asPropertiesString());
         configDumped = true;
       }
     }

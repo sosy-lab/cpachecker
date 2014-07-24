@@ -104,6 +104,18 @@ Configuration options:
 - Do not forget to update the file doc/ConfigurationOptions.txt
   (done automatically by ant) and commit it together with your changes.
 
+Documentation / Comments:
+- The following ranks several places by their importance of having comments:
+  * packages (in package-info.java, EVERY package should have one!)
+  * interfaces and public classes (at least a short note at the top of their responsibility)
+  * public methods in interfaces and classes
+  * non-public classes, methods and fields
+- Please add comments wherever sensible,
+  but make sure to add comments for the top three items!
+- All command-line options need to be explained in doc/Configuration.txt.
+- All @Option fields need to have a non-empty description
+  that explains (to a user) what the option does.
+
 Coding:
 - Never have public fields,
   never have non-private non-final fields,
@@ -118,6 +130,8 @@ Coding:
   They have a much nicer API, are equally fast,
   and allow you to use ImmutableList and Collections.unmodifiableList()
   to avoid the need for defensive copying while still guaranteeing immutability.
+- Never use classes from the sun.* packages, they are not part of the Java API.
+  Specifically, use UnsupportedOperationException instead of NotImplementedException.
 - Do not use the following classes from the JDK, they all have better replacements:
   Vector (replaced by ArrayList)
   Stack (replaced by Deque interface with implementations ArrayDeque and LinkedList)

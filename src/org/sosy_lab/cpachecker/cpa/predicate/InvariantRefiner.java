@@ -34,10 +34,10 @@ import java.util.Vector;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
@@ -66,6 +66,12 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 
 import com.google.common.collect.Lists;
 
+/**
+ * Refiner based on finding loop invariants using an external solver such as RedLog.
+ * Unfinished and not working.
+ */
+@SuppressWarnings("deprecation")
+@Deprecated
 public class InvariantRefiner extends AbstractARGBasedRefiner {
 
   private final PredicateAbstractionRefinementStrategy predicateRefinementStrategy;

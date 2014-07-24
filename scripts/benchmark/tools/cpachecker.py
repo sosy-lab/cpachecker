@@ -66,7 +66,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
     def _buildCPAchecker(self, executableDir):
         logging.debug('Building CPAchecker in directory {0}.'.format(executableDir))
-        ant = subprocess.Popen(['ant', '-q', 'jar'], cwd=executableDir, shell=Util.isWindows())
+        ant = subprocess.Popen(['ant', '-lib', 'lib/java/build', '-q', 'jar'], cwd=executableDir, shell=Util.isWindows())
         (stdout, stderr) = ant.communicate()
         if ant.returncode:
             sys.exit('Failed to build CPAchecker, please fix the build first.')
@@ -176,21 +176,21 @@ class Tool(benchmark.tools.template.BaseTool):
             elif line.startswith('Verification result: '):
                 line = line[21:].strip()
                 if line.startswith('TRUE'):
-                    newStatus = result.STR_TRUE
+                    newStatus = result.STATUS_TRUE_PROP
                 elif line.startswith('FALSE'):
-                    newStatus = result.STR_FALSE_REACH
+                    newStatus = result.STATUS_FALSE_REACH
                     match = re.match('.* Violation of propert[a-z]* (.*) found by chosen configuration.*', line)
                     if match:
                         newStatus = result.STR_FALSE + '(' + match.group(1) + ')'
                 else:
-                    newStatus = result.STR_UNKNOWN if not status.startswith('ERROR') else None
+                    newStatus = result.STATUS_UNKNOWN if not status.startswith('ERROR') else None
                 if newStatus:
                     status = newStatus if not status else "{0} ({1})".format(status, newStatus)
 
         if status == 'KILLED (UNKNOWN)':
             status = 'KILLED'
         if not status:
-            status = result.STR_UNKNOWN
+            status = result.STATUS_UNKNOWN
         return status
 
 

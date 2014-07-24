@@ -24,18 +24,22 @@
 package org.sosy_lab.cpachecker.util.predicates.logging;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.core.Model;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 
-
+/**
+ * Wraps a prover environment with a logging object.
+ */
 public class LoggingProverEnvironment implements ProverEnvironment {
 
   private final ProverEnvironment wrapped;
@@ -68,10 +72,25 @@ public class LoggingProverEnvironment implements ProverEnvironment {
   }
 
   @Override
+  public OptResult isOpt(Formula f, boolean maximize) throws InterruptedException {
+    logger.log(Level.FINE, "starting optimization procedure");
+    OptResult result = wrapped.isOpt(f, maximize);
+    logger.log(Level.FINE, "optimization returned: ", result);
+    return result;
+  }
+
+  @Override
   public Model getModel() throws SolverException {
     Model m = wrapped.getModel();
     logger.log(Level.FINE, "model", m);
     return m;
+  }
+
+  @Override
+  public List<BooleanFormula> getUnsatCore() {
+    List<BooleanFormula> unsatCore = wrapped.getUnsatCore();
+    logger.log(Level.FINE, "unsat-core", unsatCore);
+    return unsatCore;
   }
 
   @Override

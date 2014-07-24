@@ -23,15 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.octagon;
 
-import org.sosy_lab.cpachecker.util.NativeLibraries;
 
 class OctWrapper {
 
   private OctWrapper() { }
-
-  static {
-    NativeLibraries.loadLibrary("JOct");
-  }
 
   /* Initialization */
   static native boolean J_init();        //int oct_init()

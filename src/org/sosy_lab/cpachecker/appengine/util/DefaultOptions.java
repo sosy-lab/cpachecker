@@ -38,7 +38,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 
-import com.google.common.base.Charsets;
+import java.nio.charset.StandardCharsets;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -182,7 +182,7 @@ public class DefaultOptions {
   public static List<String> getUnsupportedConfigurations() throws IOException {
     if (unsupportedConfigurations == null) {
       unsupportedConfigurations = Paths.get("WEB-INF", "unsupported-configurations.txt")
-          .asCharSource(Charsets.UTF_8).readLines();
+          .asCharSource(StandardCharsets.UTF_8).readLines();
     }
 
     // remove the first two lines. they are comments.

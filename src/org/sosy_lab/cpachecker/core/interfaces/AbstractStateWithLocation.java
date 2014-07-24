@@ -23,8 +23,44 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
+/**
+ * This interface represents abstract states that
+ * somehow store information about which CFA location the abstract state
+ * belongs to.
+ * The interface is intended to provide this knowledge about the location
+ * to other components, such as other CPAs or algorithms.
+ *
+ * The method {@link AbstractStates#extractLocation(AbstractState)}
+ * provides a convenient way to access this information.
+ */
 public interface AbstractStateWithLocation extends AbstractState {
-    public CFANode getLocationNode();
+
+  /**
+   * Get the {@link CFANode} that represents the location of this state.
+   * @return A node of the CFA.
+   */
+  CFANode getLocationNode();
+
+  /**
+   * Get the edges that are considered "outgoing" from the current location
+   * by the CPA of this abstract state.
+   * Note that this not necessarily need to be the edges that are the leaving
+   * edges of this location in the CFA, it could be other sets of edges as well
+   * (for example the entering edges), depending on how the current CPA
+   * defines CFA iteration.
+   *
+   * Callers may assume that for a state s and the set E of edges
+   * return by the call <code>s.getOutgoingEdges()</code>,
+   * the transfer relation of this CPA will return no successor state
+   * (i.e., BOTTOM) when called with any pair (s, e) where e is not in E.
+   * In other words, a state s would never have any successor state
+   * that is not reachable via one of the returned edges.
+   *
+   * @return A (possibly empty) iterable of edges without duplicates.
+   */
+  Iterable<CFAEdge> getOutgoingEdges();
 }

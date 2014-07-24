@@ -23,6 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.sign;
 
+import java.io.IOException;
+import java.io.ObjectStreamException;
+import java.io.Serializable;
+
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithTargetVariable;
@@ -30,40 +36,32 @@ import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
-import com.google.common.collect.Sets;
 
 
-public class SignState implements AbstractStateWithTargetVariable, TargetableWithPredicatedAnalysis {
+public class SignState implements AbstractStateWithTargetVariable, TargetableWithPredicatedAnalysis, Serializable {
+
+  private static final long serialVersionUID = -2507059869178203119L;
 
   private static final boolean DEBUG = false;
 
   private static SignTargetChecker targetChecker;
 
-  private final Optional<SignState> stateBeforeEnteredFunction;
-
   static void init(Configuration config) throws InvalidConfigurationException {
     targetChecker = new SignTargetChecker(config);
   }
 
-  private SignMap signMap;
-
-  public SignMap getSignMap() {
-    return signMap;
-  }
+  private PersistentMap<String, SIGN> signMap;
 
   public final static SignState TOP = new SignState();
+  private final static SerialProxySign proxy = new SerialProxySign();
 
-  private SignState(SignMap pSignMap, Optional<SignState> pStateBeforeEnteredFunction) {
+  private SignState(PersistentMap<String, SIGN> pSignMap) {
     signMap = pSignMap;
-    stateBeforeEnteredFunction = pStateBeforeEnteredFunction;
   }
 
   private SignState() {
-    signMap = new SignMap(ImmutableMap.<String, SIGN> of());
-    stateBeforeEnteredFunction = Optional.absent();
+    signMap = PathCopyingPersistentTreeMap.of();
   }
 
   public SignState union(SignState pToJoin) {
@@ -74,55 +72,70 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
     if (isSubsetOf(pToJoin)) { return pToJoin; }
 
     SignState result = SignState.TOP;
-    for (String varIdent : Sets.union(signMap.keySet(), pToJoin.signMap.keySet())) {
-      result = result.assignSignToVariable(varIdent,
-          signMap.getSignForVariable(varIdent).combineWith(pToJoin.signMap.getSignForVariable(varIdent))); // TODO performance
+    PersistentMap<String, SIGN> newMap = PathCopyingPersistentTreeMap.of();
+    SIGN combined;
+    for (String varIdent : pToJoin.signMap.keySet()) {
+      // only add those variables that are contained in both states (otherwise one has value ALL (not saved))
+      if (signMap.containsKey(varIdent)) {
+        combined = getSignForVariable(varIdent).combineWith(pToJoin.getSignForVariable(varIdent));
+        if (!combined.isAll()) {
+          newMap = newMap.putAndCopy(varIdent, combined);
+        }
+      }
     }
-    return result;
+
+    return newMap.size() > 0 ? new SignState(newMap) : result;
   }
 
   public boolean isSubsetOf(SignState pSuperset) {
     if (pSuperset.equals(this) || pSuperset.equals(TOP)) { return true; }
-    if (stateBeforeEnteredFunction.isPresent()) {
-      if (!pSuperset.stateBeforeEnteredFunction.isPresent()
-          || pSuperset.stateBeforeEnteredFunction.get() != stateBeforeEnteredFunction.get()) { return false; }
-    } else {
-      if (pSuperset.stateBeforeEnteredFunction.isPresent()) { return false; }
-    }
+    if (signMap.size() < pSuperset.signMap.size()) { return false; }
     // is subset if for every variable all sign assumptions are considered in pSuperset
-    for (String varIdent : Sets.union(signMap.keySet(), pSuperset.signMap.keySet())) {
-      if (!signMap.getSignForVariable(varIdent).isSubsetOf(pSuperset.signMap.getSignForVariable(varIdent))) { return false; }
+    // check that all variables in superset with SIGN != ALL have no bigger assumptions in subset
+    for (String varIdent : pSuperset.signMap.keySet()) {
+      if (!getSignForVariable(varIdent).isSubsetOf(pSuperset.getSignForVariable(varIdent))) { return false; }
     }
     return true;
   }
 
   public SignState enterFunction(ImmutableMap<String, SIGN> pArguments) {
-    SignMap resultSignMap = signMap.mergeWith(new SignMap(pArguments));
-    return new SignState(resultSignMap, Optional.of(this));
+    PersistentMap<String, SIGN> newMap = signMap;
+
+    for (String var : pArguments.keySet()) {
+      if (!pArguments.get(var).equals(SIGN.ALL)) {
+        newMap = newMap.putAndCopy(var, pArguments.get(var));
+      }
+    }
+
+    return signMap == newMap ? this : new SignState(newMap);
   }
 
-  public SignState leaveFunction() {
-      if(stateBeforeEnteredFunction.isPresent()) {
-          return stateBeforeEnteredFunction.get();
+  public SignState leaveFunction(String pFunctionName) {
+    PersistentMap<String, SIGN> newMap = signMap;
+
+    for (String var : signMap.keySet()) {
+      if (var.startsWith(pFunctionName + "::")) {
+        newMap = newMap.removeAndCopy(var);
       }
-      throw new IllegalStateException("No function has been entered before");
+    }
+
+    return newMap == signMap ? this : new SignState(newMap);
   }
 
   public SignState assignSignToVariable(String pVarIdent, SIGN sign) {
-    Builder<String, SIGN> mapBuilder = ImmutableMap.builder();
-    if (!sign.isAll()) {
-      mapBuilder.put(pVarIdent, sign);
+    if (sign.isAll()) {
+      return signMap.containsKey(pVarIdent) ? new SignState(signMap.removeAndCopy(pVarIdent)) : this;
     }
-    for (String varId : signMap.keySet()) {
-      if (!varId.equals(pVarIdent)) {
-        mapBuilder.put(varId, signMap.getSignForVariable(varId));
-      }
-    }
-    return new SignState(new SignMap(mapBuilder.build()), stateBeforeEnteredFunction);
+    return signMap.containsKey(pVarIdent) && getSignForVariable(pVarIdent).equals(sign) ? this
+        : new SignState(signMap.putAndCopy(pVarIdent, sign));
   }
 
   public SignState removeSignAssumptionOfVariable(String pVarIdent) {
     return assignSignToVariable(pVarIdent, SIGN.ALL);
+  }
+
+  public SIGN getSignForVariable(String pVarIdent) {
+    return signMap.containsKey(pVarIdent) ? signMap.get(pVarIdent) : SIGN.ALL;
   }
 
   @Override
@@ -136,7 +149,7 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
         continue;
       }
       builder.append(loopDelim);
-      builder.append(key + "->" + signMap.getSignForVariable(key));
+      builder.append(key + "->" + getSignForVariable(key));
       loopDelim = delim;
     }
     builder.append("]");
@@ -146,7 +159,7 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
   @Override
   public boolean equals(Object pObj) {
     if (!(pObj instanceof SignState)) { return false; }
-    return ((SignState) pObj).getSignMap().equals(this.getSignMap());
+    return ((SignState) pObj).signMap.equals(this.signMap);
   }
 
   @Override
@@ -174,6 +187,33 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
   @Override
   public String getTargetVariableName() {
     return targetChecker == null ? "" : targetChecker.getErrorVariableName();
+  }
+
+  private Object writeReplace() throws ObjectStreamException {
+    if (this == TOP) {
+      return proxy;
+    } else {
+      return this;
+    }
+  }
+
+  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    out.defaultWriteObject();
+  }
+
+  private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+    in.defaultReadObject();
+  }
+
+  private static class SerialProxySign implements Serializable {
+
+    private static final long serialVersionUID = 2843708585446089623L;
+
+    public SerialProxySign() {}
+
+    private Object readResolve() throws ObjectStreamException {
+      return TOP;
+    }
   }
 
 }

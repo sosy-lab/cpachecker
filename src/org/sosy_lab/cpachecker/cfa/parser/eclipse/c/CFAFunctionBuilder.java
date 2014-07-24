@@ -759,8 +759,8 @@ class CFAFunctionBuilder extends ASTVisitor {
     CReturnStatement returnstmt = astCreator.convert(returnStatement);
     prevNode = handleAllSideEffects(prevNode, fileloc, returnStatement.getRawSignature(), true);
 
-    if (returnstmt.getReturnValue() != null) {
-      returnstmt.getReturnValue().accept(checkBinding);
+    if (returnstmt.getReturnValue().isPresent()) {
+      returnstmt.getReturnValue().get().accept(checkBinding);
     }
     CReturnStatementEdge edge = new CReturnStatementEdge(returnStatement.getRawSignature(),
     returnstmt, fileloc, prevNode, functionExitNode);
@@ -1676,8 +1676,16 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     FileLocation lastExpLocation = astCreator.getLocation(lastExp);
     prevNode = handleAllSideEffects(prevNode, lastExpLocation, lastExp.getRawSignature(), true);
-    CStatement stmt = createStatement(lastExpLocation,
-        tempVar, (CRightHandSide)exp);
+    CStatement stmt = null;
+    if (tempVar != null) {
+      stmt = createStatement(lastExpLocation, tempVar, (CRightHandSide)exp);
+    } else if (exp instanceof CStatement){
+      stmt = (CStatement)exp;
+    } else if (!(exp instanceof CRightHandSide)){
+      throw new CFAGenerationRuntimeException("invalid expression type");
+    } else {
+      stmt = createStatement(lastExpLocation, null, (CRightHandSide)exp);
+    }
     CFANode lastNode = newCFANode();
     CFAEdge edge = new CStatementEdge(stmt.toASTString(), stmt, lastExpLocation, prevNode, lastNode);
     addToCFA(edge);

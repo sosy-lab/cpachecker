@@ -104,11 +104,12 @@ class AssignmentHandler {
   }
 
   BooleanFormula handleAssignment(final CLeftHandSide lhs,
+                                  final CLeftHandSide lhsForChecking,
                                   final @Nullable CRightHandSide rhs,
                                   final boolean batchMode,
                                   final @Nullable Set<CType> destroyedTypes)
   throws UnrecognizedCCodeException, InterruptedException {
-    if (!conv.isRelevantLeftHandSide(lhs)) {
+    if (!conv.isRelevantLeftHandSide(lhsForChecking)) {
       // Optimization for unused variables and fields
       return conv.bfmgr.makeBoolean(true);
     }
@@ -178,7 +179,7 @@ class AssignmentHandler {
     BooleanFormula result = conv.bfmgr.makeBoolean(true);
     for (CExpressionAssignmentStatement assignment : assignments) {
       final CLeftHandSide lhs = assignment.getLeftHandSide();
-      result = conv.bfmgr.and(result, handleAssignment(lhs,
+      result = conv.bfmgr.and(result, handleAssignment(lhs, lhs,
                                                        assignment.getRightHandSide(),
                                                        lhsLocation.isAliased(), // Defer index update for UFs, but not for variables
                                                        updatedTypes));

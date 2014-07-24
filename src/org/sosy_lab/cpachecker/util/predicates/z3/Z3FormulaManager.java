@@ -27,14 +27,14 @@ import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.*;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
 
 @Options(prefix = "cpa.predicate.solver.z3")
@@ -205,6 +205,6 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
 
   /** returns a new logger with a new logfile. */
   public Z3SmtLogger getSmtLogger() {
-    return new Z3SmtLogger(z3smtLogger);
+    return z3smtLogger.cloneWithNewLogfile();
   }
 }

@@ -26,21 +26,23 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -208,6 +210,11 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
 
     if (settings.logAllQueries && settings.logfile != null) {
       String filename = String.format(settings.logfile.toAbsolutePath().getPath(), logfileCounter.getAndIncrement());
+      try {
+        Files.createParentDirs(Paths.get(filename));
+      } catch (IOException e) {
+        logger.logException(Level.WARNING, e, "Cannot create directory for MathSAT logfile");
+      }
 
       msat_set_option_checked(cfg, "debug.api_call_trace", "1");
       msat_set_option_checked(cfg, "debug.api_call_trace_filename", filename);

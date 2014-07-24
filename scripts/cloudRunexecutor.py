@@ -3,9 +3,11 @@
 # prepare for Python 3
 from __future__ import absolute_import, print_function, unicode_literals
 
+import sys
+sys.dont_write_bytecode = True # prevent creation of .pyc files
+
 import os
 import signal
-import sys
 import logging
 import benchmark.runexecutor as runexecutor
 from benchmark.runexecutor import RunExecutor

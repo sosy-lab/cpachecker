@@ -31,7 +31,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Classes;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.ClassOption;
@@ -39,6 +38,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -92,6 +92,11 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     public void printStatistics(PrintStream out, Result pResult,
         ReachedSet pReached) {
       out.println("Number of iterations:            " + countIterations);
+      if (countIterations == 0) {
+        // Statistics not relevant, prevent division by zero
+        return;
+      }
+
       out.println("Max size of waitlist:            " + maxWaitlistSize);
       out.println("Average size of waitlist:        " + countWaitlistSize
           / countIterations);

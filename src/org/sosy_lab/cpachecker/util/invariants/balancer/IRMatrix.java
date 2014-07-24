@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.invariants.balancer;
 import java.util.List;
 import java.util.Vector;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.invariants.InfixReln;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionType;
 import org.sosy_lab.cpachecker.util.invariants.balancer.interfaces.MatrixI;

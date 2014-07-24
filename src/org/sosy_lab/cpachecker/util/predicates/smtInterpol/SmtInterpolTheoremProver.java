@@ -31,10 +31,11 @@ import java.util.List;
 
 import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager.RegionBuilder;
@@ -65,6 +66,11 @@ class SmtInterpolTheoremProver implements ProverEnvironment {
   }
 
   @Override
+  public OptResult isOpt(Formula f, boolean maximize) throws InterruptedException {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public Model getModel() {
     Preconditions.checkNotNull(env);
     return SmtInterpolModel.createSmtInterpolModel(mgr, assertedTerms);
@@ -89,9 +95,22 @@ class SmtInterpolTheoremProver implements ProverEnvironment {
   @Override
   public void close() {
     Preconditions.checkNotNull(env);
-    env.pop(assertedTerms.size());
-    assertedTerms.clear();
+    if (!assertedTerms.isEmpty()) {
+      env.pop(assertedTerms.size());
+      assertedTerms.clear();
+    }
     env = null;
+  }
+
+  @Override
+  public List<BooleanFormula> getUnsatCore() {
+    Preconditions.checkNotNull(env);
+    Term[] terms = env.getUnsatCore();
+    List<BooleanFormula> result = new ArrayList<>(terms.length);
+    for (Term t : terms) {
+      result.add(mgr.encapsulateBooleanFormula(t));
+    }
+    return result;
   }
 
   @Override

@@ -30,11 +30,11 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.AbstractMBean;
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -42,6 +42,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -61,7 +62,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
@@ -131,7 +131,7 @@ public class CPAchecker {
     try {
       URL url = CPAchecker.class.getClassLoader().getResource("org/sosy_lab/cpachecker/VERSION.txt");
       if (url != null) {
-        String content = Resources.toString(url, Charsets.US_ASCII).trim();
+        String content = Resources.toString(url, StandardCharsets.US_ASCII).trim();
         if (content.matches("[a-zA-Z0-9 ._+:-]+")) {
           v = content;
         }
@@ -194,6 +194,7 @@ public class CPAchecker {
         shutdownNotifier.shutdownIfNecessary();
 
         ConfigurableProgramAnalysis cpa = factory.createCPA(cfa, stats);
+        GlobalInfo.getInstance().storeCPA(cpa);
 
         algorithm = factory.createAlgorithm(cpa, programDenotation, cfa, stats);
 

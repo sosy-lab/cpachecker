@@ -50,6 +50,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 
 import de.uni_freiburg.informatik.ultimate.logic.Annotation;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
@@ -110,6 +111,10 @@ class SmtInterpolEnvironment {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path smtLogfile = Paths.get("smtinterpol.%03d.smt2");
 
+  @Option(description = "List of further options which will be set to true for SMTInterpol in addition to the default options. "
+      + "Format is 'option1,option2,option3'")
+  private List<String> furtherOptions = ImmutableList.of();
+
   /** this is a counter to get distinct logfiles for distinct environments. */
   private static int logfileCounter = 0;
 
@@ -152,6 +157,7 @@ class SmtInterpolEnvironment {
     try {
       script.setOption(":produce-interpolants", true);
       script.setOption(":produce-models", true);
+      script.setOption(":produce-unsat-cores", true);
       if (checkResults) {
         script.setOption(":interpolant-check-mode", true);
         script.setOption(":unsat-core-check-mode", true);
@@ -162,6 +168,14 @@ class SmtInterpolEnvironment {
       throw new AssertionError(e);
     }
 
+    for (String option : furtherOptions) {
+      try {
+        script.setOption(":" + option, true);
+      } catch (SMTLIBException | UnsupportedOperationException e) {
+        throw new InvalidConfigurationException("Invalid option \"" + option + "\" for SMTInterpol.", e);
+      }
+    }
+
     theory = smtInterpol.getTheory();
   }
 
@@ -170,7 +184,7 @@ class SmtInterpolEnvironment {
     try {
       // create a thin wrapper around Benchmark,
       // this allows to write most formulas of the solver to outputfile
-      return new LoggingScript(smtInterpol, filename, true);
+      return new LoggingScript(smtInterpol, filename, true, true);
     } catch (FileNotFoundException e) {
       logger.logUserException(Level.WARNING, e, "Coud not open log file for SMTInterpol queries");
       // go on without logging
@@ -246,6 +260,7 @@ class SmtInterpolEnvironment {
 
         out.println("(set-option :produce-interpolants true)");
         out.println("(set-option :produce-models true)");
+        out.println("(set-option :produce-unsat-cores true)");
         if (checkResults) {
           out.println("(set-option :interpolant-check-mode true)");
           out.println("(set-option :unsat-core-check-mode true)");
@@ -547,6 +562,15 @@ class SmtInterpolEnvironment {
     assert stack.size() > 0 : "interpolants should be on higher levels";
     try {
       return script.getInterpolants(partition);
+    } catch (SMTLIBException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  public Term[] getUnsatCore() {
+    assert stack.size() > 0 : "unsat core should be on higher levels";
+    try {
+      return script.getUnsatCore();
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
     }

@@ -23,16 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
@@ -46,7 +43,6 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.ImmutableList;
 
 public abstract class AbstractARGBasedRefiner implements Refiner {
 
@@ -55,8 +51,6 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
   private final ARGCPA argCpa;
   private final LogManager logger;
 
-  // All found error traces if they should be printed throughout the analysis.
-  private final Set<List<CFAEdge>> allFoundCounterexamples = new HashSet<>();
   private int counterexamplesCounter = 0;
 
   protected AbstractARGBasedRefiner(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
@@ -91,14 +85,6 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
 
   @Override
   public final boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
-    return performRefinementWithInfo(pReached).isSpurious();
-  }
-
-  /**
-   * This method does the same as {@link #performRefinement(ReachedSet)},
-   * but it returns some more information about the refinement.
-   */
-  public final CounterexampleInfo performRefinementWithInfo(ReachedSet pReached) throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "Starting ARG based refinement");
 
     assert ARGUtils.checkARG(pReached) : "ARG and reached set do not match before refinement";
@@ -107,7 +93,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
     assert lastElement.isTarget() : "Last element in reached is not a target state before refinement";
     ARGReachedSet reached = new ARGReachedSet(pReached, argCpa, refinementNumber++);
 
-    ARGPath path = computePath(lastElement, reached);
+    final ARGPath path = computePath(lastElement, reached);
 
     if (logger.wouldBeLogged(Level.ALL) && path != null) {
       logger.log(Level.ALL, "Error path:\n", path);
@@ -115,7 +101,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
           Joiner.on("\n ").skipNulls().join(Collections2.transform(path, pathToFunctionCalls)));
     }
 
-    CounterexampleInfo counterexample;
+    final CounterexampleInfo counterexample;
     try {
       counterexample = performRefinement(reached, path);
     } catch (RefinementFailedException e) {
@@ -145,20 +131,13 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
       logger.log(Level.FINEST, "Counterexample", counterexamplesCounter, "has been found.");
 
       // Print error trace if cpa.arg.printErrorPath = true
-      if (argCpa.shouldPrintErrorPathImmediately()) {
-        List<CFAEdge> edges = ImmutableList.copyOf(counterexample.getTargetPath().asEdgesList());
-        if (allFoundCounterexamples.add(edges)) {
-          argCpa.exportCounterexample(pReached, lastElement, counterexample, counterexamplesCounter);
-        } else {
-          logger.log(Level.FINEST, "Skipping counterexample printing because it is equal to one of already printed.");
-        }
-      }
+      argCpa.exportCounterexampleOnTheFly(lastElement, counterexample, counterexamplesCounter);
       counterexamplesCounter++;
     }
 
     logger.log(Level.FINEST, "ARG based refinement finished, result is", counterexample.isSpurious());
 
-    return counterexample;
+    return counterexample.isSpurious();
   }
 
 

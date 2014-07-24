@@ -45,6 +45,7 @@ HARDTIMELIMIT = 'hardtimelimit'
 
 PROPERTY_TAG = "propertyfile"
 
+_BYTE_FACTOR = 1000 # byte in kilobyte
 
 def substituteVars(oldList, runSet, sourcefile=None):
     """
@@ -57,18 +58,18 @@ def substituteVars(oldList, runSet, sourcefile=None):
     keyValueList = [('${benchmark_name}',     benchmark.name),
                     ('${benchmark_date}',     benchmark.date),
                     ('${benchmark_instance}', benchmark.instance),
-                    ('${benchmark_path}',     benchmark.baseDir),
+                    ('${benchmark_path}',     benchmark.baseDir or '.'),
                     ('${benchmark_path_abs}', os.path.abspath(benchmark.baseDir)),
                     ('${benchmark_file}',     os.path.basename(benchmark.benchmarkFile)),
                     ('${benchmark_file_abs}', os.path.abspath(os.path.basename(benchmark.benchmarkFile))),
-                    ('${logfile_path}',       os.path.dirname(runSet.logFolder)),
+                    ('${logfile_path}',       os.path.dirname(runSet.logFolder) or '.'),
                     ('${logfile_path_abs}',   os.path.abspath(runSet.logFolder)),
                     ('${rundefinition_name}', runSet.realName if runSet.realName else ''),
                     ('${test_name}',          runSet.realName if runSet.realName else '')]
 
     if sourcefile:
         keyValueList.append(('${sourcefile_name}', os.path.basename(sourcefile)))
-        keyValueList.append(('${sourcefile_path}', os.path.dirname(sourcefile)))
+        keyValueList.append(('${sourcefile_path}', os.path.dirname(sourcefile) or '.'))
         keyValueList.append(('${sourcefile_path_abs}', os.path.dirname(os.path.abspath(sourcefile))))
 
     # do not use keys twice
@@ -232,6 +233,14 @@ class Benchmark:
                 logging.warning("Benchmark file {0} uses deprecated <test> tags. Please rename them to <rundefinition>.".format(benchmarkFile))
             else:
                 logging.warning("Benchmark file {0} specifies no runs to execute (no <rundefinition> tags found).".format(benchmarkFile))
+
+        if not any(runSet.shouldBeExecuted() for runSet in self.runSets):
+            logging.warning("No runSet selected, nothing will be executed.")
+            if config.selectedRunDefinitions:
+                logging.warning("The selection {0} does not match any runSet of {1}".format(
+                    str(config.selectedRunDefinitions),
+                    str([runSet.realName for runSet in self.runSets])
+                    ))
 
 
     def requiredFiles(self):
@@ -556,6 +565,7 @@ class Run():
         self.columns = [Column(c.text, c.title, c.numberOfDigits) for c in self.runSet.benchmark.columns]
 
         # here we store the optional result values, e.g. memory usage, energy, host name
+        # keys need to be strings, if first character is "@" the value is marked as hidden (e.g., debug info)
         self.values = {}
 
         # dummy values, for output in case of interrupt
@@ -593,14 +603,15 @@ class Run():
         # here. if this is the case.
         # However, we don't want to forget more specific results like SEGFAULT,
         # so we do this only if the result is a "normal" one like TRUE.
-        if self.status in result.STR_LIST and isTimeout:
+        if self.status in result.STATUS_LIST and isTimeout:
             self.status = "TIMEOUT"
             self.category = result.CATEGORY_ERROR
         if returnvalue is not None \
                 and returnsignal == 9 \
                 and MEMLIMIT in rlimits \
                 and 'memUsage' in self.values \
-                and int(self.values['memUsage']) >= (rlimits[MEMLIMIT] * 1024 * 1024 * 0.999):
+                and not self.values['memUsage'] is None \
+                and int(self.values['memUsage']) >= (rlimits[MEMLIMIT] * _BYTE_FACTOR * _BYTE_FACTOR * 0.999):
             self.status = 'OUT OF MEMORY'
             self.category = result.CATEGORY_ERROR
 

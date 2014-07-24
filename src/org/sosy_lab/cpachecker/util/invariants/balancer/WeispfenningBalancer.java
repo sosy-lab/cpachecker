@@ -28,8 +28,8 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.invariants.redlog.RedlogInterface;

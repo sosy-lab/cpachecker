@@ -71,6 +71,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
+import com.google.common.base.Optional;
+
 
 public class SeplogicTransferRelation implements TransferRelation {
 
@@ -115,10 +117,10 @@ public class SeplogicTransferRelation implements TransferRelation {
         break;
 
       case ReturnStatementEdge:
-        CExpression expression = ((CReturnStatementEdge) cfaEdge).getExpression();
-        if (expression != null) {
+        Optional<CExpression> expression = ((CReturnStatementEdge) cfaEdge).getExpression();
+        if (expression.isPresent()) {
           // non-void function
-          successor = handleAssignment(currentElement, RETVAR, false, expression, cfaEdge);
+          successor = handleAssignment(currentElement, RETVAR, false, expression.get(), cfaEdge);
         } else {
           successor = currentElement;
         }

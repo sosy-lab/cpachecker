@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.core.Model;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 
 /**

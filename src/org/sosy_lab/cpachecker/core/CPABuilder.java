@@ -35,14 +35,16 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
@@ -106,7 +108,10 @@ public class CPABuilder {
           AutomatonGraphmlParser graphmlParser = new AutomatonGraphmlParser(config, logger, cfa.getMachineModel());
           automata = graphmlParser.parseAutomatonFile(specFile);
         } else {
-          automata = AutomatonParser.parseAutomatonFile(specFile, config, logger, cfa.getMachineModel());
+
+          Scope scope = new CProgramScope(cfa);
+
+          automata = AutomatonParser.parseAutomatonFile(specFile, config, logger, cfa.getMachineModel(), scope);
         }
 
         for (Automaton automaton : automata) {

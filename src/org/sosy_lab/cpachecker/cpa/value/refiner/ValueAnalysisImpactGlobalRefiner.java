@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -80,9 +80,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
@@ -137,6 +135,8 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
     if (valueAnalysisCpa == null) {
       throw new InvalidConfigurationException(ValueAnalysisImpactGlobalRefiner.class.getSimpleName() + " needs a ValueAnalysisCPA");
     }
+
+    valueAnalysisCpa.injectRefinablePrecision();
 
     ValueAnalysisImpactGlobalRefiner refiner = new ValueAnalysisImpactGlobalRefiner(valueAnalysisCpa.getConfiguration(),
                                     valueAnalysisCpa.getLogger(),
@@ -196,7 +196,7 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
         logger.log(Level.FINEST, "skipping interpolation, error path is empty, because initial interpolant is already false");
         continue;
       }
-      System.out.println(ARGUtils.getOnePathTo(errorPath.getLast().getFirst()).toString().hashCode());
+//System.out.println(ARGUtils.getOnePathTo(errorPath.getLast().getFirst()).toString().hashCode());
 
       lastErrorPath = errorPath;
 
@@ -419,13 +419,7 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
     }
 
     // for all other cases, check if the path is feasible when using the interpolant as initial state
-    try {
-      return checker.isFeasible(errorPath,
-          new ValueAnalysisPrecision("", Configuration.builder().build(), Optional.<VariableClassification>absent()),
-          initialItp.createValueAnalysisState());
-    } catch (InvalidConfigurationException e) {
-      throw new CPAException("Configuring ValueAnalysisImpactGlobalRefiner failed: " + e.getMessage(), e);
-    }
+    return checker.isFeasible(errorPath, initialItp.createValueAnalysisState());
   }
 
   private ValueAnalysisPrecision joinSubtreePrecisions(final ReachedSet pReached,
@@ -789,7 +783,7 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
         Set<ARGState> successors = successorRelation.get(currentState);
         todo.addAll(successors);
       }
-System.out.println(new TreeSet<>(increment.values()));
+//System.out.println(new TreeSet<>(increment.values()));
       return increment;
     }
 

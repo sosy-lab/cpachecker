@@ -31,6 +31,7 @@ sys.dont_write_bytecode = True # prevent creation of .pyc files
 import logging
 import os
 import subprocess
+import time
 
 from .benchmarkDataStructures import MEMLIMIT, TIMELIMIT, CORELIMIT
 import cloudRunexecutor as CloudRunExecutor
@@ -73,6 +74,9 @@ def executeBenchmarkInCloud(benchmark, outputHandler, justReprocessResults):
             cmdLine.extend(["--master", benchmark.config.cloudMaster])
         if benchmark.config.debug:
             cmdLine.extend(["--print-new-files", "true"])
+            
+        wallTimeBefore = time.time()
+            
         cloud = subprocess.Popen(cmdLine, stdin=subprocess.PIPE, shell=Util.isWindows())
         try:
             (out, err) = cloud.communicate(cloudInput.encode('utf-8'))
@@ -80,12 +84,15 @@ def executeBenchmarkInCloud(benchmark, outputHandler, justReprocessResults):
             killScriptCloud()
         returnCode = cloud.wait()
 
+        wallTimeAfter = time.time()
+        usedWallTime = wallTimeAfter - wallTimeBefore
+
         if returnCode and not STOPPED_BY_INTERRUPT:
             logging.warn("Cloud return code: {0}".format(returnCode))
     else:
         returnCode = 0    
 
-    handleCloudResults(benchmark, outputHandler)
+    handleCloudResults(benchmark, outputHandler, usedWallTime)
 
     return returnCode
 
@@ -206,7 +213,7 @@ def getToolDataForCloud(benchmark):
     return (workingDir, toolpaths)
 
 
-def handleCloudResults(benchmark, outputHandler):
+def handleCloudResults(benchmark, outputHandler, usedWallTime):
 
     outputDir = benchmark.logFolder
     if not os.path.isdir(outputDir) or not os.listdir(outputDir):
@@ -258,7 +265,7 @@ def handleCloudResults(benchmark, outputHandler):
             dataFile = run.logFile + ".data"
             if os.path.exists(dataFile):
                 outputHandler.allCreatedFiles.append(dataFile)
-                run.values.update(parseCloudRunResultFile(dataFile, benchmark.config.debug))
+                run.values.update(parseCloudRunResultFile(dataFile))
 
             if os.path.exists(run.logFile + ".stdError"):
                 runsProducedErrorOutput = True
@@ -276,7 +283,7 @@ def handleCloudResults(benchmark, outputHandler):
             run.afterExecution(returnValue, output)
             outputHandler.outputAfterRun(run)
 
-        outputHandler.outputAfterRunSet(runSet)
+        outputHandler.outputAfterRunSet(runSet, wallTime=usedWallTime)
 
     outputHandler.outputAfterBenchmark(STOPPED_BY_INTERRUPT)
 
@@ -352,15 +359,17 @@ def parseCloudResultFile(filePath):
     return (wallTime, cpuTime, memUsage, returnValue, energy)
 
 
-def parseCloudRunResultFile(filePath, allValues):
+def parseCloudRunResultFile(filePath):
     values = {}
 
     with open(filePath, 'rt') as file:
         for line in file:
             (key, value) = line.split("=", 2)
+            value = value.strip()
             if key == "host":
                 values[key] = value
-            elif allValues:
-                values["vcloud-" + key] = value
+            else:
+                # "@" means value is hidden normally
+                values["@vcloud-" + key] = value
 
     return values

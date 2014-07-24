@@ -81,7 +81,9 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-if [ -n "$TEMP" ]; then
+if [ -n "$TMPDIR" ]; then
+  JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -Djava.io.tmpdir=$TMPDIR"
+elif [ -n "$TEMP" ]; then
   JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -Djava.io.tmpdir=$TEMP"
 elif [ -n "$TMP" ]; then
   JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -Djava.io.tmpdir=$TMP"

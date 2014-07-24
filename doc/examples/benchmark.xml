@@ -10,7 +10,7 @@
   "timelimit" is an optional cpu-time limit in seconds.
   "hardtimelimit" is an optional cpu-time limit after which the tool will be killed forcefully
     equal to "timelimit" if not specified).
-  "memlimit" is an optional memory limit in megabytes.
+  "memlimit" is an optional memory limit in megabytes (with SI units, e.g., 1 MB = 1,000,000 Bytes).
   "cpuCores" is an optional number of CPU cores to use per run (otherwise all available cores are used).
   "threads" is the number of parallel executions of verification runs.
   This values can be overriden on the command line when running benchmark.py

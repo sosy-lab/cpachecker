@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
+import static com.google.common.base.Objects.firstNonNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.util.Collections;
@@ -47,10 +48,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.Model;
-import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
-import org.sosy_lab.cpachecker.core.Model.TermType;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -75,7 +76,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeH
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.pointerTarget.PointerTarget;
 
 import com.google.common.base.Function;
-import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
@@ -306,9 +306,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     for (final Triple<String, Integer, Integer> symbolDifference : symbolDifferences) {
       shutdownNotifier.shutdownIfNecessary();
       final String symbolName = symbolDifference.getFirst();
-      final int index1 = Objects.firstNonNull(symbolDifference.getSecond(), 1);
-      final int index2 = Objects.firstNonNull(symbolDifference.getThird(), 1);
+      final int index1 = firstNonNull(symbolDifference.getSecond(), 1);
+      final int index2 = firstNonNull(symbolDifference.getThird(), 1);
 
+      assert symbolName != null;
+      assert resultSSA != null;
       BooleanFormula mergeFormula;
       if (index1 > index2 && index1 > 1) {
         // i2:smaller, i1:bigger
@@ -459,7 +461,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             // We expect this situation of one of the children is a target state created by PredicateCPA.
             continue;
           } else {
-            logger.log(Level.WARNING, "ARG branching with more than two outgoing edges");
+            logger.log(Level.WARNING, "ARG branching with more than two outgoing edges at ARG node " + pathElement.getStateId() + ".");
             return bfmgr.makeBoolean(true);
           }
         }
@@ -476,7 +478,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             // We expect this situation of one of the children is a target state created by PredicateCPA.
             continue;
           } else {
-            logger.log(Level.WARNING, "ARG branching without AssumeEdge");
+            logger.log(Level.WARNING, "ARG branching without AssumeEdge at ARG node " + pathElement.getStateId() + ".");
             return bfmgr.makeBoolean(true);
           }
         }

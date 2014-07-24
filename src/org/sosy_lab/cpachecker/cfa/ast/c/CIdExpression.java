@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-
-import com.google.common.base.Objects;
 
 public final class CIdExpression extends AIdExpression implements CLeftHandSide {
 
@@ -81,7 +81,7 @@ public final class CIdExpression extends AIdExpression implements CLeftHandSide 
     int prime = 31;
     int result = 7;
     if (getDeclaration() != null) {
-      result = prime * result + Objects.hashCode(getDeclaration().getQualifiedName());
+      result = prime * result + Objects.hash(getDeclaration().getQualifiedName());
     }
     return prime * result;
   }
@@ -106,7 +106,7 @@ public final class CIdExpression extends AIdExpression implements CLeftHandSide 
     if (getDeclaration() == null) {
       return other.getDeclaration() == null;
     } else {
-      return Objects.equal(getDeclaration().getQualifiedName(), other.getDeclaration().getQualifiedName());
+      return Objects.equals(getDeclaration().getQualifiedName(), other.getDeclaration().getQualifiedName());
     }
   }
 }

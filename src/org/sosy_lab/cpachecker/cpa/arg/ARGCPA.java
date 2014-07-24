@@ -25,17 +25,23 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
+import java.util.logging.Level;
 
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.Classes;
+import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
@@ -56,11 +62,16 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
+import org.sosy_lab.cpachecker.cpa.arg.counterexamples.ConjunctiveCounterexampleFilter;
+import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CounterexampleFilter;
+import org.sosy_lab.cpachecker.cpa.arg.counterexamples.NullCounterexampleFilter;
+import org.sosy_lab.cpachecker.cpa.arg.counterexamples.PathEqualityCounterexampleFilter;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 @Options(prefix="cpa.arg")
 public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProgramAnalysisWithBAM, ProofChecker {
@@ -74,6 +85,16 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     + "behave differntly during merge.")
   private boolean inPredicatedAnalysis = false;
 
+  @Option(name="errorPath.filters",
+      description="Filter for irrelevant counterexamples to reduce the number of similar counterexamples reported."
+      + " Only relevant with analysis.stopAfterErrors=false and cpa.arg.errorPath.exportImmediately=true."
+      + " Put the weakest and cheapest filter first, e.g., PathEqualityCounterexampleFilter.")
+  @ClassOption(packagePrefix="org.sosy_lab.cpachecker.cpa.arg.counterexamples")
+  private List<Class<? extends CounterexampleFilter>> cexFilterClasses
+      = ImmutableList.<Class<? extends CounterexampleFilter>>of(
+          PathEqualityCounterexampleFilter.class);
+  private final CounterexampleFilter cexFilter;
+
   private final LogManager logger;
 
   private final AbstractDomain abstractDomain;
@@ -85,9 +106,10 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   private final ARGStatistics stats;
   private final ProofChecker wrappedProofChecker;
 
+  private final CEXExporter cexExporter;
   private final Map<ARGState, CounterexampleInfo> counterexamples = new WeakHashMap<>();
 
-  private ARGCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger) throws InvalidConfigurationException {
+  private ARGCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
     super(cpa);
     config.inject(this);
     this.logger = logger;
@@ -129,7 +151,33 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
       }
     }
     stopOperator = new ARGStopSep(getWrappedCpa().getStopOperator(), logger, config);
+    cexFilter = createCounterexampleFilter(config, logger, cpa);
+    cexExporter = new CEXExporter(config, logger);
     stats = new ARGStatistics(config, this);
+  }
+
+  private CounterexampleFilter createCounterexampleFilter(Configuration config,
+      LogManager logger, ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
+    final Object[] argumentValues = new Object[]{config, logger, cpa};
+    final Class<?>[] argumentTypes = new Class<?>[]{Configuration.class, LogManager.class, ConfigurableProgramAnalysis.class};
+
+    switch (cexFilterClasses.size()) {
+    case 0:
+      return new NullCounterexampleFilter();
+    case 1:
+      return Classes.createInstance(CounterexampleFilter.class, cexFilterClasses.get(0),
+          argumentTypes,
+          argumentValues,
+          InvalidConfigurationException.class);
+    default:
+      List<CounterexampleFilter> filters = new ArrayList<>(cexFilterClasses.size());
+      for (Class<? extends CounterexampleFilter> cls : cexFilterClasses) {
+        filters.add(Classes.createInstance(CounterexampleFilter.class, cls,
+          argumentTypes, argumentValues,
+          InvalidConfigurationException.class));
+      }
+      return new ConjunctiveCounterexampleFilter(filters);
+    }
   }
 
   @Override
@@ -224,12 +272,14 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     return stopOperator.isCoveredBy(pElement, pOtherElement, wrappedProofChecker);
   }
 
-  void exportCounterexample(ReachedSet pReached, ARGState pTargetState,
-    CounterexampleInfo pCounterexampleInfo, int cexIndex) {
-    stats.exportCounterexample(pReached, pTargetState, pCounterexampleInfo, cexIndex, null, true);
-  }
-
-  boolean shouldPrintErrorPathImmediately() {
-    return stats.shouldDumpErrorPathImmediately();
+  void exportCounterexampleOnTheFly(ARGState pTargetState,
+    CounterexampleInfo pCounterexampleInfo, int cexIndex) throws InterruptedException {
+    if (cexExporter.shouldDumpErrorPathImmediately()) {
+      if (cexFilter.isRelevant(pCounterexampleInfo)) {
+        cexExporter.exportCounterexample(pTargetState, pCounterexampleInfo, cexIndex, null, true);
+      } else {
+        logger.log(Level.FINEST, "Skipping counterexample printing because it is similar to one of already printed.");
+      }
+    }
   }
 }

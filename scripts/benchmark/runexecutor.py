@@ -47,7 +47,7 @@ CPUACCT = 'cpuacct'
 CPUSET = 'cpuset'
 MEMORY = 'memory'
 
-_BYTE_FACTOR = 1024 # byte in kilobyte
+_BYTE_FACTOR = 1000 # byte in kilobyte
 _WALLTIME_LIMIT_OVERHEAD = 30 # seconds
 
 
@@ -83,7 +83,7 @@ class RunExecutor():
 
         cgroupCpuset = self.cgroupsParents[CPUSET]
         if not cgroupCpuset:
-            logging.warning("Cannot limit the number of CPU curse without cpuset cgroup.")
+            logging.warning("Cannot limit the number of CPU cores without cpuset cgroup.")
         else:
             # Read available cpus:
             cpuStr = readFile(cgroupCpuset, 'cpuset.cpus')
@@ -295,8 +295,7 @@ class RunExecutor():
                 killAllTasksInCgroup(cgroup)
 
         wallTimeAfter = time.time()
-        energyAfter = Util.getEnergy()
-        energy = (energyAfter - energyBefore) if (energyAfter and energyBefore) else None
+        energy = Util.getEnergy(energyBefore)
         wallTime = wallTimeAfter - wallTimeBefore
         cpuTime = ru_child.ru_utime + ru_child.ru_stime if ru_child else 0
         return (returnvalue, wallTime, cpuTime, energy)
@@ -333,15 +332,18 @@ class RunExecutor():
             memUsageFile = 'memory.memsw.max_usage_in_bytes'
             if not os.path.exists(os.path.join(cgroups[MEMORY], memUsageFile)):
                 memUsageFile = 'memory.max_usage_in_bytes'
-            try:
-                memUsage = readFile(cgroups[MEMORY], memUsageFile)
-                memUsage = int(memUsage)
-            except IOError as e:
-                if e.errno == 95: # kernel responds with error 95 (operation unsupported) if this is disabled
-                    logging.critical("Kernel does not track swap memory usage, cannot measure memory usage. "
-                          + "Please set swapaccount=1 on your kernel command line.")
-                else:
-                    raise e
+            if not os.path.exists(os.path.join(cgroups[MEMORY], memUsageFile)):
+                logging.warning('Memory-usage is not available due to missing files.')
+            else:
+                try:
+                    memUsage = readFile(cgroups[MEMORY], memUsageFile)
+                    memUsage = int(memUsage)
+                except IOError as e:
+                    if e.errno == 95: # kernel responds with error 95 (operation unsupported) if this is disabled
+                        logging.critical("Kernel does not track swap memory usage, cannot measure memory usage. "
+                              + "Please set swapaccount=1 on your kernel command line.")
+                    else:
+                        raise e
 
         logging.debug('Run exited with code {0}, walltime={1}, cputime={2}, cgroup-cputime={3}, memory={4}'
                       .format(returnvalue, wallTime, cpuTime, cpuTime2, memUsage))
@@ -422,7 +424,7 @@ def reduceFileSize(outputFileName, output, maxLogfileSize=-1):
     """
     if maxLogfileSize == -1: return output # disabled, nothing to do
 
-    rest = maxLogfileSize * 1000 * 1000 # as MB, we assume: #char == #byte
+    rest = maxLogfileSize * _BYTE_FACTOR * _BYTE_FACTOR # as MB, we assume: #char == #byte
 
     if sum(len(line) for line in output) < rest: return output # too small, nothing to do
 
@@ -466,7 +468,11 @@ def getDebugOutputAfterCrash(output, outputFileName):
 
 
 def _readCpuTime(cgroupCpuacct):
-    return float(readFile(cgroupCpuacct, 'cpuacct.usage'))/1000000000 # nano-seconds to seconds
+    cputimeFile = os.path.join(cgroupCpuacct, 'cpuacct.usage')
+    if not os.path.exists(cputimeFile):
+        logging.warning('Could not read cputime. File {0} does not exist.'.format(cputimeFile))
+        return 0 # dummy value, if cputime is not available
+    return float(readFile(cputimeFile))/1000000000 # nano-seconds to seconds
 
 
 class _TimelimitThread(threading.Thread):

@@ -46,16 +46,6 @@ public class ToFormulaVisitorWrapper<ConstantType, FormulaType> extends Paramete
     this.wrapped = pToWrap;
   }
 
-  @Override
-  public FormulaType getZero() {
-    return this.wrapped.getZero();
-  }
-
-  @Override
-  public FormulaType getOne() {
-    return this.wrapped.getOne();
-  }
-
   public ToFormulaVisitor<ConstantType, FormulaType> getWrapped() {
     return this.wrapped;
   }
@@ -85,6 +75,9 @@ public class ToFormulaVisitorWrapper<ConstantType, FormulaType> extends Paramete
     return this.wrapped.greaterOrEqual(pOp1, pOp2);
   }
 
-
+  @Override
+  public BooleanFormula asBoolean(FormulaType pOp1) {
+    return this.wrapped.asBoolean(pOp1);
+  }
 
 }

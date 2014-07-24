@@ -116,6 +116,16 @@ public interface ParameterizedInvariantsFormulaVisitor<ConstantType, ParameterTy
   ReturnType visit(Equal<ConstantType> pEqual, ParameterType pParameter);
 
   /**
+   * Visits the given exclusion invariants formula.
+   *
+   * @param pExclusion the exclusion formula to visit.
+   * @param pParameter the additional parameter to take into consideration.
+   *
+   * @return the result of the visit.
+   */
+  ReturnType visit(Exclusion<ConstantType> pExclusion, ParameterType pParameter);
+
+  /**
    * Visits the given less-than inequation invariants formula.
    *
    * @param pLessThan the less-than inequation invariants formula to visit.

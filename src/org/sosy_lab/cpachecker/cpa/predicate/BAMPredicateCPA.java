@@ -25,11 +25,11 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.Collection;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -75,9 +75,9 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
 
     RelevantPredicatesComputer relevantPredicatesComputer;
     if (auxiliaryPredicateComputer) {
-      relevantPredicatesComputer = new AuxiliaryComputer();
+      relevantPredicatesComputer = new AuxiliaryComputer(getFormulaManager());
     } else {
-      relevantPredicatesComputer = new RefineableOccurrenceComputer();
+      relevantPredicatesComputer = new RefineableOccurrenceComputer(getFormulaManager());
     }
     relevantPredicatesComputer = new CachingRelevantPredicatesComputer(relevantPredicatesComputer);
     this.relevantPredicatesComputer = relevantPredicatesComputer;

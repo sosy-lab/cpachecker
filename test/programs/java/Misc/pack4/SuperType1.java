@@ -6,12 +6,11 @@ public class SuperType1 {
   public SuperSuper sup;
 
   public SuperType1() {
-  sup = new SuperSuper();
+    sup = new SuperSuper();
   }
 
   public void method() {
-  num = 5;
-
+    num = 5;
   }
 
 }

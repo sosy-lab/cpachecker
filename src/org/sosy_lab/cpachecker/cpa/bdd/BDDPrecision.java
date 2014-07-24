@@ -202,7 +202,7 @@ public class BDDPrecision implements Precision {
       if (mapping == null) { return true; }
 
 
-      final MemoryLocation variable = MemoryLocation.valueOf(var, 0);
+      final MemoryLocation variable = MemoryLocation.valueOf(var);
 
       // when using scoped interpolation, it suffices to have the (scoped) variable identifier in the precision
       if (useScopedInterpolation) {

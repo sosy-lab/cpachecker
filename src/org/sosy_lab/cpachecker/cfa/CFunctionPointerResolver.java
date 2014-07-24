@@ -33,12 +33,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
@@ -307,8 +307,7 @@ public class CFunctionPointerResolver {
     if (nameExp instanceof CPointerExpression) {
       CExpression operand = ((CPointerExpression)nameExp).getOperand();
       CType operandType = operand.getExpressionType().getCanonicalType();
-      if (operand instanceof CIdExpression
-          && operandType instanceof CPointerType
+      if (operandType instanceof CPointerType
           && ((CPointerType)operandType).getType() instanceof CFunctionType) {
         // *fp is the same as fp
         nameExp = operand;

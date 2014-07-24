@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,8 +39,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-
-import com.google.common.base.Charsets;
 
 
 public class ExternModelLoader {
@@ -75,7 +74,7 @@ public class ExternModelLoader {
     if (! pModelFile.getName().endsWith(".dimacs")) {
       throw new UnsupportedOperationException("Sorry, we can only load dimacs models.");
     }
-    try (BufferedReader br =  pModelFile.asCharSource(Charsets.UTF_8).openBufferedStream()) {
+    try (BufferedReader br =  pModelFile.asCharSource(StandardCharsets.UTF_8).openBufferedStream()) {
        ArrayList<String> predicates = new ArrayList<>(10000);
        //var ids in dimacs files start with 1, so we want the first var at position 1
        predicates.add("RheinDummyVar");

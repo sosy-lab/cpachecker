@@ -31,8 +31,8 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
-import com.google.common.collect.Sets;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 
 final class SMGJoinSubSMGs {

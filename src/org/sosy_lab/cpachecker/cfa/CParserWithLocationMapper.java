@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -35,7 +36,6 @@ import org.eclipse.cdt.internal.core.parser.scanner.ILexerLog;
 import org.eclipse.cdt.internal.core.parser.scanner.Lexer;
 import org.eclipse.cdt.internal.core.parser.scanner.Lexer.LexerOptions;
 import org.eclipse.cdt.internal.core.parser.scanner.Token;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -44,12 +44,13 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
 
 /**
@@ -177,7 +178,7 @@ public class CParserWithLocationMapper implements CParser {
 
     String code = tokenizeCode ? tokenizedCode.toString() : pCode;
     if (tokenizeCode && dumpTokenizedProgramToFile != null) {
-      try (Writer out = Files.openOutputFile(dumpTokenizedProgramToFile, Charsets.US_ASCII)) {
+      try (Writer out = Files.openOutputFile(dumpTokenizedProgramToFile, StandardCharsets.US_ASCII)) {
         out.append(code);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write tokenized program to file");
@@ -235,12 +236,12 @@ public class CParserWithLocationMapper implements CParser {
   }
 
   @Override
-  public CAstNode parseSingleStatement(String pCode) throws CParserException, InvalidConfigurationException {
-    return realParser.parseSingleStatement(pCode);
+  public CAstNode parseSingleStatement(String pCode, Scope pScope) throws CParserException, InvalidConfigurationException {
+    return realParser.parseSingleStatement(pCode, pScope);
   }
 
   @Override
-  public List<CAstNode> parseStatements(String pCode) throws CParserException, InvalidConfigurationException {
-    return realParser.parseStatements(pCode);
+  public List<CAstNode> parseStatements(String pCode, Scope pScope) throws CParserException, InvalidConfigurationException {
+    return realParser.parseStatements(pCode, pScope);
   }
 }

@@ -30,6 +30,7 @@ import java.util.Collections;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 
 import com.google.common.collect.Lists;

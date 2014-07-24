@@ -29,6 +29,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,7 +42,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -49,6 +49,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
@@ -72,7 +73,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -490,7 +490,7 @@ public class PredicateAbstractionManager {
       fmgr.dumpFormulaToFile(f, dumpFile);
 
       dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predicates", 0);
-      try (Writer w = dumpFile.asCharSink(Charsets.UTF_8).openBufferedStream()) {
+      try (Writer w = dumpFile.asCharSink(StandardCharsets.UTF_8).openBufferedStream()) {
         Joiner.on('\n').appendTo(w, predicates);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Failed to wrote predicates to file");
@@ -536,7 +536,10 @@ public class PredicateAbstractionManager {
       BooleanFormula instantiatedPredicate = fmgr.instantiate(predicateTerm, ssa);
       Set<String> predVariables = fmgr.extractVariables(instantiatedPredicate);
 
-      if (!Sets.intersection(predVariables, variables).isEmpty()) {
+      if (predVariables.isEmpty()
+          || !Sets.intersection(predVariables, variables).isEmpty()) {
+        // Predicates without variables occur (for example, talking about UFs).
+        // We do not know whether they are relevant, so we have to add them.
         predicateBuilder.add(predicate);
       } else {
         logger.log(Level.FINEST, "Ignoring predicate about variables", predVariables);

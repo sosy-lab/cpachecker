@@ -32,13 +32,13 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -182,34 +182,22 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   }
 
   private ValueAnalysisPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
-    if(refinementWithoutAbstraction(config) && !useInPredicatedAnalysisWithoutRefinement) {
-      logger.log(Level.WARNING, "ValueAnalysis with refinement needs " +
-            "ComponentAwarePrecisionAdjustment. Please set option cpa.composite.precAdjust to 'COMPONENT'");
+
+    if (initialPrecisionFile == null) {
+      return new ValueAnalysisPrecision(variableBlacklist, config, cfa.getVarClassification(), new ValueAnalysisPrecision.FullPrecision());
     }
 
-    // create default (empty) precision
-    ValueAnalysisPrecision precision = new ValueAnalysisPrecision(variableBlacklist, config, cfa.getVarClassification());
+    else {
+      // create precision with empty, refinable component precision
+      ValueAnalysisPrecision precision = new ValueAnalysisPrecision(variableBlacklist, config, cfa.getVarClassification());
 
-    // refine it with precision from file
-    return new ValueAnalysisPrecision(precision, restoreMappingFromFile(cfa));
-  }
-
-  /**
-   * This method checks if refinement is enabled, but the proper precision adjustment operator is not in use.
-   *
-   * @param config the current configuration
-   * @return true, if refinement is enabled, but abstraction is not available, else false
-   */
-  private boolean refinementWithoutAbstraction(Configuration config) {
-    return Boolean.parseBoolean(config.getProperty("analysis.algorithm.CEGAR")) &&
-            !config.getProperty("cpa.composite.precAdjust").equals("COMPONENT");
+      // refine the refinable component precision with increment from file
+      return new ValueAnalysisPrecision(precision, restoreMappingFromFile(cfa));
+    }
   }
 
   private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA cfa) throws InvalidConfigurationException {
     Multimap<CFANode, MemoryLocation> mapping = HashMultimap.create();
-    if (initialPrecisionFile == null) {
-      return mapping;
-    }
 
     List<String> contents = null;
     try {
@@ -254,6 +242,14 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
       idToNodeMap.put(n.getNodeNumber(), n);
     }
     return idToNodeMap;
+  }
+
+  public void injectRefinablePrecision() throws InvalidConfigurationException {
+
+    // replace the full precision with an empty, refinable precision
+    if (initialPrecisionFile == null) {
+      precision = new ValueAnalysisPrecision(variableBlacklist, config, cfa.getVarClassification());
+    }
   }
 
   @Override

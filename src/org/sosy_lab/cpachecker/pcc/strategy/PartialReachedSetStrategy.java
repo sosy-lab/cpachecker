@@ -28,12 +28,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -42,48 +42,36 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.PartialReachedConstructionAlg
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPABackwards;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.ARGBasedPartialReachedSetConstructionAlgorithm;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.HeuristicPartialReachedSetConstructionAlgorithm;
-import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.MonotoneStopARGBasedPartialReachedSetConstructionAlgorithm;
+import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm;
+import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialCertificateTypeProvider;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-@Options(prefix="pcc")
+@Options(prefix = "pcc.partial")
 public class PartialReachedSetStrategy extends ReachedSetStrategy {
 
-  @Option(
-      description = "Selects the strategy used for partial certificate construction")
-  private CertificateTypes certificateType = CertificateTypes.HEURISTIC;
-
   private final PartialReachedConstructionAlgorithm certificateConstructor;
-
   @Option(
-      description = "Set to true if certificate contains not only abstract states but also the size of reached set, enables proper PCC")
-  private boolean reachedSizeInCertificate = false;
+      description = "Enables proper PCC but may not work correctly for heuristics. Stops adding newly computed elements to reached set if size saved in proof is reached. If another element must be added, stops certificate checking and returns false.")
+  protected boolean stopAddingAtReachedSetSize = false;
 
-  public enum CertificateTypes {
-    HEURISTIC,
-    ARG,
-    MONOTONESTOPARG
-  }
+  protected int savedReachedSetSize;
 
   public PartialReachedSetStrategy(Configuration pConfig, LogManager pLogger,
       ShutdownNotifier pShutdownNotifier, PropertyCheckerCPA pCpa) throws InvalidConfigurationException {
     super(pConfig, pLogger, pShutdownNotifier, pCpa);
-    pConfig.inject(this);
-    switch (certificateType) {
+    pConfig.inject(this, PartialReachedSetStrategy.class);
+    switch (new PartialCertificateTypeProvider(pConfig, true).getCertificateType()) {
     case ARG:
-      ARGCPA cpa = pCpa.retrieveWrappedCpa(ARGCPA.class);
-      if (cpa == null) { throw new InvalidConfigurationException(
-          "Require ARCPA and PropertyCheckerCPA must be a top level CPA of ARGCPA"); }
-      certificateConstructor = new ARGBasedPartialReachedSetConstructionAlgorithm(cpa.getWrappedCPAs().get(0));
+      certificateConstructor = new ARGBasedPartialReachedSetConstructionAlgorithm(false);
       break;
     case MONOTONESTOPARG:
-      certificateConstructor = new MonotoneStopARGBasedPartialReachedSetConstructionAlgorithm();
+      certificateConstructor = new MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm(false);
       break;
     default:
       certificateConstructor = new HeuristicPartialReachedSetConstructionAlgorithm();
@@ -91,99 +79,107 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
   }
 
   @Override
-  public void constructInternalProofRepresentation(final UnmodifiableReachedSet pReached) throws InvalidConfigurationException {
-    // TODO also save reached set size
+  public void constructInternalProofRepresentation(final UnmodifiableReachedSet pReached)
+      throws InvalidConfigurationException {
+    savedReachedSetSize = pReached.size();
     reachedSet = certificateConstructor.computePartialReachedSet(pReached);
     orderReachedSetByLocation(reachedSet);
+  }
+
+  @Override
+  protected Object getProofToWrite(UnmodifiableReachedSet pReached) throws InvalidConfigurationException {
+    constructInternalProofRepresentation(pReached);
+    return Pair.of(pReached.size(), reachedSet);
   }
 
   @Override
   protected void prepareForChecking(Object pReadProof) throws InvalidConfigurationException {
     if (CPAs.retrieveCPA(cpa, LocationCPABackwards.class) != null) { throw new InvalidConfigurationException(
         "Partial reached set not supported as certificate for backward analysis"); }
-    super.prepareForChecking(pReadProof);
+    if (!(pReadProof instanceof Pair)) { throw new InvalidConfigurationException(
+        "Proof Type requires pair of reached set size and reached set as set of abstract states."); }
+    try {
+      @SuppressWarnings("unchecked")
+      Pair<Integer, AbstractState[]> proof = (Pair<Integer, AbstractState[]>) pReadProof;
+      savedReachedSetSize = proof.getFirst();
+      super.prepareForChecking(proof.getSecond());
+    } catch (ClassCastException e) {
+      throw new InvalidConfigurationException(
+          "Proof Type requires pair of reached set size and reached set as set of abstract states.");
+    }
   }
 
   @Override
   public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    // TODO for parallelization use Runtime.getRuntime().availableProcessors(); to identify maximal number of parallel threads
-      List<AbstractState> certificate = new ArrayList<>(reachedSet.length);
-      for (AbstractState elem : reachedSet) {
-        certificate.add(elem);
+    int certificateSize = 0;
+
+    List<AbstractState> certificate = new ArrayList<>(savedReachedSetSize);
+    for (AbstractState elem : reachedSet) {
+      certificate.add(elem);
+    }
+
+    /*also restrict stop to elements of same location as analysis does*/
+    StopOperator stop = cpa.getStopOperator();
+    Precision initialPrec = pReachedSet.getPrecision(pReachedSet.getFirstState());
+
+    // check initial element
+    AbstractState initialState = pReachedSet.popFromWaitlist();
+    assert (initialState == pReachedSet.getFirstState() && pReachedSet.size() == 1);
+
+    try {
+      stats.stopTimer.start();
+      if (!stop.stop(initialState, statesPerLocation.get(AbstractStates.extractLocation(initialState)), initialPrec)) {
+        logger.log(Level.FINE, "Initial element not in partial reached set.", "Add to elements whose successors ",
+            "must be computed.");
+        certificate.add(initialState);
       }
+    } catch (CPAException e) {
+      logger.logException(Level.FINE, e, "Stop check failed for initial element.");
+      return false;
+    } finally {
+      stats.stopTimer.stop();
+    }
 
-      /*also restrict stop to elements of same location as analysis does*/
-      StopOperator stop = cpa.getStopOperator();
-      Precision initialPrec = pReachedSet.getPrecision(pReachedSet.getFirstState());
+    // check if elements form transitive closure
+    Collection<? extends AbstractState> successors;
+    while (certificateSize<certificate.size()) {
 
-      // check initial element
-      AbstractState initialState = pReachedSet.popFromWaitlist();
-      assert (initialState == pReachedSet.getFirstState() && pReachedSet.size() == 1);
+      shutdownNotifier.shutdownIfNecessary();
+      stats.countIterations++;
 
       try {
-        stats.stopTimer.start();
-        if (!stop.stop(initialState, statesPerLocation.get(AbstractStates.extractLocation(initialState)), initialPrec)) {
-          logger.log(Level.FINE, "Initial element not in partial reached set.", "Add to elements whose successors ",
-              "must be computed.");
-          addElement(initialState, certificate);
-        }
-      } catch (CPAException e) {
-        logger.logException(Level.FINE, e, "Stop check failed for initial element.");
-        return false;
-      } finally {
-        stats.stopTimer.stop();
-      }
+        stats.transferTimer.start();
+        successors =
+            cpa.getTransferRelation().getAbstractSuccessors(certificate.get(certificateSize++), initialPrec,
+                null);
+        stats.transferTimer.stop();
 
-
-      // check if elements form transitive closure
-      Collection<? extends AbstractState> successors;
-      while (!certificate.isEmpty()) {
-
-        shutdownNotifier.shutdownIfNecessary();
-        stats.countIterations++;
-
-        try {
-          stats.transferTimer.start();
-          successors =
-              cpa.getTransferRelation().getAbstractSuccessors(certificate.remove(certificate.size() - 1), initialPrec,
-                  null);
-          stats.transferTimer.stop();
-
-          for (AbstractState succ : successors) {
-            try {
-              stats.stopTimer.start();
-              if (!stop.stop(succ, statesPerLocation.get(AbstractStates.extractLocation(succ)), initialPrec)) {
-                logger.log(Level.FINE, "Successor ", succ, " not in partial reached set.",
-                    "Add to elements whose successors ",
-                    "must be computed.");
-                if (AbstractStates.extractLocation(succ).getNumEnteringEdges() > 1) {
-                  stop.stop(succ, statesPerLocation.get(AbstractStates.extractLocation(succ)), initialPrec);
-                }
-                addElement(succ, certificate);
-              }
-            } finally {
-              stats.stopTimer.stop();
+        for (AbstractState succ : successors) {
+          try {
+            stats.stopTimer.start();
+            if (!stop.stop(succ, statesPerLocation.get(AbstractStates.extractLocation(succ)), initialPrec)) {
+              logger.log(Level.FINE, "Successor ", succ, " not in partial reached set.",
+                  "Add to elements whose successors ", "must be computed.");
+              if (stopAddingAtReachedSetSize && savedReachedSetSize == certificate.size()) { return false; }
+              certificate.add(succ);
             }
+          } finally {
+            stats.stopTimer.stop();
           }
-        } catch (CPATransferException e) {
-          logger.logException(Level.FINE, e, "Computation of successors failed.");
-          return false;
-        } catch (CPAException e) {
-          logger.logException(Level.FINE, e, "Stop check failed for successor.");
-          return false;
         }
-      }
-      stats.propertyCheckingTimer.start();
-      try {
-        return cpa.getPropChecker().satisfiesProperty(statesPerLocation.values());
-      } finally {
-        stats.propertyCheckingTimer.stop();
+      } catch (CPATransferException e) {
+        logger.logException(Level.FINE, e, "Computation of successors failed.");
+        return false;
+      } catch (CPAException e) {
+        logger.logException(Level.FINE, e, "Stop check failed for successor.");
+        return false;
       }
     }
-
-    protected void addElement(AbstractState element, List<AbstractState> insertIn) {
-      insertIn.add(insertIn.size(), element);
-      CFANode node = AbstractStates.extractLocation(element);
-      statesPerLocation.put(node, element);
+    stats.propertyCheckingTimer.start();
+    try {
+      return cpa.getPropChecker().satisfiesProperty(certificate);
+    } finally {
+      stats.propertyCheckingTimer.stop();
     }
+  }
 }

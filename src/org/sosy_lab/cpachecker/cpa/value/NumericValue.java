@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -34,7 +35,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 /**
  * Stores a numeric value that can be tracked by the ValueAnalysisCPA.
  */
-public class NumericValue implements Value {
+public class NumericValue implements Value, Serializable {
+
+  private static final long serialVersionUID = -3829943575180448170L;
+
   private Number number;
 
   /**

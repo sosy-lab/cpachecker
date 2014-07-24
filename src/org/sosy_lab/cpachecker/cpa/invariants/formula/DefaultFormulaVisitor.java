@@ -85,6 +85,11 @@ public abstract class DefaultFormulaVisitor<ConstantType, ReturnType> implements
   }
 
   @Override
+  public ReturnType visit(Exclusion<ConstantType> pExclusion) {
+    return visitDefault(pExclusion);
+  }
+
+  @Override
   public ReturnType visit(LessThan<ConstantType> pLessThan) {
     return visitDefault(pLessThan);
   }

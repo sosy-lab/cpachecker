@@ -69,7 +69,7 @@ public class CFASimplifier {
    */
   private static void simplifyFunction(final CFANode root, final MutableCFA cfa) {
     // We want to eliminate branching with two empty branches (only blank edges).
-    // Inner branches need to be eliminate first.
+    // Inner branches need to be eliminated first.
 
     // The list of all branching points in this function.
     final Deque<CFANode> branchingPoints = findBranchingPoints(root);

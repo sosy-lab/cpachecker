@@ -30,9 +30,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 
 public interface ToFormulaVisitor<ConstantType, FormulaType> extends ParameterizedInvariantsFormulaVisitor<ConstantType, Map<? extends String, ? extends InvariantsFormula<ConstantType>>, FormulaType> {
 
-  FormulaType getZero();
-
-  FormulaType getOne();
+  BooleanFormula asBoolean(FormulaType op1);
 
   BooleanFormula lessThan(FormulaType op1, FormulaType op2);
 

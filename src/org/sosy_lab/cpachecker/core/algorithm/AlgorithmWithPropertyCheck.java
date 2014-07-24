@@ -27,11 +27,13 @@ import java.util.Collection;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.error.DummyErrorState;
 
 
 public class AlgorithmWithPropertyCheck implements Algorithm, StatisticsProvider {
@@ -57,7 +59,11 @@ public class AlgorithmWithPropertyCheck implements Algorithm, StatisticsProvider
 
     if (result) {
       logger.log(Level.INFO, "Start property checking.");
-      cpa.getPropChecker().satisfiesProperty(pReachedSet.asCollection());
+      result = cpa.getPropChecker().satisfiesProperty(pReachedSet.asCollection());
+      // add dummy error state to get verification result FALSE instead of UNKNOWN
+      if (!result) {
+        pReachedSet.add(new DummyErrorState(pReachedSet.getLastState()), SingletonPrecision.getInstance());
+      }
     }
 
     logger.log(Level.INFO, "Finished analysis");
@@ -70,5 +76,4 @@ public class AlgorithmWithPropertyCheck implements Algorithm, StatisticsProvider
       ((StatisticsProvider) analysis).collectStatistics(pStatsCollection);
     }
   }
-
 }

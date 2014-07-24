@@ -37,7 +37,6 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -47,6 +46,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -358,10 +358,13 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     singleConfigBuilder.copyFrom(globalConfig);
     singleConfigBuilder.clearOption("restartAlgorithm.configFiles");
     singleConfigBuilder.clearOption("analysis.restartAfterUnknown");
+    singleConfigBuilder.loadFromFile(singleConfigFileName);
+    if (globalConfig.hasProperty("specification")) {
+      singleConfigBuilder.copyOptionFrom(globalConfig, "specification");
+    }
+    Configuration singleConfig = singleConfigBuilder.build();
 
     RestartAlgorithmOptions singleOptions = new RestartAlgorithmOptions();
-    singleConfigBuilder.loadFromFile(singleConfigFileName);
-    Configuration singleConfig = singleConfigBuilder.build();
     singleConfig.inject(singleOptions);
 
     ResourceLimitChecker singleLimits = ResourceLimitChecker.fromConfiguration(singleConfig, logger, singleShutdownNotifier);

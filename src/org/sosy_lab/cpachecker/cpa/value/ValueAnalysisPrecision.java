@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import static org.sosy_lab.cpachecker.util.VariableClassification.scopeVar;
-
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
@@ -92,17 +90,34 @@ public class ValueAnalysisPrecision implements Precision {
   private final Optional<VariableClassification> varClass;
 
   public ValueAnalysisPrecision(String variableBlacklist, Configuration config,
-      Optional<VariableClassification> vc) throws InvalidConfigurationException {
+      Optional<VariableClassification> vc, RefinablePrecision pRefinablePrecision)
+          throws InvalidConfigurationException {
     config.inject(this);
 
-    blackListPattern = Pattern.compile(variableBlacklist);
-    this.varClass = vc;
+    blackListPattern    = Pattern.compile(variableBlacklist);
+    varClass            = vc;
+    refinablePrecision  = pRefinablePrecision;
+  }
 
-    if (Boolean.parseBoolean(config.getProperty("analysis.algorithm.CEGAR"))) {
-      refinablePrecision = createInstance();
+  public ValueAnalysisPrecision(String variableBlacklist, Configuration config,
+      Optional<VariableClassification> vc)
+          throws InvalidConfigurationException {
+    config.inject(this);
+
+    blackListPattern    = Pattern.compile(variableBlacklist);
+    varClass            = vc;
+
+    if(sharing.equals("scope")) {
+      refinablePrecision = new ScopedRefinablePrecision();
     }
+
+    else if(sharing.equals("location")) {
+      refinablePrecision = new LocalizedRefinablePrecision();
+    }
+
     else {
-      refinablePrecision = new FullPrecision();
+      throw new InternalError("Wrong value for precison sharing strategy given (was " + sharing + ")," +
+          "or allowed options out-dated.");
     }
   }
 
@@ -125,6 +140,33 @@ public class ValueAnalysisPrecision implements Precision {
     ignoreBoolean         = original.ignoreBoolean;
     ignoreIntEqual        = original.ignoreIntEqual;
     ignoreIntAdd          = original.ignoreIntAdd;
+  }
+
+  /**
+   * This method acts as factory method for a default precision object, using the standard, i.e. empty, configuration,
+   * no variable classification and a full, i.e., non-refinable precision.
+   *
+   * @return the default precision object
+   * @throws InvalidConfigurationException
+   */
+  public static ValueAnalysisPrecision createDefaultPrecision() throws InvalidConfigurationException {
+    return new ValueAnalysisPrecision("",
+        Configuration.builder().build(),
+        Optional.<VariableClassification>absent(),
+        new ValueAnalysisPrecision.FullPrecision());
+  }
+
+  /**
+   * This method determines if this precision allows for abstraction, i.e., if
+   * it ignores variables from some variable class, if it maintains a refinable
+   * precision, or if it contains a variable blacklist.
+   *
+   * @return true, if this precision allows for abstraction, else false
+   */
+  boolean allowsAbstraction() {
+     return ignoreBoolean || ignoreIntAdd || ignoreIntEqual
+         || !(refinablePrecision instanceof FullPrecision)
+         || !blackListPattern.toString().equals("");
   }
 
   public RefinablePrecision getRefinablePrecision() {
@@ -188,33 +230,15 @@ public class ValueAnalysisPrecision implements Precision {
   private boolean isInIgnoredVarClass(final MemoryLocation variable) {
     if (varClass==null || !varClass.isPresent()) { return false; }
 
-    final String functionName = variable.isOnFunctionStack() ? variable.getFunctionName() : null;
-    final String varName = variable.getIdentifier();
-
-    final boolean isBoolean = varClass.get().getIntBoolVars().contains(scopeVar(functionName, varName));
-    final boolean isIntEqual = varClass.get().getIntEqualVars().contains(scopeVar(functionName, varName));
-    final boolean isIntAdd = varClass.get().getIntAddVars().contains(scopeVar(functionName, varName));
+    final boolean isBoolean = varClass.get().getIntBoolVars().contains(variable.getAsSimpleString());
+    final boolean isIntEqual = varClass.get().getIntEqualVars().contains(variable.getAsSimpleString());
+    final boolean isIntAdd = varClass.get().getIntAddVars().contains(variable.getAsSimpleString());
 
     final boolean isIgnoredBoolean = ignoreBoolean && isBoolean;
     final boolean isIgnoredIntEqual = ignoreIntEqual && isIntEqual;
     final boolean isIgnoredIntAdd = ignoreIntAdd && isIntAdd;
 
     return isIgnoredBoolean || isIgnoredIntEqual || isIgnoredIntAdd;
-  }
-
-  private RefinablePrecision createInstance() {
-    if(sharing.equals("scope")) {
-      return new ScopedRefinablePrecision();
-    }
-
-    else if(sharing.equals("location")) {
-      return new LocalizedRefinablePrecision();
-    }
-
-    else {
-      throw new InternalError("Wrong value for precison sharing strategy given (was " + sharing + ")," +
-          "or allowed options out-dated.");
-    }
   }
 
   abstract public static class RefinablePrecision {

@@ -23,10 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import com.google.common.base.Optional;
+
 
 public interface IAReturnStatement extends IAstNode {
 
 
-  public IAExpression getReturnValue();
+  public Optional<? extends IAExpression> getReturnValue();
 
 }

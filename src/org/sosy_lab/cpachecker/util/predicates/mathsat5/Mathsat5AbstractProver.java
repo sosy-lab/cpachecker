@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
-import org.sosy_lab.cpachecker.core.Model;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 
 import com.google.common.base.Preconditions;

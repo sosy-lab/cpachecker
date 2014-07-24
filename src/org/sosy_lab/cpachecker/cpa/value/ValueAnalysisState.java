@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import static com.google.common.base.Objects.equal;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithTargetVariable;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationBasedRefiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
@@ -51,10 +52,12 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Rationa
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.Longs;
 
@@ -145,13 +148,20 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   }
 
   /**
-   * This method removes all variables and their respective values from the underlying map.
+   * This method retains all variables and their respective values in the underlying map, while removing all others.
    *
-   * @param variableNames the names of the variables to be removed
+   * @param toRetain the names of the variables to retain
    */
-  void removeAll(Collection<String> variableNames) {
-    for (String variableName : variableNames) {
-      constantsMap = constantsMap.removeAndCopy(MemoryLocation.valueOf(variableName));
+  public void retainAll(Set<MemoryLocation> toRetain) {
+    Set<MemoryLocation> toRemove = new HashSet<>();
+    for(MemoryLocation memoryLocation : constantsMap.keySet()) {
+      if(!toRetain.contains(memoryLocation)) {
+        toRemove.add(memoryLocation);
+      }
+    }
+
+    for(MemoryLocation memoryLocation : toRemove) {
+      forget(memoryLocation);
     }
   }
 
@@ -249,7 +259,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     for (Map.Entry<MemoryLocation, Value> otherEntry : reachedState.constantsMap.entrySet()) {
       MemoryLocation key = otherEntry.getKey();
 
-      if (equal(otherEntry.getValue(), constantsMap.get(key))) {
+      if (Objects.equals(otherEntry.getValue(), constantsMap.get(key))) {
         newConstantsMap = newConstantsMap.putAndCopy(key, otherEntry.getValue());
       }
     }
@@ -577,12 +587,41 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     return Collections.unmodifiableMap(constantsMap);
   }
 
+  /**
+   * This method acts as factory to create a value-analysis interpolant from this value-analysis state.
+   *
+   * @return the value-analysis interpolant reflecting the value assignment of this state
+   */
+  public ValueAnalysisInterpolant createInterpolant() {
+    return new ValueAnalysisInterpolant(new HashMap<>(constantsMap));
+  }
+
   public static class MemoryLocation implements Comparable<MemoryLocation>, Serializable {
 
     private static final long serialVersionUID = -8910967707373729034L;
     private final String functionName;
     private final String identifier;
     private final long offset;
+
+    /**
+     * This function can be used to {@link Iterables#transform transform}  a collection of {@link String}s
+     * to a collection of {@link MemoryLocation}s, representing the respective memory location of the identifiers.
+     */
+    public static final Function<String, MemoryLocation> FROM_STRING_TO_MEMORYLOCATION =
+        new Function<String, MemoryLocation>() {
+            @Override
+            public MemoryLocation apply(String variableName) { return MemoryLocation.valueOf(variableName); }
+        };
+
+    /**
+     * This function can be used to {@link Iterables#transform transform} a collection of {@link MemoryLocation}s
+     * to a collection of {@link String}s, representing the respective variable identifiers.
+     */
+    public static final Function<MemoryLocation, String> FROM_MEMORYLOCATION_TO_STRING =
+        new Function<MemoryLocation, String>() {
+            @Override
+            public String apply(MemoryLocation memoryLocation) { return memoryLocation.getAsSimpleString(); }
+        };
 
     private MemoryLocation(String pFunctionName, String pIdentifier,
         long pOffset) {

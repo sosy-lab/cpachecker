@@ -43,6 +43,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
@@ -53,18 +54,20 @@ import com.google.common.base.Throwables;
 parser code {:
   private LogManager logger;
   private CParser cparser;
+  private Scope scope;
 
   // this int is used to determine unique names for anonymous automata
   private static int anonymousCounter;
 
-  public AutomatonParser(Scanner scanner, SymbolFactory sf, LogManager pLogger, CParser pCparser) {
+  public AutomatonParser(Scanner scanner, SymbolFactory sf, LogManager pLogger, CParser pCparser, Scope scope) {
       super(scanner, sf);
       this.logger = pLogger;
       this.cparser = pCparser;
+      this.scope = scope;
   }
   
   public List<CStatement> generateSourceASTOfBlock(String code) throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
-    return AutomatonASTComparator.generateSourceASTOfBlock(code, cparser);
+    return AutomatonASTComparator.generateSourceASTOfBlock(code, cparser, scope);
   }
 
   @Override
@@ -94,13 +97,13 @@ parser code {:
   /**
   * Parses a Specification File and returns the Automata found in the file.
   */
-  public static List<Automaton> parseAutomatonFile(Path pInputFile, Configuration config, LogManager pLogger, MachineModel pMachine) throws InvalidConfigurationException {
+  public static List<Automaton> parseAutomatonFile(Path pInputFile, Configuration config, LogManager pLogger, MachineModel pMachine, Scope scope) throws InvalidConfigurationException {
     CParser cparser = CParser.Factory.getParser(config, pLogger, CParser.Factory.getOptions(config), pMachine);
 
     ComplexSymbolFactory sf = new ComplexSymbolFactory();
     try (InputStream input = pInputFile.asByteSource().openStream()) {
       Scanner scanner = new AutomatonScanner(input, pInputFile, config, pLogger, sf);
-      Symbol symbol = new AutomatonParser(scanner, sf, pLogger, cparser).parse();
+      Symbol symbol = new AutomatonParser(scanner, sf, pLogger, cparser, scope).parse();
       return ((List<Automaton>) symbol.value);
 
     } catch (Exception e) {
@@ -115,7 +118,7 @@ parser code {:
   }
 
   AutomatonASTComparator.ASTMatcher generateASTPattern(String pattern) throws InvalidAutomatonException, InvalidConfigurationException {
-    return AutomatonASTComparator.generatePatternAST(pattern, cparser);
+    return AutomatonASTComparator.generatePatternAST(pattern, cparser, scope);
   }
 :};
 

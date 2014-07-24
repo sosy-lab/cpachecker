@@ -31,7 +31,6 @@ import java.io.PrintStream;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -45,6 +44,7 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.BasicLogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
@@ -124,6 +124,11 @@ public class CPAMain {
     // run analysis
     CPAcheckerResult result = cpachecker.run(options.programs);
 
+    // generated proof (if enabled)
+    if (proofGenerator != null) {
+      proofGenerator.generateProof(result);
+    }
+
     // We want to print the statistics completely now that we have come so far,
     // so we disable all the limits, shutdown hooks, etc.
     shutdownHook.disable();
@@ -131,11 +136,6 @@ public class CPAMain {
     ForceTerminationOnShutdown.cancelPendingTermination();
     limits.cancel();
     Thread.interrupted(); // clear interrupted flag
-
-    // generated proof (if enabled)
-    if (proofGenerator != null) {
-      proofGenerator.generateProof(result);
-    }
 
     try {
       printResultAndStatistics(result, outputDirectory, options, logManager);

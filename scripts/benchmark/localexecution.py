@@ -101,8 +101,7 @@ def executeBenchmarkLocaly(benchmark, outputHandler):
 
             # get times after runSet
             wallTimeAfter = time.time()
-            energyAfter = Util.getEnergy()
-            energy = (energyAfter - energyBefore) if (energyAfter and energyBefore) else None
+            energy = Util.getEnergy(energyBefore)
             usedWallTime = wallTimeAfter - wallTimeBefore
             ruAfter = resource.getrusage(resource.RUSAGE_CHILDREN)
             usedCpuTime = (ruAfter.ru_utime + ruAfter.ru_stime) \

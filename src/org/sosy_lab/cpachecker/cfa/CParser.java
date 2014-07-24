@@ -32,6 +32,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
@@ -117,10 +118,11 @@ public interface CParser extends Parser {
    * This method guarantees that the AST does not contain CProblem nodes.
    *
    * @param code The code snippet as described above.
+   * @param scope The scope is needed to resolve the type bindings in the statement.
    * @return The AST for the statement.
    * @throws ParserException If parsing fails.
    */
-  CAstNode parseSingleStatement(String code) throws CParserException, InvalidConfigurationException;
+  CAstNode parseSingleStatement(String code, Scope scope) throws CParserException, InvalidConfigurationException;
 
   /**
    * Method for parsing a block of statements that contains exactly one function with exactly
@@ -135,10 +137,11 @@ public interface CParser extends Parser {
    * This method guarantees that the AST does not contain CProblem nodes.
    *
    * @param code The code snippet as described above.
+   * @param scope The scope is needed to resolve the type bindings in the statement.
    * @return The list of ASTs for the statement.
    * @throws ParserException If parsing fails.
    */
-  List<CAstNode> parseStatements(String code) throws CParserException, InvalidConfigurationException;
+  List<CAstNode> parseStatements(String code, Scope scope) throws CParserException, InvalidConfigurationException;
 
   /**
    * Enum for clients of this class to choose the C dialect the parser uses.

@@ -36,6 +36,9 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
@@ -45,9 +48,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Function;
-import com.google.common.primitives.Ints;
-
-import javax.annotation.Nonnull;
 
 public class ARGState extends AbstractSingleWrapperState implements Comparable<ARGState>, TargetableWithPredicatedAnalysis {
 
@@ -116,13 +116,22 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     return Collections.unmodifiableCollection(children);
   }
 
+  /** Returns the edge from current state to child or Null, if there is no edge. */
+  @Nullable
   public CFAEdge getEdgeToChild(ARGState pChild) {
     checkArgument(children.contains(pChild));
 
     CFANode currentLoc = extractLocation(this);
     CFANode childNode = extractLocation(pChild);
 
-    return currentLoc.getEdgeTo(childNode);
+    if (currentLoc.getLeavingSummaryEdge() != null
+            && currentLoc.getLeavingSummaryEdge().getSuccessor().equals(childNode)) {
+      return currentLoc.getLeavingSummaryEdge();
+    } else if (currentLoc.hasEdgeTo(childNode)) {
+      return currentLoc.getEdgeTo(childNode);
+    } else {
+      return null;
+    }
   }
 
   public Set<ARGState> getSubgraph() {
@@ -245,7 +254,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
    */
   @Override
   public int compareTo(ARGState pO) {
-    return Ints.compare(this.stateId, pO.stateId);
+    return Integer.compare(this.stateId, pO.stateId);
   }
 
   public boolean isOlderThan(ARGState other) {

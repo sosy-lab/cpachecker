@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -37,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -274,7 +276,9 @@ public class CFADeclarationMover {
 
     @Override
     public TraversalProcess visitEdge(CFAEdge edge) {
-      if (edge instanceof CDeclarationEdge) {
+    // only sum up variabledeclarations
+      if (edge instanceof ADeclarationEdge
+          && (((ADeclarationEdge) edge).getDeclaration() instanceof AVariableDeclaration)) {
         edges.add(edge);
       }
       return TraversalProcess.CONTINUE;

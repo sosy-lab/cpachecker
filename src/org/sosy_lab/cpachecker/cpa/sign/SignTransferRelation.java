@@ -25,9 +25,7 @@ package org.sosy_lab.cpachecker.cpa.sign;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
@@ -52,13 +50,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
@@ -73,11 +71,9 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 
 
-public class SignTransferRelation extends ForwardingTransferRelation<SignState, SingletonPrecision> {
+public class SignTransferRelation extends ForwardingTransferRelation<SignState, SignState, SingletonPrecision> {
 
   LogManager logger;
-
-  private Set<String> globalVariables = new HashSet<>();
 
   public final static String FUNC_RET_VAR = "__func_ret__";
 
@@ -96,13 +92,12 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
   }
 
   @Override
-  protected SignState handleReturnStatementEdge(AReturnStatementEdge pCfaEdge, IAExpression pExpression)
+  protected SignState handleReturnStatementEdge(CReturnStatementEdge pCfaEdge)
       throws CPATransferException {
-    if(pExpression == null) {
-      pExpression = CNumericTypes.ZERO; // default in c
-    }
-    String assignedVar = getScopedVariableName(FUNC_RET_VAR, functionName);
-    return handleAssignmentToVariable(state, assignedVar, pExpression);
+
+    CExpression expression = pCfaEdge.getExpression().or(CNumericTypes.ZERO); // 0 is the default in C
+    String assignedVar = getScopedVariableNameForNonGlobalVariable(FUNC_RET_VAR, functionName);
+    return handleAssignmentToVariable(state, assignedVar, expression);
   }
 
   @Override
@@ -118,7 +113,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       if(!(exp instanceof CRightHandSide)) {
         throw new UnrecognizedCodeException("Unsupported code found", pCfaEdge);
       }
-      String scopedVarId = getScopedVariableName(pParameters.get(i).getName(), pCalledFunctionName);
+      String scopedVarId = getScopedVariableNameForNonGlobalVariable(pParameters.get(i).getName(), pCalledFunctionName);
       mapBuilder.put(scopedVarId, ((CRightHandSide)exp).accept(new SignCExpressionVisitor(edge, state, this)));
     }
     ImmutableMap<String, SIGN> argumentMap = mapBuilder.build();
@@ -136,19 +131,19 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       IAExpression leftSide = assignStmt.getLeftHandSide();
       if (!(leftSide instanceof AIdExpression)) { throw new UnrecognizedCodeException("Unsupported code found",
           pCfaEdge); }
-      String returnVarName = getScopedVariableName(FUNC_RET_VAR, functionName);
+      String returnVarName = getScopedVariableNameForNonGlobalVariable(FUNC_RET_VAR, functionName);
       String assignedVarName = getScopedVariableName(leftSide, pCallerFunctionName);
-      logger.log(Level.FINE, "Leave function " + functionName + " with return assignment: " + assignedVarName + " = " + state.getSignMap().getSignForVariable(returnVarName));
+      logger.log(Level.FINE, "Leave function " + functionName + " with return assignment: " + assignedVarName + " = " + state.getSignForVariable(returnVarName));
       SignState result = state
-              .leaveFunction()
-              .assignSignToVariable(assignedVarName, state.getSignMap().getSignForVariable(returnVarName));
+              .leaveFunction(functionName)
+              .assignSignToVariable(assignedVarName, state.getSignForVariable(returnVarName));
       return result;
     }
 
     // fun()
     if (pSummaryExpr instanceof AFunctionCallStatement) {
       logger.log(Level.FINE, "Leave function " + functionName);
-      return state.removeSignAssumptionOfVariable(getScopedVariableName(FUNC_RET_VAR, functionName));
+      return state.removeSignAssumptionOfVariable(getScopedVariableNameForNonGlobalVariable(FUNC_RET_VAR, functionName)).leaveFunction(functionName);
     }
 
     throw new UnrecognizedCodeException("Unsupported code found", pCfaEdge);
@@ -303,11 +298,11 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     if(result.isPresent()) {
       logger.log(Level.FINE, "Assumption: " + (pTruthAssumption ? pExpression : "!(" + pExpression + ")") + " --> " + result.get().identifier + " = " + result.get().value);
       // assure that does not become more abstract after assumption
-      if (state.getSignMap().getSignForVariable(getScopedVariableName(result.get().identifier))
+      if (state.getSignForVariable(getScopedVariableName(result.get().identifier))
           .covers(result.get().value)) { return state.assignSignToVariable(
           getScopedVariableName(result.get().identifier), result.get().value); }
       // check if results distinct, then no successor exists
-      if (!result.get().value.intersects(state.getSignMap().getSignForVariable(
+      if (!result.get().value.intersects(state.getSignForVariable(
           getScopedVariableName(result.get().identifier)))) { return null; }
     }
     return state;
@@ -322,9 +317,8 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     String scopedId;
     if(decl.isGlobal()) {
       scopedId = decl.getName();
-      globalVariables.add(decl.getName());
     } else {
-      scopedId = getScopedVariableName(decl.getName(), functionName);
+      scopedId = getScopedVariableNameForNonGlobalVariable(decl.getName(), functionName);
     }
     IAInitializer init = decl.getInitializer();
     logger.log(Level.FINE, "Declaration: " + scopedId);
@@ -394,11 +388,8 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     return pCalledFunctionName + "::" + pVariableName.toASTString();
   }
 
-  private String getScopedVariableName(String pVariableName, String pCallFunctionName) {
-     if(globalVariables.contains(pVariableName)) {
-       return pVariableName;
-     }
-     return pCallFunctionName + "::" + pVariableName;
+  private String getScopedVariableNameForNonGlobalVariable(String pVariableName, String pCallFunctionName) {
+    return pCallFunctionName + "::" + pVariableName;
   }
 
 }

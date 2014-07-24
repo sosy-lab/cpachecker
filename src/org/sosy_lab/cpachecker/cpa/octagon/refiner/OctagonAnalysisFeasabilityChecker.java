@@ -24,40 +24,54 @@
 package org.sosy_lab.cpachecker.cpa.octagon.refiner;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.octagon.OctPrecision;
-import org.sosy_lab.cpachecker.cpa.octagon.OctState;
-import org.sosy_lab.cpachecker.cpa.octagon.OctTransferRelation;
+import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
+import org.sosy_lab.cpachecker.cpa.octagon.OctagonState;
+import org.sosy_lab.cpachecker.cpa.octagon.OctagonTransferRelation;
+import org.sosy_lab.cpachecker.cpa.octagon.precision.IOctagonPrecision;
+import org.sosy_lab.cpachecker.cpa.octagon.precision.RefineableOctagonPrecision;
+import org.sosy_lab.cpachecker.cpa.octagon.precision.StaticFullOctagonPrecision;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.AssumptionUseDefinitionCollector;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class OctagonAnalysisFeasabilityChecker {
 
-  private final OctTransferRelation transfer;
+  private final OctagonTransferRelation transfer;
 
   private final LogManager logger;
-  private final Configuration config;
   private final ShutdownNotifier shutdownNotifier;
+  private final ARGPath checkedPath;
+  private final ARGPath foundPath;
+  private boolean wasInterrupted = false;
 
-  public OctagonAnalysisFeasabilityChecker(CFA cfa, LogManager log, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException, InvalidCFAException {
+  public OctagonAnalysisFeasabilityChecker(CFA cfa, LogManager log, ShutdownNotifier pShutdownNotifier, ARGPath path, OctagonCPA cpa) throws InvalidConfigurationException, CPAException, InterruptedException {
     logger = log;
-    config = Configuration.builder().build();
     shutdownNotifier = pShutdownNotifier;
-    transfer  = new OctTransferRelation(logger, cfa);
+
+    // use the normal configuration for creating the transferrelation
+    transfer  = new OctagonTransferRelation(logger, cfa, cpa.getOctagonOptions());
+    checkedPath = path;
+
+    foundPath = getInfeasiblePrefix(new StaticFullOctagonPrecision(cpa.getOctagonOptions()),
+                                    new OctagonState(logger, cpa.getManager()));
   }
 
   /**
@@ -68,32 +82,33 @@ public class OctagonAnalysisFeasabilityChecker {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public boolean isFeasible(final ARGPath path) throws CPAException, InterruptedException {
-    try {
-      return isFeasible(path,
-          new OctPrecision(config),
-          new OctState(logger));
-    }
-    catch (InvalidConfigurationException e) {
-      throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
-    }
+  public boolean isFeasible() {
+      return checkedPath.size() == foundPath.size();
   }
 
-  /**
-   * This method checks if the given path is feasible, when not tracking the given set of variables, starting with the
-   * given initial state.
-   *
-   * @param path the path to check
-   * @param pPrecision the precision to use
-   * @param pInitial the initial state
-   * @return true, if the path is feasible, else false
-   * @throws CPAException
-   * @throws InterruptedException
-   */
-  public boolean isFeasible(final ARGPath path, final OctPrecision pPrecision, final OctState pInitial)
-      throws CPAException, InterruptedException {
+  public boolean wasInterrupted() {
+    return wasInterrupted;
+  }
 
-    return path.size() == getInfeasiblePrefix(path, pPrecision, pInitial).size();
+  public Set<String> getPrecisionIncrement(RefineableOctagonPrecision precision) {
+    if (isFeasible()) {
+      return Collections.emptySet();
+    } else {
+      Set<String> varNames;
+      LinkedList<CFAEdge> edgesList = new LinkedList<>(foundPath.asEdgesList());
+
+      // search for new trackable variables until we find some
+      do {
+        varNames = Sets.difference(new AssumptionUseDefinitionCollector().obtainUseDefInformation(edgesList),
+                                   precision.getTrackedVars());
+        edgesList.removeLast();
+        while (!edgesList.isEmpty() && !(edgesList.getLast() instanceof AssumeEdge)) {
+          edgesList.removeLast();
+        }
+      } while (varNames.isEmpty() && !edgesList.isEmpty());
+
+      return varNames;
+    }
   }
 
   /**
@@ -107,18 +122,18 @@ public class OctagonAnalysisFeasabilityChecker {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public ARGPath getInfeasiblePrefix(final ARGPath path, final OctPrecision pPrecision, final OctState pInitial)
+  private ARGPath getInfeasiblePrefix(final IOctagonPrecision pPrecision, final OctagonState pInitial)
       throws CPAException, InterruptedException {
     try {
-      Collection<OctState> next = Lists.newArrayList(pInitial);
+      Collection<OctagonState> next = Lists.newArrayList(pInitial);
 
       ARGPath prefix = new ARGPath();
 
-      Collection<OctState> successors = new HashSet<>();
+      Collection<OctagonState> successors = new HashSet<>();
 
-      for (Pair<ARGState, CFAEdge> pathElement : path) {
+      for (Pair<ARGState, CFAEdge> pathElement : checkedPath) {
         successors.clear();
-        for (OctState st : next) {
+        for (OctagonState st : next) {
           successors.addAll(transfer.getAbstractSuccessors(
               st,
               pPrecision,
@@ -130,7 +145,8 @@ public class OctagonAnalysisFeasabilityChecker {
           // reachable (over-approximation)
           if (shutdownNotifier.shouldShutdown()) {
             logger.log(Level.INFO, "Cancelling feasibility check with octagon Analysis, timelimit reached");
-            return path;
+            wasInterrupted = true;
+            return checkedPath;
           }
         }
 

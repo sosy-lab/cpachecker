@@ -38,7 +38,6 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -47,6 +46,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -72,7 +72,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -94,7 +96,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 /** This Transfer Relation tracks variables and handles them as bitvectors. */
 @Options(prefix = "cpa.bdd")
-public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BDDPrecision> {
+public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BDDState, BDDPrecision> {
 
   @Option(name = "logfile", description = "Dump tracked variables to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -370,17 +372,17 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * The equality of the returnValue (FUNCTION_RETURN_VARIABLE) and the
    * evaluated right side ("x") is added to the new state. */
   @Override
-  protected BDDState handleReturnStatementEdge(CReturnStatementEdge cfaEdge, CExpression rhs) {
+  protected BDDState handleReturnStatementEdge(CReturnStatementEdge cfaEdge) {
     BDDState newState = state;
     final String returnVar = createFunctionReturnVariable(functionName);
 
-    if (rhs != null) {
+    if (cfaEdge.getExpression().isPresent()) {
       final Partition partition = varClass.getPartitionForEdge(cfaEdge);
       final CType functionReturnType = ((CFunctionDeclaration) cfaEdge.getSuccessor().getEntryNode()
               .getFunctionDefinition()).getType().getReturnType();
 
       // make region for RIGHT SIDE, this is the 'x' from 'return (x);
-      final Region[] regRHS = evaluateVectorExpression(partition, rhs, functionReturnType);
+      final Region[] regRHS = evaluateVectorExpression(partition, cfaEdge.getExpression().get(), functionReturnType);
 
       // make variable (predicate) for returnStatement,
       // delete variable, if it was used before, this is done with an existential operator
@@ -400,6 +402,27 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     }
 
     return newState;
+  }
+
+  @Override
+  protected BDDState handleBlankEdge(BlankEdge cfaEdge) {
+    if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
+      assert "default return".equals(cfaEdge.getDescription())
+              || "skipped uneccesary edges".equals(cfaEdge.getDescription());
+
+      // delete variables from returning function,
+      // we do not need them after this location, because the next edge is the functionReturnEdge.
+      // this results in a smaller BDD and allows to call a function twice.
+      BDDState newState = state;
+      for (String var : predmgr.getTrackedVars().keySet()) {
+        if (isLocalVariableForFunction(var, functionName)) {
+          newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var, predmgr.getTrackedVars().get(var)));
+        }
+      }
+      return newState;
+    }
+
+    return state;
   }
 
   /** This function handles assumptions like "if(a==b)" and "if(a!=0)".

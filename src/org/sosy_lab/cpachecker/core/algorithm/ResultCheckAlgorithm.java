@@ -27,9 +27,9 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -113,6 +113,9 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
         result = checker.run(reached);
       } catch (InvalidConfigurationException e) {
         result = false;
+      } catch (InterruptedException e1){
+        logger.log(Level.INFO, "Timed out. Checking incomplete.");
+        return false;
       } finally {
         stats.checkTimer.stop();
         logger.log(Level.INFO, "Stop checking analysis result.");

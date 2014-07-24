@@ -31,12 +31,19 @@ import java.util.Set;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.Maps;
 
 public abstract class AbstractRelevantPredicatesComputer<T> implements RelevantPredicatesComputer {
 
+  private final FormulaManagerView fmgr;
+
   protected final Map<Pair<T, AbstractionPredicate>, Boolean> relevantPredicates = Maps.newHashMap();
+
+  protected AbstractRelevantPredicatesComputer(FormulaManagerView pFmgr) {
+    fmgr = pFmgr;
+  }
 
   @Override
   public Set<AbstractionPredicate> getRelevantPredicates(Block context, Collection<AbstractionPredicate> predicates) {
@@ -62,11 +69,16 @@ public abstract class AbstractRelevantPredicatesComputer<T> implements RelevantP
     }
 
     boolean result;
-    String predicateString = pPredicate.getSymbolicAtom().toString();
-    if (predicateString.contains("false") || predicateString.contains("retval")  || predicateString.contains("nondet")) {
+    if (fmgr.getBooleanFormulaManager().isFalse(pPredicate.getSymbolicAtom())
+        || fmgr.extractVariables(pPredicate.getSymbolicAtom()).isEmpty()) {
       result = true;
     } else {
-      result = isRelevant(pPrecomputeResult, pPredicate);
+      String predicateString = pPredicate.getSymbolicAtom().toString();
+      if (predicateString.contains("false") || predicateString.contains("retval")  || predicateString.contains("nondet")) {
+        result = true;
+      } else {
+        result = isRelevant(pPrecomputeResult, pPredicate);
+      }
     }
 
     relevantPredicates.put(key, result);

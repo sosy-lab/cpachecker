@@ -126,7 +126,8 @@ public class ReachingDefState implements AbstractState, Serializable {
     if (superset == this || superset == topElement) {
       return true;
     }
-    if (stateOnLastFunctionCall != superset.stateOnLastFunctionCall && !compareStackStates(this, superset)) {
+    if (stateOnLastFunctionCall != superset.stateOnLastFunctionCall
+        && !compareStackStates(stateOnLastFunctionCall, superset.stateOnLastFunctionCall)) {
       return false;
     }
     boolean isLocalSubset;
@@ -137,7 +138,7 @@ public class ReachingDefState implements AbstractState, Serializable {
   private boolean compareStackStates(ReachingDefState sub, ReachingDefState sup) {
     boolean result;
     do {
-      if (sub.stateOnLastFunctionCall == null || sup.stateOnLastFunctionCall == null) {
+      if (sub == null || sup == null) {
         return false;
       }
       result = isSubsetOf(sub.getLocalReachingDefinitions(), sup.getLocalReachingDefinitions());
@@ -150,7 +151,7 @@ public class ReachingDefState implements AbstractState, Serializable {
 
   private boolean isSubsetOf(Map<String, Set<DefinitionPoint>> subset, Map<String, Set<DefinitionPoint>> superset) {
     Set<DefinitionPoint> setSub, setSuper;
-    if (subset == superset || superset == topElement) {
+    if (subset == superset) {
       return true;
     }
     for (String var : subset.keySet()) {
@@ -169,7 +170,7 @@ public class ReachingDefState implements AbstractState, Serializable {
   public ReachingDefState union(ReachingDefState toJoin) {
     Map<String, Set<DefinitionPoint>> newLocal = null;
     boolean changed = false;
-    ReachingDefState lastFunctionCall = stateOnLastFunctionCall;
+    ReachingDefState lastFunctionCall;
     if (toJoin == this) {
       return this;
     }
@@ -183,8 +184,13 @@ public class ReachingDefState implements AbstractState, Serializable {
       }
       if (lastFunctionCall != stateOnLastFunctionCall) {
         changed = true;
+      }else{
+        lastFunctionCall = toJoin.stateOnLastFunctionCall;
       }
+    }else{
+      lastFunctionCall = toJoin.stateOnLastFunctionCall;
     }
+
     Map<String, Set<DefinitionPoint>> resultOfMapUnion;
     resultOfMapUnion = unionMaps(localReachDefs, toJoin.localReachDefs);
     if (resultOfMapUnion == localReachDefs) {
@@ -227,12 +233,22 @@ public class ReachingDefState implements AbstractState, Serializable {
 
     for (int i = statesToMerge.size() - 1; i >= 0; i = i - 2) {
       resultOfMapUnion = unionMaps(statesToMerge.get(i - 1).localReachDefs, statesToMerge.get(i).localReachDefs);
-      changed = changed || resultOfMapUnion != statesToMerge.get(i - 1).localReachDefs;
-      newLocal = resultOfMapUnion;
+      if(resultOfMapUnion != statesToMerge.get(i - 1).localReachDefs){
+        changed = true;
+        newLocal = resultOfMapUnion;
+      } else{
+        newLocal = statesToMerge.get(i).localReachDefs;
+      }
 
       resultOfMapUnion = unionMaps(statesToMerge.get(i - 1).globalReachDefs, statesToMerge.get(i).globalReachDefs);
-      changed = changed || resultOfMapUnion != statesToMerge.get(i - 1).globalReachDefs;
-
+      if(resultOfMapUnion != statesToMerge.get(i - 1).globalReachDefs){
+        changed = true;
+      } else{
+        resultOfMapUnion = statesToMerge.get(i).globalReachDefs;
+      }
+      if(!isSubsetOf(statesToMerge.get(i).globalReachDefs, resultOfMapUnion)){
+        isSubsetOf(statesToMerge.get(i).globalReachDefs, resultOfMapUnion);
+      }
       newStateOnLastFunctionCall = new ReachingDefState(newLocal, resultOfMapUnion, newStateOnLastFunctionCall);
     }
 

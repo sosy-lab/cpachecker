@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 
 public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException>
@@ -72,13 +73,15 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
   private final CFAEdge       edge;
   private final String        function;
   private final SSAMapBuilder ssa;
+  private final Constraints   constraints;
 
   public ExpressionToFormulaVisitor(CtoFormulaConverter pCtoFormulaConverter,
-      CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa) {
+      CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa, Constraints pConstraints) {
     conv = pCtoFormulaConverter;
     edge = pEdge;
     function = pFunction;
     ssa = pSsa;
+    constraints = pConstraints;
   }
 
   @Override
@@ -101,6 +104,15 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
   private Formula getPointerTargetSizeLiteral(final CPointerType pointerType, final CType implicitType) {
     final int pointerTargetSize = conv.getSizeof(pointerType.getType());
     return conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(implicitType), pointerTargetSize);
+  }
+
+  private CType getPromotedCType(CType t) {
+    t = t.getCanonicalType();
+    if (t instanceof CSimpleType) {
+      // Integer types smaller than int are promoted when an operation is performed on them.
+      return conv.machineModel.getPromotedCType((CSimpleType)t);
+    }
+    return t;
   }
 
   @Override
@@ -147,8 +159,8 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     // to INT or bigger
     final CType t1 = exp.getOperand1().getExpressionType();
     final CType t2 = exp.getOperand2().getExpressionType();
-    final CType promT1 = conv.getPromotedCType(t1).getCanonicalType();
-    final CType promT2 = conv.getPromotedCType(t2).getCanonicalType();
+    final CType promT1 = getPromotedCType(t1).getCanonicalType();
+    final CType promT2 = getPromotedCType(t2).getCanonicalType();
 
     final Formula ret;
 
@@ -198,7 +210,47 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       ret =  conv.fmgr.makeDivide(f1, f2, signed);
       break;
     case MODULO:
-      ret =  conv.fmgr.makeModulo(f1, f2, signed);
+      ret = conv.fmgr.makeModulo(f1, f2, signed);
+
+      FormulaType<Formula> numberType = conv.fmgr.getFormulaType(f1);
+      Formula zero = conv.fmgr.makeNumber(numberType, 0L);
+
+      BooleanFormulaManagerView bfmgr = conv.fmgr.getBooleanFormulaManager();
+
+      // Sign of the remainder is set by the sign of the
+      // numerator, and it is bounded by the numerator.
+      BooleanFormula signAndNumBound = bfmgr.ifThenElse(
+          conv.fmgr.makeGreaterOrEqual(f1, zero, signed),
+          bfmgr.and(
+
+              // Remainder positive or zero.
+              conv.fmgr.makeGreaterOrEqual(ret, zero, signed),
+
+              // Remainder is bounded above by the numerator (both positive)
+              conv.fmgr.makeLessOrEqual(ret, f1, signed)
+          ),
+          bfmgr.and(
+
+              // Remainder negative or zero.
+              conv.fmgr.makeLessOrEqual(ret, zero, signed),
+
+              // Remainder is bounded below by the numerator (both negative)
+              conv.fmgr.makeGreaterOrEqual(ret, f1, signed)
+          )
+      );
+
+      BooleanFormula denomBound = bfmgr.ifThenElse(
+          conv.fmgr.makeGreaterOrEqual(f2, zero, signed),
+
+          // Denominator is positive => remainder is strictly less than denominator.
+          conv.fmgr.makeLessThan(ret, f2, signed),
+
+          // Denominator is negative => remainder is strictly more.
+          conv.fmgr.makeLessThan(f2, ret, signed)
+      );
+
+      constraints.addConstraint(signAndNumBound);
+      constraints.addConstraint(denomBound);
       break;
     case BINARY_AND:
       ret =  conv.fmgr.makeAnd(f1, f2);
@@ -400,7 +452,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     case TILDE: {
       // Handle Integer Promotion
       CType t = operand.getExpressionType();
-      CType promoted = conv.getPromotedCType(t);
+      CType promoted = getPromotedCType(t.getCanonicalType());
       Formula operandFormula = toFormula(operand);
       operandFormula = conv.makeCast(t, promoted, operandFormula, edge);
       Formula ret;

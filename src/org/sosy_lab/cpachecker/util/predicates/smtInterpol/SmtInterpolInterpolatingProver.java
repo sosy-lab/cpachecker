@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.core.Model;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 
@@ -138,10 +138,12 @@ class SmtInterpolInterpolatingProver implements InterpolatingProverEnvironment<S
   @Override
   public void close() {
     Preconditions.checkNotNull(env);
-    env.pop(assertedFormulas.size());
-    assertedFormulas.clear();
-    annotatedTerms.clear();
     assert assertedFormulas.size() == annotatedTerms.size();
+    if (!assertedFormulas.isEmpty()) {
+      env.pop(assertedFormulas.size());
+      assertedFormulas.clear();
+      annotatedTerms.clear();
+    }
     env = null;
   }
 

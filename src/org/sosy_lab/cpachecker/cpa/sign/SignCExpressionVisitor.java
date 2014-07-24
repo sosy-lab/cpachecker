@@ -91,7 +91,7 @@ public class SignCExpressionVisitor
 
   @Override
   public SIGN visit(CFieldReference e) throws UnrecognizedCodeException {
-    return state.getSignMap().getSignForVariable(transferRel.getScopedVariableName(e));
+    return state.getSignForVariable(transferRel.getScopedVariableName(e));
   }
 
   @Override
@@ -102,7 +102,7 @@ public class SignCExpressionVisitor
 
   @Override
   public SIGN visit(CIdExpression pIastIdExpression) throws UnrecognizedCodeException {
-    return state.getSignMap().getSignForVariable(transferRel.getScopedVariableName(pIastIdExpression));
+    return state.getSignForVariable(transferRel.getScopedVariableName(pIastIdExpression));
   }
 
   @Override
@@ -132,6 +132,9 @@ public class SignCExpressionVisitor
       break;
     case DIVIDE:
       result = evaluateDivideOperator(pLeft, pRight);
+      break;
+    case MODULO:
+      result = evaluateModuloOperator(pLeft, pRight);
       break;
     case BINARY_AND:
       result = evaluateAndOperator(pLeft, pRight);
@@ -283,6 +286,19 @@ public class SignCExpressionVisitor
       return SIGN.ALL;
     }
     return evaluateMulOperator(left, right);
+  }
+
+  private SIGN evaluateModuloOperator(SIGN pLeft, SIGN pRight) {
+    if (pLeft == SIGN.ZERO) {
+      return SIGN.ZERO;
+    }
+    if (pLeft == SIGN.PLUS && (pRight == SIGN.PLUS || pRight == SIGN.MINUS)) {
+      return SIGN.PLUS0;
+    }
+    if (pLeft == SIGN.MINUS && (pRight == SIGN.MINUS || pRight == SIGN.PLUS)) {
+      return SIGN.MINUS0;
+    }
+    return SIGN.ALL;
   }
 
 

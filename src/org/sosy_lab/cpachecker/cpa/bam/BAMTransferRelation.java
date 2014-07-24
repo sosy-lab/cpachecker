@@ -36,13 +36,12 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.logging.Level;
 
-import com.google.common.collect.Iterables;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
@@ -65,10 +64,11 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class BAMTransferRelation implements TransferRelation {
 
@@ -96,8 +96,8 @@ public class BAMTransferRelation implements TransferRelation {
 
   private final BAMCache argCache;
 
-  private final Map<AbstractState, ReachedSet> abstractStateToReachedSet = new HashMap<>();
-  private final Map<AbstractState, AbstractState> expandedToReducedCache = new HashMap<>();
+  final Map<AbstractState, ReachedSet> abstractStateToReachedSet = new HashMap<>();
+  final Map<AbstractState, AbstractState> expandedToReducedCache = new HashMap<>();
 
   private Block currentBlock;
   private BlockPartitioning partitioning;
@@ -147,7 +147,6 @@ public class BAMTransferRelation implements TransferRelation {
 
   void setBlockPartitioning(BlockPartitioning pManager) {
     partitioning = pManager;
-    currentBlock = partitioning.getMainBlock();
   }
 
   public BlockPartitioning getBlockPartitioning() {
@@ -192,11 +191,6 @@ public class BAMTransferRelation implements TransferRelation {
       return wrappedTransfer.getAbstractSuccessors(pState, pPrecision, null); // edge is null
     }
 
-    if (isHeadOfMainFunction(node)) {
-      // skip main function, TODO Why?
-      return wrappedTransfer.getAbstractSuccessors(pState, pPrecision, null); // edge is null
-    }
-
     // we are a the entryNode of a new block, so we have to start a recursive analysis
     return doRecursiveAnalysis(pState, pPrecision, node);
   }
@@ -236,6 +230,7 @@ public class BAMTransferRelation implements TransferRelation {
       return Collections.singleton(Iterables.getOnlyElement(reducedResult).getFirst());
     }
 
+    logger.log(Level.FINEST, "Expanding states with initial state", pState);
     logger.log(Level.FINEST, "Expanding states", reducedResult);
 
     final List<AbstractState> expandedResult = expandResultStates(reducedResult, outerSubtree, pState, pPrecision);
@@ -286,6 +281,7 @@ public class BAMTransferRelation implements TransferRelation {
       expandedToReducedCache.put(expandedState, reducedState);
 
       Precision expandedPrecision =
+              outerSubtree == null ? reducedPrecision : // special case: return from main
               wrappedReducer.getVariableExpandedPrecision(precision, outerSubtree, reducedPrecision);
 
       ((ARGState)expandedState).addParent((ARGState) state);
@@ -301,7 +297,7 @@ public class BAMTransferRelation implements TransferRelation {
    * otherwise a recursive CPAAlgorithm is started. */
   private Collection<Pair<AbstractState, Precision>> performCompositeAnalysis(
           final AbstractState initialState, final Precision initialPrecision, final CFANode node)
-          throws InterruptedException, RecursiveAnalysisFailedException {
+          throws InterruptedException, CPATransferException {
 
     logger.log(Level.FINEST, "Reducing state", initialState);
     final AbstractState reducedInitialState = wrappedReducer.getVariableReducedState(initialState, currentBlock, node);
@@ -313,13 +309,19 @@ public class BAMTransferRelation implements TransferRelation {
     ReachedSet reached = pair.getFirst();
     final Collection<AbstractState> returnStates = pair.getSecond();
 
-    final Collection<Pair<AbstractState, Precision>> result;
+    final Collection<AbstractState> result;
 
     if (returnStates != null) {
       assert reached != null;
+      assert !reached.hasWaitingState() ||
+              (returnStates.size() == 1
+                        && Iterables.getOnlyElement(returnStates) == reached.getLastState()
+                        && ((ARGState)reached.getLastState()).isTarget()) :
+              "cache hit only allowed for finished reached-sets or target-states";
+
       // cache hit, return element from cache
       logger.log(Level.FINEST, "Cache hit");
-      result = imbueAbstractStatesWithPrecision(reached, returnStates);
+      result = returnStates;
 
     } else {
       if (reached == null) {
@@ -333,21 +335,31 @@ public class BAMTransferRelation implements TransferRelation {
       }
 
       try {
-        result = performCompositeAnalysisWithCPAAlgorithm(reached, reducedInitialState, reducedInitialPrecision);
+        result = performCompositeAnalysisWithCPAAlgorithm(reached, reducedInitialState);
       } catch (CPAException e) {
         throw new RecursiveAnalysisFailedException(e);
       }
     }
 
+    ARGState rootOfBlock = null;
+    if (PCCInformation.isPCCEnabled()) {
+      if (!(reached.getFirstState() instanceof ARGState)) {
+        throw new CPATransferException("Cannot build proof, ARG, for BAM analysis.");
+      }
+      rootOfBlock = BAMARGUtils.copyARG((ARGState) reached.getFirstState());
+    }
+    argCache.put(reducedInitialState, reached.getPrecision(reached.getFirstState()), currentBlock, result, rootOfBlock);
+
     abstractStateToReachedSet.put(initialState, reached);
-    return result;
+
+    return imbueAbstractStatesWithPrecision(reached, result);
   }
 
 
   /** Analyse the block with a 'recursive' call to the CPAAlgorithm.
    * Then analyse the result and get the returnStates. */
-  private Collection<Pair<AbstractState, Precision>> performCompositeAnalysisWithCPAAlgorithm(
-          final ReachedSet reached, final AbstractState reducedInitialState, final Precision reducedInitialPrecision)
+  private Collection<AbstractState> performCompositeAnalysisWithCPAAlgorithm(
+          final ReachedSet reached, final AbstractState reducedInitialState)
           throws InterruptedException, CPAException {
 
     // CPAAlgorithm is not re-entrant due to statistics
@@ -366,22 +378,13 @@ public class BAMTransferRelation implements TransferRelation {
       //no target state, but waiting elements
       //analysis failed -> also break this analysis
       breakAnalysis = true;
-      return Collections.singletonList(Pair.of(reducedInitialState, reducedInitialPrecision));
+      returnStates =  Collections.singletonList(lastState);
+
     } else {
       returnStates = AbstractStates.filterLocations(reached, currentBlock.getReturnNodes()).toList();
     }
 
-    ARGState rootOfBlock = null;
-    if (PCCInformation.isPCCEnabled()) {
-      if (!(reached.getFirstState() instanceof ARGState)) {
-        throw new CPATransferException("Cannot build proof, ARG, for BAM analysis.");
-      }
-      rootOfBlock = BAMARGUtils.copyARG((ARGState) reached.getFirstState());
-    }
-    argCache.put(reducedInitialState, reached.getPrecision(reached.getFirstState()),
-                 currentBlock, returnStates, rootOfBlock);
-
-    return imbueAbstractStatesWithPrecision(reached, returnStates);
+    return returnStates;
   }
 
   private List<Pair<AbstractState, Precision>> imbueAbstractStatesWithPrecision(
@@ -466,94 +469,15 @@ public class BAMTransferRelation implements TransferRelation {
   //returns root of a subtree leading from the root element of the given reachedSet to the target state
   //subtree is represented using children and parents of ARGElements, where newTreeTarget is the ARGState
   //in the constructed subtree that represents target
-  ARGState computeCounterexampleSubgraph(ARGState target, ARGReachedSet reachedSet, BackwardARGState newTreeTarget,
-      Map<ARGState, ARGState> pPathElementToReachedState) throws InterruptedException, RecursiveAnalysisFailedException {
+  ARGState computeCounterexampleSubgraph(ARGState target, ARGReachedSet reachedSet,
+                                                 Map<ARGState, ARGState> pPathElementToReachedState)
+          throws InterruptedException, RecursiveAnalysisFailedException {
     assert reachedSet.asReachedSet().contains(target);
 
-    //start by creating ARGElements for each node needed in the tree
-    Map<ARGState, BackwardARGState> elementsMap = new HashMap<>();
-    Stack<ARGState> openElements = new Stack<>();
-    ARGState root = null;
-
-    pPathElementToReachedState.put(newTreeTarget, target);
-    elementsMap.put(target, newTreeTarget);
-    openElements.push(target);
-    while (!openElements.empty()) {
-      ARGState currentElement = openElements.pop();
-
-      assert reachedSet.asReachedSet().contains(currentElement);
-
-      for (ARGState parent : currentElement.getParents()) {
-        if (!elementsMap.containsKey(parent)) {
-          //create node for parent in the new subtree
-          elementsMap.put(parent, new BackwardARGState(parent.getWrappedState(), null));
-          pPathElementToReachedState.put(elementsMap.get(parent), parent);
-          //and remember to explore the parent later
-          openElements.push(parent);
-        }
-        CFAEdge edge = BAMARGUtils.getEdgeToChild(parent, currentElement);
-        if (edge == null) {
-          //this is a summarized call and thus an direct edge could not be found
-          //we have the transfer function to handle this case, as our reachSet is wrong
-          //(we have to use the cached ones)
-          ARGState innerTree =
-              computeCounterexampleSubgraph(parent, reachedSet.asReachedSet().getPrecision(parent),
-                  elementsMap.get(currentElement), pPathElementToReachedState);
-          if (innerTree == null) {
-            ARGSubtreeRemover.removeSubtree(reachedSet, parent);
-            return null;
-          }
-          for (ARGState child : innerTree.getChildren()) {
-            child.addParent(elementsMap.get(parent));
-          }
-          innerTree.removeFromARG();
-          elementsMap.get(parent).updateDecreaseId();
-        } else {
-          //normal edge
-          //create an edge from parent to current
-          elementsMap.get(currentElement).addParent(elementsMap.get(parent));
-        }
-      }
-      if (currentElement.getParents().isEmpty()) {
-        root = elementsMap.get(currentElement);
-      }
-    }
-    assert root != null;
-    return root;
-  }
-
-  /**
-   * This method looks for the reached set that belongs to (root, rootPrecision),
-   * then looks for target in this reached set and constructs a tree from root to target
-   * (recursively, if needed).
-   * @throws RecursiveAnalysisFailedException
-   */
-  private ARGState computeCounterexampleSubgraph(ARGState root, Precision rootPrecision, BackwardARGState newTreeTarget,
-      Map<ARGState, ARGState> pPathElementToReachedState) throws InterruptedException, RecursiveAnalysisFailedException {
-    CFANode rootNode = extractLocation(root);
-    Block rootSubtree = partitioning.getBlockForCallNode(rootNode);
-
-    AbstractState reducedRootState = wrappedReducer.getVariableReducedState(root, rootSubtree, rootNode);
-    ReachedSet reachSet = abstractStateToReachedSet.get(root);
-
-    //we found the to the root and precision corresponding reach set
-    //now try to find the target in the reach set
-    ARGState targetARGState = (ARGState) expandedToReducedCache.get(pPathElementToReachedState.get(newTreeTarget));
-    if (targetARGState.isDestroyed()) {
-      logger.log(Level.FINE,
-          "Target state refers to a destroyed ARGState, i.e., the cached subtree is outdated. Updating it.");
-      return null;
-    }
-    assert reachSet.contains(targetARGState);
-    //we found the target; now construct a subtree in the ARG starting with targetARTElement
-    ARGState result =
-        computeCounterexampleSubgraph(targetARGState, new ARGReachedSet(reachSet), newTreeTarget,
-            pPathElementToReachedState);
-    if (result == null) {
-      //enforce recomputation to update cached subtree
-      argCache.removeReturnEntry(reducedRootState, reachSet.getPrecision(reachSet.getFirstState()), rootSubtree);
-    }
-    return result;
+    final BAMCEXSubgraphComputer cexSubgraphComputer = new BAMCEXSubgraphComputer(
+            partitioning, wrappedReducer, argCache, pPathElementToReachedState,
+            abstractStateToReachedSet, expandedToReducedCache, logger);
+    return cexSubgraphComputer.computeCounterexampleSubgraph(target, reachedSet, new BAMCEXSubgraphComputer.BackwardARGState(target));
   }
 
   void clearCaches() {
@@ -594,7 +518,7 @@ public class BAMTransferRelation implements TransferRelation {
 
     CFANode node = extractLocation(pState);
 
-    if (partitioning.isCallNode(node) && !isHeadOfMainFunction(node)
+    if (partitioning.isCallNode(node)
         && !partitioning.getBlockForCallNode(node).equals(currentBlock)) {
       // do not support nodes which are call nodes of multiple blocks
       Block analyzedBlock = partitioning.getBlockForCallNode(node);
@@ -781,27 +705,5 @@ public class BAMTransferRelation implements TransferRelation {
       correctARGsForBlocks = new HashMap<>();
     }
     correctARGsForBlocks.put(pKey, pEndOfBlock);
-  }
-
-  static class BackwardARGState extends ARGState {
-
-    private static final long serialVersionUID = -3279533907385516993L;
-    private int decreasingStateID;
-    private static int nextDecreaseID = Integer.MAX_VALUE;
-
-    public BackwardARGState(AbstractState pWrappedState, ARGState pParentElement) {
-      super(pWrappedState, pParentElement);
-      decreasingStateID = nextDecreaseID--;
-    }
-
-    @Override
-    public boolean isOlderThan(ARGState other) {
-      if (other instanceof BackwardARGState) { return decreasingStateID < ((BackwardARGState) other).decreasingStateID; }
-      return super.isOlderThan(other);
-    }
-
-    void updateDecreaseId() {
-      decreasingStateID = nextDecreaseID--;
-    }
   }
 }

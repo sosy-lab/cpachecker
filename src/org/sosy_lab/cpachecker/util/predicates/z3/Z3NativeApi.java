@@ -53,6 +53,9 @@ public final class Z3NativeApi {
     public String value;
   }
 
+  // OPTIMIZATION
+  public static native int solver_check_opti(
+      long context, long solver, PointerToInt unbounded, long var, int maximize);
 
   // CREATE CONFIGURATION
   public static native void global_param_set(String param_id, String param_value);
@@ -425,160 +428,160 @@ public final class Z3NativeApi {
   public static native long func_entry_get_arg(long context, long a1, int a2);
 
 
-  // INTERACTION LOGGING
-  public static native boolean open_log(String filename);
-  public static native void append_log(String s);
-  public static native void close_log();
-  public static native void toggle_warning_messages(boolean enabled);
+    // INTERACTION LOGGING
+    public static native boolean open_log(String filename);
+    public static native void append_log(String s);
+    public static native void close_log();
+    public static native void toggle_warning_messages(boolean enabled);
 
 
-  // STRING CONVERSION
-  public static native void set_ast_print_mode(long context, int mode);
-  public static native String ast_to_string(long context, long ast);
-  public static native String pattern_to_string(long context, long pattern);
-  public static native String sort_to_string(long context, long sort);
-  public static native String func_decl_to_string(long context, long func_decl);
-  public static native String model_to_string(long context, long model);
-  public static native String benchmark_to_smtlib_string(long context, String name, String logic, String status, String attributes, int len, long[] assumptions, long ast);
+    // STRING CONVERSION
+    public static native void set_ast_print_mode(long context, int mode);
+    public static native String ast_to_string(long context, long ast);
+    public static native String pattern_to_string(long context, long pattern);
+    public static native String sort_to_string(long context, long sort);
+    public static native String func_decl_to_string(long context, long func_decl);
+    public static native String model_to_string(long context, long model);
+    public static native String benchmark_to_smtlib_string(long context, String name, String logic, String status, String attributes, int len, long[] assumptions, long ast);
 
 
-  // PARSER INTERFACE
-  private static native long parse_smtlib2_string(long context, String str, int len1, long[] sort_symbols, long[] sorts, int len2, long[] decl_symbols, long[] decls);
-  private static native long parse_smtlib2_file(long context, String filename, int len1, long[] sort_symbols, long[] sorts, int len2, long[] decl_symbols, long[] decls);
-  private static native void parse_smtlib_string(long context, String str, int len1, long[] sort_symbols, long[] sorts, int len2, long[] decl_symbols, long[] decls);
-  private static native void parse_smtlib_file(long context, String filename, int len1, long[] sort_symbols, long[] sorts, int len2, long[] decl_symbols, long[] decls);
+    // PARSER INTERFACE
+    private static native long parse_smtlib2_string(long context, String str, int len1, long[] sort_symbols, long[] sorts, int len2, long[] decl_symbols, long[] decls);
+    private static native long parse_smtlib2_file(long context, String filename, int len1, long[] sort_symbols, long[] sorts, int len2, long[] decl_symbols, long[] decls);
+    private static native void parse_smtlib_string(long context, String str, int len1, long[] sort_symbols, long[] sorts, int len2, long[] decl_symbols, long[] decls);
+    private static native void parse_smtlib_file(long context, String filename, int len1, long[] sort_symbols, long[] sorts, int len2, long[] decl_symbols, long[] decls);
 
-  public static long parse_smtlib2_string(long context, String str, long[] sort_symbols, long[] sorts, long[] decl_symbols, long[] decls) {
-    return parse_smtlib2_string(context, str, sort_symbols.length, sort_symbols, sorts, decl_symbols.length, decl_symbols, decls);
-  }
+    public static long parse_smtlib2_string(long context, String str, long[] sort_symbols, long[] sorts, long[] decl_symbols, long[] decls) {
+      return parse_smtlib2_string(context, str, sort_symbols.length, sort_symbols, sorts, decl_symbols.length, decl_symbols, decls);
+    }
 
-  public static long parse_smtlib2_file(long context, String filename, long[] sort_symbols, long[] sorts, long[] decl_symbols, long[] decls) {
-    return parse_smtlib2_file(context, filename, sort_symbols.length, sort_symbols, sorts, decl_symbols.length, decl_symbols, decls);
-  }
+    public static long parse_smtlib2_file(long context, String filename, long[] sort_symbols, long[] sorts, long[] decl_symbols, long[] decls) {
+      return parse_smtlib2_file(context, filename, sort_symbols.length, sort_symbols, sorts, decl_symbols.length, decl_symbols, decls);
+    }
 
-  public static void parse_smtlib_string(long context, String str, long[] sort_symbols, long[] sorts, long[] decl_symbols, long[] decls) {
-    parse_smtlib_string(context, str, sort_symbols.length, sort_symbols, sorts, decl_symbols.length, decl_symbols, decls);
-  }
+    public static void parse_smtlib_string(long context, String str, long[] sort_symbols, long[] sorts, long[] decl_symbols, long[] decls) {
+      parse_smtlib_string(context, str, sort_symbols.length, sort_symbols, sorts, decl_symbols.length, decl_symbols, decls);
+    }
 
-  public static void parse_smtlib_file(long context, String filename, long[] sort_symbols, long[] sorts, long[] decl_symbols, long[] decls) {
-    parse_smtlib_string(context, filename, sort_symbols.length, sort_symbols, sorts, decl_symbols.length, decl_symbols, decls);
-  }
+    public static void parse_smtlib_file(long context, String filename, long[] sort_symbols, long[] sorts, long[] decl_symbols, long[] decls) {
+      parse_smtlib_string(context, filename, sort_symbols.length, sort_symbols, sorts, decl_symbols.length, decl_symbols, decls);
+    }
 
-  public static native int get_smtlib_num_formulas(long context);
-  public static native long get_smtlib_formula(long context, int i);
-  public static native int get_smtlib_num_assumptions(long context);
-  public static native long get_smtlib_assumption(long context, int i);
-  public static native int get_smtlib_num_decls(long context);
-  public static native long get_smtlib_decl(long context, int i);
-  public static native int get_smtlib_num_sorts(long context);
-  public static native long get_smtlib_sort(long context, int i);
+    public static native int get_smtlib_num_formulas(long context);
+    public static native long get_smtlib_formula(long context, int i);
+    public static native int get_smtlib_num_assumptions(long context);
+    public static native long get_smtlib_assumption(long context, int i);
+    public static native int get_smtlib_num_decls(long context);
+    public static native long get_smtlib_decl(long context, int i);
+    public static native int get_smtlib_num_sorts(long context);
+    public static native long get_smtlib_sort(long context, int i);
 
-  public static native String get_smtlib_error(long context);
-
-
-  // ERROR HANDLING
-  // TODO set_error_handler()
-  public static native int get_error_code(long context);
-  public static native void set_error(long context, int error_code);
-  public static native String get_error_msg(int error_code);
-  public static native String get_error_msg_ex(long context, int error_code);
+    public static native String get_smtlib_error(long context);
 
 
-  // MISC
-  public static native void get_version(PointerToInt major, PointerToInt minor, PointerToInt build, PointerToInt revision);
-  public static native void enable_trace(String context);
-  public static native void disable_trace(String context);
-  public static native void reset_memory();
+    // ERROR HANDLING
+    // TODO set_error_handler()
+    public static native int get_error_code(long context);
+    public static native void set_error(long context, int error_code);
+    public static native String get_error_msg(int error_code);
+    public static native String get_error_msg_ex(long context, int error_code);
 
 
-  // EXTERNAL
-  // TODO do we need external functions?
+    // MISC
+    public static native void get_version(PointerToInt major, PointerToInt minor, PointerToInt build, PointerToInt revision);
+    public static native void enable_trace(String context);
+    public static native void disable_trace(String context);
+    public static native void reset_memory();
 
 
-  // FIXPOINT FACILITIES
-  // TODO callbacks missing, do we need them?
-  // TODO missing function: fp_init?
-  public static native long mk_fixedpoint(long context);
-  public static native void fixedpoint_inc_ref(long context, long a1);
-  public static native void fixedpoint_dec_ref(long context, long a1);
-  public static native void fixedpoint_add_rule(long context, long a1, long a2, long a3);
-  public static native void fixedpoint_add_fact(long context, long a1, long a2, int a3, int[] a4);
-  public static native void fixedpoint_assert(long context, long a1, long a2);
-  public static native int fixedpoint_query(long context, long a1, long a2);
-  public static native int fixedpoint_query_relations(long context, long a1, int a2, long[] a3);
-  public static native long fixedpoint_get_answer(long context, long a1);
-  public static native String fixedpoint_get_reason_unknown(long context, long a1);
-  public static native void fixedpoint_update_rule(long context, long a1, long a2, long a3);
-  public static native int fixedpoint_get_num_levels(long context, long a1, long a2);
-  public static native long fixedpoint_get_cover_delta(long context, long a1, int a2, long a3);
-  public static native void fixedpoint_add_cover(long context, long a1, int a2, long a3, long a4);
-  public static native long fixedpoint_get_statistics(long context, long a1);
-  public static native void fixedpoint_register_relation(long context, long a1, long a2);
-  public static native void fixedpoint_set_predicate_representation(long context, long a1, long a2, int a3, long[] a4);
-  public static native long fixedpoint_get_rules(long context, long a1);
-  public static native long fixedpoint_get_assertions(long context, long a1);
-  public static native void fixedpoint_set_params(long context, long a1, long a2);
-  public static native String fixedpoint_get_help(long context, long a1);
-  public static native long fixedpoint_get_param_descrs(long context, long a1);
-  public static native String fixedpoint_to_string(long context, long a1, int a2, long[] a3);
-  public static native long fixedpoint_from_string(long context, long a1, String a2);
-  public static native long fixedpoint_from_file(long context, long a1, String a2);
-  public static native void fixedpoint_push(long context, long a1);
-  public static native void fixedpoint_pop(long context, long a1);
+    // EXTERNAL
+    // TODO do we need external functions?
 
 
-  // AST VECTORS
-  public static native long mk_ast_vector(long context);
-  public static native void ast_vector_inc_ref(long context, long ast_vector);
-  public static native void ast_vector_dec_ref(long context, long ast_vector);
-  public static native int ast_vector_size(long context, long ast_vector);
-  public static native long ast_vector_get(long context, long ast_vector, int i);
-  public static native void ast_vector_set(long context, long ast_vector, int i, long ast);
-  public static native void ast_vector_resize(long context, long ast_vector, int num);
-  public static native void ast_vector_push(long context, long ast_vector, long ast);
-  public static native long ast_vector_translate(long context_source, long ast_vector, long context_target);
-  public static native String ast_vector_to_string(long context, long ast_vector);
+    // FIXPOINT FACILITIES
+    // TODO callbacks missing, do we need them?
+    // TODO missing function: fp_init?
+    public static native long mk_fixedpoint(long context);
+    public static native void fixedpoint_inc_ref(long context, long a1);
+    public static native void fixedpoint_dec_ref(long context, long a1);
+    public static native void fixedpoint_add_rule(long context, long a1, long a2, long a3);
+    public static native void fixedpoint_add_fact(long context, long a1, long a2, int a3, int[] a4);
+    public static native void fixedpoint_assert(long context, long a1, long a2);
+    public static native int fixedpoint_query(long context, long a1, long a2);
+    public static native int fixedpoint_query_relations(long context, long a1, int a2, long[] a3);
+    public static native long fixedpoint_get_answer(long context, long a1);
+    public static native String fixedpoint_get_reason_unknown(long context, long a1);
+    public static native void fixedpoint_update_rule(long context, long a1, long a2, long a3);
+    public static native int fixedpoint_get_num_levels(long context, long a1, long a2);
+    public static native long fixedpoint_get_cover_delta(long context, long a1, int a2, long a3);
+    public static native void fixedpoint_add_cover(long context, long a1, int a2, long a3, long a4);
+    public static native long fixedpoint_get_statistics(long context, long a1);
+    public static native void fixedpoint_register_relation(long context, long a1, long a2);
+    public static native void fixedpoint_set_predicate_representation(long context, long a1, long a2, int a3, long[] a4);
+    public static native long fixedpoint_get_rules(long context, long a1);
+    public static native long fixedpoint_get_assertions(long context, long a1);
+    public static native void fixedpoint_set_params(long context, long a1, long a2);
+    public static native String fixedpoint_get_help(long context, long a1);
+    public static native long fixedpoint_get_param_descrs(long context, long a1);
+    public static native String fixedpoint_to_string(long context, long a1, int a2, long[] a3);
+    public static native long fixedpoint_from_string(long context, long a1, String a2);
+    public static native long fixedpoint_from_file(long context, long a1, String a2);
+    public static native void fixedpoint_push(long context, long a1);
+    public static native void fixedpoint_pop(long context, long a1);
 
 
-  // AST MAPS
-  public static native long mk_ast_map(long context);
-  public static native void ast_map_inc_ref(long context, long ast_map);
-  public static native void ast_map_dec_ref(long context, long ast_map);
-  public static native boolean ast_map_contains(long context, long ast_map, long ast);
-  public static native long ast_map_find(long context, long ast_map, long ast);
-  public static native void ast_map_insert(long context, long ast_map, long ast_key, long ast_value);
-  public static native void ast_map_erase(long context, long ast_map, long ast_key);
-  public static native void ast_map_reset(long context, long ast_map);
-  public static native int ast_map_size(long context, long ast_map);
-  public static native long ast_map_keys(long context, long ast_map);
-  public static native String ast_map_to_string(long context, long ast_map);
+    // AST VECTORS
+    public static native long mk_ast_vector(long context);
+    public static native void ast_vector_inc_ref(long context, long ast_vector);
+    public static native void ast_vector_dec_ref(long context, long ast_vector);
+    public static native int ast_vector_size(long context, long ast_vector);
+    public static native long ast_vector_get(long context, long ast_vector, int i);
+    public static native void ast_vector_set(long context, long ast_vector, int i, long ast);
+    public static native void ast_vector_resize(long context, long ast_vector, int num);
+    public static native void ast_vector_push(long context, long ast_vector, long ast);
+    public static native long ast_vector_translate(long context_source, long ast_vector, long context_target);
+    public static native String ast_vector_to_string(long context, long ast_vector);
 
 
-  // GOALS
-  public static native long mk_goal(long context, boolean models, boolean unsat_cores, boolean proofs);
-  public static native void goal_inc_ref(long context, long goal);
-  public static native void goal_dec_ref(long context, long goal);
-  public static native int goal_precision(long context, long goal);
-  public static native void goal_assert(long context, long goal, long ast);
-  public static native boolean goal_inconsistent(long context, long goal);
-  public static native int goal_depth(long context, long goal);
-  public static native void goal_reset(long context, long goal);
-  public static native int goal_size(long context, long goal);
-  public static native long goal_formula(long context, long goal, int index);
-  public static native int goal_num_exprs(long context, long goal);
-  public static native boolean goal_is_decided_sat(long context, long goal);
-  public static native boolean goal_is_decided_unsat(long context, long goal);
-  public static native long goal_translate(long context_source, long goal, long context_target);
-  public static native String goal_to_string(long context, long goal);
+    // AST MAPS
+    public static native long mk_ast_map(long context);
+    public static native void ast_map_inc_ref(long context, long ast_map);
+    public static native void ast_map_dec_ref(long context, long ast_map);
+    public static native boolean ast_map_contains(long context, long ast_map, long ast);
+    public static native long ast_map_find(long context, long ast_map, long ast);
+    public static native void ast_map_insert(long context, long ast_map, long ast_key, long ast_value);
+    public static native void ast_map_erase(long context, long ast_map, long ast_key);
+    public static native void ast_map_reset(long context, long ast_map);
+    public static native int ast_map_size(long context, long ast_map);
+    public static native long ast_map_keys(long context, long ast_map);
+    public static native String ast_map_to_string(long context, long ast_map);
 
 
-  // TACTICS AND PROBES
-  public static native long mk_tactic(long context, String name);
-  public static native void tactic_inc_ref(long context, long tactic);
-  public static native void tactic_dec_ref(long context, long tactic);
+    // GOALS
+    public static native long mk_goal(long context, boolean models, boolean unsat_cores, boolean proofs);
+    public static native void goal_inc_ref(long context, long goal);
+    public static native void goal_dec_ref(long context, long goal);
+    public static native int goal_precision(long context, long goal);
+    public static native void goal_assert(long context, long goal, long ast);
+    public static native boolean goal_inconsistent(long context, long goal);
+    public static native int goal_depth(long context, long goal);
+    public static native void goal_reset(long context, long goal);
+    public static native int goal_size(long context, long goal);
+    public static native long goal_formula(long context, long goal, int index);
+    public static native int goal_num_exprs(long context, long goal);
+    public static native boolean goal_is_decided_sat(long context, long goal);
+    public static native boolean goal_is_decided_unsat(long context, long goal);
+    public static native long goal_translate(long context_source, long goal, long context_target);
+    public static native String goal_to_string(long context, long goal);
 
-  public static native long mk_probe(long context, String name);
-  public static native void probe_inc_ref(long context, long probe);
+
+    // TACTICS AND PROBES
+    public static native long mk_tactic(long context, String name);
+    public static native void tactic_inc_ref(long context, long tactic);
+    public static native void tactic_dec_ref(long context, long tactic);
+
+    public static native long mk_probe(long context, String name);
+    public static native void probe_inc_ref(long context, long probe);
   public static native void probe_dec_ref(long context, long probe);
 
   public static native long tactic_and_then(long context, long tactic1, long tactic2);
