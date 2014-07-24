@@ -170,6 +170,33 @@ public class ARGReachedSet {
   }
 
   /**
+   * This method cuts of the subtree in the ARG, starting with the given state.
+   *
+   * Other than {@link #removeSubtree(ARGState)} and its variants, this method
+   * does not care about keeping the coverage-relation consistent, so using this
+   * method might, and very likely will, introduce unsoundness that has to be
+   * handled appropriately by other means (e.g., a later full re-exploration).
+   *
+   * @param argState the state to be removed including its subtree
+   */
+  public void cutOffSubtree(ARGState argState) {
+    mReached.removeAll(argState.getSubgraph());
+  }
+
+  /**
+   * This method (re)adds the given state to the waitlist and changes the
+   * precision of the state to the supplied precision.
+   *
+   * @param state the state to (re)add to the waitlist
+   * @param the new precision to apply at this state
+   * @param pPrecisionType the type of the precision
+   */
+  public void readdToWaitlist(ARGState state, Precision precision, Class<? extends Precision> pPrecisionType) {
+    mReached.updatePrecision(state, adaptPrecision(mReached.getPrecision(state), precision, pPrecisionType));
+    mReached.reAddToWaitlist(state);
+  }
+
+  /**
    * Set a new precision for each single state in the reached set.
    * @param p The new precision, may be for a single CPA (c.f. {@link #adaptPrecision(ARGState, Precision)}).
    */
@@ -384,6 +411,28 @@ public class ARGReachedSet {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Try covering an ARG state by other states in the reached set. This method
+   * deliberately allows for unsoundness, by not caring about keeping the
+   * coverage relation in the ARG consistent. When asked to be sound, this
+   * method delegates to {@link ARGReachedSet#tryToCover(ARGState)}
+   *
+   * @param v the state which should be covered if possible
+   * @param beUnsound whether or not the be unsound
+   * @return whether the covering was successful
+   * @throws CPAException
+   */
+  public boolean tryToCover(ARGState v, boolean beUnsound) throws CPAException, InterruptedException {
+    assert v.mayCover();
+
+    if (beUnsound) {
+      cpa.getStopOperator().stop(v, mReached.getReached(v), mReached.getPrecision(v));
+      return v.isCovered();
+    }
+
+    return tryToCover(v);
   }
 
   public static class ForwardingARGReachedSet extends ARGReachedSet {
