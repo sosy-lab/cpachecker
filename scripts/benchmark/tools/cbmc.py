@@ -25,7 +25,7 @@ class Tool(benchmark.tools.template.BaseTool):
         return 'CBMC'
 
 
-    def getCmdline(self, executable, options, sourcefiles, propertyfile):
+    def getCmdline(self, executable, options, sourcefiles, propertyfile, rlimits):
         if ("--xml-ui" not in options):
             options = options + ["--xml-ui"]
 

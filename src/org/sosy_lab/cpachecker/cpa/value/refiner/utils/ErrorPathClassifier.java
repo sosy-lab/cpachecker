@@ -57,6 +57,10 @@ public class ErrorPathClassifier {
     classification = pClassification;
   }
 
+  public ARGPath obtainShortestPrefix(List<ARGPath> pPrefixes) {
+    return buildPath(0, pPrefixes);
+  }
+
   public ARGPath obtainPrefixWithLowestScore(List<ARGPath> pPrefixes) {
 
     if (!classification.isPresent()) {

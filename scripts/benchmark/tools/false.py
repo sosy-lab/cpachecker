@@ -14,7 +14,7 @@ class Tool(benchmark.tools.template.BaseTool):
     def getName(self):
         return 'AlwaysFalseLabel'
 
-    def getCmdline(self, executable, options, sourcefile, propertyfile):
+    def getCmdline(self, executable, options, sourcefile, propertyfile, rlimits):
         return [executable]
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):

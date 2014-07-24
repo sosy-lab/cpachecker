@@ -129,11 +129,6 @@ public class ARGReachedSet {
     }
   }
 
-  public void readdToWaitlist(ARGState e, Precision p, Class<? extends Precision> pPrecisionType) {
-    mReached.updatePrecision(e, adaptPrecision(mReached.getPrecision(e), p, pPrecisionType));
-    mReached.reAddToWaitlist(e);
-  }
-
   /**
    * Like {@link #removeSubtree(ARGState)}, but when re-adding elements to the
    * waitlist adapts precisions with respect to the supplied precision p (see
@@ -178,6 +173,33 @@ public class ARGReachedSet {
     Set<ARGState> parentsOfRemovedStates = removeSet(infeasibleSubtree);
 
     assert parentsOfRoot.equals(parentsOfRemovedStates);
+  }
+
+  /**
+   * This method cuts of the subtree in the ARG, starting with the given state.
+   *
+   * Other than {@link #removeSubtree(ARGState)} and its variants, this method
+   * does not care about keeping the coverage-relation consistent, so using this
+   * method might, and very likely will, introduce unsoundness that has to be
+   * handled appropriately by other means (e.g., a later full re-exploration).
+   *
+   * @param argState the state to be removed including its subtree
+   */
+  public void cutOffSubtree(ARGState argState) {
+    mReached.removeAll(argState.getSubgraph());
+  }
+
+  /**
+   * This method (re)adds the given state to the waitlist and changes the
+   * precision of the state to the supplied precision.
+   *
+   * @param state the state to (re)add to the waitlist
+   * @param the new precision to apply at this state
+   * @param pPrecisionType the type of the precision
+   */
+  public void readdToWaitlist(ARGState state, Precision precision, Class<? extends Precision> pPrecisionType) {
+    mReached.updatePrecision(state, adaptPrecision(mReached.getPrecision(state), precision, pPrecisionType));
+    mReached.reAddToWaitlist(state);
   }
 
   /**

@@ -273,10 +273,6 @@ public class CFASingleLoopTransformation {
     // Remove trivial dummy subgraphs and other dummy edges etc.
     simplify(start, newPredecessorsToPC, newSuccessorsToPC, newSuccessorsToPCImmutable, globalNewToOld);
 
-    if (newPredecessorsToPC.get(pcValueOfStart).isEmpty()) {
-      newSuccessorsToPC.remove(pcValueOfStart);
-    }
-
     /*
      * Connect the subgraph tails to their successors via the loop head by
      * setting the corresponding program counter values.
