@@ -40,8 +40,10 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.Optional;
 import org.sosy_lab.cpachecker.core.defaults.BreakOnTargetsPrecisionAdjustment;
@@ -150,7 +152,10 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
       throw new InvalidConfigurationException("Explicitly specified automaton CPA needs option cpa.automaton.inputFile!");
 
     } else {
-      List<Automaton> lst = AutomatonParser.parseAutomatonFile(inputFile, config, logger, cfa.getMachineModel());
+
+      Scope scope = new CProgramScope(cfa);
+
+      List<Automaton> lst = AutomatonParser.parseAutomatonFile(inputFile, config, logger, cfa.getMachineModel(), scope);
       if (lst.isEmpty()) {
         throw new InvalidConfigurationException("Could not find automata in the file " + inputFile.toAbsolutePath());
       } else if (lst.size() > 1) {

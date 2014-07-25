@@ -123,6 +123,15 @@ public interface InvariantsFormulaVisitor<ConstantType, ReturnType> {
   ReturnType visit(LogicalAnd<ConstantType> pAnd);
 
   /**
+   * Visits the given exclusion invariants formula.
+   *
+   * @param pExclusion the exclusion formula to visit.
+   *
+   * @return the result of the visit.
+   */
+  ReturnType visit(Exclusion<ConstantType> pExclusion);
+
+  /**
    * Visits the given logical negation invariants formula.
    *
    * @param pNot the logical negation invariants formula to visit.

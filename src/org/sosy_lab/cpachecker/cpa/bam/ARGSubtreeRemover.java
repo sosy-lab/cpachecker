@@ -215,31 +215,24 @@ public class ARGSubtreeRemover {
     Deque<ARGState> openCallElements = new ArrayDeque<>();
     Deque<Block> openSubtrees = new ArrayDeque<>();
 
-    ARGState prevElement = path.get(0);
-    for (ARGState currentElement : Iterables.skip(path, 1)) {
+    final ARGState lastState = path.get(path.size() - 1);
+    for (final ARGState pathState : path) {
       assert openSubtrees.size() == openCallElements.size();
-      CFANode currNode = extractLocation(currentElement);
-      CFANode prevNode = extractLocation(prevElement);
-      if (openSubtrees.isEmpty() ||
-          (partitioning.isCallNode(prevNode) && !partitioning.getBlockForCallNode(prevNode).equals(openSubtrees.getLast()))) {
+      CFANode node = extractLocation(pathState);
+
+      if (partitioning.isCallNode(node)) {
         // we have a callnode, but current block is wrong, add new currentBlock and state as relevant
-        openCallElements.addLast(prevElement);
-        openSubtrees.addLast(partitioning.getBlockForCallNode(prevNode));
+        openCallElements.addLast(pathState);
+        openSubtrees.addLast(partitioning.getBlockForCallNode(node));
       }
-      while (!openSubtrees.isEmpty()
-              && openSubtrees.getLast().isReturnNode(prevNode)
-              && !openSubtrees.getLast().getNodes().contains(currNode)) {
-        // we are leaving a block (prevNode is returnNode, currentNode is outside of block),
+
+      // we use a loop here, because a return-node can be the exit of several blocks at once.
+      while (openSubtrees.getLast().isReturnNode(node) && pathState != lastState) {
+        // we are leaving a block,
         // remove/pop the block and its start-state from the stacks
         openCallElements.removeLast();
         openSubtrees.removeLast();
       }
-      prevElement = currentElement;
-    }
-
-    ARGState lastElement = path.get(path.size() - 1);
-    if (partitioning.isCallNode(extractLocation(lastElement))) {
-      openCallElements.addLast(lastElement);
     }
 
     return new ArrayList<>(openCallElements);
@@ -292,37 +285,26 @@ public class ARGSubtreeRemover {
     Deque<UnmodifiableReachedSet> openReachedSets = new ArrayDeque<>();
     openReachedSets.push(mainReachedSet);
 
-    ARGState prevElement = path.get(0).getFirst();
-    for (Pair<ARGState, CFAEdge> currentElementPair : Iterables.skip(path, 1)) {
-      ARGState currentElement = currentElementPair.getFirst();
-      CFANode currNode = extractLocation(currentElement);
-      CFANode prevNode = extractLocation(prevElement);
+    for (Pair<ARGState, CFAEdge> currentElementPair : path) {
+      ARGState pathState = currentElementPair.getFirst();
+      CFANode node = extractLocation(pathState);
 
-      pathElementToOuterReachedSet.put(prevElement, openReachedSets.peek());
+      pathElementToOuterReachedSet.put(pathState, openReachedSets.peek());
 
-      if (partitioning.isCallNode(prevNode)
-              && !partitioning.getBlockForCallNode(prevNode).equals(openSubtrees.peek())) {
-          openSubtrees.push(partitioning.getBlockForCallNode(prevNode));
-          openReachedSets.push(abstractStateToReachedSet.get(pPathElementToReachedState.get(prevElement)));
-          callNodes.add(prevElement);
+      if (partitioning.isCallNode(node)
+              && !partitioning.getBlockForCallNode(node).equals(openSubtrees.peek())) {
+          openSubtrees.push(partitioning.getBlockForCallNode(node));
+          openReachedSets.push(abstractStateToReachedSet.get(pPathElementToReachedState.get(pathState)));
+          callNodes.add(pathState);
       }
 
-      while (!openSubtrees.isEmpty()
-              && openSubtrees.peek().isReturnNode(prevNode)
-              && !openSubtrees.peek().getNodes().contains(currNode)) {
+      // we use a loop here, because a return-node can be the exit of several blocks at once.
+      while (openSubtrees.peek().isReturnNode(node)) {
         openSubtrees.pop();
         openReachedSets.pop();
-        returnNodes.add(prevElement);
+        returnNodes.add(pathState);
       }
-
-      prevElement = currentElement;
     }
-
-    ARGState lastElement = path.get(path.size() - 1).getFirst();
-    if (partitioning.isReturnNode(extractLocation(lastElement))) {
-      returnNodes.add(lastElement);
-    }
-    pathElementToOuterReachedSet.put(lastElement, openReachedSets.peek());
 
     return Pair.of(callNodes, returnNodes);
   }

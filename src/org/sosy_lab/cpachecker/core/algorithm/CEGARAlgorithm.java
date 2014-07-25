@@ -51,6 +51,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
+import org.sosy_lab.cpachecker.cpa.value.refiner.UnsoundRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -66,7 +70,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     private final Timer totalTimer = new Timer();
     private final Timer refinementTimer = new Timer();
 
-    private volatile int countRefinements = 0;
+    public volatile int countRefinements = 0;
     private int countSuccessfulRefinements = 0;
     private int countFailedRefinements = 0;
 
@@ -222,7 +226,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
     boolean isComplete        = true;
     int initialReachedSetSize = reached.size();
-
+    boolean refinedInPreviousIteration = false;
     stats.totalTimer.start();
     try {
       boolean refinementSuccessful;
@@ -234,14 +238,28 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
         // if there is any target state do refinement
         if (refinementNecessary(reached)) {
-
           refinementSuccessful = refine(reached);
-
+          refinedInPreviousIteration = true;
           // assert that reached set is free of target states,
           // if refinement was successful and initial reached set was empty (i.e. stopAfterError=true)
           if (refinementSuccessful && initialReachedSetSize == 1) {
             assert !from(reached).anyMatch(IS_TARGET_STATE);
           }
+        }
+
+        // restart exploration for unsound refiners, as due to unsound refinement
+        // a sound over-approximation has to be found for proving safety
+        else if(mRefiner instanceof UnsoundRefiner) {
+          if(!refinedInPreviousIteration) {
+            break;
+          }
+
+          ARGState firstChild = ((ARGState)reached.getFirstState()).getChildren().iterator().next();
+          new ARGReachedSet(reached).removeSubtree(firstChild,
+              ((UnsoundRefiner)mRefiner).getGlobalPrecision(),
+              ValueAnalysisPrecision.class);
+          refinementSuccessful        = true;
+          refinedInPreviousIteration  = false;
         }
 
       } while (refinementSuccessful);

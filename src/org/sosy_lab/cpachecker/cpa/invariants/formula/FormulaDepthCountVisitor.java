@@ -67,6 +67,11 @@ public class FormulaDepthCountVisitor<ConstantType> implements InvariantsFormula
   }
 
   @Override
+  public Integer visit(Exclusion<ConstantType> pExclusion) {
+    return pExclusion.getExcluded().accept(this) + 1;
+  }
+
+  @Override
   public Integer visit(LessThan<ConstantType> pLessThan) {
     return Math.max(pLessThan.getOperand1().accept(this), pLessThan.getOperand2().accept(this)) + 1;
   }

@@ -300,6 +300,12 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
     return getValueVisitor(pEqual).equal(operand1, operand2);
   }
 
+  @Override
+  public BooleanFormula visit(Exclusion<CompoundInterval> pExclusion,
+      Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+    return fromValueFormula(pExclusion, pEnvironment);
+  }
+
   private ValueFormulaType getValueFormula(BigInteger pValue, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment, int pSize) {
     return CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.singleton(pValue)).accept(getValueVisitor(pSize), pEnvironment);
   }

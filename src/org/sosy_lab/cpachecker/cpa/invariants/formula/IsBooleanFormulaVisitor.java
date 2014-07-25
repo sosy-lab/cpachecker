@@ -75,6 +75,11 @@ public class IsBooleanFormulaVisitor<T> implements InvariantsFormulaVisitor<T, B
   }
 
   @Override
+  public Boolean visit(Exclusion<T> pExclusion) {
+    return false;
+  }
+
+  @Override
   public Boolean visit(LessThan<T> pLessThan) {
     return true;
   }

@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
-
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -36,7 +33,6 @@ import java.util.Stack;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 

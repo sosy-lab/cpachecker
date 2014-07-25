@@ -576,7 +576,9 @@ class Run():
 
 
     def getCmdline(self):
-        args = self.runSet.benchmark.tool.getCmdline(self.runSet.benchmark.executable, self.options, self.sourcefiles, self.propertyfile)
+        args = self.runSet.benchmark.tool.getCmdline(
+            self.runSet.benchmark.executable, self.options, self.sourcefiles, 
+            self.propertyfile, self.runSet.benchmark.rlimits)
         args = [os.path.expandvars(arg) for arg in args]
         args = [os.path.expanduser(arg) for arg in args]
         return args;

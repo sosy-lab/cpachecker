@@ -136,6 +136,18 @@ public abstract class RecursiveDefaultFormulaVisitor<T> implements InvariantsFor
   }
 
   @Override
+  public InvariantsFormula<T> visit(Exclusion<T> pExclusion) {
+    InvariantsFormula<T> operand = pExclusion.getExcluded().accept(this);
+    final InvariantsFormula<T> toVisit;
+    if (operand == pExclusion.getExcluded()) {
+      toVisit = pExclusion;
+    } else {
+      toVisit = InvariantsFormulaManager.INSTANCE.exclude(operand);
+    }
+    return visitPost(toVisit);
+  }
+
+  @Override
   public InvariantsFormula<T> visit(LessThan<T> pLessThan) {
     InvariantsFormula<T> operand1 = pLessThan.getOperand1().accept(this);
     InvariantsFormula<T> operand2 = pLessThan.getOperand2().accept(this);

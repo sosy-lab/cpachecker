@@ -971,4 +971,8 @@ public enum CompoundIntervalFormulaManager {
     return InvariantsFormulaManager.INSTANCE.asVariable(pName);
   }
 
+  public static InvariantsFormula<CompoundInterval> exclude(InvariantsFormula<CompoundInterval> pToExclude) {
+    return InvariantsFormulaManager.INSTANCE.exclude(pToExclude);
+  }
+
 }

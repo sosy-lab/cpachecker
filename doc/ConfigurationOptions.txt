@@ -1521,9 +1521,15 @@ cpa.value.precisionFile = no default value
 cpa.value.refinement.exportInterpolationTree = "NEVER"
   allowed values: [NEVER, FINAL, ALWAYS]
 
+# forceRestart
+cpa.value.refinement.forceRestart = 0
+
 # whether or not to do lazy-abstraction
 cpa.value.refinement.restart = TOP
   enum:     [TOP, BOTTOM, COMMON]
+
+# globalPrec
+cpa.value.refinement.useGlobalPrecision = false
 
 # whether to use the top-down interpolation strategy or the bottom-up
 # interpolation strategy
