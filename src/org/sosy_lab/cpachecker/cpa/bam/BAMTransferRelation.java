@@ -248,15 +248,7 @@ public class BAMTransferRelation implements TransferRelation {
 
     CFANode currentNode = edge.getPredecessor();
 
-    Block currentNodeBlock = partitioning.getBlockForReturnNode(currentNode);
-    if (currentNodeBlock != null && !currentBlock.equals(currentNodeBlock)
-        && currentNodeBlock.getNodes().contains(edge.getSuccessor())) {
-      // we are not analyzing the block corresponding to currentNode (currentNodeBlock) but the currentNodeBlock is inside of this block
-      // avoid a reanalysis
-      return Collections.emptySet();
-    }
-
-    if (currentBlock.isReturnNode(currentNode) && !currentBlock.getNodes().contains(edge.getSuccessor())) {
+    if (currentBlock.isReturnNode(currentNode)) {
       // do not perform analysis beyond the current block
       return Collections.emptySet();
     }
