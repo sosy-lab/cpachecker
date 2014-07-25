@@ -499,7 +499,7 @@ public class CtoFormulaConverter {
           + " needs theory conversion between " + fromType + " and " + toType);
     }
 
-    assert fmgr.getFormulaType(ret) == toType;
+    assert fmgr.getFormulaType(ret) == toType : "types do not match: " + fmgr.getFormulaType(ret) + " vs " + toType;
     return ret;
   }
 

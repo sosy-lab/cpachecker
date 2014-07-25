@@ -260,7 +260,7 @@ class DefaultReachedSet implements ReachedSet {
   public Precision getPrecision(AbstractState state) {
     Preconditions.checkNotNull(state);
     Precision prec = reached.get(state);
-    Preconditions.checkArgument(prec != null, "State not in reached set.");
+    Preconditions.checkArgument(prec != null, "State not in reached set:\n" + state);
     return prec;
   }
 
