@@ -1,3 +1,6 @@
+extern int __VERIFIER_nondet_int();
+extern void __VERIFIER_error();
+
 
 int fibo(int n) {
     if (n < 1) {
@@ -21,8 +24,7 @@ int main() {
     int x = 10;
     int result = fibo(x);
     if (result != 55) {
-            ERROR:
-            return 1;
+        __VERIFIER_error();
     }
     return 0;
 }
