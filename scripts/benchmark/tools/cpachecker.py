@@ -98,7 +98,7 @@ class Tool(benchmark.tools.template.BaseTool):
             logging.warning('Cannot determine CPAchecker version, exit code {0}'.format(process.returncode))
             return ''
         stdout = Util.decodeToString(stdout)
-        line = stdout.splitlines()[0]
+        line = next(l for l in stdout.splitlines() if l.startswith('CPAchecker'))
         line = line.replace('CPAchecker' , '')
         line = line.split('(')[0]
         return line.strip()
