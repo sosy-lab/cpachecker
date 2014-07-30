@@ -540,7 +540,7 @@ class Run():
         if self.propertyfile is None:
             if not self.propertyfile in loggedMissingPropertyFiles:
                 loggedMissingPropertyFiles.add(self.propertyfile)
-                logging.warning('No propertyfile specified. Results will be handled as UNKNOWN.')
+                logging.warning('No propertyfile specified. Results for C programs will be handled as UNKNOWN.')
         else:
             # we check two cases: direct filename or user-defined substitution, one of them must be a 'file'
             # TODO: do we need the second case? it is equal to previous used option "-spec ${sourcefile_path}/ALL.prp"
