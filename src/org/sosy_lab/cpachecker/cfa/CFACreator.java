@@ -100,6 +100,8 @@ import com.google.common.collect.Iterables;
 @Options
 public class CFACreator {
 
+  public static final String CPAtiger_MAIN = "__CPAtiger__main";
+
   private static final String JAVA_MAIN_METHOD_CFA_SUFFIX = "_main_String[]";
 
   public static final String VALID_C_FUNCTION_NAME_PATTERN = "[_a-zA-Z][_a-zA-Z0-9]*";

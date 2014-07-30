@@ -28,5 +28,9 @@
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.jdt.core.jar" sourcepath="lib/java-contrib/org.eclipse.jdt.core-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.osgi.jar"/>
 	<classpathentry kind="lib" path="lib/meconsole010.jar"/>
+	<classpathentry kind="lib" path="lib/java/build/jgraph.jar"/>
+	<classpathentry kind="lib" path="lib/java/build/jgrapht-core.jar"/>
+	<classpathentry kind="lib" path="lib/java/build/jgrapht-ext.jar"/>
+	<classpathentry kind="lib" path="lib/java/build/jgraphx.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

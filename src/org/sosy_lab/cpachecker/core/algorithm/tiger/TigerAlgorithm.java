@@ -29,6 +29,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.FQLSpecificationUtil;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.PredefinedCoverageCriteria;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -47,6 +50,11 @@ public class TigerAlgorithm implements Algorithm {
       PredicatedAnalysisPropertyViolationException {
 
     System.out.println("The Tiger roars...");
+
+
+    FQLSpecification lFQLSpecification = FQLSpecificationUtil.getFQLSpecification(PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE);
+
+    System.out.println(lFQLSpecification);
 
     return false;
   }
