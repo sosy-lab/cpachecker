@@ -82,7 +82,6 @@ public class NullValue implements Value {
     throw new AssertionError("Null cannot be represented as NumericValue");
   }
 
-
   /**
    * This method is not implemented and will lead to an <code>AssertionError</code>.
    * <code>Null</code> can't be represented by a specific number.
@@ -90,5 +89,17 @@ public class NullValue implements Value {
   @Override
   public Long asLong(CType pType) {
     throw new AssertionError("Null cannot be represented as Long");
+  }
+
+  @Override
+  public boolean equals(Object other) {
+
+    // all NullValue objects are equal
+    return other instanceof NullValue;
+  }
+
+  @Override
+  public int hashCode() {
+    return 1; // singleton without any values
   }
 }

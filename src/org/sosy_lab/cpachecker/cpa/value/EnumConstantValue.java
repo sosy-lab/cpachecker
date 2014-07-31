@@ -118,6 +118,24 @@ public class EnumConstantValue implements Value {
   }
 
   @Override
+  public boolean equals(Object other) {
+    if (other instanceof EnumConstantValue) {
+      EnumConstantValue concreteOther = (EnumConstantValue) other;
+
+      return concreteOther.classType.equals(classType)
+          && concreteOther.fullyQualifiedName.equals(fullyQualifiedName);
+
+    } else {
+      return false;
+    }
+  }
+
+  @Override
+  public int hashCode() {
+    return classType.hashCode() ^ fullyQualifiedName.hashCode();
+  }
+
+  @Override
   public String toString() {
     return fullyQualifiedName;
   }

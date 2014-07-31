@@ -720,19 +720,25 @@ public abstract class AbstractExpressionValueVisitor
         return calculateBinaryOperation(lVal, rVal, binaryOperator);
       }
 
-    } else if (isEnumType(lValue) && isEnumType(rValue) && binaryOperator.equals(JBinaryExpression.BinaryOperator.EQUALS)) {
-      if (lValue instanceof NullValue && rValue instanceof NullValue) {
-        return new NumericValue(1L);
+    } else if (isEnumType(lValue) && isEnumType(rValue)) {
 
-      } else if (lValue instanceof NullValue || rValue instanceof NullValue) {
-        return new NumericValue(0L);
+      assert binaryOperator.equals(JBinaryExpression.BinaryOperator.EQUALS)
+        || binaryOperator.equals(JBinaryExpression.BinaryOperator.NOT_EQUALS);
 
+      if (binaryOperator.equals(JBinaryExpression.BinaryOperator.EQUALS)) {
+        if (lValue.equals(rValue)) {
+          return new NumericValue(1L);
+        } else {
+          return new NumericValue(0L);
+        }
+
+      // binary operator has to be NOT_EQUALS since no other operators are allowed for enums
+      } else if (lValue.equals(rValue)) {
+          return new NumericValue(0L);
       } else {
-        final EnumConstantValue lVal = (EnumConstantValue) lValue;
-        final EnumConstantValue rVal = (EnumConstantValue) rValue;
-
-        return calculateBinaryOperation(lVal, rVal, binaryOperator);
+          return new NumericValue(1L);
       }
+
     } else {
       return UnknownValue.getInstance();
     }
@@ -914,20 +920,6 @@ public abstract class AbstractExpressionValueVisitor
     default:
       // TODO check which cases can be handled
       return UnknownValue.getInstance();
-    }
-  }
-
-  private Value calculateBinaryOperation(EnumConstantValue lValue, EnumConstantValue rValue, JBinaryExpression.BinaryOperator binaryOperator) {
-    if (!JBinaryExpression.BinaryOperator.EQUALS.equals(binaryOperator)) {
-      return UnknownValue.getInstance(); // Enums may only be compared for equality
-    }
-
-    assert lValue.getName() != null && rValue.getName() != null;
-
-    if (lValue.getName().equals(rValue.getName())) {
-      return new NumericValue(1L);
-    } else {
-      return new NumericValue(0L);
     }
   }
 
