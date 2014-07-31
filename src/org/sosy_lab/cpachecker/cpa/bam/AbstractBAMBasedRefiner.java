@@ -120,9 +120,9 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
 
       computeCounterexampleTimer.start();
       try {
-        logger.log(Level.SEVERE, "root of subgraph", subgraph);
+        logger.log(Level.ALL, "root of subgraph", subgraph);
         final ARGPath path = computeCounterexample(subgraph);
-        logger.log(Level.SEVERE, "computed path from subgraph", path);
+        logger.log(Level.ALL, "computed path from subgraph", path);
         return path;
       } finally {
         computeCounterexampleTimer.stop();
