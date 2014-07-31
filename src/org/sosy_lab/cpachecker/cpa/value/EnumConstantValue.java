@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
+import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 
@@ -31,18 +33,20 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
  */
 public class EnumConstantValue implements Value {
 
-  private final JClassType classType;
+  private final Type classType;
   private final String fullyQualifiedName;
 
   /**
    * Creates a new <code>EnumValue</code>.
    *
-   * @param enumType the enum type of the constant
+   * @param enumType the type of the enum constant.
    * @param fullyQualifiedName the fully qualified name of this constant
    */
-  public EnumConstantValue(JClassType pEnumType, String pFullyQualifiedName) {
+  public EnumConstantValue(Type pEnumType, String pFullyQualifiedName) {
+    assert pEnumType instanceof JClassType || pEnumType instanceof CComplexType;
+
     classType = pEnumType;
-    this.fullyQualifiedName = pFullyQualifiedName;
+    fullyQualifiedName = pFullyQualifiedName;
   }
 
   /**
@@ -50,7 +54,7 @@ public class EnumConstantValue implements Value {
    *
    * @return the enum type of this value
    */
-  public JClassType getEnumType() {
+  public Type getEnumType() {
     return classType;
   }
 
