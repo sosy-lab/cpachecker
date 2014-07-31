@@ -64,7 +64,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
@@ -170,29 +169,26 @@ public class BAMTransferRelation implements TransferRelation {
 
     if (edge != null) {
       // TODO when does this happen?
-      return getAbstractSuccessors0(pState, pPrecision, edge);
+      return wrappedTransfer.getAbstractSuccessors(pState, pPrecision, edge);
     }
 
     CFANode node = extractLocation(pState);
 
-    if (!partitioning.isCallNode(node)) {
-      // the easy case: we are in the middle of a block, so just forward to wrapped CPAs
-      List<AbstractState> result = new ArrayList<>();
-      for (CFAEdge e : CFAUtils.leavingEdges(node)) {
-        result.addAll(getAbstractSuccessors0(pState, pPrecision, e));
-      }
-      return result;
+    if (currentBlock != null && currentBlock.isReturnNode(node)) {
+      // we are leaving the block, do not perform analysis beyond the current block.
+      // special case: returning from a recursive function is only allowed once per state.
+      return Collections.emptySet();
     }
 
-    if (partitioning.getBlockForCallNode(node).equals(currentBlock)) {
-      // we are already in same context
-      // thus we already did the recursive call or we have a recursion in the cachedSubtrees
-      // the latter is not supported yet, but in the the former case we can classically do the post operation
-      return wrappedTransfer.getAbstractSuccessors(pState, pPrecision, null); // edge is null
+    if (partitioning.isCallNode(node)
+            && !partitioning.getBlockForCallNode(node).equals(currentBlock)) {
+      // we are at the entryNode of a new block and we are in a new context.
+      return doRecursiveAnalysis(pState, pPrecision, node);
     }
 
-    // we are a the entryNode of a new block, so we have to start a recursive analysis
-    return doRecursiveAnalysis(pState, pPrecision, node);
+    // the easy case: we are in the middle of a block, so just forward to wrapped CPAs.
+    // if there are several leaving edges, the wrapped CPA should handle all of them.
+    return wrappedTransfer.getAbstractSuccessors(pState, pPrecision, null);
   }
 
   /** Enters a new block and performs a new analysis or returns result from cache. */
@@ -241,20 +237,6 @@ public class BAMTransferRelation implements TransferRelation {
 
     return expandedResult;
   }
-
-  private Collection<? extends AbstractState> getAbstractSuccessors0(AbstractState pElement, Precision pPrecision,
-      CFAEdge edge) throws CPATransferException, InterruptedException {
-    assert edge != null;
-
-    CFANode currentNode = edge.getPredecessor();
-
-    if (currentBlock.isReturnNode(currentNode)) {
-      // do not perform analysis beyond the current block
-      return Collections.emptySet();
-    }
-    return wrappedTransfer.getAbstractSuccessors(pElement, pPrecision, edge);
-  }
-
 
   static boolean isHeadOfMainFunction(CFANode currentNode) {
     return currentNode instanceof FunctionEntryNode && currentNode.getNumEnteringEdges() == 0;
