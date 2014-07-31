@@ -23,12 +23,17 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
+import java.util.logging.Level;
+
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.FQLSpecificationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
@@ -40,8 +45,20 @@ import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationExc
 @Options(prefix = "tiger")
 public class TigerAlgorithm implements Algorithm {
 
+  @Option(name = "fqlQuery", description = "Coverage criterion given as an FQL query")
+  private String fqlQuery = PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE; // default is basic block coverage
+
+  private LogManager logger;
+  private StartupConfig startupConfig;
+
   public TigerAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, ShutdownNotifier pShutdownNotifier,
-      CFA pCfa, Configuration pConfig, LogManager pLogger) {
+      CFA pCfa, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+
+    startupConfig = new StartupConfig(pConfig, pLogger, pShutdownNotifier);
+    startupConfig.getConfig().inject(this);
+
+    logger = pLogger;
+
     // TODO Auto-generated constructor stub
   }
 
@@ -49,12 +66,15 @@ public class TigerAlgorithm implements Algorithm {
   public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
       PredicatedAnalysisPropertyViolationException {
 
-    System.out.println("The Tiger roars...");
+    logger.logf(Level.INFO, "FQL query string: %s", fqlQuery);
 
+    FQLSpecification lFQLSpecification = FQLSpecificationUtil.getFQLSpecification(fqlQuery);
 
-    FQLSpecification lFQLSpecification = FQLSpecificationUtil.getFQLSpecification(PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE);
+    logger.logf(Level.INFO, "FQL query: %s", lFQLSpecification.toString());
 
-    System.out.println(lFQLSpecification);
+    // TODO extract test goals ...
+
+    // TODO do test generation for test goals ...
 
     return false;
   }
