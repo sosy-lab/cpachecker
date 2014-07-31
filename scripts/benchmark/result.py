@@ -61,12 +61,15 @@ STATUS_LIST = [STATUS_TRUE_PROP, STATUS_UNKNOWN,
             STATUS_FALSE_REACH, STATUS_FALSE_TERMINATION, 
             STATUS_FALSE_DEREF, STATUS_FALSE_FREE, STATUS_FALSE_MEMTRACK]
 
+# string used to recognize java programs
+JAVA_CHECK_SUBSTRING = '_assert'
 
 # strings searched in filenames to determine correct or incorrect status.
 # use lower case! the dict contains assignments 'substring' --> 'partial statuses'
 SUBSTRINGS = {
               '_true-unreach-label':   (STR_TRUE, [PROP_REACH]),
               '_true-unreach-call':    (STR_TRUE, [PROP_REACH]),
+              '_true_assert':          (STR_TRUE, [PROP_REACH]),
               '_true-termination':     (STR_TRUE, [PROP_TERMINATION]),
               '_true-valid-deref':     (STR_TRUE, [PROP_DEREF]),
               '_true-valid-free':      (STR_TRUE, [PROP_FREE]),
@@ -75,6 +78,7 @@ SUBSTRINGS = {
 
               '_false-unreach-label':  (STR_FALSE, [PROP_REACH]),
               '_false-unreach-call':   (STR_FALSE, [PROP_REACH]),
+              '_false_assert':         (STR_FALSE, [PROP_REACH]),
               '_false-termination':    (STR_FALSE, [PROP_TERMINATION]),
               '_false-valid-deref':    (STR_FALSE, [PROP_DEREF]),
               '_false-valid-free':     (STR_FALSE, [PROP_FREE]),
@@ -128,6 +132,8 @@ def _statusesOfPropertyFile(propertyFile):
         assert statuses, "Unkown property {0}".format(content)
     return statuses
 
+def _fileIsJava(filename):
+  return JAVA_CHECK_SUBSTRING in filename
 
 # the functions fileIsFalse and fileIsTrue are only used tocount files,
 # not in any other logic. They should return complementary values.
@@ -148,9 +154,20 @@ def getResultCategory(filename, status, propertyFile=None):
     if status == STATUS_UNKNOWN:
         category = CATEGORY_UNKNOWN
     elif status in STATUS_LIST:
+        
+        # Currently, no properties for checking Java programs exist, so we only check for PROP_REACH for these
+        if _fileIsJava(filename):
+          fileStatuses = _statusesOfFile(filename)
+
+          if not fileStatuses:
+            category = CATEGORY_MISSING
+          elif all(prop is not PROP_REACH or s is status for (s, prop) in fileStatuses):
+            category = CATEGORY_CORRECT
+          else:
+            category = CATEGORY_WRONG
 
         # Without propertyfile we do not return correct or wrong results, but always UNKNOWN.
-        if propertyFile is None:
+        elif propertyFile is None:
             category = CATEGORY_MISSING
         else:
             fileStatuses = _statusesOfFile(filename)

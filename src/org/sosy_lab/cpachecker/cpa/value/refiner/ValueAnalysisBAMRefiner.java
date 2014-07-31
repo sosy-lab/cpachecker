@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMBasedRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 
 
 public class ValueAnalysisBAMRefiner extends AbstractBAMBasedRefiner {
@@ -52,12 +51,11 @@ public class ValueAnalysisBAMRefiner extends AbstractBAMBasedRefiner {
       InterruptedException {
     CounterexampleInfo refineResult = refiner.performRefinement(pReached, pPath);
     if (!refineResult.isSpurious()) {
-      if (refiner.isPathFeasable(pPath)) {
-        throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
-      }
+      assert (refiner.isPathFeasable(pPath)) : "not spurious must imply feasible:" + pPath;
+      //throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
     }
 
     return refineResult;
-  }
 
+  }
 }
