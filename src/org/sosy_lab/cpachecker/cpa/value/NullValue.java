@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-
+/**
+ * Singleton class for the special value <code>null</code>.
+ */
 public class NullValue implements Value {
 
   private static final NullValue SINGLETON = new NullValue();
@@ -34,30 +36,57 @@ public class NullValue implements Value {
     // private constructor for singleton pattern
   }
 
+  /**
+   * Returns an instance of a <code>NullValue</code> object.
+   *
+   * @return an instance of this object
+   */
   public static Value getInstance() {
     return SINGLETON;
   }
 
+  /**
+   * Always returns <code>false</code> since <code>null</code> is no numeric value.
+   *
+   * @return always returns <code>false</code>
+   */
   @Override
   public boolean isNumericValue() {
     return false;
   }
 
+  /**
+   * Always returns <code>false</code> since <code>null</code> is a specific value.
+   *
+   * @return always returns <code>false</code>
+   */
   @Override
   public boolean isUnknown() {
     return false;
   }
 
+  /**
+   * Always returns <code>true</code> since <code>null</code> is a specific value.
+   */
   @Override
   public boolean isExplicitlyKnown() {
     return true;
   }
 
+  /**
+   * This method is not implemented and will lead to an <code>AssertionError</code>.
+   * <code>Null</code> can't be represented by a specific numeric value.
+   */
   @Override
   public NumericValue asNumericValue() {
     throw new AssertionError("Null cannot be represented as NumericValue");
   }
 
+
+  /**
+   * This method is not implemented and will lead to an <code>AssertionError</code>.
+   * <code>Null</code> can't be represented by a specific number.
+   */
   @Override
   public Long asLong(CType pType) {
     throw new AssertionError("Null cannot be represented as Long");

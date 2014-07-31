@@ -63,26 +63,51 @@ public class EnumConstantValue implements Value {
     return fullyQualifiedName;
   }
 
+  /**
+   * Always returns <code>false</code> since enum constants are no numbers.
+   *
+   * @return always returns <code>false</code>
+   */
   @Override
   public boolean isNumericValue() {
     return false;
   }
 
+  /**
+   * Always returns <code>false</code> since every
+   * <code>EnumConstantValue</code> has to represent a specific value.
+   *
+   * @return always returns <code>false</code>
+   */
   @Override
   public boolean isUnknown() {
     return false;
   }
 
+  /**
+   * Always returns <code>true</code> since every
+   * <code>EnumConstantValue</code> represents one specific value.
+   *
+   * @return always returns <code>true</code>
+   */
   @Override
   public boolean isExplicitlyKnown() {
     return true;
   }
 
+  /**
+   * This method is not implemented and will lead to an <code>AssertionError</code>.
+   * Enum constants can't be represented by a number.
+   */
   @Override
   public NumericValue asNumericValue() {
     throw new AssertionError("Enum constant cannot be represented as NumericValue");
   }
 
+  /**
+   * This method is not implemented and will lead to an <code>AssertionError</code>.
+   * Enum constants can't be represented by a number.
+   */
   @Override
   public Long asLong(CType pType) {
     throw new AssertionError("Enum constant cannot be represented as Long");
@@ -92,5 +117,4 @@ public class EnumConstantValue implements Value {
   public String toString() {
     return fullyQualifiedName;
   }
-
 }

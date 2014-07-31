@@ -98,6 +98,15 @@ public class NumericValue implements Value, Serializable {
     return "NumericValue [number=" + number + "]";
   }
 
+  /**
+   * Returns whether this object and a given object are equal.
+   * Two <code>NumericValue</code> objects are equal if and only if their
+   * stored values are equal.
+   *
+   * @param other the <code>Object</code> to compare to this object
+   * @return <code>true</code> if the given object equals this object,
+   *         <code>false</code> otherwise
+   */
   @Override
   public boolean equals(Object other) {
     if(other instanceof NumericValue) {
@@ -107,16 +116,32 @@ public class NumericValue implements Value, Serializable {
     }
   }
 
+  /**
+   * Always returns <code>true</code>.
+   *
+   * @return always <code>true</code>
+   */
   @Override
   public boolean isNumericValue() {
     return true;
   }
 
+  /**
+   * Returns a <code>NumericValue</code> object that holds the negation of
+   * this object's value.
+   *
+   * @return the negation of this objects value
+   */
   public NumericValue negate() {
     // TODO explicitfloat: handle the different implementations of Number properly
     return new NumericValue(this.bigDecimalValue().negate());
   }
 
+  /**
+   * Returns whether the stored value is 0.
+   *
+   * @return <code>true</code> if the stored value is 0, <code>false</code> otherwise
+   */
   public boolean isNull() {
     return bigDecimalValue().compareTo(new BigDecimal(0)) == 0;
   }
@@ -141,11 +166,23 @@ public class NumericValue implements Value, Serializable {
     }
   }
 
+  /**
+   * Always returns <code>false</code> as each <code>NumericValue</code> holds
+   * one specific value.
+   *
+   * @return always <code>false</code>
+   */
   @Override
   public boolean isUnknown() {
     return false;
   }
 
+  /**
+   * Always returns <code>true</code> as each <code>NumericValue</code> holds
+   * one specific value.
+   *
+   * @return always <code>true</code>
+   */
   @Override
   public boolean isExplicitlyKnown() {
     return true;
