@@ -56,6 +56,7 @@ public class TigerAlgorithm implements Algorithm {
   private StartupConfig startupConfig;
 
   private CoverageSpecificationTranslator mCoverageSpecificationTranslator;
+  FQLSpecification fqlSpecification;
 
   public TigerAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, ShutdownNotifier pShutdownNotifier,
       CFA pCfa, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
@@ -75,22 +76,30 @@ public class TigerAlgorithm implements Algorithm {
     }
     mCoverageSpecificationTranslator = new CoverageSpecificationTranslator(pCfa.getMainFunction());
 
-    // TODO move parsing of FQL query to constructor?
+
+
+    // get internal representation of FQL query
+    logger.logf(Level.INFO, "FQL query string: %s", fqlQuery);
+
+    fqlSpecification = FQLSpecificationUtil.getFQLSpecification(fqlQuery);
+
+    logger.logf(Level.INFO, "FQL query: %s", fqlSpecification.toString());
+
+    // TODO fix this restriction
+    if (fqlSpecification.hasPassingClause()) {
+      logger.logf(Level.SEVERE, "No PASSING clauses supported at the moment!");
+
+      throw new InvalidConfigurationException("No PASSING clauses supported at the moment!");
+    }
   }
 
   @Override
   public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
       PredicatedAnalysisPropertyViolationException {
 
-    /// TODO move this to constructor?
-    // (i) get internal representation of FQL query
-    logger.logf(Level.INFO, "FQL query string: %s", fqlQuery);
-    FQLSpecification lFQLSpecification = FQLSpecificationUtil.getFQLSpecification(fqlQuery);
-    logger.logf(Level.INFO, "FQL query: %s", lFQLSpecification.toString());
-
-
     // (ii) translate query into set of test goals
-    ElementaryCoveragePattern[] lGoalPatterns = extractTestGoalPatterns(lFQLSpecification);
+    // TODO move to constructor?
+    ElementaryCoveragePattern[] lGoalPatterns = extractTestGoalPatterns(fqlSpecification);
 
 
     // (iii) do test generation for test goals ...
