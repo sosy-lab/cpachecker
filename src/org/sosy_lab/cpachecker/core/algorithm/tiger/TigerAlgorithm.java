@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
+import java.util.Iterator;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -37,6 +38,9 @@ import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.FQLSpecificationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ElementaryCoveragePattern;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.CoverageSpecificationTranslator;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -51,6 +55,8 @@ public class TigerAlgorithm implements Algorithm {
   private LogManager logger;
   private StartupConfig startupConfig;
 
+  private CoverageSpecificationTranslator mCoverageSpecificationTranslator;
+
   public TigerAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, ShutdownNotifier pShutdownNotifier,
       CFA pCfa, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
 
@@ -59,24 +65,77 @@ public class TigerAlgorithm implements Algorithm {
 
     logger = pLogger;
 
-    // TODO Auto-generated constructor stub
+
+
+    // TODO fix: add support for wrapper code
+    if (pCfa.getMainFunction().getFunctionParameters().size() != 0) {
+      logger.logf(Level.SEVERE, "No wrapper code available and, therefore, no input parameters allowed at the moment!");
+
+      throw new InvalidConfigurationException("No wrapper code available and, therefore, no input parameters allowed at the moment!");
+    }
+    mCoverageSpecificationTranslator = new CoverageSpecificationTranslator(pCfa.getMainFunction());
+
+    // TODO move parsing of FQL query to constructor?
   }
 
   @Override
   public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
       PredicatedAnalysisPropertyViolationException {
 
+    /// TODO move this to constructor?
+    // (i) get internal representation of FQL query
     logger.logf(Level.INFO, "FQL query string: %s", fqlQuery);
-
     FQLSpecification lFQLSpecification = FQLSpecificationUtil.getFQLSpecification(fqlQuery);
-
     logger.logf(Level.INFO, "FQL query: %s", lFQLSpecification.toString());
 
-    // TODO extract test goals ...
 
-    // TODO do test generation for test goals ...
+    // (ii) translate query into set of test goals
+    ElementaryCoveragePattern[] lGoalPatterns = extractTestGoalPatterns(lFQLSpecification);
+
+
+    // (iii) do test generation for test goals ...
+    if (testGeneration(lGoalPatterns)) {
+      // TODO ?
+
+    }
+    else {
+      // TODO ?
+
+    }
 
     return false;
+  }
+
+  private ElementaryCoveragePattern[] extractTestGoalPatterns(FQLSpecification pFQLQuery) {
+    logger.logf(Level.INFO, "Extracting test goals.");
+
+
+    // TODO check for (temporarily) unsupported features
+
+    // TODO enable use of infeasibility propagation
+
+
+    IncrementalCoverageSpecificationTranslator lTranslator = new IncrementalCoverageSpecificationTranslator(mCoverageSpecificationTranslator.mPathPatternTranslator);
+
+    int lNumberOfTestGoals = lTranslator.getNumberOfTestGoals(pFQLQuery.getCoverageSpecification());
+    logger.logf(Level.INFO, "Number of test goals: %d", lNumberOfTestGoals);
+
+    Iterator<ElementaryCoveragePattern> lGoalIterator = lTranslator.translate(pFQLQuery.getCoverageSpecification());
+    ElementaryCoveragePattern[] lGoalPatterns = new ElementaryCoveragePattern[lNumberOfTestGoals];
+
+    for (int lGoalIndex = 0; lGoalIndex < lNumberOfTestGoals; lGoalIndex++) {
+      lGoalPatterns[lGoalIndex] = lGoalIterator.next();
+    }
+
+    return lGoalPatterns;
+  }
+
+  private boolean testGeneration(ElementaryCoveragePattern[] pTestGoalPatterns) {
+    for (ElementaryCoveragePattern lTestGoalPattern : pTestGoalPatterns) {
+
+    }
+
+    return true;
   }
 
 }
