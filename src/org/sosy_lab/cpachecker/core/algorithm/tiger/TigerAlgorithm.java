@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
@@ -204,7 +205,7 @@ public class TigerAlgorithm implements Algorithm {
     ElementaryCoveragePattern lGoalPattern = pTestGoalPattern;
     Goal lGoal = constructGoal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,  optimizeGoalAutomata);
 
-    System.out.println(lGoal.getAutomaton().toString());
+    GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton());
 
     return true;
   }
@@ -229,6 +230,7 @@ public class TigerAlgorithm implements Algorithm {
     return lGoal;
   }
 
+  // TODO move all these wrapper related code into TigerAlgorithmUtil class
   public static final String CPAtiger_MAIN = "__CPAtiger__main";
 
   public static FileToParse getWrapperCFunction(CFunctionEntryNode pMainFunction) throws IOException {
