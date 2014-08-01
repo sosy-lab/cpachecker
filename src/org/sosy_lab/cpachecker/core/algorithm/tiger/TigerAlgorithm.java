@@ -23,6 +23,14 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.util.Iterator;
 import java.util.logging.Level;
 
@@ -32,6 +40,9 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CParser.FileToParse;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
@@ -112,6 +123,8 @@ public class TigerAlgorithm implements Algorithm {
 
     }
 
+    // TODO write generated test suite and mapping to file system
+
     return false;
   }
 
@@ -141,10 +154,79 @@ public class TigerAlgorithm implements Algorithm {
 
   private boolean testGeneration(ElementaryCoveragePattern[] pTestGoalPatterns) {
     for (ElementaryCoveragePattern lTestGoalPattern : pTestGoalPatterns) {
-
+      testGeneration(lTestGoalPattern);
     }
 
     return true;
+  }
+
+  private boolean testGeneration(ElementaryCoveragePattern pTestGoalPattern) {
+
+
+    return true;
+  }
+
+  public static final String CPAtiger_MAIN = "__CPAtiger__main";
+
+  public static FileToParse getWrapperCFunction(CFunctionEntryNode pMainFunction) throws IOException {
+
+    StringWriter lWrapperFunction = new StringWriter();
+    PrintWriter lWriter = new PrintWriter(lWrapperFunction);
+
+    // TODO interpreter is not capable of handling initialization of global declarations
+
+    lWriter.println(pMainFunction.getFunctionDefinition().toASTString());
+    lWriter.println();
+    lWriter.println("int __VERIFIER_nondet_int();");
+    lWriter.println();
+    lWriter.println("void " + CPAtiger_MAIN + "()");
+    lWriter.println("{");
+
+    for (CParameterDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
+      lWriter.println("  " + lDeclaration.toASTString() + ";");
+    }
+
+    for (CParameterDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
+      // TODO do we need to handle lDeclaration more specifically?
+      lWriter.println("  " + lDeclaration.getName() + " = __VERIFIER_nondet_int();");
+    }
+
+    lWriter.println();
+    lWriter.print("  " + pMainFunction.getFunctionName() + "(");
+
+    boolean isFirst = true;
+
+    for (CParameterDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
+      if (isFirst) {
+        isFirst = false;
+      }
+      else {
+        lWriter.print(", ");
+      }
+
+      lWriter.print(lDeclaration.getName());
+    }
+
+    lWriter.println(");");
+    lWriter.println("  return;");
+    lWriter.println("}");
+
+    File f = File.createTempFile(CPAtiger_MAIN, ".c", null);
+    f.deleteOnExit();
+
+    Writer writer = null;
+
+    try {
+        writer = new BufferedWriter(new OutputStreamWriter(
+              new FileOutputStream(f), "utf-8"));
+        writer.write(lWrapperFunction.toString());
+    } catch (IOException ex) {
+      // TODO report
+    } finally {
+       try {writer.close();} catch (Exception ex) {}
+    }
+
+    return new FileToParse(f.getAbsolutePath(), CPAtiger_MAIN + "__");
   }
 
 }

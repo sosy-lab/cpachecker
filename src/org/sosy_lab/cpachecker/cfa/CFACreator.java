@@ -37,7 +37,9 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
@@ -68,6 +70,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -78,6 +81,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
@@ -91,6 +95,8 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.SortedSetMultimap;
+import com.google.common.collect.TreeMultimap;
 
 /**
  * Class that encapsulates the whole CFA creation process.
@@ -99,8 +105,6 @@ import com.google.common.collect.Iterables;
  */
 @Options
 public class CFACreator {
-
-  public static final String CPAtiger_MAIN = "__CPAtiger__main";
 
   private static final String JAVA_MAIN_METHOD_CFA_SUFFIX = "_main_String[]";
 
@@ -202,6 +206,9 @@ public class CFACreator {
 
   @Option(description="C or Java?")
   private Language language = Language.C;
+
+  @Option(name="analysis.algorithm.tiger", description="")
+  private boolean useTigerAlgorithm = false;
 
   private final LogManager logger;
   private final Parser parser;
@@ -436,7 +443,7 @@ public class CFACreator {
    * The ParseResult is only a Wrapper for the CFAs of the functions and global declarations. */
   private ParseResult parseToCFAs(final List<String> sourceFiles)
           throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
-    final ParseResult parseResult;
+    ParseResult parseResult;
 
     if (language == Language.C) {
       checkIfValidFiles(sourceFiles);
@@ -444,15 +451,12 @@ public class CFACreator {
 
     final CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
 
-    if (sourceFiles.size() == 1) {
-      parseResult = parser.parseFile(sourceFiles.get(0), sourceOriginMapping);
-    } else {
-      // when there is more than one file which should be evaluated, the
-      // programdenotations are separated from each other and a prefix for
-      // static variables is generated
+    if (useTigerAlgorithm) {
       if (language != Language.C) {
-        throw new InvalidConfigurationException("Multiple program files not supported for languages other than C.");
+        throw new InvalidConfigurationException("Tiger algorithm is only supported for C!");
       }
+
+      CParser cParser = (CParser)parser;
 
       final List<FileToParse> programFragments = new ArrayList<>();
       int counter = 0;
@@ -463,7 +467,53 @@ public class CFACreator {
         programFragments.add(new FileToParse(fileName, staticVarPrefix));
       }
 
-      parseResult = ((CParser)parser).parseFile(programFragments, sourceOriginMapping);
+      ParseResult tmpParseResult = cParser.parseFile(programFragments, sourceOriginMapping);
+
+      // create wrapper code
+      CFunctionEntryNode entryNode = (CFunctionEntryNode)tmpParseResult.getFunctions().get(mainFunctionName);
+
+      List<FileToParse> tmpList = new ArrayList<>();
+      tmpList.add(TigerAlgorithm.getWrapperCFunction(entryNode));
+
+      ParseResult wrapperParseResult = cParser.parseFile(tmpList, sourceOriginMapping);
+
+      // TODO add checks for consistency
+      SortedMap<String, FunctionEntryNode> mergedFunctions = new TreeMap<>();
+      mergedFunctions.putAll(tmpParseResult.getFunctions());
+      mergedFunctions.putAll(wrapperParseResult.getFunctions());
+
+      SortedSetMultimap<String, CFANode> mergedCFANodes = TreeMultimap.create();
+      mergedCFANodes.putAll(tmpParseResult.getCFANodes());
+      mergedCFANodes.putAll(wrapperParseResult.getCFANodes());
+
+      List<Pair<IADeclaration, String>> mergedGlobalDeclarations = new ArrayList<> (tmpParseResult.getGlobalDeclarations().size() + wrapperParseResult.getGlobalDeclarations().size());
+      mergedGlobalDeclarations.addAll(tmpParseResult.getGlobalDeclarations());
+      mergedGlobalDeclarations.addAll(wrapperParseResult.getGlobalDeclarations());
+
+      parseResult = new ParseResult(mergedFunctions, mergedCFANodes, mergedGlobalDeclarations, tmpParseResult.getLanguage());
+    }
+    else {
+      if (sourceFiles.size() == 1) {
+        parseResult = parser.parseFile(sourceFiles.get(0), sourceOriginMapping);
+      } else {
+        // when there is more than one file which should be evaluated, the
+        // programdenotations are separated from each other and a prefix for
+        // static variables is generated
+        if (language != Language.C) {
+          throw new InvalidConfigurationException("Multiple program files not supported for languages other than C.");
+        }
+
+        final List<FileToParse> programFragments = new ArrayList<>();
+        int counter = 0;
+        String staticVarPrefix;
+        for (final String fileName : sourceFiles) {
+          final String[] tmp = fileName.split("/");
+          staticVarPrefix = tmp[tmp.length-1].replaceAll("\\W", "_") + "__" + counter + "__";
+          programFragments.add(new FileToParse(fileName, staticVarPrefix));
+        }
+
+        parseResult = ((CParser)parser).parseFile(programFragments, sourceOriginMapping);
+      }
     }
 
     if (parseResult.isEmpty()) {
