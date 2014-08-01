@@ -33,6 +33,7 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -70,8 +71,11 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.Coverage
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
+import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
@@ -95,6 +99,9 @@ public class TigerAlgorithm implements Algorithm {
   private LogManager logger;
   private StartupConfig startupConfig;
 
+  private ConfigurableProgramAnalysis cpa;
+  private CFA cfa;
+
   private CoverageSpecificationTranslator mCoverageSpecificationTranslator;
   private FQLSpecification fqlSpecification;
 
@@ -111,7 +118,8 @@ public class TigerAlgorithm implements Algorithm {
 
     logger = pLogger;
 
-
+    cpa = pCpa;
+    cfa = pCfa;
 
     // TODO fix: add support for wrapper code
     if (pCfa.getMainFunction().getFunctionParameters().size() != 0) {
@@ -155,18 +163,17 @@ public class TigerAlgorithm implements Algorithm {
 
 
     // (iii) do test generation for test goals ...
-    if (testGeneration(lGoalPatterns)) {
-      // TODO ?
+    // Problem: pReachedSet does not match the internal CPA structure!
 
-    }
-    else {
-      // TODO ?
-
+    boolean wasSound = true;
+    if (!testGeneration(lGoalPatterns, pReachedSet)) {
+      logger.logf(Level.WARNING, "Test generation contained unsound reachability analysis runs!");
+      wasSound = false;
     }
 
     // TODO write generated test suite and mapping to file system
 
-    return false;
+    return wasSound;
   }
 
   private ElementaryCoveragePattern[] extractTestGoalPatterns(FQLSpecification pFQLQuery) {
@@ -193,21 +200,137 @@ public class TigerAlgorithm implements Algorithm {
     return lGoalPatterns;
   }
 
-  private boolean testGeneration(ElementaryCoveragePattern[] pTestGoalPatterns) {
+  private boolean testGeneration(ElementaryCoveragePattern[] pTestGoalPatterns, ReachedSet reachedSet) throws CPAException, InterruptedException {
+    boolean wasSound = true;
+
     for (ElementaryCoveragePattern lTestGoalPattern : pTestGoalPatterns) {
-      testGeneration(lTestGoalPattern);
+      if (!testGeneration(lTestGoalPattern, reachedSet)) {
+        logger.logf(Level.WARNING, "Analysis run was unsound!");
+        wasSound = false;
+      }
     }
 
-    return true;
+    return wasSound;
   }
 
-  private boolean testGeneration(ElementaryCoveragePattern pTestGoalPattern) {
+  private boolean testGeneration(ElementaryCoveragePattern pTestGoalPattern, ReachedSet reachedSet) throws CPAException, InterruptedException {
     ElementaryCoveragePattern lGoalPattern = pTestGoalPattern;
     Goal lGoal = constructGoal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,  optimizeGoalAutomata);
 
     GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton());
 
-    return true;
+
+    LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<>();
+    // TODO what is the more efficient order for the CPAs?
+    lComponentAnalyses.add(lAutomatonCPA);
+    lComponentAnalyses.add(cpa);
+
+    ARGCPA lARTCPA;
+    try {
+      // create composite CPA
+      CPAFactory lCPAFactory = CompositeCPA.factory();
+      lCPAFactory.setChildren(lComponentAnalyses);
+      lCPAFactory.setConfiguration(startupConfig.getConfig());
+      lCPAFactory.setLogger(logger);
+      lCPAFactory.set(cfa, CFA.class);
+
+      ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
+
+      // create ART CPA
+      CPAFactory lARTCPAFactory = ARGCPA.factory();
+      lARTCPAFactory.set(cfa, CFA.class);
+      lARTCPAFactory.setChild(lCPA);
+      lARTCPAFactory.setConfiguration(startupConfig.getConfig());
+      lARTCPAFactory.setLogger(logger);
+
+      lARTCPA = (ARGCPA)lARTCPAFactory.createInstance();
+    } catch (InvalidConfigurationException | CPAException e) {
+      throw new RuntimeException(e);
+    }
+
+    System.out.println(lARTCPA);
+
+    /*ShutdownNotifier algNotifier = ShutdownNotifier.createWithParent(startupConfig.getShutdownNotifier());
+
+    CPAAlgorithm cpaAlg;
+
+    try {
+      cpaAlg = CPAAlgorithm.create(lARTCPA, logger, startupConfig.getConfig(), algNotifier);
+    } catch (InvalidConfigurationException e1) {
+      throw new RuntimeException(e1);
+    }
+
+    // TODO Problem: reachedSet does not match the internal CPA structure!
+    boolean analysisWasSound = cpaAlg.run(reachedSet);*/
+    boolean analysisWasSound = true;
+
+    /*PredicateCPARefiner lRefiner;
+    try {
+      lRefiner = PredicateRefiner.cpatiger_create(lARTCPA, this);
+    } catch (CPAException | InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    }
+
+    try {
+      cegarAlg = new CEGARAlgorithmWithCounterexampleInfo(cpaAlg, lRefiner, mConfiguration, mLogManager);
+    } catch (InvalidConfigurationException | CPAException e) {
+      throw new RuntimeException(e);
+    }
+
+    ARGStatistics lARTStatistics;
+    try {
+      lARTStatistics = new ARGStatistics(mConfiguration, lARTCPA);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    }
+    Set<Statistics> lStatistics = new HashSet<>();
+    lStatistics.add(lARTStatistics);
+    cegarAlg.collectStatistics(lStatistics);
+
+    if (mReuseART) {
+
+      if (mUseSummarise){
+        Set<AbstractState> set = ARTReuse.modifyReachedSet2(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
+
+        // keep only abstractions state for predicate abstraction
+
+        for (AbstractState s : set){
+          PredicateAbstractState ps = AbstractStates.extractStateByType(s, PredicateAbstractState.class);
+          assert ps != null;
+
+          if (ps.isAbstractionState()){
+            summaries.add(s);
+          }
+          //removedRoots.add(s);
+        }
+
+      } else {
+        ARTReuse.modifyReachedSet(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
+      }
+
+      if (mPrecision != null) {
+        for (AbstractState lWaitlistElement : pReachedSet.getWaitlist()) {
+          Precision lOldPrecision = pReachedSet.getPrecision(lWaitlistElement);
+          Precision lNewPrecision = Precisions.replaceByType(lOldPrecision, mPrecision, PredicatePrecision.class);
+
+          pReachedSet.updatePrecision(lWaitlistElement, lNewPrecision);
+        }
+      }
+    }
+    else {
+      pReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.BFS); // TODO why does TOPSORT not exist anymore?
+
+      AbstractState lInitialElement = lARTCPA.getInitialState(pEntryNode);
+      Precision lInitialPrecision = lARTCPA.getInitialPrecision(pEntryNode);
+
+      pReachedSet.add(lInitialElement, lInitialPrecision);
+    }
+
+    // run algorithm with an optionall timeout
+    boolean isSound = executor.execute(cegarAlg, pReachedSet, algNotifier, timelimit, TimeUnit.SECONDS);
+    CounterexampleInfo cex = cegarAlg.getCex();*/
+
+    return analysisWasSound;
   }
 
   /**
