@@ -73,6 +73,9 @@ public class TigerAlgorithm implements Algorithm {
   @Option(name = "fqlQuery", description = "Coverage criterion given as an FQL query")
   private String fqlQuery = PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE; // default is basic block coverage
 
+  @Option(name = "optimizeGoalAutomata", description = "Optimize the test goal automata")
+  private boolean optimizeGoalAutomata = true;
+
   private LogManager logger;
   private StartupConfig startupConfig;
 
@@ -184,7 +187,7 @@ public class TigerAlgorithm implements Algorithm {
 
   private boolean testGeneration(ElementaryCoveragePattern pTestGoalPattern) {
     ElementaryCoveragePattern lGoalPattern = pTestGoalPattern;
-    Goal lGoal = constructGoal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,  true /* use automaton optimizations */);
+    Goal lGoal = constructGoal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,  optimizeGoalAutomata);
 
     System.out.println(lGoal.getAutomaton().toString());
 
@@ -204,7 +207,7 @@ public class TigerAlgorithm implements Algorithm {
       GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel, boolean pUseAutomatonOptimization) {
 
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton = ToGuardedAutomatonTranslator.toAutomaton(pGoalPattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel);
-    automaton = FQLSpecificationUtil.optimizeAutomaton(automaton, true /* mUseAutomatonOptimization */);
+    automaton = FQLSpecificationUtil.optimizeAutomaton(automaton, pUseAutomatonOptimization);
 
     Goal lGoal = new Goal(pGoalPattern, automaton);
 
