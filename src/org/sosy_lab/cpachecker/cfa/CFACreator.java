@@ -456,6 +456,10 @@ public class CFACreator {
         throw new InvalidConfigurationException("Tiger algorithm is only supported for C!");
       }
 
+      // switch main functions
+      TigerAlgorithm.originalMainFunction = mainFunctionName;
+      mainFunctionName = TigerAlgorithm.CPAtiger_MAIN;
+
       CParser cParser = (CParser)parser;
 
       final List<FileToParse> programFragments = new ArrayList<>();
@@ -470,7 +474,7 @@ public class CFACreator {
       ParseResult tmpParseResult = cParser.parseFile(programFragments, sourceOriginMapping);
 
       // create wrapper code
-      CFunctionEntryNode entryNode = (CFunctionEntryNode)tmpParseResult.getFunctions().get(mainFunctionName);
+      CFunctionEntryNode entryNode = (CFunctionEntryNode)tmpParseResult.getFunctions().get(TigerAlgorithm.originalMainFunction);
 
       List<FileToParse> tmpList = new ArrayList<>();
       tmpList.add(TigerAlgorithm.getWrapperCFunction(entryNode));

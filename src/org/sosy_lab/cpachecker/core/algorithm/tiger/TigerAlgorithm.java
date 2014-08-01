@@ -60,6 +60,8 @@ import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationExc
 @Options(prefix = "tiger")
 public class TigerAlgorithm implements Algorithm {
 
+  public static String originalMainFunction = null;
+
   @Option(name = "fqlQuery", description = "Coverage criterion given as an FQL query")
   private String fqlQuery = PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE; // default is basic block coverage
 
@@ -85,7 +87,8 @@ public class TigerAlgorithm implements Algorithm {
 
       throw new InvalidConfigurationException("No wrapper code available and, therefore, no input parameters allowed at the moment!");
     }
-    mCoverageSpecificationTranslator = new CoverageSpecificationTranslator(pCfa.getMainFunction());
+    // TODO check that originalMainFunction is not null
+    mCoverageSpecificationTranslator = new CoverageSpecificationTranslator(pCfa.getFunctionHead(originalMainFunction));
 
 
 
