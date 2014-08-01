@@ -50,12 +50,20 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.FQLSpecificationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ElementaryCoveragePattern;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.SingletonECPEdgeSet;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedLabel;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.InverseGuardedEdgeLabel;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.ToGuardedAutomatonTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 @Options(prefix = "tiger")
 public class TigerAlgorithm implements Algorithm {
@@ -69,7 +77,12 @@ public class TigerAlgorithm implements Algorithm {
   private StartupConfig startupConfig;
 
   private CoverageSpecificationTranslator mCoverageSpecificationTranslator;
-  FQLSpecification fqlSpecification;
+  private FQLSpecification fqlSpecification;
+
+  private Wrapper wrapper;
+  private GuardedEdgeLabel mAlphaLabel;
+  private GuardedEdgeLabel mOmegaLabel;
+  private InverseGuardedEdgeLabel mInverseAlphaLabel;
 
   public TigerAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, ShutdownNotifier pShutdownNotifier,
       CFA pCfa, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
@@ -90,6 +103,12 @@ public class TigerAlgorithm implements Algorithm {
     // TODO check that originalMainFunction is not null
     mCoverageSpecificationTranslator = new CoverageSpecificationTranslator(pCfa.getFunctionHead(originalMainFunction));
 
+
+    wrapper = new Wrapper(pCfa, originalMainFunction);
+
+    mAlphaLabel = new GuardedEdgeLabel(new SingletonECPEdgeSet(wrapper.getAlphaEdge()));
+    mInverseAlphaLabel = new InverseGuardedEdgeLabel(mAlphaLabel);
+    mOmegaLabel = new GuardedEdgeLabel(new SingletonECPEdgeSet(wrapper.getOmegaEdge()));
 
 
     // get internal representation of FQL query
@@ -164,9 +183,32 @@ public class TigerAlgorithm implements Algorithm {
   }
 
   private boolean testGeneration(ElementaryCoveragePattern pTestGoalPattern) {
+    ElementaryCoveragePattern lGoalPattern = pTestGoalPattern;
+    Goal lGoal = constructGoal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,  true /* use automaton optimizations */);
 
+    System.out.println(lGoal.getAutomaton().toString());
 
     return true;
+  }
+
+  /**
+   * Constructs a test goal from the given pattern.
+   * @param pLGoalPattern
+   * @param pMAlphaLabel
+   * @param pMInverseAlphaLabel
+   * @param pMOmegaLabel
+   * @param pMUseAutomatonOptimization
+   * @return
+   */
+  private Goal constructGoal(ElementaryCoveragePattern pGoalPattern, GuardedEdgeLabel pAlphaLabel,
+      GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel, boolean pUseAutomatonOptimization) {
+
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton = ToGuardedAutomatonTranslator.toAutomaton(pGoalPattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel);
+    automaton = FQLSpecificationUtil.optimizeAutomaton(automaton, true /* mUseAutomatonOptimization */);
+
+    Goal lGoal = new Goal(pGoalPattern, automaton);
+
+    return lGoal;
   }
 
   public static final String CPAtiger_MAIN = "__CPAtiger__main";
