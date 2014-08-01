@@ -37,9 +37,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.SortedSet;
-import java.util.TreeMap;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
@@ -70,7 +68,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -95,8 +92,6 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.SortedSetMultimap;
-import com.google.common.collect.TreeMultimap;
 
 /**
  * Class that encapsulates the whole CFA creation process.
@@ -473,28 +468,7 @@ public class CFACreator {
 
       ParseResult tmpParseResult = cParser.parseFile(programFragments, sourceOriginMapping);
 
-      // create wrapper code
-      CFunctionEntryNode entryNode = (CFunctionEntryNode)tmpParseResult.getFunctions().get(TigerAlgorithm.originalMainFunction);
-
-      List<FileToParse> tmpList = new ArrayList<>();
-      tmpList.add(TigerAlgorithm.getWrapperCFunction(entryNode));
-
-      ParseResult wrapperParseResult = cParser.parseFile(tmpList, sourceOriginMapping);
-
-      // TODO add checks for consistency
-      SortedMap<String, FunctionEntryNode> mergedFunctions = new TreeMap<>();
-      mergedFunctions.putAll(tmpParseResult.getFunctions());
-      mergedFunctions.putAll(wrapperParseResult.getFunctions());
-
-      SortedSetMultimap<String, CFANode> mergedCFANodes = TreeMultimap.create();
-      mergedCFANodes.putAll(tmpParseResult.getCFANodes());
-      mergedCFANodes.putAll(wrapperParseResult.getCFANodes());
-
-      List<Pair<IADeclaration, String>> mergedGlobalDeclarations = new ArrayList<> (tmpParseResult.getGlobalDeclarations().size() + wrapperParseResult.getGlobalDeclarations().size());
-      mergedGlobalDeclarations.addAll(tmpParseResult.getGlobalDeclarations());
-      mergedGlobalDeclarations.addAll(wrapperParseResult.getGlobalDeclarations());
-
-      parseResult = new ParseResult(mergedFunctions, mergedCFANodes, mergedGlobalDeclarations, tmpParseResult.getLanguage());
+      parseResult = TigerAlgorithm.addWrapper(cParser, tmpParseResult, sourceOriginMapping);
     }
     else {
       if (sourceFiles.size() == 1) {

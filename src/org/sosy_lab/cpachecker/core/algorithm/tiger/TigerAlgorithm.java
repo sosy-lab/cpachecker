@@ -31,17 +31,28 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.FileToParse;
+import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
+import org.sosy_lab.cpachecker.cfa.ParseResult;
+import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -62,8 +73,12 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
+
+import com.google.common.collect.SortedSetMultimap;
+import com.google.common.collect.TreeMultimap;
 
 @Options(prefix = "tiger")
 public class TigerAlgorithm implements Algorithm {
@@ -196,11 +211,11 @@ public class TigerAlgorithm implements Algorithm {
 
   /**
    * Constructs a test goal from the given pattern.
-   * @param pLGoalPattern
-   * @param pMAlphaLabel
-   * @param pMInverseAlphaLabel
-   * @param pMOmegaLabel
-   * @param pMUseAutomatonOptimization
+   * @param pGoalPattern
+   * @param pAlphaLabel
+   * @param pInverseAlphaLabel
+   * @param pOmegaLabel
+   * @param pUseAutomatonOptimization
    * @return
    */
   private Goal constructGoal(ElementaryCoveragePattern pGoalPattern, GuardedEdgeLabel pAlphaLabel,
@@ -275,6 +290,31 @@ public class TigerAlgorithm implements Algorithm {
     }
 
     return new FileToParse(f.getAbsolutePath(), CPAtiger_MAIN + "__");
+  }
+
+  public static ParseResult addWrapper(CParser cParser, ParseResult tmpParseResult, CSourceOriginMapping sourceOriginMapping) throws IOException, CParserException, InvalidConfigurationException, InterruptedException {
+    // create wrapper code
+    CFunctionEntryNode entryNode = (CFunctionEntryNode)tmpParseResult.getFunctions().get(TigerAlgorithm.originalMainFunction);
+
+    List<FileToParse> tmpList = new ArrayList<>();
+    tmpList.add(TigerAlgorithm.getWrapperCFunction(entryNode));
+
+    ParseResult wrapperParseResult = cParser.parseFile(tmpList, sourceOriginMapping);
+
+    // TODO add checks for consistency
+    SortedMap<String, FunctionEntryNode> mergedFunctions = new TreeMap<>();
+    mergedFunctions.putAll(tmpParseResult.getFunctions());
+    mergedFunctions.putAll(wrapperParseResult.getFunctions());
+
+    SortedSetMultimap<String, CFANode> mergedCFANodes = TreeMultimap.create();
+    mergedCFANodes.putAll(tmpParseResult.getCFANodes());
+    mergedCFANodes.putAll(wrapperParseResult.getCFANodes());
+
+    List<Pair<IADeclaration, String>> mergedGlobalDeclarations = new ArrayList<> (tmpParseResult.getGlobalDeclarations().size() + wrapperParseResult.getGlobalDeclarations().size());
+    mergedGlobalDeclarations.addAll(tmpParseResult.getGlobalDeclarations());
+    mergedGlobalDeclarations.addAll(wrapperParseResult.getGlobalDeclarations());
+
+    return new ParseResult(mergedFunctions, mergedCFANodes, mergedGlobalDeclarations, tmpParseResult.getLanguage());
   }
 
 }
