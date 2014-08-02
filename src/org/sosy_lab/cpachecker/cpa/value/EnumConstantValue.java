@@ -109,12 +109,12 @@ public class EnumConstantValue implements Value {
   }
 
   /**
-   * This method is not implemented and will lead to an <code>AssertionError</code>.
+   * This method always returns <code>null</code>.
    * Enum constants can't be represented by a number.
    */
   @Override
   public Long asLong(CType pType) {
-    throw new AssertionError("Enum constant cannot be represented as Long");
+    return null;
   }
 
   @Override
