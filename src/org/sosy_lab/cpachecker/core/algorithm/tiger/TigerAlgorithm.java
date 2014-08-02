@@ -47,6 +47,9 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser;
@@ -89,6 +92,7 @@ import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
@@ -112,6 +116,9 @@ public class TigerAlgorithm implements Algorithm {
 
   @Option(name = "optimizeGoalAutomata", description = "Optimize the test goal automata")
   private boolean optimizeGoalAutomata = true;
+
+  @Option(name = "printARGperGoal", description = "Print the ARG for each test goal")
+  private boolean printARGperGoal = false;
 
   private LogManager logger;
   private StartupConfig startupConfig;
@@ -329,15 +336,15 @@ public class TigerAlgorithm implements Algorithm {
 
     boolean analysisWasSound = cegarAlg.run(pReachedSet);
 
-    /* TODO use flag to en- and disable ARG output
-    Path argFile = Paths.get("output", "ARG_goal_" + goalIndex + ".dot");
+    if (printARGperGoal) {
+      Path argFile = Paths.get("output", "ARG_goal_" + goalIndex + ".dot");
 
-    try (Writer w = Files.openOutputFile(argFile)) {
-      ARGUtils.writeARGAsDot(w, (ARGState) pReachedSet.getFirstState());
-    } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+      try (Writer w = Files.openOutputFile(argFile)) {
+        ARGUtils.writeARGAsDot(w, (ARGState) pReachedSet.getFirstState());
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+      }
     }
-    */
 
     Map<ARGState, CounterexampleInfo> counterexamples = lARTCPA.getCounterexamples();
 
