@@ -170,6 +170,13 @@ public class TigerAlgorithm implements Algorithm {
 
       throw new InvalidConfigurationException("No PASSING clauses supported at the moment!");
     }
+
+    // TODO fix this restriction
+    if (fqlSpecification.hasPredicate()) {
+      logger.logf(Level.SEVERE, "No predicates in FQL queries supported at the moment!");
+
+      throw new InvalidConfigurationException("No predicates in FQL queries supported at the moment!");
+    }
   }
 
   @Override
@@ -177,6 +184,9 @@ public class TigerAlgorithm implements Algorithm {
       PredicatedAnalysisPropertyViolationException {
 
     // we empty pReachedSet to stop complaints of an incomplete analysis
+    // Problem: pReachedSet does not match the internal CPA structure!
+    logger.logf(Level.INFO, "We will not use the provided reached set since it violates the internal structure of Tiger's CPAs");
+    logger.logf(Level.INFO, "We empty pReachedSet to stop complaints of an incomplete analysis");
     pReachedSet.clear();
 
 
@@ -186,12 +196,8 @@ public class TigerAlgorithm implements Algorithm {
 
 
     // (iii) do test generation for test goals ...
-
-    // Problem: pReachedSet does not match the internal CPA structure!
-    logger.logf(Level.WARNING, "We will not use the provided reached set since it violates the internal structure of Tiger's CPAs");
-
     boolean wasSound = true;
-    if (!testGeneration(lGoalPatterns, pReachedSet)) {
+    if (!testGeneration(lGoalPatterns)) {
       logger.logf(Level.WARNING, "Test generation contained unsound reachability analysis runs!");
       wasSound = false;
     }
@@ -225,7 +231,7 @@ public class TigerAlgorithm implements Algorithm {
     return lGoalPatterns;
   }
 
-  private boolean testGeneration(ElementaryCoveragePattern[] pTestGoalPatterns, ReachedSet reachedSet) throws CPAException, InterruptedException {
+  private boolean testGeneration(ElementaryCoveragePattern[] pTestGoalPatterns) throws CPAException, InterruptedException {
     boolean wasSound = true;
 
     int goalIndex = 0;
@@ -233,7 +239,7 @@ public class TigerAlgorithm implements Algorithm {
     for (ElementaryCoveragePattern lTestGoalPattern : pTestGoalPatterns) {
       logger.logf(Level.INFO, "Processing next test goal.");
 
-      if (!testGeneration(goalIndex, lTestGoalPattern, reachedSet)) {
+      if (!testGeneration(goalIndex, lTestGoalPattern)) {
         logger.logf(Level.WARNING, "Analysis run was unsound!");
         wasSound = false;
       }
@@ -244,7 +250,7 @@ public class TigerAlgorithm implements Algorithm {
     return wasSound;
   }
 
-  private boolean testGeneration(int goalIndex, ElementaryCoveragePattern pTestGoalPattern, ReachedSet reachedSet) throws CPAException, InterruptedException {
+  private boolean testGeneration(int goalIndex, ElementaryCoveragePattern pTestGoalPattern) throws CPAException, InterruptedException {
     ElementaryCoveragePattern lGoalPattern = pTestGoalPattern;
     Goal lGoal = constructGoal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,  optimizeGoalAutomata);
 

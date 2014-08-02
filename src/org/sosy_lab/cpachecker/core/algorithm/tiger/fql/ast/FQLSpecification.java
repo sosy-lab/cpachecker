@@ -23,9 +23,14 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast;
 
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.coveragespecification.Concatenation;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.coveragespecification.CoverageSpecification;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.coveragespecification.CoverageSpecificationVisitor;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.coveragespecification.Quotation;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.coveragespecification.Union;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.filter.Identity;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.pathpattern.PathPattern;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.pathpattern.PathPatternVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.pathpattern.Repetition;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLParser;
 
@@ -55,6 +60,90 @@ public class FQLSpecification {
 
   public boolean hasPassingClause() {
     return (mPathPattern != null);
+  }
+
+  public boolean hasPredicate() {
+    // TODO implement more efficiently by determining whether predicates are created during parsing
+
+    final PathPatternVisitor<Boolean> pathPatternVisitor = new PathPatternVisitor<Boolean>() {
+
+      @Override
+      public Boolean visit(org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.pathpattern.Concatenation pConcatenation) {
+        return pConcatenation.getFirstSubpattern().accept(this) || pConcatenation.getSecondSubpattern().accept(this);
+      }
+
+      @Override
+      public Boolean visit(Repetition pRepetition) {
+        return pRepetition.getSubpattern().accept(this);
+      }
+
+      @Override
+      public Boolean visit(org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.pathpattern.Union pUnion) {
+        return pUnion.getFirstSubpattern().accept(this) || pUnion.getSecondSubpattern().accept(this);
+      }
+
+      @Override
+      public Boolean visit(Edges pEdges) {
+        return false;
+      }
+
+      @Override
+      public Boolean visit(Nodes pNodes) {
+        return false;
+      }
+
+      @Override
+      public Boolean visit(Paths pPaths) {
+        return false;
+      }
+
+      @Override
+      public Boolean visit(Predicate pPredicate) {
+        return true;
+      }
+
+    };
+
+    CoverageSpecificationVisitor<Boolean> visitor = new CoverageSpecificationVisitor<Boolean>() {
+
+      @Override
+      public Boolean visit(Concatenation pConcatenation) {
+        return pConcatenation.getFirstSubspecification().accept(this) || pConcatenation.getSecondSubspecification().accept(this);
+      }
+
+      @Override
+      public Boolean visit(Quotation pQuotation) {
+        return pQuotation.getPathPattern().accept(pathPatternVisitor);
+      }
+
+      @Override
+      public Boolean visit(Union pUnion) {
+        return pUnion.getFirstSubspecification().accept(this) || pUnion.getSecondSubspecification().accept(this);
+      }
+
+      @Override
+      public Boolean visit(Edges pEdges) {
+        return false;
+      }
+
+      @Override
+      public Boolean visit(Nodes pNodes) {
+        return false;
+      }
+
+      @Override
+      public Boolean visit(Paths pPaths) {
+        return false;
+      }
+
+      @Override
+      public Boolean visit(Predicate pPredicate) {
+        return true;
+      }
+
+    };
+
+    return mCoverageSpecification.accept(visitor) || (mPathPattern != null && mPathPattern.accept(pathPatternVisitor));
   }
 
   public PathPattern getPathPattern() {
