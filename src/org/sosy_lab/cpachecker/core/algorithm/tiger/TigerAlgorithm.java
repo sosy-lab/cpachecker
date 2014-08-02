@@ -71,9 +71,13 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.Coverage
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
@@ -225,6 +229,8 @@ public class TigerAlgorithm implements Algorithm {
     lComponentAnalyses.add(lAutomatonCPA);
     lComponentAnalyses.add(cpa);
 
+    System.out.println(cpa);
+
     ARGCPA lARTCPA;
     try {
       // create composite CPA
@@ -248,7 +254,14 @@ public class TigerAlgorithm implements Algorithm {
       throw new RuntimeException(e);
     }
 
-    System.out.println(lARTCPA);
+    // TODO implement reuse
+    ReachedSet pReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.BFS); // TODO why does TOPSORT not exist anymore?
+
+    AbstractState lInitialElement = lARTCPA.getInitialState(cfa.getMainFunction());
+    Precision lInitialPrecision = lARTCPA.getInitialPrecision(cfa.getMainFunction());
+
+    pReachedSet.add(lInitialElement, lInitialPrecision);
+
 
     /*ShutdownNotifier algNotifier = ShutdownNotifier.createWithParent(startupConfig.getShutdownNotifier());
 
