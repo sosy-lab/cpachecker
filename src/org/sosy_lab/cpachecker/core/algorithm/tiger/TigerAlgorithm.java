@@ -77,6 +77,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.Coverage
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -90,6 +91,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
+import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -216,27 +218,45 @@ public class TigerAlgorithm implements Algorithm {
   private boolean testGeneration(ElementaryCoveragePattern[] pTestGoalPatterns, ReachedSet reachedSet) throws CPAException, InterruptedException {
     boolean wasSound = true;
 
+    int goalIndex = 0;
+
     for (ElementaryCoveragePattern lTestGoalPattern : pTestGoalPatterns) {
-      if (!testGeneration(lTestGoalPattern, reachedSet)) {
+      logger.logf(Level.INFO, "Processing next test goal.");
+
+      if (!testGeneration(goalIndex, lTestGoalPattern, reachedSet)) {
         logger.logf(Level.WARNING, "Analysis run was unsound!");
         wasSound = false;
       }
+
+      goalIndex++;
     }
 
     return wasSound;
   }
 
-  private boolean testGeneration(ElementaryCoveragePattern pTestGoalPattern, ReachedSet reachedSet) throws CPAException, InterruptedException {
+  private boolean testGeneration(int goalIndex, ElementaryCoveragePattern pTestGoalPattern, ReachedSet reachedSet) throws CPAException, InterruptedException {
     ElementaryCoveragePattern lGoalPattern = pTestGoalPattern;
     Goal lGoal = constructGoal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,  optimizeGoalAutomata);
 
     GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton());
 
 
+    List<ConfigurableProgramAnalysis> lAutomatonCPAs = new ArrayList<>(1);//(2);
+
+    /*if (pPassingCPA != null) {
+      lAutomatonCPAs.add(pPassingCPA);
+    }*/
+
+    lAutomatonCPAs.add(lAutomatonCPA);
+
+
+
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<>();
     // TODO what is the more efficient order for the CPAs? Can we substitute a placeholder CPA? or inject an automaton in to an automaton CPA?
-    lComponentAnalyses.add(lAutomatonCPA);
+    //int lProductAutomatonIndex = lComponentAnalyses.size();
+    lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false));
     lComponentAnalyses.add(cpa);
+
 
     ARGCPA lARTCPA;
     try {
@@ -309,6 +329,15 @@ public class TigerAlgorithm implements Algorithm {
 
     boolean analysisWasSound = cegarAlg.run(pReachedSet);
 
+    /* TODO use flag to en- and disable ARG output
+    Path argFile = Paths.get("output", "ARG_goal_" + goalIndex + ".dot");
+
+    try (Writer w = Files.openOutputFile(argFile)) {
+      ARGUtils.writeARGAsDot(w, (ARGState) pReachedSet.getFirstState());
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+    }
+    */
 
     Map<ARGState, CounterexampleInfo> counterexamples = lARTCPA.getCounterexamples();
 
@@ -323,6 +352,25 @@ public class TigerAlgorithm implements Algorithm {
       logger.logf(Level.INFO, "Test goal is feasible.");
 
       // TODO add missing soundness checks!
+
+      assert counterexamples.size() == 1;
+
+      for (Map.Entry<ARGState, CounterexampleInfo> lEntry : counterexamples.entrySet()) {
+        //ARGState state = lEntry.getKey();
+        CounterexampleInfo cex = lEntry.getValue();
+
+        if (cex.isSpurious()) {
+          logger.logf(Level.WARNING, "Counterexample is spurious!");
+        }
+        else {
+          System.out.println(cex.getTargetPath());
+
+          Model model = cex.getTargetPathModel();
+
+          System.out.println("Model:" + model.size());
+          System.out.println(model.toString());
+        }
+      }
     }
 
 

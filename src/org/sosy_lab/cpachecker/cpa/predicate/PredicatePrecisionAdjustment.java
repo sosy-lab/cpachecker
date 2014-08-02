@@ -206,7 +206,8 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       invariants = ImmutableMap.of(); // no invariants available
 
     } finally {
-      invariantGenerator = null; // to allow GC'ing it and the ReachedSet
+      // TODO this should be set to null only if Tiger is not used!
+      //invariantGenerator = null; // to allow GC'ing it and the ReachedSet
       invariantGenerationTime.stop();
     }
   }

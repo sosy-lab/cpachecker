@@ -50,8 +50,8 @@ import com.google.common.collect.Iterables;
 
 public class CompositeTransferRelation implements TransferRelation {
 
-  private final ImmutableList<TransferRelation> transferRelations;
-  private final int size;
+  protected final ImmutableList<TransferRelation> transferRelations;
+  protected final int size;
   private int assumptionIndex = -1;
   private int predicatesIndex = -1;
 
