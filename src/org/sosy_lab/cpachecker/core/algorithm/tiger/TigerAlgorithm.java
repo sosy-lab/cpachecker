@@ -176,6 +176,9 @@ public class TigerAlgorithm implements Algorithm {
   public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
       PredicatedAnalysisPropertyViolationException {
 
+    // we empty pReachedSet to stop complaints of an incomplete analysis
+    pReachedSet.clear();
+
 
     // (ii) translate query into set of test goals
     // I didn't move this operation to the constructor since it is a potentially expensive operation.

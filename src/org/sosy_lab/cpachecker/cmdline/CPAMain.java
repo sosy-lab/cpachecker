@@ -137,10 +137,12 @@ public class CPAMain {
     limits.cancel();
     Thread.interrupted(); // clear interrupted flag
 
-    try {
-      printResultAndStatistics(result, outputDirectory, options, logManager);
-    } catch (IOException e) {
-      logManager.logUserException(Level.WARNING, e, "Could not write statistics to file");
+    if (!options.useTigerAlgorithm) {
+      try {
+        printResultAndStatistics(result, outputDirectory, options, logManager);
+      } catch (IOException e) {
+        logManager.logUserException(Level.WARNING, e, "Could not write statistics to file");
+      }
     }
 
     System.out.flush();
@@ -187,6 +189,9 @@ public class CPAMain {
 
     @Option(name = "pcc.proofgen.doPCC", description = "Generate and dump a proof")
     private boolean doPCC = false;
+
+    @Option(name = "analysis.algorithm.tiger", description = "Use Tiger algorithm (test input generation)")
+    private boolean useTigerAlgorithm = false;
   }
 
   private static void dumpConfiguration(MainOptions options, Configuration config,
