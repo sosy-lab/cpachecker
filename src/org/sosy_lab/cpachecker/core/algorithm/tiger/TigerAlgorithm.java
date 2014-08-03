@@ -270,13 +270,17 @@ public class TigerAlgorithm implements Algorithm {
 
     if (checkCoverage) {
       for (TestCase testcase : testsuite) {
-        if (TigerAlgorithm.accepts(lGoal.getAutomaton(), testcase.path).equals(ThreeValuedAnswer.ACCEPT)) {
+        ThreeValuedAnswer isCovered = TigerAlgorithm.accepts(lGoal.getAutomaton(), testcase.path);
+        if (isCovered.equals(ThreeValuedAnswer.ACCEPT)) {
           // test goal is already covered by an existing test case
           logger.logf(Level.INFO, "Test goal %d is already covered by an existing test case.", goalIndex);
 
           // TODO map this goal to the existing test case
 
           return true;
+        }
+        else if (isCovered.equals(ThreeValuedAnswer.UNKNOWN)) {
+          logger.logf(Level.WARNING, "Coverage check for goal %d could not be performed in a precise way!", goalIndex);
         }
       }
     }
