@@ -56,13 +56,15 @@ public class ARTReuse {
 
   public static void modifyReachedSet(ReachedSet pReachedSet, FunctionEntryNode pEntryNode, ARGCPA pARTCPA, int pProductAutomatonIndex, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton) {
 
-    if (pReachedSet.isEmpty() || isDegeneratedAutomaton(pCurrentAutomaton)) {
+    assert !isDegeneratedAutomaton(pCurrentAutomaton) && !isDegeneratedAutomaton(pPreviousAutomaton);
+
+    if (pReachedSet.isEmpty()/* || isDegeneratedAutomaton(pCurrentAutomaton)*/) {
       AbstractState lInitialElement = pARTCPA.getInitialState(pEntryNode);
       Precision lInitialPrecision = pARTCPA.getInitialPrecision(pEntryNode);
 
       pReachedSet.add(lInitialElement, lInitialPrecision);
     }
-    else if (isDegeneratedAutomaton(pPreviousAutomaton)) {
+    /*else if (isDegeneratedAutomaton(pPreviousAutomaton)) {
       if (pReachedSet.size() != 1) {
         throw new RuntimeException();
       }
@@ -72,7 +74,7 @@ public class ARTReuse {
       }
 
       pReachedSet.reAddToWaitlist(pReachedSet.getFirstState());
-    }
+    }*/
     else {
       if (pPreviousAutomaton == null) {
         throw new RuntimeException();
