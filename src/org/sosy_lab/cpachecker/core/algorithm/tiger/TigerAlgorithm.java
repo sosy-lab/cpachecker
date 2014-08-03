@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
@@ -79,8 +80,8 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.ToGuarde
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -120,6 +121,9 @@ public class TigerAlgorithm implements Algorithm {
   @Option(name = "printARGperGoal", description = "Print the ARG for each test goal")
   private boolean printARGperGoal = false;
 
+  @Option(name = "checkCoverage", description = "Checks whether a test case for one goal covers another test goal")
+  private boolean checkCoverage = true;
+
   private LogManager logger;
   private StartupConfig startupConfig;
 
@@ -134,6 +138,13 @@ public class TigerAlgorithm implements Algorithm {
   private GuardedEdgeLabel mOmegaLabel;
   private InverseGuardedEdgeLabel mInverseAlphaLabel;
 
+  // TODO replace by a proper class
+  class TestCase {
+    List<CFAEdge> path = null;
+  }
+
+  private List<TestCase> testsuite;
+
   public TigerAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, ShutdownNotifier pShutdownNotifier,
       CFA pCfa, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
 
@@ -144,6 +155,8 @@ public class TigerAlgorithm implements Algorithm {
 
     cpa = pCpa;
     cfa = pCfa;
+
+    testsuite = new LinkedList<>(); // TODO use array list?
 
 
     assert originalMainFunction != null;
@@ -253,6 +266,21 @@ public class TigerAlgorithm implements Algorithm {
   private boolean testGeneration(int goalIndex, ElementaryCoveragePattern pTestGoalPattern) throws CPAException, InterruptedException {
     ElementaryCoveragePattern lGoalPattern = pTestGoalPattern;
     Goal lGoal = constructGoal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,  optimizeGoalAutomata);
+
+
+    if (checkCoverage) {
+      for (TestCase testcase : testsuite) {
+        if (TigerAlgorithm.accepts(lGoal.getAutomaton(), testcase.path).equals(ThreeValuedAnswer.ACCEPT)) {
+          // test goal is already covered by an existing test case
+          logger.logf(Level.INFO, "Test goal %d is already covered by an existing test case.", goalIndex);
+
+          // TODO map this goal to the existing test case
+
+          return true;
+        }
+      }
+    }
+
 
     GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton());
 
@@ -379,18 +407,75 @@ public class TigerAlgorithm implements Algorithm {
           logger.logf(Level.WARNING, "Counterexample is spurious!");
         }
         else {
-          System.out.println(cex.getTargetPath());
+          TestCase testcase = new TestCase();
+          testcase.path = cex.getTargetPath().asEdgesList();
+          testsuite.add(testcase);
 
-          Model model = cex.getTargetPathModel();
+          //System.out.println(cex.getTargetPath());
 
-          System.out.println("Model:" + model.size());
-          System.out.println(model.toString());
+          //System.out.println("just for fun: " + TigerAlgorithm.accepts(lGoal.getAutomaton(), cex.getTargetPath().asEdgesList()));
+
+          //Model model = cex.getTargetPathModel();
+
+          //System.out.println("Model:" + model.size());
+          //System.out.println(model.toString());
         }
       }
     }
 
 
     return analysisWasSound;
+  }
+
+  public static ThreeValuedAnswer accepts(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, List<CFAEdge> pCFAPath) {
+    Set<NondeterministicFiniteAutomaton.State> lCurrentStates = new HashSet<>();
+    Set<NondeterministicFiniteAutomaton.State> lNextStates = new HashSet<>();
+
+    lCurrentStates.add(pAutomaton.getInitialState());
+
+    boolean lHasPredicates = false;
+
+    for (CFAEdge lCFAEdge : pCFAPath) {
+      for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
+        // Automaton accepts as soon as it sees a final state (implicit self-loop)
+        if (pAutomaton.getFinalStates().contains(lCurrentState)) {
+          return ThreeValuedAnswer.ACCEPT;
+        }
+
+        for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pAutomaton.getOutgoingEdges(lCurrentState)) {
+          GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();
+
+          if (lLabel.hasGuards()) {
+            lHasPredicates = true;
+          }
+          else {
+            if (lLabel.contains(lCFAEdge)) {
+              lNextStates.add(lOutgoingEdge.getTarget());
+            }
+          }
+        }
+      }
+
+      lCurrentStates.clear();
+
+      Set<NondeterministicFiniteAutomaton.State> lTmp = lCurrentStates;
+      lCurrentStates = lNextStates;
+      lNextStates = lTmp;
+    }
+
+    for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
+      // Automaton accepts as soon as it sees a final state (implicit self-loop)
+      if (pAutomaton.getFinalStates().contains(lCurrentState)) {
+        return ThreeValuedAnswer.ACCEPT;
+      }
+    }
+
+    if (lHasPredicates) {
+      return ThreeValuedAnswer.UNKNOWN;
+    }
+    else {
+      return ThreeValuedAnswer.REJECT;
+    }
   }
 
   /**
