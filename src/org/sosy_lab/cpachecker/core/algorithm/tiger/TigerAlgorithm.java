@@ -80,6 +80,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.ToGuarde
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ARTReuse;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -124,6 +125,9 @@ public class TigerAlgorithm implements Algorithm {
   @Option(name = "checkCoverage", description = "Checks whether a test case for one goal covers another test goal")
   private boolean checkCoverage = true;
 
+  @Option(name = "reuseARG", description = "Reuse ARG across test goals")
+  private boolean reuseARG = true;
+
   private LogManager logger;
   private StartupConfig startupConfig;
 
@@ -144,6 +148,7 @@ public class TigerAlgorithm implements Algorithm {
   }
 
   private List<TestCase> testsuite;
+  ReachedSet reachedSet = null;
 
   public TigerAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, ShutdownNotifier pShutdownNotifier,
       CFA pCfa, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
@@ -249,44 +254,61 @@ public class TigerAlgorithm implements Algorithm {
 
     int goalIndex = 0;
 
-    for (ElementaryCoveragePattern lTestGoalPattern : pTestGoalPatterns) {
-      logger.logf(Level.INFO, "Processing next test goal.");
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel> previousAutomaton = null;
 
-      if (!testGeneration(goalIndex, lTestGoalPattern)) {
+    for (ElementaryCoveragePattern lTestGoalPattern : pTestGoalPatterns) {
+      goalIndex++;
+
+      logger.logf(Level.INFO, "Processing test goal %d of %d.", goalIndex, pTestGoalPatterns.length);
+
+      Goal lGoal = constructGoal(lTestGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,  optimizeGoalAutomata);
+
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> currentAutomaton = lGoal.getAutomaton();
+
+      if (ARTReuse.isDegeneratedAutomaton(currentAutomaton)) {
+        // current goal is for sure infeasible
+        logger.logf(Level.INFO, "Test goal infeasible.");
+        continue; // we do not want to modify the ARG for the degenerated automaton to keep more reachability information
+      }
+
+      if (checkCoverage) {
+        boolean wasCovered = false;
+
+        for (TestCase testcase : testsuite) {
+          ThreeValuedAnswer isCovered = TigerAlgorithm.accepts(currentAutomaton, testcase.path);
+          if (isCovered.equals(ThreeValuedAnswer.ACCEPT)) {
+            // test goal is already covered by an existing test case
+            logger.logf(Level.INFO, "Test goal %d is already covered by an existing test case.", goalIndex);
+
+            // TODO map this goal to the existing test case
+
+            wasCovered = true;
+
+            break;
+          }
+          else if (isCovered.equals(ThreeValuedAnswer.UNKNOWN)) {
+            logger.logf(Level.WARNING, "Coverage check for goal %d could not be performed in a precise way!", goalIndex);
+          }
+        }
+
+        if (wasCovered) {
+          continue;
+        }
+      }
+
+      if (!runReachabilityAnalysis(goalIndex, currentAutomaton, previousAutomaton)) {
         logger.logf(Level.WARNING, "Analysis run was unsound!");
         wasSound = false;
       }
 
-      goalIndex++;
+      previousAutomaton = currentAutomaton;
     }
 
     return wasSound;
   }
 
-  private boolean testGeneration(int goalIndex, ElementaryCoveragePattern pTestGoalPattern) throws CPAException, InterruptedException {
-    ElementaryCoveragePattern lGoalPattern = pTestGoalPattern;
-    Goal lGoal = constructGoal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,  optimizeGoalAutomata);
-
-
-    if (checkCoverage) {
-      for (TestCase testcase : testsuite) {
-        ThreeValuedAnswer isCovered = TigerAlgorithm.accepts(lGoal.getAutomaton(), testcase.path);
-        if (isCovered.equals(ThreeValuedAnswer.ACCEPT)) {
-          // test goal is already covered by an existing test case
-          logger.logf(Level.INFO, "Test goal %d is already covered by an existing test case.", goalIndex);
-
-          // TODO map this goal to the existing test case
-
-          return true;
-        }
-        else if (isCovered.equals(ThreeValuedAnswer.UNKNOWN)) {
-          logger.logf(Level.WARNING, "Coverage check for goal %d could not be performed in a precise way!", goalIndex);
-        }
-      }
-    }
-
-
-    GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton());
+  private boolean runReachabilityAnalysis(int goalIndex, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pGoalAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousGoalAutomaton) throws CPAException, InterruptedException {
+    GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(pGoalAutomaton);
 
 
     List<ConfigurableProgramAnalysis> lAutomatonCPAs = new ArrayList<>(1);//(2);
@@ -302,6 +324,7 @@ public class TigerAlgorithm implements Algorithm {
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<>();
     // TODO what is the more efficient order for the CPAs? Can we substitute a placeholder CPA? or inject an automaton in to an automaton CPA?
     //int lProductAutomatonIndex = lComponentAnalyses.size();
+    int lProductAutomatonIndex = lComponentAnalyses.size();
     lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false));
     lComponentAnalyses.add(cpa);
 
@@ -329,14 +352,17 @@ public class TigerAlgorithm implements Algorithm {
       throw new RuntimeException(e);
     }
 
-    // TODO implement reuse of ARGs
-    ReachedSet pReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.BFS); // TODO why does TOPSORT not exist anymore?
+    if (reuseARG && (reachedSet != null)) {
+      ARTReuse.modifyReachedSet(reachedSet, cfa.getMainFunction(), lARTCPA, lProductAutomatonIndex, pPreviousGoalAutomaton, pGoalAutomaton);
+    }
+    else {
+      reachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.BFS); // TODO why does TOPSORT not exist anymore?
 
-    AbstractState lInitialElement = lARTCPA.getInitialState(cfa.getMainFunction());
-    Precision lInitialPrecision = lARTCPA.getInitialPrecision(cfa.getMainFunction());
+      AbstractState lInitialElement = lARTCPA.getInitialState(cfa.getMainFunction());
+      Precision lInitialPrecision = lARTCPA.getInitialPrecision(cfa.getMainFunction());
 
-    pReachedSet.add(lInitialElement, lInitialPrecision);
-
+      reachedSet.add(lInitialElement, lInitialPrecision);
+    }
 
     ShutdownNotifier algNotifier = ShutdownNotifier.createWithParent(startupConfig.getShutdownNotifier());
 
@@ -375,13 +401,13 @@ public class TigerAlgorithm implements Algorithm {
     cegarAlg.collectStatistics(lStatistics);
 
 
-    boolean analysisWasSound = cegarAlg.run(pReachedSet);
+    boolean analysisWasSound = cegarAlg.run(reachedSet);
 
     if (printARGperGoal) {
       Path argFile = Paths.get("output", "ARG_goal_" + goalIndex + ".dot");
 
       try (Writer w = Files.openOutputFile(argFile)) {
-        ARGUtils.writeARGAsDot(w, (ARGState) pReachedSet.getFirstState());
+        ARGUtils.writeARGAsDot(w, (ARGState) reachedSet.getFirstState());
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
       }
@@ -426,7 +452,6 @@ public class TigerAlgorithm implements Algorithm {
         }
       }
     }
-
 
     return analysisWasSound;
   }
