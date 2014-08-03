@@ -83,6 +83,9 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ARTReuse;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssignments;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -326,7 +329,15 @@ public class TigerAlgorithm implements Algorithm {
     //int lProductAutomatonIndex = lComponentAnalyses.size();
     int lProductAutomatonIndex = lComponentAnalyses.size();
     lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false));
-    lComponentAnalyses.add(cpa);
+
+    // TODO experiment
+    if (cpa instanceof CompositeCPA) {
+      CompositeCPA compositeCPA = (CompositeCPA)cpa;
+      lComponentAnalyses.addAll(compositeCPA.getWrappedCPAs());
+    }
+    else {
+      lComponentAnalyses.add(cpa);
+    }
 
 
     ARGCPA lARTCPA;
@@ -443,12 +454,15 @@ public class TigerAlgorithm implements Algorithm {
 
           //System.out.println(cex.getTargetPath());
 
-          //System.out.println("just for fun: " + TigerAlgorithm.accepts(lGoal.getAutomaton(), cex.getTargetPath().asEdgesList()));
+          Model model = cex.getTargetPathModel();
 
-          //Model model = cex.getTargetPathModel();
+          System.out.println("Model:" + model.size());
+          System.out.println(model.toString());
 
-          //System.out.println("Model:" + model.size());
-          //System.out.println(model.toString());
+          CFAPathWithAssignments path = model.getAssignedTermsPerEdge();
+          for (CFAEdgeWithAssignments edge : path) {
+            System.out.println(edge.getAssignments());
+          }
         }
       }
     }
