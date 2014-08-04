@@ -40,6 +40,7 @@
     <withoutfile>Assert1_true_assert</withoutfile>
     <withoutfile>Assert2_true_assert</withoutfile>
     <withoutfile>BigDouble_true_assert</withoutfile>
+    <withoutfile>BooleanOperators_true_assert</withoutfile>
     <withoutfile>CastMixedExpression_true_assert</withoutfile>
     <withoutfile>Casts_true_assert</withoutfile>
     <withoutfile>CompareObjectReferences_true_assert</withoutfile>
@@ -62,6 +63,7 @@
     <withoutfile>Loop6_true_assert</withoutfile>
     <withoutfile>Loop7_true_assert</withoutfile>
     <withoutfile>Loop8_true_assert</withoutfile>
+    <withoutfile>NumberOperators_true_assert</withoutfile>
     <withoutfile>Readable</withoutfile>
     <withoutfile>SuperClass</withoutfile>
     <withoutfile>Switch2_false_assert</withoutfile>
