@@ -31,15 +31,19 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
@@ -83,9 +87,8 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ARTReuse;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
-import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssignments;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -147,7 +150,51 @@ public class TigerAlgorithm implements Algorithm {
 
   // TODO replace by a proper class
   class TestCase {
-    List<CFAEdge> path = null;
+
+    private List<BigInteger> inputs;
+    private List<CFAEdge> path;
+
+    public TestCase(List<BigInteger> pInputs, List<CFAEdge> pPath) {
+      inputs = pInputs;
+      path = pPath;
+    }
+
+    public List<CFAEdge> getPath() {
+      return path;
+    }
+
+    public List<BigInteger> getInputs() {
+      return inputs;
+    }
+
+    public String toCode() {
+      String str = "int input() {\n  static int index = 0;\n  switch (index) {\n";
+
+      int index = 0;
+      for (BigInteger input : inputs) {
+        str += "  case " + index + ":\n    index++;\n    return " + input + ";\n";
+        index++;
+      }
+
+      str += "  default:\n    return 0;\n  }\n}\n";
+
+      return str;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (o instanceof TestCase) {
+        TestCase other = (TestCase)o;
+        return (inputs.equals(other.inputs) && path.equals(other.path));
+      }
+
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return 38495 + 33 * inputs.hashCode() + 13 * path.hashCode();
+    }
   }
 
   private List<TestCase> testsuite;
@@ -278,7 +325,7 @@ public class TigerAlgorithm implements Algorithm {
         boolean wasCovered = false;
 
         for (TestCase testcase : testsuite) {
-          ThreeValuedAnswer isCovered = TigerAlgorithm.accepts(currentAutomaton, testcase.path);
+          ThreeValuedAnswer isCovered = TigerAlgorithm.accepts(currentAutomaton, testcase.getPath());
           if (isCovered.equals(ThreeValuedAnswer.ACCEPT)) {
             // test goal is already covered by an existing test case
             logger.logf(Level.INFO, "Test goal %d is already covered by an existing test case.", goalIndex);
@@ -448,21 +495,47 @@ public class TigerAlgorithm implements Algorithm {
           logger.logf(Level.WARNING, "Counterexample is spurious!");
         }
         else {
-          TestCase testcase = new TestCase();
-          testcase.path = cex.getTargetPath().asEdgesList();
-          testsuite.add(testcase);
-
-          //System.out.println(cex.getTargetPath());
-
           Model model = cex.getTargetPathModel();
 
-          System.out.println("Model:" + model.size());
-          System.out.println(model.toString());
+          Comparator<Map.Entry<Model.AssignableTerm, Object>> comp = new Comparator<Map.Entry<Model.AssignableTerm, Object>>() {
 
-          CFAPathWithAssignments path = model.getAssignedTermsPerEdge();
-          for (CFAEdgeWithAssignments edge : path) {
-            System.out.println(edge.getAssignments());
+            @Override
+            public int compare(Entry<AssignableTerm, Object> pArg0, Entry<AssignableTerm, Object> pArg1) {
+              assert pArg0.getKey().getName().equals(pArg1.getKey().getName());
+              assert pArg0.getKey() instanceof Model.Variable;
+              assert pArg1.getKey() instanceof Model.Variable;
+
+              Model.Variable v0 = (Model.Variable)pArg0.getKey();
+              Model.Variable v1 = (Model.Variable)pArg1.getKey();
+
+              return (v0.getSSAIndex() - v1.getSSAIndex());
+            }
+
+          };
+
+          TreeSet<Map.Entry<Model.AssignableTerm, Object>> inputs = new TreeSet<>(comp);
+
+          for (Map.Entry<Model.AssignableTerm, Object> e : model.entrySet()) {
+            if (e.getKey() instanceof Model.Variable) {
+              Model.Variable v = (Model.Variable)e.getKey();
+
+              if (v.getName().equals("input::__retval__")) {
+                inputs.add(e);
+              }
+            }
           }
+
+          List<BigInteger> inputValues = new ArrayList<>(inputs.size());
+
+          for (Map.Entry<Model.AssignableTerm, Object> e : inputs) {
+            assert e.getValue() instanceof BigInteger;
+            inputValues.add((BigInteger)e.getValue());
+          }
+
+          TestCase testcase = new TestCase(inputValues, cex.getTargetPath().asEdgesList());
+          testsuite.add(testcase);
+
+          // TODO map test case to test goal
         }
       }
     }
