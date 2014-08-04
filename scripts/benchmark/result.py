@@ -161,7 +161,7 @@ def getResultCategory(filename, status, propertyFile=None):
 
           if not fileStatuses:
             category = CATEGORY_MISSING
-          elif all(prop is not PROP_REACH or s is status for (s, prop) in fileStatuses):
+          elif all(prop is not PROP_REACH or s in status for (s, prop) in fileStatuses):
             category = CATEGORY_CORRECT
           else:
             category = CATEGORY_WRONG
