@@ -34,6 +34,7 @@ import java.io.Writer;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -182,6 +183,11 @@ public class TigerAlgorithm implements Algorithm {
     }
 
     @Override
+    public String toString() {
+      return inputs.toString();
+    }
+
+    @Override
     public boolean equals(Object o) {
       if (o instanceof TestCase) {
         TestCase other = (TestCase)o;
@@ -197,7 +203,69 @@ public class TigerAlgorithm implements Algorithm {
     }
   }
 
-  private List<TestCase> testsuite;
+  class TestSuite {
+    private Map<TestCase, Set<Goal>> mapping;
+    private Set<Goal> infeasibleGoals;
+
+    public TestSuite() {
+      mapping = new HashMap<>();
+      infeasibleGoals = new HashSet<>();
+    }
+
+    public void addInfeasibleGoal(Goal goal) {
+      infeasibleGoals.add(goal);
+    }
+
+    public boolean addTestCase(TestCase testcase, Goal goal) {
+      Set<Goal> goals = mapping.get(testcase);
+
+      boolean testcaseExisted = true;
+
+      if (goals == null) {
+        goals = new HashSet<>();
+        mapping.put(testcase, goals);
+        testcaseExisted = false;
+      }
+
+      goals.add(goal);
+
+      return testcaseExisted;
+    }
+
+    public Set<TestCase> getTestCases() {
+      return mapping.keySet();
+    }
+
+    @Override
+    public String toString() {
+      StringBuffer str = new StringBuffer();
+
+      for (Map.Entry<TestCase, Set<Goal>> entry : mapping.entrySet()) {
+        str.append(entry.getKey().toString());
+        str.append("\n");
+
+        for (Goal goal : entry.getValue()) {
+          str.append(goal.getPattern().toString());
+          str.append("\n");
+        }
+
+        str.append("\n");
+      }
+
+      str.append("infeasible:\n");
+
+      for (Goal goal : infeasibleGoals) {
+        str.append(goal.getPattern().toString());
+        str.append("\n");
+      }
+
+      str.append("\n");
+
+      return str.toString();
+    }
+  }
+
+  private TestSuite testsuite;
   ReachedSet reachedSet = null;
 
   public TigerAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, ShutdownNotifier pShutdownNotifier,
@@ -211,7 +279,7 @@ public class TigerAlgorithm implements Algorithm {
     cpa = pCpa;
     cfa = pCfa;
 
-    testsuite = new LinkedList<>(); // TODO use array list?
+    testsuite = new TestSuite();
 
 
     assert originalMainFunction != null;
@@ -271,6 +339,7 @@ public class TigerAlgorithm implements Algorithm {
     }
 
     // TODO write generated test suite and mapping to file system
+    System.out.println(testsuite);
 
     return wasSound;
   }
@@ -324,13 +393,13 @@ public class TigerAlgorithm implements Algorithm {
       if (checkCoverage) {
         boolean wasCovered = false;
 
-        for (TestCase testcase : testsuite) {
+        for (TestCase testcase : testsuite.getTestCases()) {
           ThreeValuedAnswer isCovered = TigerAlgorithm.accepts(currentAutomaton, testcase.getPath());
           if (isCovered.equals(ThreeValuedAnswer.ACCEPT)) {
             // test goal is already covered by an existing test case
             logger.logf(Level.INFO, "Test goal %d is already covered by an existing test case.", goalIndex);
 
-            // TODO map this goal to the existing test case
+            testsuite.addTestCase(testcase, lGoal);
 
             wasCovered = true;
 
@@ -346,7 +415,7 @@ public class TigerAlgorithm implements Algorithm {
         }
       }
 
-      if (!runReachabilityAnalysis(goalIndex, currentAutomaton, previousAutomaton)) {
+      if (!runReachabilityAnalysis(goalIndex, lGoal, previousAutomaton)) {
         logger.logf(Level.WARNING, "Analysis run was unsound!");
         wasSound = false;
       }
@@ -357,8 +426,8 @@ public class TigerAlgorithm implements Algorithm {
     return wasSound;
   }
 
-  private boolean runReachabilityAnalysis(int goalIndex, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pGoalAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousGoalAutomaton) throws CPAException, InterruptedException {
-    GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(pGoalAutomaton);
+  private boolean runReachabilityAnalysis(int goalIndex, Goal pGoal, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousGoalAutomaton) throws CPAException, InterruptedException {
+    GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(pGoal.getAutomaton());
 
 
     List<ConfigurableProgramAnalysis> lAutomatonCPAs = new ArrayList<>(1);//(2);
@@ -411,7 +480,7 @@ public class TigerAlgorithm implements Algorithm {
     }
 
     if (reuseARG && (reachedSet != null)) {
-      ARTReuse.modifyReachedSet(reachedSet, cfa.getMainFunction(), lARTCPA, lProductAutomatonIndex, pPreviousGoalAutomaton, pGoalAutomaton);
+      ARTReuse.modifyReachedSet(reachedSet, cfa.getMainFunction(), lARTCPA, lProductAutomatonIndex, pPreviousGoalAutomaton, pGoal.getAutomaton());
     }
     else {
       reachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.BFS); // TODO why does TOPSORT not exist anymore?
@@ -477,6 +546,7 @@ public class TigerAlgorithm implements Algorithm {
       // test goal is not feasible
       logger.logf(Level.INFO, "Test goal infeasible.");
 
+      testsuite.addInfeasibleGoal(pGoal);
       // TODO add missing soundness checks!
     }
     else {
@@ -519,7 +589,7 @@ public class TigerAlgorithm implements Algorithm {
             if (e.getKey() instanceof Model.Variable) {
               Model.Variable v = (Model.Variable)e.getKey();
 
-              if (v.getName().equals("input::__retval__")) {
+              if (v.getName().equals(TigerAlgorithm.CPAtiger_INPUT + "::__retval__")) {
                 inputs.add(e);
               }
             }
@@ -533,10 +603,7 @@ public class TigerAlgorithm implements Algorithm {
           }
 
           TestCase testcase = new TestCase(inputValues, cex.getTargetPath().asEdgesList());
-          testsuite.add(testcase);
-          System.out.println(testcase.toCode());
-
-          // TODO map test case to test goal
+          testsuite.addTestCase(testcase, pGoal);
         }
       }
     }
