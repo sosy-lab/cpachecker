@@ -45,7 +45,9 @@ public interface Value {
   /** True if we deterministically know the actual value, false otherwise. */
   public boolean isExplicitlyKnown();
 
-  /** Return the NumericValue if this is a numeric value, null otherwise. **/
+  /** Returns the NumericValue if the stored value can be explicitly represented
+   * by a numeric value, null otherwise.
+   **/
   public NumericValue asNumericValue();
 
   /** Return the long value if this is a long value, null otherwise. **/
