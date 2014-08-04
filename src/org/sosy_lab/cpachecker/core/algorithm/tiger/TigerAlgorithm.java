@@ -534,6 +534,7 @@ public class TigerAlgorithm implements Algorithm {
 
           TestCase testcase = new TestCase(inputValues, cex.getTargetPath().asEdgesList());
           testsuite.add(testcase);
+          System.out.println(testcase.toCode());
 
           // TODO map test case to test goal
         }
@@ -616,6 +617,7 @@ public class TigerAlgorithm implements Algorithm {
 
   // TODO move all these wrapper related code into TigerAlgorithmUtil class
   public static final String CPAtiger_MAIN = "__CPAtiger__main";
+  public static final String CPAtiger_INPUT = "input";
 
   public static FileToParse getWrapperCFunction(CFunctionEntryNode pMainFunction) throws IOException {
 
@@ -626,7 +628,11 @@ public class TigerAlgorithm implements Algorithm {
 
     lWriter.println(pMainFunction.getFunctionDefinition().toASTString());
     lWriter.println();
-    lWriter.println("int __VERIFIER_nondet_int();");
+    lWriter.println("extern int __VERIFIER_nondet_int();");
+    lWriter.println();
+    lWriter.println("int " +  CPAtiger_INPUT + "() {");
+    lWriter.println("  return __VERIFIER_nondet_int();");
+    lWriter.println("}");
     lWriter.println();
     lWriter.println("void " + CPAtiger_MAIN + "()");
     lWriter.println("{");
@@ -637,7 +643,7 @@ public class TigerAlgorithm implements Algorithm {
 
     for (CParameterDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
       // TODO do we need to handle lDeclaration more specifically?
-      lWriter.println("  " + lDeclaration.getName() + " = __VERIFIER_nondet_int();");
+      lWriter.println("  " + lDeclaration.getName() + " = " +  CPAtiger_INPUT + "();");
     }
 
     lWriter.println();
@@ -659,6 +665,7 @@ public class TigerAlgorithm implements Algorithm {
     lWriter.println(");");
     lWriter.println("  return;");
     lWriter.println("}");
+    lWriter.println();
 
     File f = File.createTempFile(CPAtiger_MAIN, ".c", null);
     f.deleteOnExit();
