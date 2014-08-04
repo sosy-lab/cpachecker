@@ -135,6 +135,9 @@ public class TigerAlgorithm implements Algorithm {
   @Option(name = "reuseARG", description = "Reuse ARG across test goals")
   private boolean reuseARG = true;
 
+  @Option(name = "testsuiteFile", description = "Filename for output of generated test suite")
+  private String testsuiteFile = "output/teststuite.txt";
+
   private LogManager logger;
   private StartupConfig startupConfig;
 
@@ -204,12 +207,12 @@ public class TigerAlgorithm implements Algorithm {
   }
 
   class TestSuite {
-    private Map<TestCase, Set<Goal>> mapping;
-    private Set<Goal> infeasibleGoals;
+    private Map<TestCase, List<Goal>> mapping;
+    private List<Goal> infeasibleGoals;
 
     public TestSuite() {
       mapping = new HashMap<>();
-      infeasibleGoals = new HashSet<>();
+      infeasibleGoals = new LinkedList<>();
     }
 
     public void addInfeasibleGoal(Goal goal) {
@@ -217,12 +220,12 @@ public class TigerAlgorithm implements Algorithm {
     }
 
     public boolean addTestCase(TestCase testcase, Goal goal) {
-      Set<Goal> goals = mapping.get(testcase);
+      List<Goal> goals = mapping.get(testcase);
 
       boolean testcaseExisted = true;
 
       if (goals == null) {
-        goals = new HashSet<>();
+        goals = new LinkedList<>();
         mapping.put(testcase, goals);
         testcaseExisted = false;
       }
@@ -240,12 +243,12 @@ public class TigerAlgorithm implements Algorithm {
     public String toString() {
       StringBuffer str = new StringBuffer();
 
-      for (Map.Entry<TestCase, Set<Goal>> entry : mapping.entrySet()) {
+      for (Map.Entry<TestCase, List<Goal>> entry : mapping.entrySet()) {
         str.append(entry.getKey().toString());
         str.append("\n");
 
         for (Goal goal : entry.getValue()) {
-          str.append(goal.getPattern().toString());
+          str.append(goal.getIndex());
           str.append("\n");
         }
 
@@ -255,7 +258,7 @@ public class TigerAlgorithm implements Algorithm {
       str.append("infeasible:\n");
 
       for (Goal goal : infeasibleGoals) {
-        str.append(goal.getPattern().toString());
+        str.append(goal.getIndex());
         str.append("\n");
       }
 
@@ -338,8 +341,13 @@ public class TigerAlgorithm implements Algorithm {
       wasSound = false;
     }
 
-    // TODO write generated test suite and mapping to file system
-    System.out.println(testsuite);
+    // write generated test suite and mapping to file system
+    try (Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(testsuiteFile), "utf-8"))) {
+      writer.write(testsuite.toString());
+      writer.close();
+    } catch (IOException e){
+      throw new RuntimeException(e);
+    }
 
     return wasSound;
   }
@@ -380,7 +388,7 @@ public class TigerAlgorithm implements Algorithm {
 
       logger.logf(Level.INFO, "Processing test goal %d of %d.", goalIndex, pTestGoalPatterns.length);
 
-      Goal lGoal = constructGoal(lTestGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,  optimizeGoalAutomata);
+      Goal lGoal = constructGoal(goalIndex, lTestGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,  optimizeGoalAutomata);
 
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> currentAutomaton = lGoal.getAutomaton();
 
@@ -671,13 +679,13 @@ public class TigerAlgorithm implements Algorithm {
    * @param pUseAutomatonOptimization
    * @return
    */
-  private Goal constructGoal(ElementaryCoveragePattern pGoalPattern, GuardedEdgeLabel pAlphaLabel,
+  private Goal constructGoal(int pIndex, ElementaryCoveragePattern pGoalPattern, GuardedEdgeLabel pAlphaLabel,
       GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel, boolean pUseAutomatonOptimization) {
 
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton = ToGuardedAutomatonTranslator.toAutomaton(pGoalPattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel);
     automaton = FQLSpecificationUtil.optimizeAutomaton(automaton, pUseAutomatonOptimization);
 
-    Goal lGoal = new Goal(pGoalPattern, automaton);
+    Goal lGoal = new Goal(pIndex, pGoalPattern, automaton);
 
     return lGoal;
   }

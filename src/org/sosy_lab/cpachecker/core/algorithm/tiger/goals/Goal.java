@@ -33,18 +33,23 @@ public class Goal {
 
   private ElementaryCoveragePattern mPattern;
   private NondeterministicFiniteAutomaton<GuardedEdgeLabel> mAutomaton;
+  private int mIndex;
 
-  public Goal(ElementaryCoveragePattern pPattern, GuardedEdgeLabel pAlphaLabel, GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel) {
+  public Goal(int pIndex, ElementaryCoveragePattern pPattern, GuardedEdgeLabel pAlphaLabel, GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel) {
+    mIndex = pIndex;
     mPattern = pPattern;
     mAutomaton = ToGuardedAutomatonTranslator.toAutomaton(mPattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel);
   }
 
-
-  public Goal(ElementaryCoveragePattern pPattern, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
+  public Goal(int pIndex, ElementaryCoveragePattern pPattern, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
+    mIndex = pIndex;
     mPattern = pPattern;
     mAutomaton = pAutomaton;
   }
 
+  public int getIndex() {
+    return mIndex;
+  }
 
   public ElementaryCoveragePattern getPattern() {
     return mPattern;
