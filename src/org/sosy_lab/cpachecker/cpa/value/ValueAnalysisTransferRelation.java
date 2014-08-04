@@ -454,7 +454,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
       return element;
 
-    } else if ((truthValue && value.equals(new NumericValue(1L))) || (!truthValue && value.equals(new NumericValue(0L)))) {
+    } else if (representsBoolean(value, truthValue)) {
       // we do not know more than before, and the assumption is fulfilled, so return a copy of the old state
       // we need to return a copy, otherwise precision adjustment might reset too much information, even on the original state
       return state.clone();
@@ -462,6 +462,31 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     } else {
       // assumption not fulfilled
       return null;
+    }
+  }
+
+  /*
+   *  returns 'true' if the given value represents the specified boolean bool.
+   *  A return of 'false' does not necessarily mean that the given value represents !bool,
+   *  but only that it does not represent bool.
+   *
+   *  For example:
+   *    * representsTrue(BooleanValue.valueOf(true), true)  = true
+   *    * representsTrue(BooleanValue.valueOf(false), true) = false
+   *  but:
+   *    * representsTrue(NullValue.getInstance(), true)     = false
+   *    * representsTrue(NullValue.getInstance(), false)    = false
+   *
+   */
+  private boolean representsBoolean(Value value, boolean bool) {
+    if (value instanceof BooleanValue) {
+      return ((BooleanValue) value).isTrue() == bool;
+
+    } else if (value.isNumericValue()) {
+      return ((NumericValue) value).equals(new NumericValue(bool ? 1L : 0L));
+
+    } else {
+      return false;
     }
   }
 
