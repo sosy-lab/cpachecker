@@ -392,6 +392,7 @@ public class CFACreator {
         MutableCFAWithOptionalLoopStructure cfaWithLoopStructure =
             CFASingleLoopTransformation.getSingleLoopTransformation(logger, config, shutdownNotifier).apply(cfa, loopStructure);
         cfa = cfaWithLoopStructure.getCFA();
+        mainFunction = cfa.getMainFunction();
         if (cfaWithLoopStructure.isLoopStructurePresent()) {
           loopStructure = Optional.of(cfaWithLoopStructure.getLoopStructure());
         }
