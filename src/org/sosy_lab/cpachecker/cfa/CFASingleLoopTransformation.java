@@ -99,7 +99,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -221,7 +220,8 @@ public class CFASingleLoopTransformation {
    * @throws InvalidConfigurationException if the configuration this transformer was created with is invalid.
    * @throws InterruptedException if a shutdown has been requested by the registered shutdown notifier.
    */
-  public ImmutableCFA apply(CFA pInputCFA, Optional<ImmutableMultimap<String, Loop>> pLoopStructure, Optional<VariableClassification> pVarClassification) throws InvalidConfigurationException, InterruptedException {
+  public MutableCFAWithOptionalLoopStructure apply(MutableCFA pInputCFA, Optional<ImmutableMultimap<String, Loop>> pLoopStructure) throws InvalidConfigurationException, InterruptedException {
+
     // If the transformation is not necessary, return the original graph
     if (pLoopStructure.isPresent()) {
       Collection<Loop> loops = pLoopStructure.get().values();
@@ -232,7 +232,7 @@ public class CFASingleLoopTransformation {
             || from(singleLoop.getIncomingEdges()).filter(not(instanceOf(CFunctionReturnEdge.class))).size() > 1;
       }
       if (!modificationRequired) {
-        return toImmutableCFA(pInputCFA, pLoopStructure, pVarClassification);
+        return new MutableCFAWithOptionalLoopStructure(pInputCFA, pLoopStructure);
       }
     }
 
@@ -748,7 +748,7 @@ public class CFASingleLoopTransformation {
    * @throws InvalidConfigurationException if the configuration is invalid.
    * @throws InterruptedException if a shutdown has been requested by the registered shutdown notifier.
    */
-  private ImmutableCFA buildCFA(FunctionEntryNode pStartNode, CFANode pLoopHead,
+  private MutableCFAWithOptionalLoopStructure buildCFA(FunctionEntryNode pStartNode, CFANode pLoopHead,
       MachineModel pMachineModel, Language pLanguage) throws InvalidConfigurationException, InterruptedException {
 
     SortedMap<String, FunctionEntryNode> functions = new TreeMap<>();
@@ -766,14 +766,8 @@ public class CFASingleLoopTransformation {
     Optional<ImmutableMultimap<String, Loop>> loopStructure =
         getLoopStructure(pLoopHead);
 
-    // Get information about variables, required by some analyses
-    final Optional<VariableClassification> varClassification
-        = loopStructure.isPresent()
-        ? Optional.of(new VariableClassification(cfa, config, logger, loopStructure.get()))
-        : Optional.<VariableClassification>absent();
-
     // Finalize the transformed CFA
-    return cfa.makeImmutableCFA(loopStructure, varClassification);
+    return new MutableCFAWithOptionalLoopStructure(cfa, loopStructure);
   }
 
   /**
@@ -831,24 +825,6 @@ public class CFASingleLoopTransformation {
       }).toList();
     }
     return allNodes;
-  }
-
-  private ImmutableCFA toImmutableCFA(CFA pCFA,
-      Optional<ImmutableMultimap<String, Loop>> pLoopStructure,
-      Optional<VariableClassification> pVarClassification) throws InterruptedException {
-    if (pCFA instanceof ImmutableCFA) {
-      return (ImmutableCFA) pCFA;
-    }
-    final MutableCFA mutableCFA;
-    if (pCFA instanceof MutableCFA) {
-      mutableCFA = (MutableCFA) pCFA;
-    } else {
-      SortedMap<String, FunctionEntryNode> functions = new TreeMap<>();
-      SortedSetMultimap<String, CFANode> allNodes = mapNodesToFunctions(pCFA.getMainFunction(), functions);
-      mutableCFA = new MutableCFA(pCFA.getMachineModel(), functions, allNodes,
-          pCFA.getMainFunction(), pCFA.getLanguage());
-    }
-    return mutableCFA.makeImmutableCFA(pLoopStructure, pVarClassification);
   }
 
   /**
@@ -2568,6 +2544,64 @@ public class CFASingleLoopTransformation {
      */
     public Collection<Integer> getProgramCounterValues() {
       return Collections.unmodifiableSet(enteringPCValueAssignmentEdges.keySet());
+    }
+
+  }
+
+  /**
+   * A tuple of a CFA and an optional accompanying loop structure for the CFA.
+   */
+  public static class MutableCFAWithOptionalLoopStructure {
+
+    /**
+     * The CFA.
+     */
+    private final MutableCFA cfa;
+
+    /**
+     * If present, the loop structure of the CFA.
+     */
+    private final Optional<ImmutableMultimap<String, Loop>> loopStructure;
+
+    /**
+     * Creates a new tuple of the given CFA and (optional) loop structure.
+     *
+     * @param pCfa
+     * @param pLoopStructure
+     */
+    public MutableCFAWithOptionalLoopStructure(MutableCFA pCfa, Optional<ImmutableMultimap<String, Loop>> pLoopStructure) {
+      this.cfa = pCfa;
+      this.loopStructure = pLoopStructure;
+    }
+
+    /**
+     * Gets the CFA.
+     *
+     * @return the CFA.
+     */
+    public MutableCFA getCFA() {
+      return this.cfa;
+    }
+
+    /**
+     * Checks if the loop structure is present.
+     *
+     * @return {@code true} if the loop structure is present, {@code false}
+     * otherwise.
+     */
+    public boolean isLoopStructurePresent() {
+      return this.loopStructure.isPresent();
+    }
+
+    /**
+     * Gets the loop structure.
+     *
+     * @return the loop structure.
+     *
+     * @throws IllegalStateException of no loop structure is present.
+     */
+    public ImmutableMultimap<String, Loop> getLoopStructure() {
+      return this.loopStructure.get();
     }
 
   }

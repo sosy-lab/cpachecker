@@ -52,6 +52,7 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.CFASingleLoopTransformation.MutableCFAWithOptionalLoopStructure;
 import org.sosy_lab.cpachecker.cfa.CParser.FileToParse;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -386,8 +387,18 @@ public class CFACreator {
         }
       }
 
+      // optionally transform CFA so that there is only one single loop
+      if (transformIntoSingleLoop) {
+        MutableCFAWithOptionalLoopStructure cfaWithLoopStructure =
+            CFASingleLoopTransformation.getSingleLoopTransformation(logger, config, shutdownNotifier).apply(cfa, loopStructure);
+        cfa = cfaWithLoopStructure.getCFA();
+        if (cfaWithLoopStructure.isLoopStructurePresent()) {
+          loopStructure = Optional.of(cfaWithLoopStructure.getLoopStructure());
+        }
+      }
+
       // SIXTH, get information about the CFA,
-      // the cfa should not be modified after this line (TODO except SingleLoopTransformation).
+      // the cfa should not be modified after this line.
 
       // Get information about variables, needed for some analysis.
       final Optional<VariableClassification> varClassification
@@ -397,19 +408,7 @@ public class CFACreator {
 
       stats.processingTime.stop();
 
-      final ImmutableCFA immutableCFA;
-
-      if (transformIntoSingleLoop) {
-        // special part of code, returns a transformed copy of the CFA.
-        // TODO SLTransformation contains some code copied from the lines above. Is this necessary?
-        stats.processingTime.start();
-        immutableCFA = CFASingleLoopTransformation.getSingleLoopTransformation(logger, config, shutdownNotifier).apply(cfa, loopStructure, varClassification);
-        mainFunction = immutableCFA.getMainFunction();
-        assert mainFunction != null;
-        stats.processingTime.stop();
-      } else {
-        immutableCFA = cfa.makeImmutableCFA(loopStructure, varClassification);
-      }
+      final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(loopStructure, varClassification);
 
       // check the super CFA starting at the main function
       stats.checkTime.start();
