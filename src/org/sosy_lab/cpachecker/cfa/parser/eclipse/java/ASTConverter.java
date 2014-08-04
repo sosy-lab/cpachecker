@@ -1733,7 +1733,7 @@ public class ASTConverter {
 
 
     return new JUnaryExpression(fileLoc, convert(e.resolveTypeBinding()),
-                                            operand, convertUnaryOperator(op));
+                                            operand, convert(op));
   }
 
   private JAstNode convert(PostfixExpression e) {
@@ -1790,7 +1790,7 @@ public class ASTConverter {
 
 
 
-  private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
+  private UnaryOperator convert(PrefixExpression.Operator op) {
 
     if (op.equals(PrefixExpression.Operator.NOT)) {
       return UnaryOperator.NOT;
@@ -1812,7 +1812,7 @@ public class ASTConverter {
     JType type = convert(e.resolveTypeBinding());
     JExpression leftHandSide = convertExpressionWithoutSideEffects(e.getLeftOperand());
 
-    BinaryOperator op = convertBinaryOperator(e.getOperator());
+    BinaryOperator op = convert(e.getOperator());
 
     JExpression rightHandSide = convertExpressionWithoutSideEffects(e.getRightOperand());
 
@@ -1821,7 +1821,7 @@ public class ASTConverter {
 
     JExpression binaryExpression = new JBinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
 
-    // a x b x c is being translated to (((a x b) x c) x d)
+    // a x b x c x d is being translated to (((a x b) x c) x d)
     if (e.hasExtendedOperands()) {
 
       @SuppressWarnings("unchecked")
@@ -1836,7 +1836,7 @@ public class ASTConverter {
     return binaryExpression;
   }
 
-  private BinaryOperator convertBinaryOperator(InfixExpression.Operator op) {
+  private BinaryOperator convert(InfixExpression.Operator op) {
 
     if (op.equals(InfixExpression.Operator.PLUS)) {
       return BinaryOperator.PLUS;
