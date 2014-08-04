@@ -119,6 +119,18 @@ JNIEXPORT void JNICALL Java_org_sosy_1lab_cpachecker_util_octagon_OctWrapper_J_1
 	oct_mm_free(num);
 }
 
+JNIEXPORT void JNICALL Java_org_sosy_1lab_cpachecker_util_octagon_OctWrapper_J_1get_1bounds
+(JNIEnv *env, jobject obj, jlong octl, jint pos, jlong upper, jlong lower){
+    oct_t *oct = (oct_t*) octl;
+    oct_get_bounds(oct, pos, (num_t *) upper, (num_t *) lower);
+}
+
+JNIEXPORT jlong JNICALL Java_org_sosy_1lab_cpachecker_util_octagon_OctWrapper_J_1set_1bounds
+(JNIEnv *env, jobject obj, jlong octl, jint pos, jlong upper, jlong lower, jboolean dest){
+    oct_t *oct = (oct_t*) octl;
+    return (jlong) oct_set_bounds(oct, pos, (const num_t *) upper, (const num_t *) lower, dest);
+}
+
 JNIEXPORT jlong JNICALL Java_org_sosy_1lab_cpachecker_util_octagon_OctWrapper_J_1empty
 (JNIEnv *env, jobject obj, jint in){
 	return  (jlong) oct_empty ((var_t)in);

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -50,7 +50,7 @@ public class JFieldDeclaration extends JVariableDeclaration {
 
   private static final boolean IS_FIELD = true;
   private static final JDeclaration UNRESOLVED_DECLARATION = new JFieldDeclaration(
-      new FileLocation(0, "", 0, 0, 0),
+      FileLocation.DUMMY,
       new JSimpleType(JBasicType.UNSPECIFIED), "_unresolved_", "_unresolved_", false,
       false, false, false, VisibilityModifier.NONE);
 
@@ -66,7 +66,7 @@ public class JFieldDeclaration extends JVariableDeclaration {
       boolean pIsFinal, boolean pIsStatic,
       boolean pIsTransient, boolean pIsVolatile,
       VisibilityModifier pVisibility) {
-    super(pFileLocation, IS_FIELD, pType, pName, pName, null, pIsFinal);
+    super(pFileLocation, IS_FIELD, pType, pName, pName, pName, null, pIsFinal);
 
     isTransient = pIsTransient;
     isVolatile =  pIsVolatile;
@@ -179,7 +179,7 @@ public class JFieldDeclaration extends JVariableDeclaration {
       VisibilityModifier pVisibility) {
 
     return new JFieldDeclaration(
-        new FileLocation(0, "", 0, 0, 0),
+        FileLocation.DUMMY,
         pType, pName, pSimpleName, pIsFinal, pIsStatic, pIsTransient, pIsVolatile, pVisibility);
   }
 

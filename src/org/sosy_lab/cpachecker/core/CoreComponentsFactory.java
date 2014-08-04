@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,11 +27,11 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithPropertyCheck;
@@ -47,6 +47,8 @@ import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
@@ -96,7 +98,7 @@ public class CoreComponentsFactory {
       description="restart the analysis using a different configuration after unknown result")
   private boolean useRestartingAlgorithm = false;
 
-  @Option(name="predicatedAnalysis",
+  @Option(name="algorithm.predicatedAnalysis",
       description="use a predicated analysis which proves if the program satisfies a specified property"
           + " with the help of a PredicateCPA to separate differnt program paths")
   private boolean usePredicatedAnalysisAlgorithm = false;
@@ -110,9 +112,17 @@ public class CoreComponentsFactory {
       + "if reached set fulfills property specified by ConfigurableProgramAnalysisWithPropertyChecker")
   private boolean usePropertyCheckingAlgorithm = false;
 
+  @Option(name="algorithm.testGen",
+      description = "use the TestGen Algorithm")
+  private boolean useTestGenAlgorithm = false;
+
   @Option(name="checkProof",
       description = "do analysis and then check analysis result")
   private boolean useResultCheckAlgorithm = false;
+
+  @Option(name="algorithm.tiger",
+      description = "Use Test Input GEneRator algorithm (Information Reuse for Multi-Goal Reachability Analyses, ESOP'13)")
+  private boolean useTigerAlgorithm = false;
 
   private final Configuration config;
   private final LogManager logger;
@@ -150,7 +160,7 @@ public class CoreComponentsFactory {
       algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
 
     } else {
-      algorithm = new CPAAlgorithm(cpa, logger, config, shutdownNotifier);
+      algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
       if(usePredicatedAnalysisAlgorithm){
         algorithm = new PredicatedAnalysisAlgorithm(algorithm, cpa, cfa, logger, config, shutdownNotifier);
@@ -178,6 +188,14 @@ public class CoreComponentsFactory {
 
       if (useAdjustableConditions) {
         algorithm = new RestartWithConditionsAlgorithm(algorithm, cpa, config, logger);
+      }
+
+      if (useTestGenAlgorithm) {
+        algorithm = new TestGenAlgorithm(algorithm, cpa, shutdownNotifier, cfa, config, logger);
+      }
+
+      if (useTigerAlgorithm) {
+        algorithm = new TigerAlgorithm(algorithm, cpa, shutdownNotifier, cfa, config, logger);
       }
 
       if (usePropertyCheckingAlgorithm) {

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,24 +32,29 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
-import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
+import org.sosy_lab.cpachecker.cpa.value.refiner.UnsoundRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -65,7 +70,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     private final Timer totalTimer = new Timer();
     private final Timer refinementTimer = new Timer();
 
-    private volatile int countRefinements = 0;
+    public volatile int countRefinements = 0;
     private int countSuccessfulRefinements = 0;
     private int countFailedRefinements = 0;
 
@@ -95,8 +100,8 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         out.println("");
         out.println("Total time for CEGAR algorithm:   " + totalTimer);
         out.println("Time for refinements:             " + refinementTimer);
-        out.println("Average time for refinement:      " + refinementTimer.printAvgTime());
-        out.println("Max time for refinement:          " + refinementTimer.printMaxTime());
+        out.println("Average time for refinement:      " + refinementTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
+        out.println("Max time for refinement:          " + refinementTimer.getMaxTime().formatAs(TimeUnit.SECONDS));
       }
     }
   }
@@ -221,26 +226,40 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
     boolean isComplete        = true;
     int initialReachedSetSize = reached.size();
-    
+    boolean refinedInPreviousIteration = false;
     stats.totalTimer.start();
     try {
       boolean refinementSuccessful;
       do {
         refinementSuccessful = false;
-        
+
         // run algorithm
         isComplete &= algorithm.run(reached);
 
         // if there is any target state do refinement
         if (refinementNecessary(reached)) {
-
           refinementSuccessful = refine(reached);
-
+          refinedInPreviousIteration = true;
           // assert that reached set is free of target states,
-          // if refinement was successful and initial reached set was empty (i.e. stopAfterError=true) 
+          // if refinement was successful and initial reached set was empty (i.e. stopAfterError=true)
           if (refinementSuccessful && initialReachedSetSize == 1) {
             assert !from(reached).anyMatch(IS_TARGET_STATE);
           }
+        }
+
+        // restart exploration for unsound refiners, as due to unsound refinement
+        // a sound over-approximation has to be found for proving safety
+        else if(mRefiner instanceof UnsoundRefiner) {
+          if(!refinedInPreviousIteration) {
+            break;
+          }
+
+          ARGState firstChild = ((ARGState)reached.getFirstState()).getChildren().iterator().next();
+          new ARGReachedSet(reached).removeSubtree(firstChild,
+              ((UnsoundRefiner)mRefiner).getGlobalPrecision(),
+              ValueAnalysisPrecision.class);
+          refinementSuccessful        = true;
+          refinedInPreviousIteration  = false;
         }
 
       } while (refinementSuccessful);

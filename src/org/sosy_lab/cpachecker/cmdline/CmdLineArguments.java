@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,10 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
-import java.io.BufferedReader;
 import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -35,20 +32,20 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.configuration.OptionCollector;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.util.PropertyFileParser;
+import org.sosy_lab.cpachecker.util.PropertyFileParser.InvalidPropertyFileException;
+import org.sosy_lab.cpachecker.util.PropertyFileParser.PropertyType;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
 /**
@@ -63,12 +60,16 @@ class CmdLineArguments {
   /**
    * Exception thrown when something invalid is specified on the command line.
    */
-  static class InvalidCmdlineArgumentException extends Exception {
+  public static class InvalidCmdlineArgumentException extends Exception {
 
     private static final long serialVersionUID = -6526968677815416436L;
 
     private InvalidCmdlineArgumentException(final String msg) {
       super(msg);
+    }
+
+    public InvalidCmdlineArgumentException(String msg, Throwable cause) {
+      super(msg, cause);
     }
   }
 
@@ -89,6 +90,8 @@ class CmdLineArguments {
 
   private static final Pattern SPECIFICATION_FILES_PATTERN = DEFAULT_CONFIG_FILES_PATTERN;
   private static final String SPECIFICATION_FILES_TEMPLATE = "config/specification/%s.spc";
+  private static final String REACHABILITY_LABEL_SPECIFICATION_FILE = "config/specification/sv-comp.spc";
+  private static final String REACHABILITY_SPECIFICATION_FILE = "config/specification/sv-comp-reachability.spc";
 
   private static final Pattern PROPERTY_FILE_PATTERN = Pattern.compile("(.)+\\.prp");
 
@@ -116,22 +119,6 @@ class CmdLineArguments {
           || handleArgument0("-32",      "analysis.machineModel", "Linux32",    arg, properties)
           || handleArgument0("-64",      "analysis.machineModel", "Linux64",    arg, properties)
           || handleArgument0("-preprocess",    "parser.usePreprocessor", "true", arg, properties)
-
-          || handleArgument0("-pedantic", "cpatiger.simulation.stopOnImpreciseExecution", "true", arg, properties) // stop if simulation encounters an imprecise execution
-          || handleArgument0("-bb",  "cpatiger.fqlquery.bb",  "true", arg, properties) // use basic block coverage as FQL query
-          || handleArgument0("-bb2", "cpatiger.fqlquery.bb2", "true", arg, properties) // use (basic block)^2 coverage as FQL query
-          || handleArgument0("-bb3", "cpatiger.fqlquery.bb3", "true", arg, properties) // use (basic block)^3 coverage as FQL query
-          || handleArgument0("-printcfa", "cpatiger.printcfas", "true", arg, properties) // export CFAs as dot files
-
-           || handleArgument0("-summaries", "cpatiger.summaries", "true", arg, properties)   // use summaries for removed stats
-
-          || handleArgument0("-pred", "cpatiger.predicate", "true", arg, properties)   // predicate analysis
-          || handleArgument0("-expsim", "cpatiger.explicit_simple", "true", arg, properties) // simple explicit analysis (no refinement)
-          || handleArgument0("-expref", "cpatiger.explicit_ref", "true", arg, properties)    // explicit analysis with refinement
-          || handleArgument0("-exppred", "cpatiger.explicit_predicate", "true", arg, properties)    // explicit with predicate analysis
-
-          || handleArgument0("-noreuse", "cpatiger.noreuse", "true", arg, properties)    // don't reuse reachability information
-
           || handleArgument1("-outputpath",    "output.path",             arg, argsIt, properties)
           || handleArgument1("-logfile",       "log.file",                arg, argsIt, properties)
           || handleArgument1("-entryfunction", "analysis.entryFunction",  arg, argsIt, properties)
@@ -140,12 +127,7 @@ class CmdLineArguments {
           || handleArgument1("-sourcepath",    "java.sourcepath",         arg, argsIt, properties)
           || handleArgument1("-cp",            "java.classpath",          arg, argsIt, properties)
           || handleArgument1("-classpath",     "java.classpath",          arg, argsIt, properties)
-
-          || handleArgument1("-rtimelimit", "cpatiger.timelimit", arg, argsIt, properties) // time limit for a single analysis
-          || handleArgument1("-fql", "cpatiger.fqlquery", arg, argsIt, properties) // FQL query
-          || handleArgument1("-goal", "cpatiger.goal", arg, argsIt, properties) // process only the given goal
-
-          //|| handleMultipleArgument1("-spec",  "specification",           arg, argsIt, properties)
+          || handleMultipleArgument1("-spec",  "specification",           arg, argsIt, properties)
       ) {
         // nothing left to do
       } else if (arg.equals("-cmc")) {
@@ -270,14 +252,6 @@ class CmdLineArguments {
   private static void printHelp() {
     System.out.println("CPAchecker " + CPAchecker.getVersion());
     System.out.println();
-    System.out.println();
-    System.out.println("ANALYSIS TYPE:");
-    System.out.println("-pred");
-    System.out.println("-expsim");
-    System.out.println("-expref");
-    System.out.println("-exppred");
-    System.out.println();
-
     System.out.println("OPTIONS:");
     System.out.println(" -config");
     System.out.println(" -cpas");
@@ -286,7 +260,6 @@ class CmdLineArguments {
     System.out.println(" -logfile");
     System.out.println(" -entryfunction");
     System.out.println(" -timelimit");
-    System.out.println(" -rtimelimit");
     System.out.println(" -cbmc");
     System.out.println(" -stats");
     System.out.println(" -nolog");
@@ -376,26 +349,33 @@ class CmdLineArguments {
             Path propertyFile = Paths.get(newValue);
             if (propertyFile.toFile().exists()) {
               PropertyFileParser parser = new PropertyFileParser(propertyFile);
-              parser.parse();
-              putIfNotExistent(options, "analysis.entryFunction", parser.entryFunction);
+              try {
+                parser.parse();
+              } catch (InvalidPropertyFileException e) {
+                throw new InvalidCmdlineArgumentException("Invalid property file: " + e.getMessage(), e);
+              }
+              putIfNotExistent(options, "analysis.entryFunction", parser.getEntryFunction());
 
               // set the file from where to read the specification automaton
-              Set<PropertyType> properties = parser.properties;
+              Set<PropertyType> properties = parser.getProperties();
               assert !properties.isEmpty();
 
               if (properties.equals(EnumSet.of(PropertyType.VALID_DEREF,
                                                PropertyType.VALID_FREE,
                                                PropertyType.VALID_MEMTRACK))) {
                 putIfNotExistent(options, "memorysafety.check", "true");
+                newValue = null;
+
+              } else if (properties.equals(EnumSet.of(PropertyType.REACHABILITY_LABEL))) {
+                newValue = REACHABILITY_LABEL_SPECIFICATION_FILE;
 
               } else if (properties.equals(EnumSet.of(PropertyType.REACHABILITY))) {
-                // no change needed
+                newValue = REACHABILITY_SPECIFICATION_FILE;
 
               } else {
                 System.err.println("Checking for the properties " + properties + " is currently not supported by CPAchecker.");
                 System.exit(0);
               }
-              newValue = null;
             }
 
             else {
@@ -458,79 +438,5 @@ class CmdLineArguments {
     }
 
     return null;
-  }
-
-  /**
-   * A simple class that reads a property, i.e. basically an entry function and a proposition, from a given property,
-   * and maps the proposition to a file from where to read the specification automaton.
-   */
-  private static class PropertyFileParser {
-    private final Path propertyFile;
-
-    private String entryFunction;
-    private final EnumSet<PropertyType> properties = EnumSet.noneOf(PropertyType.class);
-
-    private static final Pattern PROPERTY_PATTERN =
-        Pattern.compile("CHECK\\( init\\((" + CFACreator.VALID_C_FUNCTION_NAME_PATTERN + ")\\(\\)\\), LTL\\((.+)\\) \\)");
-
-    private PropertyFileParser(final Path pPropertyFile) {
-      propertyFile = pPropertyFile;
-    }
-
-    private void parse() throws InvalidCmdlineArgumentException {
-      String rawProperty = null;
-      try (BufferedReader br = propertyFile.asCharSource(Charset.defaultCharset()).openBufferedStream()) {
-        while ((rawProperty = br.readLine()) != null) {
-          if (!rawProperty.isEmpty()) {
-            properties.add(parsePropertyLine(rawProperty));
-          }
-        }
-      } catch (IOException e) {
-        throw new InvalidCmdlineArgumentException("The given property file could not be read: " + e.getMessage());
-      }
-
-      if (properties.isEmpty()) {
-        throw new InvalidCmdlineArgumentException("Property file does not specify any property to verify.");
-      }
-    }
-
-    private PropertyType parsePropertyLine(String rawProperty) throws InvalidCmdlineArgumentException {
-      Matcher matcher = PROPERTY_PATTERN.matcher(rawProperty);
-
-      if (rawProperty == null || !matcher.matches() || matcher.groupCount() != 2) {
-        throw new InvalidCmdlineArgumentException(String.format(
-            "The given property '%s' is not well-formed!", rawProperty));
-      }
-
-      if (entryFunction == null) {
-        entryFunction = matcher.group(1);
-      } else if (!entryFunction.equals(matcher.group(1))) {
-        throw new InvalidCmdlineArgumentException(String.format(
-            "Property file specifies two different entry functions %s and %s.", entryFunction, matcher.group(1)));
-      }
-
-      PropertyType property = PropertyType.AVAILABLE_PROPERTIES.get(matcher.group(2));
-      if (property == null) {
-        throw new InvalidCmdlineArgumentException(String.format(
-            "The property '%s' given in the property file is not supported.", matcher.group(2)));
-      }
-      return property;
-    }
-  }
-
-  private enum PropertyType {
-    REACHABILITY,
-    VALID_FREE,
-    VALID_DEREF,
-    VALID_MEMTRACK,
-    ;
-
-    private static ImmutableMap<String, PropertyType> AVAILABLE_PROPERTIES = ImmutableMap.of(
-        "G ! label(ERROR)", PropertyType.REACHABILITY,
-        "G valid-free",     PropertyType.VALID_FREE,
-        "G valid-deref",    PropertyType.VALID_DEREF,
-        "G valid-memtrack", PropertyType.VALID_MEMTRACK
-        );
-
   }
 }

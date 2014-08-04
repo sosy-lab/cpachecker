@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,11 +37,6 @@ public class NondeterministicFiniteAutomaton<T> {
 
     private State(int pId) {
       ID = pId;
-    }
-
-    @Override
-    public String toString(){
-      return String.valueOf(ID);
     }
 
   }
@@ -175,17 +170,6 @@ public class NondeterministicFiniteAutomaton<T> {
       }
 
       return false;
-    }
-
-
-    @Override
-    public String toString(){
-      if (mLabel != null){
-        return mSource + " -[" + mLabel + "]> " + mTarget;
-      } else {
-        return mSource + " -[Lambda]> " + mTarget;
-      }
-
     }
   }
 
@@ -357,7 +341,7 @@ public class NondeterministicFiniteAutomaton<T> {
   public String toString() {
     StringBuilder lBuffer = new StringBuilder();
 
-    lBuffer.append("Initial State: " + getInitialState() + "\n");
+    lBuffer.append("Initial State: " + getInitialState().ID + "\n");
 
     lBuffer.append("Final States: { ");
 
@@ -370,13 +354,23 @@ public class NondeterministicFiniteAutomaton<T> {
         lBuffer.append(", ");
       }
 
-      lBuffer.append(lFinalState);
+      lBuffer.append(lFinalState.ID);
     }
 
     lBuffer.append(" }\n");
 
     for (Edge lEdge : getEdges()) {
-      lBuffer.append(lEdge.toString());
+      T lLabel = lEdge.getLabel();
+
+      String lLabelString;
+
+      if (lLabel != null) {
+        lLabelString = lLabel.toString();
+      } else {
+        lLabelString = "Lambda";
+      }
+
+      lBuffer.append(lEdge.getSource().ID + " -[" + lLabelString + "]> " + lEdge.getTarget().ID);
       lBuffer.append("\n");
     }
 

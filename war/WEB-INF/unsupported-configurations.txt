@@ -1,0 +1,20 @@
+# This file is a blacklist that contains all configurations (.properties files)
+# that are not supported by CPAchecker on Google App Engine.
+CBMC.properties
+chc.properties
+explicitAnalysis-no-cbmc-bam.properties
+explicitAnalysis-no-cbmc.properties
+lddAnalysis.properties
+octagonAnalysis.properties
+predicateAnalysis-use-cmc-condition.properties
+separationlogic.properties
+explicitAnalysis-java-with-RTT.properties
+explicitAnalysis-java.properties
+predicateAnalysis-proofcheck.properties
+predicateAnalysis-proofgen.properties
+predicateAnalysis-bitprecise.properties
+predicateAnalysis-Invariants.properties
+predicateAnalysis-PredAbsRefiner-ABEl-bitprecise.properties
+sv-comp14--02-challenge.properties
+sv-comp14--05-predicateAnalysis-bitprecise.properties
+sv-comp14--cex-check-predicateAnalysis-bitprecise.properties

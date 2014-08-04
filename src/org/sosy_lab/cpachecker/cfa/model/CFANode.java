@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,14 +28,11 @@ import static com.google.common.base.Preconditions.*;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.common.primitives.Ints;
-
 public class CFANode implements Comparable<CFANode> {
 
   private static int nextNodeNumber = 0;
 
   private final int nodeNumber;
-  private final int lineNumber;
 
   private final List<CFAEdge> leavingEdges = new ArrayList<>(1);
   private final List<CFAEdge> enteringEdges = new ArrayList<>(1);
@@ -53,16 +50,11 @@ public class CFANode implements Comparable<CFANode> {
   // reverse postorder sort id, smaller if it appears later in sorting
   private int reversePostorderId = 0;
 
-  public CFANode(int pLineNumber, String pFunctionName) {
+  public CFANode(String pFunctionName) {
     assert !pFunctionName.isEmpty();
 
-    lineNumber = pLineNumber;
     functionName = pFunctionName;
     nodeNumber = nextNodeNumber++;
-  }
-
-  public int getLineNumber() {
-    return lineNumber;
   }
 
   public int getNodeNumber() {
@@ -190,6 +182,6 @@ public class CFANode implements Comparable<CFANode> {
 
   @Override
   public int compareTo(CFANode pOther) {
-    return Ints.compare(this.nodeNumber, pOther.nodeNumber);
+    return Integer.compare(this.nodeNumber, pOther.nodeNumber);
   }
 }

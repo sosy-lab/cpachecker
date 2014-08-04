@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -76,8 +76,14 @@ class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRu
 
   private final Set<String> printedWarnings = Sets.newHashSet();
 
+  private boolean foundUndefinedIdentifiers = false;
+
   CheckBindingVisitor(LogManager pLogger) {
     logger = pLogger;
+  }
+
+  public boolean foundUndefinedIdentifiers() {
+    return foundUndefinedIdentifiers;
   }
 
   @Override
@@ -117,6 +123,7 @@ class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRu
     if (e.getDeclaration() == null) {
       if (printedWarnings.add(e.getName())) {
         logger.log(Level.WARNING, "Undefined identifier", e.getName(), "found, first referenced in line", e.getFileLocation().getStartingLineNumber());
+        foundUndefinedIdentifiers = true;
       }
     }
     return null;

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,12 +35,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import javax.management.JMException;
 
-import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -50,16 +49,12 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -67,9 +62,8 @@ import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.coverage.CoveragePrinter;
-import org.sosy_lab.cpachecker.coverage.CoveragePrinterGcov;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.coverage.CoverageInformation;
 import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
@@ -79,6 +73,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
+import com.google.common.collect.Ordering;
 
 @Options
 class MainCPAStatistics implements Statistics {
@@ -102,13 +97,12 @@ class MainCPAStatistics implements Statistics {
   @Option(name="coverage.file",
       description="print coverage info to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputCoverageFile = Paths.get("coverage.info");
+  private Path outputCoverageFile = Paths.get("coverage.%s.info");
 
   @Option(name="statistics.memory",
     description="track memory usage of JVM during runtime")
   private boolean monitorMemoryUsage = true;
 
-  private final String programNames;
   private final LogManager logger;
   private final Collection<Statistics> subStats;
   private final MemoryStatistics memStats;
@@ -125,17 +119,15 @@ class MainCPAStatistics implements Statistics {
   private Statistics cfaCreatorStatistics;
   private CFA cfa;
 
-  public MainCPAStatistics(Configuration config, LogManager pLogger, String pProgramNames) throws InvalidConfigurationException {
+  public MainCPAStatistics(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     logger = pLogger;
     config.inject(this);
-    programNames = pProgramNames;
 
     subStats = new ArrayList<>();
 
     if (monitorMemoryUsage) {
       memStats = new MemoryStatistics(pLogger);
-      memStatsThread = Threads.newThread(memStats, "CPAchecker memory statistics collector");
-      memStatsThread.setDaemon(true);
+      memStatsThread = Threads.newThread(memStats, "CPAchecker memory statistics collector", true);
       memStatsThread.start();
     } else {
       memStats = null;
@@ -242,8 +234,8 @@ class MainCPAStatistics implements Statistics {
 
       printSubStatistics(out, result, reached);
 
-      if (exportCoverage && outputCoverageFile != null) {
-        printCoverageInfo(reached);
+      if (exportCoverage && outputCoverageFile != null && cfa != null) {
+        CoverageInformation.writeCoverageInfo(outputCoverageFile, reached, cfa, logger);
       }
     }
 
@@ -268,106 +260,6 @@ class MainCPAStatistics implements Statistics {
     out.println();
 
     printMemoryStatistics(out);
-  }
-
-  private void printCoverageInfo(ReachedSet reached) {
-    if (cfa == null) {
-      return;
-    }
-
-    Set<CFANode> locations = getAllLocationsFromReached(reached);
-
-    CoveragePrinter printer = new CoveragePrinterGcov();
-
-    //Add information about visited locations and functions
-    for (CFANode node : locations) {
-      printer.addVisitedLine(node.getLineNumber());
-      printer.addVisitedFunction(node.getFunctionName());
-    }
-
-    for (CFANode node : cfa.getAllNodes()) {
-      if (node.getNumLeavingEdges() == 1 && node.getLeavingEdge(0) instanceof CDeclarationEdge) {
-        //We don't mark all global definitions
-        CDeclarationEdge declEdge = (CDeclarationEdge) node.getLeavingEdge(0);
-        if (declEdge.getDeclaration().isGlobal()) {
-          continue;
-        }
-      }
-
-      //We don't mark last line - "}"
-      if (node instanceof FunctionExitNode) {
-        continue;
-      }
-
-      printer.addExistingLine(node.getLineNumber());
-
-      //This part adds lines, which are only on edges, such as "return" or "goto"
-      for (CFAEdge pEdge : CFAUtils.leavingEdges(node)) {
-        if (pEdge instanceof CDeclarationEdge) {
-          continue;
-        }
-        int line = pEdge.getLineNumber();
-        CFANode predessor = pEdge.getPredecessor();
-        CFANode successor = pEdge.getSuccessor();
-
-        if (pEdge instanceof AStatementEdge) {
-          FileLocation location = ((AStatementEdge)pEdge).getStatement().getFileLocation();
-          if (location.getStartingLineNumber() != location.getEndingLineNumber()) {
-            for (int j = location.getStartingLineNumber(); j <= location.getEndingLineNumber(); j++) {
-              printer.addExistingLine(j);
-              if (locations.contains(predessor) && locations.contains(successor)) {
-                printer.addVisitedLine(j);
-              }
-            }
-          }
-        }
-
-        printer.addExistingLine(line);
-
-        if (locations.contains(predessor) && locations.contains(successor)) {
-          printer.addVisitedLine(line);
-        }
-        if (pEdge instanceof MultiEdge) {
-          for (CFAEdge singleEdge : ((MultiEdge)pEdge).getEdges()) {
-            if (singleEdge instanceof CDeclarationEdge) {
-              continue;
-            }
-            line = singleEdge.getLineNumber();
-            printer.addExistingLine(line);
-            if (locations.contains(predessor) && locations.contains(successor)) {
-              printer.addVisitedLine(line);
-            }
-          }
-        }
-      }
-    }
-
-    //Now collect information about all functions
-    for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
-      printer.addExistingFunction(entryNode.getFunctionName(), entryNode.getLineNumber()
-          , entryNode.getExitNode().getLineNumber());
-    }
-
-    try (Writer out = Files.openOutputFile(outputCoverageFile)) {
-      printer.print(out, programNames);
-    } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Could not write coverage information to file");
-    }
-  }
-
-  private Set<CFANode> getAllLocationsFromReached(ReachedSet reached) {
-    if (reached instanceof ForwardingReachedSet) {
-      reached = ((ForwardingReachedSet)reached).getDelegate();
-    }
-    if (reached instanceof LocationMappedReachedSet) {
-      return ((LocationMappedReachedSet)reached).getLocations();
-
-    } else {
-      return from(reached)
-                  .transform(EXTRACT_LOCATION)
-                  .filter(notNull())
-                  .toSet();
-    }
   }
 
   private void dumpReachedSet(ReachedSet reached) {
@@ -456,6 +348,10 @@ class MainCPAStatistics implements Statistics {
         if (size > mostFrequentLocationCount) {
           mostFrequentLocationCount = size;
           mostFrequentLocation = location.getElement();
+
+        } else if (size == mostFrequentLocationCount) {
+          // use node with smallest number to have deterministic output
+          mostFrequentLocation = Ordering.natural().min(mostFrequentLocation, location.getElement());
         }
       }
     }
@@ -506,9 +402,9 @@ class MainCPAStatistics implements Statistics {
       cfaCreatorStatistics.printStatistics(out, result, reached);
     }
     out.println("Time for Analysis:            " + analysisTime);
-    out.println("CPU time for analysis:        " + Timer.formatTime(analysisCpuTime/1000/1000));
+    out.println("CPU time for analysis:        " + TimeSpan.ofNanos(analysisCpuTime).formatAs(TimeUnit.SECONDS));
     out.println("Total time for CPAchecker:    " + programTime);
-    out.println("Total CPU time for CPAchecker:" + Timer.formatTime(programCpuTime/1000/1000));
+    out.println("Total CPU time for CPAchecker:" + TimeSpan.ofNanos(programCpuTime).formatAs(TimeUnit.SECONDS));
   }
 
   private void printMemoryStatistics(PrintStream out) {
@@ -522,7 +418,9 @@ class MainCPAStatistics implements Statistics {
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
         }
-        memStats.printStatistics(out);
+        if (!memStatsThread.isAlive()) {
+          memStats.printStatistics(out);
+        }
       }
     }
   }

@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="900" memlimit="15000" cpuCores="2">
+<benchmark tool="cpachecker" timelimit="900" hardtimelimit="1000" memlimit="15000" cpuCores="2">
   <option name="-noout"/>
   <option name="-heap">13000M</option>
-  <option name="-spec">${sourcefile_path}/ALL.prp</option>
-  <requiredfiles>../programs/benchmarks/*/ALL.prp</requiredfiles>
+
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
   <sourcefiles name="Simple">
     <includesfile>../programs/benchmarks/Simple.set</includesfile>

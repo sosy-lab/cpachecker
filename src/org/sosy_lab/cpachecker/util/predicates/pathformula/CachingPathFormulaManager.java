@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,9 +28,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.Model;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -47,7 +47,9 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   private final PathFormulaManager delegate;
 
-  private final Map<Pair<CFAEdge, PathFormula>, Pair<PathFormula, ErrorConditions>> andFormulaCache
+  private final Map<Pair<CFAEdge, PathFormula>, Pair<PathFormula, ErrorConditions>> andFormulaWithConditionsCache
+            = new HashMap<>();
+  private final Map<Pair<CFAEdge, PathFormula>, PathFormula> andFormulaCache
             = new HashMap<>();
 
   private final Map<Pair<PathFormula, PathFormula>, PathFormula> orFormulaCache
@@ -64,14 +66,31 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException {
+  public Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException, InterruptedException {
 
     final Pair<CFAEdge, PathFormula> formulaCacheKey = Pair.of(pEdge, pOldFormula);
-    Pair<PathFormula, ErrorConditions> result = andFormulaCache.get(formulaCacheKey);
+    Pair<PathFormula, ErrorConditions> result = andFormulaWithConditionsCache.get(formulaCacheKey);
     if (result == null) {
       pathFormulaComputationTimer.start();
       // compute new pathFormula with the operation on the edge
       result = delegate.makeAndWithErrorConditions(pOldFormula, pEdge);
+      pathFormulaComputationTimer.stop();
+      andFormulaWithConditionsCache.put(formulaCacheKey, result);
+
+    } else {
+      pathFormulaCacheHits++;
+    }
+    return result;
+  }
+
+  @Override
+  public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException, InterruptedException {
+    final Pair<CFAEdge, PathFormula> formulaCacheKey = Pair.of(pEdge, pOldFormula);
+    PathFormula result = andFormulaCache.get(formulaCacheKey);
+    if (result == null) {
+      pathFormulaComputationTimer.start();
+      // compute new pathFormula with the operation on the edge
+      result = delegate.makeAnd(pOldFormula, pEdge);
       pathFormulaComputationTimer.stop();
       andFormulaCache.put(formulaCacheKey, result);
 
@@ -82,12 +101,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException {
-    return makeAndWithErrorConditions(pOldFormula, pEdge).getFirst();
-  }
-
-  @Override
-  public PathFormula makeOr(PathFormula pF1, PathFormula pF2) {
+  public PathFormula makeOr(PathFormula pF1, PathFormula pF2) throws InterruptedException {
     final Pair<PathFormula, PathFormula> formulaCacheKey = Pair.of(pF1, pF2);
 
     PathFormula result = orFormulaCache.get(formulaCacheKey);
@@ -136,13 +150,13 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException {
+  public PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException {
     return delegate.makeFormulaForPath(pPath);
   }
 
   @Override
   public BooleanFormula buildBranchingFormula(Iterable<ARGState> pElementsOnPath)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
     return delegate.buildBranchingFormula(pElementsOnPath);
   }
 

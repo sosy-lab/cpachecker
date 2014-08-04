@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,10 +24,11 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.util.Collection;
+import java.util.List;
 
-import org.sosy_lab.common.NestedTimer;
-import org.sosy_lab.common.Timer;
-import org.sosy_lab.cpachecker.core.Model;
+import org.sosy_lab.common.time.NestedTimer;
+import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 
@@ -59,10 +60,31 @@ public interface ProverEnvironment extends AutoCloseable {
   boolean isUnsat() throws InterruptedException;
 
   /**
+   * Perform the maximization of the variable {@code f}, subject to the
+   * constraints returned by the context.
+   *
+   * Optional operation, may not be supported by all solvers.
+   *
+   * @param f Variable to maximize.
+   * @param maximize Iff true, perform maximization. Minimization otherwise.
+   * @return Status of the optimization problem.
+   * The solution can be obtained from the model.
+   * @throws InterruptedException
+   * @throws UnsupportedOperationException If solver does not support optimization.
+   */
+  OptResult isOpt(Formula f, boolean maximize) throws InterruptedException, UnsupportedOperationException;
+
+  /**
    * Get a satisfying assignment.
    * This should be called only immediately after an {@link #isUnsat()} call that returned <code>false</code>.
    */
   Model getModel() throws SolverException;
+
+  /**
+   * Get an unsat core.
+   * This should be called only immediately after an {@link #isUnsat()} call that returned <code>false</code>.
+   */
+  List<BooleanFormula> getUnsatCore();
 
   /**
    * Get all satisfying assignments of the current environment with regards
@@ -94,5 +116,15 @@ public interface ProverEnvironment extends AutoCloseable {
      * {@link Integer#MAX_VALUE} if this number is infinite.
      */
     public int getCount();
+  }
+
+  /**
+   * Optimization result.
+   */
+  enum OptResult {
+    OPT, // All good, the solution was found.
+    UNSAT,  // SMT problem is unsatisfiable.
+    UNDEF, // The result is unknown.
+    UNBOUNDED // The optimization problem is unbounded.
   }
 }

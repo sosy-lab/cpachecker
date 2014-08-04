@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,6 +28,8 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 
+import com.google.common.base.Optional;
+
 /**
  * This class makes the return of an object reference to the caller of
  * an constructor explicit. Semantically, it is the equivalent of return this;
@@ -44,13 +46,8 @@ public class JObjectReferenceReturn extends JReturnStatement {
   private final JClassType classReference;
 
   public JObjectReferenceReturn(FileLocation pFileLocation, JClassType pClassReference) {
-    super(pFileLocation, new JThisExpression(pFileLocation, pClassReference));
+    super(pFileLocation, Optional.<JExpression>of(new JThisExpression(pFileLocation, pClassReference)));
     classReference = pClassReference;
-  }
-
-  @Override
-  public JThisExpression getReturnValue() {
-    return (JThisExpression) super.getReturnValue();
   }
 
   public JClassType getReturnClassType() {

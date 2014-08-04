@@ -1,0 +1,2 @@
+../programs/cpbm/scratch/*/*.cil.c
+../programs/benchmarks/seq-mthreaded/*.pals.c

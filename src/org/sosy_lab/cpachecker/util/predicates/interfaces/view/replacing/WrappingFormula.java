@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,7 +29,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
 
 abstract class WrappingFormula<TWrap extends Formula, TOut extends Formula> {
@@ -80,6 +81,15 @@ final class WrappingBitvectorFormula<TWrap extends Formula>
     implements BitvectorFormula {
 
   WrappingBitvectorFormula(FormulaType<BitvectorFormula> type, TWrap pToWrap) {
+    super(type, pToWrap);
+  }
+}
+
+final class WrappingIntegerFormula<TWrap extends Formula>
+    extends WrappingFormula<TWrap, IntegerFormula>
+    implements IntegerFormula {
+
+  WrappingIntegerFormula(FormulaType<IntegerFormula> type, TWrap pToWrap) {
     super(type, pToWrap);
   }
 }

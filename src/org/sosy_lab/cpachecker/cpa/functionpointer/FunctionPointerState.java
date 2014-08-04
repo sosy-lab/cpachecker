@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
+import static com.google.common.base.Objects.firstNonNull;
 import static com.google.common.base.Preconditions.*;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
@@ -33,7 +34,6 @@ import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Objects;
 
 /**
  * Represents one abstract state of the FunctionPointer CPA.
@@ -141,7 +141,7 @@ class FunctionPointerState implements AbstractState, Serializable {
 
     public FunctionPointerTarget getTarget(String variableName) {
       // default to UNKNOWN
-      return Objects.firstNonNull(values.get(variableName), UnknownTarget.getInstance());
+      return firstNonNull(values.get(variableName), UnknownTarget.getInstance());
     }
 
     void setTarget(String variableName, FunctionPointerTarget target) {
@@ -205,7 +205,7 @@ class FunctionPointerState implements AbstractState, Serializable {
 
   public FunctionPointerTarget getTarget(String variableName) {
     // default to UNKNOWN
-    return Objects.firstNonNull(pointerVariableValues.get(variableName), UnknownTarget.getInstance());
+    return firstNonNull(pointerVariableValues.get(variableName), UnknownTarget.getInstance());
   }
 
   public boolean isLessOrEqualThan(FunctionPointerState pElement) {

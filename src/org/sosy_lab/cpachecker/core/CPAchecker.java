@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,11 +30,11 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.AbstractMBean;
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -42,6 +42,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -61,10 +62,12 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-import com.google.common.base.Charsets;
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Resources;
 
 @Options(prefix="analysis")
@@ -128,7 +131,7 @@ public class CPAchecker {
     try {
       URL url = CPAchecker.class.getClassLoader().getResource("org/sosy_lab/cpachecker/VERSION.txt");
       if (url != null) {
-        String content = Resources.toString(url, Charsets.US_ASCII).trim();
+        String content = Resources.toString(url, StandardCharsets.US_ASCII).trim();
         if (content.matches("[a-zA-Z0-9 ._+:-]+")) {
           v = content;
         }
@@ -140,6 +143,12 @@ public class CPAchecker {
   }
 
   public static String getVersion() {
+    return getCPAcheckerVersion()
+        + " (" + StandardSystemProperty.JAVA_VM_NAME.value()
+        +  " " + StandardSystemProperty.JAVA_VERSION.value() + ")";
+  }
+
+  public static String getCPAcheckerVersion() {
     return version;
   }
 
@@ -160,12 +169,13 @@ public class CPAchecker {
     MainCPAStatistics stats = null;
     ReachedSet reached = null;
     Result result = Result.NOT_YET_STARTED;
+    Set<ViolatedProperty> violatedProperties = ImmutableSet.of();
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
     shutdownNotifier.register(interruptThreadOnShutdown);
 
     try {
-      stats = new MainCPAStatistics(config, logger, programDenotation);
+      stats = new MainCPAStatistics(config, logger);
 
       // create reached set, cpa, algorithm
       stats.creationTime.start();
@@ -184,6 +194,7 @@ public class CPAchecker {
         shutdownNotifier.shutdownIfNecessary();
 
         ConfigurableProgramAnalysis cpa = factory.createCPA(cfa, stats);
+        GlobalInfo.getInstance().storeCPA(cpa);
 
         algorithm = factory.createAlgorithm(cpa, programDenotation, cfa, stats);
 
@@ -202,7 +213,7 @@ public class CPAchecker {
       // now everything necessary has been instantiated
 
       if (disableAnalysis) {
-        return new CPAcheckerResult(Result.NOT_YET_STARTED, null, stats);
+        return new CPAcheckerResult(Result.NOT_YET_STARTED, violatedProperties, null, stats);
       }
 
       // run analysis
@@ -210,9 +221,14 @@ public class CPAchecker {
 
       boolean isComplete = runAlgorithm(algorithm, reached, stats);
 
-      result = analyzeResult(reached, isComplete);
-      if (unknownAsTrue && result == Result.UNKNOWN) {
-        result = Result.SAFE;
+      violatedProperties = findViolatedProperties(reached);
+      if (!violatedProperties.isEmpty()) {
+        result = Result.FALSE;
+      } else {
+        result = analyzeResult(reached, isComplete);
+        if (unknownAsTrue && result == Result.UNKNOWN) {
+          result = Result.TRUE;
+        }
       }
 
     } catch (IOException e) {
@@ -225,7 +241,7 @@ public class CPAchecker {
       if (e.getLanguage() == Language.C) {
         msg.append("If the code was not preprocessed, please use a C preprocessor\nor specify the -preprocess command-line argument.\n");
       }
-      msg.append("If the error still occurs, please send this error message\ntogether with the input file to cpachecker-users@sosy-lab.org.\n");
+      msg.append("If the error still occurs, please send this error message\ntogether with the input file to cpachecker-users@googlegroups.com.\n");
       logger.log(Level.INFO, msg);
 
     } catch (InvalidConfigurationException e) {
@@ -245,7 +261,7 @@ public class CPAchecker {
     } finally {
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
-    return new CPAcheckerResult(result, reached, stats);
+    return new CPAcheckerResult(result, violatedProperties, reached, stats);
   }
 
   private void checkIfOneValidFile(String fileDenotation) throws InvalidConfigurationException {
@@ -324,15 +340,18 @@ public class CPAchecker {
     }
   }
 
-  private Result analyzeResult(final ReachedSet reached, boolean isComplete) {
-    for (AbstractState s : from(reached).filter(IS_TARGET_STATE)) {
-      ViolatedProperty property = ((Targetable)s).getViolatedProperty();
-      if (property != ViolatedProperty.OTHER) {
-        logger.log(Level.WARNING, "Found violation of property", property);
-      }
-      return Result.UNSAFE;
-    }
+  private Set<ViolatedProperty> findViolatedProperties(final ReachedSet reached) {
+    return from(reached).filter(IS_TARGET_STATE)
+                        .transform(new Function<AbstractState, ViolatedProperty>() {
+                                    @Override
+                                    public ViolatedProperty apply(AbstractState s) {
+                                      return  ((Targetable)s).getViolatedProperty();
+                                    }
+                                  })
+                        .toSet();
+  }
 
+  private Result analyzeResult(final ReachedSet reached, boolean isComplete) {
     if (reached.hasWaitingState()) {
       logger.log(Level.WARNING, "Analysis not completed: there are still states to be processed.");
       return Result.UNKNOWN;
@@ -343,7 +362,7 @@ public class CPAchecker {
       return Result.UNKNOWN;
     }
 
-    return Result.SAFE;
+    return Result.TRUE;
   }
 
   private void initializeReachedSet(

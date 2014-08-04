@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,14 +32,12 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBitv
 
 import com.google.common.base.Preconditions;
 
-class Z3BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long> {
+class Z3BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long, Long, Long> {
 
   private final long z3context;
-  private final Z3FormulaCreator creator;
 
   protected Z3BitvectorFormulaManager(Z3FormulaCreator creator) {
     super(creator);
-    this.creator = creator;
     this.z3context = creator.getEnv();
   }
 
@@ -82,8 +80,8 @@ class Z3BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long> {
 
   @Override
   public Long makeVariableImpl(int length, String varName) {
-    long type = creator.getBittype(length);
-    return creator.makeVariable(type, varName);
+    long type = getFormulaCreator().getBittype(length);
+    return getFormulaCreator().makeVariable(type, varName);
   }
 
   /**

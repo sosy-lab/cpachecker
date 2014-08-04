@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -60,6 +60,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
+import com.google.common.base.Optional;
 
 /** The Class ErrorPathShrinker gets an targetPath and creates a new Path,
  * with only the important edges of the Path. The idea behind this Class is,
@@ -416,10 +418,12 @@ public final class ErrorPathShrinker {
       addGlobalVarsFromSetToSet(importantVarsForGlobalVars, possibleVars);
 
       // in the expression "return r" the value "r" is possibly important.
-      final IAExpression returnExp =
+      final Optional<? extends IAExpression> returnExp =
           ((AReturnStatementEdge) currentCFAEdgePair.getSecond()).getExpression();
-      addAllVarsInExpToSet(returnExp, possibleVars,
-          importantVarsForGlobalVars);
+      if (returnExp.isPresent()) {
+        addAllVarsInExpToSet(returnExp.get(), possibleVars,
+            importantVarsForGlobalVars);
+      }
 
       final Pair<ARGState, CFAEdge> returnEdgePair = currentCFAEdgePair;
 

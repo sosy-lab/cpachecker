@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,7 +37,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -49,8 +48,10 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -60,8 +61,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.tiger.testgen.IncrementalARTReusingFQLTestGenerator;
-import org.sosy_lab.cpachecker.tiger.testgen.PrecisionCallback;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -148,15 +147,13 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
 
   protected final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final PredicateAbstractionManager predAbsMgr;
   private final PredicateStaticRefiner staticRefiner;
   private final FormulaMeasuring formulaMeasuring;
   private final PredicateMapWriter precisionWriter;
-
-  // for CPATiger
-  private PrecisionCallback<PredicatePrecision> precCallback;
 
   // statistics
   private StatCounter numberOfRefinementsWithStrategy2 = new StatCounter("Number of refs with location-based cutoff");
@@ -210,9 +207,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     }
   }
 
-
   public PredicateAbstractionRefinementStrategy(final Configuration config,
-      final LogManager pLogger, final FormulaManagerView pFormulaManager,
+      final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
+      final FormulaManagerView pFormulaManager,
       final PredicateAbstractionManager pPredAbsMgr,
       final PredicateStaticRefiner pStaticRefiner, final Solver pSolver)
           throws CPAException, InvalidConfigurationException {
@@ -221,6 +218,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     config.inject(this, PredicateAbstractionRefinementStrategy.class);
 
     logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
     fmgr = pFormulaManager;
     bfmgr = pFormulaManager.getBooleanFormulaManager();
     predAbsMgr = pPredAbsMgr;
@@ -233,9 +231,6 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       precisionWriter = null;
     }
   }
-
-
-
 
   private ListMultimap<Pair<CFANode, Integer>, AbstractionPredicate> newPredicates;
 
@@ -262,6 +257,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
       PredicatePrecision heuristicPrecision = staticRefiner.extractPrecisionFromCfa(pReached.asReachedSet(), abstractionStatesTrace, atomicPredicates);
 
+      shutdownNotifier.shutdownIfNecessary();
       pReached.removeSubtree(refinementRoot, heuristicPrecision, PredicatePrecision.class);
 
       heuristicsCount++;
@@ -308,8 +304,6 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     BooleanFormula interpolant = pInterpolant;
 
-    FormulaMeasures itpBeforeSimple = formulaMeasuring.measure(interpolant);
-
     if (bfmgr.isTrue(interpolant)) {
       return Collections.<AbstractionPredicate>emptySet();
     }
@@ -318,6 +312,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     int allPredsCount = 0;
     if (useBddInterpolantSimplification) {
+      FormulaMeasures itpBeforeSimple = formulaMeasuring.measure(interpolant);
+
       itpSimplification.start();
       // need to call extractPredicates() for registering all predicates
       allPredsCount = predAbsMgr.extractPredicates(interpolant).size();
@@ -356,13 +352,6 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       List<ARGState> pAffectedStates, ARGReachedSet pReached,
       boolean pRepeatedCounterexample)
       throws CPAException {
-
-    if (newPredicates.isEmpty() && pUnreachableState.isTarget()) {
-      // The only reason why this might appear is that the very last block is
-      // infeasible in itself, however, we check for such cases during strengthen,
-      // so they shouldn't appear here.
-      throw new RefinementFailedException(RefinementFailedException.Reason.InterpolationFailed, null);
-    }
 
     { // Add predicate "false" to unreachable location
       CFANode loc = extractLocation(pUnreachableState);
@@ -429,17 +418,6 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     default:
       throw new AssertionError();
     }
-
-    // TODO reduce coupling
-    IncrementalARTReusingFQLTestGenerator.getInstance().mOutput.println("TODO: reduce coupling!");
-    PredicatePrecision tmp = precCallback.getPrecision();
-    assert(tmp != null);
-    //IncrementalARTReusingFQLTestGenerator.getInstance().mPrecision = tmp.addGlobalPredicates(newPredicates.values());
-    //IncrementalARTReusingFQLTestGenerator.getInstance().mPrecision = tmp.addFunctionPredicates(mergePredicatesPerFunction(newPredicates));
-    //IncrementalARTReusingFQLTestGenerator.getInstance().mPrecision = tmp.addLocalPredicates(mergePredicatesPerLocation(newPredicates));
-    PredicatePrecision newprec = tmp.addLocalPredicates(mergePredicatesPerLocation(newPredicates));
-    precCallback.setPrecision(newprec);
-    //IncrementalARTReusingFQLTestGenerator.getInstance().mPrecision = tmp.addLocationInstancePredicates(newPredicates);
 
     logger.log(Level.ALL, "Predicate map now is", newPrecision);
 
@@ -544,14 +522,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     return newPrecision;
   }
 
-
-  public void setPrecisionCallback(PrecisionCallback<PredicatePrecision> pPrecCallback) {
-    precCallback = pPrecCallback;
-  }
-
   @Override
   public Statistics getStatistics() {
     return new Stats();
   }
-
 }

@@ -12,11 +12,14 @@ Prepare Programs for Verification by CPAchecker
 
    All programs need to pre-processed with the C pre-processor,
    i.e., they may not contain #define and #include directives.
-   Currently, a program must consist of one single file.
+   You can enable pre-processing inside CPAchecker
+   by specifying -preprocess on the command line.
+   Multiple C files can be given and will be linked together
+   and verified as a single program (experimental feature).
 
    CPAchecker is able to parse and analyze a large subset of (GNU)C.
    If parsing fails for your program, please send a report to
-   cpachecker-users@sosy-lab.org.
+   cpachecker-users@googlegroups.com.
 
 
 Verifying a Program with CPAchecker
@@ -62,7 +65,9 @@ Verifying a Program with CPAchecker
      ARG.dot: Visualization of abstract reachability tree (Graphviz format)
      cfa*.dot: Visualization of control flow automaton (Graphviz format)
      counterexample.msat: Formula representation of the error path
-     coverage.info: Coverage information (similar to those of testing tools) in Gcov format
+     coverage.*.info: Coverage information (similar to those of testing tools) in Gcov format
+       Use the following command line to generate an HTML report as output/index.html:
+       genhtml output/coverage.*.info --output-directory output --legend
      ErrorPath.*.txt: A path through the program that leads to an error
      ErrorPath.*.assignment.txt: Assignments for all variables on the error path.
      predmap.txt: Predicates used by predicate analysis to prove program safety

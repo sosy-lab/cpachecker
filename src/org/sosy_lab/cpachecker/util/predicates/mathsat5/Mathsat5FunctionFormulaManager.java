@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
 import java.util.Arrays;
@@ -34,20 +33,17 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
 
-import com.google.common.base.Function;
 import com.google.common.primitives.Longs;
 
-class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long> {
+class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long, Long, Long> {
 
   private final long mathsatEnv;
-  private final Mathsat5FormulaCreator creator;
 
   public Mathsat5FunctionFormulaManager(
       Mathsat5FormulaCreator pCreator,
       Mathsat5UnsafeFormulaManager unsafeManager) {
     super(pCreator, unsafeManager);
     this.mathsatEnv = pCreator.getEnv();
-    this.creator = pCreator;
   }
 
   public long createUIFCallImpl(long funcDecl, long[] args) {
@@ -64,46 +60,17 @@ class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long
     return createUIFCallImpl(funcDecl, args);
   }
 
-  public long toMathsatType(FormulaType<?> formulaType) {
-    long t;
-    if (formulaType.isBooleanType()) {
-      t = creator.getBoolType();
-    } else if (formulaType.isRationalType()) {
-      t = creator.getNumberType();
-    } else if (formulaType.isBitvectorType()) {
-      FormulaType.BitvectorType bitPreciseType = (FormulaType.BitvectorType) formulaType;
-      t = creator.getBittype(bitPreciseType.getSize());
-    } else {
-      throw new IllegalArgumentException("Not supported interface");
-    }
-    return t;
-  }
-
   @Override
-  public <T extends Formula> Mathsat5FunctionType<T>
-    createFunction(
-        String pName,
-        FormulaType<T> pReturnType,
-        List<FormulaType<?>> pArgs) {
-    FunctionFormulaType<T> formulaType
-      = super.createFunction(pName, pReturnType, pArgs);
+  public <T extends Formula> Mathsat5FunctionType<T> createFunction(
+        String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgs) {
+    long[] types = new long[pArgs.size()];
+    for (int i = 0; i < types.length; i++) {
+      types[i] = toSolverType(pArgs.get(i));
+    }
+    long returnType = toSolverType(pReturnType);
+    long decl = createFunctionImpl(pName, returnType, types);
 
-
-    List<Long> types =
-      from(pArgs)
-      .transform(new Function<FormulaType<?>, Long>() {
-
-        @Override
-        public Long apply(FormulaType<?> pArg0) {
-          return toMathsatType(pArg0);
-        }})
-        .toList();
-    long[] msatTypes = Longs.toArray(types);
-
-    long returnType = toMathsatType(pReturnType);
-    Long decl = createFunctionImpl(pName, returnType, msatTypes);
-
-    return new Mathsat5FunctionType<>(formulaType.getReturnType(), formulaType.getArgumentTypes(), decl);
+    return new Mathsat5FunctionType<>(pReturnType, pArgs, decl);
   }
 
   @Override

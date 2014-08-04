@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -46,8 +45,10 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 class MultiEdgeCreator extends DefaultCFAVisitor {
 
   static void createMultiEdges(MutableCFA cfa) {
-    CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(cfa.getMainFunction(),
-                                                         new MultiEdgeCreator(cfa));
+    final MultiEdgeCreator visitor = new MultiEdgeCreator(cfa);
+    for (final CFANode functionStart : cfa.getAllFunctionHeads()) {
+      CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(functionStart, visitor);
+    }
   }
 
   private final MutableCFA cfa;
@@ -127,29 +128,33 @@ class MultiEdgeCreator extends DefaultCFAVisitor {
         || edge.getEdgeType() == CFAEdgeType.StatementEdge
         || edge.getEdgeType() == CFAEdgeType.ReturnStatementEdge;
 
-    return result && !containsFunctionPointerCall(edge);
+    return result && !containsFunctionCall(edge);
   }
 
   /**
-   * This method checks, if the given (statement) edge contains a function call via a function pointer.
+   * This method checks, if the given (statement) edge contains a function call
+   * directly or via a function pointer.
    *
    * @param edge the edge to inspect
    * @return whether or not this edge contains a function call or not.
    */
-  private boolean containsFunctionPointerCall(CFAEdge edge) {
+  private boolean containsFunctionCall(CFAEdge edge) {
     if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
       CStatementEdge statementEdge = (CStatementEdge)edge;
 
+/* Temporarily disabled because SV-COMP specification relies on matching
+ * extern function calls, and target states cannot appear within a multi edge.
       if ((statementEdge.getStatement() instanceof CFunctionCall)) {
         CFunctionCall call = ((CFunctionCall)statementEdge.getStatement());
         CSimpleDeclaration declaration = call.getFunctionCallExpression().getDeclaration();
 
-        if (declaration == null) {
-          return true;
-        }
+        // declaration == null -> functionPointer
+        // functionName exists in CFA -> functioncall with CFA for called function
+        // otherwise: call of non-existent function, example: nondet_int() -> ignore this case
+        return declaration == null || cfa.getAllFunctionNames().contains(declaration.getQualifiedName());
       }
-      // simplest (close-to-optimal) solution, that would split at any function call
-      //return (statementEdge.getStatement() instanceof CFunctionCall);
+*/
+      return (statementEdge.getStatement() instanceof CFunctionCall);
     }
     return false;
   }

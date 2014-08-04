@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,11 +27,12 @@ import java.util.Collection;
 import java.util.Map;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.core.Model;
-import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
-import org.sosy_lab.cpachecker.core.Model.Function;
-import org.sosy_lab.cpachecker.core.Model.TermType;
-import org.sosy_lab.cpachecker.core.Model.Variable;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.core.counterexample.Model.Constant;
+import org.sosy_lab.cpachecker.core.counterexample.Model.Function;
+import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
+import org.sosy_lab.cpachecker.core.counterexample.Model.Variable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolEnvironment.Type;
 
@@ -59,7 +60,7 @@ class SmtInterpolModel {
     }
   }
 
-  private static Variable toVariable(Term t) {
+  private static AssignableTerm toVariable(Term t) {
     if (!SmtInterpolUtil.isVariable(t)) {
       throw new IllegalArgumentException("Given term is no variable! (" + t.toString() + ")");
     }
@@ -69,7 +70,11 @@ class SmtInterpolModel {
     TermType lType = toSmtInterpolType(appTerm.getSort());
 
     Pair<String, Integer> lSplitName = FormulaManagerView.parseName(lName);
-    return new Variable(lSplitName.getFirst(), lSplitName.getSecond(), lType);
+    if (lSplitName.getSecond() != null) {
+      return new Variable(lSplitName.getFirst(), lSplitName.getSecond(), lType);
+    } else {
+      return new Constant(lSplitName.getFirst(), lType);
+    }
   }
 
 
@@ -130,7 +135,7 @@ class SmtInterpolModel {
   }
 
   static Model createSmtInterpolModel(SmtInterpolFormulaManager mgr, Collection<Term> terms) {
-    SmtInterpolEnvironment env = mgr.getEnv();
+    SmtInterpolEnvironment env = mgr.getEnvironment();
     // model can only return values for keys, not for terms
     Term[] keys = SmtInterpolUtil.getVars(terms);
 

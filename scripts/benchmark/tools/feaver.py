@@ -15,7 +15,10 @@ class Tool(benchmark.tools.template.BaseTool):
         return 'Feaver'
 
 
-    def getCmdline(self, executable, options, sourcefile, propertyfile):
+    def getCmdline(self, executable, options, sourcefiles, propertyfile, rlimits):
+        assert len(sourcefiles) == 1, "only one sourcefile supported"
+        sourcefile = sourcefiles[0]
+        
         # create tmp-files for feaver, feaver needs special error-labels
         self.prepSourcefile = _prepareSourcefile(sourcefile)
 
@@ -47,13 +50,13 @@ class Tool(benchmark.tools.template.BaseTool):
             status = "ERROR"
 
         elif "Error Found:" in output:
-            status = result.STR_FALSE_LABEL
+            status = result.STATUS_FALSE_REACH
 
         elif "No Errors Found" in output:
-            status = result.STR_TRUE
+            status = result.STATUS_TRUE_PROP
 
         else:
-            status = result.STR_UNKNOWN
+            status = result.STATUS_UNKNOWN
 
         # delete tmp-files
         for tmpfile in [self.prepSourcefile, self.prepSourcefile[0:-1] + "M",

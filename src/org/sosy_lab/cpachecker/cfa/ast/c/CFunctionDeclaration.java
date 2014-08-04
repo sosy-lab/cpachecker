@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -57,11 +57,6 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
   }
 
   @Override
-  public String getQualifiedName() {
-    return getName();
-  }
-
-  @Override
   public int hashCode() {
     int prime = 31;
     int result = 7;
@@ -78,4 +73,15 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
 
     return super.equals(obj);
   }
+
+  @Override
+  public <R, X extends Exception> R accept(CSimpleDeclarationVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
+
 }

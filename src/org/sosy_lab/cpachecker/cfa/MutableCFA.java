@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -43,14 +44,14 @@ import com.google.common.collect.SortedSetMultimap;
 public class MutableCFA implements CFA {
 
   private final MachineModel machineModel;
-  private final Map<String, FunctionEntryNode> functions;
+  private final SortedMap<String, FunctionEntryNode> functions;
   private final SortedSetMultimap<String, CFANode> allNodes;
   private final FunctionEntryNode mainFunction;
   private final Language language;
 
   public MutableCFA(
       MachineModel pMachineModel,
-      Map<String, FunctionEntryNode> pFunctions,
+      SortedMap<String, FunctionEntryNode> pFunctions,
       SortedSetMultimap<String, CFANode> pAllNodes,
       FunctionEntryNode pMainFunction,
       Language pLanguage) {

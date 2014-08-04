@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,23 +23,27 @@
  */
 package org.sosy_lab.cpachecker.util.invariants;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateBoolean;
 import org.sosy_lab.cpachecker.util.invariants.templates.manager.TemplateFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.RationalFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 
 public class TFtester {
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws InvalidConfigurationException {
 
     TemplateFormulaManager tfm = new TemplateFormulaManager();
 
-    FormulaManagerView view = new FormulaManagerView(tfm);
-    RationalFormulaManagerView nfmgr = view.getRationalFormulaManager();
+    FormulaManagerView view = new FormulaManagerView(tfm, Configuration.defaultConfiguration(), TestLogManager.getInstance());
+    NumeralFormulaManagerView<NumeralFormula, RationalFormula> nfmgr = view.getRationalFormulaManager();
     BooleanFormulaManagerView bfmgr = view.getBooleanFormulaManager();
     FormulaType<RationalFormula> type = FormulaType.RationalType;
     RationalFormula a1 = view.makeVariable(type, "a", 1);

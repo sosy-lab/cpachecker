@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,11 +23,13 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.waitlist.AutomatonFailedMatchesWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.AutomatonMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ExplicitSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ReversePostorderSortedWaitlist;
@@ -65,6 +67,10 @@ public class ReachedSetFactory {
       description = "handle more abstract states (with less information) first? (only for ExplicitCPA)")
   boolean useExplicitInformation = false;
 
+  @Option(name = "traversal.useAutomatonInformation",
+      description = "handle abstract states with more automaton matches first? (only if AutomatonCPA enabled)")
+  boolean useAutomatonInformation = false;
+
   @Option(name = "reachedSet",
       description = "which reached set implementation to use?"
       + "\nNORMAL: just a simple set"
@@ -80,6 +86,11 @@ public class ReachedSetFactory {
 
   public ReachedSet create() {
     WaitlistFactory waitlistFactory = traversalMethod;
+
+    if (useAutomatonInformation) {
+      waitlistFactory = AutomatonMatchesWaitlist.factory(waitlistFactory);
+      waitlistFactory = AutomatonFailedMatchesWaitlist.factory(waitlistFactory);
+    }
     if (useReversePostorder || useTopsort) {
       waitlistFactory = ReversePostorderSortedWaitlist.factory(waitlistFactory);
     }

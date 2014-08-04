@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,10 +30,9 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
@@ -61,7 +60,6 @@ import com.google.common.collect.ImmutableList;
  * In fact, this should probably *not* be called ConeOfInfluenceCFAReduction,
  * since it is *much* more trivial (and less powerful) than that.
  */
-@Options(prefix="cfa.pruning")
 public class CFAReduction {
 
   private final Configuration config;
@@ -69,8 +67,6 @@ public class CFAReduction {
   private final ShutdownNotifier shutdownNotifier;
 
   public CFAReduction(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
-    config.inject(this);
-
     if (config.getProperty("specification") == null) {
       throw new InvalidConfigurationException("Option cfa.removeIrrelevantForSpecification is only valid if a specification is given!");
     }
@@ -138,7 +134,7 @@ public class CFAReduction {
 
       CPABuilder lBuilder = new CPABuilder(lConfig, logger, shutdownNotifier, lReachedSetFactory);
       ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs(cfa);
-      Algorithm lAlgorithm = new CPAAlgorithm(lCpas, logger, lConfig, shutdownNotifier);
+      Algorithm lAlgorithm = CPAAlgorithm.create(lCpas, logger, lConfig, shutdownNotifier);
       ReachedSet lReached = lReachedSetFactory.create();
       lReached.add(lCpas.getInitialState(cfa.getMainFunction()), lCpas.getInitialPrecision(cfa.getMainFunction()));
 
@@ -153,11 +149,9 @@ public class CFAReduction {
                .toSet();
 
     } catch (CPAException e) {
-      logger.log(Level.WARNING, "Error during CFA reduction, using full CFA");
-      logger.logDebugException(e);
+      logger.logUserException(Level.WARNING, e, "Error during CFA reduction, using full CFA");
     } catch (InvalidConfigurationException e) {
-      logger.log(Level.WARNING, "Error during CFA reduction, using full CFA");
-      logger.logDebugException(e);
+      logger.logUserException(Level.WARNING, e, "Invalid configuration used for CFA reduction, using full CFA");
     }
     return cfa.getAllNodes();
   }

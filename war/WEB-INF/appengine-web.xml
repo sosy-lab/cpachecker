@@ -1,6 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <appengine-web-app xmlns="http://appengine.google.com/ns/1.0">
-    <application>ba-cpa-lab</application>
-    <version>dev</version>
+  <application>cpachecker</application> <!-- cpachecker -->
+    <version>trunk</version> <!-- stable -->
     <threadsafe>false</threadsafe>
+    
+<!--     <admin-console> -->
+<!--   		<page name="Appstats" url="/appstats" /> -->
+<!-- 	</admin-console> -->
+
+	<!--
+		NOTE:
+		When changing performance settings update
+		org.sosy_lab.cpachecker.appengine.server.resource.SettingsServerResource 
+	 -->
+	
+	<static-error-handlers>
+		<handler file="errorpages/timeout.json" error-code="timeout" />
+		<handler file="errorpages/over_quota.json" error-code="over_quota" />
+	</static-error-handlers>
+	
+	<system-properties>
+		<property name="java.util.logging.config.file" value="WEB-INF/logging.properties"/>
+	</system-properties>
 </appengine-web-app>

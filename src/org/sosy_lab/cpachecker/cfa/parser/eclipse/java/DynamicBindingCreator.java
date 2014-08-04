@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -357,7 +357,7 @@ public class DynamicBindingCreator {
 
 
     if (onlyFunction == null) {
-      //TODO Throw Exception;
+      throw new IllegalArgumentException("No binding for function of type " + runTimeBinding.getName() + "found.");
     }
 
     CFANode postNode = edge.getSuccessor();
@@ -387,7 +387,7 @@ public class DynamicBindingCreator {
 
     // new FuncionCallExpressionEdge
     AStatementEdge functionCallEdge =
-        new JStatementEdge(newFunctionCall.toASTString(),  newFunctionCall, edge.getLineNumber(), prevNode,
+        new JStatementEdge(newFunctionCall.toASTString(),  newFunctionCall, edge.getFileLocation(), prevNode,
             postNode);
     CFACreationUtils.addEdgeToCFA(functionCallEdge, null);
 
@@ -407,7 +407,7 @@ public class DynamicBindingCreator {
 
     //Blank edge from last unsuccessful call to postConditionNode
     BlankEdge postConditionEdge =
-        new BlankEdge(edge.getRawStatement(), edge.getLineNumber(), nextPrevNode, postConditionNode, "");
+        new BlankEdge(edge.getRawStatement(), edge.getFileLocation(), nextPrevNode, postConditionNode, "");
     CFACreationUtils.addEdgeToCFA(postConditionEdge, null);
   }
 
@@ -427,15 +427,13 @@ public class DynamicBindingCreator {
 
       // Node for successful function call
       // That is the case if Run-Time-Type equals function declaring Class Type.
-      CFANode successfulNode = new CFANode(fileloc.getStartingLineNumber(),
-         callInFunction);
+      CFANode successfulNode = new CFANode(callInFunction);
         cfaBuilder.getCFANodes().put(callInFunction, successfulNode);
         pProcessed.add(successfulNode);
 
       // unsuccessfulNode if Run-Time-Type does not equals
       // function declaring Class Type,
-      CFANode unsuccessfulNode = new CFANode(fileloc.getStartingLineNumber(),
-          callInFunction);
+      CFANode unsuccessfulNode = new CFANode(callInFunction);
       cfaBuilder.getCFANodes().put(callInFunction, unsuccessfulNode);
       pProcessed.add(unsuccessfulNode);
 
@@ -455,17 +453,16 @@ public class DynamicBindingCreator {
           newFunctionCall =  new JMethodInvocationStatement(fileloc, newFunctionCallExpression);
         }
 
-        CFANode postFunctionCallNode = new CFANode(fileloc.getStartingLineNumber(),
-            callInFunction);
+        CFANode postFunctionCallNode = new CFANode(callInFunction);
         cfaBuilder.getCFANodes().put(callInFunction, postFunctionCallNode);
         pProcessed.add(postFunctionCallNode);
 
       //AStatementEdge from successful Node to  postFunctionCall location
-      AStatementEdge functionCallEdge = new JStatementEdge(edge.getRawStatement(), newFunctionCall, edge.getLineNumber(), successfulNode, postFunctionCallNode);
+      AStatementEdge functionCallEdge = new JStatementEdge(edge.getRawStatement(), newFunctionCall, edge.getFileLocation(), successfulNode, postFunctionCallNode);
       CFACreationUtils.addEdgeToCFA(functionCallEdge, null);
 
       //Blank edge from postFunctionCall location to postConditionNode
-      BlankEdge postConditionEdge = new BlankEdge(edge.getRawStatement(), edge.getLineNumber(), postFunctionCallNode, postConditionNode, "");
+      BlankEdge postConditionEdge = new BlankEdge(edge.getRawStatement(), edge.getFileLocation(), postFunctionCallNode, postConditionNode, "");
       CFACreationUtils.addEdgeToCFA(postConditionEdge, null);
 
     return unsuccessfulNode;
@@ -480,7 +477,7 @@ public class DynamicBindingCreator {
 
         // edge connecting last condition with elseNode
         final AssumeEdge JAssumeEdgeFalse = new JAssumeEdge("!(" + rawSignature + ")",
-            fileloc.getStartingLineNumber(),
+            fileloc,
             prevNode,
             unsuccessfulNode,
             exp,
@@ -489,7 +486,7 @@ public class DynamicBindingCreator {
 
         // edge connecting last condition with thenNode
         final AssumeEdge JAssumeEdgeTrue = new JAssumeEdge(rawSignature,
-            fileloc.getStartingLineNumber(),
+            fileloc,
             prevNode,
             successfulNode,
             exp,

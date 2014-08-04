@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -49,6 +49,9 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
+
 import de.uni_freiburg.informatik.ultimate.logic.Annotation;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
 import de.uni_freiburg.informatik.ultimate.logic.LoggingScript;
@@ -61,9 +64,9 @@ import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
 import de.uni_freiburg.informatik.ultimate.logic.Theory;
-import de.uni_freiburg.informatik.ultimate.smtinterpol.dpll.DPLLEngine;
 import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.ParseEnvironment;
 import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.SMTInterpol;
+import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.TerminationRequest;
 
 /** This is a Wrapper around SmtInterpol.
  * It guarantees the stack-behavior of function-declarations towards the SmtSolver,
@@ -108,6 +111,10 @@ class SmtInterpolEnvironment {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path smtLogfile = Paths.get("smtinterpol.%03d.smt2");
 
+  @Option(description = "List of further options which will be set to true for SMTInterpol in addition to the default options. "
+      + "Format is 'option1,option2,option3'")
+  private List<String> furtherOptions = ImmutableList.of();
+
   /** this is a counter to get distinct logfiles for distinct environments. */
   private static int logfileCounter = 0;
 
@@ -127,13 +134,19 @@ class SmtInterpolEnvironment {
 
   /** The Constructor creates the wrapped Element, sets some options
    * and initializes the logger. */
-  public SmtInterpolEnvironment(Configuration config, Logics pLogic,
-      final LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+  public SmtInterpolEnvironment(Configuration config,
+      final LogManager pLogger, final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
     shutdownNotifier = checkNotNull(pShutdownNotifier);
 
-    final SMTInterpol smtInterpol = new SMTInterpol(createLog4jLogger(logger));
+    final SMTInterpol smtInterpol = new SMTInterpol(createLog4jLogger(logger),
+        new TerminationRequest() {
+          @Override
+          public boolean isTerminationRequested() {
+            return pShutdownNotifier.shouldShutdown();
+          }
+        });
 
     if (logAllQueries && smtLogfile != null) {
       script = createLoggingWrapper(smtInterpol);
@@ -144,28 +157,26 @@ class SmtInterpolEnvironment {
     try {
       script.setOption(":produce-interpolants", true);
       script.setOption(":produce-models", true);
+      script.setOption(":produce-unsat-cores", true);
       if (checkResults) {
         script.setOption(":interpolant-check-mode", true);
         script.setOption(":unsat-core-check-mode", true);
         script.setOption(":model-check-mode", true);
       }
-      script.setLogic(pLogic);
+      script.setLogic(Logics.QF_UFLIRA);
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
     }
 
-    theory = smtInterpol.getTheory();
+    for (String option : furtherOptions) {
+      try {
+        script.setOption(":" + option, true);
+      } catch (SMTLIBException | UnsupportedOperationException e) {
+        throw new InvalidConfigurationException("Invalid option \"" + option + "\" for SMTInterpol.", e);
+      }
+    }
 
-    shutdownNotifier.registerAndCheckImmediately(new ShutdownNotifier.ShutdownRequestListener() {
-        @Override
-        public void shutdownRequested(String pReason) {
-          DPLLEngine engine = smtInterpol.getEngine();
-          if (engine != null) {
-            engine.setCompleteness(DPLLEngine.INCOMPLETE_TIMEOUT);
-            engine.stop();
-          }
-        }
-      });
+    theory = smtInterpol.getTheory();
   }
 
   private Script createLoggingWrapper(SMTInterpol smtInterpol) {
@@ -173,7 +184,7 @@ class SmtInterpolEnvironment {
     try {
       // create a thin wrapper around Benchmark,
       // this allows to write most formulas of the solver to outputfile
-      return new LoggingScript(smtInterpol, filename, true);
+      return new LoggingScript(smtInterpol, filename, true, true);
     } catch (FileNotFoundException e) {
       logger.logUserException(Level.WARNING, e, "Coud not open log file for SMTInterpol queries");
       // go on without logging
@@ -198,6 +209,16 @@ class SmtInterpolEnvironment {
 
       @Override
       protected void append(org.apache.log4j.spi.LoggingEvent pArg0) {
+        // SMTInterpol has serveral "catch (Throwable t) { log(t); }",
+        // which is very ugly because it also catches errors like OutOfMemoryError
+        // and ThreadDeath.
+        // We do a similarly ugly thing and rethrow such exceptions here
+        // (at least for errors and runtime exceptions).
+        org.apache.log4j.spi.ThrowableInformation throwable = pArg0.getThrowableInformation();
+        if (throwable != null) {
+          Throwables.propagateIfPossible(throwable.getThrowable());
+        }
+
         // Always log at SEVERE because it is a ERROR message (see above).
         ourLogger.log(Level.SEVERE,
             pArg0.getLoggerName(),
@@ -205,7 +226,6 @@ class SmtInterpolEnvironment {
             "output:",
             pArg0.getRenderedMessage());
 
-        org.apache.log4j.spi.ThrowableInformation throwable = pArg0.getThrowableInformation();
         if (throwable != null) {
           ourLogger.logException(Level.SEVERE, throwable.getThrowable(),
               pArg0.getLoggerName() + " exception");
@@ -240,6 +260,7 @@ class SmtInterpolEnvironment {
 
         out.println("(set-option :produce-interpolants true)");
         out.println("(set-option :produce-models true)");
+        out.println("(set-option :produce-unsat-cores true)");
         if (checkResults) {
           out.println("(set-option :interpolant-check-mode true)");
           out.println("(set-option :unsat-core-check-mode true)");
@@ -482,6 +503,7 @@ class SmtInterpolEnvironment {
     }
   }
 
+  /** returns a number of type INT or REAL */
   public Term numeral(BigInteger num) {
     try {
       return script.numeral(num);
@@ -490,6 +512,7 @@ class SmtInterpolEnvironment {
     }
   }
 
+  /** returns a number of type INT or REAL */
   public Term numeral(String num) {
     try {
       return script.numeral(num);
@@ -498,6 +521,7 @@ class SmtInterpolEnvironment {
     }
   }
 
+  /** returns a number of type REAL */
   public Term decimal(String num) {
     try {
       return script.decimal(num);
@@ -506,6 +530,7 @@ class SmtInterpolEnvironment {
     }
   }
 
+  /** returns a number of type REAL */
   public Term decimal(BigDecimal num) {
     try {
       return script.decimal(num);
@@ -537,6 +562,15 @@ class SmtInterpolEnvironment {
     assert stack.size() > 0 : "interpolants should be on higher levels";
     try {
       return script.getInterpolants(partition);
+    } catch (SMTLIBException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  public Term[] getUnsatCore() {
+    assert stack.size() > 0 : "unsat core should be on higher levels";
+    try {
+      return script.getUnsatCore();
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
     }

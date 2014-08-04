@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,16 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.conditions.path;
 
+import static com.google.common.base.Objects.firstNonNull;
+
 import java.io.PrintStream;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -45,7 +47,6 @@ import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
@@ -95,7 +96,7 @@ public class RepetitionsInPathCondition implements PathCondition, Statistics {
       return element;
     }
 
-    Integer repetitions = Objects.firstNonNull(element.frequencyMap.get(pEdge), 0);
+    Integer repetitions = firstNonNull(element.frequencyMap.get(pEdge), 0);
     repetitions++;
 
     boolean thresholdReached = (threshold >= 0) && (repetitions >= threshold);

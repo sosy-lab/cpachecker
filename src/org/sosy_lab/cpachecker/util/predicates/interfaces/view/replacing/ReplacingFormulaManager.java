@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,45 +32,80 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.Theory;
 
 import com.google.common.base.Function;
+import com.google.common.base.Functions;
 
 
 public class ReplacingFormulaManager implements FormulaManager {
 
-  private FormulaManager rawFormulaManager;
-  private BitvectorFormulaManager bitvectorTheory;
-  private boolean replacedBitvectorTheory = false;
-  private boolean replacedRationalTheory = false;
-  private boolean replacedBooleanTheory = false;
-  private FunctionFormulaManager functionTheory;
-  private BooleanFormulaManager booleanTheory;
-  private UnsafeFormulaManager unsafeManager;
+  private final FormulaManager rawFormulaManager;
+  private final BitvectorFormulaManager bitvectorTheory;
+  private final boolean replacedBitvectorTheory;
+  private final boolean replacedRationalTheory;
+  private final boolean replacedBooleanTheory;
+  private final FunctionFormulaManager functionTheory;
+  private final BooleanFormulaManager booleanTheory;
+  private final UnsafeFormulaManager unsafeManager;
 
   public ReplacingFormulaManager(
       FormulaManager rawFormulaManager,
-      final boolean replaceBitvectorWithRationalAndFunctions,
+      final Theory bitvectorReplacement,
       final boolean ignoreExtractConcat) {
     this.rawFormulaManager = rawFormulaManager;
+    replacedRationalTheory = false;
+    replacedBooleanTheory = false;
 
-    // Setup replacement environment
-    Function<FormulaType<?>, FormulaType<?>>
-    unwrapTypes = new
-        Function<FormulaType<?>, FormulaType<?>>() {
-          @Override
-          public FormulaType<?> apply(FormulaType<?> pArg0) {
-            if (pArg0.isBitvectorType()) {
-              if (replaceBitvectorWithRationalAndFunctions) {
-                return FormulaType.RationalType;
+    final Function<FormulaType<?>, FormulaType<?>> unwrapTypes;
+
+    if (bitvectorReplacement == Theory.BITVECTOR) {
+      replacedBitvectorTheory = false;
+      bitvectorTheory = rawFormulaManager.getBitvectorFormulaManager();
+      unwrapTypes = Functions.identity();
+
+    } else {
+      replacedBitvectorTheory = true;
+      final FormulaType<?> replacementType;
+      switch (bitvectorReplacement) {
+      case INTEGER:
+        bitvectorTheory = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
+            this,
+            rawFormulaManager.getIntegerFormulaManager(),
+            rawFormulaManager.getFunctionFormulaManager(),
+            ignoreExtractConcat);
+        replacementType = rawFormulaManager.getIntegerFormulaManager().getFormulaType();
+        break;
+      case RATIONAL:
+        bitvectorTheory = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
+            this,
+            rawFormulaManager.getRationalFormulaManager(),
+            rawFormulaManager.getFunctionFormulaManager(),
+            ignoreExtractConcat);
+        replacementType = rawFormulaManager.getRationalFormulaManager().getFormulaType();
+        break;
+      default:
+        throw new AssertionError("Unknown theory " + bitvectorReplacement);
+      }
+
+      unwrapTypes = new
+          Function<FormulaType<?>, FormulaType<?>>() {
+            @Override
+            public FormulaType<?> apply(FormulaType<?> pArg0) {
+              if (pArg0.isBitvectorType()) {
+                return replacementType;
               }
-            }
 
-            return pArg0;
-          }};
+              return pArg0;
+            }};
+
+    }
 
     functionTheory =
         new ReplaceHelperFunctionFormulaManager(
@@ -86,18 +121,6 @@ public class ReplacingFormulaManager implements FormulaManager {
             this,
             rawFormulaManager.getUnsafeFormulaManager(),
             unwrapTypes);
-
-    if (replaceBitvectorWithRationalAndFunctions) {
-      bitvectorTheory =
-          new ReplaceBitvectorWithRationalAndFunctionTheory(
-              this,
-              rawFormulaManager.getRationalFormulaManager(),
-              rawFormulaManager.getFunctionFormulaManager(),
-              ignoreExtractConcat);
-      replacedBitvectorTheory = true;
-    } else {
-      bitvectorTheory = rawFormulaManager.getBitvectorFormulaManager();
-    }
   }
 
   @SuppressWarnings("unchecked")
@@ -105,6 +128,8 @@ public class ReplacingFormulaManager implements FormulaManager {
     Formula f;
     if (type.isBitvectorType()) {
       f = new WrappingBitvectorFormula<>((FormulaType<BitvectorFormula>)type, toWrap);
+    } else if (type.isIntegerType()) {
+      f = new WrappingIntegerFormula<>((FormulaType<IntegerFormula>)type, toWrap);
     } else if (type.isRationalType()) {
       f = new WrappingRationalFormula<>((FormulaType<RationalFormula>)type, toWrap);
     } else if (type.isBooleanType()) {
@@ -141,7 +166,12 @@ public class ReplacingFormulaManager implements FormulaManager {
   }
 
   @Override
-  public RationalFormulaManager getRationalFormulaManager() {
+  public NumeralFormulaManager<IntegerFormula, IntegerFormula> getIntegerFormulaManager() {
+    return rawFormulaManager.getIntegerFormulaManager();
+  }
+
+  @Override
+  public NumeralFormulaManager<NumeralFormula, RationalFormula> getRationalFormulaManager() {
     return rawFormulaManager.getRationalFormulaManager();
   }
 

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -41,6 +40,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -105,7 +105,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
   private final Solver solver;
   private final CFA cfa;
 
-  private Multimap<Pair<String, String>, AStatementEdge> directlyAffectingStatements;
+  private Multimap<String, AStatementEdge> directlyAffectingStatements;
 
   public PredicateStaticRefiner(
       Configuration pConfig,
@@ -135,13 +135,11 @@ public class PredicateStaticRefiner extends StaticRefiner {
   }
 
   private boolean isAssumeOnLoopVariable(AssumeEdge e) {
-    Multimap<String, String> referenced = varClasses.getVariablesOfExpression(e, (CExpression) e.getExpression());
+    Collection<String> referenced = varClasses.getVariablesOfExpression((CExpression) e.getExpression());
 
-    for (String function: referenced.keySet()) {
-      for (String var: referenced.get(function)) {
-        if (varClasses.getLoopExitConditionVariables().containsEntry(function, var)) {
-          return true;
-        }
+    for (String var: referenced) {
+      if (varClasses.getLoopExitConditionVariables().contains(var)) {
+        return true;
       }
     }
 
@@ -167,7 +165,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
             CAssignment assign = (CAssignment) stmtEdge.getStatement();
 
             if (assign.getLeftHandSide() instanceof CIdExpression) {
-              Pair<String, String> variable = varClasses.idExpressionToVarPair(e, (CIdExpression)assign.getLeftHandSide());
+              String variable = ((CIdExpression)assign.getLeftHandSide()).getDeclaration().getQualifiedName();
               directlyAffectingStatements.put(variable, stmtEdge);
             }
           }
@@ -209,15 +207,12 @@ public class PredicateStaticRefiner extends StaticRefiner {
   private boolean hasContradictingOperationInFlow(AssumeEdge e) throws CPATransferException, InterruptedException {
     buildDirectlyAffectingStatements();
 
-    Multimap<String, String> referenced = varClasses.getVariablesOfExpression(e, (CExpression) e.getExpression());
-    for (String function: referenced.keySet()) {
-      for (String varName: referenced.get(function)) {
-        Pair<String, String> varFullQualified = Pair.of(function, varName);
-        Collection<AStatementEdge> affectedByStmts = directlyAffectingStatements.get(varFullQualified);
-        for (AStatementEdge stmtEdge: affectedByStmts) {
-          if (isContradicting(e, stmtEdge)) {
-            return true;
-          }
+    Collection<String> referenced = varClasses.getVariablesOfExpression((CExpression) e.getExpression());
+    for (String varName: referenced) {
+      Collection<AStatementEdge> affectedByStmts = directlyAffectingStatements.get(varName);
+      for (AStatementEdge stmtEdge: affectedByStmts) {
+        if (isContradicting(e, stmtEdge)) {
+          return true;
         }
       }
     }
@@ -353,7 +348,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
         globalPredicates);
   }
 
-  private Collection<AbstractionPredicate> assumeEdgeToPredicates(boolean atomicPredicates, AssumeEdge assume) throws CPATransferException {
+  private Collection<AbstractionPredicate> assumeEdgeToPredicates(boolean atomicPredicates, AssumeEdge assume) throws CPATransferException, InterruptedException {
     BooleanFormula relevantAssumesFormula = pathFormulaManager.makeAnd(
         pathFormulaManager.makeEmptyPathFormula(), assume).getFormula();
 
@@ -381,6 +376,9 @@ public class PredicateStaticRefiner extends StaticRefiner {
           }
         }
       }
+    } catch (InterruptedException e) {
+      logger.logUserException(Level.WARNING, e, "Interrupted, could not write assume predicates to file!");
+      Thread.currentThread().interrupt();
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "IO exception! Could not write assume predicates to file!");
     } catch (CPATransferException e) {

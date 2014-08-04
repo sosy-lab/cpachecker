@@ -1,5 +1,5 @@
 
-# Test case contributed by Cheolgi Kim.
+// Test case contributed by Cheolgi Kim.
 
 #ifdef USE_BLAST
 #define RAND __BLAST_NONDET

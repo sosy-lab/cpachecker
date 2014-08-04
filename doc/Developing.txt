@@ -1,8 +1,58 @@
-CPAchecker Develop Instructions
+CPAchecker Developing Instructions
+==================================
 
 More details can be found in the other files in this directory.
 
 Please read and follow StyleGuide.txt!
+
+
+Getting the code
+----------------
+
+There are four possibilities to retrieve the source code:
+
+- The main SVN repository:
+  https://svn.sosy-lab.org/software/cpachecker
+
+- Our Git mirror:
+  https://svn.sosy-lab.org/software/cpachecker.git
+
+- A SVN mirror at Google Code:
+  http://cpachecker.googlecode.com/svn
+
+- A Git mirror at GitHub:
+  https://github.com/dbeyer/cpachecker
+
+Only our SVN repository allows committing,
+all mirrors are read-only.
+We recommend to use our own repository hosting,
+because it avoids the risk that the synchronization to a third party
+fails or causes problems.
+
+For browsing through the code online,
+there are these possibilities:
+- https://svn.sosy-lab.org/trac/cpachecker/browser/CPAchecker
+  (with an SVN account)
+- https://code.google.com/p/cpachecker/source/browse/
+- https://github.com/dbeyer/cpachecker/tree/trunk/
+
+For bug tracking, we use our Trac:
+https://svn.sosy-lab.org/trac/cpachecker/
+
+For building the code on the command line, c.f. ../INSTALL.txt.
+
+
+If you like to use Git, use the following commands
+to create a working copy that allows you to transparently
+commit to the SVN repository (with "git svn dcommit")
+while still using Git to fetch the commits:
+
+git clone -n -o mirror https://svn.sosy-lab.org/git/software/cpachecker.git/
+cd cpachecker
+git svn init --prefix=mirror/ -s https://svn.sosy-lab.org/software/cpachecker
+git checkout -t mirror/trunk
+
+This also works with GitHub.
 
 
 Develop CPAchecker from within Eclipse
@@ -62,17 +112,3 @@ to work with a Java 7 compatible Eclipse version.
 4. If there are warnings about missing bundles, you don't have CDT in the correct version.
 
 5. Run the CPAclipse project as an "Eclipse Application".
-
-
-Examples of Working Installations
----------------------------------
-
-2012-12-18 pwendler
-0. Ubuntu 12.04 64bit
-1. OpenJDK 1.7.0_09
-2. Eclipse 3.7 (Indigo)
-
-2012-12-19 pwendler
-0. Ubuntu 12.04 64bit
-1. OpenJDK 1.7.0_09
-2. Eclipse 4.2 (Juno)

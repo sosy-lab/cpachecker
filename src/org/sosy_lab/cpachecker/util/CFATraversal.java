@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,10 +32,10 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -136,7 +136,7 @@ public class CFATraversal {
 
   /**
    * Returns a new instance of this class which behaves exactly like the current
-   * instance, except it ignores summary edges ({@link CFunctionSummaryEdge}s).
+   * instance, except it ignores summary edges ({@link FunctionSummaryEdge}s).
    * It will not call the visitor for them, and it will not follow this edge
    * during traversing.
    */
@@ -144,7 +144,7 @@ public class CFATraversal {
     return new CFATraversal(edgeSupplier,
         successorSupplier,
         Predicates.<CFAEdge>or(ignoreEdge,
-            Predicates.instanceOf(CFunctionSummaryEdge.class)));
+            Predicates.instanceOf(FunctionSummaryEdge.class)));
   }
 
   /**
@@ -159,8 +159,8 @@ public class CFATraversal {
         successorSupplier,
         Predicates.<CFAEdge>or(
             ignoreEdge,
-            Predicates.instanceOf(CFunctionCallEdge.class),
-            Predicates.instanceOf(CFunctionReturnEdge.class)
+            Predicates.instanceOf(FunctionCallEdge.class),
+            Predicates.instanceOf(FunctionReturnEdge.class)
             ));
   }
 

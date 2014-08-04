@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -87,12 +87,10 @@ public class SingleDefinitionChecker implements PropertyChecker {
         if (point == null) {
           if (isDefinitionInProgram((ProgramDefinitionPoint) p)) {
             point = (ProgramDefinitionPoint) p;
-          } else if (!p.equals(point)) {
-            // check if it is a real definition
-            if (isDefinitionInProgram((ProgramDefinitionPoint) p)) {
-              return false;
-            }
           }
+        } else if (!p.equals(point)) {
+          // check if it is a real definition
+          if (isDefinitionInProgram((ProgramDefinitionPoint) p)) { return false; }
         }
       }
     }

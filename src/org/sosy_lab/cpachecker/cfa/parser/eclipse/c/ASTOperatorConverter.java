@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 
 import com.google.common.collect.ImmutableSet;
@@ -50,16 +49,14 @@ class ASTOperatorConverter {
       return UnaryOperator.AMPER;
     case IASTUnaryExpression.op_minus:
       return UnaryOperator.MINUS;
-    case IASTUnaryExpression.op_not:
-      return UnaryOperator.NOT;
-    case IASTUnaryExpression.op_plus:
-      return UnaryOperator.PLUS;
     case IASTUnaryExpression.op_sizeof:
       return UnaryOperator.SIZEOF;
     case IASTUnaryExpression.op_star:
       throw new IllegalArgumentException("For the star operator, CPointerExpression should be used instead of CUnaryExpression with a star operator.");
     case IASTUnaryExpression.op_tilde:
       return UnaryOperator.TILDE;
+    case IASTUnaryExpression.op_alignOf:
+      return UnaryOperator.ALIGNOF;
     default:
       throw new CFAGenerationRuntimeException("Unknown unary operator", e);
     }
@@ -199,9 +196,6 @@ class ASTOperatorConverter {
   static boolean isBooleanExpression(CExpression e) {
     if (e instanceof CBinaryExpression) {
       return BOOLEAN_BINARY_OPERATORS.contains(((CBinaryExpression)e).getOperator());
-
-    } else if (e instanceof CUnaryExpression) {
-      return ((CUnaryExpression) e).getOperator() == UnaryOperator.NOT;
 
     } else {
       return false;

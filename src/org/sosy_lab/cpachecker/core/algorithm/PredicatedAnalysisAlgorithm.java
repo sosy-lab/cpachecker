@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,12 +31,13 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -179,7 +180,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
         // do nothing we require that the edge does not exist
       }
       // note: expression of created edge does not match error condition, only error condition will describe correct failure cause
-      CAssumeEdge assumeEdge = new CAssumeEdge("1", node.getLineNumber(), node, node, CNumericTypes.ONE, true);
+      CAssumeEdge assumeEdge = new CAssumeEdge("1", FileLocation.DUMMY, node, node, CNumericTypes.ONE, true);
 
       fakeEdgeFromLastRun = assumeEdge;
       node.addEnteringEdge(assumeEdge);
@@ -384,7 +385,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       fMore = predCPA.getFormulaManager().makeAnd(fLess, fMore);
 
       // check if conjunction of less precise does not imply conjunction of more precise
-      ProverEnvironment prover = predCPA.getFormulaManagerFactory().newProverEnvironment(false);
+      ProverEnvironment prover = predCPA.getFormulaManagerFactory().newProverEnvironment(false, false);
       prover.push(fMore);
       boolean result = prover.isUnsat();
       prover.close();

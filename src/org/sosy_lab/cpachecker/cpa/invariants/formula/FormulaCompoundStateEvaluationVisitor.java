@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -99,7 +99,50 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
         }
       }
     }
-    return operand1.logicalEquals(operand2);
+    CompoundInterval result = operand1.logicalEquals(operand2);
+    if (result.isTop()) {
+      if (pEqual.getOperand1() instanceof Variable) {
+        Variable<CompoundInterval> var = (Variable<CompoundInterval>) pEqual.getOperand1();
+        InvariantsFormula<CompoundInterval> value = pEnvironment.get(var.getName());
+        while (value != null) {
+          if (value.equals(pEqual.getOperand2())) {
+            return CompoundInterval.logicalTrue();
+          }
+          if (value instanceof Variable) {
+            var = (Variable<CompoundInterval>) value;
+            value = pEnvironment.get(var.getName());
+          } else {
+            value = null;
+          }
+        }
+      }
+      if (pEqual.getOperand2() instanceof Variable) {
+        Variable<CompoundInterval> var = (Variable<CompoundInterval>) pEqual.getOperand2();
+        InvariantsFormula<CompoundInterval> value = pEnvironment.get(var.getName());
+        while (value != null) {
+          if (value.equals(pEqual.getOperand1())) {
+            return CompoundInterval.logicalTrue();
+          }
+          if (value instanceof Variable) {
+            var = (Variable<CompoundInterval>) value;
+            value = pEnvironment.get(var.getName());
+          } else {
+            value = null;
+          }
+        }
+      }
+    }
+    return result;
+  }
+
+  @Override
+  public CompoundInterval visit(Exclusion<CompoundInterval> pExclusion,
+      Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+    CompoundInterval excluded = pExclusion.getExcluded().accept(this, pEnvironment);
+    if (excluded.isSingleton()) {
+      return excluded.invert();
+    }
+    return CompoundInterval.top();
   }
 
   @Override

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,14 +28,16 @@ import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
 import java.util.Collection;
+import java.util.List;
 
-import org.sosy_lab.common.NestedTimer;
-import org.sosy_lab.common.Timer;
-import org.sosy_lab.cpachecker.core.Model;
+import org.sosy_lab.common.time.NestedTimer;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager.RegionBuilder;
@@ -52,7 +54,7 @@ public class Z3TheoremProver implements ProverEnvironment {
 
   public Z3TheoremProver(Z3FormulaManager mgr) {
     this.mgr = mgr;
-    this.z3context = mgr.getContext();
+    this.z3context = mgr.getEnvironment();
     this.z3solver = mk_solver(z3context);
     solver_inc_ref(z3context, z3solver);
     this.smtLogger = mgr.getSmtLogger();
@@ -90,11 +92,35 @@ public class Z3TheoremProver implements ProverEnvironment {
   @Override
   public boolean isUnsat() {
     int result = solver_check(z3context, z3solver);
-    Preconditions.checkArgument(result != Z3_L_UNDEF);
+    Preconditions.checkArgument(result != Z3_LBOOL.Z3_L_UNDEF.status);
 
     smtLogger.logCheck();
 
-    return result == Z3_L_FALSE;
+    return result == Z3_LBOOL.Z3_L_FALSE.status;
+  }
+
+  @Override
+  public OptResult isOpt(Formula fvar, boolean maximize) {
+    Z3Formula var = (Z3Formula) fvar;
+    Preconditions.checkArgument(mgr.getUnsafeFormulaManager().isVariable(var),
+        "Can only maximize for a single variable.");
+
+    PointerToInt is_unbounded = new PointerToInt();
+
+    int status = solver_check_opti(
+      z3context, z3solver, is_unbounded, var.z3expr, maximize ? 1 : 0
+    );
+
+    if (status == Z3_LBOOL.Z3_L_FALSE.status) {
+      return OptResult.UNSAT;
+    } else if (status == Z3_LBOOL.Z3_L_UNDEF.status) {
+      return OptResult.UNDEF;
+    } else {
+      if (is_unbounded.value != 0) {
+        return OptResult.UNBOUNDED;
+      }
+    }
+    return OptResult.OPT;
   }
 
   @Override
@@ -105,10 +131,15 @@ public class Z3TheoremProver implements ProverEnvironment {
   }
 
   @Override
+  public List<BooleanFormula> getUnsatCore() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public void close() {
     Preconditions.checkArgument(z3context != 0);
     Preconditions.checkArgument(z3solver != 0);
-    Preconditions.checkArgument(solver_get_num_scopes(z3context, z3solver) >= 1);
+    Preconditions.checkArgument(solver_get_num_scopes(z3context, z3solver) >= 0, "a negative number of scopes is not allowed");
 
     while (level > 0) { // TODO do we need this?
       pop();
@@ -143,7 +174,7 @@ public class Z3TheoremProver implements ProverEnvironment {
     smtLogger.logPush(1);
     smtLogger.logCheck();
 
-    while (solver_check(z3context, z3solver) == Z3_L_TRUE) {
+    while (solver_check(z3context, z3solver) == Z3_LBOOL.Z3_L_TRUE.status) {
       long[] valuesOfModel = new long[importantFormulas.length];
       long z3model = solver_get_model(z3context, z3solver);
 
@@ -231,7 +262,7 @@ public class Z3TheoremProver implements ProverEnvironment {
       if (count == 0) {
         solveTime.stop();
         enumTime.startOuter();
-        regionTime = enumTime.getInnerTimer();
+        regionTime = enumTime.getCurentInnerTimer();
       }
 
       regionTime.start();

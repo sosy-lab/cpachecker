@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,10 +36,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -101,7 +101,7 @@ public class LoopInvariantsWriter {
 
     try (Writer writer = Files.openOutputFile(invariantsFile)) {
       for (CFANode loc : from(cfa.getAllLoopHeads().get())
-                           .toSortedSet(CFAUtils.LINE_NUMBER_COMPARATOR)) {
+                           .toSortedSet(CFAUtils.NODE_NUMBER_COMPARATOR)) {
 
         Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
         BooleanFormula formula = absmgr.toConcrete(region);
@@ -109,7 +109,7 @@ public class LoopInvariantsWriter {
         writer.append("loop__");
         writer.append(loc.getFunctionName());
         writer.append("__");
-        writer.append(""+loc.getLineNumber());
+        writer.append(""+ ((loc.getNumLeavingEdges()==0) ? 0 : loc.getLeavingEdge(0).getLineNumber()));
         writer.append(":\n");
         fmgr.dumpFormula(formula).appendTo(writer);
         writer.append('\n');
@@ -130,7 +130,7 @@ public class LoopInvariantsWriter {
 
     try (Writer writer = Files.openOutputFile(invariantPrecisionsFile)) {
       for (CFANode loc : from(cfa.getAllLoopHeads().get())
-                           .toSortedSet(CFAUtils.LINE_NUMBER_COMPARATOR)) {
+                           .toSortedSet(CFAUtils.NODE_NUMBER_COMPARATOR)) {
         Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
         BooleanFormula formula = absmgr.toConcrete(region);
         Pair<String, List<String>> locInvariant = PredicatePersistenceUtils.splitFormula(fmgr, formula);

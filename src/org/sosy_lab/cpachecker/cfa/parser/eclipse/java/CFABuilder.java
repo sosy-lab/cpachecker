@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,6 +27,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
@@ -35,8 +37,8 @@ import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
@@ -60,7 +62,7 @@ class CFABuilder extends ASTVisitor {
 
   // Data structures for handling method declarations
   // private Queue<MethodDeclaration> methodDeclarations = new LinkedList<>();
-  private final Map<String, FunctionEntryNode> cfas = new HashMap<>();
+  private final SortedMap<String, FunctionEntryNode> cfas = new TreeMap<>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
 
   private final Scope scope;
@@ -78,7 +80,7 @@ class CFABuilder extends ASTVisitor {
    * Retrieves list of all methods and constructors of program
    * @return all CFAs in the program
    */
-  public Map<String, FunctionEntryNode> getCFAs() {
+  public SortedMap<String, FunctionEntryNode> getCFAs() {
     return cfas;
   }
 

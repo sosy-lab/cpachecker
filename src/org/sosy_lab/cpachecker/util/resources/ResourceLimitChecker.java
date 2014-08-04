@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
+import javax.annotation.Nonnull;
 import javax.management.JMException;
 
 import org.sosy_lab.common.concurrency.Threads;
@@ -78,9 +79,7 @@ public final class ResourceLimitChecker {
 
     } else {
       Runnable runnable = new ResourceLimitCheckRunnable(shutdownNotifier, limits);
-
-      thread = Threads.newThread(runnable, "Resource limit checker");
-      thread.setDaemon(true);
+      thread = Threads.newThread(runnable, "Resource limit checker", true);
     }
   }
 
@@ -132,7 +131,7 @@ public final class ResourceLimitChecker {
           Joiner.on(", ").join(Lists.transform(limitsList,
               new Function<ResourceLimit, String>() {
                 @Override
-                public String apply(ResourceLimit pInput) {
+                public String apply(@Nonnull ResourceLimit pInput) {
                   return pInput.getName();
                 }
               })));

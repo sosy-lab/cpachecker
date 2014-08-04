@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="60">
+  <option name="-noout"/>
+  <option name="-nolog"/>
+
+  <option name="-setprop">limits.time.wall=60</option>
+
+  <sourcefiles>
+    <include>../programs/benchmarks/locks/*.c</include>
+    <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+  </sourcefiles>
+
+  <rundefinition>
+    <option name="-predicateAnalysis-PredAbsRefiner-ABEl"/>
+  </rundefinition>
+
+  <columns>
+    <column title="total">time for CPAchecker</column>
+    <column title="reached">reached set</column>
+  </columns>
+</benchmark>

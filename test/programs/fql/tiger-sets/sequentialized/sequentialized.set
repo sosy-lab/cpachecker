@@ -1,6 +1,0 @@
-../../../benchmarks/systemc/*_false-unreach-label*.cil.c
-../../../benchmarks/systemc/*_true-unreach-label*.cil.c
-../../../benchmarks/seq-mthreaded/*_false-unreach-label.*.c
-../../../benchmarks/seq-mthreaded/*_true-unreach-label.*.c
-../../../benchmarks/seq-pthread/*_false-unreach-label*.i
-../../../benchmarks/seq-pthread/*_true-unreach-label*.i

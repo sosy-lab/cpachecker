@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,9 +36,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import com.google.common.base.Function;
 
 
-public abstract class AbstractUnsafeFormulaManager<TFormulaInfo> extends AbstractBaseFormulaManager<TFormulaInfo> implements UnsafeFormulaManager {
+public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> extends AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv> implements UnsafeFormulaManager {
 
-  protected AbstractUnsafeFormulaManager(FormulaCreator<TFormulaInfo> creator) {
+  protected AbstractUnsafeFormulaManager(AbstractFormulaCreator<TFormulaInfo, TType, TEnv> creator) {
     super(creator);
   }
 

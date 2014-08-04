@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
+import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,8 +34,8 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -79,14 +79,14 @@ public class CompositeTransferRelation implements TransferRelation {
     Collection<CompositeState> results;
 
     if (cfaEdge == null) {
-      CFANode node = extractLocation(compositeState);
-      if (node == null) {
-        throw new CPATransferException("Analysis without LocationCPA is not supported, please add one to the configuration");
+      AbstractStateWithLocation locState = extractStateByType(compositeState, AbstractStateWithLocation.class);
+      if (locState == null) {
+        throw new CPATransferException("Analysis without any CPA tracking locations is not supported, please add one to the configuration (e.g., LocationCPA).");
       }
 
-      results = new ArrayList<>(node.getNumLeavingEdges());
+      results = new ArrayList<>(2);
 
-      for (CFAEdge edge : leavingEdges(node)) {
+      for (CFAEdge edge : locState.getOutgoingEdges()) {
         getAbstractSuccessorForEdge(compositeState, compositePrecision, edge, results);
       }
 
@@ -103,10 +103,10 @@ public class CompositeTransferRelation implements TransferRelation {
       Collection<CompositeState> compositeSuccessors) throws CPATransferException, InterruptedException {
     assert cfaEdge != null;
 
-
     // first, call all the post operators
     int resultCount = 1;
     List<AbstractState> componentElements = compositeState.getWrappedStates();
+    checkArgument(componentElements.size() == size, "State with wrong number of component states given");
     List<Collection<? extends AbstractState>> allComponentsSuccessors = new ArrayList<>(size);
 
     for (int i = 0; i < size; i++) {

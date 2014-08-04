@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,7 +29,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -38,9 +38,12 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.Optional;
 import org.sosy_lab.cpachecker.core.defaults.BreakOnTargetsPrecisionAdjustment;
@@ -54,7 +57,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -63,6 +66,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -71,7 +75,7 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
  * This class implements an AutomatonAnalysis as described in the related Documentation.
  */
 @Options(prefix="cpa.automaton")
-public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, StatisticsProvider, ConfigurableProgramAnalysisWithABM, ProofChecker {
+public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, StatisticsProvider, ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
   @Option(name="dotExport",
       description="export automaton to file")
@@ -91,8 +95,12 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path inputFile = null;
 
-  @Option(description="signal the analysis to break in case of reached error state")
-  private boolean breakOnTargetState = true;
+  @Option(description="signal the analysis to break in case the given number of error state is reached ")
+  private int breakOnTargetState = 1;
+
+  @Option(description="the maximum number of iterations performed after the initial error is found, despite the limit"
+      + "given as cpa.automaton.breakOnTargetState is not yet reached")
+  private int extraIterationsLimit = -1;
 
   private final Automaton automaton;
   private final AutomatonState topState = new AutomatonState.TOP(this);
@@ -109,8 +117,33 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
     config.inject(this, ControlAutomatonCPA.class);
 
-    transferRelation = new AutomatonTransferRelation(this, logger);
-    precisionAdjustment = breakOnTargetState ? BreakOnTargetsPrecisionAdjustment.getInstance() : StaticPrecisionAdjustment.getInstance();
+    transferRelation = new AutomatonTransferRelation(this, config, logger);
+
+    final PrecisionAdjustment lPrecisionAdjustment;
+
+    if (breakOnTargetState > 0) {
+      lPrecisionAdjustment = BreakOnTargetsPrecisionAdjustment.getInstance(breakOnTargetState, extraIterationsLimit);
+    }
+
+    else {
+      lPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();
+    }
+
+    precisionAdjustment = new PrecisionAdjustment() { // Handle the BREAK state
+
+      @Override
+      public Triple<AbstractState, Precision, Action> prec(AbstractState pState, Precision pPrecision,
+          UnmodifiableReachedSet pStates) throws CPAException, InterruptedException {
+
+        Triple<AbstractState, Precision, Action> wrappedPrec = lPrecisionAdjustment.prec(pState, pPrecision, pStates);
+
+        if (((AutomatonState) pState).getInternalStateName().equals("_predefinedState_BREAK")) {
+        return Triple.of(wrappedPrec.getFirst(), wrappedPrec.getSecond(), Action.BREAK);
+        }
+
+        return wrappedPrec;
+      }
+    };
 
     if (pAutomaton != null) {
       this.automaton = pAutomaton;
@@ -119,7 +152,10 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
       throw new InvalidConfigurationException("Explicitly specified automaton CPA needs option cpa.automaton.inputFile!");
 
     } else {
-      List<Automaton> lst = AutomatonParser.parseAutomatonFile(inputFile, config, logger, cfa.getMachineModel());
+
+      Scope scope = new CProgramScope(cfa);
+
+      List<Automaton> lst = AutomatonParser.parseAutomatonFile(inputFile, config, logger, cfa.getMachineModel(), scope);
       if (lst.isEmpty()) {
         throw new InvalidConfigurationException("Could not find automata in the file " + inputFile.toAbsolutePath());
       } else if (lst.size() > 1) {
@@ -155,7 +191,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
   @Override
   public AbstractState getInitialState(CFANode pNode) {
-    return AutomatonState.automatonStateFactory(automaton.getInitialVariables(), automaton.getInitialState(), this);
+    return AutomatonState.automatonStateFactory(automaton.getInitialVariables(), automaton.getInitialState(), this, 0, 0);
   }
 
   @Override

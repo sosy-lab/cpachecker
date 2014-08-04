@@ -1,5 +1,0 @@
-../programs/benchmarks/heap-manipulation/bubble_sort_linux_false.cil.c
-../programs/benchmarks/heap-manipulation/dll_of_dll_false.cil.c
-../programs/benchmarks/heap-manipulation/merge_sort_false.cil.c
-../programs/benchmarks/heap-manipulation/*_true.cil.c
-../programs/benchmarks/list-properties/*.cil.c

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,8 +33,8 @@ import java.util.TreeSet;
 import java.util.Vector;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -345,10 +345,6 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     if (invTemp == null) { return null; }
 
     logger.log(Level.ALL, "\nChosen invariant template for loop head:\n", invTemp);
-    //diag:
-    System.out.println("Chosen invariant template for loop head:");
-    System.out.println(invTemp);
-    //
 
     TemplateNetwork tnet = buildSimpleLoopNetwork(root, loopHead, error, invTemp, entryFormula, loopFormula, exitFormula);
     return tnet;

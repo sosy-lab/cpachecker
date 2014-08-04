@@ -1,3 +1,0 @@
-../../benchmarks/locks/*_false-unreach-label*.c
-../../benchmarks/locks/*_true-unreach-label*.c
-

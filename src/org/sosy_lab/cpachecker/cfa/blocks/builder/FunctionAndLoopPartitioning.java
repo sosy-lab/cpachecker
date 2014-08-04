@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,27 +23,41 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
-import org.sosy_lab.common.LogManager;
+import java.util.Set;
+
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
 
 /**
  * <code>PartitioningHeuristic</code> that creates blocks for each loop- and function-body.
  */
-public class FunctionAndLoopPartitioning extends LoopPartitioning {
+public class FunctionAndLoopPartitioning extends PartitioningHeuristic {
+
+  private FunctionPartitioning functionPartitioning;
+  private LoopPartitioning loopPartitioning;
 
   public FunctionAndLoopPartitioning(LogManager pLogger, CFA pCfa) {
     super(pLogger, pCfa);
+    functionPartitioning = new FunctionPartitioning(pLogger, pCfa);
+    loopPartitioning = new LoopPartitioning(pLogger, pCfa);
   }
 
   @Override
   protected boolean shouldBeCached(CFANode pNode) {
-    if (pNode.getFunctionName().startsWith("__VERIFIER_")) {
-      //exception for __VERIFIER helper functions
-      return false;
+    return functionPartitioning.shouldBeCached(pNode) || loopPartitioning.shouldBeCached(pNode);
+  }
+
+  @Override
+  protected Set<CFANode> getBlockForNode(CFANode pNode) {
+    // TODO what to do if both want to cache it?
+    if (functionPartitioning.shouldBeCached(pNode)) {
+      return functionPartitioning.getBlockForNode(pNode);
+    } else if (loopPartitioning.shouldBeCached(pNode)) {
+      return loopPartitioning.getBlockForNode(pNode);
+    } else {
+      throw new AssertionError("node should not be cached: " + pNode);
     }
-    return pNode instanceof FunctionEntryNode || super.shouldBeCached(pNode);
   }
 }

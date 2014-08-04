@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,6 +26,9 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
+
 /**
  * Represents a type of a formula.
  * @param <T> the static type of the FormulaType.
@@ -44,15 +47,30 @@ public abstract class FormulaType<T extends Formula> {
     return false;
   }
 
+  public boolean isNumeralType() {
+    return false;
+  }
+
   public boolean isRationalType() {
+    return false;
+  }
+
+  public boolean isIntegerType() {
     return false;
   }
 
   @Override
   public abstract String toString();
 
+  public abstract static class NumeralType<T extends NumeralFormula> extends FormulaType<T> {
 
-  public static final FormulaType<RationalFormula> RationalType = new FormulaType<RationalFormula>() {
+    @Override
+    public final boolean isNumeralType() {
+      return true;
+    }
+  }
+
+  public static final FormulaType<RationalFormula> RationalType = new NumeralType<RationalFormula>() {
 
     @Override
     public Class<RationalFormula> getInterfaceType() {
@@ -67,6 +85,24 @@ public abstract class FormulaType<T extends Formula> {
     @Override
     public String toString() {
       return "Rational";
+    }
+  };
+
+  public static final FormulaType<IntegerFormula> IntegerType = new NumeralType<IntegerFormula>() {
+
+    @Override
+    public Class<IntegerFormula> getInterfaceType() {
+      return IntegerFormula.class;
+    }
+
+    @Override
+    public boolean isIntegerType() {
+      return true;
+    }
+
+    @Override
+    public String toString() {
+      return "Integer";
     }
   };
 

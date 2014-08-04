@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,7 +30,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.common.LogManager;
+import javax.annotation.Nullable;
+
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -111,7 +113,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     case ReturnStatementEdge:
       //this is the return-statement of a function
       //set a local variable tracking the return statement's initialization status
-      if (isExpressionUninitialized(successor, ((CReturnStatementEdge)cfaEdge).getExpression(), cfaEdge)) {
+      if (isExpressionUninitialized(successor, ((CReturnStatementEdge)cfaEdge).getExpression().orNull(), cfaEdge)) {
         setUninitialized(successor, "CPAchecker_UninitVars_FunctionReturn");
       } else {
         setInitialized(successor, "CPAchecker_UninitVars_FunctionReturn");
@@ -379,7 +381,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   }
 
   private boolean isExpressionUninitialized(UninitializedVariablesState element,
-                                            CRightHandSide expression,
+                                            @Nullable CRightHandSide expression,
                                             CFAEdge cfaEdge) throws UnrecognizedCCodeException {
     if (expression == null) {
       // e.g. empty parameter list

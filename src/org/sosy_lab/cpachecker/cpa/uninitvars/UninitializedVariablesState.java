@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,9 +33,18 @@ import java.util.Set;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-public class UninitializedVariablesState implements AbstractQueryableState {
+public class UninitializedVariablesState implements AbstractQueryableState, TargetableWithPredicatedAnalysis {
+
+  private static boolean checkTarget;
+
+  public static void init(boolean check) {
+    checkTarget = check;
+  }
 
   private final Collection<String> globalVars;
   private final Deque<Pair<String, Collection<String>>> localVars;
@@ -214,5 +223,24 @@ public class UninitializedVariablesState implements AbstractQueryableState {
   @Override
   public String getCPAName() {
     return "uninitVars";
+  }
+
+  @Override
+  public boolean isTarget() {
+    return checkTarget && getWarnings().size()!=0;
+  }
+
+  @Override
+  public ViolatedProperty getViolatedProperty() throws IllegalStateException {
+    if (isTarget()) { return ViolatedProperty.OTHER; }
+    return null;
+  }
+
+  @Override
+  public BooleanFormula getErrorCondition(FormulaManagerView pFmgr) {
+    if (checkTarget) {
+      return pFmgr.getBooleanFormulaManager().makeBoolean(true);
+    }
+    return pFmgr.getBooleanFormulaManager().makeBoolean(false);
   }
 }

@@ -35,6 +35,11 @@ import com.google.appengine.api.capabilities.Capability;
 import com.google.appengine.api.capabilities.CapabilityStatus;
 
 
+/**
+ * This is a filter that checks the availability of the data store service and
+ * the task queue service of Google App Engine.
+ * It will stop the filter chain if any of the services is not available.
+ */
 public class CapabilitiesFilter extends Filter {
 
   public CapabilitiesFilter(Context context) {

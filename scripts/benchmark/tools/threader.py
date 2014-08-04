@@ -38,20 +38,22 @@ class Tool(benchmark.tools.template.BaseTool):
         return 'Threader'
 
 
-    def getCmdline(self, executable, options, sourcefile, propertyfile):
+    def getCmdline(self, executable, options, sourcefiles, propertyfile, rlimits):
+        assert len(sourcefiles) == 1, "only one sourcefile supported"
+        sourcefile = sourcefiles[0]
         workingDir = self.getWorkingDirectory(executable)
         return [os.path.relpath(executable, start=workingDir)] + options + [os.path.relpath(sourcefile, start=workingDir)]
 
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
         if 'SSSAFE' in output:
-            status = result.STR_TRUE
+            status = result.STATUS_TRUE_PROP
         elif 'UNSAFE' in output:
-            status = result.STR_FALSE_LABEL
+            status = result.STATUS_FALSE_REACH
         else:
-            status = result.STR_UNKNOWN
+            status = result.STATUS_UNKNOWN
 
-        if status == result.STR_UNKNOWN and isTimeout:
+        if status == result.STATUS_UNKNOWN and isTimeout:
             status = 'TIMEOUT'
 
         return status

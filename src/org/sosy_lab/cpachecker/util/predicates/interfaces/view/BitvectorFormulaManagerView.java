@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,16 +32,16 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorType;
 
 
-public class BitvectorFormulaManagerView extends BaseManagerView<BitvectorFormula> implements BitvectorFormulaManager {
+public class BitvectorFormulaManagerView extends BaseManagerView<BitvectorFormula, BitvectorFormula> implements BitvectorFormulaManager {
 
-  private BitvectorFormulaManager manager;
-  private BooleanFormulaManagerView bmgr;
+  private final BitvectorFormulaManager manager;
+
   public BitvectorFormulaManagerView(BitvectorFormulaManager pManager) {
     this.manager = pManager;
   }
 
   public BooleanFormula notEqual(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
-    bmgr = getViewManager().getBooleanFormulaManager();
+    BooleanFormulaManagerView bmgr = getViewManager().getBooleanFormulaManager();
     return bmgr.not(equal(pNumber1, pNumber2));
   }
   public BitvectorFormula makeBitvector(FormulaType<BitvectorFormula> pType, long pI) {

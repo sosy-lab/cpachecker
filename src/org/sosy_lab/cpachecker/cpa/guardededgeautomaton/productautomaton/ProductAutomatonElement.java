@@ -26,12 +26,12 @@ package org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonPredicateElement;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.IGuardedEdgeAutomatonStateElement;
-import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPPredicate;
 
 public abstract class ProductAutomatonElement extends CompositeState {
 

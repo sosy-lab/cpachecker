@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,6 +28,7 @@ import java.util.regex.Pattern;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.value.NumericValue;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 /**
@@ -130,6 +131,9 @@ interface AutomatonIntExpr extends AutomatonExpression {
           if (aqe.getCPAName().equals(cpaName)) {
             try {
               Object result = aqe.evaluateProperty(modifiedQueryString);
+              if (result instanceof NumericValue) {
+                result = ((NumericValue) result).getNumber();
+              }
               if (result instanceof Integer) {
                   String message = "CPA-Check succeeded: ModifiedCheckString: \"" +
                   modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +

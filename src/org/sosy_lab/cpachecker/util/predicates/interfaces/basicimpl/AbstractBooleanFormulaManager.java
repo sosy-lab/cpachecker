@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,13 +34,13 @@ import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 
-public abstract class AbstractBooleanFormulaManager<TFormulaInfo>
-  extends AbstractBaseFormulaManager<TFormulaInfo>
+public abstract class AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv>
+  extends AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv>
   implements
     BooleanFormulaManager {
 
   protected AbstractBooleanFormulaManager(
-      FormulaCreator<TFormulaInfo> pCreator) {
+      AbstractFormulaCreator<TFormulaInfo, TType, TEnv> pCreator) {
     super(pCreator);
   }
 

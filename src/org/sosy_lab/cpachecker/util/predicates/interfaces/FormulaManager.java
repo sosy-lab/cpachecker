@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,8 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import org.sosy_lab.common.Appender;
-
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
 /**
  * Represents a Solver.
@@ -32,9 +33,20 @@ import org.sosy_lab.common.Appender;
 public interface FormulaManager {
 
   /**
-   * Returns the Rational-Theory.
+   * Returns the Integer-Theory.
+   * Because most SAT-solvers support automatic casting between Integer- and Rational-Theory,
+   * the Integer- and the RationalFormulaManager both return the same Formulas for numeric operations
+   * like ADD, SUBSTRACT, TIMES, LESSTHAN, EQUAL, etc.
    */
-  RationalFormulaManager getRationalFormulaManager();
+  NumeralFormulaManager<IntegerFormula, IntegerFormula> getIntegerFormulaManager();
+
+  /**
+   * Returns the Rational-Theory.
+   * Because most SAT-solvers support automatic casting between Integer- and Rational-Theory,
+   * the Integer- and the RationalFormulaManager both return the same Formulas for numeric operations
+   * like ADD, SUBSTRACT, TIMES, LESSTHAN, EQUAL, etc.
+   */
+  NumeralFormulaManager<NumeralFormula, RationalFormula> getRationalFormulaManager();
 
   /**
    * Returns the Boolean-Theory.

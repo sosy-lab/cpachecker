@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,10 +28,8 @@ import static com.google.common.base.Preconditions.*;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -39,7 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CLabelNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
@@ -54,7 +52,7 @@ import com.google.common.collect.ImmutableMap;
  * Only variables can be declared.
  * Provides the mechanism to have nested scopes (i.e., inside {} blocks).
  */
-class FunctionScope implements Scope {
+class FunctionScope extends Scope {
 
   private final Map<String, CFunctionDeclaration> functions = new HashMap<>();
   private final Deque<Map<String, CComplexTypeDeclaration>> typesStack = new ArrayDeque<>();
@@ -63,7 +61,6 @@ class FunctionScope implements Scope {
   private final Deque<Map<String, CLabelNode>> labelsNodeStack = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsStack = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsList = new ArrayDeque<>();
-  private final Set<String> alreayTakenTypeNames;
 
 
   private String currentFunctionName = null;
@@ -72,14 +69,14 @@ class FunctionScope implements Scope {
       ImmutableMap<String, CComplexTypeDeclaration> pTypes,
       ImmutableMap<String, CTypeDefDeclaration> pTypedefs,
       ImmutableMap<String, CSimpleDeclaration> pGlobalVars,
-      Set<String> pAlreadyTykeTypes) {
+      String currentFile) {
+    super(currentFile);
 
     functions.putAll(pFunctions);
     typesStack.addLast(pTypes);
     typedefs.putAll(pTypedefs);
     varsStack.push(pGlobalVars);
     varsList.push(pGlobalVars);
-    alreayTakenTypeNames = pAlreadyTykeTypes;
 
     enterBlock();
   }
@@ -89,7 +86,7 @@ class FunctionScope implements Scope {
          ImmutableMap.<String, CComplexTypeDeclaration>of(),
          ImmutableMap.<String, CTypeDefDeclaration>of(),
          ImmutableMap.<String, CSimpleDeclaration>of(),
-         new HashSet<String>());
+         "");
   }
 
   @Override
@@ -169,9 +166,14 @@ class FunctionScope implements Scope {
     while (it.hasNext()) {
       Map<String, CComplexTypeDeclaration> types = it.next();
 
-      CComplexTypeDeclaration declaration = types.get(name);
+      CComplexTypeDeclaration declaration = types.get(getRenamedTypeName(name));
       if (declaration != null) {
         return declaration.getType();
+      } else {
+        declaration = types.get(name);
+        if (declaration != null) {
+          return declaration.getType();
+        }
       }
     }
     return null;
@@ -235,11 +237,6 @@ class FunctionScope implements Scope {
 
     typesStack.peekLast().put(typeName, declaration);
     return true;
-  }
-
-  @Override
-  public boolean isTypeNameAvailable(String name) {
-    return !alreayTakenTypeNames.contains(name);
   }
 
   public CVariableDeclaration lookupLocalLabel(String name) {

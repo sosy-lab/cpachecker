@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
     <head>
-        <title>CPAchecker Report - {{sourcefilename}}</title>
+        <title>CPAchecker Report - {{title}}</title>
         <style>
 .edge {
     cursor: pointer;
@@ -136,7 +136,7 @@ html,body {
     border: 0px;
 }
 
-#tab_cfa,#tab_art {
+#tab_cfa,#tab_art,#tab_source {
     position: absolute;
     top: 0px;
     bottom: 0px;
@@ -146,7 +146,7 @@ html,body {
     background: white;
 }
 
-#tab_cfa .iframeWrapper, #tab_art .iframeWrapper {
+#tab_cfa .controlledContentContainer, #tab_art .controlledContentContainer, #tab_source .controlledContentContainer {
     position: absolute;
     top: 26px;
     bottom: 0px;
@@ -155,7 +155,7 @@ html,body {
     overflow: none;
 }
 
-#tab_log,#tab_stats,#tab_conf,#tab_cil {
+#tab_log,#tab_stats,#tab_conf {
     position: absolute;
     top: 0px;
     bottom: 0px;
@@ -189,33 +189,33 @@ a.action:hover {
     background-color: lime;
 }
 
-#tab_cil #cil_holder td {
+#tab_source .source_content td {
     padding: 0px;
     margin: 0px;
     padding-right: 10px;
 }
 
-#tab_cil #cil_holder td:first-child {
+#tab_source .source_content td:first-child {
     background-color: #ccc;
 }
 
-#tab_cil #cil_holder td pre {
+#tab_source .source_content td pre {
     padding: 0px;
     margin: 0px;
     border: none;
 }
 
-#tab_cil #cil_holder tr:nth-child(2n+1) td pre.prettyprint {
+#tab_source .source_content tr:nth-child(2n+1) td pre.prettyprint {
     background-color: #f3f3f3;
 }
 
-.zoomSliderContainer {
+.controllerContainer {
     position: absolute;
     top: 0px;
     left: 0px;
     right: 0px;
     height: 25px;
-    z-index: 2; /* slider is over content */
+    z-index: 2; /* controller is over content */
     border-bottom: 1px solid black;
     float: right;
     background-color: #eed;
@@ -234,12 +234,12 @@ a.action:hover {
     float: right;
 }
 
-.zoomSliderContainer .zoomSliderContent { /* DO NOT CHANGE, USED FOR CALCULATION */
+.controllerContainer .zoomSliderContent { /* DO NOT CHANGE, USED FOR CALCULATION */
     width: 2300px;
     height: 18px;
 }
 
-#functionSelector {
+#selectorContainer {
     float: left;
     line-height: 25px;
 }
@@ -264,7 +264,7 @@ a.action:hover {
         <div class="toolbar" id="header">
             <h1>CPAchecker Report</h1>
             <small>Generated: {{time_generated}}</small>
-            <h2>{{sourcefilename}}</h2>
+            <h2>{{title}}</h2>
             <h3 id="cfalabel" style="display:none;">main</h3>
         </div>
 
@@ -284,7 +284,7 @@ a.action:hover {
             <div class="toolbar">
                 <a class="action" id="show_cfa">CFA</a>
                 <a class="action" id="show_art">ARG</a>
-                <a class="action" id="show_cil">Source</a>
+                <a class="action" id="show_source">Source</a>
                 <a class="action" id="show_log">Log</a>
                 <a class="action" id="show_stats">Statistics</a>
                 <a class="action" id="show_conf">Configuration</a>
@@ -292,45 +292,61 @@ a.action:hover {
 
             <div id="tabContent">
                 <div id="tab_cfa">
-                    <div class="zoomSliderContainer">
+                    <div class="controllerContainer">
                         <div id="zoomSlider_tab_cfa"
                              onmousemove="setZoomLevel(this.id);"
-                        	 onmouseup="setZoomLevel(this.id);zoom(this.id);">
+                             onmouseup="setZoomLevel(this.id);zoom(this.id);">
                             <div class="zoomSliderContent"></div>
                         </div>
                         <div id="zoomLabel_tab_cfa">100 %</div>
-                        <div id="functionSelector">
+                        <div id="selectorContainer">
                             <span>Displayed CFA </span>
                             <select id="functionselect"></select>
                         </div>
                     </div>
-                    <div class="iframeWrapper">
+                    <div class="controlledContentContainer">
                         <iframe name="tab_cfa" src="about:blank"></iframe>
                     </div>
                 </div>
 
                 <div id="tab_art">
-                    <div class="zoomSliderContainer">
+                    <div class="controllerContainer">
                         <div id="zoomSlider_tab_art"
-                        	 onmousemove="setZoomLevel(this.id);"
-                        	 onmouseup="setZoomLevel(this.id);zoom(this.id);">
+                             onmousemove="setZoomLevel(this.id);"
+                             onmouseup="setZoomLevel(this.id);zoom(this.id);">
                             <div class="zoomSliderContent"></div>
                         </div>
                         <div id="zoomLabel_tab_art">100 %</div>
                     </div>
-                    <div class="iframeWrapper">
-						<iframe name="tab_art" src="ARG.svg"></iframe>
-					</div>
+                    <div class="controlledContentContainer">
+                        <iframe name="tab_art" src="ARG.svg"></iframe>
+                    </div>
                 </div>
-		<div id="tab_cil">
-                    {{if sourcefilecontent}}
-                    <table id="cil_holder">
-{{for loop, line in looper(sourcefilecontent.splitlines())}}
-<tr id="cil_line_{{loop.index}}"><td><pre>{{loop.index}}</pre></td><td><pre class="prettyprint lang-c">{{line}}</pre></td></tr>
+                <div id="tab_source">
+                    <div class="controllerContainer">
+                        <div id="selectorContainer">
+                            <span>Displayed Sourcefile </span>
+                            <select id="sourcefileselect" onchange="viewer.windows.source.showSourcefile(this.selectedIndex);">
+                            {{for sourcefile in sourcefilenames}}
+                                <option>{{sourcefile}}</option>
+                            {{endfor}}
+                            </select>
+                        </div>
+                    </div>
+                    {{if sourcefilecontents}}
+                        {{for i, content in enumerate(sourcefilecontents)}}
+                    <div class="controlledContentContainer" style="overflow:auto; display:none" id="sourcefile_{{i}}">
+                        <table class="source_content">
+{{for loop, line in looper(content.splitlines())}}
+<tr id="source_{{i}}_line_{{loop.index}}"><td><pre>{{loop.index}}</pre></td><td><pre class="prettyprint lang-c">{{line}}</pre></td></tr>
 {{endfor}}
-                    </table>
+                        </table>
+                    </div>
+                        {{endfor}}
                     {{else}}
-                    <h3>Source code not available.</h3>
+                    <div class="controlledContentContainer">
+                        <h3>Source code not available.</h3>
+                    </div>
                     {{endif}}
                 </div>
                 <div id="tab_log">
@@ -431,9 +447,9 @@ a.action:hover {
 
             /* take mousePosition and set new widths and positions */
             function changeWidthMouseMove(event) {
-            	/* leftContentWidth is at least 150px */
+                /* leftContentWidth is at least 150px */
                 leftContentWidth = Math.max(event.pageX - 2, 150);
-            	console.log('move to ' + leftContentWidth);
+                console.log('move to ' + leftContentWidth);
 
                 document.getElementById('middleLine').style.left = leftContentWidth + 'px';
                 document.getElementById('leftContent').style.width = leftContentWidth + 'px';
@@ -625,6 +641,15 @@ a.action:hover {
 
                         svgedge.onclick = edge_clickaction(edgeid);
                         svgedge.setAttribute('cursor', 'pointer');
+                        svgedge.onmouseover = function() {
+                            var text = this.getElementsByTagName("text")[0];
+                            text.setAttribute("styleBackup", text.getAttribute("style"));
+                            text.setAttribute("style", "font-weight:bold");
+                        };
+                        svgedge.onmouseout = function() {
+                            var text = this.getElementsByTagName("text")[0];
+                            text.setAttribute("style", text.getAttribute("styleBackup"));
+                        };
                     }
                     self.cfacache[self.active_function] = cfa;
                     self.active_cfa = cfa;
@@ -875,7 +900,7 @@ a.action:hover {
                         var srcspan = document.createElement('span');
                         var srclink = document.createElement('a');
                         srclink.innerHTML = step['source'];
-                        srclink.onclick = node_clickaction(step['source'], 1);
+                        srclink.onclick = node_clickaction(step['source'], i);
                         srcspan.appendChild(document.createTextNode('('));
                         srcspan.appendChild(srclink);
                         srcspan.appendChild(document.createTextNode(')'));
@@ -927,21 +952,48 @@ a.action:hover {
                 function edge_clickaction() {
                     console.log('edge clicked');
                     var label = this.getElementsByTagName('text')[0].textContent;
-
-                    var nodeid = label.split('}-> N')[1];
-                    nodeid = parseInt(nodeid.substring(0, nodeid.length - 1), 10);
-
+                    var line = parseInt(label.split(':')[0].substring(5)); // get 6 from "Line 6: int x;"
+                    viewer.windows.rightpane.select_tab('tab_source');
+                    viewer.windows.source.scrollTo(viewer.data.sourcefiles[0], line); // TODO get sourcefile from ARG, currently not available
+                }
+                
+                function node_clickaction() {
+                    console.log('node clicked');
+                    var label = this.getElementsByTagName('text')[0].textContent;
+                    var nodeid = parseInt(label.split('@ N')[1]); // get 5 from "12 @ N5"
                     viewer.windows.rightpane.select_tab('tab_cfa');
                     viewer.windows.cfawin.focus_node(nodeid);
                 }
-
+                
                 self.onready = function() {
                     var edges = self.svgdoc.getElementsByClassName('edge');
                     for (var i = 0; i < edges.length; i++) {
                         edges[i].onclick = edge_clickaction;
                         edges[i].setAttribute('cursor', 'pointer');
+                        edges[i].onmouseover = function(){
+                            var text = this.getElementsByTagName("text")[0];
+                            text.setAttribute("styleBackup", text.getAttribute("style"));
+                            text.setAttribute("style", "font-weight:bold");
+                        };
+                        edges[i].onmouseout  = function(){
+                            var text = this.getElementsByTagName("text")[0];
+                            text.setAttribute("style", text.getAttribute("styleBackup"));
+                        };
                     }
-
+                    var nodes = self.svgdoc.getElementsByClassName('node');
+                    for (var i = 0; i < nodes.length; i++) {
+                        nodes[i].onclick = node_clickaction;
+                        nodes[i].setAttribute('cursor', 'pointer');
+                        nodes[i].onmouseover = function(){
+                            var box = this.getElementsByTagName("polygon")[0];
+                            box.setAttribute("fillBackup", box.getAttribute("fill"));
+                            box.setAttribute("fill", "lime");
+                        };
+                        nodes[i].onmouseout  = function(){
+                            var box = this.getElementsByTagName("polygon")[0];
+                            box.setAttribute("fill", box.getAttribute("fillBackup"));
+                        };
+                    }
                 };
 
                 //initialize ARG window - DOM must be ready
@@ -1023,6 +1075,54 @@ a.action:hover {
             })();
 
         </script>
+        
+        <script>
+            viewer.windows.source = new (function() {
+                var self = this;
+
+                self.init = function() { self.showSourcefile(0); };
+
+                self.selectedLine = null;
+                
+                self.scrollTo = function(sourcefile, line) {
+
+                    if (sourcefile == undefined || "<none>" == sourcefile) {
+                        return;
+                    }
+
+                    var index = viewer.data.sourcefiles.indexOf(sourcefile);
+                    self.showSourcefile(index);
+                    if (line > 0) {
+                        line--;
+                    }
+                    console.log("scrolling to line: " + line);
+                    if (self.selectedLine) {
+                        self.selectedLine.children[1].children[0].style.backgroundColor = '';
+                    }
+                    self.selectedLine = document.getElementById('source_' + index + '_line_' + line);
+                    self.selectedLine.children[1].children[0].style.backgroundColor = 'red';
+                    self.selectedLine.scrollIntoView();
+                }
+
+                self.selectedSourcefile = null;
+            
+                self.showSourcefile = function(index) {
+                    // we use an index instead of the name, because the name might contains special chars 
+                    // like space, dot or underscore, that are not allowed in html.
+                    console.log("show sourcefile: " + viewer.data.sourcefiles[index] + ", index: " + index);
+                    if (self.selectedSourcefile != null) {
+                        // hide current sourcefile
+                        self.selectedSourcefile.style.display = "none";
+                    }
+
+                    // show new file
+                    self.selectedSourcefile = document.getElementById("sourcefile_" + index);
+                    self.selectedSourcefile.style.display = "block";
+                    document.getElementById("sourcefileselect").selectedIndex = index;
+                }
+            })();
+        
+        </script>
 
         <script>
             //the errorpath data
@@ -1030,6 +1130,9 @@ a.action:hover {
 
             //list of functions in the CFA
             viewer.data.functionlist = {{functionlist | html}};
+
+            //list of functions in the CFA
+            viewer.data.sourcefiles = [{{for name in sourcefilenames}}"{{name}}",{{endfor}}];
 
             //nodes that wrap multiple edges
             viewer.data.combinednodes = {{combinednodes | html}};
@@ -1059,21 +1162,6 @@ a.action:hover {
                 draw_error_path_cfa();
             });
 
-
-            var selected_cil = null;
-
-            function scroll_cil(line) {
-                if (line > 0) {
-                    line--;
-                }
-                if (selected_cil) {
-                    selected_cil.children[1].children[0].style.backgroundColor = '';
-                }
-                selected_cil = document.getElementById('cil_line_' + line);
-                selected_cil.children[1].children[0].style.backgroundColor = 'red';
-                selected_cil.scrollIntoView();
-            }
-
             //viewer.windows.cfawin.init();
             viewer.windows.errorpathwin.handlers.add('node_selected', function(evtname, nodeid, errpathindex) {
                 if (viewer.windows.rightpane.selection == 'tab_cfa') {
@@ -1082,8 +1170,9 @@ a.action:hover {
                     viewer.windows.argwin.focus_node(
                         '' + viewer.data.errorpath[errpathindex].argelem
                     );
-                } else if (viewer.windows.rightpane.selection == 'tab_cil') {
-                    scroll_cil(viewer.data.cfainfo.nodes[nodeid].line);
+                } else if (viewer.windows.rightpane.selection == 'tab_source') {
+                    var target = viewer.data.errorpath[errpathindex];
+                    viewer.windows.source.scrollTo(target.file, target.line);
                 }
             });
 
@@ -1095,14 +1184,16 @@ a.action:hover {
                     viewer.windows.argwin.focus_node(
                         '' + viewer.data.errorpath[errpathindex].argelem
                     );
-                } else if (viewer.windows.rightpane.selection == 'tab_cil') {
-                    scroll_cil(viewer.data.cfainfo.edges[edgeid[0] + '->' + edgeid[1]].line);
+                } else if (viewer.windows.rightpane.selection == 'tab_source') {
+                    var target = viewer.data.cfainfo.edges[edgeid[0] + '->' + edgeid[1]];
+                    viewer.windows.source.scrollTo(target.file, target.line);
                 }
             });
 
             viewer.windows.cfawin.handlers.add('edge_clicked', function(evtname, edgeid) {
-                viewer.windows.rightpane.select_tab('tab_cil');
-                scroll_cil(viewer.data.cfainfo.edges[edgeid].line);
+                viewer.windows.rightpane.select_tab('tab_source');
+                var target = viewer.data.cfainfo.edges[edgeid];
+                viewer.windows.source.scrollTo(target.file, target.line);
             });
 
             viewer.windows.cfawin.init();
@@ -1121,6 +1212,7 @@ a.action:hover {
             }, 1000);
 
             viewer.windows.functionselector.init();
+            viewer.windows.source.init();
 
         </script>
     </body>

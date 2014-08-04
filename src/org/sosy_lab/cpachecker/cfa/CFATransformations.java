@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,6 +34,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -69,6 +70,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -107,12 +109,12 @@ class CFATransformations {
         @Override
         public CFANode get() {
 
-          CFANode startNode = new CFANode(0, function);
-          CFANode endNode = new CFANode(0, function);
-          BlankEdge endEdge = new BlankEdge("null-deref", 0, startNode, endNode, "null-deref");
+          CFANode startNode = new CFANode(function);
+          CFANode endNode = new CFANode(function);
+          BlankEdge endEdge = new BlankEdge("null-deref", FileLocation.DUMMY, startNode, endNode, "null-deref");
           CFACreationUtils.addEdgeUnconditionallyToCFA(endEdge);
 
-          BlankEdge loopEdge = new BlankEdge("", 0, endNode, endNode, "");
+          BlankEdge loopEdge = new BlankEdge("", FileLocation.DUMMY, endNode, endNode, "");
           CFACreationUtils.addEdgeUnconditionallyToCFA(loopEdge);
 
           cfa.addNode(startNode);
@@ -154,9 +156,9 @@ class CFATransformations {
   private static void handleEdge(CFAEdge edge, MutableCFA cfa, Supplier<CFANode> targetNode, CBinaryExpressionBuilder builder) throws CParserException {
     ContainsPointerVisitor visitor = new ContainsPointerVisitor();
     if (edge instanceof CReturnStatementEdge) {
-      CExpression returnExp = ((CReturnStatementEdge)edge).getExpression();
-      if (returnExp != null) {
-        returnExp.accept(visitor);
+      Optional<CExpression> returnExp = ((CReturnStatementEdge)edge).getExpression();
+      if (returnExp.isPresent()) {
+        returnExp.get().accept(visitor);
       }
     } else if (edge instanceof CStatementEdge) {
       CStatement stmt = ((CStatementEdge)edge).getStatement();
@@ -194,7 +196,7 @@ class CFATransformations {
     CFANode successor = edge.getSuccessor();
     CFACreationUtils.removeEdgeFromNodes(edge);
 
-    CFANode falseNode = new CFANode(edge.getLineNumber(), predecessor.getFunctionName());
+    CFANode falseNode = new CFANode(predecessor.getFunctionName());
 
     for (CFAEdge otherEdge : leavingEdges(predecessor).toList()) {
       CFAEdge newEdge = createOldEdgeWithNewNodes(falseNode, otherEdge.getSuccessor(), otherEdge);
@@ -204,12 +206,12 @@ class CFATransformations {
 
     CBinaryExpression assumeExpression = binBuilder.buildBinaryExpression(exp, new CIntegerLiteralExpression(exp.getFileLocation(), CNumericTypes.INT,BigInteger.valueOf(0)), BinaryOperator.EQUALS);
     AssumeEdge trueEdge = new CAssumeEdge(edge.getRawStatement(),
-                                         edge.getLineNumber(),
+                                         edge.getFileLocation(),
                                          predecessor, targetNode.get(),
                                          assumeExpression,
                                          true);
     AssumeEdge falseEdge = new CAssumeEdge(edge.getRawStatement(),
-                                           edge.getLineNumber(),
+                                           edge.getFileLocation(),
                                            predecessor, falseNode,
                                            assumeExpression,
                                            false);
@@ -228,7 +230,7 @@ class CFATransformations {
   private static CFAEdge createOldEdgeWithNewNodes(CFANode predecessor, CFANode successor, CFAEdge edge) {
     switch (edge.getEdgeType()) {
     case AssumeEdge:
-      return new CAssumeEdge(edge.getRawStatement(), edge.getLineNumber(),
+      return new CAssumeEdge(edge.getRawStatement(), edge.getFileLocation(),
                              predecessor, successor, ((CAssumeEdge)edge).getExpression(),
                              ((CAssumeEdge)edge).getTruthAssumption());
     case CallToReturnEdge:
@@ -237,13 +239,13 @@ class CFATransformations {
     case ReturnStatementEdge:
       return new CReturnStatementEdge(edge.getRawStatement(),
                                       ((CReturnStatementEdge)edge).getRawAST().get(),
-                                      edge.getLineNumber(), predecessor,
+                                      edge.getFileLocation(), predecessor,
                                       ((CReturnStatementEdge)edge).getSuccessor());
     case StatementEdge:
       return new CStatementEdge(edge.getRawStatement(), ((CStatementEdge)edge).getStatement(),
-                                edge.getLineNumber(), predecessor, successor);
+                                edge.getFileLocation(), predecessor, successor);
     case DeclarationEdge:
-      return new CDeclarationEdge(edge.getRawStatement(), edge.getLineNumber(),
+      return new CDeclarationEdge(edge.getRawStatement(), edge.getFileLocation(),
                                   predecessor, successor,
                                   ((CDeclarationEdge)edge).getDeclaration());
     }

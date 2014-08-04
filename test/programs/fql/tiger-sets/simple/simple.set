@@ -1,5 +1,0 @@
-../../../benchmarks/ntdrivers/*_false-unreach-label*.i.cil.c
-../../../benchmarks/ntdrivers/*_true-unreach-label*.i.cil.c
-../../../benchmarks/ssh/*_false-unreach-label*.i.cil.c
-../../../benchmarks/ssh/*_true-unreach-label*.i.cil.c
-

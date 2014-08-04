@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -43,11 +43,6 @@ public class FormulaEncodingOptions {
   @Option(description = "Handle field access via extract and concat instead of new variables.")
   private boolean handleFieldAccess = false;
 
-  @Option(description = "Handle pointer aliasing for pointers with unknown values "
-      + "(coming from uninitialized variables or external function calls). "
-      + "This is slow and provides little benefit.")
-  private boolean handleNondetPointerAliasing = false;
-
   @Option(description="Set of functions that should be considered as giving "
     + "a non-deterministic return value. "
     + "If you specify this option, the default values are not added automatically "
@@ -59,7 +54,7 @@ public class FormulaEncodingOptions {
       "random");
 
   @Option(description="Regexp pattern for functions that should be considered as giving "
-    + "a non-deterministic return value (c.f. cpa.predicate.nondetFunctions)")
+    + "a non-deterministic return value (c.f. cpa.predicate.nondedFunctions)")
   private Pattern nondetFunctionsRegexp = Pattern.compile("^(__VERIFIER_)?nondet_[a-zA-Z0-9_]*");
 
   @Option(description="Name of an external function that will be interpreted as if the function "
@@ -68,7 +63,7 @@ public class FormulaEncodingOptions {
   private String externModelFunctionName = "__VERIFIER_externModelSatisfied";
 
   @Option(description = "Set of functions that non-deterministically provide new memory on the heap, " +
-  		                  "i.e. they can return either a valid pointer or zero.")
+                        "i.e. they can return either a valid pointer or zero.")
   private Set<String> memoryAllocationFunctions = ImmutableSet.of(
       "malloc", "__kmalloc", "kmalloc"
       );
@@ -77,13 +72,16 @@ public class FormulaEncodingOptions {
                         "i.e. they can return either a valid pointer or zero.")
   private Set<String> memoryAllocationFunctionsWithZeroing = ImmutableSet.of("kzalloc", "calloc");
 
-  @Option(description = "When a string literal initializer is encountered, initialize the contents of the char array "
-                      + "with the contents of the string literal instead of just assigning a fresh non-det address "
-                      + "to it")
-  private boolean handleStringLiteralInitializers = false;
+  @Option(description = "Ignore variables that are not relevant for reachability properties.")
+  private boolean ignoreIrrelevantVariables = true;
 
-  @Option(description = "If disabled, all implicitly initialized fields and elements are treated as non-dets")
-  private boolean handleImplicitInitialization = false;
+  @Option(description = "Insert tmp-variables for parameters at function-entries. " +
+          "The variables are similar to return-variables at function-exit.")
+  private boolean useParameterVariables = false;
+
+  @Option(description = "Insert tmp-parameters for global variables at function-entries. " +
+          "The global variables are also encoded with return-variables at function-exit.")
+  private boolean useParameterVariablesForGlobals = false;
 
   public FormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this, FormulaEncodingOptions.class);
@@ -91,10 +89,6 @@ public class FormulaEncodingOptions {
 
   public boolean handleFieldAccess() {
     return handleFieldAccess;
-  }
-
-  public boolean handleNondetPointerAliasing() {
-    return handleNondetPointerAliasing;
   }
 
   public boolean isNondetFunction(String function) {
@@ -114,11 +108,15 @@ public class FormulaEncodingOptions {
     return memoryAllocationFunctionsWithZeroing.contains(name);
   }
 
-  public boolean handleStringLiteralInitializers() {
-    return handleStringLiteralInitializers;
+  public boolean ignoreIrrelevantVariables() {
+    return ignoreIrrelevantVariables;
   }
 
-  public boolean handleImplicitInitialization() {
-    return handleImplicitInitialization;
+  public boolean useParameterVariables() {
+    return useParameterVariables;
+  }
+
+  public boolean useParameterVariablesForGlobals() {
+    return useParameterVariablesForGlobals;
   }
 }

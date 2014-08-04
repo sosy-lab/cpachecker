@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -38,34 +38,32 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 
 
 /**
- * <code>PartitioningHeuristic</code> that creates blocks for each loop- and function-body.
+ * <code>PartitioningHeuristic</code> that creates blocks for each loop-body.
  */
 public class LoopPartitioning extends PartitioningHeuristic {
 
-  private static final CFATraversal TRAVERSE_CFA_INSIDE_FUNCTION = CFATraversal.dfs().ignoreFunctionCalls();
   private Map<CFANode, Set<CFANode>> loopHeaderToLoopBody;
-  private final CFA cfa;
 
   public LoopPartitioning(LogManager pLogger, CFA pCfa) {
+    super(pLogger, pCfa);
     loopHeaderToLoopBody = null;
-    cfa = pCfa;
   }
 
   private void initLoopMap() {
     loopHeaderToLoopBody = new HashMap<>();
     if (cfa.getLoopStructure().isPresent()) {
-      for (String functionName : cfa.getLoopStructure().get().keySet()) {
-        for (Loop loop : cfa.getLoopStructure().get().get(functionName)) {
-          if (loop.getLoopHeads().size() == 1) {
-            //currently only loops with single loop heads supported
-            loopHeaderToLoopBody.put(Iterables.getOnlyElement(loop.getLoopHeads()), loop.getLoopNodes());
-          }
+      for (Loop loop : cfa.getLoopStructure().get().values()) {
+        if (loop.getLoopHeads().size() == 1) {
+          //currently only loops with single loop heads supported
+          loopHeaderToLoopBody.put(Iterables.getOnlyElement(loop.getLoopHeads()), loop.getLoopNodes());
         }
       }
     }
@@ -73,17 +71,16 @@ public class LoopPartitioning extends PartitioningHeuristic {
 
   @Override
   protected boolean shouldBeCached(CFANode pNode) {
-    if (pNode instanceof FunctionEntryNode && pNode.getNumEnteringEdges() == 0) {
+    if (isMainFunction(pNode)) {
+      Preconditions.checkArgument(cfa.getMainFunction().getFunctionName().equals(pNode.getFunctionName()));
       //main function
       return true;
     }
-    if (isLoopHead(pNode)) {
-      if (hasBlankEdgeFromLoop(pNode) || selfLoop(pNode)) {
-        return false;
-      }
-      return true;
-    }
-    return false;
+    return isLoopHead(pNode) && !hasBlankEdgeFromLoop(pNode) && !selfLoop(pNode);
+  }
+
+  private boolean isMainFunction(CFANode pNode) {
+    return pNode instanceof FunctionEntryNode && pNode.getNumEnteringEdges() == 0;
   }
 
   private boolean isLoopHead(CFANode pNode) {
@@ -91,8 +88,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
   }
 
   private boolean hasBlankEdgeFromLoop(CFANode pNode) {
-    for (int i = 0; i < pNode.getNumEnteringEdges(); i++) {
-      CFAEdge edge = pNode.getEnteringEdge(i);
+    for (CFAEdge edge : CFAUtils.enteringEdges(pNode)) {
       if (edge instanceof BlankEdge && isLoopHead(edge.getPredecessor())) {
         return true;
       }
@@ -106,29 +102,29 @@ public class LoopPartitioning extends PartitioningHeuristic {
 
   @Override
   protected Set<CFANode> getBlockForNode(CFANode pNode) {
-    if (pNode instanceof FunctionEntryNode) {
-      return TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(pNode);
+    Preconditions.checkArgument(shouldBeCached(pNode));
+
+    if (isMainFunction(pNode)) {
+      return CFATraversal.dfs().ignoreFunctionCalls().collectNodesReachableFrom(pNode);
     }
-    if (isLoopHead(pNode)) {
-      Set<CFANode> loopBody = new HashSet<>();
-      if (loopHeaderToLoopBody == null) {
-        initLoopMap();
-      }
-      Set<CFANode> immutableLoopBody = loopHeaderToLoopBody.get(pNode);
-      if (immutableLoopBody == null) {
-        return null;
-      }
-      loopBody.addAll(immutableLoopBody);
-      insertLoopStartState(loopBody, pNode);
-      insertLoopReturnStates(loopBody);
-      return loopBody;
+
+    if (loopHeaderToLoopBody == null) {
+      initLoopMap();
     }
-    return null;
+
+    if (!loopHeaderToLoopBody.containsKey(pNode)) {
+      // loopStructure is missing in CFA or loop with multiple headers
+      return null;
+    }
+
+    Set<CFANode> loopBody = new HashSet<>(loopHeaderToLoopBody.get(pNode));
+    insertLoopStartState(loopBody, pNode);
+    insertLoopReturnStates(loopBody);
+    return loopBody;
   }
 
   private void insertLoopStartState(Set<CFANode> pLoopBody, CFANode pLoopHeader) {
-    for (int i = 0; i < pLoopHeader.getNumEnteringEdges(); i++) {
-      CFAEdge edge = pLoopHeader.getEnteringEdge(i);
+    for (CFAEdge edge : CFAUtils.enteringEdges(pLoopHeader)) {
       if (edge instanceof BlankEdge && !pLoopBody.contains(edge.getPredecessor())) {
         pLoopBody.add(edge.getPredecessor());
       }
@@ -138,13 +134,29 @@ public class LoopPartitioning extends PartitioningHeuristic {
   private void insertLoopReturnStates(Set<CFANode> pLoopBody) {
     List<CFANode> addNodes = new ArrayList<>();
     for (CFANode node : pLoopBody) {
-      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-        CFAEdge edge = node.getLeavingEdge(i);
-        if (!pLoopBody.contains(edge.getSuccessor()) && !(node.getLeavingEdge(i).getEdgeType() == CFAEdgeType.FunctionCallEdge))  {
+      for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
+        if (!pLoopBody.contains(edge.getSuccessor()) && !(edge.getEdgeType() == CFAEdgeType.FunctionCallEdge))  {
           addNodes.add(edge.getSuccessor());
         }
       }
     }
-    pLoopBody.addAll(addNodes);
+
+    // Normally pLoopBody.addAll(addNodes) would be enough. In special cases we have to add more nodes,
+    // because they are reachable from the loop and the loopReturnNodes are reachable from them.
+    // This happens with break-statement-branches, that do not only skip the loop, but do some calculations.
+    // Then all calculation-Nodes are outside the block, but the loopReturnNode is after them and in the block.
+    // Example: for(..) { if (..) { calc ..; break; } .. }
+    // So we also add their predecessors to the block, so that the loop-block has only one entry-node.
+    // We assume, that the node direct after the loop is _only_ reachable
+    // either through the loopstart or with a break-statement.
+    final List<CFANode> waitlist = new ArrayList<>(addNodes);
+    while (!waitlist.isEmpty()) {
+      final CFANode node = waitlist.remove(0);
+      if (pLoopBody.add(node)) {
+        for (CFANode pred : CFAUtils.predecessorsOf(node)) {
+          waitlist.add(pred);
+        }
+      }
+    }
   }
 }

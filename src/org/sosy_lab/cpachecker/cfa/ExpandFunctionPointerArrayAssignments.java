@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -137,8 +137,8 @@ class ExpandFunctionPointerArrayAssignments {
     CFANode predecessor = startNode;
     for (long i = 0; i < length; i++) {
 
-      CFANode trueNode = new CFANode(startNode.getLineNumber(), startNode.getFunctionName());
-      CFANode falseNode = new CFANode(startNode.getLineNumber(), startNode.getFunctionName());
+      CFANode trueNode = new CFANode(startNode.getFunctionName());
+      CFANode falseNode = new CFANode(startNode.getFunctionName());
       cfa.addNode(trueNode);
       cfa.addNode(falseNode);
 
@@ -147,12 +147,12 @@ class ExpandFunctionPointerArrayAssignments {
                                                         BigInteger.valueOf(i));
       CExpression assumeExp = builder.buildBinaryExpression(subscript, index, BinaryOperator.EQUALS);
       CAssumeEdge trueEdge = new CAssumeEdge(edge.getRawStatement(),
-                                             edge.getLineNumber(),
+                                             edge.getFileLocation(),
                                              predecessor,
                                              trueNode, assumeExp, true);
 
       CAssumeEdge falseEdge = new CAssumeEdge(edge.getRawStatement(),
-                                              edge.getLineNumber(),
+                                              edge.getFileLocation(),
                                               predecessor,
                                               falseNode, assumeExp, false);
 
@@ -168,7 +168,7 @@ class ExpandFunctionPointerArrayAssignments {
                                                                  rhs);
       CStatementEdge assignmentEdge = new CStatementEdge(edge.getRawStatement(),
                                                          assignment,
-                                                         edge.getLineNumber(),
+                                                         edge.getFileLocation(),
                                                          trueNode, endNode);
       CFACreationUtils.addEdgeUnconditionallyToCFA(assignmentEdge);
       predecessor = falseNode;

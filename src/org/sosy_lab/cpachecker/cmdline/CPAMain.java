@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,9 +31,9 @@ import java.io.PrintStream;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -44,6 +44,7 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.BasicLogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
@@ -53,7 +54,7 @@ import org.sosy_lab.cpachecker.core.algorithm.ProofGenerator;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import com.google.common.base.Strings;
-import com.google.common.io.Closeables;
+import com.google.common.io.Closer;
 
 public class CPAMain {
 
@@ -101,7 +102,9 @@ public class CPAMain {
       limits.start();
 
       cpachecker = new CPAchecker(cpaConfig, logManager, shutdownNotifier);
-      proofGenerator = new ProofGenerator(cpaConfig, logManager, shutdownNotifier);
+      if (options.doPCC) {
+        proofGenerator = new ProofGenerator(cpaConfig, logManager, shutdownNotifier);
+      }
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(1);
@@ -121,6 +124,11 @@ public class CPAMain {
     // run analysis
     CPAcheckerResult result = cpachecker.run(options.programs);
 
+    // generated proof (if enabled)
+    if (proofGenerator != null) {
+      proofGenerator.generateProof(result);
+    }
+
     // We want to print the statistics completely now that we have come so far,
     // so we disable all the limits, shutdown hooks, etc.
     shutdownHook.disable();
@@ -129,10 +137,13 @@ public class CPAMain {
     limits.cancel();
     Thread.interrupted(); // clear interrupted flag
 
-    // generated proof (if enabled)
-    proofGenerator.generateProof(result);
-
-    printResultAndStatistics(result, outputDirectory, options, logManager);
+    if (!options.useTigerAlgorithm) {
+      try {
+        printResultAndStatistics(result, outputDirectory, options, logManager);
+      } catch (IOException e) {
+        logManager.logUserException(Level.WARNING, e, "Could not write statistics to file");
+      }
+    }
 
     System.out.flush();
     System.err.flush();
@@ -175,6 +186,12 @@ public class CPAMain {
 
     @Option(name="statistics.print", description="print statistics to console")
     private boolean printStatistics = false;
+
+    @Option(name = "pcc.proofgen.doPCC", description = "Generate and dump a proof")
+    private boolean doPCC = false;
+
+    @Option(name = "analysis.algorithm.tiger", description = "Use Tiger algorithm (test input generation)")
+    private boolean useTigerAlgorithm = false;
   }
 
   private static void dumpConfiguration(MainOptions options, Configuration config,
@@ -202,7 +219,7 @@ public class CPAMain {
     String configFile = cmdLineOptions.remove(CmdLineArguments.CONFIGURATION_FILE_OPTION);
 
     // create initial configuration from config file and command-line arguments
-    Configuration.Builder configBuilder = Configuration.builder();
+    ConfigurationBuilder configBuilder = Configuration.builder();
     if (configFile != null) {
       configBuilder.loadFromFile(configFile);
     }
@@ -257,16 +274,17 @@ public class CPAMain {
 
   @SuppressWarnings("deprecation")
   private static void printResultAndStatistics(CPAcheckerResult mResult,
-      String outputDirectory, MainOptions options, LogManager logManager) {
+      String outputDirectory, MainOptions options, LogManager logManager) throws IOException {
 
     // setup output streams
     PrintStream console = options.printStatistics ? System.out : null;
     OutputStream file = null;
+    Closer closer = Closer.create();
 
     if (options.exportStatistics && options.exportStatisticsFile != null) {
       try {
         Files.createParentDirs(options.exportStatisticsFile);
-        file = options.exportStatisticsFile.asByteSink().openStream();
+        file = closer.register(options.exportStatisticsFile.asByteSink().openStream());
       } catch (IOException e) {
         logManager.logUserException(Level.WARNING, e, "Could not write statistics to file");
       }
@@ -290,12 +308,11 @@ public class CPAMain {
       }
 
       stream.flush();
+    } catch (Throwable t) {
+      closer.rethrow(t);
 
     } finally {
-      // close only file, not System.out
-      if (file != null) {
-        Closeables.closeQuietly(file);
-      }
+      closer.close();
     }
   }
 
@@ -303,6 +320,8 @@ public class CPAMain {
     if (stream instanceof PrintStream) {
       return (PrintStream)stream;
     } else {
+      // Default encoding is actually desired here because we output to the terminal,
+      // so the default PrintStream constructor is ok.
       return new PrintStream(stream);
     }
   }

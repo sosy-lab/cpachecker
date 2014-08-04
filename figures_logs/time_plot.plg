@@ -1,9 +1,0 @@
-set terminal pdf
-set xlabel(labX)
-set ylabel(labY)
-set size ratio 1
-set xrange [1:915]
-set yrange [1:915]
-#set logscale
-set output 'file.pdf'
-plot file using 1:2 notitle lt 2 lc 1 ps 0.5 , x notitle lt -1

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,7 +29,8 @@ import java.io.Serializable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
 /**
  *
@@ -90,7 +91,17 @@ class BooleanFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> imp
 }
 
 /**
- * Simple NumericFormula implementation.
+ * Simple IntegerFormula implementation.
+ */
+@SuppressWarnings("serial")
+class IntegerFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements IntegerFormula {
+  public IntegerFormulaImpl(TFormulaInfo pTerm) {
+    super(pTerm);
+  }
+}
+
+/**
+ * Simple RationalFormula implementation.
  */
 @SuppressWarnings("serial")
 class RationalFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements RationalFormula {
@@ -98,6 +109,4 @@ class RationalFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> im
     super(pTerm);
   }
 }
-
-
 

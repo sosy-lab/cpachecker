@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.appengine.io;
 import static org.junit.Assert.*;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
@@ -35,40 +36,43 @@ import java.nio.charset.Charset;
 
 import org.junit.Test;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.cpachecker.appengine.common.DatabaseTest;
-import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
-import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
-import org.sosy_lab.cpachecker.appengine.entity.Job;
-import org.sosy_lab.cpachecker.appengine.entity.JobFile;
+import org.sosy_lab.cpachecker.appengine.common.DatastoreTest;
+import org.sosy_lab.cpachecker.appengine.dao.TaskDAO;
+import org.sosy_lab.cpachecker.appengine.dao.TaskFileDAO;
+import org.sosy_lab.cpachecker.appengine.entity.Task;
+import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 
 import com.google.common.io.FileWriteMode;
 
 
-public class GAEPathTest extends DatabaseTest {
+public class GAEPathTest extends DatastoreTest {
 
-  private Job job;
-  private JobFile file;
+  private Task task;
+  private TaskFile file;
   private Path path;
 
   @Override
   public void setUp() {
     super.setUp();
 
-    job = new Job(1L);
-    file = new JobFile("test.tmp", job);
+    task = new Task(1L);
+    file = new TaskFile("test.tmp", task);
     file.setContent("lorem ipsum dolor sit amet");
-    JobFileDAO.save(file);
-    job.addFile(file);
-    JobDAO.save(job);
+    try {
+      TaskFileDAO.save(file);
+    } catch (IOException e) {
+      fail(e.getMessage());
+    }
+    TaskDAO.save(task);
 
-    path = new GAEPath("test.tmp", job);
+    path = new GAEPath("test.tmp", task);
   }
 
   @Test
   public void shouldDeleteFile() throws Exception {
     path.delete();
 
-    assertEquals(0, job.getFiles().size());
+    assertNull(TaskFileDAO.loadByName("test.tmp", task));
   }
 
   @Test
@@ -122,7 +126,7 @@ public class GAEPathTest extends DatabaseTest {
       out.write(new String("test").getBytes());
     }
 
-    assertEquals(oldContent+"test", file.getContent());
+    assertEquals(oldContent + "test", file.getContent());
   }
 
   @Test
@@ -132,19 +136,19 @@ public class GAEPathTest extends DatabaseTest {
       writer.write("test");
     }
 
-    assertEquals(oldContent+"test", file.getContent());
+    assertEquals(oldContent + "test", file.getContent());
   }
 
   @Test
   public void shouldBeFile() throws Exception {
-    Path path = new GAEPath("foo.bar", job);
+    Path path = new GAEPath("foo.bar", task);
 
     assertTrue(path.isFile());
   }
 
   @Test
   public void shouldNotBeFile() throws Exception {
-    Path path = new GAEPath("foo", job);
+    Path path = new GAEPath("foo", task);
 
     assertFalse(path.isFile());
   }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,6 +28,7 @@ import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 
 /**
@@ -35,6 +36,10 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
  */
 
 public class OccurrenceComputer extends AbstractRelevantPredicatesComputer<Block> {
+
+  public OccurrenceComputer(FormulaManagerView pFmgr) {
+    super(pFmgr);
+  }
 
   @Override
   protected Block precompute(Block pContext, Collection<AbstractionPredicate> pPredicates) {

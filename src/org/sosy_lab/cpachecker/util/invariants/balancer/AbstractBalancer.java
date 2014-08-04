@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,10 +28,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.VariableManager;
@@ -138,7 +139,7 @@ public abstract class AbstractBalancer implements Balancer {
       redlog.start();
       map = getParameterValuesFromRedlog(phi, paramVars.keySet());
       redlog.stop();
-      logger.log(Level.ALL, "Redlog took", redlog.getSumTime(), "milliseconds.");
+      logger.log(Level.ALL, "Redlog took", redlog.getSumTime().formatAs(TimeUnit.SECONDS));
     }
 
     if (map == null) {

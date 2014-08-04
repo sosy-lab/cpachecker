@@ -1,3 +1,5 @@
+extern void __assert_fail();
+
 int main() {
 	int x1 = 0;
 	int x2 = 0;

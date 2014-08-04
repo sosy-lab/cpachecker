@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,6 +26,10 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.LinkedList;
@@ -38,8 +42,6 @@ import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.CompilationUnit;
-import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -47,13 +49,16 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.Parser;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
-import com.google.common.base.Charsets;
+import com.google.common.base.Splitter;
 
 
 /**
@@ -65,7 +70,7 @@ public class EclipseJavaParser implements Parser {
 
   @Option(name ="java.encoding",
       description="use the following encoding for java files")
-  private String encoding = "utf8";
+  private Charset encoding = StandardCharsets.UTF_8;
 
   @Option(name ="java.version",
       description="Specifies the java version of source code accepted")
@@ -102,7 +107,7 @@ public class EclipseJavaParser implements Parser {
 
   private static final boolean IGNORE_METHOD_BODY = true;
   private static final boolean PARSE_METHOD_BODY = false;
-  private static final String JAVA_SOURCE_FILE_REGEX = ".*.java";
+  private static final String JAVA_SOURCE_FILE_REGEX = ".*\\.java";
 
   public EclipseJavaParser(LogManager pLogger, Configuration config) throws InvalidConfigurationException {
 
@@ -124,20 +129,9 @@ public class EclipseJavaParser implements Parser {
   }
 
   private String[] getJavaPaths(String javaPath) {
+    List<String> resultList = new ArrayList<>();
 
-      String[] paths = javaPath.split(File.pathSeparator);
-      String[] result;
-
-      result = deleteNonValidPaths(paths);
-
-      return result;
-  }
-
-  private String[] deleteNonValidPaths(String[] pSourcepaths) {
-
-    LinkedList<String> resultList = new LinkedList<>();
-
-    for (String path : pSourcepaths) {
+    for (String path : Splitter.on(File.pathSeparator).trimResults().omitEmptyStrings().split(javaPath)) {
       Path directory = Paths.get(path);
       if (!directory.exists()) {
         logger.log(Level.WARNING, "Path " + directory + " could not be found.");
@@ -148,16 +142,7 @@ public class EclipseJavaParser implements Parser {
       }
     }
 
-    String[] result = new String[resultList.size()];
-
-    int counter = 0;
-    for (String path : resultList) {
-
-      result[counter] = path;
-      counter++;
-    }
-
-    return result;
+    return resultList.toArray(new String[resultList.size()]);
   }
 
   /**
@@ -168,7 +153,7 @@ public class EclipseJavaParser implements Parser {
    * @throws ParserException If parser or CFA builder cannot handle the  code.
    */
   @Override
-  public ParseResult parseFile(String mainClassName) throws JParserException {
+  public ParseResult parseFile(String mainClassName, CSourceOriginMapping sourceOriginMapping) throws JParserException {
     Path mainClassFile = getMainClassFile(mainClassName);
     Scope scope = prepareScope(mainClassName);
     ParseResult result = buildCFA(parse(mainClassFile), scope);
@@ -179,8 +164,8 @@ public class EclipseJavaParser implements Parser {
   private void exportTypeHierarchy(Scope pScope) {
 
     // write CFA to file
-    if (exportTypeHierarchy) {
-      try (Writer w = exportTypeHierarchyFile.asCharSink(Charsets.UTF_8).openStream()) {
+    if (exportTypeHierarchy && exportTypeHierarchyFile != null) {
+      try (Writer w = exportTypeHierarchyFile.asCharSink(StandardCharsets.UTF_8).openBufferedStream()) {
         THDotBuilder.generateDOT(w, pScope);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
@@ -288,14 +273,12 @@ public class EclipseJavaParser implements Parser {
     if (file.exists() && file.canRead() && !sourceFileToBeParsed.contains(file)) {
       sourceFileToBeParsed.add(file);
     } else {
-      logger.log(Level.WARNING, "No permission to read java file ");
-      logger.log(Level.WARNING, file.getName());
-      logger.log(Level.WARNING, ".");
+      logger.log(Level.WARNING, "No permission to read java file " + file.getName() + ".");
     }
   }
 
   @Override
-  public ParseResult parseString(String pCode) throws JParserException {
+  public ParseResult parseString(String pFilename, String pCode, CSourceOriginMapping sourceOriginMapping) throws JParserException {
 
     throw new JParserException("Function not yet implemented");
   }
@@ -306,9 +289,7 @@ public class EclipseJavaParser implements Parser {
 
   private CompilationUnit parse(Path file, boolean ignoreMethodBody) throws JParserException {
 
-    final String[] encodingList = getEncodings();
-
-    parser.setEnvironment(javaClassPaths, javaSourcePaths, encodingList, false);
+    parser.setEnvironment(javaClassPaths, javaSourcePaths, getEncodings(), false);
     parser.setResolveBindings(true);
     parser.setStatementsRecovery(true);
     parser.setBindingsRecovery(true);
@@ -323,7 +304,7 @@ public class EclipseJavaParser implements Parser {
     String source;
 
     try {
-      source = file.asCharSource(Charsets.UTF_8).read();
+      source = file.asCharSource(encoding).read();
       parser.setUnitName(file.getCanonicalPath());
       parser.setSource(source.toCharArray());
       parser.setIgnoreMethodBodies(ignoreMethodBody);
@@ -337,13 +318,8 @@ public class EclipseJavaParser implements Parser {
   }
 
   private String[] getEncodings() {
-
     String[] encodings = new String[javaSourcePaths.length];
-
-    for (int counter = 0; counter < encodings.length; counter++) {
-      encodings[counter] = encoding;
-    }
-
+    Arrays.fill(encodings, encoding.name());
     return encodings;
   }
 

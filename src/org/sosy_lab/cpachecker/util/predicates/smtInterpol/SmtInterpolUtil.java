@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -60,9 +60,9 @@ class SmtInterpolUtil {
     if (!(t instanceof ApplicationTerm)) {
       return false;
     }
-    FunctionSymbol func = ((ApplicationTerm) t).getFunction();
-    return (t instanceof ApplicationTerm)
-        && ((ApplicationTerm) t).getParameters().length > 0
+    ApplicationTerm applicationTerm = (ApplicationTerm) t;
+    FunctionSymbol func = applicationTerm.getFunction();
+    return applicationTerm.getParameters().length > 0
         && !func.isIntern()
         && !func.isInterpreted();
   }

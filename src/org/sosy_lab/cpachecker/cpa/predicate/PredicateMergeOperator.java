@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,8 +27,8 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNon
 
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -57,7 +57,7 @@ public class PredicateMergeOperator implements MergeOperator {
 
   @Override
   public AbstractState merge(AbstractState element1,
-                               AbstractState element2, Precision precision) {
+                               AbstractState element2, Precision precision) throws InterruptedException {
 
     PredicateAbstractState elem1 = (PredicateAbstractState)element1;
     PredicateAbstractState elem2 = (PredicateAbstractState)element2;

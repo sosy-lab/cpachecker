@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,7 +33,6 @@ import org.eclipse.jdt.core.dom.PrimitiveType;
 import org.eclipse.jdt.core.dom.QualifiedType;
 import org.eclipse.jdt.core.dom.SimpleType;
 import org.eclipse.jdt.core.dom.Type;
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
@@ -44,13 +43,6 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
 public abstract class TypeConverter {
-
-  @SuppressWarnings("unused")
-  private final LogManager logger;
-
-  public TypeConverter(LogManager pLogger) {
-    logger = pLogger;
-  }
 
   public final JType convert(Type t) {
 

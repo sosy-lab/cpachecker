@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 public class JConstructorDeclaration extends JMethodDeclaration {
 
   private static final JConstructorDeclaration UNRESOLVED_CONSTRUCTOR =
-      new JConstructorDeclaration(new FileLocation(0, "", 0, 0, 0),
+      new JConstructorDeclaration(FileLocation.DUMMY,
           JConstructorType.createUnresolvableConstructorType(), "__UNRESOLVABLE__",
           "__UNRESOLVABLE__", new ArrayList<JParameterDeclaration>(), VisibilityModifier.NONE,
           false, JClassType.createUnresolvableType());
@@ -101,15 +101,16 @@ public class JConstructorDeclaration extends JMethodDeclaration {
     List<JType> parameterTypes = pConstructorType.getParameters();
     List<JParameterDeclaration> parameters = new ArrayList<>(parameterTypes.size());
 
-    FileLocation externFileLoc = new FileLocation(0, "", 0, 0, 0);
+    FileLocation externFileLoc = FileLocation.DUMMY;
 
 
     int i = 0;
 
     for (JType parameterType : parameterTypes) {
+      final String parameterName = "parameter" + String.valueOf(i);
       parameters.add(
-          new JParameterDeclaration(externFileLoc, parameterType, "parameter" +
-              String.valueOf(i), false));
+          new JParameterDeclaration(externFileLoc, parameterType, parameterName,
+              pName + "::" + parameterName, false));
       i++;
     }
 

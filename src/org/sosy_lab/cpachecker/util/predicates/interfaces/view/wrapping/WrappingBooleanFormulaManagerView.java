@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,13 +25,14 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view.wrapping;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 
 
 public class WrappingBooleanFormulaManagerView extends BooleanFormulaManagerView {
 
-  public WrappingBooleanFormulaManagerView(BooleanFormulaManager pManager) {
-    super(pManager);
+  public WrappingBooleanFormulaManagerView(BooleanFormulaManager pManager, UnsafeFormulaManager pUnsafe) {
+    super(pManager, pUnsafe);
   }
 
   @Override

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,10 +28,9 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -52,7 +51,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.seplogic.interfaces.PartingstarInterface;
 
-@Options(prefix="cpa.seplogic")
 public class SeplogicCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
   class SeplogicStatistics implements Statistics {
 
@@ -92,9 +90,8 @@ public class SeplogicCPA implements ConfigurableProgramAnalysis, StatisticsProvi
   }
 
   private SeplogicCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
-    config.inject(this);
     PartingstarInterface.prepare(config, logger);
-    transferRelation = new SeplogicTransferRelation(this);
+    transferRelation = new SeplogicTransferRelation(this, logger);
   }
 
   @Override

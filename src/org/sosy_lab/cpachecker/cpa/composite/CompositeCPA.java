@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -51,15 +51,15 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
-import org.sosy_lab.cpachecker.cpa.explicit.ComponentAwareExplicitPrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.value.ComponentAwarePrecisionAdjustment;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
-public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithABM, ProofChecker {
+public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
   @Options(prefix="cpa.composite")
   private static class CompositeOptions {
@@ -160,7 +160,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
       PrecisionAdjustment compositePrecisionAdjustment;
       if (options.precAdjust.equals("COMPONENT")) {
-        compositePrecisionAdjustment = new ComponentAwareExplicitPrecisionAdjustment(
+        compositePrecisionAdjustment = new ComponentAwarePrecisionAdjustment(
             precisionAdjustments.build(),
             getConfiguration(),
             cfa
@@ -233,8 +233,8 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     List<Reducer> wrappedReducers = new ArrayList<>();
     for (ConfigurableProgramAnalysis cpa : cpas) {
-      if (cpa instanceof ConfigurableProgramAnalysisWithABM) {
-        wrappedReducers.add(((ConfigurableProgramAnalysisWithABM) cpa).getReducer());
+      if (cpa instanceof ConfigurableProgramAnalysisWithBAM) {
+        wrappedReducers.add(((ConfigurableProgramAnalysisWithBAM) cpa).getReducer());
       } else {
         wrappedReducers.clear();
         break;

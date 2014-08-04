@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,16 +38,17 @@ import com.google.common.collect.Lists;
  * This class simplifies the implementation of the FunctionFormulaManager by converting the types to the solver specific type.
  * It depends on UnsafeFormulaManager to make clear that the UnsafeFormulaManager should not depend on FunktionFormulaManager.
  * @param <TFormulaInfo> The solver specific type.
+ * @param <TType> The solver specific type of formula-types.
  */
-public abstract class AbstractFunctionFormulaManager<TFormulaInfo>
-    extends AbstractBaseFormulaManager<TFormulaInfo>
+public abstract class AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv>
+    extends AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv>
     implements FunctionFormulaManager {
 
-  private final AbstractUnsafeFormulaManager<TFormulaInfo> unsafeManager;
+  private final AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> unsafeManager;
 
   protected AbstractFunctionFormulaManager(
-      FormulaCreator<TFormulaInfo> pCreator,
-      AbstractUnsafeFormulaManager<TFormulaInfo> unsafeManager) {
+      AbstractFormulaCreator<TFormulaInfo, TType, TEnv> pCreator,
+      AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> unsafeManager) {
     super(pCreator);
     this.unsafeManager = unsafeManager;
   }
@@ -85,5 +86,20 @@ public abstract class AbstractFunctionFormulaManager<TFormulaInfo>
     return isUninterpretedFunctionCall(pFuncType, getFormulaCreator().extractInfo(pF));
   }
 
-
+  public TType toSolverType(FormulaType<?> formulaType) {
+    TType t;
+    if (formulaType.isBooleanType()) {
+      t = getFormulaCreator().getBoolType();
+    } else if (formulaType.isIntegerType()) {
+      t = getFormulaCreator().getIntegerType();
+    } else if (formulaType.isRationalType()) {
+      t = getFormulaCreator().getRealType();
+    } else if (formulaType.isBitvectorType()) {
+      FormulaType.BitvectorType bitPreciseType = (FormulaType.BitvectorType) formulaType;
+      t = getFormulaCreator().getBittype(bitPreciseType.getSize());
+    } else {
+      throw new IllegalArgumentException("Not supported interface");
+    }
+    return t;
+  }
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,12 +30,12 @@ public enum LocationSetTop implements LocationSet {
   INSTANCE;
 
   @Override
-  public boolean mayPointTo(Location pTarget) {
+  public boolean mayPointTo(String pTarget) {
     return true;
   }
 
   @Override
-  public LocationSet addElement(Location pTarget) {
+  public LocationSet addElement(String pTarget) {
     return this;
   }
 
@@ -51,12 +51,12 @@ public enum LocationSetTop implements LocationSet {
    * @return the same unchanged object.
    */
   @Override
-  public LocationSet removeElement(Location pTarget) {
+  public LocationSet removeElement(String pTarget) {
     return this;
   }
 
   @Override
-  public LocationSet addElements(Iterable<Location> pTargets) {
+  public LocationSet addElements(Iterable<String> pTargets) {
     return this;
   }
 

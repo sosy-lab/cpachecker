@@ -13,12 +13,12 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
-        status = result.STR_UNKNOWN
+        status = result.STATUS_UNKNOWN
         for line in output.splitlines():
             if line.startswith('0 safe, 1 unsafe'):
-                status = result.STR_FALSE_LABEL
+                status = result.STATUS_FALSE_REACH
             elif line.startswith('1 safe, 0 unsafe'):
-                status = result.STR_TRUE
+                status = result.STATUS_TRUE_PROP
             elif returnsignal == 9:
                 if isTimeout:
                     status = 'TIMEOUT'

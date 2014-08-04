@@ -30,21 +30,55 @@ import java.io.IOException;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.io.AbstractPathFactory;
+import org.sosy_lab.common.io.FileSystemPath;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.cpachecker.appengine.entity.Job;
+import org.sosy_lab.cpachecker.appengine.entity.Task;
 
-
+/**
+ * This class is {@link AbstractPathFactory} that is specifically tailored to
+ * work on Google App Engine. The {@link Path} instances it creates depend on a
+ * {@link Task} instance.
+ */
 public class GAEPathFactory implements AbstractPathFactory {
 
-  private Job job;
+  /**
+   * This {@link ThreadLocal} stores the mapping from a {@link Thread}
+   * to their corresponding {@link Task} instance.
+   * It is an {@link InheritableThreadLocal} so that each "child" {@link Thread}
+   * automatically inherits the {@link Task} from its "parent".
+   */
+  private static final ThreadLocal<Task> threadTaskMap = new InheritableThreadLocal<>();
 
-  public GAEPathFactory(Job job) {
-    this.job = job;
+  /**
+   * Creates an instance that uses the registered {@link Task}
+   * instances when a {@link Path} instance is created.
+   */
+  public GAEPathFactory() {
   }
 
+  /**
+   * Registers a {@link Task} with the current {@link Thread}.
+   *
+   * @param task The {@link Task} to map to the {@link Thread}
+   */
+  public static void registerTaskWithCurrentThread(Task task) {
+    threadTaskMap.set(task);
+  }
+
+  /**
+   * Usually returns a {@link GAEPath} that depends on a {@link Task} set via one of
+   * the constructors. If no {@link Task} can be resolved a
+   * {@link FileSystemPath} instance will be returned instead.
+   */
   @Override
   public Path getPath(@Nullable String path, @Nullable String... more) {
-    return new GAEPath(path, job, more);
+    Task taskForPath = threadTaskMap.get();
+
+    if (taskForPath == null) {
+      return new FileSystemPath(path, more);
+    } else {
+      return new GAEPath(path, taskForPath, more);
+    }
   }
 
   @Override

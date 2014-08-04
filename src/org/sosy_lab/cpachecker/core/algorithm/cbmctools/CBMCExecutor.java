@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,8 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.ProcessExecutor;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 
@@ -42,7 +42,7 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
   private static final int MAX_CBMC_ERROR_OUTPUT_SHOWN = 10;
   private static final Map<String, String> CBMC_ENV_VARS = ImmutableMap.of("LANG", "C");
 
-  private Boolean result = null;
+  private volatile Boolean result = null;
   private boolean unwindingAssertionFailed = false;
   private volatile int errorOutputCount = 0;
 
@@ -60,7 +60,7 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
   }
 
   @Override
-  protected void handleExitCode(int pCode) throws CounterexampleAnalysisFailed {
+  protected synchronized void handleExitCode(int pCode) throws CounterexampleAnalysisFailed {
     switch (pCode) {
     case 0: // Verification successful (Path is infeasible)
       result = false;
@@ -76,7 +76,7 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
   }
 
   @Override
-  protected void handleErrorOutput(String pLine) throws CounterexampleAnalysisFailed {
+  protected synchronized void handleErrorOutput(String pLine) throws CounterexampleAnalysisFailed {
     // CBMC does not seem to print this anymore to stderr
     //if (!(pLine.startsWith("Verified ") && pLine.endsWith("original clauses.")))
 
@@ -100,7 +100,7 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
   }
 
   @Override
-  protected void handleOutput(String pLine) throws CounterexampleAnalysisFailed {
+  protected synchronized void handleOutput(String pLine) throws CounterexampleAnalysisFailed {
     if (pLine.contains("unwinding assertion")) {
       unwindingAssertionFailed = true;
     }
@@ -111,7 +111,12 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
     return unwindingAssertionFailed;
   }
 
-  public Boolean getResult() {
+  boolean producedErrorOutput() {
+    checkState(isFinished());
+    return errorOutputCount > 0;
+  }
+
+  public synchronized Boolean getResult() {
     checkState(isFinished());
 
     if (errorOutputCount > 0) {

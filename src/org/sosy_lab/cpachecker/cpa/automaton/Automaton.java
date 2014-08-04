@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -117,7 +117,8 @@ public class Automaton {
 
   private static String formatState(AutomatonInternalState s, String color) {
     String name = s.getName().replace("_predefinedState_", "");
-    return String.format("%d [shape=\"circle\" color=\"%s\" label=\"%s\"]\n", s.getStateId(), color, name);
+    String shape = s.getDoesMatchAll() ? "doublecircle" : "circle";
+    return String.format("%d [shape=\"" + shape + "\" color=\"%s\" label=\"%s\"]\n", s.getStateId(), color, name);
   }
 
   private static String formatTransition(AutomatonInternalState sourceState, AutomatonTransition t) {

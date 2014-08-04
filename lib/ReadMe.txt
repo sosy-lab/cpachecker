@@ -44,3 +44,18 @@ call "ant report-dependencies".
   All rights reserved by Cadence.
   Not included in CPAchecker, needs to be downloaded manually.
   Library is required by Z3 for interpolation.
+
+- jpl.jar and libjpl.so: SWI-PL
+  http://www.swi-prolog.org/packages/jpl/java_api/index.html
+  http://www.swi-prolog.org/
+  Lesser GNU Public License
+
+- chc_lib: CHC/CLP Generalization Operators Library
+  It requires a working SWI-Prolog installation.
+  Apache License, Version 2.0
+
+- symja: Symja is a pure Java library for symbolic mathematics.
+  https://code.google.com/p/symja/
+  GNU Lesser General Public License
+  Symja is needed for simplifying symbolic expressions
+

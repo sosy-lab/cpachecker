@@ -3,20 +3,28 @@
 <benchmark tool="cpalien" timelimit="60" hardtimelimit="90" memlimit="1000" cpuCores="1">
   <option name="-noout"/>
   <option name="-heap">512M</option>
-  <option name="-preprocess" />
-  <option name="-setprop">limits.time.cpu=1min</option>
+  <option name="-timelimit">1min</option>
+
+  <requiredfiles>../programs/cpalien/cpalien-headers.h</requiredfiles>
 
   <sourcefiles name="cpalien-okay">
     <includesfile>../programs/cpalien/cpalien.set</includesfile>
-    <option name="-CPAlien"/>
+    <option name="-smg"/>
+    <option name="-preprocess" />
+    <propertyfile>../programs/benchmarks/PropertyMemSafety.prp</propertyfile>
   </sourcefiles>
 
   <sourcefiles name="cpalien-label-okay">
     <includesfile>../programs/cpalien/cpalien-label.set</includesfile>
-    <option name="-CPAlien-label"/>
+    <option name="-smg-label"/>
+    <option name="-preprocess" />
+    <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
   </sourcefiles>
 
-  <requiredfiles>../programs/cpalien/cpalien-headers.h</requiredfiles>
-
+  <sourcefiles name="MemorySafety">
+    <includesfile>../programs/benchmarks/MemorySafety.set</includesfile>
+    <option name="-sv-comp14"/>
+    <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+  </sourcefiles>
   <rundefinition/>
 </benchmark>

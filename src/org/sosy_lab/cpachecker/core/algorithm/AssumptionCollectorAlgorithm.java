@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,7 +37,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -47,6 +46,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -301,11 +301,11 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
     sb.append("INITIAL STATE ARG" + initialState.getStateId() + ";\n\n");
     sb.append("STATE __TRUE :\n");
-    sb.append("    TRUE -> ASSUME \"true\" GOTO __TRUE;\n\n");
+    sb.append("    TRUE -> ASSUME {true} GOTO __TRUE;\n\n");
 
     if (!falseAssumptionStates.isEmpty()) {
       sb.append("STATE __FALSE :\n");
-      sb.append("    TRUE -> ASSUME \"false\" GOTO __FALSE;\n\n");
+      sb.append("    TRUE -> ASSUME {false} GOTO __FALSE;\n\n");
     }
 
     for (final ARGState s : relevantStates) {
@@ -335,9 +335,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
         AssumptionStorageState assumptionChild = AbstractStates.extractStateByType(child, AssumptionStorageState.class);
         BooleanFormula assumption = bfmgr.and(assumptionChild.getAssumption(), assumptionChild.getStopFormula());
-        sb.append("ASSUME \"");
+        sb.append("ASSUME {");
         escape(assumption.toString(), sb);
-        sb.append("\" ");
+        sb.append("} ");
 
         if (falseAssumptionStates.contains(child)) {
           sb.append(actionOnFinalEdges + "GOTO __FALSE");
@@ -399,6 +399,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         break;
       case '\\':
         appendTo.append("\\\\");
+        break;
+      case '`':
         break;
       default:
         appendTo.append(c);

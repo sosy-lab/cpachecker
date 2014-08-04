@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,8 +25,8 @@ package org.sosy_lab.cpachecker.util.blocking;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -361,14 +361,14 @@ public class BlockedCFAReducer implements BlockComputer {
         pNode.getWrapped().getFunctionName(),
         pNode.getNodeKindText(),
         pNode.getFunctionCallId(),
-        pNode.getWrapped().getLineNumber());
+        pNode.getWrapped().getNodeNumber());
   }
 
   /**
    * Write the in-lined version of the CFA to the given output.
    */
   @VisibleForTesting
-  void printInlinedCfa(Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> pInlinedCfa, BufferedWriter pOut) throws IOException {
+  void printInlinedCfa(Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> pInlinedCfa, Writer pOut) throws IOException {
     for (ReducedNode u: pInlinedCfa.keySet()) {
       Map<ReducedNode, Set<ReducedEdge>> uTarget = pInlinedCfa.get(u);
       for (ReducedNode v: uTarget.keySet()) {
@@ -376,8 +376,8 @@ public class BlockedCFAReducer implements BlockComputer {
           pOut.append("REL\t")
               .append(getRsfEntryFor(u))
               .append('\t')
-              .append(getRsfEntryFor(v));
-          pOut.newLine();
+              .append(getRsfEntryFor(v))
+              .append(System.lineSeparator());
         }
       }
     }
@@ -397,7 +397,7 @@ public class BlockedCFAReducer implements BlockComputer {
 
     if (reducedCfaFile != null) {
       Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = reducedProgram.getInlinedCfa();
-      try (BufferedWriter w = Files.openOutputFile(reducedCfaFile)) {
+      try (Writer w = Files.openOutputFile(reducedCfaFile)) {
         printInlinedCfa(inlinedCfa, w);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write the reduced CFA to file");

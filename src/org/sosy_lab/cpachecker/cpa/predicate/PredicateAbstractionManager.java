@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,6 +29,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,16 +42,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.NestedTimer;
+import org.sosy_lab.common.time.TimeSpan;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage.AbstractionNode;
@@ -71,7 +73,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -475,8 +476,9 @@ public class PredicateAbstractionManager {
       }
     }
 
-    long abstractionTime = stats.abstractionSolveTime.getLengthOfLastInterval()
-        + stats.abstractionEnumTime.getLengthOfLastOuterInterval();
+    long abstractionTime = TimeSpan.sum(stats.abstractionSolveTime.getLengthOfLastInterval(),
+                                        stats.abstractionEnumTime.getLengthOfLastOuterInterval())
+                                   .asMillis();
     logger.log(Level.FINEST, "Computing abstraction took", abstractionTime, "ms");
     logger.log(Level.ALL, "Abstraction result is", result);
 
@@ -488,7 +490,7 @@ public class PredicateAbstractionManager {
       fmgr.dumpFormulaToFile(f, dumpFile);
 
       dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predicates", 0);
-      try (Writer w = dumpFile.asCharSink(Charsets.UTF_8).openStream()) {
+      try (Writer w = dumpFile.asCharSink(StandardCharsets.UTF_8).openBufferedStream()) {
         Joiner.on('\n').appendTo(w, predicates);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Failed to wrote predicates to file");
@@ -534,7 +536,10 @@ public class PredicateAbstractionManager {
       BooleanFormula instantiatedPredicate = fmgr.instantiate(predicateTerm, ssa);
       Set<String> predVariables = fmgr.extractVariables(instantiatedPredicate);
 
-      if (!Sets.intersection(predVariables, variables).isEmpty()) {
+      if (predVariables.isEmpty()
+          || !Sets.intersection(predVariables, variables).isEmpty()) {
+        // Predicates without variables occur (for example, talking about UFs).
+        // We do not know whether they are relevant, so we have to add them.
         predicateBuilder.add(predicate);
       } else {
         logger.log(Level.FINEST, "Ignoring predicate about variables", predVariables);
@@ -620,7 +625,7 @@ public class PredicateAbstractionManager {
       final PathFormula blockFormula,
       final Collection<AbstractionPredicate> predicates) throws InterruptedException {
 
-    PathFormula pf = new PathFormula(f, blockFormula.getSsa(), 0);
+    PathFormula pf = new PathFormula(f, blockFormula.getSsa(), blockFormula.getPointerTargetSet(), 0);
 
     AbstractionFormula emptyAbstraction = makeTrueAbstractionFormula(null);
     AbstractionFormula newAbstraction = buildAbstraction(location, emptyAbstraction, pf, predicates);
@@ -681,7 +686,7 @@ public class PredicateAbstractionManager {
           byte predVal = cartesianAbstractionCache.get(cacheKey);
           stats.numCartesianAbsPredicatesCached++;
 
-          stats.abstractionEnumTime.getInnerTimer().start();
+          stats.abstractionEnumTime.getCurentInnerTimer().start();
           Region v = p.getAbstractVariable();
           if (predVal == -1) { // pred is false
             stats.numCartesianAbsPredicates++;
@@ -693,7 +698,7 @@ public class PredicateAbstractionManager {
           } else {
             assert predVal == 0 : "predicate value is neither false, true, nor unknown";
           }
-          stats.abstractionEnumTime.getInnerTimer().stop();
+          stats.abstractionEnumTime.getCurentInnerTimer().stop();
 
         } else {
           logger.log(Level.ALL, "DEBUG_1",
@@ -713,10 +718,10 @@ public class PredicateAbstractionManager {
 
           if (isTrue) {
             stats.numCartesianAbsPredicates++;
-            stats.abstractionEnumTime.getInnerTimer().start();
+            stats.abstractionEnumTime.getCurentInnerTimer().start();
             Region v = p.getAbstractVariable();
             absbdd = rmgr.makeAnd(absbdd, v);
-            stats.abstractionEnumTime.getInnerTimer().stop();
+            stats.abstractionEnumTime.getCurentInnerTimer().stop();
 
             predVal = 1;
           } else {
@@ -727,11 +732,11 @@ public class PredicateAbstractionManager {
 
             if (isFalse) {
               stats.numCartesianAbsPredicates++;
-              stats.abstractionEnumTime.getInnerTimer().start();
+              stats.abstractionEnumTime.getCurentInnerTimer().start();
               Region v = p.getAbstractVariable();
               v = rmgr.makeNot(v);
               absbdd = rmgr.makeAnd(absbdd, v);
-              stats.abstractionEnumTime.getInnerTimer().stop();
+              stats.abstractionEnumTime.getCurentInnerTimer().stop();
 
               predVal = -1;
             }

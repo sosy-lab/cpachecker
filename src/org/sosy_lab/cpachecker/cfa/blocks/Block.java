@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import com.google.common.collect.ImmutableSet;
 
 /**
- * Represents a block as described in the ABM paper.
+ * Represents a block as described in the BAM paper.
  */
 public class Block {
 

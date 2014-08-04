@@ -101,22 +101,22 @@ class Tool(benchmark.tools.cpachecker.Tool):
             elif line.startswith('Verification result: '):
                 line = line[21:].strip()
                 if line.startswith('TRUE'):
-                    newStatus = result.STR_TRUE
+                    newStatus = result.STATUS_TRUE_PROP
                 elif line.startswith('FALSE'):
-                  newStatus = result.STR_FALSE_LABEL
+                  newStatus = result.STATUS_FALSE_REACH
                   match = re.match('.* Violation of propert[a-z]* (.*) found by chosen configuration.*', line)
                   if match:
                       newStatus = result.STR_FALSE + '(' + match.group(1) + ')'
 
                 else:
-                    newStatus = result.STR_UNKNOWN if not status.startswith('ERROR') else None
+                    newStatus = result.STATUS_UNKNOWN if not status.startswith('ERROR') else None
                 if newStatus and not status:
                     status = newStatus
 
         if status == 'KILLED (UNKNOWN)':
             status = 'KILLED'
         if not status or undef:
-            status = result.STR_UNKNOWN
+            status = result.STATUS_UNKNOWN
         return status
 
 

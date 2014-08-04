@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import static com.google.common.base.Objects.equal;
 import static org.sosy_lab.common.Pair.zipList;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -67,10 +67,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 /**
  * Provides methods for generating, comparing and printing the ASTs generated from String.
@@ -86,17 +91,24 @@ class AutomatonASTComparator {
   private static final String NUMBERED_JOKER_EXPR = "CPAchecker_AutomatonAnalysis_JokerExpression_Num";
   private static final Pattern NUMBERED_JOKER_PATTERN = Pattern.compile("\\$\\d+");
 
-  static ASTMatcher generatePatternAST(String pPattern, CParser parser) throws InvalidAutomatonException, InvalidConfigurationException {
+  static ASTMatcher generatePatternAST(String pPattern, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException {
     // $?-Jokers, $1-Jokers and function declaration
     String tmp = addFunctionDeclaration(replaceJokersInPattern(pPattern));
 
-    return parse(tmp, parser).accept(ASTMatcherGenerator.INSTANCE);
+    return parse(tmp, parser, scope).accept(ASTMatcherGenerator.INSTANCE);
   }
 
-  static CStatement generateSourceAST(String pSource, CParser parser) throws InvalidAutomatonException, InvalidConfigurationException {
+  static CStatement generateSourceAST(String pSource, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException {
     String tmp = addFunctionDeclaration(pSource);
 
-    return parse(tmp, parser);
+    return parse(tmp, parser, scope);
+  }
+
+  static List<CStatement> generateSourceASTOfBlock(String pSource, CParser parser, Scope scope)
+      throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
+    String tmp = addFunctionDeclaration(pSource);
+
+    return parseBlockOfStatements(tmp, parser, scope);
   }
 
   @VisibleForTesting
@@ -142,9 +154,9 @@ class AutomatonASTComparator {
    * @throws InvalidAutomatonException
    * @throws InvalidConfigurationException
    */
-  private static CStatement parse(String code, CParser parser) throws InvalidAutomatonException, InvalidConfigurationException {
+  private static CStatement parse(String code, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException {
     try {
-      CAstNode statement = parser.parseSingleStatement(code);
+      CAstNode statement = parser.parseSingleStatement(code, scope);
       if (!(statement instanceof CStatement)) {
         throw new InvalidAutomatonException("Not a valid statement: " + statement.toASTString());
       }
@@ -153,6 +165,41 @@ class AutomatonASTComparator {
       throw new InvalidAutomatonException("Error during parsing C code \""
           + code + "\": " + e.getMessage());
     }
+  }
+
+  /**
+   * Parse the assumption of a automaton, which are C assignments,
+   * return statements or function calls, into a list of
+   * CStatements with the Eclipse CDT parser. If an error occurs,
+   * an empty list will be returned, and the error will be logged.
+   *
+   *
+   * @param code The C code to parse.
+   * @return The AST.
+   * @throws InvalidAutomatonException
+   * @throws InvalidConfigurationException
+   * @throws CParserException
+   */
+  private static List<CStatement> parseBlockOfStatements(String code, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
+    List<CAstNode> statements;
+
+    statements = parser.parseStatements(code, scope);
+
+    for(CAstNode statement : statements) {
+      if(!(statement instanceof CStatement)) {
+        throw new InvalidAutomatonException("Code in assumption: <"
+      + statement.toASTString() + "> is not a valid assumption.");
+      }
+    }
+
+    Function<CAstNode, CStatement> function = new Function<CAstNode, CStatement>() {
+      @Override
+      public CStatement apply(CAstNode statement) {
+        return (CStatement) statement;
+      }
+    };
+
+    return ImmutableList.copyOf(Lists.transform(statements, function));
   }
 
 
@@ -437,7 +484,7 @@ class AutomatonASTComparator {
 
     @Override
     protected boolean matches2(T pSource, AutomatonExpressionArguments pArg) {
-      return equal(field, getFieldValueFrom(pSource));
+      return Objects.equals(field, getFieldValueFrom(pSource));
     }
 
     protected F getFieldValueFrom(T pSource) {
@@ -458,7 +505,7 @@ class AutomatonASTComparator {
 
     @Override
     protected boolean matches2(T pSource, AutomatonExpressionArguments pArg) {
-      return equal(field1, getFieldValue1From(pSource)) && equal(field2, getFieldValue2From(pSource));
+      return Objects.equals(field1, getFieldValue1From(pSource)) && Objects.equals(field2, getFieldValue2From(pSource));
     }
 
     protected F getFieldValue1From(T pSource) {
@@ -715,7 +762,7 @@ class AutomatonASTComparator {
 
     @Override
     protected boolean matches2(CTypeIdExpression pSource, AutomatonExpressionArguments pArg) {
-      return equal(operator, pSource.getOperator())
+      return Objects.equals(operator, pSource.getOperator())
           && super.matches2(pSource, pArg);
     }
 

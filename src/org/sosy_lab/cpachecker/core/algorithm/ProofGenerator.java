@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,26 +23,28 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import java.io.PrintStream;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.pcc.strategy.PCCStrategyBuilder;
 
 @Options
 public class ProofGenerator {
 
-  @Option(name = "pcc.proofgen.doPCC", description = "")
-  private boolean doPCC = false;
   @Option(
       name = "pcc.strategy",
       description = "Qualified name for class which implements certification strategy, hence proof writing, to be used.")
@@ -51,6 +53,24 @@ public class ProofGenerator {
   private PCCStrategy checkingStrategy;
 
   private final LogManager logger;
+  private final Timer writingTimer = new Timer();
+
+  private final Statistics proofGeneratorStats = new Statistics() {
+
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+      pOut.println();
+      pOut.println(getName() + " statistics");
+      pOut.println("------------------------------------");
+      pOut.println("Time for proof writing: " + writingTimer);
+
+    }
+
+    @Override
+    public String getName() {
+      return "Proof Generation";
+    }
+  };
 
   public ProofGenerator(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
@@ -61,23 +81,25 @@ public class ProofGenerator {
   }
 
   public void generateProof(CPAcheckerResult pResult) {
-    if (!doPCC) { return; }
     UnmodifiableReachedSet reached = pResult.getReached();
 
     // check result
-    if (pResult.getResult() != Result.SAFE) {
+    if (pResult.getResult() != Result.TRUE) {
       logger.log(Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
       return;
     }
     // saves the proof
     logger.log(Level.INFO, "Proof Generation started.");
-    Timer writingTimer = new Timer();
+
     writingTimer.start();
 
     checkingStrategy.writeProof(reached);
 
     writingTimer.stop();
-    logger.log(Level.INFO, "Writing proof took " + writingTimer.printMaxTime());
+    logger.log(Level.INFO, "Writing proof took " + writingTimer.getMaxTime().formatAs(TimeUnit.SECONDS));
+
+    pResult.addProofGeneratorStatistics(proofGeneratorStats);
+
   }
 
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,6 +42,10 @@ public class ErrorConditions {
     invalidFree = bfmgr.makeBoolean(false);
   }
 
+  public boolean isEnabled() {
+    return true;
+  }
+
   public void addInvalidDerefCondition(BooleanFormula pCo) {
     invalidDeref = bfmgr.or(invalidDeref, pCo);
   }
@@ -56,5 +60,31 @@ public class ErrorConditions {
 
   public BooleanFormula getInvalidFreeCondition() {
     return invalidFree;
+  }
+
+  public static ErrorConditions dummyInstance(BooleanFormulaManagerView pBfmgr) {
+    return new DummyErrorConditions(pBfmgr);
+  }
+
+  private static class DummyErrorConditions extends ErrorConditions {
+
+    public DummyErrorConditions(BooleanFormulaManagerView pBfmgr) {
+      super(pBfmgr);
+    }
+
+    @Override
+    public boolean isEnabled() {
+      return false;
+    }
+
+    @Override
+    public void addInvalidDerefCondition(BooleanFormula pCo) {
+      // disabled
+    }
+
+    @Override
+    public void addInvalidFreeCondition(BooleanFormula pCo) {
+      // disabled
+    }
   }
 }

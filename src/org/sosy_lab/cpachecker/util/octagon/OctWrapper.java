@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,15 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.octagon;
 
-import org.sosy_lab.cpachecker.util.NativeLibraries;
 
 class OctWrapper {
 
   private OctWrapper() { }
-
-  static {
-    NativeLibraries.loadLibrary("JOct");
-  }
 
   /* Initialization */
   static native boolean J_init();        //int oct_init()
@@ -55,6 +50,8 @@ class OctWrapper {
 
   static native void J_num_clear_n(long n, int size); // call void num_clear_n (num_t* a, size_t n) and oct_mm_free(c) afterwards
 
+  static native void J_get_bounds(long n, int pos, long upperBound, long lowerBound); // void get_bounds(oct * m, var_t k, num_t *up, num_t *down)
+  static native long J_set_bounds(long n, int pos, long upperBound, long lowerBound, boolean dest); // void set_bounds(oct * m, var_t k, num_t *up, num_t *down)
 
   /* Octagon handling functions */
 

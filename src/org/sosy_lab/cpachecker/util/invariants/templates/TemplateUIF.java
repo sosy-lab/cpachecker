@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,18 +25,13 @@ package org.sosy_lab.cpachecker.util.invariants.templates;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.invariants.Rational;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaList;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 
-public class TemplateUIF extends TemplateNumericValue {
+public class TemplateUIF extends TemplateNumeralValue {
 
   private String name = null;
   private TemplateSumList args = null;
@@ -219,21 +214,6 @@ public class TemplateUIF extends TemplateNumericValue {
     if (args!=null) {
       args.prefixVariables(prefix);
     }
-  }
-
-  @Override
-  public Formula translate(FormulaManagerView fmgr) {
-    Formula form = null;
-    List<Formula> fl = ((AbstractFormulaList)args.translate(fmgr)).getTerms();
-    FunctionFormulaManagerView ffmgr = fmgr.getFunctionFormulaManager();
-    if (hasIndex()) {
-      form = ffmgr.createFuncAndCall(name, index.intValue(), getFormulaType(), fl);
-      //form = fmgr.makeUIF(name, fl, index.intValue());
-    } else {
-      form = ffmgr.createFuncAndCall(name, getFormulaType(), fl);
-      //form = fmgr.makeUIF(name, fl);
-    }
-    return form;
   }
 
 //------------------------------------------------------------------

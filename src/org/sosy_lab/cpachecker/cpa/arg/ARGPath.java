@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -72,7 +72,8 @@ public class ARGPath extends LinkedList<Pair<ARGState, CFAEdge>> implements Appe
       elem.put("source", edge.getPredecessor().getNodeNumber());
       elem.put("target", edge.getSuccessor().getNodeNumber());
       elem.put("desc", edge.getDescription().replaceAll("\n", " "));
-      elem.put("line", edge.getLineNumber());
+      elem.put("line", edge.getFileLocation().getStartingLineNumber());
+      elem.put("file", edge.getFileLocation().getFileName());
       path.add(elem);
     }
     JSON.writeJSONString(path, sb);

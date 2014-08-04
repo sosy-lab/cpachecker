@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,16 +29,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaTypeImpl;
 
-class SmtInterpolFunctionType<T extends Formula> extends FunctionFormulaTypeImpl<T> {
-
-  private final String funcDecl;
+class SmtInterpolFunctionType<T extends Formula> extends FunctionFormulaTypeImpl<T, String> {
 
   SmtInterpolFunctionType(FormulaType<T> pReturnType, List<FormulaType<?>> pArgumentTypes, String funcDecl) {
-    super(pReturnType, pArgumentTypes);
-    this.funcDecl = (funcDecl);
-  }
-
-  public String getFuncDecl() {
-    return funcDecl;
+    super(pReturnType, funcDecl, pArgumentTypes);
   }
 }

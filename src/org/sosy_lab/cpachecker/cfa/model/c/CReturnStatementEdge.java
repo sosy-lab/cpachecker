@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.model.c;
 
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
@@ -36,17 +37,16 @@ public class CReturnStatementEdge extends AReturnStatementEdge {
 
 
   public CReturnStatementEdge(String pRawStatement, CReturnStatement pRawAST,
-      int pLineNumber, CFANode pPredecessor, FunctionExitNode pSuccessor) {
+      FileLocation pFileLocation, CFANode pPredecessor, FunctionExitNode pSuccessor) {
 
-    super(pRawStatement, pRawAST, pLineNumber, pPredecessor, pSuccessor);
+    super(pRawStatement, pRawAST, pFileLocation, pPredecessor, pSuccessor);
 
   }
 
-
-
+  @SuppressWarnings("unchecked") // safe because Optional is covariant
   @Override
-  public CExpression getExpression() {
-    return (CExpression)rawAST.getReturnValue();
+  public Optional<CExpression> getExpression() {
+    return (Optional<CExpression>)rawAST.getReturnValue();
   }
 
   @Override

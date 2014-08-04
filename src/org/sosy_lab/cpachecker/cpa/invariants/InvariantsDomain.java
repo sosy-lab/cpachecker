@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,7 +34,7 @@ enum InvariantsDomain implements AbstractDomain {
   public InvariantsState join(AbstractState pElement1, AbstractState pElement2) {
     InvariantsState element1 = (InvariantsState) pElement1;
     InvariantsState element2 = (InvariantsState) pElement2;
-    InvariantsState result = element1.join(element2);
+    InvariantsState result = element1.join(element2, InvariantsPrecision.getEmptyPrecision());
     return result;
   }
 

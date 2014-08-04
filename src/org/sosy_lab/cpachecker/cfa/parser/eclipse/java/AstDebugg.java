@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,7 +30,7 @@ import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.ClassInstanceCreation;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.MethodInvocation;
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 
 
 /**
@@ -46,16 +46,9 @@ class AstDebugg extends ASTVisitor {
 
   @Override
   public void preVisit(ASTNode problem) {
-
-
-    System.out.println(getTypeName(problem.getNodeType()));
-    System.out.println(problem);
-    System.out.println();
-
-
     // flags return the bitwise or of value Recovered =case 8, Malformed = case 1
     if (ASTNode.RECOVERED == (problem.getFlags() & ASTNode.RECOVERED) || ASTNode.MALFORMED == (problem.getFlags() & ASTNode.MALFORMED)) {
-      logger.log(Level.SEVERE, "Error " + problem.toString());
+      logger.log(Level.WARNING, "Error " + problem.toString());
     }
   }
 
@@ -158,34 +151,15 @@ class AstDebugg extends ASTVisitor {
 
   @Override
   public boolean visit(MethodInvocation mI) {
-
-     //System.out.println(getTypeName(mI.getNodeType()));
-     //System.out.println(mI);
-     //System.out.println();
-
     @SuppressWarnings("unused")
     IMethodBinding bind = mI.resolveMethodBinding();
-
-
-
-    //System.out.println(bind);
-
     return true;
   }
 
  @Override
 public boolean visit(ClassInstanceCreation cIC) {
-
-   //System.out.println(getTypeName(cIC.getNodeType()));
-   //System.out.println(cIC);
-   //System.out.println();
-
   @SuppressWarnings("unused")
   IMethodBinding bind = cIC.resolveConstructorBinding();
-
-  //System.out.println(bind);
-
-
   return true;
 }
 

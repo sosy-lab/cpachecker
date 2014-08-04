@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,9 +37,9 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.SetMultimap;
 
@@ -50,7 +50,7 @@ import com.google.common.collect.SetMultimap;
 class ImmutableCFA implements CFA {
 
   private final MachineModel machineModel;
-  private final ImmutableMap<String, FunctionEntryNode> functions;
+  private final ImmutableSortedMap<String, FunctionEntryNode> functions;
   private final ImmutableSortedSet<CFANode> allNodes;
   private final FunctionEntryNode mainFunction;
   private final Optional<ImmutableMultimap<String, Loop>> loopStructure;
@@ -69,7 +69,7 @@ class ImmutableCFA implements CFA {
       Language pLanguage) {
 
     machineModel = pMachineModel;
-    functions = ImmutableMap.copyOf(pFunctions);
+    functions = ImmutableSortedMap.copyOf(pFunctions);
     allNodes = ImmutableSortedSet.copyOf(pAllNodes.values());
     mainFunction = checkNotNull(pMainFunction);
     loopStructure = pLoopStructure;
@@ -81,7 +81,7 @@ class ImmutableCFA implements CFA {
 
   private ImmutableCFA(MachineModel pMachineModel, Language pLanguage) {
     machineModel = pMachineModel;
-    functions = ImmutableMap.of();
+    functions = ImmutableSortedMap.of();
     allNodes = ImmutableSortedSet.of();
     mainFunction = null;
     loopStructure = Optional.absent();
@@ -109,7 +109,7 @@ class ImmutableCFA implements CFA {
   }
 
   @Override
-  public ImmutableSet<String> getAllFunctionNames() {
+  public ImmutableSortedSet<String> getAllFunctionNames() {
     return functions.keySet();
   }
 
@@ -124,7 +124,7 @@ class ImmutableCFA implements CFA {
   }
 
   @Override
-  public ImmutableMap<String, FunctionEntryNode> getAllFunctions() {
+  public ImmutableSortedMap<String, FunctionEntryNode> getAllFunctions() {
     return functions;
   }
 

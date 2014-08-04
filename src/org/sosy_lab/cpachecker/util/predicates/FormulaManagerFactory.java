@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,13 +35,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
+import javax.annotation.Nonnull;
+
 import org.sosy_lab.common.ChildFirstPatternClassLoader;
 import org.sosy_lab.common.Classes;
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -72,11 +74,6 @@ public class FormulaManagerFactory {
   @Option(name="solver.useLogger",
       description="log some solver actions, this may be slow!")
   private boolean useLogger = false;
-
-  @Option(name="solver.useIntegers",
-      description="Encode program variables as INTEGER variables, instead of "
-          + "using REALs. Not all solvers might support this.")
-  private boolean useIntegers = false;
 
   @Option(description="Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver (Z3 needs the FOCI library from http://www.kenmcmil.com/foci2/).")
   private Solvers solver = Solvers.MATHSAT5;
@@ -120,14 +117,14 @@ public class FormulaManagerFactory {
     try {
       switch (solver) {
       case SMTINTERPOL:
-        return loadSmtInterpol().create(config, logger, shutdownNotifier, useIntegers);
+        return loadSmtInterpol().create(config, logger, shutdownNotifier);
 
       case MATHSAT5:
-          return Mathsat5FormulaManager.create(logger, config, shutdownNotifier, useIntegers);
+          return Mathsat5FormulaManager.create(logger, config, shutdownNotifier);
 
       case Z3:
         try {
-          return Z3FormulaManager.create(logger, config, useIntegers);
+          return Z3FormulaManager.create(logger, config);
         } catch (UnsatisfiedLinkError e) {
           if (e.getMessage().contains("libfoci.so")) {
             throw new InvalidConfigurationException("Z3 needs the FOCI library which is not supplied with CPAchecker."
@@ -154,14 +151,14 @@ public class FormulaManagerFactory {
     return fmgr;
   }
 
-  public ProverEnvironment newProverEnvironment(boolean generateModels) {
+  public ProverEnvironment newProverEnvironment(boolean generateModels, boolean generateUnsatCore) {
     ProverEnvironment pe;
     switch (solver) {
     case SMTINTERPOL:
       pe = loadSmtInterpol().createProver(fmgr);
       break;
     case MATHSAT5:
-      pe = new Mathsat5TheoremProver((Mathsat5FormulaManager) fmgr, generateModels);
+      pe = new Mathsat5TheoremProver((Mathsat5FormulaManager) fmgr, generateModels, generateUnsatCore);
       break;
     case Z3:
       pe = new Z3TheoremProver((Z3FormulaManager) fmgr);
@@ -220,7 +217,7 @@ public class FormulaManagerFactory {
    */
   public static interface SolverFactory {
     FormulaManager create(Configuration config, LogManager logger,
-        ShutdownNotifier pShutdownNotifier, boolean useIntegers) throws InvalidConfigurationException;
+        ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException;
 
     ProverEnvironment createProver(FormulaManager mgr);
 
@@ -291,7 +288,7 @@ public class FormulaManagerFactory {
       URL[] urls = from(Arrays.asList(((URLClassLoader)classLoader).getURLs()))
         .filter(new Predicate<URL>() {
             @Override
-            public boolean apply(URL pInput) {
+            public boolean apply(@Nonnull URL pInput) {
               return !pInput.getPath().contains("java-cup");
             }
           })

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.bdd;
 
 import static com.google.common.base.Preconditions.*;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import java.io.PrintStream;
@@ -40,13 +41,13 @@ import java.util.logging.Level;
 import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDFactory;
 
-import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -204,7 +205,7 @@ public class BDDRegionManager implements RegionManager {
         .put(cleanupQueueSize)
         .put(cleanupTimer)
 
-        .put("Time for BDD garbage collection", Timer.formatTime(stats.sumtime) + " (in " + stats.num + " runs)")
+        .put("Time for BDD garbage collection", TimeSpan.ofMillis(stats.sumtime).formatAs(SECONDS) + " (in " + stats.num + " runs)")
         ;
 
       // Cache stats are disabled in JFactory (CACHESTATS = false)
@@ -374,6 +375,10 @@ public class BDDRegionManager implements RegionManager {
   @Override
   public Region makeExists(Region pF1, Region... pF2) {
     cleanupReferences();
+
+    if (pF2.length == 0) {
+      return pF1;
+    }
 
     // we use id() to get copies of the BDDs, otherwise we would delete them
     BDD f = unwrap(pF2[0]).id();

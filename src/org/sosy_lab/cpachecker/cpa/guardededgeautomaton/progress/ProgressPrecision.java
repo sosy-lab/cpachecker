@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.cpa.guardededgeautomaton.progress;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 public class ProgressPrecision implements Precision {

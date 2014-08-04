@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -38,12 +40,15 @@ import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 
-public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> implements BooleanFormulaManager {
+public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula, BooleanFormula> implements BooleanFormulaManager {
 
-  private BooleanFormulaManager manager;
+  private final BooleanFormulaManager manager;
+  private final UnsafeFormulaManager unsafe;
 
-  public BooleanFormulaManagerView(BooleanFormulaManager pManager) {
+  public BooleanFormulaManagerView(BooleanFormulaManager pManager,
+      UnsafeFormulaManager pUnsafe) {
     this.manager = pManager;
+    this.unsafe = pUnsafe;
   }
 
   public BooleanFormula makeVariable(String pVar, int pI) {
@@ -152,7 +157,6 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
     checkArgument(isIfThenElse(pF));
 
     FormulaManagerView fmgr = getViewManager();
-    UnsafeFormulaManager unsafe = fmgr.getUnsafeFormulaManager();
     assert unsafe.getArity(pF) == 3;
 
     BooleanFormula cond = wrapInView(unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, 0)));
@@ -190,7 +194,7 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
     protected BooleanFormulaVisitor(FormulaManagerView pFmgr) {
       fmgr = pFmgr;
       bfmgr = fmgr.getBooleanFormulaManager();
-      unsafe = fmgr.getUnsafeFormulaManager();
+      unsafe = bfmgr.unsafe;
     }
 
     public final R visit(BooleanFormula f) {
@@ -314,5 +318,79 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
     protected R visitIfThenElse(BooleanFormula pCondition, BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
       throw new UnsupportedOperationException();
     }
+  }
+
+  /**
+   * Base class for visitors for boolean formulas that traverse recursively
+   * through the full formula (at least the boolean part, not inside atoms).
+   * This class ensures that each identical subtree of the formula
+   * is visited only once to avoid the exponential explosion.
+   *
+   * Subclasses of this class should call super.visit...() to ensure recursive
+   * traversal. If such a call is omitted, the respective part of the formula
+   * is not visited.
+   *
+   * No guarantee on iteration order is made.
+   */
+  public static abstract class RecursiveBooleanFormulaVisitor extends BooleanFormulaVisitor<Void> {
+
+    private final Set<BooleanFormula> seen = new HashSet<>();
+
+    protected RecursiveBooleanFormulaVisitor(FormulaManagerView pFmgr) {
+      super(pFmgr);
+    }
+
+    private Void visitIfNotSeen(BooleanFormula f) {
+      if (seen.add(f)) {
+        return visit(f);
+      }
+      return null;
+    }
+
+    private Void visitMulti(BooleanFormula... pOperands) {
+      for (BooleanFormula operand : pOperands) {
+        visitIfNotSeen(operand);
+      }
+      return null;
+    }
+
+    @Override
+    protected Void visitNot(BooleanFormula pOperand) {
+      return visitIfNotSeen(pOperand);
+    }
+
+    @Override
+    protected Void visitAnd(BooleanFormula... pOperands) {
+      return visitMulti(pOperands);
+    }
+
+    @Override
+    protected Void visitOr(BooleanFormula... pOperands) {
+      return visitMulti(pOperands);
+    }
+
+    @Override
+    protected Void visitEquivalence(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      visitIfNotSeen(pOperand1);
+      visitIfNotSeen(pOperand2);
+      return null;
+    }
+
+    @Override
+    protected Void visitImplication(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      visitIfNotSeen(pOperand1);
+      visitIfNotSeen(pOperand2);
+      return null;
+    }
+
+    @Override
+    protected Void visitIfThenElse(BooleanFormula pCondition, BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
+      visitIfNotSeen(pCondition);
+      visitIfNotSeen(pThenFormula);
+      visitIfNotSeen(pElseFormula);
+      return null;
+    }
+
+
   }
 }

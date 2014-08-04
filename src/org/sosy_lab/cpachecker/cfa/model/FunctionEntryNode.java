@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,49 +23,52 @@
  */
 package org.sosy_lab.cpachecker.cfa.model;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 import com.google.common.collect.ImmutableList;
 
 
 public  class FunctionEntryNode extends CFANode {
 
-
-  protected final AFunctionDeclaration functionDefinition;
+  private final FileLocation location;
+  private final AFunctionDeclaration functionDefinition;
   private final List<String> parameterNames;
 
   // Check if call edges are added in the second pass
   private final FunctionExitNode exitNode;
 
 
-  protected FunctionEntryNode(final int pLineNumber,
+  protected FunctionEntryNode(final FileLocation pFileLocation,
       final AFunctionDeclaration pFunctionDefinition,
       final FunctionExitNode pExitNode,
       final List<String> pParameterNames) {
 
-    super(pLineNumber, pFunctionDefinition.getName());
-
+    super(pFunctionDefinition.getName());
+    location = checkNotNull(pFileLocation);
     functionDefinition = pFunctionDefinition;
     parameterNames = ImmutableList.copyOf(pParameterNames);
     exitNode = pExitNode;
-
-
   }
 
-
-
-  public FunctionEntryNode(int pLineNumber, String pFunctionName,
+  public FunctionEntryNode(final FileLocation pFileLocation, String pFunctionName,
       FunctionExitNode pExitNode, final AFunctionDeclaration pFunctionDefinition,
       final List<String> pParameterNames) {
 
-    super(pLineNumber, pFunctionName);
-
+    super(pFunctionName);
+    location = checkNotNull(pFileLocation);
     functionDefinition = pFunctionDefinition;
     parameterNames = ImmutableList.copyOf(pParameterNames);
     exitNode = pExitNode;
+  }
+
+  public FileLocation getFileLocation() {
+    return location;
   }
 
   public FunctionExitNode getExitNode() {

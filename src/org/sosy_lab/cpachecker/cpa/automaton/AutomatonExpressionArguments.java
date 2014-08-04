@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,7 +31,7 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
@@ -42,8 +42,10 @@ class AutomatonExpressionArguments {
   // these will be set in a MATCH statement, and are erased when the transitions actions are executed.
   private Map<Integer, String> transitionVariables = new HashMap<>();
   private List<AbstractState> abstractStates;
+  private AutomatonState state;
   private CFAEdge cfaEdge;
   private LogManager logger;
+
   /**
    * In this String all print messages of the Transition are collected.
    * They are logged (INFO-level) together at the end of the transition actions.
@@ -56,8 +58,10 @@ class AutomatonExpressionArguments {
   // If this pattern is changed the pattern in AutomatonASTcomparison should be changed too!
   static Pattern TRANSITION_VARS_PATTERN = Pattern.compile("\\$\\d+");
 
-  AutomatonExpressionArguments(Map<String, AutomatonVariable> pAutomatonVariables,
-      List<AbstractState> pAbstractStates, CFAEdge pCfaEdge, LogManager pLogger) {
+  AutomatonExpressionArguments(AutomatonState pState,
+      Map<String, AutomatonVariable> pAutomatonVariables,
+      List<AbstractState> pAbstractStates, CFAEdge pCfaEdge,
+      LogManager pLogger) {
     super();
     if (pAutomatonVariables == null) {
       automatonVariables = Collections.emptyMap();
@@ -71,6 +75,7 @@ class AutomatonExpressionArguments {
     }
     cfaEdge = pCfaEdge;
     logger = pLogger;
+    state = pState;
   }
 
   void setAutomatonVariables(Map<String, AutomatonVariable> pAutomatonVariables) {
@@ -168,6 +173,10 @@ class AutomatonExpressionArguments {
     }
     matcher.appendTail(result);
     return result.toString();
+  }
+
+  public AutomatonState getState() {
+    return state;
   }
 
   public Map<Integer, String> getTransitionVariables() {

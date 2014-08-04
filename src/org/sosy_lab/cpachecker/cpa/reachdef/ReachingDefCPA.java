@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,14 +27,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -85,12 +86,12 @@ public class ReachingDefCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(ReachingDefCPA.class);
   }
 
-  private ReachingDefCPA(LogManager logger, Configuration config) throws InvalidConfigurationException {
+  private ReachingDefCPA(LogManager logger, Configuration config, ShutdownNotifier shutdownNotifier) throws InvalidConfigurationException {
     config.inject(this);
     this.logger = logger;
 
     domain = new ReachingDefDomain();
-    transfer = new ReachingDefTransferRelation(logger);
+    transfer = new ReachingDefTransferRelation(logger, shutdownNotifier);
 
     if (stopType.equals("SEP")) {
       stop = new StopSepOperator(domain);
@@ -100,7 +101,7 @@ public class ReachingDefCPA implements ConfigurableProgramAnalysis {
       stop = new StopIgnoringCallstack();
     }
     if (mergeType.equals("SEP")) {
-      merge = new MergeSepOperator();
+      merge = MergeSepOperator.getInstance();
     } else if (mergeType.equals("JOIN")) {
       merge = new MergeJoinOperator(domain);
     } else {

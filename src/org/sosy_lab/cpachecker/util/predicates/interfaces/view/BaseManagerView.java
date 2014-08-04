@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,13 +26,13 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 
-abstract class BaseManagerView<TFormula extends Formula> extends AbstractBaseManagerView {
+abstract class BaseManagerView<ParamFormula extends Formula, ResultFormula extends Formula> extends AbstractBaseManagerView {
 
-  protected TFormula wrapInView(TFormula formula) {
+  protected ResultFormula wrapInView(ResultFormula formula) {
     return formula;
   }
 
-  protected TFormula extractFromView(TFormula pFormula) {
+  protected ParamFormula extractFromView(ParamFormula pFormula) {
     return pFormula;
   }
 

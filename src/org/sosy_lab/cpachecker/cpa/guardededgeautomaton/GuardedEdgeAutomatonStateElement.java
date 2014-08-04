@@ -25,10 +25,10 @@ package org.sosy_lab.cpachecker.cpa.guardededgeautomaton;
 
 import java.util.ArrayList;
 
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPGuard;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPPredicate;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
-import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPGuard;
-import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPPredicate;
-import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 public abstract class GuardedEdgeAutomatonStateElement implements

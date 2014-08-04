@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,12 +33,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.BasicLogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
@@ -130,7 +131,8 @@ public class CPASelfCheck {
                 + "}\n";
 
     CParser parser = CParser.Factory.getParser(config, logManager, CParser.Factory.getDefaultOptions(), MachineModel.LINUX32);
-    ParseResult cfas = parser.parseString(code);
+    CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
+    ParseResult cfas = parser.parseString("", code, sourceOriginMapping);
     MutableCFA cfa = new MutableCFA(MachineModel.LINUX32, cfas.getFunctions(), cfas.getCFANodes(), cfas.getFunctions().get("main"), Language.C);
     return cfa.makeImmutableCFA(Optional.<ImmutableMultimap<String, Loop>>absent(),
         Optional.<VariableClassification>absent());

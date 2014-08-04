@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,10 +31,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -51,21 +47,17 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
-@Options(prefix="cpa.loopstack")
 public class LoopstackTransferRelation implements TransferRelation {
-
-  @Option(description="threshold for unrolling loops of the program (0 is infinite)\n"
-  + "works only if assumption storage CPA is enabled, because otherwise it would be unsound")
-  private int maxLoopIterations = 0;
 
   private Map<CFAEdge, Loop> loopEntryEdges = null;
   private Map<CFAEdge, Loop> loopExitEdges = null;
 
   private Multimap<CFANode, Loop> loopHeads = null;
 
-  public LoopstackTransferRelation(Configuration config, CFA pCfa) throws InvalidConfigurationException, InvalidCFAException {
-    config.inject(this);
+  private final int maxLoopIterations;
 
+  public LoopstackTransferRelation(int maxLoopIterations, CFA pCfa) throws InvalidCFAException {
+    this.maxLoopIterations = maxLoopIterations;
     if (!pCfa.getLoopStructure().isPresent()) {
       throw new InvalidCFAException("LoopstackCPA does not work without loop information!");
     }

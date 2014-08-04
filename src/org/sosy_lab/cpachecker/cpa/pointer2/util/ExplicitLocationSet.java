@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,73 +23,85 @@
  */
 package org.sosy_lab.cpachecker.cpa.pointer2.util;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableSet;
 
-public class ExplicitLocationSet implements LocationSet {
+public class ExplicitLocationSet implements LocationSet, Iterable<String> {
 
-  private final Set<Location> explicitSet = new HashSet<>();
+  private final Set<String> explicitSet;
 
-  @Override
-  public boolean mayPointTo(Location pElement) {
-    return this.explicitSet.contains(pElement);
+  private ExplicitLocationSet(ImmutableSet<String> pLocations) {
+    assert pLocations.size() >= 1;
+    this.explicitSet = pLocations;
   }
 
   @Override
-  public LocationSet addElement(Location pElement) {
-    if (explicitSet.contains(pElement)) {
+  public boolean mayPointTo(String pLocation) {
+    return this.explicitSet.contains(pLocation);
+  }
+
+  @Override
+  public LocationSet addElement(String pLocation) {
+    if (explicitSet.contains(pLocation)) {
       return this;
     }
-    ExplicitLocationSet result = new ExplicitLocationSet();
-    result.explicitSet.addAll(explicitSet);
-    result.explicitSet.add(pElement);
-    return result;
+    ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+    builder.addAll(explicitSet).add(pLocation);
+    return new ExplicitLocationSet(builder.build());
   }
 
   @Override
-  public LocationSet addElements(Iterable<Location> pElements) {
-    ExplicitLocationSet result = new ExplicitLocationSet();
-    for (Location target : pElements) {
-      result.explicitSet.add(target);
+  public LocationSet addElements(Iterable<String> pLocations) {
+    ImmutableSet.Builder<String> builder = null;
+    for (String target : pLocations) {
+      if (!explicitSet.contains(target)) {
+        if (builder == null) {
+          builder = ImmutableSet.builder();
+          builder.addAll(explicitSet);
+        }
+        builder.add(target);
+      }
     }
-    if (!result.explicitSet.addAll(explicitSet) && result.explicitSet.size() == explicitSet.size()) {
+    if (builder == null) {
       return this;
     }
-    return result;
+    return new ExplicitLocationSet(builder.build());
   }
 
   @Override
-  public LocationSet removeElement(Location pElement) {
-    if (!explicitSet.contains(pElement)) {
+  public LocationSet removeElement(String pLocation) {
+    if (!explicitSet.contains(pLocation)) {
       return this;
     }
-    ExplicitLocationSet result = new ExplicitLocationSet();
-    result.explicitSet.addAll(explicitSet);
-    result.explicitSet.remove(pElement);
-    return result;
-  }
-
-  public static LocationSet from(Location pElement) {
-    ExplicitLocationSet result = new ExplicitLocationSet();
-    result.explicitSet.add(pElement);
-    return result;
-  }
-
-  public static LocationSet from(Set<Location> pElements) {
-    ExplicitLocationSet result = new ExplicitLocationSet();
-    result.explicitSet.addAll(pElements);
-    return result;
-  }
-
-  public static LocationSet from(Iterable<Location> pElements) {
-    ExplicitLocationSet result = new ExplicitLocationSet();
-    for (Location element : pElements) {
-      result.explicitSet.add(element);
+    if (getSize() == 1) {
+      return LocationSetBot.INSTANCE;
     }
-    return result;
+    ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+    for (String location : this.explicitSet) {
+      if (!location.equals(pLocation)) {
+        builder.add(location);
+      }
+    }
+    return new ExplicitLocationSet(builder.build());
+  }
+
+  public static LocationSet from(String pLocation) {
+    return new ExplicitLocationSet(ImmutableSet.of(pLocation));
+  }
+
+  public static LocationSet from(Iterable<? extends String> pLocations) {
+    Iterator<? extends String> elementIterator = pLocations.iterator();
+    if (!elementIterator.hasNext()) {
+      return LocationSetBot.INSTANCE;
+    }
+    ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+    while (elementIterator.hasNext()) {
+      String location = elementIterator.next();
+      builder.add(location);
+    }
+    return new ExplicitLocationSet(builder.build());
   }
 
   @Override
@@ -102,10 +114,6 @@ public class ExplicitLocationSet implements LocationSet {
     return false;
   }
 
-  public Collection<Location> getElements() {
-    return Collections.unmodifiableCollection(this.explicitSet);
-  }
-
   @Override
   public LocationSet addElements(LocationSet pElements) {
     if (pElements == this) {
@@ -115,7 +123,7 @@ public class ExplicitLocationSet implements LocationSet {
       ExplicitLocationSet explicitLocationSet = (ExplicitLocationSet) pElements;
       return addElements(explicitLocationSet.explicitSet);
     }
-    return pElements.addElements(this);
+    return pElements.addElements((LocationSet) this);
   }
 
   @Override
@@ -159,13 +167,27 @@ public class ExplicitLocationSet implements LocationSet {
   @Override
   public int hashCode() {
     if (isBot()) {
-      return LocationSet.BOT.hashCode();
+      return LocationSetBot.INSTANCE.hashCode();
     }
     if (isTop()) {
       assert false;
-      return LocationSet.TOP.hashCode();
+      return LocationSetTop.INSTANCE.hashCode();
     }
     return explicitSet.hashCode();
+  }
+
+  @Override
+  public Iterator<String> iterator() {
+    return explicitSet.iterator();
+  }
+
+  /**
+   * Gets the size of the explicit location set.
+   *
+   * @return the size of the explicit location set.
+   */
+  public int getSize() {
+    return explicitSet.size();
   }
 
 }

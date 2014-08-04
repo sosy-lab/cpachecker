@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,24 +23,26 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks;
 
-import com.google.common.base.Objects;
+import java.util.Set;
 
 /**
  * Represents a reference to a variable in the CFA.
  */
 public class ReferencedVariable {
-  private String ident;
-  private boolean occursInCondition;
-  private boolean occursOnLhs;
-  private ReferencedVariable lhsVariable;
+  private final String ident;
+  private final boolean occursInCondition;
+
+  // This set contains all variables,that are used in assignment of this variable.
+  // Example: influencingVariables of "a" are "b" and "c" from "a=b+c;"
+  // The Set can be empty, if the variable is not assigned (in the current BAM-block).
+  // Set is not included in equals and hashcode, because it can be changed later and may contain circular references.
+  private final Set<ReferencedVariable> influencingVariables;
 
   public ReferencedVariable(String pIdent, boolean pOccursInCondition,
-      boolean pOccursOnLhs, ReferencedVariable pLhsVariable) {
-    super();
+      Set<ReferencedVariable> pInfluencingByVariables) {
     ident = pIdent.replaceAll("[ \n\t]", ""); //mimic behavior of CtoFormulaConverter.exprToVarName
     occursInCondition = pOccursInCondition;
-    occursOnLhs = pOccursOnLhs;
-    lhsVariable = pLhsVariable;
+    influencingVariables = pInfluencingByVariables;
   }
 
   public boolean occursInCondition() {
@@ -51,12 +53,8 @@ public class ReferencedVariable {
     return ident;
   }
 
-  public boolean occursOnLhs() {
-    return occursOnLhs;
-  }
-
-  public ReferencedVariable getLhsVariable() {
-    return lhsVariable;
+  public Set<ReferencedVariable> getInfluencingVariables() {
+    return influencingVariables;
   }
 
   @Override
@@ -66,12 +64,12 @@ public class ReferencedVariable {
     }
 
     ReferencedVariable rhs = (ReferencedVariable)o;
-    return ident.equals(rhs.ident) && occursInCondition == rhs.occursInCondition && occursOnLhs == rhs.occursOnLhs && Objects.equal(lhsVariable, rhs.lhsVariable);
+    return ident.equals(rhs.ident) && occursInCondition == rhs.occursInCondition;
   }
 
   @Override
   public int hashCode() {
-    return ident.hashCode() + (occursInCondition?7:0) + (occursOnLhs?42:3) + (lhsVariable==null?0:lhsVariable.hashCode());
+    return ident.hashCode() + (occursInCondition?7:0);
   }
 
   @Override

@@ -4,6 +4,15 @@
  "http://java.sun.com/dtd/web-app_2_3.dtd">
 
 <web-app xmlns="http://java.sun.com/xml/ns/javaee" version="2.5">
+<!-- 	<servlet> -->
+<!--   		<servlet-name>appstats</servlet-name> -->
+<!--   		<servlet-class>com.google.appengine.tools.appstats.AppstatsServlet</servlet-class> -->
+<!-- 	</servlet> -->
+<!-- 	<servlet-mapping> -->
+<!--   		<servlet-name>appstats</servlet-name> -->
+<!--   		<url-pattern>/appstats/*</url-pattern> -->
+<!-- 	</servlet-mapping> -->
+	
     <servlet>
         <servlet-name>CPAcheckerApplication</servlet-name>
         <servlet-class>org.restlet.ext.servlet.ServerServlet</servlet-class>
@@ -11,8 +20,8 @@
         	<param-name>org.restlet.application</param-name>
         	<param-value>org.sosy_lab.cpachecker.appengine.server.CPAcheckerApplication</param-value>
         </init-param>
+        <load-on-startup>1</load-on-startup>
     </servlet>
-
     <servlet-mapping>
         <servlet-name>CPAcheckerApplication</servlet-name>
         <url-pattern>/*</url-pattern>
@@ -28,6 +37,16 @@
     	</auth-constraint>
     </security-constraint>
     
+<!--     <security-constraint> -->
+<!--     	<web-resource-collection> -->
+<!--     		<web-resource-name>appstats</web-resource-name> -->
+<!--     		<url-pattern>/appstats/*</url-pattern> -->
+<!--   		</web-resource-collection> -->
+<!--   		<auth-constraint> -->
+<!--     		<role-name>admin</role-name> -->
+<!--   		</auth-constraint> -->
+<!-- 	</security-constraint> -->
+    
     <filter>
         <filter-name>ObjectifyFilter</filter-name>
         <filter-class>com.googlecode.objectify.ObjectifyFilter</filter-class>
@@ -36,4 +55,17 @@
         <filter-name>ObjectifyFilter</filter-name>
         <url-pattern>/*</url-pattern>
 	</filter-mapping>
+	
+<!-- 	<filter> -->
+<!--   		<filter-name>appstats</filter-name> -->
+<!--    		<filter-class>com.google.appengine.tools.appstats.AppstatsFilter</filter-class> -->
+<!--   		<init-param> -->
+<!--     		<param-name>calculateRpcCosts</param-name> -->
+<!--     		<param-value>true</param-value> -->
+<!--   		</init-param> -->
+<!-- 	</filter> -->
+<!-- 	<filter-mapping> -->
+<!--   		<filter-name>appstats</filter-name> -->
+<!--   		<url-pattern>/*</url-pattern> -->
+<!-- 	</filter-mapping> -->
 </web-app>

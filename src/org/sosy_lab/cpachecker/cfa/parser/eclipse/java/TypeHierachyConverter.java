@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -43,7 +43,7 @@ import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JConstructorDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
@@ -69,7 +69,7 @@ public class TypeHierachyConverter {
 
   public TypeHierachyConverter(LogManager pLogger, THTypeTable pTypeTable) {
     logger = pLogger;
-    typeConverter = new THTypeConverter(logger, pTypeTable);
+    typeConverter = new THTypeConverter(pTypeTable);
   }
 
   /**
@@ -98,8 +98,7 @@ public class TypeHierachyConverter {
 
     @SuppressWarnings({ "cast", "unchecked" })
     List<JParameterDeclaration> param =
-        convertParameterList((List<SingleVariableDeclaration>)
-            md.parameters(), pFileOfDeclaration);
+        convertParameterList(md.parameters(), pFileOfDeclaration, methodName);
 
     List<JType> parameterTypes = FluentIterable.from(param).transform(
         new Function<JParameterDeclaration, JType>() {
@@ -231,17 +230,19 @@ public class TypeHierachyConverter {
   }
 
   private List<JParameterDeclaration> convertParameterList(
-      List<SingleVariableDeclaration> ps, String fileOfDeclaration) {
+      List<SingleVariableDeclaration> ps, String fileOfDeclaration,
+      String methodName) {
     List<JParameterDeclaration> paramsList = new ArrayList<>(ps.size());
 
     for (org.eclipse.jdt.core.dom.SingleVariableDeclaration c : ps) {
-      paramsList.add(convertParameter(c, fileOfDeclaration));
+      paramsList.add(convertParameter(c, fileOfDeclaration, methodName));
     }
 
     return paramsList;
   }
 
-  private JParameterDeclaration convertParameter(SingleVariableDeclaration p, String fileOfDeclaration) {
+  private JParameterDeclaration convertParameter(SingleVariableDeclaration p,
+      String fileOfDeclaration, String methodName) {
 
     JType type = convert(p.getType());
 
@@ -249,8 +250,8 @@ public class TypeHierachyConverter {
 
     String qualifiedName = p.getName().getFullyQualifiedName();
 
-    return new JParameterDeclaration(convertFileLocation(p, fileOfDeclaration), type, qualifiedName,
-        mb.isFinal());
+    return new JParameterDeclaration(convertFileLocation(p, fileOfDeclaration),
+        type, qualifiedName, methodName + "::" + qualifiedName, mb.isFinal());
   }
 
   private JType convert(Type pType) {
@@ -260,11 +261,11 @@ public class TypeHierachyConverter {
   private FileLocation convertFileLocation(ASTNode l, String fileOfDeclaration) {
 
     if (l == null) {
-      return new FileLocation(0, "", 0, 0, 0);
+      return FileLocation.DUMMY;
     } else if (l.getRoot().getNodeType() != ASTNode.COMPILATION_UNIT) {
       logger.log(Level.WARNING, "Can't find Placement Information for :"
           + l.toString());
-      return new FileLocation(0, "", 0, 0, 0);
+      return FileLocation.DUMMY;
     }
 
     CompilationUnit co = (CompilationUnit) l.getRoot();

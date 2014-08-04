@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,7 +30,6 @@ import java.util.Map;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
@@ -38,6 +37,7 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.BasicLogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.StringBuildingLogHandler;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
@@ -53,10 +53,10 @@ public class AutomatonTest {
   @Test
   public void CyclicInclusionTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              CPAS_UNINITVARS,
-        "specification",     "test/config/automata/tmpSpecification.spc",
-        "log.consoleLevel",               "INFO",
-        "analysis.stopAfterError",        "FALSE"
+        "CompositeCPA.cpas",       CPAS_UNINITVARS,
+        "specification",           "test/config/automata/tmpSpecification.spc",
+        "log.consoleLevel",        "INFO",
+        "analysis.stopAfterError", "FALSE"
       );
 
       Path tmpSpc = Paths.get("test/config/automata/tmpSpecification.spc");
@@ -71,10 +71,10 @@ public class AutomatonTest {
   @Test
   public void IncludeSpecificationTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              CPAS_UNINITVARS,
-        "specification",     "test/config/automata/defaultSpecificationForTesting.spc",
-        "log.consoleLevel",               "INFO",
-        "analysis.stopAfterError",        "FALSE"
+        "CompositeCPA.cpas",        CPAS_UNINITVARS,
+        "specification",            "test/config/automata/defaultSpecificationForTesting.spc",
+        "log.consoleLevel",        "INFO",
+        "analysis.stopAfterError", "FALSE"
       );
 
       TestResults results = run(prop, "test/programs/simple/UninitVarsErrors.c");
@@ -92,9 +92,9 @@ public class AutomatonTest {
   @Test
   public void SpecificationAndNoCompositeTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "cpa", "cpa.location.LocationCPA",
+        "cpa",              "cpa.location.LocationCPA",
         "log.consoleLevel", "INFO",
-        "specification", "test/config/automata/LockingAutomatonAll.txt");
+        "specification",    "test/config/automata/LockingAutomatonAll.txt");
 
       TestResults results = run(prop, "test/programs/simple/modificationExample.c");
       assertThat(results.getLog(), containsString("Option specification gave specification automata, but no CompositeCPA was used"));
@@ -103,10 +103,10 @@ public class AutomatonTest {
   @Test
   public void modificationTestWithSpecification() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.explicit.ExplicitCPA",
-        "specification",     "test/config/automata/modifyingAutomaton.txt",
-        "log.consoleLevel",               "INFO",
-        "cpa.explicit.threshold",       "10");
+        "CompositeCPA.cpas",   "cpa.location.LocationCPA, cpa.value.ValueAnalysisCPA",
+        "specification",       "test/config/automata/modifyingAutomaton.txt",
+        "log.consoleLevel",    "INFO",
+        "cpa.value.threshold", "10");
 
       TestResults results = run(prop, "test/programs/simple/modificationExample.c");
       assertThat(results.getLog(), containsString("MODIFIED"));
@@ -118,10 +118,10 @@ public class AutomatonTest {
   @Test
   public void MatchEndOfProgramTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA",
-        "specification",     "test/config/automata/PrintLastStatementAutomaton.spc",
-        "log.consoleLevel",               "INFO",
-        "analysis.stopAfterError",        "TRUE"
+        "CompositeCPA.cpas",       "cpa.location.LocationCPA",
+        "specification",           "test/config/automata/PrintLastStatementAutomaton.spc",
+        "log.consoleLevel",        "INFO",
+        "analysis.stopAfterError", "TRUE"
       );
 
       TestResults results = run(prop, "test/programs/simple/loop1.c");
@@ -132,9 +132,9 @@ public class AutomatonTest {
   @Test
   public void failIfNoAutomatonGiven() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.explicit.ExplicitCPA, cpa.automaton.ControlAutomatonCPA",
-        "log.consoleLevel",               "INFO",
-        "cpa.explicit.threshold",       "10");
+        "CompositeCPA.cpas",   "cpa.location.LocationCPA, cpa.value.ValueAnalysisCPA, cpa.automaton.ControlAutomatonCPA",
+        "log.consoleLevel",    "INFO",
+        "cpa.value.threshold", "10");
 
       TestResults results = run(prop, "test/programs/simple/modificationExample.c");
       Assert.assertEquals(CPAcheckerResult.Result.NOT_YET_STARTED, results.getCheckerResult().getResult());
@@ -144,10 +144,10 @@ public class AutomatonTest {
   @Test
   public void modificationTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.explicit.ExplicitCPA, cpa.automaton.ControlAutomatonCPA",
-        "cpa.automaton.inputFile",     "test/config/automata/modifyingAutomaton.txt",
-        "log.consoleLevel",               "INFO",
-        "cpa.explicit.threshold",       "10");
+        "CompositeCPA.cpas",       "cpa.location.LocationCPA, cpa.value.ValueAnalysisCPA, cpa.automaton.ControlAutomatonCPA",
+        "cpa.automaton.inputFile", "test/config/automata/modifyingAutomaton.txt",
+        "log.consoleLevel",        "INFO",
+        "cpa.value.threshold",     "10");
 
       TestResults results = run(prop, "test/programs/simple/modificationExample.c");
       assertThat(results.getLog(), containsString("MODIFIED"));
@@ -158,10 +158,10 @@ public class AutomatonTest {
   @Test
   public void modification_in_Observer_throws_Test() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.explicit.ExplicitCPA, cpa.automaton.ObserverAutomatonCPA",
-        "cpa.automaton.inputFile",     "test/config/automata/modifyingAutomaton.txt",
-        "log.consoleLevel",               "SEVERE",
-        "cpa.explicit.threshold",       "10"
+        "CompositeCPA.cpas",       "cpa.location.LocationCPA, cpa.value.ValueAnalysisCPA, cpa.automaton.ObserverAutomatonCPA",
+        "cpa.automaton.inputFile", "test/config/automata/modifyingAutomaton.txt",
+        "log.consoleLevel",        "SEVERE",
+        "cpa.value.threshold",     "10"
       );
 
       TestResults results = run(prop, "test/programs/simple/modificationExample.c");
@@ -172,26 +172,26 @@ public class AutomatonTest {
   @Test
   public void setuidTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA",
-        "cpa.automaton.inputFile",     "test/config/automata/simple_setuid.txt",
-        "log.consoleLevel",               "INFO",
-        "analysis.stopAfterError",        "FALSE"
+        "CompositeCPA.cpas",       "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA",
+        "cpa.automaton.inputFile", "test/config/automata/simple_setuid.txt",
+        "log.consoleLevel",        "INFO",
+        "analysis.stopAfterError", "FALSE"
       );
 
 
       TestResults results = run(prop, "test/programs/simple/simple_setuid_test.c");
-      assertThat(results.getLog(), containsString("Systemcall in line 10 with userid 2"));
+      assertThat(results.getLog(), containsString("Systemcall in line 14 with userid 2"));
       assertThat(results.getLog(), containsString("going to ErrorState on edge \"system(40);\""));
       Assert.assertTrue(results.isUnsafe());
   }
   @Test
   public void uninitVarsTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA, cpa.uninitvars.UninitializedVariablesCPA",
+        "CompositeCPA.cpas",           "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA, cpa.uninitvars.UninitializedVariablesCPA",
         "cpa.automaton.inputFile",     "test/config/automata/UninitializedVariablesTestAutomaton.txt",
-        "log.consoleLevel",               "FINER",
+        "log.consoleLevel",            "FINER",
         "cpa.automaton.dotExportFile", OUTPUT_FILE,
-        "analysis.stopAfterError",        "FALSE"
+        "analysis.stopAfterError",     "FALSE"
       );
 
       TestResults results = run(prop, "test/programs/simple/UninitVarsErrors.c");
@@ -202,9 +202,9 @@ public class AutomatonTest {
   @Test
   public void locking_correct() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA",
+        "CompositeCPA.cpas",           "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA",
         "cpa.automaton.inputFile",     "test/config/automata/LockingAutomatonAll.txt",
-        "log.consoleLevel",               "INFO",
+        "log.consoleLevel",            "INFO",
         "cpa.automaton.dotExportFile", OUTPUT_FILE
       );
 
@@ -215,9 +215,9 @@ public class AutomatonTest {
   @Test
   public void locking_incorrect() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA",
-        "cpa.automaton.inputFile",     "test/config/automata/LockingAutomatonAll.txt",
-        "log.consoleLevel",               "INFO"
+        "CompositeCPA.cpas",       "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA",
+        "cpa.automaton.inputFile", "test/config/automata/LockingAutomatonAll.txt",
+        "log.consoleLevel",        "INFO"
       );
 
       TestResults results = run(prop, "test/programs/simple/locking_incorrect.c");
@@ -225,12 +225,12 @@ public class AutomatonTest {
   }
 
   @Test
-  public void explicitAnalysis_observing() throws Exception {
+  public void valueAnalysis_observing() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA, cpa.explicit.ExplicitCPA",
-        "cpa.automaton.inputFile",     "test/config/automata/ExplicitAnalysisObservingAutomaton.txt",
-        "log.consoleLevel",               "INFO",
-        "cpa.explicit.threshold" , "2000"
+        "CompositeCPA.cpas",       "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA, cpa.value.ValueAnalysisCPA",
+        "cpa.automaton.inputFile", "test/config/automata/ExplicitAnalysisObservingAutomaton.txt",
+        "log.consoleLevel",        "INFO",
+        "cpa.value.threshold",     "2000"
       );
 
       TestResults results = run(prop, "test/programs/simple/ex2.cil.c");
@@ -244,9 +244,9 @@ public class AutomatonTest {
   @Test
   public void functionIdentifying() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA",
-        "cpa.automaton.inputFile",     "test/config/automata/FunctionIdentifyingAutomaton.txt",
-        "log.consoleLevel",               "FINER"
+        "CompositeCPA.cpas",       "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA",
+        "cpa.automaton.inputFile", "test/config/automata/FunctionIdentifyingAutomaton.txt",
+        "log.consoleLevel",        "FINER"
       );
 
       TestResults results = run(prop, "test/programs/simple/functionCall.c");
@@ -260,11 +260,11 @@ public class AutomatonTest {
   @Test
   public void interacting_Automata() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA automatonA, cpa.automaton.ObserverAutomatonCPA automatonB, cpa.explicit.ExplicitCPA",
-        "automatonA.cpa.automaton.inputFile",     "test/config/automata/InteractionAutomatonA.txt",
-        "automatonB.cpa.automaton.inputFile",     "test/config/automata/InteractionAutomatonB.txt",
-        "log.consoleLevel", "INFO",
-        "cpa.explicit.threshold" , "2000"
+        "CompositeCPA.cpas",                  "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA automatonA, cpa.automaton.ObserverAutomatonCPA automatonB, cpa.value.ValueAnalysisCPA",
+        "automatonA.cpa.automaton.inputFile", "test/config/automata/InteractionAutomatonA.txt",
+        "automatonB.cpa.automaton.inputFile", "test/config/automata/InteractionAutomatonB.txt",
+        "log.consoleLevel",                   "INFO",
+        "cpa.value.threshold" ,               "2000"
       );
 
       TestResults results = run(prop, "test/programs/simple/loop1.c");
@@ -301,10 +301,10 @@ public class AutomatonTest {
       return checkerResult;
     }
     boolean isSafe() {
-      return checkerResult.getResult().equals(CPAcheckerResult.Result.SAFE);
+      return checkerResult.getResult().equals(CPAcheckerResult.Result.TRUE);
     }
     boolean isUnsafe() {
-      return checkerResult.getResult().equals(CPAcheckerResult.Result.UNSAFE);
+      return checkerResult.getResult().equals(CPAcheckerResult.Result.FALSE);
     }
     @Override
     public String toString() {

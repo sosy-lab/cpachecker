@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,8 +33,9 @@ class SmtInterpolFormulaCreator extends AbstractFormulaCreator<Term, Sort, SmtIn
   SmtInterpolFormulaCreator(
       SmtInterpolEnvironment pMathsatEnv,
       Sort pBoolType,
-      Sort pNumberType) {
-    super(pMathsatEnv, pBoolType, pNumberType);
+      Sort pIntegerType,
+      Sort pRealType) {
+    super(pMathsatEnv, pBoolType, pIntegerType, pRealType);
   }
 
   @Override

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,10 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import java.math.BigInteger;
 import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
@@ -54,16 +57,6 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
   private final BitvectorFormulaManager bvfmgr;
 
   /**
-   * The bit vector formula representing the value zero.
-   */
-  private final BitvectorFormula zero;
-
-  /**
-   * The bit vector formula representing the value one.
-   */
-  private final BitvectorFormula one;
-
-  /**
    * The corresponding compound state invariants formula visitor used to
    * convert visited formulae into boolean formulae.
    */
@@ -75,6 +68,12 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
    */
   private final FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor;
 
+  private final int size;
+
+  private final Map<String, CType> types;
+
+  private final MachineModel machineModel;
+
   /**
    * Creates a new visitor for converting compound state invariants formulae to
    * bit vector formulae by using the given formula manager,
@@ -85,24 +84,33 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
    * visitor used to convert invariants formulae to boolean formulae.
    * @param pEvaluationVisitor the formula evaluation visitor used to evaluate
    * compound state invariants formulae to compound states.
+   * @param pSize the bit vector size.
    */
   ToBitvectorFormulaVisitor(FormulaManagerView pFmgr,
       ToFormulaVisitor<CompoundInterval, BooleanFormula> pToBooleanFormulaVisitor,
-      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor,
+      int pSize, Map<String, CType> pTypes,
+      MachineModel pMachineModel) {
     this.bfmgr = pFmgr.getBooleanFormulaManager();
     this.bvfmgr = pFmgr.getBitvectorFormulaManager();
-    this.zero = makeLong(0);
-    this.one = makeLong(1);
     this.toBooleanFormulaVisitor = pToBooleanFormulaVisitor;
     this.evaluationVisitor = pEvaluationVisitor;
+    this.size = pSize;
+    this.types = pTypes;
+    this.machineModel = pMachineModel;
   }
 
-  private BitvectorFormula makeLong(long pValue) {
-    return this.bvfmgr.makeBitvector(64, pValue);
-  }
-
-  private BitvectorFormula makeLongVariable(String pVariableName) {
-    return this.bvfmgr.makeVariable(64, pVariableName);
+  private BitvectorFormula makeVariable(String pVariableName) {
+    CType type = types.get(pVariableName);
+    if (type == null) {
+      return null;
+    }
+    int variableSize = machineModel.getSizeof(type) * machineModel.getSizeofCharInBits();
+    BitvectorFormula variable = this.bvfmgr.makeVariable(variableSize, pVariableName);
+    if (size <= variableSize) {
+      return this.bvfmgr.extract(variable, size - 1, 0);
+    }
+    return this.bvfmgr.concat(this.bvfmgr.makeBitvector(size - variableSize, 0), variable);
   }
 
   /**
@@ -117,9 +125,13 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
    * not be represented as a bit vector formula.
    */
   private @Nullable BitvectorFormula evaluate(InvariantsFormula<CompoundInterval> pFormula, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    CompoundInterval value = pFormula.accept(this.evaluationVisitor, pEnvironment);
-    if (value.isSingleton()) {
-      return makeLong(value.getLowerBound().longValue());
+    CompoundInterval intervals = pFormula.accept(this.evaluationVisitor, pEnvironment);
+
+    if (intervals.isSingleton()) {
+      BigInteger value = intervals.getValue();
+      // Get only the [size] least significant bits
+      value = value.and(BigInteger.valueOf(2).pow(size).subtract(BigInteger.valueOf(1)));
+      return this.bvfmgr.makeBitvector(size, value);
     }
     return null;
   }
@@ -159,7 +171,7 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
     if (pBooleanFormula == null) {
       return null;
     }
-    return this.bfmgr.ifThenElse(pBooleanFormula, this.one, this.zero);
+    return this.bfmgr.ifThenElse(pBooleanFormula, this.bvfmgr.makeBitvector(this.size, BigInteger.ONE), this.bvfmgr.makeBitvector(this.size, BigInteger.ZERO));
   }
 
   @Override
@@ -210,6 +222,12 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
   @Override
   public BitvectorFormula visit(Equal<CompoundInterval> pEqual, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return fromBooleanFormula(pEqual, pEnvironment);
+  }
+
+  @Override
+  public BitvectorFormula visit(Exclusion<CompoundInterval> pExclusion,
+      Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+    return evaluate(pExclusion, pEnvironment);
   }
 
   @Override
@@ -264,17 +282,7 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
 
   @Override
   public BitvectorFormula visit(Variable<CompoundInterval> pVariable, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    return makeLongVariable(pVariable.getName());
-  }
-
-  @Override
-  public BitvectorFormula getZero() {
-    return this.zero;
-  }
-
-  @Override
-  public BitvectorFormula getOne() {
-    return this.one;
+    return makeVariable(pVariable.getName());
   }
 
   @Override
@@ -300,6 +308,158 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
   @Override
   public BooleanFormula greaterOrEqual(BitvectorFormula pOp1, BitvectorFormula pOp2) {
     return this.bvfmgr.greaterOrEquals(pOp1, pOp2, true);
+  }
+
+  @Override
+  public BooleanFormula asBoolean(BitvectorFormula pOp1) {
+    return this.bfmgr.not(this.bvfmgr.equal(pOp1, this.bvfmgr.makeBitvector(this.bvfmgr.getLength(pOp1), BigInteger.ZERO)));
+  }
+
+  public static Integer getSize(InvariantsFormula<CompoundInterval> pFormula, Map<String, CType> pTypes, MachineModel pMachineModel) {
+    return pFormula.accept(new GetSizeVisitor(pTypes, pMachineModel));
+  }
+
+  private static class GetSizeVisitor implements InvariantsFormulaVisitor<CompoundInterval, Integer> {
+
+    private final Map<String, CType> types;
+
+    private final MachineModel machineModel;
+
+    public GetSizeVisitor(Map<String, CType> pTypes, MachineModel pMachineModel) {
+      this.types = pTypes;
+      this.machineModel= pMachineModel;
+    }
+
+    @Override
+    public Integer visit(Add<CompoundInterval> pAdd) {
+      Integer size1 = pAdd.getSummand1().accept(this);
+      Integer size2 = pAdd.getSummand1().accept(this);
+      return decideSize(size1, size2);
+    }
+
+    @Override
+    public Integer visit(BinaryAnd<CompoundInterval> pAnd) {
+      Integer size1 = pAnd.getOperand1().accept(this);
+      Integer size2 = pAnd.getOperand2().accept(this);
+      return decideSize(size1, size2);
+    }
+
+    @Override
+    public Integer visit(BinaryNot<CompoundInterval> pNot) {
+      return pNot.getFlipped().accept(this);
+    }
+
+    @Override
+    public Integer visit(BinaryOr<CompoundInterval> pOr) {
+      Integer size1 = pOr.getOperand1().accept(this);
+      Integer size2 = pOr.getOperand2().accept(this);
+      return decideSize(size1, size2);
+    }
+
+    @Override
+    public Integer visit(BinaryXor<CompoundInterval> pXor) {
+      Integer size1 = pXor.getOperand1().accept(this);
+      Integer size2 = pXor.getOperand2().accept(this);
+      return decideSize(size1, size2);
+    }
+
+    @Override
+    public Integer visit(Constant<CompoundInterval> pConstant) {
+      return null;
+    }
+
+    @Override
+    public Integer visit(Divide<CompoundInterval> pDivide) {
+      Integer size1 = pDivide.getNumerator().accept(this);
+      Integer size2 = pDivide.getDenominator().accept(this);
+      return decideSize(size1, size2);
+    }
+
+    @Override
+    public Integer visit(Equal<CompoundInterval> pEqual) {
+      Integer size1 = pEqual.getOperand1().accept(this);
+      Integer size2 = pEqual.getOperand2().accept(this);
+      return decideSize(size1, size2);
+    }
+
+    @Override
+    public Integer visit(Exclusion<CompoundInterval> pExclusion) {
+      return pExclusion.getExcluded().accept(this);
+    }
+
+    @Override
+    public Integer visit(LessThan<CompoundInterval> pLessThan) {
+      Integer size1 = pLessThan.getOperand1().accept(this);
+      Integer size2 = pLessThan.getOperand2().accept(this);
+      return decideSize(size1, size2);
+    }
+
+    @Override
+    public Integer visit(LogicalAnd<CompoundInterval> pAnd) {
+      Integer size1 = pAnd.getOperand1().accept(this);
+      Integer size2 = pAnd.getOperand2().accept(this);
+      return decideSize(size1, size2);
+    }
+
+    @Override
+    public Integer visit(LogicalNot<CompoundInterval> pNot) {
+      return pNot.getNegated().accept(this);
+    }
+
+    @Override
+    public Integer visit(Modulo<CompoundInterval> pModulo) {
+      Integer size1 = pModulo.getNumerator().accept(this);
+      Integer size2 = pModulo.getDenominator().accept(this);
+      return decideSize(size1, size2);
+    }
+
+    @Override
+    public Integer visit(Multiply<CompoundInterval> pMultiply) {
+      Integer size1 = pMultiply.getFactor1().accept(this);
+      Integer size2 = pMultiply.getFactor2().accept(this);
+      return decideSize(size1, size2);
+    }
+
+    @Override
+    public Integer visit(ShiftLeft<CompoundInterval> pShiftLeft) {
+      Integer size1 = pShiftLeft.getShifted().accept(this);
+      Integer size2 = pShiftLeft.getShiftDistance().accept(this);
+      return decideSize(size1, size2);
+    }
+
+    @Override
+    public Integer visit(ShiftRight<CompoundInterval> pShiftRight) {
+      Integer size1 = pShiftRight.getShifted().accept(this);
+      Integer size2 = pShiftRight.getShiftDistance().accept(this);
+      return decideSize(size1, size2);
+    }
+
+    @Override
+    public Integer visit(Union<CompoundInterval> pUnion) {
+      Integer size1 = pUnion.getOperand1().accept(this);
+      Integer size2 = pUnion.getOperand2().accept(this);
+      return decideSize(size1, size2);
+    }
+
+    @Override
+    public Integer visit(Variable<CompoundInterval> pVariable) {
+      CType type = types.get(pVariable.getName());
+      if (type == null) {
+        return null;
+      }
+      return machineModel.getSizeof(type) * machineModel.getSizeofCharInBits();
+    }
+
+  }
+
+  private static Integer decideSize(Integer pSize1, Integer pSize2) {
+    if (pSize1 == null) {
+      return pSize2;
+    }
+    if (pSize2 == null) {
+      return pSize1;
+    }
+    return Math.max(pSize1, pSize2);
   }
 
 }

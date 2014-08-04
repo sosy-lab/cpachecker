@@ -29,28 +29,25 @@ import logging
 import multiprocessing
 import os
 import resource
-import shutil
-import signal
 import subprocess
 import sys
-import tempfile
 import threading
 import time
 
+from .benchmarkDataStructures import MEMLIMIT, TIMELIMIT, CORELIMIT
 from . import util as Util
+from .cgroups import *
 from . import filewriter
+from . import oomhandler
 
 readFile = filewriter.readFile
 writeFile = filewriter.writeFile
 
-MEMLIMIT = "memlimit"
-TIMELIMIT = "timelimit"
-CORELIMIT = "cpuCores"
 CPUACCT = 'cpuacct'
 CPUSET = 'cpuset'
 MEMORY = 'memory'
 
-_BYTE_FACTOR = 1024 # byte in kilobyte
+_BYTE_FACTOR = 1000 # byte in kilobyte
 _WALLTIME_LIMIT_OVERHEAD = 30 # seconds
 
 
@@ -74,19 +71,19 @@ class RunExecutor():
         self.cgroupsParents = {} # contains the roots of all cgroup-subsystems
         self.cpus = [] # list of available CPU cores
 
-        _initCgroup(self.cgroupsParents, CPUACCT)
+        initCgroup(self.cgroupsParents, CPUACCT)
         if not self.cgroupsParents[CPUACCT]:
             logging.warning('Without cpuacct cgroups, cputime measurement and limit might not work correctly if subprocesses are started.')
 
-        _initCgroup(self.cgroupsParents, MEMORY)
+        initCgroup(self.cgroupsParents, MEMORY)
         if not self.cgroupsParents[MEMORY]:
             logging.warning('Cannot measure and limit memory consumption without memory cgroups.')
 
-        _initCgroup(self.cgroupsParents, CPUSET)
+        initCgroup(self.cgroupsParents, CPUSET)
 
         cgroupCpuset = self.cgroupsParents[CPUSET]
         if not cgroupCpuset:
-            logging.warning("Cannot limit the number of CPU curse without cpuset cgroup.")
+            logging.warning("Cannot limit the number of CPU cores without cpuset cgroup.")
         else:
             # Read available cpus:
             cpuStr = readFile(cgroupCpuset, 'cpuset.cpus')
@@ -114,11 +111,11 @@ class RunExecutor():
         @return myCpuCount: None or the number of CPU cores to use
         """
       
-        # Setup cgroups, need a single call to _createCgroup() for all subsystems
+        # Setup cgroups, need a single call to createCgroup() for all subsystems
         subsystems = [CPUACCT, MEMORY]
         if CORELIMIT in rlimits and myCpuIndex is not None:
             subsystems.append(CPUSET)
-        cgroups = _createCgroup(self.cgroupsParents, *subsystems)
+        cgroups = createCgroup(self.cgroupsParents, *subsystems)
 
         logging.debug("Executing {0} in cgroups {1}.".format(args, cgroups.values()))
 
@@ -216,7 +213,7 @@ class RunExecutor():
                 #print('libcgroup is not available: {}'.format(e.strerror))
 
             for cgroup in cgroups.values():
-                _addTaskToCgroup(cgroup, pid)
+                addTaskToCgroup(cgroup, pid)
 
 
         # copy parent-environment and set needed values, either override or append
@@ -250,7 +247,7 @@ class RunExecutor():
                              + "Assure that the directory containing the tool to be benchmarked is included "
                              + "in the PATH environment variable or an alias is set."
                              .format(e.errno, args[0], e.strerror))
-            return (0, 0, 0)
+            return (0, 0, 0, None)
 
         try:
             with self.SUB_PROCESSES_LOCK:
@@ -264,7 +261,7 @@ class RunExecutor():
 
             if MEMLIMIT in rlimits:
                 try:
-                    oomThread = _OomEventThread(cgroups[MEMORY], p, rlimits[MEMLIMIT])
+                    oomThread = oomhandler.KillProcessOnOomThread(cgroups[MEMORY], p, rlimits[MEMLIMIT])
                     oomThread.start()
                 except OSError as e:
                     logging.critical("OSError {0} during setup of OomEventListenerThread: {1}.".format(e.errno, e.strerror))
@@ -295,11 +292,10 @@ class RunExecutor():
 
             # kill all remaining processes if some managed to survive
             for cgroup in cgroups.values():
-                _killAllTasksInCgroup(cgroup)
+                killAllTasksInCgroup(cgroup)
 
         wallTimeAfter = time.time()
-        energyAfter = Util.getEnergy()
-        energy = (energyAfter - energyBefore) if (energyAfter and energyBefore) else None
+        energy = Util.getEnergy(energyBefore)
         wallTime = wallTimeAfter - wallTimeBefore
         cpuTime = ru_child.ru_utime + ru_child.ru_stime if ru_child else 0
         return (returnvalue, wallTime, cpuTime, energy)
@@ -336,15 +332,18 @@ class RunExecutor():
             memUsageFile = 'memory.memsw.max_usage_in_bytes'
             if not os.path.exists(os.path.join(cgroups[MEMORY], memUsageFile)):
                 memUsageFile = 'memory.max_usage_in_bytes'
-            try:
-                memUsage = readFile(cgroups[MEMORY], memUsageFile)
-                memUsage = int(memUsage)
-            except IOError as e:
-                if e.errno == 95: # kernel responds with error 95 (operation unsupported) if this is disabled
-                    logging.critical("Kernel does not track swap memory usage, cannot measure memory usage. "
-                          + "Please set swapaccount=1 on your kernel command line.")
-                else:
-                    raise e
+            if not os.path.exists(os.path.join(cgroups[MEMORY], memUsageFile)):
+                logging.warning('Memory-usage is not available due to missing files.')
+            else:
+                try:
+                    memUsage = readFile(cgroups[MEMORY], memUsageFile)
+                    memUsage = int(memUsage)
+                except IOError as e:
+                    if e.errno == 95: # kernel responds with error 95 (operation unsupported) if this is disabled
+                        logging.critical("Kernel does not track swap memory usage, cannot measure memory usage. "
+                              + "Please set swapaccount=1 on your kernel command line.")
+                    else:
+                        raise e
 
         logging.debug('Run exited with code {0}, walltime={1}, cputime={2}, cgroup-cputime={3}, memory={4}'
                       .format(returnvalue, wallTime, cpuTime, cpuTime2, memUsage))
@@ -389,7 +388,7 @@ class RunExecutor():
         logging.debug("executeRun: cleaning up CGroups.")
         for cgroup in set(cgroups.values()):
             # Need the set here to delete each cgroup only once.
-            _removeCgroup(cgroup)
+            removeCgroup(cgroup)
 
         logging.debug("executeRun: reading output.")
         outputFile = open(outputFileName, 'rt') # re-open file for reading output
@@ -414,7 +413,8 @@ class RunExecutor():
         self.PROCESS_KILLED = True
         with self.SUB_PROCESSES_LOCK:
             for process in self.SUB_PROCESSES:
-                _killSubprocess(process)
+                logging.warn('Killing process {0} forcefully.'.format(process.pid))
+                Util.killProcess(process.pid)
 
 def reduceFileSize(outputFileName, output, maxLogfileSize=-1):
     """
@@ -424,7 +424,7 @@ def reduceFileSize(outputFileName, output, maxLogfileSize=-1):
     """
     if maxLogfileSize == -1: return output # disabled, nothing to do
 
-    rest = maxLogfileSize * 1000 * 1000 # as MB, we assume: #char == #byte
+    rest = maxLogfileSize * _BYTE_FACTOR * _BYTE_FACTOR # as MB, we assume: #char == #byte
 
     if sum(len(line) for line in output) < rest: return output # too small, nothing to do
 
@@ -468,99 +468,11 @@ def getDebugOutputAfterCrash(output, outputFileName):
 
 
 def _readCpuTime(cgroupCpuacct):
-    return float(readFile(cgroupCpuacct, 'cpuacct.usage'))/1000000000 # nano-seconds to seconds
-
-
-class _OomEventThread(threading.Thread):
-    """
-    Thread that kills the process when they run out of memory.
-    Usually the kernel would do this by itself,
-    but sometimes the process still hangs because it does not even have
-    enough memory left to get killed
-    (the memory limit also effects some kernel-internal memory related to our process).
-    So we disable the kernel-side killing,
-    and instead let the kernel notify us via an event when the cgroup ran out of memory.
-    Then we kill the process ourselves and increase the memory limit a little bit.
-    
-    The notification works by opening an "event file descriptor" with eventfd,
-    and telling the kernel to notify us about OOMs by writing the event file
-    descriptor and an file descriptor of the memory.oom_control file
-    to cgroup.event_control.
-    The kernel-side process killing is disabled by writing 1 to memory.oom_control.
-    Sources:
-    https://www.kernel.org/doc/Documentation/cgroups/memory.txt
-    https://access.redhat.com/site/documentation//en-US/Red_Hat_Enterprise_Linux/6/html/Resource_Management_Guide/sec-memory.html#ex-OOM-control-notifications
-    """
-    def __init__(self, cgroup, process, memlimit):
-        super(_OomEventThread, self).__init__()
-        daemon = True
-        self._finished = threading.Event()
-        self._process = process
-        self._memlimit = memlimit
-        self._cgroup = cgroup
-
-        ofd = os.open(os.path.join(cgroup, 'memory.oom_control'), os.O_WRONLY)
-        try:
-            from ctypes import cdll
-            libc = cdll.LoadLibrary('libc.so.6')
-
-            # Important to use CLOEXEC, otherwise the benchmarked tool inherits
-            # the file descriptor.
-            EFD_CLOEXEC = 0x80000 # from <sys/eventfd.h>
-            self._efd = libc.eventfd(0, EFD_CLOEXEC) 
-
-            try:
-                writeFile('{} {}'.format(self._efd, ofd),
-                          cgroup, 'cgroup.event_control')
-
-                # If everything worked, disable Kernel-side process killing.
-                # This is not allowed if memory.use_hierarchy is enabled,
-                # but we don't care.
-                try:
-                    os.write(ofd, '1')
-                except OSError:
-                    pass
-            except Error as e:
-                os.close(self._efd)
-                raise e
-        finally:
-            os.close(ofd)
-
-    def run(self):
-        try:
-            # In an eventfd, there are always 8 bytes
-            eventNumber = os.read(self._efd, 8) # blocks
-            # If read returned, this means the kernel sent us an event.
-            # It does so either on OOM or if the cgroup os removed.
-            if not self._finished.is_set():
-                logging.info('Killing process {0} due to out-of-memory event from kernel.'.format(self._process.pid))
-                _killSubprocess(self._process)
-                # Also kill all children of subprocesses directly.
-                with open(os.path.join(self._cgroup, 'tasks'), 'rt') as tasks:
-                    for task in tasks:
-                        try:
-                            os.kill(int(task), signal.SIGKILL)
-                        except OSError:
-                            # task already terminated between reading and killing
-                            pass
-
-                # We now need to increase the memory limit of this cgroup
-                # to give the process a chance to terminate
-                # 10MB ought to be enough
-                limitFile = 'memory.memsw.limit_in_bytes'
-                if not os.path.exists(os.path.join(self._cgroup, limitFile)):
-                    limitFile = 'memory.limit_in_bytes'
-                try:
-                    writeFile(str((self._memlimit + 10) * _BYTE_FACTOR * _BYTE_FACTOR),
-                              self._cgroup, limitFile)
-                except IOError:
-                    logging.warning('Failed to increase memory limit after OOM: error {0} ({1})'.format(e.errno, e.strerror))
-
-        finally:
-            os.close(self._efd)
-
-    def cancel(self):
-        self._finished.set()
+    cputimeFile = os.path.join(cgroupCpuacct, 'cpuacct.usage')
+    if not os.path.exists(cputimeFile):
+        logging.warning('Could not read cputime. File {0} does not exist.'.format(cputimeFile))
+        return 0 # dummy value, if cputime is not available
+    return float(readFile(cputimeFile))/1000000000 # nano-seconds to seconds
 
 
 class _TimelimitThread(threading.Thread):
@@ -594,8 +506,8 @@ class _TimelimitThread(threading.Thread):
             logging.debug("TimelimitThread for process {0}: used cpu time: {1}, remaining cpu time: {2}, remaining wall time: {3}."
                           .format(self.process.pid, usedCpuTime, remainingCpuTime, remainingWallTime))
             if remainingCpuTime <= 0 or remainingWallTime <= 0:
-                logging.info('Killing process {0} due to timeout.'.format(self.process.pid))
-                _killSubprocess(self.process)
+                logging.debug('Killing process {0} due to timeout.'.format(self.process.pid))
+                Util.killProcess(self.process.pid)
                 self.finished.set()
                 return
 
@@ -606,15 +518,6 @@ class _TimelimitThread(threading.Thread):
         self.finished.set()
 
 
-def _killSubprocess(process):
-    '''
-    this function kills the process and the children in its group.
-    '''
-    try:
-        os.killpg(process.pid, signal.SIGKILL)
-    except OSError: # process itself returned and exited before killing
-        pass
-
 def _hasSwap():
     with open('/proc/meminfo', 'r') as meminfo:
         for line in meminfo:
@@ -623,141 +526,3 @@ def _hasSwap():
                 if int(swap) == 0:
                     return False
     return True
-
-def _findCgroupMount(subsystem=None):
-    try:
-        with open('/proc/mounts', 'rt') as mounts:
-            for mount in mounts:
-                mount = mount.split(' ')
-                if mount[2] == 'cgroup':
-                    mountpoint = mount[1]
-                    options = mount[3]
-                    logging.debug('Found cgroup mount at {0} with options {1}'.format(mountpoint, options))
-                    if subsystem:
-                        if subsystem in options.split(','):
-                            return mountpoint
-                    else:
-                        return mountpoint
-    except:
-        pass # /proc/mounts cannot be read
-    return None
-
-
-def _createCgroup(cgroupsParents, *subsystems):
-    """
-    Try to create a cgroup for each of the given subsystems.
-    If multiple subsystems are available in the same hierarchy,
-    a common cgroup for theses subsystems is used.
-    @param subsystems: a list of cgroup subsystems
-    @return a map from subsystem to cgroup for each subsystem where it was possible to create a cgroup
-    """
-    createdCgroupsPerSubsystem = {}
-    createdCgroupsPerParent = {}
-    for subsystem in subsystems:
-        _initCgroup(cgroupsParents, subsystem)
-
-        parentCgroup = cgroupsParents.get(subsystem)
-        if not parentCgroup:
-            # subsystem not enabled
-            continue
-        if parentCgroup in createdCgroupsPerParent:
-            # reuse already created cgroup
-            createdCgroupsPerSubsystem[subsystem] = createdCgroupsPerParent[parentCgroup]
-            continue
-
-        cgroup = tempfile.mkdtemp(prefix='benchmark_', dir=parentCgroup)
-        createdCgroupsPerSubsystem[subsystem] = cgroup
-        createdCgroupsPerParent[parentCgroup] = cgroup
-
-        # add allowed cpus and memory to cgroup if necessary
-        # (otherwise we can't add any tasks)
-        try:
-            shutil.copyfile(os.path.join(parentCgroup, 'cpuset.cpus'), os.path.join(cgroup, 'cpuset.cpus'))
-            shutil.copyfile(os.path.join(parentCgroup, 'cpuset.mems'), os.path.join(cgroup, 'cpuset.mems'))
-        except IOError:
-            # expected to fail if cpuset subsystem is not enabled in this hierarchy
-            pass
-
-    return createdCgroupsPerSubsystem
-
-def _findOwnCgroup(subsystem):
-    """
-    Given a cgroup subsystem,
-    find the cgroup in which this process is in.
-    (Each process is in exactly cgroup in each hierarchy.)
-    @return the path to the cgroup inside the hierarchy
-    """
-    with open('/proc/self/cgroup', 'rt') as ownCgroups:
-        for ownCgroup in ownCgroups:
-            #each line is "id:subsystem,subsystem:path"
-            ownCgroup = ownCgroup.strip().split(':')
-            if subsystem in ownCgroup[1].split(','):
-                return ownCgroup[2]
-        logging.warning('Could not identify my cgroup for subsystem {0} although it should be there'.format(subsystem))
-        return None
-
-def _addTaskToCgroup(cgroup, pid):
-    if cgroup:
-        with open(os.path.join(cgroup, 'tasks'), 'w') as tasksFile:
-            tasksFile.write(str(pid))
-
-def _killAllTasksInCgroup(cgroup):
-    tasksFile = os.path.join(cgroup, 'tasks')
-    i = 1
-    while i <= 2: # Do two triess of killing processes
-        with open(tasksFile, 'rt') as tasks:
-            task = None
-            for task in tasks:
-                logging.warning('Run has left-over process with pid {0}, killing it (try {1}).'.format(task, i))
-                try:
-                    os.kill(int(task), signal.SIGKILL)
-                except OSError:
-                    # task already terminated between reading and killing
-                    pass
-
-            if task is None:
-                return # No process was hanging, exit
-            elif i == 2:
-                logging.warning('Run still has left over processes after second try of killing them, giving up.')
-            i += 1
-
-def _removeCgroup(cgroup):
-    if cgroup:
-        assert os.path.getsize(os.path.join(cgroup, 'tasks')) == 0
-        try:
-            os.rmdir(cgroup)
-        except OSError:
-            # sometimes this fails because the cgroup is still busy, we try again once
-            os.rmdir(cgroup)
-
-def _initCgroup(cgroupsParents, subsystem):
-    if not subsystem in cgroupsParents:
-        cgroup = _findCgroupMount(subsystem)
-
-        if not cgroup:
-            logging.warning(
-'''Cgroup subsystem {0} not enabled.
-Please enable it with "sudo mount -t cgroup none /sys/fs/cgroup".'''
-                .format(subsystem)
-                )
-            cgroupsParents[subsystem] = None
-            return
-        else:
-            logging.debug('Subsystem {0} is mounted at {1}'.format(subsystem, cgroup))
-
-        # find our own cgroup, we want to put processes in a child group of it
-        cgroup = os.path.join(cgroup, _findOwnCgroup(subsystem)[1:])
-        cgroupsParents[subsystem] = cgroup
-        logging.debug('My cgroup for subsystem {0} is {1}'.format(subsystem, cgroup))
-
-        try: # only for testing?
-            testCgroup = _createCgroup(cgroupsParents, subsystem)[subsystem]
-            _removeCgroup(testCgroup)
-
-            logging.debug('Found {0} subsystem for cgroups mounted at {1}'.format(subsystem, cgroup))
-        except OSError as e:
-            logging.warning(
-'''Cannot use cgroup hierarchy mounted at {0}, reason: {1}
-If permissions are wrong, please run "sudo chmod o+wt \'{0}\'".'''
-                .format(cgroup, e.strerror))
-            cgroupsParents[subsystem] = None

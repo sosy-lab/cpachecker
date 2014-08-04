@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
-import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 
 import com.google.common.base.Joiner;
@@ -33,18 +31,22 @@ import com.google.common.collect.ImmutableList;
 /**
  * A simple straightforward implementation of FunctionFormulaType<T>
  */
-public class FunctionFormulaTypeImpl<T extends Formula> extends FunctionFormulaType<T> {
+public class FunctionFormulaTypeImpl<T extends Formula, TFuncDecl> extends FunctionFormulaType<T> {
+
   private final FormulaType<T> returnType;
   private final List<FormulaType<?>> argumentTypes;
-  public FunctionFormulaTypeImpl(FormulaType<T> returnType, FormulaType<?>... argumentTypes) {
+  private final TFuncDecl funcDecl;
+
+  public FunctionFormulaTypeImpl(FormulaType<T> returnType, TFuncDecl funcDecl, FormulaType<?>... argumentTypes) {
     this.returnType = returnType;
     this.argumentTypes = ImmutableList.copyOf(argumentTypes);
+    this.funcDecl = funcDecl;
   }
 
-  public FunctionFormulaTypeImpl(FormulaType<T> returnType, List<FormulaType<?>> argumentTypes) {
+  public FunctionFormulaTypeImpl(FormulaType<T> returnType, TFuncDecl funcDecl, List<FormulaType<?>> argumentTypes) {
     this.returnType = returnType;
-    this.argumentTypes =
-        Collections.unmodifiableList(new LinkedList<>(argumentTypes));
+    this.argumentTypes = ImmutableList.copyOf(argumentTypes);
+    this.funcDecl = funcDecl;
   }
 
   @Override
@@ -62,6 +64,9 @@ public class FunctionFormulaTypeImpl<T extends Formula> extends FunctionFormulaT
     return returnType.getInterfaceType();
   }
 
+  public TFuncDecl getFuncDecl() {
+    return funcDecl;
+  }
 
   @Override
   public String toString() {

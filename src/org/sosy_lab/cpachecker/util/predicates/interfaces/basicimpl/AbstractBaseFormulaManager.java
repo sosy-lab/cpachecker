@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,16 +28,16 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
  * A BaseFormulaManager because all Abstract*FormulaManager-Classes wrap a FormulaCreator-instance.
  * @param <TFormulaInfo> the solver specific type.
  */
-abstract class AbstractBaseFormulaManager<TFormulaInfo> {
+abstract class AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv> {
 
-  private final FormulaCreator<TFormulaInfo> formulaCreator;
+  private final AbstractFormulaCreator<TFormulaInfo, TType, TEnv> formulaCreator;
 
   AbstractBaseFormulaManager(
-      FormulaCreator<TFormulaInfo> formulaCreator) {
-    this.formulaCreator = formulaCreator;
+          AbstractFormulaCreator<TFormulaInfo, TType, TEnv> pFormulaCreator) {
+    this.formulaCreator = pFormulaCreator;
   }
 
-  final FormulaCreator<TFormulaInfo> getFormulaCreator() {
+  public final AbstractFormulaCreator<TFormulaInfo, TType, TEnv> getFormulaCreator() {
     return formulaCreator;
   }
 }

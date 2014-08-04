@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,11 +27,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -51,11 +51,6 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
   private boolean inPredicatedAnalysis = false;
 
   private final StopOperator wrappedStop;
-
-  public StopOperator getWrappedStop() {
-    return wrappedStop;
-  }
-
   private final LogManager logger;
 
   public ARGStopSep(StopOperator pWrappedStop, LogManager pLogger, Configuration config) throws InvalidConfigurationException {
@@ -125,7 +120,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
 
   }
 
-  public boolean stop(ARGState pElement, ARGState pReachedState, Precision pPrecision)
+  private boolean stop(ARGState pElement, ARGState pReachedState, Precision pPrecision)
                                                       throws CPAException, InterruptedException {
 
     if (!pReachedState.mayCover()) {

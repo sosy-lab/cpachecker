@@ -16,7 +16,7 @@
   td:first-child { text-align:left; white-space:nowrap}
   tbody td:first-child { font-family: monospace; }
   #options td:not(:first-child) {  text-align:left; font-size: x-small;
-                                   font-family: monospace; }
+                                   font-family: monospace; vertical-align: top; }
   .columnTitles td:first-child { font-family: monospace; font-size: x-small; }
   tbody tr:first-child td { border-top:3px solid black}
   tfoot tr:first-child td { border-top:3px solid black}
@@ -1242,11 +1242,9 @@ $(document).ready(function() {
 {{py:
 def formatOptions(str):
     '''Helper function for formatting the content of the options line'''
-    return html(html_quote(str)
-                    .replace(' -', '<br/>-')
-                    .replace('\', \'', '\',<br/>\'')
-                    .replace('=', '=<wbr/>')
-               )
+    optionsAsList = html_quote(' ' + str).split(' -')
+    optionsAsList = ['<span style="display:block"> -' + option + '</span>' for option in optionsAsList[1:]]
+    return html(''.join(optionsAsList))
 }}
 {{for lineName in ['tool', 'limit', 'host', 'os', 'system', 'date', 'runset', 'branch', 'options', 'property', 'title']}}
   {{if lineName in head and head[lineName]}}

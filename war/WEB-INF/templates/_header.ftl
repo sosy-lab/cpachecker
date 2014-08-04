@@ -18,11 +18,14 @@
     <a class="navbar-brand" href="/">
       <img src="/assets/img/logo-cloud.svg" alt="CPAchecker" class="logo">
     </a>
+    <h1 class="navbar-nav">CPAchecker ${cpacheckerVersion}</h1>
+  </div>
+  <div class="">
   </div>
   <div class="collapse navbar-collapse">
     <ul class="nav navbar-nav">
-      <li><a href="/">${msg.home}</a></li>
-      <li><a href="/jobs">${msg.allJobs}</a></li>
+      <li><a href="/">${msg["home"]}</a></li>
+      <li><a href="/tasks">${msg["allTasks"]}</a></li>
     </ul>
   </div>
 </nav>

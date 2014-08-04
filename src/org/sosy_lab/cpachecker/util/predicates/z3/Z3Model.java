@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,17 +29,19 @@ import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 import java.math.BigInteger;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.core.Model;
-import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
-import org.sosy_lab.cpachecker.core.Model.Function;
-import org.sosy_lab.cpachecker.core.Model.TermType;
-import org.sosy_lab.cpachecker.core.Model.Variable;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.core.counterexample.Model.Constant;
+import org.sosy_lab.cpachecker.core.counterexample.Model.Function;
+import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
+import org.sosy_lab.cpachecker.core.counterexample.Model.Variable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
 
 public class Z3Model {
 
@@ -51,7 +53,7 @@ public class Z3Model {
     this.mgr = mgr;
     this.z3context = z3context;
     this.z3solver = z3solver;
-    Preconditions.checkArgument(mgr.getContext() == z3context);
+    Preconditions.checkArgument(mgr.getEnvironment() == z3context);
   }
 
   private TermType toZ3Type(long sort) {
@@ -71,7 +73,7 @@ public class Z3Model {
     }
   }
 
-  private Variable toVariable(long expr) {
+  private Constant toVariable(long expr) {
     long decl = get_app_decl(z3context, expr);
     long symbol = get_decl_name(z3context, decl);
 
@@ -83,7 +85,11 @@ public class Z3Model {
     TermType lType = toZ3Type(sort);
 
     Pair<String, Integer> lSplitName = FormulaManagerView.parseName(lName);
-    return new Variable(lSplitName.getFirst(), lSplitName.getSecond(), lType);
+    if (lSplitName.getSecond() != null) {
+      return new Variable(lSplitName.getFirst(), lSplitName.getSecond(), lType);
+    } else {
+      return new Constant(lSplitName.getFirst(), lType);
+    }
   }
 
 
@@ -206,11 +212,8 @@ public class Z3Model {
         break;
 
       case Real:
-        long numerator = get_numerator(z3context, value);
-        long denominator = get_denominator(z3context, value);
-        BigInteger num = BigInteger.valueOf(numerator);
-        BigInteger den = BigInteger.valueOf(denominator);
-        lValue = num.divide(den);
+        String s = get_numeral_string(z3context, value);
+        lValue = ExtendedRational.ofString(s);
         break;
 
       case Bitvector:

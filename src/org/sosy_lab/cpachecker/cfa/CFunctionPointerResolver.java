@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,23 +26,22 @@ package org.sosy_lab.cpachecker.cfa;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Deque;
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -54,7 +53,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -69,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.base.Function;
@@ -219,43 +218,36 @@ public class CFunctionPointerResolver {
    * potentially replacing function pointer calls with regular function calls.
    */
   public void resolveFunctionPointers() {
+
+    // 1.Step: get all function calls
+    final FunctionPointerCallCollector visitor = new FunctionPointerCallCollector();
     for (FunctionEntryNode functionStartNode : cfa.getAllFunctionHeads()) {
-      resolveFunctionPointers(functionStartNode);
+      CFATraversal.dfs().traverseOnce(functionStartNode, visitor);
+    }
+
+    // 2.Step: replace functionCalls with functioncall- and return-edges
+    // This loop replaces function pointer calls inside the given function with regular function calls.
+    for (final CStatementEdge edge : visitor.functionPointerCalls) {
+      replaceFunctionPointerCall((CFunctionCall)edge.getStatement(), edge);
     }
   }
 
-  /**
-   * This method replaces function pointer calls inside the given function
-   * with regular function calls.
-   */
-  private void resolveFunctionPointers(FunctionEntryNode initialNode) {
-    // we use a worklist algorithm
-    Deque<CFANode> workList = new ArrayDeque<>();
-    Set<CFANode> processed = new HashSet<>();
+  /** This Visitor collects all functioncalls for functionPointers.
+   *  It should visit the CFA of each functions before creating super-edges (functioncall- and return-edges). */
+  private class FunctionPointerCallCollector extends CFATraversal.DefaultCFAVisitor {
 
-    workList.addLast(initialNode);
+    final List<CStatementEdge> functionPointerCalls = new ArrayList<>();
 
-    while (!workList.isEmpty()) {
-      CFANode node = workList.pollFirst();
-      if (!processed.add(node)) {
-        // already handled
-        continue;
-      }
-
-      for (CFAEdge edge : leavingEdges(node).toList()) {
-        if (edge instanceof CStatementEdge) {
-          CStatementEdge statement = (CStatementEdge)edge;
-          CStatement stmt = statement.getStatement();
-          if (stmt instanceof CFunctionCall) {
-            CFunctionCall call = (CFunctionCall)stmt;
-            if (isFunctionPointerCall(call)) {
-              replaceFunctionPointerCall(call, statement);
-            }
-          }
+    @Override
+    public CFATraversal.TraversalProcess visitEdge(final CFAEdge pEdge) {
+      if (pEdge instanceof CStatementEdge) {
+        final CStatementEdge edge = (CStatementEdge) pEdge;
+        final IAStatement stmt = edge.getStatement();
+        if (stmt instanceof CFunctionCall && isFunctionPointerCall((CFunctionCall)stmt)) {
+          functionPointerCalls.add(edge);
         }
-
-        workList.add(edge.getSuccessor());
       }
+      return CFATraversal.TraversalProcess.CONTINUE;
     }
   }
 
@@ -291,10 +283,9 @@ public class CFunctionPointerResolver {
 
     if (funcs.isEmpty()) {
       // no possible targets, we leave the CFA unchanged and print a warning
-      logger.log(Level.WARNING, "Function pointer", nameExp.toASTString(),
-          "with type", nameExp.getExpressionType().toASTString("*"),
-          "is called in line", statement.getLineNumber() + ",",
-          "but no possible target functions were found.");
+      logger.logf(Level.WARNING, "%s: Function pointer %s with type %s is called,"
+          + " but no possible target functions were found.",
+          statement.getFileLocation(), nameExp.toASTString(), nameExp.getExpressionType().toASTString("*"));
       return;
     }
 
@@ -307,6 +298,7 @@ public class CFunctionPointerResolver {
             }
           }));
 
+    FileLocation fileLocation = statement.getFileLocation();
     CFANode start = statement.getPredecessor();
     CFANode end = statement.getSuccessor();
     // delete old edge
@@ -315,8 +307,7 @@ public class CFunctionPointerResolver {
     if (nameExp instanceof CPointerExpression) {
       CExpression operand = ((CPointerExpression)nameExp).getOperand();
       CType operandType = operand.getExpressionType().getCanonicalType();
-      if (operand instanceof CIdExpression
-          && operandType instanceof CPointerType
+      if (operandType instanceof CPointerType
           && ((CPointerType)operandType).getType() instanceof CFunctionType) {
         // *fp is the same as fp
         nameExp = operand;
@@ -325,8 +316,8 @@ public class CFunctionPointerResolver {
 
     CFANode rootNode = start;
     for (FunctionEntryNode fNode : funcs) {
-      CFANode thenNode = newCFANode(start.getLineNumber(), start.getFunctionName());
-      CFANode elseNode = newCFANode(start.getLineNumber(), start.getFunctionName());
+      CFANode thenNode = newCFANode(start.getFunctionName());
+      CFANode elseNode = newCFANode(start.getFunctionName());
       CIdExpression func = new CIdExpression(nameExp.getFileLocation(),
                                               (CType)fNode.getFunctionDefinition().getType(),
                                               fNode.getFunctionName(),
@@ -337,10 +328,10 @@ public class CFunctionPointerResolver {
       final CBinaryExpressionBuilder binExprBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
       CBinaryExpression condition = binExprBuilder.buildBinaryExpression(nameExp, amper, BinaryOperator.EQUALS);
 
-      addConditionEdges(condition, rootNode, thenNode, elseNode, start.getLineNumber());
+      addConditionEdges(condition, rootNode, thenNode, elseNode, fileLocation);
 
 
-      CFANode retNode = newCFANode(start.getLineNumber(), start.getFunctionName());
+      CFANode retNode = newCFANode(start.getFunctionName());
       //create special summary edge
       //thenNode-->retNode
       String pRawStatement = "pointer call(" + fNode.getFunctionName() + ") " + statement.getRawStatement();
@@ -348,11 +339,11 @@ public class CFunctionPointerResolver {
       //replace function call by pointer expression with regular call by name (in functionCall and edge.getStatement())
       CFunctionCall regularCall = createRegularCall(functionCall, fNode);
 
-      createCallEdge(statement.getLineNumber(), pRawStatement,
+      createCallEdge(fileLocation, pRawStatement,
           thenNode, retNode, regularCall);
 
       //retNode-->end
-      BlankEdge be = new BlankEdge("skip", statement.getLineNumber(), retNode, end, "skip");
+      BlankEdge be = new BlankEdge("skip", statement.getFileLocation(), retNode, end, "skip");
       CFACreationUtils.addEdgeUnconditionallyToCFA(be);
 
       rootNode = elseNode;
@@ -362,7 +353,7 @@ public class CFunctionPointerResolver {
     if (createUndefinedFunctionCall) {
       CStatementEdge summaryStatementEdge = new CStatementEdge(
           statement.getRawStatement(), statement.getStatement(),
-          statement.getLineNumber(), rootNode, end);
+          statement.getFileLocation(), rootNode, end);
 
       rootNode.addLeavingEdge(summaryStatementEdge);
       end.addEnteringEdge(summaryStatementEdge);
@@ -404,17 +395,17 @@ public class CFunctionPointerResolver {
   /**
    * @category helper
    */
-  private CFANode newCFANode(final int filelocStart, final String functionName) {
+  private CFANode newCFANode(final String functionName) {
     assert cfa != null;
-    CFANode nextNode = new CFANode(filelocStart, functionName);
+    CFANode nextNode = new CFANode(functionName);
     cfa.addNode(nextNode);
     return nextNode;
   }
 
-  private void createCallEdge(int lineNumber, String pRawStatement,
+  private void createCallEdge(FileLocation fileLocation, String pRawStatement,
       CFANode predecessorNode, CFANode successorNode, CFunctionCall functionCall) {
     CStatementEdge callEdge = new CStatementEdge(pRawStatement,
-        functionCall, lineNumber,
+        functionCall, fileLocation,
         predecessorNode, successorNode);
     CFACreationUtils.addEdgeUnconditionallyToCFA(callEdge);
   }
@@ -425,15 +416,15 @@ public class CFunctionPointerResolver {
    * @category conditions
    */
   private void addConditionEdges(CExpression condition, CFANode rootNode,
-      CFANode thenNode, CFANode elseNode, int filelocStart) {
+      CFANode thenNode, CFANode elseNode, FileLocation fileLocation) {
     // edge connecting condition with thenNode
     final CAssumeEdge trueEdge = new CAssumeEdge(condition.toASTString(),
-        filelocStart, rootNode, thenNode, condition, true);
+        fileLocation, rootNode, thenNode, condition, true);
     CFACreationUtils.addEdgeToCFA(trueEdge, logger);
 
     // edge connecting condition with elseNode
     final CAssumeEdge falseEdge = new CAssumeEdge("!(" + condition.toASTString() + ")",
-        filelocStart, rootNode, elseNode, condition, false);
+        fileLocation, rootNode, elseNode, condition, false);
     CFACreationUtils.addEdgeToCFA(falseEdge, logger);
   }
 

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,8 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import static com.google.common.collect.Iterables.getOnlyElement;
+import static org.sosy_lab.cpachecker.util.CFAUtils.successorsOf;
+
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +47,6 @@ import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -153,7 +156,7 @@ public final class DOTBuilder2 {
 
     void writeFunctionFile(String funcname, Path outdir) throws IOException {
 
-        try (Writer out = outdir.resolve("cfa__" + funcname + ".dot").asCharSink(Charsets.UTF_8).openStream()) {
+        try (Writer out = outdir.resolve("cfa__" + funcname + ".dot").asCharSink(StandardCharsets.UTF_8).openBufferedStream()) {
           out.write("digraph " + funcname + " {\n");
           StringBuilder outb = new StringBuilder();
           //write comboedges
@@ -179,6 +182,7 @@ public final class DOTBuilder2 {
           //write nodes
           for (CFANode node: nodes) {
             out.write(DOTBuilder.formatNode(node, loopHeads));
+            out.write('\n');
           }
 
           out.write(outb.toString());
@@ -203,7 +207,8 @@ public final class DOTBuilder2 {
     private String edgeToDot(CFAEdge edge) {
       if (edge.getEdgeType() == CFAEdgeType.CallToReturnEdge) {
        //create the function node
-        String calledFunction = edge.getPredecessor().getLeavingEdge(0).getSuccessor().getFunctionName();
+        CFANode functionEntryNode = getOnlyElement(successorsOf(edge.getPredecessor()).filter(FunctionEntryNode.class));
+        String calledFunction = functionEntryNode.getFunctionName();
         String ret = (++virtFuncCallNodeIdCounter) + " [shape=\"component\" label=\"" + calledFunction + "\"]\n";
         int from = edge.getPredecessor().getNodeNumber();
         ret += String.format("%d -> %d [label=\"%s\" fontname=\"Courier New\"]%n",
@@ -284,7 +289,6 @@ public final class DOTBuilder2 {
     public TraversalProcess visitNode(CFANode node) {
       Map<String, Object> jnode = new HashMap<>();
       jnode.put("no", node.getNodeNumber());
-      jnode.put("line", node.getLineNumber());
       jnode.put("func", node.getFunctionName());
       nodes.put(node.getNodeNumber(), jnode);
 
@@ -296,7 +300,8 @@ public final class DOTBuilder2 {
       Map<String, Object> jedge = new HashMap<>();
       int src = edge.getPredecessor().getNodeNumber();
       int target = edge.getSuccessor().getNodeNumber();
-      jedge.put("line", edge.getLineNumber());
+      jedge.put("line", edge.getFileLocation().getStartingLineNumber());
+      jedge.put("file", edge.getFileLocation().getFileName());
       jedge.put("source", src);
       jedge.put("target", target);
       jedge.put("stmt", getEdgeText(edge));

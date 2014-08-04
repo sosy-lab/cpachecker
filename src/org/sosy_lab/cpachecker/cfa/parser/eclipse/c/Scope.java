@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,22 +33,32 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  * Provides a symbol table that maps variable and functions to their declaration
  * (if a name is visible in the current scope).
  */
-interface Scope {
+abstract class Scope implements org.sosy_lab.cpachecker.cfa.parser.Scope {
+  protected String currentFile;
 
-  boolean isGlobalScope();
+  Scope(String currentFile) {
+    this.currentFile = currentFile;
+  }
 
-  boolean variableNameInUse(String name, String origName);
+  @Override
+  public abstract boolean isGlobalScope();
 
-  CSimpleDeclaration lookupVariable(String name);
+  @Override
+  public abstract boolean variableNameInUse(String name, String origName);
 
-  CFunctionDeclaration lookupFunction(String name);
+  @Override
+  public abstract CSimpleDeclaration lookupVariable(String name);
+
+  @Override
+  public abstract CFunctionDeclaration lookupFunction(String name);
 
   /**
    * Look up {@link CComplexType}s by their name.
    * @param name The fully qualified name (e.g., "struct s").
    * @return The CComplexType instance or null.
    */
-  CComplexType lookupType(String name);
+  @Override
+  public abstract CComplexType lookupType(String name);
 
   /**
    * Look up {@link CType}s by the names of their typedefs.
@@ -61,27 +71,32 @@ interface Scope {
    * @param name typedef type name e.g. s_type
    * @return the type declared in typedef e.g. struct __anon_type_0
    */
-  CType lookupTypedef(String name);
+  @Override
+  public abstract CType lookupTypedef(String name);
 
-  /**
-   * Looks up {@link CComplexType}s by their name.
-   * @param name The fully qualified name (e.g., "struct s").
-   * @return true if no type with this name is registered, false otherwise
-   */
-  boolean isTypeNameAvailable(String name);
-
-  void registerDeclaration(CSimpleDeclaration declaration);
+  @Override
+  public abstract void registerDeclaration(CSimpleDeclaration declaration);
 
   /**
    * Register a type, e.g., a new struct type.
    *
    * @return True if the type actually needs to be declared, False if the declaration can be omitted because the type is already known.
    */
-  boolean registerTypeDeclaration(CComplexTypeDeclaration declaration);
+  @Override
+  public abstract boolean registerTypeDeclaration(CComplexTypeDeclaration declaration);
 
   /**
    * Take a name and return a name qualified with the current function
    * (if we are in a function).
    */
-  String createScopedNameOf(String name);
+  @Override
+  public abstract String createScopedNameOf(String name);
+
+  /**
+   * Returns the name for the type as it would be if it is renamed.
+   */
+  @Override
+  public String getRenamedTypeName(String type) {
+    return type + "__" + currentFile;
+  }
 }

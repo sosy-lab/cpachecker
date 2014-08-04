@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -137,7 +137,7 @@ public class BlockFormulaSlicer {
   }
 
   public List<BooleanFormula> sliceFormulasForPath(List<ARGState> path, ARGState initialState)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
 
     // first find all ARGStates for each block,
     // a block is a set of states with one start- and one end-state,
@@ -555,12 +555,12 @@ public class BlockFormulaSlicer {
    * The FUNCTION_RETURN_VARIABLE is equal to the right side ("x"). */
   private boolean handleReturnStatement(CReturnStatementEdge edge,
       Collection<String> importantVars) {
-    CExpression rhs = edge.getExpression();
 
-    if (rhs == null) {
+    if (!edge.getExpression().isPresent()) {
       return false;
 
     } else {
+      CExpression rhs = edge.getExpression().get();
 
       String functionName = edge.getPredecessor().getFunctionName();
       if (importantVars.remove(buildVarName(functionName, FUNCTION_RETURN_VARIABLE))) {
@@ -746,9 +746,10 @@ public class BlockFormulaSlicer {
 
 
   /** This function returns a PathFormula for the whole block from start to end.
-   * The SSA-indices of the new formula are based on the old formula. */
+   * The SSA-indices of the new formula are based on the old formula.
+   */
   private PathFormula buildFormula(ARGState start, ARGState end,
-      Collection<ARGState> block, PathFormula oldPf) throws CPATransferException {
+      Collection<ARGState> block, PathFormula oldPf) throws CPATransferException, InterruptedException {
 
     // this map contains all done states with their formulas
     final Map<ARGState, PathFormula> s2f = new HashMap<>(block.size());
@@ -804,7 +805,7 @@ public class BlockFormulaSlicer {
 
 
   private PathFormula makeFormulaForState(ARGState current, Map<ARGState, PathFormula> s2f)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
 
     assert current.getParents().size() > 0 : "no parent for " + current.getStateId();
 
@@ -824,7 +825,7 @@ public class BlockFormulaSlicer {
   }
 
   private PathFormula buildFormulaForEdge(ARGState parent, ARGState child, PathFormula oldFormula)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
     if (sliceBlockFormulas && !importantEdges.containsEntry(parent, child)) {
       return oldFormula;
     } else {

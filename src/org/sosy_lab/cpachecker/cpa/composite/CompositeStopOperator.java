@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -38,11 +40,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import com.google.common.collect.ImmutableList;
 
 public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOperator {
-
-
-  public ImmutableList<StopOperator> getStopOperators() {
-    return stopOperators;
-  }
 
   protected final ImmutableList<StopOperator> stopOperators;
 
@@ -65,6 +62,7 @@ public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOp
 
   protected boolean stop(CompositeState compositeState, CompositeState compositeReachedState, CompositePrecision compositePrecision) throws CPAException, InterruptedException {
     List<AbstractState> compositeElements = compositeState.getWrappedStates();
+    checkArgument(compositeElements.size() == stopOperators.size(), "State with wrong number of component states given");
     List<AbstractState> compositeReachedStates = compositeReachedState.getWrappedStates();
 
     List<Precision> compositePrecisions = compositePrecision.getPrecisions();

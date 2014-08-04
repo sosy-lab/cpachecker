@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,7 +30,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.core.Model;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToLong;
@@ -49,7 +49,7 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
 
   public Z3InterpolatingProver(Z3FormulaManager mgr) {
     this.mgr = mgr;
-    this.z3context = mgr.getContext();
+    this.z3context = mgr.getEnvironment();
     this.z3solver = mk_solver(z3context);
     solver_inc_ref(z3context, z3solver);
     this.smtLogger = mgr.getSmtLogger();
@@ -94,8 +94,8 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
 
     smtLogger.logCheck();
 
-    Preconditions.checkState(result != Z3_L_UNDEF);
-    return result == Z3_L_FALSE;
+    Preconditions.checkState(result != Z3_LBOOL.Z3_L_UNDEF.status);
+    return result == Z3_LBOOL.Z3_L_FALSE.status;
   }
 
   @Override
@@ -140,7 +140,7 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
     int isSat = interpolateSeq(
         z3context, interpolationFormulas, itps, model, labels, 0, theory);
 
-    assert isSat != Z3_L_TRUE;
+    assert isSat != Z3_LBOOL.Z3_L_TRUE.status;
     BooleanFormula f = mgr.encapsulate(BooleanFormula.class, itps[0]);
 
     // cleanup

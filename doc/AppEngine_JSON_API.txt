@@ -1,0 +1,390 @@
+CPAchecker JSON API
+===================
+CPAchecker running on Google App Engine exposes a RESTful JSON API to create,
+retrieve and delete tasks and other resources.
+
+RESTful
+-------
+RESTful means that standard HTTP methods are used for CRUD operations on resources
+and standard HTTP status codes are used to convey success/error states.
+
+JSON format
+----------
+The JSON format (http://json.org/) is used for sending and retrieving data.
+Therefore any requests must set the following HTTP headers to successfully use
+the JSON API:
+Content-Type: application/json
+Accept: application/json
+
+
+General server errors
+=====================
+Sometimes the server cannot process a request and therefore returns a default
+response according to the occurred error.
+
+Over Quota
+----------
+The request cannot be processed because one or more resource have depleted their
+respective quota.
+
+503 Service unavailable
+{
+  "status" : "OVER_QUOTA"
+  "statusMessage" : "A resource has been depleted and no more requests can be processed."
+}
+
+
+Timeout
+-------
+The request was aborted because it took to long to process it.
+
+500 Internal Server Error
+{
+  "status" : "TIMEOUT",
+  "statusMessage" : "The request was aborted because it took too long to service it."
+}
+
+
+JSON Endpoints
+==============
+The following endpoints are provided as an API. They are described by the HTTP
+method they accept, their URI, their request and respond format and header values.
+A description is provided and an example request/response JSON entity.
+
+
+# GET /settings
+===============
+Returns information about various settings and defaults used on App Engine.
+
+Units:
+- timeLimit: seconds
+
+Response
+--------
+{
+  "timeLimit" : "540",
+  "statisticsFileName" : "Statistics.txt",
+  "retries" : "1",
+  "errorFileName" : "ERROR.txt",
+  "cpacheckerVersion" : "1.3",
+  "cpacheckerOnGAEVersion" : "10790M", 
+  "CPUSpeed" : "600Mhz",
+  "RAM" : "128M",
+  "unsupportedConfigurations" : [
+  	"chc.properties",
+  	"lddAnalysis.properties"
+  ],
+  "configurations" : [
+  	"bmc-induction.properties",
+  	"bmc.properties"
+  ],
+  "defaultOptions" : {
+  	"statistics.memory" : "false",
+    "cpa.conditions.global.time.wall.hardlimit" : "-1",
+    "log.consoleLevel" : "OFF"
+  },
+  "specifications" : [
+  	"Assertion.spc",
+  	"AssumptionGuidingAutomaton.spc"
+  ]
+}
+
+
+
+# GET /tasks
+===========
+Returns a list of all tasks that are available.
+
+Optionally available query parameters:
+- limit:
+  limits the number of returned tasks.
+  If zero or negative all tasks will be returned. This is the default.
+- offset:
+  skips the first X tasks, where X == offset
+
+Response
+--------
+[ {
+  "processed" : false,
+  "creationDate" : "2014-02-01T14:57:25.746",
+  "executionDate" : "2014-02-01T14:57:27.283",
+  "terminationDate" : null,
+  "status" : "RUNNING",
+  "result" : null,
+  "key" : "agZiYS1sYWJyCQsSA0pvYhgBDA"
+} ]
+
+
+
+# POST /tasks
+============
+Creates a new task.
+
+Request
+-------
+Optional:
+  - options
+Required:
+  - Either specification or configuration
+  - sourceFileName
+  - programText
+
+{
+  "programText" : "...",
+  "sourceFileName" : "example.c"
+  "specification" : "sv-comp.spc",
+  "configuration" : "explicitAnalysis.properties",
+  "options" :
+  {
+    "output.disable" : "true",
+    "statistics.export" : "true",
+    "log.level" : "FINER",
+    "analysis.machineModel" : "Linux32",
+    "configuration.dumpFile" : ""UsedConfiguration.properties",
+    "limits.time.wall" : "100",
+    "gae.instanceType" : "FRONTEND"
+  }
+}
+
+Response
+--------
+201 Created
+Location: [URI of the created task resource]
+
+Errors
+------
+400 Bad Request
+
+[
+  "error.jsonNotWellFormed",
+  "error.jsonNotMapped",
+  "error.requestBodyNotRead",
+  "error.invalidConfiguration",
+  "task.specOrConf.IsBlank",
+  "task.spec.DoesNotExist",
+  "task.conf.DoesNotExist",
+  "task.program.IsBlank",
+  "task.program.NameIsBlank",
+  "task.program.TooLarge",
+  "task.program.CouldNotUpload"
+]
+
+
+# DELETE /tasks
+==============
+Deletes all tasks and their associated files and statistic.
+This endpoint must be called multiple times to ensure everything will be deleted
+due to the underlying implementation.
+
+
+# GET /tasks/{taskKey}
+====================
+Returns the task with the key {taskKey}.
+
+Units:
+- creationDate: UTC datetime
+- executionDate: UTC datetime
+- terminationDate: UTC datetime
+- statistic: see GET /task/{taskKey}/statistics
+
+Response
+--------
+{
+  "creationDate" : "2014-02-01T15:02:56.215",
+  "executionDate" : "2014-02-01T15:02:56.262",
+  "terminationDate" : "2014-02-01T15:02:58.866",
+  "status" : "DONE",
+  "statusMessage" : null,
+  "specification" : "sv-comp.spc",
+  "configuration" : "explicitAnalysis.properties",
+  "sourceFileName" : "example.c",
+  "retries" : 0,
+  "result" : "TRUE",
+  "resultMessage" : "TRUE. No property violation found by chosen configuration.",
+  "options" : {
+    "log.level" : "FINER",
+    "output.disable" : "true"
+  },
+  "statistic" : {
+    "host" : "",
+    "latency" : 2630000,
+    "key" : "agZiYS1sYWJyIgsSA0pvYhgDDAsSDEpvYlN0YXRpc3RpYxiAgICAgIDACgw",
+    "CPUTime" : 0.0
+  },
+  "key" : "agZiYS1sYWJyCQsSA0pvYhgDDA",
+  "files" : [ {
+    "name" : "CPALog.txt",
+    "key" : "agZiYS1sYWJyHQsSA0pvYhgDDAsSB0pvYkZpbGUYgICAgICAwAgM"
+  }, {
+    "name" : "example.c",
+    "key" : "agZiYS1sYWJyHQsSA0pvYhgDDAsSB0pvYkZpbGUYgICAgICAgAkM"
+  }, {
+    "name" : "Statistics.txt",
+    "key" : "agZiYS1sYWJyHQsSA0pvYhgDDAsSB0pvYkZpbGUYgICAgICAgAsM"
+  } ]
+}
+
+
+
+# DELETE /tasks/{taskKey}
+=======================
+Deletes the task with the key {taskKey} and all associated files and statistic.
+
+
+# GET /tasks/{taskKey}/statistics
+==========================
+Returns statistics about the task with the key {taskKey}.
+
+Units:
+- cost: US Dollar
+- latency: microseconds
+- endTime: microseconds since the Unix epoch
+- startTime: microseconds since the Unix epoch
+- pendingTime: microseconds
+- CPUTime: seconds
+
+Response
+--------
+{
+  "cost" : 0.0,
+  "host" : "",
+  "latency" : 2630000,
+  "endTime" : 1391266978876000,
+  "startTime" : 1391266976246000,
+  "pendingTime" : 0,
+  "key" : "agZiYS1sYWJyIgsSA0pvYhgDDAsSDEpvYlN0YXRpc3RpYxiAgICAgIDACgw",
+  "CPUTime" : 0.0
+}
+
+
+
+# GET /tasks/{taskKey}/files/{fileKey}
+====================================
+Returns the file with the key {fileKey} belonging to the task with the key {taskKey}.
+
+Response
+--------
+{
+  "name" : "CPALog.txt",
+  "content" : "...",
+  "key" : "agZiYS1sYWJyHQsSA0pvYhgDDAsSB0pvYkZpbGUYgICAgICAwAgM"
+}
+
+
+
+
+# GET /tasks/{taskKey}/files/{fileName}
+======================================
+Returns the content of the file with the name {fileName} belonging to the task
+with the key {taskKey}.
+
+Response
+--------
+Content-Type: text/plain
+
+
+
+# POST /tasksets
+===============
+Creates a new taskset.
+A taskset is a collection of tasks that are bundled together e.g. by a benchmark or
+a large verification run. It associates every task with a boolean marker that
+indicates whether the task has been marked as processed or not. This can be used
+by a client e.g. to track the retrieval of the outcome of a task. 
+
+Response
+-------
+201 Created
+Location: [URI of the created taskset resource]
+
+
+
+# DELETE /tasksets/{tasksetKey}
+===============
+Deletes the taskset with the key {tasksetKey}.
+Does not delete any associated tasks. 
+
+Response
+-------
+200 OK
+
+Error
+-----
+400 Not Found
+
+
+
+# POST /tasksets/{tasksetKey}/tasks
+==================================
+Creates tasks and puts them into the taskset with the key {tasksetKey}.
+For the exact JSON format of a task see "POST /tasks".
+Every task takes an additional field with the name "identifier".
+This field will be passed into the response together with the key of the created task.
+This identifier can be used to associate the created task with an object on the client.
+For example:
+Request: { "programText" : "abc", "identifier" : "foo", ...}
+Response: { "taskKey" : "foo" }
+
+Request
+-------
+[ {...}, {...}, {...}, ...]
+
+Response
+--------
+201 Created
+[
+  { "agZ234432Y324WJyCQsSA0pvYsdfsDA" : "123" },
+  { "340sdagZiYSdskjfs" : "709" },
+  { "öwefsdfäüwdsdf" : "dww" }
+]
+
+Error
+-----
+400 Bad Request
+500 Internal Server Error
+
+
+
+# PUT /tasksets/{tasksetKey}/tasks
+==================================
+Marks the tasks with the requested keys as processed in the taskset with the key {tasksetKey}.
+
+Request
+-------
+[
+  "Z234432Y324WJyCQsSA0pvYsd",
+  "340sdagZiYSdskjfs",
+  "A0pvYhgDDAsSB0pvYk"
+]
+
+Response
+--------
+204 No Content
+
+Error
+-----
+400 Bad Request
+500 Internal Server Error
+
+
+
+# GET /tasksets/{tasksetKey}/tasks
+==================================
+Returns the tasks that are in the taskset with the key {tasksetKey}.
+The URI accepts a query parameter that allows to filter the returned tasks to
+ones that are finished/unfinished. If omitted all tasks are returned. 
+
+Query Parameter:
+  - finished:
+  	true, if only tasks with status DONE, ERROR, TIMEOUT should be returned
+  	false, if only tasks with status PENDING or RUNNING should be returned
+
+Response
+--------
+200 OK
+For the response format of a task see "GET /tasks/{taskKey}"
+
+Error
+-----
+400 Bad Request
+500 Internal Server Error

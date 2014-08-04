@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,11 +25,12 @@ package org.sosy_lab.cpachecker.util.invariants.templates;
 
 import java.util.List;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.BasicLogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.invariants.templates.manager.TemplateFormulaManager;
 import org.sosy_lab.cpachecker.util.invariants.templates.manager.TemplateFormulaManager.TemplateParseMode;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -41,6 +42,7 @@ public class TemplatePathFormulaBuilder {
 
   private PathFormulaManagerImpl pfmgr;
 
+  @SuppressWarnings("deprecation")
   public TemplatePathFormulaBuilder() {
     // Use this constructor if you only want a default configuration.
 
@@ -51,13 +53,14 @@ public class TemplatePathFormulaBuilder {
       logger = new BasicLogManager(config);
       FormulaManager fmgr = new TemplateFormulaManager(TemplateParseMode.PATHFORMULA);
       FormulaManagerView efmgr = new FormulaManagerView(fmgr, config, logger);
-      pfmgr = new PathFormulaManagerImpl(efmgr, config, logger, MachineModel.LINUX32);
+      pfmgr = new PathFormulaManagerImpl(efmgr, config, logger, ShutdownNotifier.create(), MachineModel.LINUX32);
     } catch (Exception e) {
       System.err.println(e.getMessage());
     }
 
   }
 
+  @SuppressWarnings("deprecation")
   public TemplatePathFormulaBuilder(Configuration config,
                     LogManager logger, MachineModel machineModel) {
     // Use this constructor if you have a config and logger already.
@@ -65,7 +68,7 @@ public class TemplatePathFormulaBuilder {
     try {
       FormulaManager fmgr = new TemplateFormulaManager(TemplateParseMode.PATHFORMULA);
       FormulaManagerView efmgr = new FormulaManagerView(fmgr, config, logger);
-      pfmgr = new PathFormulaManagerImpl(efmgr, config, logger, machineModel);
+      pfmgr = new PathFormulaManagerImpl(efmgr, config, logger, ShutdownNotifier.create(), machineModel);
     } catch (Exception e) {
       System.err.println(e.getMessage());
     }

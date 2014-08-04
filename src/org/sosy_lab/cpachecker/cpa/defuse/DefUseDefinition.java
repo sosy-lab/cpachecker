@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,10 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.defuse;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 
 public class DefUseDefinition implements AbstractState {
@@ -59,7 +60,7 @@ public class DefUseDefinition implements AbstractState {
 
         DefUseDefinition otherDef = (DefUseDefinition) other;
         return otherDef.variableName.equals(this.variableName)
-            && Objects.equal(otherDef.assigningEdge, this.assigningEdge);
+            && Objects.equals(otherDef.assigningEdge, this.assigningEdge);
     }
 
 }

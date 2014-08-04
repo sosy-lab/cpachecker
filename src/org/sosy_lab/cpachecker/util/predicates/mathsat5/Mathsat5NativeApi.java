@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,6 +33,7 @@ import javax.annotation.CheckReturnValue;
 
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.UnmodifiableIterator;
 
 
@@ -82,7 +83,10 @@ class Mathsat5NativeApi {
     case MSAT_UNSAT:
       return false;
     default:
-      throw new IllegalStateException("msat_solve returned " + res);
+      String msg = Strings.emptyToNull(msat_last_error_message(e));
+      String code = (res == MSAT_UNKNOWN) ? "\"unknown\"" : res + "";
+      throw new IllegalStateException("msat_solve returned " + code
+          + (msg != null ? ": " + msg : ""));
     }
   }
 
@@ -171,6 +175,7 @@ class Mathsat5NativeApi {
   public static native boolean msat_is_fp_roundingmode_type(long e, long t);
 
   public static native boolean msat_type_equals(long t1, long t2);
+  public static native String msat_type_repr(long t);
 
   public static native long msat_declare_function(long e, String name, long t);
 
@@ -350,7 +355,7 @@ class Mathsat5NativeApi {
    * Unsat core computation
    */
   public static native long[] msat_get_unsat_assumptions(long e);
-  public static native long msat_get_unsat_core(long e);
+  public static native long[] msat_get_unsat_core(long e);
 
 
   /*

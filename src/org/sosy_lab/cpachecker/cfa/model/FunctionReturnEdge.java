@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,16 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cfa.model;
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+
 
 public class FunctionReturnEdge extends AbstractCFAEdge {
 
   protected final FunctionSummaryEdge summaryEdge;
 
-  protected FunctionReturnEdge(int pLineNumber,
+  protected FunctionReturnEdge(FileLocation pFileLocation,
       FunctionExitNode pPredecessor, CFANode pSuccessor,
       FunctionSummaryEdge pSummaryEdge) {
 
-    super("", pLineNumber, pPredecessor, pSuccessor);
+    super("", pFileLocation, pPredecessor, pSuccessor);
     summaryEdge = pSummaryEdge;
   }
 

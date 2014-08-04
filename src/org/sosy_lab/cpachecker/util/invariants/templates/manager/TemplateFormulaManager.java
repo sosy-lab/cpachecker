@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,13 +34,16 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 
 public class TemplateFormulaManager implements FormulaManager {
 
   private final TemplateParseMode tpMode;
-  private  TemplateNumericFormulaManager nfmgr;
+  private  TemplateRationalFormulaManager rfmgr;
   private  TemplateBooleanFormulaManager bfmgr;
   private  TemplateBitvectorFormulaManager efmgr;
   private  TemplateFunctionFormulaManager ffmgr;
@@ -57,7 +60,7 @@ public class TemplateFormulaManager implements FormulaManager {
   }
 
   private void init() {
-    nfmgr = new TemplateNumericFormulaManager(this);
+    rfmgr = new TemplateRationalFormulaManager(this);
     bfmgr = new TemplateBooleanFormulaManager(this);
     efmgr = new TemplateBitvectorFormulaManager(this);
     ffmgr = new TemplateFunctionFormulaManager(this);
@@ -70,8 +73,13 @@ public class TemplateFormulaManager implements FormulaManager {
   }
 
   @Override
-  public RationalFormulaManager getRationalFormulaManager() {
-    return nfmgr;
+  public NumeralFormulaManager<IntegerFormula, IntegerFormula> getIntegerFormulaManager() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public NumeralFormulaManager<NumeralFormula, RationalFormula> getRationalFormulaManager() {
+    return rfmgr;
   }
 
   @Override

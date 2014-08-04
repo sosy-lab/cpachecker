@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,15 +26,16 @@ package org.sosy_lab.cpachecker.appengine.server;
 import org.restlet.Restlet;
 import org.restlet.ext.wadl.WadlApplication;
 import org.restlet.routing.Router;
-import org.sosy_lab.cpachecker.appengine.entity.Job;
-import org.sosy_lab.cpachecker.appengine.entity.JobFile;
-import org.sosy_lab.cpachecker.appengine.server.resource.JobFileServerResource;
-import org.sosy_lab.cpachecker.appengine.server.resource.JobRunnerServerResource;
-import org.sosy_lab.cpachecker.appengine.server.resource.JobServerResource;
-import org.sosy_lab.cpachecker.appengine.server.resource.JobsServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.RootServerResource;
-
-import com.googlecode.objectify.ObjectifyService;
+import org.sosy_lab.cpachecker.appengine.server.resource.SettingsServerResource;
+import org.sosy_lab.cpachecker.appengine.server.resource.TaskExecutorServerResource;
+import org.sosy_lab.cpachecker.appengine.server.resource.TaskFileServerResource;
+import org.sosy_lab.cpachecker.appengine.server.resource.TaskServerResource;
+import org.sosy_lab.cpachecker.appengine.server.resource.TaskStatisticServerResource;
+import org.sosy_lab.cpachecker.appengine.server.resource.TasksServerResource;
+import org.sosy_lab.cpachecker.appengine.server.resource.TasksetServerResource;
+import org.sosy_lab.cpachecker.appengine.server.resource.TasksetTasksServerResource;
+import org.sosy_lab.cpachecker.appengine.util.ObjectifyRegistry;
 
 import freemarker.log.Logger;
 
@@ -42,23 +43,30 @@ public class CPAcheckerApplication extends WadlApplication {
 
   @Override
   public Restlet createInboundRoot() {
-    getTunnelService().setExtensionsTunnel(true);
+
     getEncoderService().setEnabled(true);
 
     try {
       Logger.selectLoggerLibrary(Logger.LIBRARY_JAVA);
     } catch (ClassNotFoundException _) {
-      // ignored because JUL logging will be available
+      // ignored because JUL logging is available
     }
 
     Router router = new Router(getContext());
 
-    // latest API
     router.attach("/", RootServerResource.class);
-    router.attach("/jobs", JobsServerResource.class);
-    router.attach("/jobs/{jobKey}", JobServerResource.class);
-    router.attach("/jobs/{jobKey}/files/{fileKey}", JobFileServerResource.class);
-    router.attach("/workers/run-job", JobRunnerServerResource.class);
+    router.attach("/settings", SettingsServerResource.class);
+
+    router.attach("/tasks", TasksServerResource.class);
+    router.attach("/tasks/{taskKey}", TaskServerResource.class);
+    router.attach("/tasks/{taskKey}/statistics", TaskStatisticServerResource.class);
+    router.attach("/tasks/{taskKey}/files/{fileKey}", TaskFileServerResource.class);
+
+    router.attach("/tasksets", TasksetServerResource.class);
+    router.attach("/tasksets/{tasksetKey}", TasksetServerResource.class);
+    router.attach("/tasksets/{tasksetKey}/tasks", TasksetTasksServerResource.class);
+
+    router.attach("/workers/execute-task", TaskExecutorServerResource.class);
 
     CapabilitiesFilter capabilitiesFilter = new CapabilitiesFilter(getContext());
     capabilitiesFilter.setNext(router);
@@ -67,7 +75,6 @@ public class CPAcheckerApplication extends WadlApplication {
   }
 
   static {
-    ObjectifyService.register(Job.class);
-    ObjectifyService.register(JobFile.class);
+    ObjectifyRegistry.register();
   }
 }

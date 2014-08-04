@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,12 +32,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.core.Model;
-import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
-import org.sosy_lab.cpachecker.core.Model.Constant;
-import org.sosy_lab.cpachecker.core.Model.Function;
-import org.sosy_lab.cpachecker.core.Model.TermType;
-import org.sosy_lab.cpachecker.core.Model.Variable;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.core.counterexample.Model.Constant;
+import org.sosy_lab.cpachecker.core.counterexample.Model.Function;
+import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
+import org.sosy_lab.cpachecker.core.counterexample.Model.Variable;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.ModelIterator;
@@ -209,7 +209,7 @@ class Mathsat5Model {
     // TODO: calculate negative value?
     String term = matcher.group(1);
     String lengthValue = matcher.group(2);
-    long length = Long.valueOf(lengthValue);
+    long length = Long.parseLong(lengthValue);
     Object value;
     if (length < 64) {
       value = Long.valueOf(term);

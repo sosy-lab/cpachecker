@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -75,7 +75,7 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState el, List<AbstractState> others, CFAEdge edge, Precision p) throws CPATransferException {
+  public Collection<? extends AbstractState> strengthen(AbstractState el, List<AbstractState> others, CFAEdge edge, Precision p) throws CPATransferException, InterruptedException {
     AssumptionStorageState asmptStorageElem = (AssumptionStorageState)el;
     BooleanFormulaManagerView bfmgr = formulaManager.getBooleanFormulaManager();
     assert bfmgr.isTrue(asmptStorageElem.getAssumption());

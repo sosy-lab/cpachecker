@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,6 +36,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -78,12 +79,12 @@ public class CallstackTransferRelation implements TransferRelation {
   public Collection<? extends AbstractState> getAbstractSuccessors(
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
+    CallstackState element = (CallstackState) pElement;
 
     switch (pCfaEdge.getEdgeType()) {
     case StatementEdge: {
       if (pCfaEdge instanceof CFunctionSummaryStatementEdge) {
         CFunctionSummaryStatementEdge summary = (CFunctionSummaryStatementEdge)pCfaEdge;
-        CallstackState element = (CallstackState)pElement;
         if (!shouldGoByFunctionSummaryStatement(element, summary)) {
           // should go by function call and skip the current edge
           return Collections.emptySet();
@@ -92,8 +93,30 @@ public class CallstackTransferRelation implements TransferRelation {
       }
       break;
     }
+    case AssumeEdge: {
+      String predecessorFunctionName = pCfaEdge.getPredecessor().getFunctionName();
+      String successorFunctionName = pCfaEdge.getSuccessor().getFunctionName();
+      boolean successorIsInCallstackContext = successorFunctionName.equals(element.getCurrentFunction());
+      boolean isArtificialPCVEdge = pCfaEdge instanceof CFASingleLoopTransformation.ProgramCounterValueAssumeEdge;
+      boolean isSuccessorAritificialPCNode = successorFunctionName.equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+      boolean isPredecessorAritificialPCNode = predecessorFunctionName.equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+      boolean isFunctionTransition = !successorFunctionName.equals(predecessorFunctionName);
+      if (!successorIsInCallstackContext
+          && !element.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)
+          && ((!isSuccessorAritificialPCNode && isArtificialPCVEdge)
+              || isPredecessorAritificialPCNode && isFunctionTransition)) {
+        /*
+         * This edge is syntactically reachable, but makes no sense from this
+         * state, as it would change function without passing a function entry
+         * or exit node.
+         *
+         * Edges like this are introduced by the single loop transformation.
+         */
+        return Collections.emptySet();
+      }
+      break;
+    }
     case FunctionCallEdge: {
-        CallstackState element = (CallstackState)pElement;
         String functionName = pCfaEdge.getSuccessor().getFunctionName();
 
         if (hasRecursion(element, functionName)) {
@@ -116,24 +139,28 @@ public class CallstackTransferRelation implements TransferRelation {
     case FunctionReturnEdge: {
         FunctionReturnEdge cfaEdge = (FunctionReturnEdge)pCfaEdge;
 
-        CallstackState element = (CallstackState)pElement;
-
         String calledFunction = cfaEdge.getPredecessor().getFunctionName();
         String callerFunction = cfaEdge.getSuccessor().getFunctionName();
 
         CFANode returnNode = cfaEdge.getSuccessor();
         CFANode callNode = returnNode.getEnteringSummaryEdge().getPredecessor();
 
-        assert calledFunction.equals(element.getCurrentFunction());
+        final CallstackState returnElement;
 
-        if (!callNode.equals(element.getCallNode())) {
-          // this is not the right return edge
-          return Collections.emptySet();
+        assert calledFunction.equals(element.getCurrentFunction()) || element.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+
+        if (!isWildcardState(element)) {
+
+          if (!callNode.equals(element.getCallNode())) {
+            // this is not the right return edge
+            return Collections.emptySet();
+          }
+          returnElement = element.getPreviousState();
+
+          assert callerFunction.equals(returnElement.getCurrentFunction()) || isWildcardState(returnElement);
+        } else {
+          returnElement = element;
         }
-
-        CallstackState returnElement = element.getPreviousState();
-
-        assert callerFunction.equals(returnElement.getCurrentFunction());
 
         return Collections.singleton(returnElement);
       }
@@ -142,6 +169,18 @@ public class CallstackTransferRelation implements TransferRelation {
     }
 
     return Collections.singleton(pElement);
+  }
+
+  /**
+   * Checks if the given callstack state should be treated as a wildcard state.
+   *
+   * @param pState the state to check.
+   *
+   * @return {@code true} if the given state should be treated as a wildcard,
+   * {@code false} otherwise.
+   */
+  private boolean isWildcardState(CallstackState pState) {
+    return pState.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
   }
 
   @Override

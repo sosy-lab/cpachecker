@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.pointer2;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -34,11 +33,13 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
-import org.sosy_lab.cpachecker.cpa.pointer2.util.Location;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
-import org.sosy_lab.cpachecker.cpa.pointer2.util.Struct;
-import org.sosy_lab.cpachecker.cpa.pointer2.util.Union;
-import org.sosy_lab.cpachecker.cpa.pointer2.util.Variable;
+import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSetBot;
+import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSetTop;
+
+import com.google.common.base.Function;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
 
 /**
  * Instances of this class are pointer states that are used as abstract elements
@@ -54,13 +55,13 @@ public class PointerState implements AbstractState {
   /**
    * The points-to map of the state.
    */
-  private final PersistentSortedMap<Location, LocationSet> pointsToMap;
+  private final PersistentSortedMap<String, LocationSet> pointsToMap;
 
   /**
    * Creates a new pointer state with an empty initial points-to map.
     */
   private PointerState() {
-    pointsToMap = PathCopyingPersistentTreeMap.<Location, LocationSet>of();
+    pointsToMap = PathCopyingPersistentTreeMap.<String, LocationSet>of();
   }
 
   /**
@@ -68,7 +69,7 @@ public class PointerState implements AbstractState {
    *
    * @param pPointsToMap the points-to map of this state.
    */
-  private PointerState(PersistentSortedMap<Location, LocationSet> pPointsToMap) {
+  private PointerState(PersistentSortedMap<String, LocationSet> pPointsToMap) {
     this.pointsToMap = pPointsToMap;
   }
 
@@ -79,9 +80,9 @@ public class PointerState implements AbstractState {
    *
    * @param pSource the first identifier.
    * @param pTarget the second identifier.
-   * @return the pointer state
+   * @return the pointer state.
    */
-  public PointerState addPointsToInformation(Location pSource, Location pTarget) {
+  public PointerState addPointsToInformation(String pSource, String pTarget) {
     LocationSet previousPointsToSet = getPointsToSet(pSource);
     LocationSet newPointsToSet = previousPointsToSet.addElement(pTarget);
     return new PointerState(pointsToMap.putAndCopy(pSource, newPointsToSet));
@@ -94,9 +95,9 @@ public class PointerState implements AbstractState {
    *
    * @param pSource the first identifier.
    * @param pTargets the target identifiers.
-   * @return the pointer state
+   * @return the pointer state.
    */
-  public PointerState addPointsToInformation(Location pSource, Iterable<Location> pTargets) {
+  public PointerState addPointsToInformation(String pSource, Iterable<String> pTargets) {
     LocationSet previousPointsToSet = getPointsToSet(pSource);
     LocationSet newPointsToSet = previousPointsToSet.addElements(pTargets);
     return new PointerState(pointsToMap.putAndCopy(pSource, newPointsToSet));
@@ -109,14 +110,14 @@ public class PointerState implements AbstractState {
    *
    * @param pSource the first identifier.
    * @param pTargets the target identifiers.
-   * @return the pointer state
+   * @return the pointer state.
    */
-  public PointerState addPointsToInformation(Location pSource, LocationSet pTargets) {
+  public PointerState addPointsToInformation(String pSource, LocationSet pTargets) {
     if (pTargets.isBot()) {
       return this;
     }
     if (pTargets.isTop()) {
-      return new PointerState(pointsToMap.putAndCopy(pSource, LocationSet.TOP));
+      return new PointerState(pointsToMap.putAndCopy(pSource, LocationSetTop.INSTANCE));
     }
     LocationSet previousPointsToSet = getPointsToSet(pSource);
     return new PointerState(pointsToMap.putAndCopy(pSource, previousPointsToSet.addElements(pTargets)));
@@ -128,10 +129,10 @@ public class PointerState implements AbstractState {
    * @param pSource the identifier pointing to the points-to set in question.
    * @return the points-to set of the given identifier.
    */
-  public LocationSet getPointsToSet(Location pSource) {
+  public LocationSet getPointsToSet(String pSource) {
     LocationSet result = this.pointsToMap.get(pSource);
     if (result == null) {
-      return LocationSet.BOT;
+      return LocationSetBot.INSTANCE;
     }
     return result;
   }
@@ -146,15 +147,15 @@ public class PointerState implements AbstractState {
    * the second identifier and <code>null</code> if it might point to it.
    */
   @Nullable
-  public Boolean pointsTo(Location pSource, Location pTarget) {
+  public Boolean pointsTo(String pSource, String pTarget) {
     LocationSet pointsToSet = getPointsToSet(pSource);
-    if (pointsToSet.equals(LocationSet.BOT)) {
+    if (pointsToSet.equals(LocationSetBot.INSTANCE)) {
       return false;
     }
     if (pointsToSet instanceof ExplicitLocationSet) {
       ExplicitLocationSet explicitLocationSet = (ExplicitLocationSet) pointsToSet;
       if (explicitLocationSet.mayPointTo(pTarget)) {
-        return explicitLocationSet.getElements().size() == 1 ? true : null;
+        return explicitLocationSet.getSize() == 1 ? true : null;
       } else {
         return false;
       }
@@ -172,8 +173,8 @@ public class PointerState implements AbstractState {
    * second identifier, <code>false</code> if it might point to it or is known
    * not to point to it.
    */
-  public boolean definitelyPointsTo(Location pSource, Location pTarget) {
-    return pointsTo(pSource, pTarget) == true;
+  public boolean definitelyPointsTo(String pSource, String pTarget) {
+    return Boolean.TRUE.equals(pointsTo(pSource, pTarget));
   }
 
   /**
@@ -186,8 +187,8 @@ public class PointerState implements AbstractState {
    * points to the second identifier, <code>false</code> if it might point to
    * it or is known to point to it.
    */
-  public boolean definitelyNotPointsTo(Location pSource, Location pTarget) {
-    return pointsTo(pSource, pTarget) == false;
+  public boolean definitelyNotPointsTo(String pSource, String pTarget) {
+    return Boolean.FALSE.equals(pointsTo(pSource, pTarget));
   }
 
   /**
@@ -200,75 +201,8 @@ public class PointerState implements AbstractState {
    * second identifier or might point to it, <code>false</code> if it is known
    * not to point to it.
    */
-  public boolean mayPointTo(Location pSource, Location pTarget) {
-    return pointsTo(pSource, pTarget) != false;
-  }
-
-  /**
-   * Gets the identifier for the given global variable.
-   *
-   * @param pVariableName the name of the global variable.
-   * @return the identifier for the given global variable.
-   */
-  public Location getVariableAsLocation(String pVariableName) {
-    return new Variable(pVariableName);
-  }
-
-  /**
-   * Gets the identifier for the given local variable.
-   *
-   * @param pVariableName the name of the function of the variable.
-   * @param pVariableName the name of the local variable.
-   * @return the identifier for the given local variable.
-   */
-  public Location getVariableAsLocation(String pFuntionName, String pVariableName) {
-    return new Variable(pFuntionName + "::" + pVariableName);
-  }
-
-  /**
-   * Gets the identifier for the given global struct instance.
-   *
-   * @param pTypeName the name of the struct type.
-   * @param pInstanceName the name of the instance.
-   * @return the identifier for the given global struct instance.
-   */
-  public Location getStructAsLocation(String pTypeName, String pInstanceName) {
-    return new Struct(pTypeName);
-  }
-
-  /**
-   * Gets the identifier for the given local struct instance.
-   *
-   * @param pTypeName the name of the struct type.
-   * @param pInstanceFunctionName the name of the function.
-   * @param pInstanceName the name of the instance.
-   * @return the identifier for the given local struct instance.
-   */
-  public Location getStructAsLocation(String pTypeName, String pInstanceFunctionName, String pInstanceName) {
-    return new Struct(pTypeName);
-  }
-
-  /**
-   * Gets the identifier for the given global union instance.
-   *
-   * @param pTypeName the name of the union type.
-   * @param pInstanceName the name of the instance.
-   * @return the identifier for the given global union instance.
-   */
-  public Location getUnionAsLocation(String pTypeName, String pInstanceName) {
-    return new Union(pTypeName);
-  }
-
-  /**
-   * Gets the identifier for the given local union instance.
-   *
-   * @param pTypeName the name of the union type.
-   * @param pInstanceFunctionName the name of the function.
-   * @param pInstanceName the name of the instance.
-   * @return the identifier for the given local union instance.
-   */
-  public Location getUnionAsLocation(String pTypeName, String pInstanceFunctionName, String pInstanceName) {
-    return new Union(pTypeName);
+  public boolean mayPointTo(String pSource, String pTarget) {
+    return !Boolean.FALSE.equals(pointsTo(pSource, pTarget));
   }
 
   /**
@@ -276,15 +210,18 @@ public class PointerState implements AbstractState {
    *
    * @return all locations known to the state.
    */
-  public Iterable<Location> getKnownLocations() {
-    Set<Location> locations = new HashSet<>();
-    locations.addAll(pointsToMap.keySet());
-    for (LocationSet targetSet : pointsToMap.values()) {
-      if (targetSet instanceof ExplicitLocationSet) {
-        locations.addAll(((ExplicitLocationSet) targetSet).getElements());
+  public Set<String> getKnownLocations() {
+    return FluentIterable.from(Iterables.concat(pointsToMap.keySet(), FluentIterable.from(pointsToMap.values()).transformAndConcat(new Function<LocationSet, Iterable<? extends String>>() {
+
+      @Override
+      public Iterable<? extends String> apply(LocationSet pArg0) {
+        if (pArg0 instanceof ExplicitLocationSet) {
+          return (ExplicitLocationSet) pArg0;
+        }
+        return Collections.emptySet();
       }
-    }
-    return locations;
+
+    }))).toSet();
   }
 
   /**
@@ -292,7 +229,7 @@ public class PointerState implements AbstractState {
    *
    * @return the points-to map of this state.
    */
-  public Map<Location, LocationSet> getPointsToMap() {
+  public Map<String, LocationSet> getPointsToMap() {
     return Collections.unmodifiableMap(this.pointsToMap);
   }
 

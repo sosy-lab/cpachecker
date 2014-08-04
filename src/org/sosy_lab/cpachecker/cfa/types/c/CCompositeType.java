@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -75,7 +75,20 @@ public final class CCompositeType implements CComplexType {
 
   @Override
   public String toString() {
-    return getQualifiedName();
+    StringBuilder result = new StringBuilder();
+
+    if (isConst()) {
+      result.append("const ");
+    }
+    if (isVolatile()) {
+      result.append("volatile ");
+    }
+
+    result.append(kind.toASTString());
+    result.append(' ');
+    result.append(name);
+
+    return result.toString();
   }
 
   @Override

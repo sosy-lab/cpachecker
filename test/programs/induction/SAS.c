@@ -1,3 +1,5 @@
+extern void __assert_fail();
+
 int main() {
 	int N;
 	int x = 0;

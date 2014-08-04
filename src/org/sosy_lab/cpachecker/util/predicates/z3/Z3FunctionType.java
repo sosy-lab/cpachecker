@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,16 +29,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaTypeImpl;
 
-public class Z3FunctionType<T extends Formula> extends FunctionFormulaTypeImpl<T> {
-
-  private final long funcDecl;
+public class Z3FunctionType<T extends Formula> extends FunctionFormulaTypeImpl<T, Long> {
 
   public Z3FunctionType(FormulaType<T> pReturnType, List<FormulaType<?>> pArgumentTypes, long funcDecl) {
-    super(pReturnType, pArgumentTypes);
-    this.funcDecl = (funcDecl);
-  }
-
-  public long getFuncDecl() {
-    return funcDecl;
+    super(pReturnType, funcDecl, pArgumentTypes);
   }
 }

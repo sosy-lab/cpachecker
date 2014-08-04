@@ -1,0 +1,71 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="2000" cpuCores="1">
+
+  <!-- 
+  This is a small benchmark-file to check the BDDCPA with its most-used option-combinations.
+  Some results are FALSE POSITIVES, however there should not be any FALSE NEGATIVES.
+  The rundefinition needs a runtime of 45 minutes.
+  -->
+
+  <option name="-noout"/>
+  <option name="-heap">1800M</option>
+  <option name="-timelimit">1min</option>
+
+  <rundefinition>
+
+    <sourcefiles name="ex-bdd-bool">
+      <option name="-explicitAnalysis-BDD-bool"/>
+      <include>../programs/benchmarks/ssh/*clnt*</include>
+      <exclude>../programs/benchmarks/ssh/*clnt*1*</exclude>
+      <include>../programs/benchmarks/ssh-simplified/*clnt*</include>
+      <exclude>../programs/benchmarks/ssh-simplified/*clnt*1*</exclude>
+      <include>../programs/benchmarks/product-lines/*product0*</include>
+      <exclude>../programs/benchmarks/product-lines/email*</exclude>
+    </sourcefiles>
+    
+    <sourcefiles name="ex-bdd-eq">
+      <option name="-explicitAnalysis-BDD-bool-intEQ"/>
+      <include>../programs/benchmarks/ssh/*clnt*1*</include>
+      <include>../programs/benchmarks/ssh-simplified/*clnt*1*</include>
+      <include>../programs/benchmarks/product-lines/*product1*</include>
+      <exclude>../programs/benchmarks/product-lines/email*</exclude>
+    </sourcefiles>
+    
+    <sourcefiles name="ex-bdd-add">
+      <option name="-explicitAnalysis-BDD-bool-intEQ-intADD"/>
+      <include>../programs/benchmarks/ssh/*srvr*</include>
+      <exclude>../programs/benchmarks/ssh/*srvr*1*</exclude>
+      <include>../programs/benchmarks/ssh-simplified/*srvr*</include>
+      <exclude>../programs/benchmarks/ssh-simplified/*srvr*1*</exclude>
+      <include>../programs/benchmarks/product-lines/*product2*</include>
+      <exclude>../programs/benchmarks/product-lines/email*</exclude>
+    </sourcefiles>
+
+    <sourcefiles name="plain-bdd">
+      <option name="-bddAnalysis"/>
+      <option name="-setprop">cpa.bdd.compressIntEqual=false</option>
+      <include>../programs/benchmarks/ssh/*srvr*1*</include>
+      <include>../programs/benchmarks/ssh-simplified/*srvr*1*</include>
+      <include>../programs/benchmarks/product-lines/*product3*</include>
+      <exclude>../programs/benchmarks/product-lines/email*</exclude>
+      <exclude>../programs/benchmarks/product-lines/elevator_spec3_product30_true-unreach-call.cil.c</exclude>
+    </sourcefiles>
+  
+    <sourcefiles name="Loops">
+      <option name="-bddAnalysis"/>
+      <includesfile>../programs/benchmarks/Loops.set</includesfile>
+      <exclude>../programs/benchmarks/loops/matrix*</exclude>
+      <exclude>../programs/benchmarks/loops/for*</exclude>
+      <exclude>../programs/benchmarks/loops/bubble*</exclude>
+      <exclude>../programs/benchmarks/loops/n.*</exclude>
+      <exclude>../programs/benchmarks/loops/sum*</exclude>
+      <exclude>../programs/benchmarks/loops/eureka*</exclude>
+      <exclude>../programs/benchmarks/loops/*string*</exclude>
+    </sourcefiles>
+
+  </rundefinition>
+  
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+
+</benchmark>

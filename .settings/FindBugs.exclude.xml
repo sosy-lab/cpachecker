@@ -1,0 +1,17 @@
+<FindBugsFilter>
+    <Match><Or>
+        <!-- Exclude all unmaintained packages. -->
+        <Package name="~org\.sosy_lab\.cpachecker\.cpa\.seplogic.*" />
+        <Package name="~org\.sosy_lab\.cpachecker\.util\.invariants.*" />
+    </Or></Match>
+    <Match><And>
+        <!-- In this package, System.exit() is ok because we are called from command line -->
+        <Bug pattern="DM_EXIT"/>
+        <Package name="org.sosy_lab.cpachecker.cmdline"/>
+    </And></Match>
+    <Match><And>
+        <!-- Ugly auto-generated code -->
+        <Bug pattern="EI_EXPOSE_REP,MS_PKGPROTECT,DLS_DEAD_LOCAL_STORE,DM_DEFAULT_ENCODING,SA_FIELD_SELF_ASSIGNMENT"/>
+        <Class name="~org\.sosy_lab\.cpachecker\.cpa\.automaton\.Automaton(Parser|Scanner)(\$.*)?"/>
+    </And></Match>
+</FindBugsFilter>

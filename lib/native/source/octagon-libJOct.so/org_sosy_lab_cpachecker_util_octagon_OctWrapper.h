@@ -89,6 +89,22 @@ JNIEXPORT void JNICALL Java_org_sosy_1lab_cpachecker_util_octagon_OctWrapper_J_1
 
 /*
  * Class:     org_sosy_lab_cpachecker_util_octagon_OctWrapper
+ * Method:    J_get_bounds
+ * Signature: (JIJJ)V
+ */
+JNIEXPORT void JNICALL Java_org_sosy_1lab_cpachecker_util_octagon_OctWrapper_J_1get_1bounds
+  (JNIEnv *env, jobject obj, jlong octl, jint pos, jlong upper, jlong lower);
+
+/*
+ * Class:     org_sosy_lab_cpachecker_util_octagon_OctWrapper
+ * Method:    J_get_bounds
+ * Signature: (JIJJZ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_sosy_1lab_cpachecker_util_octagon_OctWrapper_J_1set_1bounds
+  (JNIEnv *env, jobject obj, jlong octl, jint pos, jlong upper, jlong lower, jboolean dest);
+
+/*
+ * Class:     org_sosy_lab_cpachecker_util_octagon_OctWrapper
  * Method:    J_empty
  * Signature: (I)J
  */

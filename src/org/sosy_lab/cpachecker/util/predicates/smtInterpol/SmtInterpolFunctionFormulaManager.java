@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,24 +31,17 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
-
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
-class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaManager<Term> {
+class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaManager<Term, Sort, SmtInterpolEnvironment> {
 
-  private final SmtInterpolFormulaCreator creator;
   private final SmtInterpolUnsafeFormulaManager unsafeManager;
-  private final SmtInterpolEnvironment env;
 
   SmtInterpolFunctionFormulaManager(
       SmtInterpolFormulaCreator creator,
       SmtInterpolUnsafeFormulaManager unsafeManager) {
     super(creator, unsafeManager);
-    this.creator = creator;
-    this.env = creator.getEnv();
     this.unsafeManager = unsafeManager;
   }
 
@@ -61,44 +54,17 @@ class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaManager<T
     return unsafeManager.createUIFCallImpl(funcDecl, args);
   }
 
-  public Sort toSmtInterpolType(FormulaType<?> formulaType) {
-    Sort t;
-    if (formulaType.isBooleanType()) {
-      t = creator.getBoolType();
-    } else if (formulaType.isRationalType()) {
-      t = creator.getNumberType();
-    } else if (formulaType.isBitvectorType()) {
-      FormulaType.BitvectorType bitPreciseType = (FormulaType.BitvectorType) formulaType;
-      t = creator.getBittype(bitPreciseType.getSize());
-    } else {
-      throw new IllegalArgumentException("Not supported interface");
-    }
-    return t;
-  }
-
   @Override
-  public <T extends Formula> SmtInterpolFunctionType<T>
-    createFunction(
-        String pName,
-        FormulaType<T> pReturnType,
-        List<FormulaType<?>> pArgs) {
-    FunctionFormulaType<T> formulaType
-      = super.createFunction(pName, pReturnType, pArgs);
+  public <T extends Formula> SmtInterpolFunctionType<T> createFunction(
+          String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgs) {
+    Sort[] types = new Sort[pArgs.size()];
+    for (int i = 0; i < types.length; i++) {
+      types[i] = toSolverType(pArgs.get(i));
+    }
+    Sort returnType = toSolverType(pReturnType);
+    getFormulaCreator().getEnv().declareFun(pName, types, returnType);
 
-
-    List<Sort> types = Lists.transform(pArgs,
-      new Function<FormulaType<?>, Sort>() {
-        @Override
-        public Sort apply(FormulaType<?> pArg0) {
-          return toSmtInterpolType(pArg0);
-        }
-      });
-    Sort[] msatTypes = types.toArray(new Sort[types.size()]);
-
-    Sort returnType = toSmtInterpolType(pReturnType);
-    env.declareFun(pName, msatTypes, returnType);
-
-    return new SmtInterpolFunctionType<>(formulaType.getReturnType(), formulaType.getArgumentTypes(), pName);
+    return new SmtInterpolFunctionType<>(pReturnType, pArgs, pName);
   }
 
   @Override

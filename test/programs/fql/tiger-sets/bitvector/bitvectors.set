@@ -1,7 +1,0 @@
-../../../benchmarks/bitvector/*_false-unreach-label*.i
-../../../benchmarks/bitvector/*_true-unreach-label*.i
-../../../benchmarks/bitvector/*_false-unreach-label*.BV.c.cil.c
-../../../benchmarks/bitvector/*_true-unreach-label*.c.cil.c
-../../../benchmarks/bitvector-regression/*_false-unreach-label*.i
-../../../benchmarks/bitvector-regression/*_true-unreach-label*.i
-

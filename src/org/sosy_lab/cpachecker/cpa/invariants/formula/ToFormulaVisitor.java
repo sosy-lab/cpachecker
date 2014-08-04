@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,9 +30,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 
 public interface ToFormulaVisitor<ConstantType, FormulaType> extends ParameterizedInvariantsFormulaVisitor<ConstantType, Map<? extends String, ? extends InvariantsFormula<ConstantType>>, FormulaType> {
 
-  FormulaType getZero();
-
-  FormulaType getOne();
+  BooleanFormula asBoolean(FormulaType op1);
 
   BooleanFormula lessThan(FormulaType op1, FormulaType op2);
 

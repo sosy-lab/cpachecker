@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,8 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
 public class Z3Formula implements Formula {
 
@@ -65,6 +66,13 @@ public class Z3Formula implements Formula {
 class Z3BitvectorFormula extends Z3Formula implements BitvectorFormula {
 
   public Z3BitvectorFormula(long z3context, long z3expr) {
+    super(z3context, z3expr);
+  }
+}
+
+class Z3IntegerFormula extends Z3Formula implements IntegerFormula {
+
+  public Z3IntegerFormula(long z3context, long z3expr) {
     super(z3context, z3expr);
   }
 }

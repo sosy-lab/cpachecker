@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
+import org.sosy_lab.cpachecker.cpa.invariants.NonRecursiveEnvironment;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 
 /**
@@ -40,7 +40,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
   /**
    * The environment to push the gained information into.
    */
-  private final Map<String, InvariantsFormula<CompoundInterval>> environment;
+  private final NonRecursiveEnvironment.Builder environment;
 
   /**
    * The evaluation visitor used to evaluate compound state invariants formulae
@@ -59,7 +59,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
    * @param pEnvironment the environment to push the gained information into.
    * Obviously, this environment must be mutable.
    */
-  public PushAssumptionToEnvironmentVisitor(FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor, Map<String, InvariantsFormula<CompoundInterval>> pEnvironment) {
+  public PushAssumptionToEnvironmentVisitor(FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor, NonRecursiveEnvironment.Builder pEnvironment) {
     this.evaluationVisitor = pEvaluationVisitor;
     this.environment = pEnvironment;
     this.cachingEvaluationVisitor = new CachingEvaluationVisitor<>(environment, evaluationVisitor);
@@ -177,10 +177,42 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     CompoundInterval rightValue = evaluate(pEqual.getOperand2());
     // If the equation is definitely true, push right to left and vice versa
     if (parameter.isDefinitelyTrue()) {
+      InvariantsFormula<CompoundInterval> op1 = pEqual.getOperand1();
+      InvariantsFormula<CompoundInterval> op2 = pEqual.getOperand2();
+      if (op1 instanceof Variable) {
+        String varName = ((Variable<?>) op1).getName();
+        if (environment.get(varName) == null) {
+          environment.put(varName, op2);
+        }
+      }
+      if (op2 instanceof Variable) {
+        String varName = ((Variable<?>) op2).getName();
+        if (environment.get(varName) == null) {
+          environment.put(varName, op1);
+        }
+      }
       return pEqual.getOperand1().accept(this, rightValue)
           && pEqual.getOperand2().accept(this, leftValue);
     }
-    // If the equation is definitely false, push inverted singletons (if any)
+    // The equation is definitely false
+
+    // Try to push an exclusion
+    InvariantsFormula<CompoundInterval> op1 = pEqual.getOperand1();
+    InvariantsFormula<CompoundInterval> op2 = pEqual.getOperand2();
+    if (op1 instanceof Variable) {
+      String varName = ((Variable<?>) op1).getName();
+      if (environment.get(varName) == null) {
+        environment.put(varName, CompoundIntervalFormulaManager.exclude(op2));
+      }
+    }
+    if (op2 instanceof Variable) {
+      String varName = ((Variable<?>) op2).getName();
+      if (environment.get(varName) == null) {
+        environment.put(varName, CompoundIntervalFormulaManager.exclude(op1));
+      }
+    }
+
+    // Push inverted singletons (if any)
     if (rightValue.isSingleton() && !pEqual.getOperand1().accept(this, rightValue.invert())) {
       return false;
     }
@@ -188,6 +220,14 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
       return false;
     }
     return true;
+  }
+
+  @Override
+  public Boolean visit(Exclusion<CompoundInterval> pExclusion, CompoundInterval pParameter) {
+    if (pParameter == null || pParameter.isBottom()) {
+      return false;
+    }
+    return evaluate(pExclusion).intersectsWith(pParameter);
   }
 
   @Override
@@ -241,7 +281,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
       return pAnd.getOperand1().accept(this, parameter)
           && pAnd.getOperand2().accept(this, parameter);
     } else if (parameter.isDefinitelyFalse()) {
-      Map<String, InvariantsFormula<CompoundInterval>> env1 = new HashMap<>(this.environment);
+      NonRecursiveEnvironment.Builder env1 = new NonRecursiveEnvironment.Builder(this.environment);
       boolean push1 = pAnd.getOperand1().accept(new PushAssumptionToEnvironmentVisitor(evaluationVisitor, env1), pParameter);
 
       // If operand1 cannot be false, operand2 must be false
@@ -249,7 +289,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
         return pAnd.getOperand2().accept(this, CompoundInterval.logicalFalse());
       }
 
-      Map<String, InvariantsFormula<CompoundInterval>> env2 = new HashMap<>(this.environment);
+      NonRecursiveEnvironment.Builder env2 = new NonRecursiveEnvironment.Builder(this.environment);
       boolean push2 = pAnd.getOperand2().accept(new PushAssumptionToEnvironmentVisitor(evaluationVisitor, env2), pParameter);
       // If operand2 cannot be false, operand1 must be false
       if (!push2) {
@@ -263,7 +303,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
         // Only if BOTH parts produced an environment value, they can be united to a non-top value
         if (value1 != null) {
           InvariantsFormula<CompoundInterval> value2 = entry.getValue();
-          final InvariantsFormula<CompoundInterval> newValueFormula = CompoundStateFormulaManager.INSTANCE.union(value1, value2).accept(new PartialEvaluator(this.environment), evaluationVisitor);
+          final InvariantsFormula<CompoundInterval> newValueFormula = CompoundIntervalFormulaManager.INSTANCE.union(value1, value2).accept(new PartialEvaluator(this.environment), evaluationVisitor);
           if (newValueFormula.accept(this.evaluationVisitor, this.environment).isBottom()) {
             this.cachingEvaluationVisitor.clearCache();
             return false;
@@ -288,7 +328,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     if (parameter.isBottom()) {
       return false;
     }
-    // If the parameter is evaluates to a unique boolean value, hand it on
+    // If the parameter evaluates to a unique boolean value, hand it on
     if (parameter.isDefinitelyTrue() || parameter.isDefinitelyFalse()) {
       return pNot.getNegated().accept(this, parameter.logicalNot());
     }
@@ -357,7 +397,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
       }
     }
 
-    CompoundStateFormulaManager ifm = CompoundStateFormulaManager.INSTANCE;
+    CompoundIntervalFormulaManager ifm = CompoundIntervalFormulaManager.INSTANCE;
     InvariantsFormula<CompoundInterval> parameter = ifm.asConstant(pParameter);
     return ifm.logicalOr(ifm.equal(pUnion.getOperand1(), parameter), ifm.equal(pUnion.getOperand2(), parameter)).accept(this, CompoundInterval.logicalTrue());
   }
@@ -392,7 +432,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     if (newValue.isTop()) {
       environment.remove(varName);
     } else {
-      CompoundStateFormulaManager ifm = CompoundStateFormulaManager.INSTANCE;
+      CompoundIntervalFormulaManager ifm = CompoundIntervalFormulaManager.INSTANCE;
       environment.put(varName, ifm.asConstant(newValue));
     }
     this.cachingEvaluationVisitor.clearCache();
@@ -409,7 +449,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
   private InvariantsFormula<CompoundInterval> getFromEnvironment(String pVarName) {
     InvariantsFormula<CompoundInterval> result = environment.get(pVarName);
     if (result == null) {
-      return CompoundStateFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
+      return CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
     }
     return result;
   }

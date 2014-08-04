@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,10 +27,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
@@ -154,7 +155,7 @@ public class RedlogInterface {
       // The statement must be wrapped inside a function
       // declaration. This however gets stripped away.
       f = "void foo() { "+f+" }";
-      root = parser.parseSingleStatement(f);
+      root = parser.parseSingleStatement(f, CProgramScope.empty());
     } catch (Exception e) {
       logger.log(Level.FINEST, "Parser failed to parse Redlog output formula.", e.getMessage());
     }

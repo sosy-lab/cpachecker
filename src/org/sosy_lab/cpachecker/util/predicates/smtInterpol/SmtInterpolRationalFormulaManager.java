@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,221 +23,47 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
-import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.*;
-import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolUtil.isNumber;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractRationalFormulaManager;
-
-import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
-
-class SmtInterpolRationalFormulaManager extends AbstractRationalFormulaManager<Term> {
-
-  private final SmtInterpolEnvironment env;
-  private final SmtInterpolFormulaCreator creator;
-  private final SmtInterpolFunctionType<RationalFormula> multUfDecl;
-  private final SmtInterpolFunctionType<RationalFormula> divUfDecl;
-  private final SmtInterpolFunctionType<RationalFormula> modUfDecl;
-  private final SmtInterpolFunctionFormulaManager functionManager;
-
-  private final boolean useIntegers;
+class SmtInterpolRationalFormulaManager extends SmtInterpolNumeralFormulaManager<NumeralFormula, RationalFormula> {
 
   SmtInterpolRationalFormulaManager(
-      SmtInterpolFormulaCreator pCreator,
-      SmtInterpolFunctionFormulaManager pFunctionManager,
-      boolean pUseIntegers) {
-    super(pCreator);
-    creator = pCreator;
-    env = pCreator.getEnv();
-    functionManager = pFunctionManager;
-    useIntegers = pUseIntegers;
+          SmtInterpolFormulaCreator pCreator,
+          SmtInterpolFunctionFormulaManager pFunctionManager) {
+    super(pCreator, pFunctionManager, RationalFormula.class);
+  }
 
-    FormulaType<RationalFormula> formulaType = FormulaType.RationalType;
-    multUfDecl = functionManager.createFunction(MultUfName, formulaType, formulaType, formulaType);
-    divUfDecl = functionManager.createFunction(DivUfName, formulaType, formulaType, formulaType);
-    modUfDecl = functionManager.createFunction(ModUfName, formulaType, formulaType, formulaType);
+  @Override
+  public FormulaType<RationalFormula> getFormulaType() {
+    return FormulaType.RationalType;
   }
 
   @Override
   protected Term makeNumberImpl(long i) {
-    if (useIntegers) {
-      return env.numeral(BigInteger.valueOf(i));
-    } else {
-      return env.decimal(BigDecimal.valueOf(i));
-    }
+    return getFormulaCreator().getEnv().decimal(BigDecimal.valueOf(i));
   }
 
   @Override
   protected Term makeNumberImpl(BigInteger pI) {
-    if (useIntegers) {
-      return env.numeral(pI);
-    } else {
-      return env.decimal(new BigDecimal(pI));
-    }
+    return getFormulaCreator().getEnv().decimal(new BigDecimal(pI));
   }
 
   @Override
   protected Term makeNumberImpl(String pI) {
-    if (useIntegers) {
-      return env.numeral(pI);
-    } else {
-      return env.decimal(pI);
-    }
+    return getFormulaCreator().getEnv().decimal(pI);
   }
 
   @Override
   protected Term makeVariableImpl(String varName) {
-    Sort t = creator.getNumberType();
-    return creator.makeVariable(t, varName);
-  }
-
-  private Term makeUf(FunctionFormulaType<RationalFormula> decl, Term t1, Term t2) {
-    return functionManager.createUninterpretedFunctionCallImpl(decl, ImmutableList.of(t1, t2));
-  }
-
-  private boolean isUf(SmtInterpolFunctionType<RationalFormula> funcDecl, Term pBits) {
-    return functionManager.isUninterpretedFunctionCall(funcDecl, pBits);
-  }
-
-  @Override
-  public Term negate(Term pNumber) {
-    return env.term("*", env.numeral("-1"), pNumber);
-  }
-
-  @Override
-  public boolean isNegate(Term pNumber) {
-    boolean mult = isMultiply(pNumber);
-    if (!mult) {
-      return false;
-    }
-    Term arg = SmtInterpolUtil.getArg(pNumber, 0);
-    if (SmtInterpolUtil.isNumber(arg)) {
-      // TODO: BUG: possible bug
-      return SmtInterpolUtil.toNumber(arg) == -1;
-    }
-    return false;
-  }
-
-  @Override
-  public Term add(Term pNumber1, Term pNumber2) {
-    return env.term("+", pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isAdd(Term pNumber) {
-    return SmtInterpolUtil.isFunction(pNumber, "+");
-  }
-
-  @Override
-  public Term subtract(Term pNumber1, Term pNumber2) {
-    return env.term("-", pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isSubtract(Term pNumber) {
-    return SmtInterpolUtil.isFunction(pNumber, "-");
-  }
-
-  @Override
-  public Term divide(Term pNumber1, Term pNumber2) {
-    Term result;
-    if (isNumber(pNumber2)) {
-      result = env.term("/", pNumber1, pNumber2);
-    } else {
-      result = makeUf(divUfDecl, pNumber1, pNumber2);
-    }
-
-    return result;
-  }
-
-  @Override
-  public boolean isDivide(Term pNumber) {
-    return SmtInterpolUtil.isFunction(pNumber, "/") || isUf(divUfDecl, pNumber);
-  }
-
-  @Override
-  public Term modulo(Term pNumber1, Term pNumber2) {
-    return makeUf(modUfDecl, pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isModulo(Term pNumber) {
-    return isUf(modUfDecl, pNumber);
-  }
-
-  @Override
-  public Term multiply(Term pNumber1, Term pNumber2) {
-    Term result;
-    if (isNumber(pNumber1) || isNumber(pNumber2)) {
-      result = env.term("*", pNumber1, pNumber2);
-    } else {
-      result = makeUf(multUfDecl, pNumber1, pNumber2);
-    }
-
-    return result;
-  }
-
-  @Override
-  public boolean isMultiply(Term pNumber) {
-    return SmtInterpolUtil.isFunction(pNumber, "*") || isUf(multUfDecl, pNumber);
-  }
-
-  @Override
-  public Term equal(Term pNumber1, Term pNumber2) {
-    return env.term("=", pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isEqual(Term pNumber) {
-    return SmtInterpolUtil.isFunction(pNumber, "=");
-  }
-
-  @Override
-  public Term greaterThan(Term pNumber1, Term pNumber2) {
-    return env.term(">", pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isGreaterThan(Term pNumber) {
-    return SmtInterpolUtil.isFunction(pNumber, ">");
-  }
-
-  @Override
-  public Term greaterOrEquals(Term pNumber1, Term pNumber2) {
-    return env.term(">=", pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isGreaterOrEquals(Term pNumber) {
-    return SmtInterpolUtil.isFunction(pNumber, ">=");
-  }
-
-  @Override
-  public Term lessThan(Term pNumber1, Term pNumber2) {
-    return env.term("<", pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isLessThan(Term pNumber) {
-    return SmtInterpolUtil.isFunction(pNumber, "<");
-  }
-
-  @Override
-  public Term lessOrEquals(Term pNumber1, Term pNumber2) {
-    return env.term("<=", pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isLessOrEquals(Term pNumber) {
-    return SmtInterpolUtil.isFunction(pNumber, "<=");
+    Sort t = getFormulaCreator().getRealType();
+    return getFormulaCreator().makeVariable(t, varName);
   }
 }

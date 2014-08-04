@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,7 +33,7 @@ public class BitvectorFormulaView extends FormulaView<BitvectorFormula> implemen
   private BitvectorFormulaManagerView manager;
 
   public BitvectorFormulaView(BitvectorFormula pWrapped, BitvectorFormulaManagerView manager) {
-    super(pWrapped, manager.getViewManager());
+    super(pWrapped);
     this.manager = manager;
   }
 

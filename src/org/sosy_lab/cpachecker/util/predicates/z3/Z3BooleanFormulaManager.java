@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,7 @@
  *
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either Express or implied.
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
@@ -29,21 +29,19 @@ import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
 
 
-public class Z3BooleanFormulaManager extends AbstractBooleanFormulaManager<Long> {
+public class Z3BooleanFormulaManager extends AbstractBooleanFormulaManager<Long, Long, Long> {
 
   private final long z3context;
-  private final Z3FormulaCreator creator;
 
   protected Z3BooleanFormulaManager(Z3FormulaCreator creator) {
     super(creator);
-    this.creator = creator;
     this.z3context = creator.getEnv();
   }
 
   @Override
   protected Long makeVariableImpl(String varName) {
-    long type = creator.getBoolType();
-    return creator.makeVariable(type, varName);
+    long type = getFormulaCreator().getBoolType();
+    return getFormulaCreator().makeVariable(type, varName);
   }
 
   @Override

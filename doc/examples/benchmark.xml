@@ -10,7 +10,7 @@
   "timelimit" is an optional cpu-time limit in seconds.
   "hardtimelimit" is an optional cpu-time limit after which the tool will be killed forcefully
     equal to "timelimit" if not specified).
-  "memlimit" is an optional memory limit in megabytes.
+  "memlimit" is an optional memory limit in megabytes (with SI units, e.g., 1 MB = 1,000,000 Bytes).
   "cpuCores" is an optional number of CPU cores to use per run (otherwise all available cores are used).
   "threads" is the number of parallel executions of verification runs.
   This values can be overriden on the command line when running benchmark.py
@@ -68,12 +68,18 @@
     and not guaranteed to be supported in the future at all.
     C.f. benchmark-cpachecker.xml for an example.
 
+    The tag <propertyfile> defines the specification to be checked.
+    This will be given to the verifier and will be used for the score calculations.
+    This tag can appear also within a <sourcefiles> tag.
+    The variables defined above are allowed inside this tag.
+
     There are three more top-level tags that are used only when the verifier cloud is used:
 
     <requiredfiles> can be used to specify additional files that are needed
     for executing the benchmark. The tag may contain a path to a file or directory
     that is transmitted to the worker. Wildcards, environment variables etc. are resolved.
-    The tag may appear several times.
+    The tag may appear several times, and can be placed inside the <benchmark>,
+    <rundefinition>, and <sourcefiles> tags.
 
     <require> can be used to select a specific set of worker machines. The attributes
     "cpuModel" (giving a string that needs to be contained in the worker's CPU name),
@@ -84,7 +90,14 @@
 
     <resultfiles> can be used to specify a file-name pattern matching all the result
     files created by the tool that should be transported back after executing the run
-    from the worker to the user's machine.
+    from the worker to the user's machine. Paths must be specified relative to
+    the longest common parent of the scripts directory and the specified files.
+    For example,
+    /home/user/workspace/CPAchecker/scripts and
+    /home/user/files/test.c
+    has /home/user/ as the common path. So, a file produced in
+    /home/user/workspace/CPAchecker/output/foo.bar can be referenced with
+    workspace/CPAchecker/output/foo.bar
   -->
 
   <!-- Example: -->
