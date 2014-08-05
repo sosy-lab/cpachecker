@@ -45,6 +45,13 @@ call "ant report-dependencies".
   Not included in CPAchecker, needs to be downloaded manually.
   Library is required by Z3 for interpolation.
 
+- jsylvan.jar and libsylvan.so: Sylvan
+  https://github.com/trolando/jsylvan
+  http://fmt.ewi.utwente.nl/tools/sylvan/
+  Apache 2.0 License
+  BDD package for multi-core CPUs
+  Manual for building in native/source/libsylvan.txt
+
 - jpl.jar and libjpl.so: SWI-PL
   http://www.swi-prolog.org/packages/jpl/java_api/index.html
   http://www.swi-prolog.org/
