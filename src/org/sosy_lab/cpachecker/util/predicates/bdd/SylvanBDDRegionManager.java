@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.bdd;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 import static jsylvan.JSylvan.*;
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import java.io.PrintStream;
 import java.lang.ref.PhantomReference;
@@ -123,6 +124,10 @@ class SylvanBDDRegionManager implements RegionManager {
 
   @Override
   public void printStatistics(PrintStream out) {
+    writingStatisticsTo(out)
+      .put(cleanupQueueSize)
+      .put(cleanupTimer)
+      ;
   }
 
   @Override
