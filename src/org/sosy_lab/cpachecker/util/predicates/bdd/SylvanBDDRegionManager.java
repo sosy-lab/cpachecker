@@ -63,10 +63,8 @@ import com.google.common.collect.Maps;
 import com.google.common.primitives.Longs;
 
 /**
- * A wrapper for the javabdd (http://javabdd.sf.net) package.
- *
- * This class is not thread-safe, but it could be easily made so by synchronizing
- * the {@link #createNewVar()} method (assuming the BDDFactory is thread-safe).
+ * A wrapper for the Sylvan (http://fmt.ewi.utwente.nl/tools/sylvan/) parallel BDD package,
+ * using the Java bindings JSylvan (https://github.com/trolando/jsylvan).
  */
 @Options(prefix = "bdd.sylvan")
 public class SylvanBDDRegionManager implements RegionManager {
@@ -78,11 +76,17 @@ public class SylvanBDDRegionManager implements RegionManager {
     NativeLibraries.loadLibrary("sylvan");
   }
 
-  @Option(description="Initial size of the BDD node table.")
-  private int initBddNodeTableSize = 26;
+  @Option(description="Log2 size of the BDD node table.")
+  @IntegerOption(min=1)
+  private int tableSize = 26;
 
-  @Option(description="Size of the BDD cache if cache ratio is not used.")
-  private int bddCacheSize = 24;
+  @Option(description="Log2 size of the BDD cache.")
+  @IntegerOption(min=1)
+  private int cacheSize = 24;
+
+  @Option(description="Granularity of the Sylvan BDD operations cache (recommended values 4-8).")
+  @IntegerOption(min=1)
+  private int cacheGranularity = 4;
 
   @Option(description="Number of worker threads, 0 for automatic.")
   @IntegerOption(min=0)
@@ -106,7 +110,7 @@ public class SylvanBDDRegionManager implements RegionManager {
       pLogger.logf(Level.WARNING, "Sylvan does not support %d threads, using %d threads.", threads, SYLVAN_MAX_THREADS);
       threads = SYLVAN_MAX_THREADS;
     }
-    JSylvan.initialize(threads, 100000, initBddNodeTableSize, bddCacheSize, 4);
+    JSylvan.initialize(threads, 100000, tableSize, cacheSize, cacheGranularity);
 
     trueFormula = new SylvanBDDRegion(JSylvan.getTrue());
     falseFormula = new SylvanBDDRegion(JSylvan.getFalse());
@@ -544,6 +548,6 @@ public class SylvanBDDRegionManager implements RegionManager {
 
 
   public String getVersion() {
-    return String.format("JSylvan 2 (%d threads)", threads);
+    return String.format("Sylvan (%d threads)", threads);
   }
 }

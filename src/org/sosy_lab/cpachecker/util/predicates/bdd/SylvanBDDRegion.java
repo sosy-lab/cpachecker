@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import com.google.common.primitives.Longs;
 
 /**
- * Regions represented using BDDs
+ * Regions represented using Sylvan BDDs.
  */
 public class SylvanBDDRegion implements Region {
 
