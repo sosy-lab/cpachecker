@@ -196,8 +196,6 @@ public interface PointerTargetSetBuilder {
       }
 
       bases = bases.putAndCopy(name, type);
-
-      lastBase = name;
     }
 
     /**

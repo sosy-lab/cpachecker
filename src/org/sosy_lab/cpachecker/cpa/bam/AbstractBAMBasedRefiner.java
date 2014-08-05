@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.bam.BAMCEXSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -49,7 +50,7 @@ import com.google.common.base.Preconditions;
 
 /**
  * This is an extension of {@link AbstractARGBasedRefiner} that takes care of
- * flattening the ARG before calling {@link #performRefinement0(ReachedSet)}.
+ * flattening the ARG before calling {@link #performRefinement0(ARGReachedSet, ARGPath)}.
  *
  * Warning: Although the ARG is flattened at this point, the elements in it have
  * not been expanded due to performance reasons.
@@ -62,6 +63,9 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
 
   private final BAMTransferRelation transfer;
   private final Map<ARGState, ARGState> pathStateToReachedState = new HashMap<>();
+
+  private final static ARGPath DUMMY_PATH_FOR_MISSING_BLOCK = new ARGPath();
+  final static BackwardARGState DUMMY_STATE_FOR_MISSING_BLOCK = new BackwardARGState(new ARGState(null, null));
 
   protected AbstractBAMBasedRefiner(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
@@ -80,7 +84,14 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
 
   @Override
   protected final CounterexampleInfo performRefinement(ARGReachedSet pReached, ARGPath pPath) throws CPAException, InterruptedException {
-    if (pPath == null) {
+    assert pPath == DUMMY_PATH_FOR_MISSING_BLOCK || pPath.size() > 0;
+
+    if (pPath == DUMMY_PATH_FOR_MISSING_BLOCK) {
+      // The counter-example-path could not be constructed, because of missing blocks (aka "holes").
+      // We directly return SPURIOUS and let the CPA-algorithm run again.
+      // During the counter-example-path-building we already re-added the start-states of all blocks,
+      // that lead to the missing block, to the waitlists of those blocks.
+      // Thus missing blocks are analyzed and rebuild again in the next CPA-algorithm.
       return CounterexampleInfo.spurious();
     } else {
       return performRefinement0(new BAMReachedSet(transfer, pReached, pPath, pathStateToReachedState), pPath);
@@ -99,8 +110,8 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
       computeSubtreeTimer.start();
       try {
         subgraph = transfer.computeCounterexampleSubgraph(pLastElement, pReachedSet, pathStateToReachedState);
-        if (subgraph == null) {
-          return null;
+        if (subgraph == DUMMY_STATE_FOR_MISSING_BLOCK) {
+          return DUMMY_PATH_FOR_MISSING_BLOCK;
         }
       } finally {
         computeSubtreeTimer.stop();

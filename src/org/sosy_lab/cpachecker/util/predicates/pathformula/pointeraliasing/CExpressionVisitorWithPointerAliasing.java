@@ -100,7 +100,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
                                           final ErrorConditions errorConditions,
                                           final PointerTargetSetBuilder pts) {
 
-    delegate = new ExpressionToFormulaVisitor(cToFormulaConverter, cfaEdge, function, ssa) {
+    delegate = new ExpressionToFormulaVisitor(cToFormulaConverter, cfaEdge, function, ssa, constraints) {
       @Override
       protected Formula toFormula(CExpression e) throws UnrecognizedCCodeException {
         return asValueFormula(e.accept(CExpressionVisitorWithPointerAliasing.this),
@@ -373,7 +373,12 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   public AliasedLocation visit(final CPointerExpression e) throws UnrecognizedCCodeException {
     final CExpression operand = e.getOperand();
     final CType operandType = CTypeUtils.simplifyType(operand.getExpressionType());
-    return AliasedLocation.ofAddress(asValueFormula(operand.accept(this), operandType));
+    final Expression operandExpression = operand.accept(this);
+    if (operandType instanceof CArrayType && ((CArrayType) operandType).getLength() != null) {
+      return operandExpression.asAliasedLocation();
+    } else {
+      return AliasedLocation.ofAddress(asValueFormula(operandExpression, operandType));
+    }
   }
 
   @Override

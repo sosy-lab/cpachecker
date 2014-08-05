@@ -24,12 +24,10 @@
 package org.sosy_lab.cpachecker.pcc.propertychecker;
 
 import java.math.BigInteger;
-import java.util.Collection;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
 import org.sosy_lab.cpachecker.cpa.value.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.Value;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -39,14 +37,15 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 /**
  * Checks if a certain variable has a specific value at a specific location marked by a label in the program.
  */
-public class SingleValueChecker implements PropertyChecker {
+public class SingleValueChecker extends PerElementPropertyChecker {
 
   private final MemoryLocation varValRep;
   private final Value varValBigInt;
   private final Value varValLong;
   private final String labelLocVarVal;
 
-  public SingleValueChecker(String varWithSingleValue, String varValue, String labelForLocationWithSingleValue) {
+  public SingleValueChecker(final String varWithSingleValue, final String varValue,
+      final String labelForLocationWithSingleValue) {
     varValRep = MemoryLocation.valueOf(varWithSingleValue);
     labelLocVarVal = labelForLocationWithSingleValue;
     varValBigInt = new NumericValue(new BigInteger(varValue));
@@ -54,7 +53,7 @@ public class SingleValueChecker implements PropertyChecker {
   }
 
   @Override
-  public boolean satisfiesProperty(AbstractState pElemToCheck) throws UnsupportedOperationException {
+  public boolean satisfiesProperty(final AbstractState pElemToCheck) throws UnsupportedOperationException {
     // check if value correctly specified at location
     CFANode node = AbstractStates.extractLocation(pElemToCheck);
     if (node instanceof CLabelNode && ((CLabelNode) node).getLabel().equals(labelLocVarVal)) {
@@ -62,17 +61,7 @@ public class SingleValueChecker implements PropertyChecker {
           AbstractStates.extractStateByType(pElemToCheck, ValueAnalysisState.class).getConstantsMapView()
               .get(varValRep);
       if (value == null || !value.isExplicitlyKnown() ||
-          !(value.equals(varValBigInt)||value.equals(varValLong))) { return false; }
-    }
-    return true;
-  }
-
-  @Override
-  public boolean satisfiesProperty(Collection<AbstractState> pCertificate) {
-    for (AbstractState elem : pCertificate) {
-      if (!satisfiesProperty(elem)) {
-        return false;
-      }
+          !(value.equals(varValBigInt) || value.equals(varValLong))) { return false; }
     }
     return true;
   }

@@ -32,6 +32,7 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGTransferRelation.SMGAddress;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.value.Value;

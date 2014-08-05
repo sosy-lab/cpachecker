@@ -26,8 +26,10 @@ package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.logging.Level;
@@ -40,19 +42,24 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.BalancedGraphPartitioner;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PartialReachedConstructionAlgorithm;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy.PCStrategyStatistics;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.ARGBasedPartialReachedSetConstructionAlgorithm;
+import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.CompleteCertificateConstructionAlgorithm;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialCertificateTypeProvider;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
 
-@Options(prefix = "pcc")
+@Options(prefix = "pcc.partitioning")
 public class PartitioningIOHelper {
 
   @Option(description = "If enabled uses the number of nodes saved in certificate size to compute partition number otherwise the size of certificate")
@@ -62,7 +69,7 @@ public class PartitioningIOHelper {
   private int maxNumElemsPerPartition = 0;
 
   @Option(description = "Heuristic for computing partitioning of proof (partial reached set).")
-  private PartitioningHeuristics partitioning = PartitioningHeuristics.RANDOM;
+  private PartitioningHeuristics partitioningStrategy = PartitioningHeuristics.RANDOM;
 
   public enum PartitioningHeuristics {
     RANDOM,
@@ -83,6 +90,9 @@ public class PartitioningIOHelper {
     logger = pLogger;
 
     switch (new PartialCertificateTypeProvider(pConfig, false).getCertificateType()) {
+    case ALL:
+      partialConstructor = new CompleteCertificateConstructionAlgorithm();
+      break;
     case MONOTONESTOPARG:
       partialConstructor = new MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm(true);
       break;
@@ -90,7 +100,7 @@ public class PartitioningIOHelper {
       partialConstructor = new ARGBasedPartialReachedSetConstructionAlgorithm(true);
     }
 
-    switch (partitioning) {
+    switch (partitioningStrategy) {
     case OPTIMAL:
       partitioner = new ExponentialOptimalBalancedGraphPartitioner(pShutdownNotifier);
       break;
@@ -155,9 +165,11 @@ public class PartitioningIOHelper {
     }
   }
 
-  public void readPartition(final ObjectInputStream pIn)
+  public void readPartition(final ObjectInputStream pIn, final PCStrategyStatistics pStats)
       throws ClassNotFoundException, IOException {
-    partitions.add(readPartitionContent(pIn));
+    Pair<AbstractState[], AbstractState[]> result = readPartitionContent(pIn);
+    partitions.add(result);
+    pStats.increaseProofSize(result.getFirst().length+result.getSecond().length);
   }
 
   private Pair<AbstractState[], AbstractState[]> readPartitionContent(final ObjectInputStream pIn)
@@ -165,12 +177,15 @@ public class PartitioningIOHelper {
     return Pair.of((AbstractState[]) pIn.readObject(), (AbstractState[]) pIn.readObject());
   }
 
-  public void readPartition(final ObjectInputStream pIn, final Lock pLock) throws ClassNotFoundException, IOException {
+  public void readPartition(final ObjectInputStream pIn, final PCStrategyStatistics pStats, final Lock pLock)
+      throws ClassNotFoundException, IOException {
     if (pLock == null) { throw new IllegalArgumentException("Cannot protect against parallel access"); }
     Pair<AbstractState[], AbstractState[]> result = readPartitionContent(pIn);
+    int partialProofSize = result.getFirst().length+result.getSecond().length;
     pLock.lock();
     try {
       partitions.add(result);
+      pStats.increaseProofSize(partialProofSize);
     } finally {
       pLock.unlock();
     }
@@ -215,16 +230,60 @@ public class PartitioningIOHelper {
   }
 
   public void writeProof(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached)
-      throws InvalidConfigurationException, IOException {
-    Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> partitionDescription;
-    try {
-      partitionDescription = computePartialReachedSetAndPartition(pReached);
-    } catch (InterruptedException e) {
-      throw new IOException("Write prepartion took too long", e);
-    }
+      throws InvalidConfigurationException, IOException, InterruptedException {
+    Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> partitionDescription =
+        computePartialReachedSetAndPartition(pReached);
+
     writeMetadata(pOut, pReached.size(), partitionDescription.getSecond().size());
     for (Set<Integer> partition : partitionDescription.getSecond()) {
       writePartition(pOut, partition, partitionDescription.getFirst());
     }
+  }
+
+  public Statistics getPartitioningStatistc(){
+    return new PartitioningStatistics();
+  }
+
+  private class PartitioningStatistics implements Statistics {
+
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+      if (numPartitions > 0 && partitions != null) {
+        pOut.format("Number of partitions: %d%n", numPartitions);
+        pOut.format("The following numbers are given in number of states.%n");
+        computeAndPrintDetailedPartitioningStats(pOut);
+      }
+    }
+
+    private void computeAndPrintDetailedPartitioningStats(PrintStream pOut) {
+      int maxP=0, maxO=0, minP=Integer.MAX_VALUE, minO = Integer.MAX_VALUE, totalO = 0, totalS = 0, current;
+
+      for (Pair<AbstractState[], AbstractState[]> partition : partitions) {
+        current = partition.getSecond().length;
+        maxO=Math.max(maxO, current);
+        minO=Math.min(minO, current);
+        totalO+=current;
+
+        current+=partition.getFirst().length;
+        maxP=Math.max(maxP, current);
+        minP=Math.min(minP, current);
+        totalS+=current;
+      }
+
+      pOut.format("Certificate size: %d %n", totalS);
+      pOut.format("Total overhead:  %d%n", totalO);
+      pOut.format(Locale.ENGLISH,"Avg. partition size:  %.2e%n", ((double)totalS)/numPartitions);
+      pOut.format(Locale.ENGLISH,"Avg. partition overhead: %.2e%n", ((double)totalO)/numPartitions);
+      pOut.format("Max partition size: %d%n", maxP);
+      pOut.format("Max partition overhead: %d%n", maxO);
+      pOut.format("Min partition size: %d%n", minP);
+      pOut.format("Min partition overhead: %d%n", minO);
+    }
+
+    @Override
+    public String getName() {
+      return "PCC Partitioning Statistic";
+    }
+
   }
 }

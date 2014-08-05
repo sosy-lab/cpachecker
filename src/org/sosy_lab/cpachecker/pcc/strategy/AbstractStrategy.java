@@ -31,6 +31,7 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.logging.Level;
 import java.util.zip.ZipEntry;
@@ -56,20 +57,21 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-@Options()
+@Options(prefix="pcc")
 public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvider {
 
   protected LogManager logger;
   protected PCStrategyStatistics stats;
+  private Collection<Statistics> pccStats = new ArrayList<>();
 
   @Option(
-      name = "pcc.proofFile",
+      name = "proofFile",
       description = "file in which proof representation needed for proof checking is stored")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   protected Path file = Paths.get("arg.obj");
 
   @Option(
-      name = "pcc.useCores",
+      name = "useCores",
       description = "number of cpus/cores which should be used in parallel for proof checking")
   @IntegerOption(min=1)
   protected int numThreads = 1;
@@ -80,6 +82,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     numThreads = Math.min(Runtime.getRuntime().availableProcessors(), numThreads);
     logger = pLogger;
     stats = new PCStrategyStatistics();
+    pccStats.add(stats);
   }
 
   @Override
@@ -132,6 +135,8 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       throw new RuntimeException(e);
     } catch (InvalidConfigurationException e) {
       logger.log(Level.SEVERE, "Proof cannot be constructed due to conflicting configuration.", e.getMessage());
+    } catch (InterruptedException e) {
+      logger.log(Level.SEVERE, "Proof cannot be written due to time out during proof construction");
     } finally {
       try {
         fos.close();
@@ -140,7 +145,8 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     }
   }
 
-  protected abstract void writeProofToStream(ObjectOutputStream out, UnmodifiableReachedSet reached) throws IOException, InvalidConfigurationException;
+  protected abstract void writeProofToStream(ObjectOutputStream out, UnmodifiableReachedSet reached)
+      throws IOException, InvalidConfigurationException, InterruptedException;
 
 
   @Override
@@ -214,12 +220,16 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
 
   protected abstract void readProofFromStream(ObjectInputStream in) throws ClassNotFoundException, InvalidConfigurationException, IOException;
 
-  @Override
-  public void collectStatistics(Collection<Statistics> statsCollection) {
-    statsCollection.add(stats);
+  protected void addPCCStatistic(final Statistics pPCCStatistic){
+    pccStats.add(pPCCStatistic);
   }
 
-  protected static class PCStrategyStatistics implements Statistics {
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    statsCollection.addAll(pccStats);
+  }
+
+  public static class PCStrategyStatistics implements Statistics {
 
     protected Timer transferTimer = new Timer();
     protected Timer stopTimer = new Timer();
@@ -227,6 +237,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     protected Timer propertyCheckingTimer = new Timer();
 
     protected int countIterations = 0;
+    protected int proofSize = 0;
 
     @Override
     public String getName() {
@@ -258,6 +269,8 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
         ReachedSet pReached) {
       out.println("Number of iterations:                     " + countIterations);
       out.println();
+      out.println("Number of proof elements:                     " + proofSize);
+      out.println();
       out.println("  Time for preparing proof for checking:          " + preparationTimer);
       out.println("  Time for abstract successor checks:     " + transferTimer + " (Calls: "
           + transferTimer.getNumberOfIntervals() + ")");
@@ -265,6 +278,10 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
           + stopTimer.getNumberOfIntervals()
           + ")");
       out.println(" Time for checking property:          "   + propertyCheckingTimer);
+    }
+
+    public void increaseProofSize(int pIncrement) {
+      proofSize+=pIncrement;
     }
 
   }

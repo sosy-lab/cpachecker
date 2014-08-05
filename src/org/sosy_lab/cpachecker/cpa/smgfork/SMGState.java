@@ -47,6 +47,8 @@ import org.sosy_lab.cpachecker.cpa.smgfork.SMGTransferRelation.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGTransferRelation.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.CLangSMGConsistencyVerifier;
 import org.sosy_lab.cpachecker.cpa.smgfork.join.SMGJoin;
 import org.sosy_lab.cpachecker.cpa.smgfork.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGObject;
@@ -768,7 +770,13 @@ public class SMGState implements AbstractQueryableState, Targetable {
       return;
     }
 
-    heap.setValidity(smgObject, false);
+    if (! (smgObject instanceof SMGRegion)) {
+      setInvalidFree();
+      return;
+    }
+
+
+    heap.setValidity((SMGRegion)smgObject, false);
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(smgObject);
 
     List<SMGEdgeHasValue> to_remove = new ArrayList<>();

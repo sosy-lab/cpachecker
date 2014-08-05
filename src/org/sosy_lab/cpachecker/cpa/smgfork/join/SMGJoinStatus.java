@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smgfork.join;
 
-
-
 public enum SMGJoinStatus {
   EQUAL,
   LEFT_ENTAIL,

@@ -79,7 +79,7 @@ public abstract class  JClassOrInterfaceType implements JReferenceType {
         || (getVisibility() != VisibilityModifier.PROTECTED),
         " Interfaces can't be private or protected");
 
-    enclosingType.notifyEnclosingTypeOfNestedType(enclosingType);
+    enclosingType.notifyEnclosingTypeOfNestedType(this);
     checkEnclosingTypeConsistency();
   }
 

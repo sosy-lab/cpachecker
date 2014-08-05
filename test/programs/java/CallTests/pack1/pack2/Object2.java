@@ -1,8 +1,5 @@
 package pack1.pack2;
 
-
-
-
 public class Object2 {
 
   static int idGenerator = 0;
@@ -21,9 +18,7 @@ public class Object2 {
     idGenerator++;
   }
 
-
   public int getId(){
     return id;
   }
-
 }

@@ -142,6 +142,33 @@ public class ValueAnalysisPrecision implements Precision {
     ignoreIntAdd          = original.ignoreIntAdd;
   }
 
+  /**
+   * This method acts as factory method for a default precision object, using the standard, i.e. empty, configuration,
+   * no variable classification and a full, i.e., non-refinable precision.
+   *
+   * @return the default precision object
+   * @throws InvalidConfigurationException
+   */
+  public static ValueAnalysisPrecision createDefaultPrecision() throws InvalidConfigurationException {
+    return new ValueAnalysisPrecision("",
+        Configuration.builder().build(),
+        Optional.<VariableClassification>absent(),
+        new ValueAnalysisPrecision.FullPrecision());
+  }
+
+  /**
+   * This method determines if this precision allows for abstraction, i.e., if
+   * it ignores variables from some variable class, if it maintains a refinable
+   * precision, or if it contains a variable blacklist.
+   *
+   * @return true, if this precision allows for abstraction, else false
+   */
+  boolean allowsAbstraction() {
+     return ignoreBoolean || ignoreIntAdd || ignoreIntEqual
+         || !(refinablePrecision instanceof FullPrecision)
+         || !blackListPattern.toString().equals("");
+  }
+
   public RefinablePrecision getRefinablePrecision() {
     return refinablePrecision;
   }

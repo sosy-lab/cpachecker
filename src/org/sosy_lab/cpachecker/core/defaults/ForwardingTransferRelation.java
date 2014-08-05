@@ -29,7 +29,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import com.google.common.base.Preconditions;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
@@ -44,8 +44,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
@@ -77,6 +79,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+
+import com.google.common.base.Preconditions;
 
 /** This Transfer-Relation forwards the method 'getAbstractSuccessors()'
  * to an edge-specific sub-methods ('AssumeEdge', 'DeclarationEdge', ...).
@@ -238,7 +242,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
       // last node of its CFA, where return edge is from that last node
       // to the return site of the caller function
       final AReturnStatementEdge returnEdge = (AReturnStatementEdge) cfaEdge;
-      return handleReturnStatementEdge(returnEdge, returnEdge.getExpression());
+      return handleReturnStatementEdge(returnEdge);
 
     case BlankEdge:
       return handleBlankEdge((BlankEdge) cfaEdge);
@@ -427,25 +431,25 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
 
   /** This function handles functionStatements like "return (x)". */
-  protected S handleReturnStatementEdge(AReturnStatementEdge cfaEdge, @Nullable IAExpression expression)
+  protected S handleReturnStatementEdge(AReturnStatementEdge cfaEdge)
       throws CPATransferException {
     if (cfaEdge instanceof CReturnStatementEdge) {
-      return handleReturnStatementEdge((CReturnStatementEdge) cfaEdge, (CExpression) expression);
+      return handleReturnStatementEdge((CReturnStatementEdge) cfaEdge);
 
     } else if (cfaEdge instanceof JReturnStatementEdge) {
-      return handleReturnStatementEdge((JReturnStatementEdge) cfaEdge, (JExpression) expression);
+      return handleReturnStatementEdge((JReturnStatementEdge) cfaEdge);
 
     } else {
       throw new AssertionError("unknown edge");
     }
   }
 
-  protected S handleReturnStatementEdge(CReturnStatementEdge cfaEdge, @Nullable CExpression expression)
+  protected S handleReturnStatementEdge(CReturnStatementEdge cfaEdge)
       throws CPATransferException {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
-  protected S handleReturnStatementEdge(JReturnStatementEdge cfaEdge, @Nullable JExpression expression)
+  protected S handleReturnStatementEdge(JReturnStatementEdge cfaEdge)
       throws CPATransferException {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
@@ -497,7 +501,14 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   }
 
   protected static boolean isGlobal(final JExpression exp) {
-    // TODO what is 'global' in Java?
+    if (exp instanceof JIdExpression) {
+      JSimpleDeclaration decl = ((JIdExpression) exp).getDeclaration();
+
+      if (decl instanceof ADeclaration) {
+        return ((ADeclaration) decl).isGlobal();
+      }
+    }
+
     return false;
   }
 

@@ -84,6 +84,11 @@ public class CollectVarsVisitor<T> implements InvariantsFormulaVisitor<T, Set<St
   }
 
   @Override
+  public Set<String> visit(Exclusion<T> pExclusion) {
+    return pExclusion.getExcluded().accept(this);
+  }
+
+  @Override
   public Set<String> visit(LessThan<T> pLessThan) {
     return concat(pLessThan.getOperand1().accept(this), pLessThan.getOperand2().accept(this));
   }

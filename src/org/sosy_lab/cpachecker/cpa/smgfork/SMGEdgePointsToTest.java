@@ -28,6 +28,7 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGRegion;
 
+
 public class SMGEdgePointsToTest {
 
   @Test

@@ -43,11 +43,10 @@ public class CReturnStatementEdge extends AReturnStatementEdge {
 
   }
 
-
-
+  @SuppressWarnings("unchecked") // safe because Optional is covariant
   @Override
-  public CExpression getExpression() {
-    return (CExpression)rawAST.getReturnValue();
+  public Optional<CExpression> getExpression() {
+    return (Optional<CExpression>)rawAST.getReturnValue();
   }
 
   @Override

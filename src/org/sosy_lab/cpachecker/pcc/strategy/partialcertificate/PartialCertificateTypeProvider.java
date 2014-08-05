@@ -28,10 +28,11 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 
-@Options(prefix = "pcc")
+@Options(prefix = "pcc.partial")
 public class PartialCertificateTypeProvider {
 
   public enum PartialCertificateTypes {
+    ALL,
     HEURISTIC,
     ARG,
     MONOTONESTOPARG;

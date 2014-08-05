@@ -78,6 +78,11 @@ public class SplitDisjunctionsVisitor<T> implements InvariantsFormulaVisitor<T, 
   }
 
   @Override
+  public List<InvariantsFormula<T>> visit(Exclusion<T> pExclusion) {
+    return Collections.<InvariantsFormula<T>>singletonList(pExclusion);
+  }
+
+  @Override
   public List<InvariantsFormula<T>> visit(LessThan<T> pLessThan) {
     return Collections.<InvariantsFormula<T>>singletonList(pLessThan);
   }

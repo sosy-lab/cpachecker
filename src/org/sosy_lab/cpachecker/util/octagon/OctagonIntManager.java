@@ -25,8 +25,9 @@ package org.sosy_lab.cpachecker.util.octagon;
 
 import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.*;
 
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctNumericValue;
+import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonDoubleValue;
+import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonIntValue;
+import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonInterval;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 
 import com.google.common.collect.BiMap;
@@ -80,12 +81,27 @@ public class OctagonIntManager extends OctagonManager {
   }
 
   @Override
-  public Pair<OctNumericValue, OctNumericValue> getVariableBounds(Octagon oct, int id) {
+  public OctagonInterval getVariableBounds(Octagon oct, int id) {
     NumArray lower = init_num_t(1);
     NumArray upper = init_num_t(1);
+    assert id < dimension(oct);
     J_get_bounds(oct.getOctId(), id, upper.getArray(), lower.getArray());
-    Pair<OctNumericValue, OctNumericValue> retVal = Pair.of(new OctNumericValue(J_num_get_int(lower.getArray(), 0) * -1),
-                                                            new OctNumericValue(J_num_get_int(upper.getArray(), 0)));
+    boolean lowerInfinite = J_num_infty(lower.getArray(), 0);
+    boolean upperInfinite = J_num_infty(upper.getArray(), 0);
+
+    OctagonInterval retVal;
+    if (lowerInfinite && upperInfinite) {
+      retVal = new OctagonInterval(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
+    } else if (lowerInfinite) {
+      retVal = new OctagonInterval(new OctagonDoubleValue(Double.NEGATIVE_INFINITY),
+                               OctagonIntValue.of(J_num_get_int(upper.getArray(), 0)));
+    } else if (upperInfinite) {
+      retVal = new OctagonInterval(OctagonIntValue.of(J_num_get_int(lower.getArray(), 0) * -1),
+                               new OctagonDoubleValue(Double.POSITIVE_INFINITY));
+    } else {
+      retVal = new OctagonInterval(J_num_get_int(lower.getArray(), 0) * -1,
+                               J_num_get_int(upper.getArray(), 0));
+    }
     J_num_clear_n(lower.getArray(), 1);
     J_num_clear_n(upper.getArray(), 1);
     return retVal;

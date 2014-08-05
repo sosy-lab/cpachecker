@@ -25,7 +25,7 @@ class Tool(benchmark.tools.template.BaseTool):
         return 'CBMC'
 
 
-    def getCmdline(self, executable, options, sourcefiles, propertyfile):
+    def getCmdline(self, executable, options, sourcefiles, propertyfile, rlimits):
         if ("--xml-ui" not in options):
             options = options + ["--xml-ui"]
 
@@ -65,16 +65,16 @@ class Tool(benchmark.tools.template.BaseTool):
                     assert returncode == 10
                     reason = tree.find('goto_trace').find('failure').findtext('reason')
                     if 'unwinding assertion' in reason:
-                        status = result.STR_UNKNOWN
+                        status = result.STATUS_UNKNOWN
                     else:
-                        status = result.STR_FALSE_REACH
+                        status = result.STATUS_FALSE_REACH
 
                 elif status == "SUCCESS":
                     assert returncode == 0
                     if "--no-unwinding-assertions" in self.options:
-                        status = result.STR_UNKNOWN
+                        status = result.STATUS_UNKNOWN
                     else:
-                        status = result.STR_TRUE
+                        status = result.STATUS_TRUE_PROP
 
             except Exception as e: # catch all exceptions
                 if isTimeout:

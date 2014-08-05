@@ -32,12 +32,17 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 
 /**
  * Computes set of irrelevant predicates of a block by identifying the variables that a auxiliary to the block.
  */
 public class AuxiliaryComputer extends AbstractRelevantPredicatesComputer<Collection<String>> {
+
+  public AuxiliaryComputer(FormulaManagerView pFmgr) {
+    super(pFmgr);
+  }
 
   @Override
   protected Collection<String> precompute(Block pContext, Collection<AbstractionPredicate> pPredicates) {

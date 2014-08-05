@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
 import java.util.Arrays;
@@ -34,7 +33,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
 
-import com.google.common.base.Function;
 import com.google.common.primitives.Longs;
 
 class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long, Long, Long> {
@@ -63,30 +61,16 @@ class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long
   }
 
   @Override
-  public <T extends Formula> Mathsat5FunctionType<T>
-    createFunction(
-        String pName,
-        FormulaType<T> pReturnType,
-        List<FormulaType<?>> pArgs) {
-    FunctionFormulaType<T> formulaType
-      = super.createFunction(pName, pReturnType, pArgs);
-
-
-    List<Long> types =
-      from(pArgs)
-      .transform(new Function<FormulaType<?>, Long>() {
-
-        @Override
-        public Long apply(FormulaType<?> pArg0) {
-          return toSolverType(pArg0);
-        }})
-        .toList();
-    long[] msatTypes = Longs.toArray(types);
-
+  public <T extends Formula> Mathsat5FunctionType<T> createFunction(
+        String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgs) {
+    long[] types = new long[pArgs.size()];
+    for (int i = 0; i < types.length; i++) {
+      types[i] = toSolverType(pArgs.get(i));
+    }
     long returnType = toSolverType(pReturnType);
-    Long decl = createFunctionImpl(pName, returnType, msatTypes);
+    long decl = createFunctionImpl(pName, returnType, types);
 
-    return new Mathsat5FunctionType<>(formulaType.getReturnType(), formulaType.getArgumentTypes(), decl);
+    return new Mathsat5FunctionType<>(pReturnType, pArgs, decl);
   }
 
   @Override

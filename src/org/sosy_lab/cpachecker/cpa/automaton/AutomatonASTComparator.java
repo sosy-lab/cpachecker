@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -90,24 +91,24 @@ class AutomatonASTComparator {
   private static final String NUMBERED_JOKER_EXPR = "CPAchecker_AutomatonAnalysis_JokerExpression_Num";
   private static final Pattern NUMBERED_JOKER_PATTERN = Pattern.compile("\\$\\d+");
 
-  static ASTMatcher generatePatternAST(String pPattern, CParser parser) throws InvalidAutomatonException, InvalidConfigurationException {
+  static ASTMatcher generatePatternAST(String pPattern, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException {
     // $?-Jokers, $1-Jokers and function declaration
     String tmp = addFunctionDeclaration(replaceJokersInPattern(pPattern));
 
-    return parse(tmp, parser).accept(ASTMatcherGenerator.INSTANCE);
+    return parse(tmp, parser, scope).accept(ASTMatcherGenerator.INSTANCE);
   }
 
-  static CStatement generateSourceAST(String pSource, CParser parser) throws InvalidAutomatonException, InvalidConfigurationException {
+  static CStatement generateSourceAST(String pSource, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException {
     String tmp = addFunctionDeclaration(pSource);
 
-    return parse(tmp, parser);
+    return parse(tmp, parser, scope);
   }
 
-  static List<CStatement> generateSourceASTOfBlock(String pSource, CParser parser)
+  static List<CStatement> generateSourceASTOfBlock(String pSource, CParser parser, Scope scope)
       throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
     String tmp = addFunctionDeclaration(pSource);
 
-    return parseBlockOfStatements(tmp, parser);
+    return parseBlockOfStatements(tmp, parser, scope);
   }
 
   @VisibleForTesting
@@ -153,9 +154,9 @@ class AutomatonASTComparator {
    * @throws InvalidAutomatonException
    * @throws InvalidConfigurationException
    */
-  private static CStatement parse(String code, CParser parser) throws InvalidAutomatonException, InvalidConfigurationException {
+  private static CStatement parse(String code, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException {
     try {
-      CAstNode statement = parser.parseSingleStatement(code);
+      CAstNode statement = parser.parseSingleStatement(code, scope);
       if (!(statement instanceof CStatement)) {
         throw new InvalidAutomatonException("Not a valid statement: " + statement.toASTString());
       }
@@ -179,10 +180,10 @@ class AutomatonASTComparator {
    * @throws InvalidConfigurationException
    * @throws CParserException
    */
-  private static List<CStatement> parseBlockOfStatements(String code, CParser parser) throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
+  private static List<CStatement> parseBlockOfStatements(String code, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
     List<CAstNode> statements;
 
-    statements = parser.parseStatements(code);
+    statements = parser.parseStatements(code, scope);
 
     for(CAstNode statement : statements) {
       if(!(statement instanceof CStatement)) {

@@ -31,6 +31,7 @@ import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
@@ -154,7 +155,7 @@ public class RedlogInterface {
       // The statement must be wrapped inside a function
       // declaration. This however gets stripped away.
       f = "void foo() { "+f+" }";
-      root = parser.parseSingleStatement(f);
+      root = parser.parseSingleStatement(f, CProgramScope.empty());
     } catch (Exception e) {
       logger.log(Level.FINEST, "Parser failed to parse Redlog output formula.", e.getMessage());
     }

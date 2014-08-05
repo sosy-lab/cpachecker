@@ -68,13 +68,15 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
 
   public static ToFormulaVisitor<CompoundInterval, BooleanFormula> getVisitor(final FormulaManagerView pFmgr,
         final FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor,
-        boolean pUseBitvectors, MachineModel pMachineModel, Map<String, CType> pVariableTypes) {
+        boolean pUseBitvectors,
+        final MachineModel pMachineModel,
+        final Map<String, CType> pVariableTypes) {
     if (pUseBitvectors) {
       return new ToBooleanFormulaVisitor<>(pFmgr, pUseBitvectors, pEvaluationVisitor, pMachineModel, pVariableTypes, new ToValueFormulaVisitorProvider<BitvectorFormula>() {
 
         @Override
         public ToFormulaVisitor<CompoundInterval, BitvectorFormula> getValueVisitor(Integer pSize, ToBooleanFormulaVisitor<BitvectorFormula> pToBooleanFormulaVisitor) {
-          return new ToBitvectorFormulaVisitor(pFmgr, pToBooleanFormulaVisitor, pEvaluationVisitor, pSize);
+          return new ToBitvectorFormulaVisitor(pFmgr, pToBooleanFormulaVisitor, pEvaluationVisitor, pSize, pVariableTypes, pMachineModel);
         }
       });
     } else {
@@ -296,6 +298,12 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
       return bf;
     }
     return getValueVisitor(pEqual).equal(operand1, operand2);
+  }
+
+  @Override
+  public BooleanFormula visit(Exclusion<CompoundInterval> pExclusion,
+      Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+    return fromValueFormula(pExclusion, pEnvironment);
   }
 
   private ValueFormulaType getValueFormula(BigInteger pValue, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment, int pSize) {

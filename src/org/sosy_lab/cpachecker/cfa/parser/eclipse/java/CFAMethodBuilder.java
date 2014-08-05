@@ -266,7 +266,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
     final CFANode nextNode = new CFANode(nameOfFunction);
     cfaNodes.add(nextNode);
-    locStack.add(nextNode);
+    locStack.push(nextNode);
 
     final BlankEdge dummyEdge =
         new BlankEdge("", fdef.getFileLocation(), startNode,
@@ -388,7 +388,7 @@ class CFAMethodBuilder extends ASTVisitor {
                                          String rawSignature, FileLocation fileLocation) {
     // When Expressions, which are expected to be side effect free, are converted,
     // all side effects are transformed to Side Assignments. This Method
-    // inserts them befor the expression is inserted in the AST:
+    // inserts them before the expression is inserted in the AST:
 
     CFANode nextNode = null;
 

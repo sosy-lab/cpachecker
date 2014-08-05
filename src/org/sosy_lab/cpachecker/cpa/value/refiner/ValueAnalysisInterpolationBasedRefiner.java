@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,10 +33,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -45,7 +43,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
@@ -67,18 +64,21 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.value.Value;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -96,8 +96,9 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
   @Option(description="whether or not to avoid restarting at assume edges after a refinement")
   private boolean avoidAssumes = false;
 
-  @Option(description="whether or not to interpolate the shortest infeasible prefix rather than the whole error path")
-  private boolean interpolateInfeasiblePrefix = false;
+  @Option(description="whether or not to interpolate the heuristically best infeasible prefix"
+      + " rather than the whole error path")
+  private boolean interpolateInfeasiblePrefix = true;
 
   /**
    * the offset in the path from where to cut-off the subtree, and restart the analysis
@@ -110,9 +111,10 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
   private UniqueAssignmentsInPathConditionState assignments = null;
 
   // statistics
-  private int totalInterpolations       = 0;
-  private int totalInterpolationQueries = 0;
-  private Timer timerInterpolation      = new Timer();
+  private StatCounter totalInterpolations   = new StatCounter("Number of interpolations");
+  private StatInt totalInterpolationQueries = new StatInt(StatKind.SUM, "Number of interpolation queries");
+  private StatInt sizeOfInterpolant         = new StatInt(StatKind.AVG, "Size of interpolant");
+  private StatTimer timerInterpolation      = new StatTimer("Time for interpolation");
 
   private final CFA cfa;
   private final LogManager logger;
@@ -120,7 +122,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
   private final ValueAnalysisInterpolator interpolator;
 
-  protected ValueAnalysisInterpolationBasedRefiner(Configuration pConfig,
+  public ValueAnalysisInterpolationBasedRefiner(Configuration pConfig,
       final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa)
       throws InvalidConfigurationException {
@@ -134,12 +136,13 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
   protected Map<ARGState, ValueAnalysisInterpolant> performInterpolation(ARGPath errorPath,
       ValueAnalysisInterpolant interpolant) throws CPAException, InterruptedException {
-    totalInterpolations++;
+    totalInterpolations.inc();
     timerInterpolation.start();
 
     interpolationOffset = -1;
 
-    List<CFAEdge> errorTrace = obtainErrorTrace(errorPath, interpolant);
+    List<CFAEdge> errorTrace = obtainErrorTrace(obtainErrorPathPrefix(errorPath, interpolant));
+
     Map<ARGState, ValueAnalysisInterpolant> pathInterpolants = new LinkedHashMap<>(errorPath.size());
 
     for (int i = 0; i < errorPath.size() - 1; i++) {
@@ -149,28 +152,30 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
         interpolant = interpolator.deriveInterpolant(errorTrace, i, interpolant);
       }
 
-      totalInterpolationQueries = totalInterpolationQueries + interpolator.getNumberOfInterpolationQueries();
-
-      // remove variables from the interpolant that belong to the scope of the returning function
-      // this is done one iteration after returning from the function, as the special FUNCTION_RETURN_VAR is needed that long
-      if (i > 0 && errorPath.get(i - 1).getSecond().getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
-        interpolant.clearScope(errorPath.get(i - 1).getSecond().getSuccessor().getFunctionName());
-      }
+      totalInterpolationQueries.setNextValue(interpolator.getNumberOfInterpolationQueries());
 
       if(!interpolant.isTrivial() && interpolationOffset == -1) {
         interpolationOffset = i + 1;
       }
 
-      pathInterpolants.put(errorPath.get(i + 1).getFirst(), interpolant);
-    }
+      if(interpolant.isTrivial()) {
+        sizeOfInterpolant.setNextValue(0);
+      }
 
-    assert interpolant.isFalse() : "final interpolant is not false";
+      else {
+        sizeOfInterpolant.setNextValue(interpolant.assignment.size());
+      }
+
+      pathInterpolants.put(errorPath.get(i + 1).getFirst(), interpolant);
+
+      assert ((i != errorTrace.size() - 1) || interpolant.isFalse()) : "final interpolant is not false";
+    }
 
     timerInterpolation.stop();
     return pathInterpolants;
   }
 
-  protected Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(ARGPath errorPath)
+  public Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(ARGPath errorPath)
       throws CPAException, InterruptedException {
 
     assignments = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
@@ -213,7 +218,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
    * @return the new refinement root
    * @throws RefinementFailedException if no refinement root can be determined
    */
-  Pair<ARGState, CFAEdge> determineRefinementRoot(ARGPath errorPath, Multimap<CFANode, MemoryLocation> increment,
+  public Pair<ARGState, CFAEdge> determineRefinementRoot(ARGPath errorPath, Multimap<CFANode, MemoryLocation> increment,
       boolean isRepeatedRefinement) throws RefinementFailedException {
 
     if(interpolationOffset == -1) {
@@ -251,35 +256,40 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
   }
 
   /**
-   * This method obtains, from the error path, the list of CFA edges to be interpolated. This might not include all CFA
-   * edges from the original path, but might be limited to the infeasible prefix.
+   * This method obtains, from the error path, the list of CFA edges to be interpolated.
    *
    * @param errorPath the error path
-   * @param interpolant the input interpolant
    * @return the list of CFA edges to be interpolated
+   */
+  private List<CFAEdge> obtainErrorTrace(ARGPath errorPath) {
+    return from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
+  }
+
+  /**
+   * This path obtains a (sub)path of the error path which is given to the interpolation procedure.
+   *
+   * @param errorPath the original error path
+   * @param interpolant the initial interpolant, i.e. the initial state, with which to check the error path.
+   * @return a (sub)path of the error path which is given to the interpolation procedure
    * @throws CPAException
    * @throws InterruptedException
    */
-  private List<CFAEdge> obtainErrorTrace(ARGPath errorPath,
-      ValueAnalysisInterpolant interpolant) throws CPAException,
-      InterruptedException {
-
+  private ARGPath obtainErrorPathPrefix(ARGPath errorPath, ValueAnalysisInterpolant interpolant)
+          throws CPAException, InterruptedException {
     if(interpolateInfeasiblePrefix) {
-      ValueAnalysisFeasibilityChecker checker;
       try {
-        checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
-        errorPath = checker.getInfeasilbePrefix(errorPath,
-            new ValueAnalysisPrecision("",
-                Configuration.builder().build(),
-                Optional.<VariableClassification>absent(),
-                new ValueAnalysisPrecision.FullPrecision()),
-            interpolant.createValueAnalysisState());
+        ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
+
+        List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath, interpolant.createValueAnalysisState());
+
+        errorPath = new ErrorPathClassifier(cfa.getVarClassification()).obtainPrefixWithLowestScore(prefixes);
+
       } catch (InvalidConfigurationException e) {
         throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
       }
     }
 
-    return from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
+    return errorPath;
   }
 
   /**
@@ -377,10 +387,11 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-    out.println("  Number of interpolations:          " + String.format(Locale.US, "%9d",totalInterpolations));
-    out.println("  Number of interpolation queries:   " + String.format(Locale.US, "%9d",totalInterpolationQueries));
-    out.println("  Max. time for singe interpolation:     " + timerInterpolation.getMaxTime().formatAs(TimeUnit.SECONDS));
-    out.println("  Total time for interpolation:          " + timerInterpolation);
+    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out).beginLevel();
+    writer.put(totalInterpolations);
+    writer.put(totalInterpolationQueries);
+    writer.put(sizeOfInterpolant);
+    writer.put(timerInterpolation);
   }
 
   public int getInterpolationOffset() {
@@ -428,11 +439,11 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      *
      * @return
      */
-    static ValueAnalysisInterpolant createInitial() {
+    public static ValueAnalysisInterpolant createInitial() {
       return new ValueAnalysisInterpolant();
     }
 
-    Set<MemoryLocation> getMemoryLocations() {
+    public Set<MemoryLocation> getMemoryLocations() {
       return isFalse()
           ? Collections.<MemoryLocation>emptySet()
           : Collections.unmodifiableSet(assignment.keySet());
@@ -504,7 +515,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      *
      * @return true, if the interpolant represents "true", else false
      */
-    private boolean isTrue() {
+    public boolean isTrue() {
       return assignment.isEmpty();
     }
 
@@ -513,7 +524,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      *
      * @return true, if the interpolant represents "false", else true
      */
-    boolean isFalse() {
+    public boolean isFalse() {
       return assignment == null;
     }
 
@@ -522,25 +533,8 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      *
      * @return true, if the interpolant is trivial, else false
      */
-    boolean isTrivial() {
+    public boolean isTrivial() {
       return isFalse() || isTrue();
-    }
-
-    /**
-     * This method clears memory locations from the assignment that belong to the given function.
-     *
-     * @param functionName the name of the function for which to remove assignments
-     */
-    private void clearScope(String functionName) {
-      if(isTrivial()) {
-        return;
-      }
-
-      for (Iterator<MemoryLocation> variableNames = assignment.keySet().iterator(); variableNames.hasNext(); ) {
-        if (variableNames.next().isOnFunctionStack(functionName)) {
-          variableNames.remove();
-        }
-      }
     }
 
     /**
@@ -584,6 +578,33 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
       }
 
       return strengthened;
+    }
+
+    /**
+     * This method weakens the interpolant to the given set of memory location identifiers.
+     *
+     * As the information on what to retain is derived in a static syntactical analysis, the set to retain is a
+     * collection of memory location identifiers, instead of {@link MemoryLocation}s, as offsets cannot be provided.
+     *
+     * @param toRetain the set of memory location identifiers to retain in the interpolant.
+     * @return the weakened interpolant
+     */
+    public ValueAnalysisInterpolant weaken(Set<String> toRetain) {
+      if (isTrivial()) {
+        return this;
+      }
+
+      ValueAnalysisInterpolant weakenedItp = new ValueAnalysisInterpolant(new HashMap<>(assignment));
+
+      for(Iterator<MemoryLocation> it = weakenedItp.assignment.keySet().iterator(); it.hasNext(); ) {
+        MemoryLocation current = it.next();
+
+        if(!toRetain.contains(current.getAsSimpleString())) {
+          it.remove();
+        }
+      }
+
+      return weakenedItp;
     }
   }
 }

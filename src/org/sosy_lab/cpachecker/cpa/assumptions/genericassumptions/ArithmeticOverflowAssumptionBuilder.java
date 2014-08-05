@@ -189,8 +189,8 @@ implements GenericAssumptionBuilder {
     case ReturnStatementEdge:
       CReturnStatementEdge returnEdge = (CReturnStatementEdge) pEdge;
 
-      if (returnEdge.getExpression() != null) {
-        visit(returnEdge.getExpression(), result);
+      if (returnEdge.getExpression().isPresent()) {
+        visit(returnEdge.getExpression().get(), result);
       }
       break;
     }

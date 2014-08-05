@@ -48,10 +48,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -309,6 +309,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       final int index1 = firstNonNull(symbolDifference.getSecond(), 1);
       final int index2 = firstNonNull(symbolDifference.getThird(), 1);
 
+      assert symbolName != null;
+      assert resultSSA != null;
       BooleanFormula mergeFormula;
       if (index1 > index2 && index1 > 1) {
         // i2:smaller, i1:bigger

@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -56,14 +57,16 @@ import com.google.common.collect.ImmutableMap;
 public class PathChecker {
 
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
   private final PathFormulaManager pmgr;
   private final Solver solver;
   private final MachineModel machineModel;
 
-  public PathChecker(LogManager pLogger,
+  public PathChecker(LogManager pLogger, ShutdownNotifier pShutdownNotifier,
       PathFormulaManager pPmgr, Solver pSolver,
       MachineModel pMachineModel) {
     logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
     pmgr = pPmgr;
     solver = pSolver;
     machineModel = pMachineModel;
@@ -132,9 +135,9 @@ public class PathChecker {
   }
 
   public CFAPathWithAssignments extractVariableAssignment(List<CFAEdge> pPath,
-      List<SSAMap> pSsaMaps, Model pModel) {
+      List<SSAMap> pSsaMaps, Model pModel) throws InterruptedException {
 
-    AssignmentToPathAllocator allocator = new AssignmentToPathAllocator(logger);
+    AssignmentToPathAllocator allocator = new AssignmentToPathAllocator(logger, shutdownNotifier);
 
     return allocator.allocateAssignmentsToPath(pPath, pModel, pSsaMaps, machineModel);
   }

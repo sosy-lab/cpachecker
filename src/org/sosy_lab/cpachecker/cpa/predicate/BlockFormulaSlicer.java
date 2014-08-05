@@ -555,12 +555,12 @@ public class BlockFormulaSlicer {
    * The FUNCTION_RETURN_VARIABLE is equal to the right side ("x"). */
   private boolean handleReturnStatement(CReturnStatementEdge edge,
       Collection<String> importantVars) {
-    CExpression rhs = edge.getExpression();
 
-    if (rhs == null) {
+    if (!edge.getExpression().isPresent()) {
       return false;
 
     } else {
+      CExpression rhs = edge.getExpression().get();
 
       String functionName = edge.getPredecessor().getFunctionName();
       if (importantVars.remove(buildVarName(functionName, FUNCTION_RETURN_VARIABLE))) {

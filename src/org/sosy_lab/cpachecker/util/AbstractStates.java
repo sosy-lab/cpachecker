@@ -68,7 +68,7 @@ public final class AbstractStates {
    * be a sub-type of the type passed as argument.
    *
    * @param <T> The type of the wrapped state.
-   * @param An abstract state
+   * @param pState An abstract state
    * @param pType The class object of the type of the wrapped state.
    * @return An instance of an state with type T or null if there is none.
    */
@@ -93,9 +93,17 @@ public final class AbstractStates {
   }
 
   /**
-   * Apply {@link #extractStateByType(AbstractState, Class)} to all states
-   * of an Iterable.
-   * The returned Iterable does not contain nulls.
+   * Applies {@link #extractStateByType(AbstractState, Class)} to all states
+   * of a given {@link Iterable}.
+   *
+   * @param states an <code>Iterable</code> over all the states
+   *        <code>extractStateByType(AbstractState, Class)</code>
+   *        should be applied on
+   * @param pType the type to use in each call of
+   *        <code>extractStateByType(AbstractState, Class)</code>
+   *
+   * @return an <code>Iterable</code> over all the returned states
+   *         without <code>null</code> values
    */
   public static <T extends AbstractState> FluentIterable<T> projectToType(Iterable<AbstractState> states, Class<T> pType) {
     return from(states).transform(toState(pType))
@@ -154,7 +162,15 @@ public final class AbstractStates {
   };
 
   /**
-   * Function object for {@link #extractStateByType(AbstractState, Class)}.
+   * Returns a {@link Function} object for {@link #extractStateByType(AbstractState, Class)}.
+   *
+   * @param pType the type to use in the call of
+   *        <code>extractStateByType(AbstractState, Class)</code> for parameter
+   *        <code>Class</code>
+   *
+   * @return a <code>Function</code> for
+   *        <code>extractStateByType(AbstractState, Class)</code> using the given
+   *        type
    */
   public static <T extends AbstractState>
                 Function<AbstractState, T> toState(final Class<T> pType) {
@@ -168,9 +184,27 @@ public final class AbstractStates {
   }
 
   /**
-   * Creates an iterable that enumerates all the AbstractStates contained in
-   * a single state, including the root state itself.
-   * The tree of states is traversed in pre-order.
+   * Creates a {@link FluentIterable} that enumerates all the <code>AbstractStates</code>
+   * contained in a given state pre-order. The root state itself is included, the states
+   * are unwrapped recursively.
+   *
+   * <p><b>Example</b>: State A wraps states B and C. State B wraps states D and E.<br />
+   *             The resulting tree (see below) is traversed pre-order.
+   * <pre>
+   *                  A
+   *                 / \
+   *                B   C
+   *               / \
+   *              D   E
+   * </pre>
+   * The returned <code>FluentIterable</code> iterates over the items in the following
+   * order : A, B, D, E, C.
+   * </p>
+   *
+   * @param as the root state
+   *
+   * @return a <code>FluentIterable</code> over the given root state and all states
+   *         that are wrapped in it, recursively
    */
   public static FluentIterable<AbstractState> asIterable(final AbstractState as) {
 

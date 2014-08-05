@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
@@ -204,7 +203,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       List<BooleanFormula> pathFormulas = new ArrayList<>(path.size());
       addPathFormulasToList(path, pathFormulas);
 
-      CounterexampleTraceInfo cex = imgr.buildCounterexampleTrace(pathFormulas, Collections.<ARGState>emptySet());
+      CounterexampleTraceInfo cex = imgr.buildCounterexampleTrace(pathFormulas);
 
       if (!cex.isSpurious()) {
         return Collections.emptyList(); // real counterexample
@@ -328,7 +327,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     path.add(0, x); // now path is [x; v] (including x and v)
     assert formulas.size() == path.size() + 1;
 
-    CounterexampleTraceInfo interpolantInfo = imgr.buildCounterexampleTrace(formulas, Collections.<ARGState>emptySet());
+    CounterexampleTraceInfo interpolantInfo = imgr.buildCounterexampleTrace(formulas);
 
     if (!interpolantInfo.isSpurious()) {
       logger.log(Level.FINER, "Forced covering unsuccessful.");

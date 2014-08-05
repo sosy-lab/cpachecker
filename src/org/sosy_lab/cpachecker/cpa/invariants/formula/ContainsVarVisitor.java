@@ -90,6 +90,11 @@ public class ContainsVarVisitor<T> implements ParameterizedInvariantsFormulaVisi
   }
 
   @Override
+  public Boolean visit(Exclusion<T> pExclusion, String pParameter) {
+    return pExclusion.getExcluded().accept(this, pParameter);
+  }
+
+  @Override
   public Boolean visit(LessThan<T> pLessThan, String pVarName) {
     return pLessThan.getOperand1().accept(this, pVarName)
         || pLessThan.getOperand2().accept(this, pVarName);

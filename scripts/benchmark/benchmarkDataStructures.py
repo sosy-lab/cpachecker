@@ -45,6 +45,7 @@ HARDTIMELIMIT = 'hardtimelimit'
 
 PROPERTY_TAG = "propertyfile"
 
+_BYTE_FACTOR = 1000 # byte in kilobyte
 
 def substituteVars(oldList, runSet, sourcefile=None):
     """
@@ -57,18 +58,18 @@ def substituteVars(oldList, runSet, sourcefile=None):
     keyValueList = [('${benchmark_name}',     benchmark.name),
                     ('${benchmark_date}',     benchmark.date),
                     ('${benchmark_instance}', benchmark.instance),
-                    ('${benchmark_path}',     benchmark.baseDir),
+                    ('${benchmark_path}',     benchmark.baseDir or '.'),
                     ('${benchmark_path_abs}', os.path.abspath(benchmark.baseDir)),
                     ('${benchmark_file}',     os.path.basename(benchmark.benchmarkFile)),
                     ('${benchmark_file_abs}', os.path.abspath(os.path.basename(benchmark.benchmarkFile))),
-                    ('${logfile_path}',       os.path.dirname(runSet.logFolder)),
+                    ('${logfile_path}',       os.path.dirname(runSet.logFolder) or '.'),
                     ('${logfile_path_abs}',   os.path.abspath(runSet.logFolder)),
                     ('${rundefinition_name}', runSet.realName if runSet.realName else ''),
                     ('${test_name}',          runSet.realName if runSet.realName else '')]
 
     if sourcefile:
         keyValueList.append(('${sourcefile_name}', os.path.basename(sourcefile)))
-        keyValueList.append(('${sourcefile_path}', os.path.dirname(sourcefile)))
+        keyValueList.append(('${sourcefile_path}', os.path.dirname(sourcefile) or '.'))
         keyValueList.append(('${sourcefile_path_abs}', os.path.dirname(os.path.abspath(sourcefile))))
 
     # do not use keys twice
@@ -539,7 +540,7 @@ class Run():
         if self.propertyfile is None:
             if not self.propertyfile in loggedMissingPropertyFiles:
                 loggedMissingPropertyFiles.add(self.propertyfile)
-                logging.warning('No propertyfile specified. Results will be handled as UNKNOWN.')
+                logging.warning('No propertyfile specified. Results for C programs will be handled as UNKNOWN.')
         else:
             # we check two cases: direct filename or user-defined substitution, one of them must be a 'file'
             # TODO: do we need the second case? it is equal to previous used option "-spec ${sourcefile_path}/ALL.prp"
@@ -575,7 +576,9 @@ class Run():
 
 
     def getCmdline(self):
-        args = self.runSet.benchmark.tool.getCmdline(self.runSet.benchmark.executable, self.options, self.sourcefiles, self.propertyfile)
+        args = self.runSet.benchmark.tool.getCmdline(
+            self.runSet.benchmark.executable, self.options, self.sourcefiles, 
+            self.propertyfile, self.runSet.benchmark.rlimits)
         args = [os.path.expandvars(arg) for arg in args]
         args = [os.path.expanduser(arg) for arg in args]
         return args;
@@ -602,7 +605,7 @@ class Run():
         # here. if this is the case.
         # However, we don't want to forget more specific results like SEGFAULT,
         # so we do this only if the result is a "normal" one like TRUE.
-        if self.status in result.STR_LIST and isTimeout:
+        if self.status in result.STATUS_LIST and isTimeout:
             self.status = "TIMEOUT"
             self.category = result.CATEGORY_ERROR
         if returnvalue is not None \
@@ -610,7 +613,7 @@ class Run():
                 and MEMLIMIT in rlimits \
                 and 'memUsage' in self.values \
                 and not self.values['memUsage'] is None \
-                and int(self.values['memUsage']) >= (rlimits[MEMLIMIT] * 1024 * 1024 * 0.999):
+                and int(self.values['memUsage']) >= (rlimits[MEMLIMIT] * _BYTE_FACTOR * _BYTE_FACTOR * 0.999):
             self.status = 'OUT OF MEMORY'
             self.category = result.CATEGORY_ERROR
 

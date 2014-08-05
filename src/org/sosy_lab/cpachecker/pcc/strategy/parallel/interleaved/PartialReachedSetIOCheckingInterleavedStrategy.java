@@ -80,6 +80,7 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
     ioHelper = new PartitioningIOHelper(pConfig, pLogger, pShutdownNotifier, pCpa);
     cpa = pCpa;
     shutdownNotifier = pShutdownNotifier;
+    addPCCStatistic(ioHelper.getPartitioningStatistc());
   }
 
   @Override
@@ -149,14 +150,10 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
 
   @Override
   protected void writeProofToStream(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached)
-      throws IOException,
-      InvalidConfigurationException {
-    Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> partitioning;
-    try {
-      partitioning = ioHelper.computePartialReachedSetAndPartition(pReached);
-    } catch (InterruptedException e) {
-      throw new IOException("Write preparation took too long", e);
-    }
+      throws IOException, InvalidConfigurationException, InterruptedException {
+    Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> partitioning =
+        ioHelper.computePartialReachedSetAndPartition(pReached);
+
     ioHelper.writeMetadata(pOut, pReached.size(), partitioning.getSecond().size());
     for (Set<Integer> partition : partitioning.getSecond()) {
       ioHelper.writePartition(pOut, partition, partitioning.getFirst());
@@ -202,7 +199,7 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
         ObjectInputStream o = streams.getThird();
         ioHelper.readMetadata(o, false);
         for (int i = 0; i < ioHelper.getNumPartitions() && checkResult.get(); i++) {
-          ioHelper.readPartition(o);
+          ioHelper.readPartition(o, stats);
           if (shutdownNotifier.shouldShutdown()) {
             abortPreparation();
             break;

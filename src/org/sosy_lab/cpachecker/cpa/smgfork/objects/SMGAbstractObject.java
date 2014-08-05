@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smgfork.objects;
 
-
-
 public interface SMGAbstractObject {
 
   public boolean isAbstract();

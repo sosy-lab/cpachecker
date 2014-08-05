@@ -45,6 +45,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -91,7 +92,7 @@ public class AutomatonInternalTest {
     ComplexSymbolFactory sf = new ComplexSymbolFactory();
     try (InputStream input = defaultSpec.asByteSource().openStream()) {
       AutomatonScanner scanner = new AutomatonScanner(input, defaultSpec, config, logger, sf);
-      Symbol symbol = new AutomatonParser(scanner, sf, logger, parser).parse();
+      Symbol symbol = new AutomatonParser(scanner, sf, logger, parser, CProgramScope.empty()).parse();
       @SuppressWarnings("unchecked")
       List<Automaton> as = (List<Automaton>) symbol.value;
       for (Automaton a : as) {
@@ -203,8 +204,8 @@ public class AutomatonInternalTest {
   @Test
   public void testJokerReplacementInAST() throws InvalidAutomatonException, InvalidConfigurationException {
     // tests the replacement of Joker expressions in the AST comparison
-    ASTMatcher patternAST = AutomatonASTComparator.generatePatternAST("$20 = $5($1, $?);", parser);
-    CAstNode sourceAST  = AutomatonASTComparator.generateSourceAST("var1 = function(var2, egal);", parser);
+    ASTMatcher patternAST = AutomatonASTComparator.generatePatternAST("$20 = $5($1, $?);", parser, CProgramScope.empty());
+    CAstNode sourceAST  = AutomatonASTComparator.generateSourceAST("var1 = function(var2, egal);", parser, CProgramScope.empty());
     AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null, null);
 
     boolean result = patternAST.matches(sourceAST, args);
@@ -269,8 +270,8 @@ public class AutomatonInternalTest {
    */
   public void testAST(String src, String pattern, boolean result) throws InvalidAutomatonException, InvalidConfigurationException {
     AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null, null);
-    CAstNode sourceAST  = AutomatonASTComparator.generateSourceAST(src, parser);
-    ASTMatcher patternAST = AutomatonASTComparator.generatePatternAST(pattern, parser);
+    CAstNode sourceAST  = AutomatonASTComparator.generateSourceAST(src, parser, CProgramScope.empty());
+    ASTMatcher patternAST = AutomatonASTComparator.generatePatternAST(pattern, parser, CProgramScope.empty());
 
     Assert.assertEquals(result, patternAST.matches(sourceAST, args));
   }

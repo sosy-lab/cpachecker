@@ -90,29 +90,19 @@ public class ARGSubtreeRemover {
     List<ARGState> path = trimPath(pPath, element);
     assert path.get(path.size() - 1).equals(element);
 
-    Set<ARGState> relevantCallNodes = getRelevantDefinitionNodes(path);
+    List<ARGState> relevantCallNodes = getRelevantDefinitionNodes(path);
+    assert path.containsAll(relevantCallNodes) : "only nodes of path are relevant";
+    assert relevantCallNodes.get(0) == path.get(0) : "root should be relevant";
 
-    Set<Pair<ARGReachedSet, ARGState>> neededRemoveSubtreeCalls = new LinkedHashSet<>();
     Set<Pair<ARGState, ARGState>> neededRemoveCachedSubtreeCalls = new LinkedHashSet<>();
 
-    ARGState lastElement = null;
     //iterate from root to element and remove all subtrees for subgraph calls
-    for (ARGState pathElement : Iterables.skip(path, 1)) {
-      if (pathElement.equals(element)) {
-        break;
-      }
-
-      if (relevantCallNodes.contains(pathElement)) {
-        ARGState currentElement = pPathElementToReachedState.get(pathElement);
-
-        if (lastElement == null) {
-          neededRemoveSubtreeCalls.add(Pair.of(mainReachedSet, currentElement));
-        } else {
-          neededRemoveCachedSubtreeCalls.add(Pair.of(lastElement, currentElement));
-        }
-
-        lastElement = currentElement;
-      }
+    for (int i = 0; i < relevantCallNodes.size() - 1; i++) { // ignore root and the last element
+      final ARGState pathElement = relevantCallNodes.get(i);
+      final ARGState nextElement = relevantCallNodes.get(i+1);
+      neededRemoveCachedSubtreeCalls.add(Pair.of(
+              pPathElementToReachedState.get(pathElement),
+              pPathElementToReachedState.get(nextElement)));
     }
 
     if (bamCache.doesAggressiveCaching()) {
@@ -120,19 +110,25 @@ public class ARGSubtreeRemover {
               neededRemoveCachedSubtreeCalls);
     }
 
-    for (Pair<ARGReachedSet, ARGState> removeSubtreeArguments : neededRemoveSubtreeCalls) {
-      removeSubtree(removeSubtreeArguments.getFirst(), removeSubtreeArguments.getSecond());
+    final ARGState lastRelevantNode = pPathElementToReachedState.get(Iterables.getLast(relevantCallNodes));
+    for (final Pair<ARGState, ARGState> removeCachedSubtreeArguments : neededRemoveCachedSubtreeCalls) {
+      final List<Precision> newPrecisions;
+      if (removeCachedSubtreeArguments.getSecond() == lastRelevantNode) { // last iteration
+        newPrecisions = pNewPrecisions;
+      } else {
+        newPrecisions = null; // ignore newPrecisions for all iterations except the last one
+      }
+      removeCachedSubtree(removeCachedSubtreeArguments.getFirst(), removeCachedSubtreeArguments.getSecond(), newPrecisions, pNewPrecisionTypes);
     }
 
-    for (Pair<ARGState, ARGState> removeCachedSubtreeArguments : neededRemoveCachedSubtreeCalls) {
-      removeCachedSubtree(removeCachedSubtreeArguments.getFirst(), removeCachedSubtreeArguments.getSecond(), null, pNewPrecisionTypes);
-    }
+    removeCachedSubtree(pPathElementToReachedState.get(Iterables.getLast(relevantCallNodes)),
+            pPathElementToReachedState.get(element), pNewPrecisions, pNewPrecisionTypes);
 
-    if (lastElement == null) {
-      removeSubtree(mainReachedSet, pPathElementToReachedState.get(element), pNewPrecisions, pNewPrecisionTypes);
-    } else {
-      removeCachedSubtree(lastElement, pPathElementToReachedState.get(element), pNewPrecisions, pNewPrecisionTypes);
-    }
+    // the main-reachedset contains only the root, exit-states and targets.
+    // we assume, that the current refinement was caused by a target-state.
+    final ARGState lastState = (ARGState)mainReachedSet.asReachedSet().getLastState();
+    assert lastState.isTarget();
+    mainReachedSet.removeSubtree(lastState);
   }
 
   /**
@@ -147,7 +143,11 @@ public class ARGSubtreeRemover {
   }
 
   static void removeSubtree(ARGReachedSet reachedSet, ARGState argElement) {
-    reachedSet.removeSubtree(argElement);
+    if (BAMTransferRelation.isHeadOfMainFunction(extractLocation(argElement))) {
+      reachedSet.removeSubtree((ARGState)reachedSet.asReachedSet().getLastState());
+    } else {
+      reachedSet.removeSubtree(argElement);
+    }
   }
 
   private static void removeSubtree(ARGReachedSet reachedSet, ARGState argElement,
@@ -166,17 +166,19 @@ public class ARGSubtreeRemover {
 
     try {
       CFANode rootNode = extractLocation(rootState);
+      Block rootSubtree = partitioning.getBlockForCallNode(rootNode);
 
       logger.log(Level.FINER, "Remove cached subtree for ", removeElement, " (rootNode: ", rootNode, ") issued");
 
-      Block rootSubtree = partitioning.getBlockForCallNode(rootNode);
       AbstractState reducedRootState = wrappedReducer.getVariableReducedState(rootState, rootSubtree, rootNode);
       ReachedSet reachedSet = abstractStateToReachedSet.get(rootState);
 
-      if (!reachedSet.contains(removeElement)) {
+      if (removeElement.isDestroyed()) {
         //apparently, removeElement was removed due to prior deletions
         return;
       }
+
+      assert reachedSet.contains(removeElement) : "removing state from wrong reachedSet: " + removeElement;
 
       Precision removePrecision = reachedSet.getPrecision(removeElement);
       ArrayList<Precision> newReducedRemovePrecision = null; // TODO newReducedRemovePrecision: NullPointerException 20 lines later!
@@ -210,40 +212,37 @@ public class ARGSubtreeRemover {
     }
   }
 
-  private Set<ARGState> getRelevantDefinitionNodes(List<ARGState> path) {
+  /** returns only those states/nodes, where a new block starts that is 'open' at the end of the path. */
+  private List<ARGState> getRelevantDefinitionNodes(List<ARGState> path) {
     Deque<ARGState> openCallElements = new ArrayDeque<>();
     Deque<Block> openSubtrees = new ArrayDeque<>();
 
-    ARGState prevElement = path.get(1);
-    for (ARGState currentElement : Iterables.skip(path, 2)) {
-      CFANode currNode = extractLocation(currentElement);
-      CFANode prevNode = extractLocation(prevElement);
-      if (partitioning.isCallNode(prevNode)
-              && !partitioning.getBlockForCallNode(prevNode).equals(openSubtrees.peek())) {
-        if (!(BAMTransferRelation.isHeadOfMainFunction(prevNode))) {
-          openCallElements.push(prevElement);
-          openSubtrees.push(partitioning.getBlockForCallNode(prevNode));
-        }
+    final ARGState lastState = path.get(path.size() - 1);
+    for (final ARGState pathState : path) {
+      assert openSubtrees.size() == openCallElements.size();
+      CFANode node = extractLocation(pathState);
 
+      // we use a loop here, because a return-node can be the exit of several blocks at once.
+      while (!openSubtrees.isEmpty() && openSubtrees.getLast().isReturnNode(node) && pathState != lastState) {
+        // we are leaving a block,
+        // remove/pop the block and its start-state from the stacks
+        openCallElements.removeLast();
+        openSubtrees.removeLast();
       }
-      while (!openSubtrees.isEmpty()
-              && openSubtrees.peek().isReturnNode(prevNode)
-              && !openSubtrees.peek().getNodes().contains(currNode)) {
-        openCallElements.pop();
-        openSubtrees.pop();
+
+      if (partitioning.isCallNode(node)
+              && !partitioning.getBlockForCallNode(node).equals(openSubtrees.peek())) {
+        // we have a callnode, but current block is wrong, add new currentBlock and state as relevant.
+        // the block can be equal, if this is a loop-block.
+        openCallElements.addLast(pathState);
+        openSubtrees.addLast(partitioning.getBlockForCallNode(node));
       }
-      prevElement = currentElement;
     }
 
-    ARGState lastElement = path.get(path.size() - 1);
-    if (partitioning.isCallNode(extractLocation(lastElement))) {
-      openCallElements.push(lastElement);
-    }
-
-    return new HashSet<>(openCallElements);
+    return new ArrayList<>(openCallElements);
   }
 
-  private void ensureExactCacheHitsOnPath(ARGReachedSet mainReachedSet, ARGPath pPath, ARGState pElement,
+  private void ensureExactCacheHitsOnPath(ARGReachedSet mainReachedSet, ARGPath pPath, final ARGState pElement,
                                           List<Precision> pNewPrecisions, Map<ARGState, ARGState> pPathElementToReachedState,
                                           Set<Pair<ARGState, ARGState>> neededRemoveCachedSubtreeCalls) {
     Map<ARGState, UnmodifiableReachedSet> pathElementToOuterReachedSet = new HashMap<>();
@@ -290,39 +289,30 @@ public class ARGSubtreeRemover {
     Deque<UnmodifiableReachedSet> openReachedSets = new ArrayDeque<>();
     openReachedSets.push(mainReachedSet);
 
-    ARGState prevElement = path.get(1).getFirst();
-    for (Pair<ARGState, CFAEdge> currentElementPair : Iterables.skip(path, 2)) {
-      ARGState currentElement = currentElementPair.getFirst();
-      CFANode currNode = extractLocation(currentElement);
-      CFANode prevNode = extractLocation(prevElement);
+    for (Pair<ARGState, CFAEdge> currentElementPair : path) {
+      ARGState pathState = currentElementPair.getFirst();
+      CFANode node = extractLocation(pathState);
 
-      pathElementToOuterReachedSet.put(prevElement, openReachedSets.peek());
-
-      if (partitioning.isCallNode(prevNode)
-              && !partitioning.getBlockForCallNode(prevNode).equals(openSubtrees.peek())) {
-        if (!(BAMTransferRelation.isHeadOfMainFunction(prevNode))) {
-          openSubtrees.push(partitioning.getBlockForCallNode(prevNode));
-          openReachedSets.push(abstractStateToReachedSet.get(pPathElementToReachedState.get(prevElement)));
-          callNodes.add(prevElement);
-        }
-      }
-
-      while (!openSubtrees.isEmpty()
-              && openSubtrees.peek().isReturnNode(prevNode)
-              && !openSubtrees.peek().getNodes().contains(currNode)) {
+      // we use a loop here, because a return-node can be the exit of several blocks at once.
+      // we have to handle returnNodes before entryNodes, because some nodes can be both,
+      // and the transferRelation also handles entryNodes as first case.
+      while (!openSubtrees.isEmpty() && openSubtrees.peek().isReturnNode(node)) {
         openSubtrees.pop();
         openReachedSets.pop();
-        returnNodes.add(prevElement);
+        returnNodes.add(pathState);
       }
 
-      prevElement = currentElement;
-    }
+      // this line comes after handling returnStates --> returnStates from path are part of the outer-block-reachedSet
+      pathElementToOuterReachedSet.put(pathState, openReachedSets.peek());
 
-    ARGState lastElement = path.get(path.size() - 1).getFirst();
-    if (partitioning.isReturnNode(extractLocation(lastElement))) {
-      returnNodes.add(lastElement);
+      if (partitioning.isCallNode(node)
+              && !partitioning.getBlockForCallNode(node).equals(openSubtrees.peek())) {
+        // the block can be equal, if this is a loop-block.
+          openSubtrees.push(partitioning.getBlockForCallNode(node));
+          openReachedSets.push(abstractStateToReachedSet.get(pPathElementToReachedState.get(pathState)));
+          callNodes.add(pathState);
+      }
     }
-    pathElementToOuterReachedSet.put(lastElement, openReachedSets.peek());
 
     return Pair.of(callNodes, returnNodes);
   }

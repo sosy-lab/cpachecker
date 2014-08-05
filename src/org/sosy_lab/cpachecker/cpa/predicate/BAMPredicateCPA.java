@@ -75,9 +75,9 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
 
     RelevantPredicatesComputer relevantPredicatesComputer;
     if (auxiliaryPredicateComputer) {
-      relevantPredicatesComputer = new AuxiliaryComputer();
+      relevantPredicatesComputer = new AuxiliaryComputer(getFormulaManager());
     } else {
-      relevantPredicatesComputer = new RefineableOccurrenceComputer();
+      relevantPredicatesComputer = new RefineableOccurrenceComputer(getFormulaManager());
     }
     relevantPredicatesComputer = new CachingRelevantPredicatesComputer(relevantPredicatesComputer);
     this.relevantPredicatesComputer = relevantPredicatesComputer;

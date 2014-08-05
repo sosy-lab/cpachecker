@@ -27,8 +27,16 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -54,14 +62,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 
 @Options(prefix="cpa.arg.errorPath")
 public class CEXExporter {
@@ -292,6 +294,7 @@ public class CEXExporter {
           out.append(edge.toString());
           out.append(System.lineSeparator());
           if (model != null) {
+            //TODO Erase, counterexample is supposed to be independent of Assignable terms
             for (Model.AssignableTerm term : model.getAssignedTermsPerEdge().getAllAssignedTerms(edge)) {
               out.append('\t');
               out.append(term.toString());
@@ -322,11 +325,9 @@ public class CEXExporter {
         out.append(edgeWithAssignments.getCFAEdge().toString());
         out.append(System.lineSeparator());
 
-        String cCode = edgeWithAssignments.getAsCode();
+        String cCode = edgeWithAssignments.prettyPrintCode(1);
         if (cCode != null) {
-          out.append('\t');
           out.append(cCode);
-          out.append(System.lineSeparator());
         }
 
         String comment = edgeWithAssignments.getComment();

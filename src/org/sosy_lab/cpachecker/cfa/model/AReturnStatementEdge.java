@@ -46,7 +46,7 @@ public class AReturnStatementEdge extends AbstractCFAEdge {
     return CFAEdgeType.ReturnStatementEdge;
   }
 
-  public IAExpression getExpression() {
+  public Optional<? extends IAExpression> getExpression() {
     return rawAST.getReturnValue();
   }
 

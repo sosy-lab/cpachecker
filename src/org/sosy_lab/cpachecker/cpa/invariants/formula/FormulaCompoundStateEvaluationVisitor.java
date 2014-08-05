@@ -136,6 +136,16 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
   }
 
   @Override
+  public CompoundInterval visit(Exclusion<CompoundInterval> pExclusion,
+      Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+    CompoundInterval excluded = pExclusion.getExcluded().accept(this, pEnvironment);
+    if (excluded.isSingleton()) {
+      return excluded.invert();
+    }
+    return CompoundInterval.top();
+  }
+
+  @Override
   public CompoundInterval visit(LessThan<CompoundInterval> pLessThan, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return pLessThan.getOperand1().accept(this, pEnvironment).lessThan(pLessThan.getOperand2().accept(this, pEnvironment));
   }

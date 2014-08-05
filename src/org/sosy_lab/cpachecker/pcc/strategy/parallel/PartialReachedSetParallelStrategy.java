@@ -24,18 +24,22 @@
 package org.sosy_lab.cpachecker.pcc.strategy.parallel;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -43,89 +47,167 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.pcc.strategy.PartialReachedSetStrategy;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-@Options
+@Options(prefix = "pcc.partial")
 public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy {
+
+  @Option(
+      description = "If enabled, distributes checking of partial elements depending on actual checking costs, else uses the number of elements")
+  private boolean enableLoadDistribution = false;
 
   public PartialReachedSetParallelStrategy(Configuration pConfig, LogManager pLogger,
       ShutdownNotifier pShutdownNotifier, PropertyCheckerCPA pCpa) throws InvalidConfigurationException {
     super(pConfig, pLogger, pShutdownNotifier, pCpa);
+    pConfig.inject(this);
   }
 
   @Override
   public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    /* TODO parallelize, currently non-parallelized version,
-     *  consider how to integrate shutdown notifier in here and
-     *  avoid unprotected access to stats*/
- // TODO for parallelization use Runtime.getRuntime().availableProcessors(); to identify maximal number of parallel threads
-    int certificateSize = 0;
 
     List<AbstractState> certificate = new ArrayList<>(savedReachedSetSize);
-    for (AbstractState elem : reachedSet) {
-      certificate.add(elem);
-    }
-
-    /*also restrict stop to elements of same location as analysis does*/
-    StopOperator stop = cpa.getStopOperator();
     Precision initialPrec = pReachedSet.getPrecision(pReachedSet.getFirstState());
 
-    // check initial element
-    AbstractState initialState = pReachedSet.popFromWaitlist();
-    assert (initialState == pReachedSet.getFirstState() && pReachedSet.size() == 1);
+    AtomicBoolean result = new AtomicBoolean(true);
+    AtomicInteger nextElement = new AtomicInteger(0);
+    Lock lock = new ReentrantLock();
+    Semaphore waitForThreads = new Semaphore(0);
 
-    try {
-      stats.getStopTimer().start();
-      if (!stop.stop(initialState, statesPerLocation.get(AbstractStates.extractLocation(initialState)), initialPrec)) {
-        logger.log(Level.FINE, "Initial element not in partial reached set.", "Add to elements whose successors ",
-            "must be computed.");
-        certificate.add(initialState);
-      }
-    } catch (CPAException e) {
-      logger.logException(Level.FINE, e, "Stop check failed for initial element.");
-      return false;
-    } finally {
-      stats.getStopTimer().stop();
+    PartialChecker[] transitiveClosureThreads = new PartialChecker[numThreads];
+    for (int i = 0; i < transitiveClosureThreads.length; i++) {
+      transitiveClosureThreads[i] =
+          enableLoadDistribution ? new PartialChecker(nextElement, certificate, initialPrec, result, lock,
+              waitForThreads) :
+              new PartialChecker(i, certificate, initialPrec, result, lock, waitForThreads);
+      transitiveClosureThreads[i].start();
     }
 
-    // check if elements form transitive closure
-    Collection<? extends AbstractState> successors;
-    while (certificateSize<certificate.size()) {
+    try {
+      waitForThreads.acquire(numThreads);
 
-      shutdownNotifier.shutdownIfNecessary();
-      stats.increaseIteration();
+      if (!result.get()) {
+        logger.log(Level.FINE, "Checking failed");
+        return false;
+      }
+
+      // check initial element
+      AbstractState initialState = pReachedSet.popFromWaitlist();
+      assert (initialState == pReachedSet.getFirstState() && pReachedSet.size() == 1);
 
       try {
-        stats.getTransferTimer().start();
-        successors =
-            cpa.getTransferRelation().getAbstractSuccessors(certificate.get(certificateSize++), initialPrec,
-                null);
-        stats.getTransferTimer().stop();
-
-        for (AbstractState succ : successors) {
-          try {
-            stats.getStopTimer().start();
-            if (!stop.stop(succ, statesPerLocation.get(AbstractStates.extractLocation(succ)), initialPrec)) {
-              logger.log(Level.FINE, "Successor ", succ, " not in partial reached set.",
-                  "Add to elements whose successors ", "must be computed.");
-              if (stopAddingAtReachedSetSize && savedReachedSetSize == certificate.size()) { return false; }
-              certificate.add(succ);
-            }
-          } finally {
-            stats.getStopTimer().stop();
-          }
+        stats.getStopTimer().start();
+        if (!cpa.getStopOperator().stop(initialState,
+            statesPerLocation.get(AbstractStates.extractLocation(initialState)), initialPrec)) {
+          logger.log(Level.FINE, "Initial element not in partial reached set.");
+          return false;
         }
-      } catch (CPATransferException e) {
-        logger.logException(Level.FINE, e, "Computation of successors failed.");
-        return false;
       } catch (CPAException e) {
-        logger.logException(Level.FINE, e, "Stop check failed for successor.");
+        logger.logException(Level.FINE, e, "Stop check failed for initial element.");
         return false;
+      } finally {
+        stats.getStopTimer().stop();
+      }
+
+
+      stats.getPropertyCheckingTimer().start();
+      try {
+        return cpa.getPropChecker().satisfiesProperty(certificate);
+      } finally {
+        stats.getPropertyCheckingTimer().stop();
+      }
+    } finally {
+      for (Thread t : transitiveClosureThreads) {
+        t.interrupt();
       }
     }
-    stats.getPropertyCheckingTimer().start();
-    try {
-      return cpa.getPropChecker().satisfiesProperty(certificate);
-    } finally {
-      stats.getPropertyCheckingTimer().stop();
+  }
+
+  private class PartialChecker extends Thread {
+
+    private final int startIndex;
+    private final List<AbstractState> certificate;
+    private final Precision initPrec;
+
+    private final AtomicInteger indexProvider;
+    private final AtomicBoolean result;
+    private final Lock mutex;
+    private final Semaphore coordination;
+
+    public PartialChecker(final int pStartIndex, final List<AbstractState> pCertificate, final Precision pInitPrec,
+        final AtomicBoolean pResult, final Lock pMutex, final Semaphore pCoordinate) {
+      startIndex = pStartIndex;
+      certificate = pCertificate;
+      initPrec = pInitPrec;
+      result = pResult;
+      mutex = pMutex;
+      coordination = pCoordinate;
+      assert(!enableLoadDistribution);
+      indexProvider = null;
+    }
+
+    public PartialChecker(final AtomicInteger pIndexProvider, final List<AbstractState> pCertificate, final Precision pInitPrec,
+        final AtomicBoolean pResult, final Lock pMutex, final Semaphore pCoordinate) {
+      assert(enableLoadDistribution);
+      startIndex = 0;
+      certificate = pCertificate;
+      initPrec = pInitPrec;
+      result = pResult;
+      mutex = pMutex;
+      coordination = pCoordinate;
+      indexProvider = pIndexProvider;
+    }
+
+    @Override
+    public void run() {
+      List<AbstractState> currentStates = new ArrayList<>(savedReachedSetSize / numThreads);
+      try {
+        int index = 0;
+
+        for (int i = enableLoadDistribution ? indexProvider.getAndIncrement() : startIndex; i < reachedSet.length
+            && result.get(); i = enableLoadDistribution ? indexProvider.getAndIncrement() : i + numThreads) {
+          shutdownNotifier.shutdownIfNecessary();
+          currentStates.add(reachedSet[i]);
+
+          while (index < currentStates.size() && result.get()) {
+            shutdownNotifier.shutdownIfNecessary();
+
+            for (AbstractState succ : cpa.getTransferRelation().getAbstractSuccessors(currentStates.get(index++),
+                initPrec, null)) {
+              if (!cpa.getStopOperator().stop(succ, statesPerLocation.get(AbstractStates.extractLocation(succ)),
+                  initPrec)) {
+                if (stopAddingAtReachedSetSize && savedReachedSetSize == certificate.size() + currentStates.size()) {
+                  logger.log(Level.FINE, "Too many states recomputed");
+                  abort();
+                  return;
+                }
+                currentStates.add(succ);
+              }
+
+            }
+          }
+        }
+
+        mutex.lock();
+        try {
+          certificate.addAll(currentStates);
+        } finally {
+          mutex.unlock();
+        }
+        coordination.release();
+
+      } catch (CPATransferException e) {
+        logger.logException(Level.FINE, e, "Computation of successors failed.");
+        abort();
+      } catch (CPAException e) {
+        logger.logException(Level.FINE, e, "Stop check failed for successor.");
+        abort();
+      } catch (Exception e) {
+        e.printStackTrace();
+        abort();
+      }
+    }
+
+    private void abort() {
+      result.set(false);
+      coordination.release(numThreads);
     }
   }
 }

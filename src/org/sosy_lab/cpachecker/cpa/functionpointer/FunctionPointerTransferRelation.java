@@ -88,6 +88,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 
 @Options(prefix="cpa.functionpointer")
@@ -429,12 +430,13 @@ class FunctionPointerTransferRelation implements TransferRelation {
     }
   }
 
-  private void handleReturnStatement(FunctionPointerState.Builder pNewState, CExpression returnValue,
+  private void handleReturnStatement(FunctionPointerState.Builder pNewState,
+      Optional<CExpression> returnValue,
       CFAEdge pCfaEdge) throws UnrecognizedCCodeException {
 
-    if (returnValue != null) {
+    if (returnValue.isPresent()) {
       String functionName = pCfaEdge.getPredecessor().getFunctionName();
-      FunctionPointerTarget target = getValue(returnValue, pNewState, functionName);
+      FunctionPointerTarget target = getValue(returnValue.get(), pNewState, functionName);
 
       pNewState.setTarget(FUNCTION_RETURN_VARIABLE, target);
     }

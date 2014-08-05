@@ -423,6 +423,35 @@ coverage.file = "coverage.%s.info"
 # CPA to use (see doc/Configuration.txt for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
 
+# Use this to change the underlying abstract domain in the APRON library
+cpa.apron.domain = "OCTAGON"
+  allowed values: [BOX, OCTAGON, POLKA, POLKA_STRICT, POLKA_EQ]
+
+# this option determines which initial precision should be used
+cpa.apron.initialPrecisionType = "STATIC_FULL"
+  allowed values: [STATIC_FULL, REFINEABLE_EMPTY]
+
+# with this option enabled the states are only merged at loop heads
+cpa.apron.mergeop.onlyMergeAtLoopHeads = false
+
+# of which type should the merge be?
+cpa.apron.mergeop.type = "SEP"
+  allowed values: [SEP, JOIN, WIDENING]
+
+# whether or not to avoid restarting at assume edges after a refinement
+cpa.apron.refiner.avoidAssumes = false
+
+# whether or not to check for repeated refinements, to then reset the
+# refinement root
+cpa.apron.refiner.checkForRepeatedRefinements = true
+
+# whether or not to do lazy-abstraction
+cpa.apron.refiner.doLazyAbstraction = true
+
+# Timelimit (in seconds) for the backup feasibility check with the octagon
+# analysis. Zero means there is no timelimit.
+cpa.apron.refiner.timeForApronFeasibilityCheck = 0
+
 # export one variable assignment for error path to file, if one is found
 cpa.arg.errorPath.assignment = "ErrorPath.%d.assignment.txt"
 
@@ -576,6 +605,9 @@ cpa.bdd.initiallyEmptyPrecision = false
 # Dump tracked variables to a file.
 cpa.bdd.logfile = "BDDCPA_tracked_variables.log"
 
+# mergeType
+cpa.bdd.merge = "join"
+
 # whether or not to add newly-found variables only to the exact program
 # location or to the whole scope of the variable.
 cpa.bdd.precision.refinement.useScopedInterpolation = false
@@ -638,10 +670,12 @@ cpa.composite.merge = "AGREE"
 cpa.composite.precAdjust = "COMPOSITE"
   allowed values: [COMPOSITE, COMPONENT]
 
-# Limit for Java heap memory used by CPAchecker (in MiB; -1 for infinite)
+# Limit for Java heap memory used by CPAchecker (in MB, not MiB!; -1 for
+# infinite)
 cpa.conditions.global.memory.heap = -1
 
-# Limit for process memory used by CPAchecker (in MiB; -1 for infinite)
+# Limit for process memory used by CPAchecker (in MB, not MiB!; -1 for
+# infinite)
 cpa.conditions.global.memory.process = -1
 
 # Limit for size of reached set (-1 for infinite)
@@ -757,11 +791,6 @@ cpa.invariants.conditionAdjusterFactory = COMPOUND
 cpa.invariants.edgeBasedAbstractionStrategyFactory = VISITED_EDGES
   enum:     [ALWAYS, VISITED_EDGES, NEVER]
 
-# the maximum number of predicates to consider as interesting. -1 one
-# disables the limit, but this is not recommended. 0 means that guessing
-# interesting predicates is disabled.
-cpa.invariants.interestingPredicatesLimit = 0
-
 # the maximum number of variables to consider as interesting. -1 one disables
 # the limit, but this is not recommended. 0 means that guessing interesting
 # variables is disabled.
@@ -771,15 +800,8 @@ cpa.invariants.interestingVariableLimit = 2
 cpa.invariants.maximumFormulaDepth = 4
 
 # which merge operator to use for InvariantCPA
-cpa.invariants.merge = "JOIN"
-  allowed values: [JOIN, SEP]
-
-# whether or not to collect information about binary variable interrelations.
-cpa.invariants.useBinaryVariableInterrelations = true
-
-# whether or not to use a bit vector formula manager when extracting
-# invariant approximations from states.
-cpa.invariants.useBitvectors = false
+cpa.invariants.merge = "PRECISIONDEPENDENT"
+  allowed values: [JOIN, SEP, PRECISIONDEPENDENT]
 
 # this option controls how the maxLoopIterations condition is adjusted when a
 # condition adjustment is invoked.
@@ -806,9 +828,11 @@ cpa.monitor.limit = 0
 cpa.monitor.pathcomputationlimit = 0
 
 # with this option the evaluation of float variables can be toggled.
-# Additionally the used number representation in the library will be changed
-# between floats and ints.
 cpa.octagon.handleFloats = false
+
+# this option determines which initial precision should be used
+cpa.octagon.initialPrecisionType = "STATIC_FULL"
+  allowed values: [STATIC_FULL, REFINEABLE_EMPTY]
 
 # whether or not to use use-definition information from the error pathsto
 # optimize the interpolation process
@@ -818,32 +842,21 @@ cpa.octagon.interpolation.applyUseDefInformation = true
 # interpolation - this avoids to have loop-counters in the interpolant
 cpa.octagon.interpolation.ignoreLoopsExitAssumes = true
 
-# which merge operator to use for OctagonCPA?
-cpa.octagon.merge = "SEP"
-  allowed values: [SEP, JOIN]
+# with this option enabled the states are only merged at loop heads
+cpa.octagon.mergeop.onlyMergeAtLoopHeads = false
 
-# with this option enabledmergeJoin is only used on edges within the same
-# block, i.e. each iterationof a loop is a different block, thus the
-# precision of the analysis increases
-cpa.octagon.mergeop.onlyJoinEdgesInSameBlock = false
+# of which type should the merge be?
+cpa.octagon.mergeop.type = "SEP"
+  allowed values: [SEP, JOIN, WIDENING]
 
-# of which type should the merge be? normal, for usual join, widening for a
-# widening instead of a join
-cpa.octagon.mergeop.type = "NORMAL"
-  allowed values: [NORMAL, WIDENING]
-
-# turn the refiner on or off, default is off
-cpa.octagon.refiner = false
-
-# whether or not to avoid restarting at assume edges after a refinement
-cpa.octagon.refiner.avoidAssumes = false
+# with this option the number representation in the library will be changed
+# between floats and ints.
+cpa.octagon.octagonLibrary = "INT"
+  allowed values: [INT, FLOAT]
 
 # whether or not to check for repeated refinements, to then reset the
 # refinement root
 cpa.octagon.refiner.checkForRepeatedRefinements = true
-
-# whether or not to do lazy-abstraction
-cpa.octagon.refiner.doLazyAbstraction = true
 
 # Timelimit (in seconds) for the backup feasibility check with the octagon
 # analysis. Zero means there is no timelimit.
@@ -1207,6 +1220,9 @@ cpa.predicate.solver = MATHSAT5
 # log some solver actions, this may be slow!
 cpa.predicate.solver.useLogger = false
 
+# Export solver queries in Smtlib format into a file.
+cpa.predicate.solver.z3.logger.logAllQueries = false
+
 # Export solver queries in Smtlib2 format.
 cpa.predicate.solver.z3.logger.logfile = "z3smtlog.%d.smt2"
 
@@ -1244,6 +1260,14 @@ cpa.predicate.useInvariantsForAbstraction = false
 
 # add special information to formulas about non-deterministic functions
 cpa.predicate.useNondetFlags = false
+
+# Insert tmp-variables for parameters at function-entries. The variables are
+# similar to return-variables at function-exit.
+cpa.predicate.useParameterVariables = false
+
+# Insert tmp-parameters for global variables at function-entries. The global
+# variables are also encoded with return-variables at function-exit.
+cpa.predicate.useParameterVariablesForGlobals = false
 
 # Qualified name for class which checks that the computed abstraction adheres
 # to the desired property.
@@ -1470,14 +1494,6 @@ cpa.value.initAssumptionVars = false
 # get an initial precison from file
 cpa.value.initialPrecisionFile = no default value
 
-# whether or not to use use-definition information from the error pathsto
-# optimize the interpolation process
-cpa.value.interpolation.applyUseDefInformation = true
-
-# whether or not to ignore the semantics of loop-leaving-assume-edges during
-# interpolation - this avoids to have loop-counters in the interpolant
-cpa.value.interpolation.ignoreLoopsExitAssumes = true
-
 # which merge operator to use for ValueAnalysisCPA
 cpa.value.merge = "SEP"
   allowed values: [SEP, JOIN]
@@ -1518,9 +1534,15 @@ cpa.value.precisionFile = no default value
 cpa.value.refinement.exportInterpolationTree = "NEVER"
   allowed values: [NEVER, FINAL, ALWAYS]
 
+# forceRestart
+cpa.value.refinement.forceRestart = 0
+
 # whether or not to do lazy-abstraction
 cpa.value.refinement.restart = TOP
   enum:     [TOP, BOTTOM, COMMON]
+
+# globalPrec
+cpa.value.refinement.useGlobalPrecision = false
 
 # whether to use the top-down interpolation strategy or the bottom-up
 # interpolation strategy
@@ -1536,9 +1558,9 @@ cpa.value.refiner.checkForRepeatedRefinements = true
 # whether or not to do lazy-abstraction
 cpa.value.refiner.doLazyAbstraction = true
 
-# whether or not to interpolate the shortest infeasible prefix rather than
-# the whole error path
-cpa.value.refiner.interpolateInfeasiblePrefix = false
+# whether or not to interpolate the heuristically best infeasible prefix
+# rather than the whole error path
+cpa.value.refiner.interpolateInfeasiblePrefix = true
 
 # use heuristic to extract a precision from the CFA statically on first
 # refinement
@@ -1636,38 +1658,51 @@ parser.transformTokensToLines = false
 # not the original input file.
 parser.usePreprocessor = false
 
-# Selects the strategy used for partial certificate construction
-pcc.certificateType = HEURISTIC
-  enum:     [HEURISTIC, ARG, MONOTONESTOPARG]
-
 # Enable if used property checker implements satisfiesProperty(AbstractState)
 # and checked property is violated for a set iff an element in this set
 # exists for which violates the property
 pcc.checkPropertyPerElement = false
 
+# The number of cores used exclusively for proof reading. Must be less than
+# pcc.useCores and may not be negative. Value 0 means that the cores used for
+# reading and checking are shared
+pcc.interleaved.useReadCores = 0
+
 # enables parallel checking of partial certificate
-pcc.enableParallelCheck = false
+pcc.parallel.io.enableParallelCheck = false
+
+# Selects the strategy used for partial certificate construction
+pcc.partial.certificateType = HEURISTIC
+  enum:     [ALL, HEURISTIC, ARG, MONOTONESTOPARG]
+
+# If enabled, distributes checking of partial elements depending on actual
+# checking costs, else uses the number of elements
+pcc.partial.enableLoadDistribution = false
+
+# Enables proper PCC but may not work correctly for heuristics. Stops adding
+# newly computed elements to reached set if size saved in proof is reached.
+# If another element must be added, stops certificate checking and returns
+# false.
+pcc.partial.stopAddingAtReachedSetSize = false
 
 # Specifies the maximum size of the partition. This size is used to compute
 # the number of partitions if a proof (reached set) should be written.
 # Default value 0 means always a single partition.
-pcc.maxNumElemsPerPartition = 0
+pcc.partitioning.maxNumElemsPerPartition = 0
 
 # Heuristic for computing partitioning of proof (partial reached set).
-pcc.partitioning = RANDOM
+pcc.partitioning.partitioningStrategy = RANDOM
   enum:     [RANDOM, OPTIMAL]
+
+# If enabled uses the number of nodes saved in certificate size to compute
+# partition number otherwise the size of certificate
+pcc.partitioning.useGraphSizeToComputePartitionNumber = false
 
 # file in which proof representation needed for proof checking is stored
 pcc.proofFile = "arg.obj"
 
 # Generate and dump a proof
 pcc.proofgen.doPCC = false
-
-# Enables proper PCC but may not work correctly for heuristics. Stops adding
-# newly computed elements to reached set if size saved in proof is reached.
-# If another element must be added, stops certificate checking and returns
-# false.
-pcc.stopAddingAtReachedSetSize = false
 
 # Qualified name for class which implements certification strategy, hence
 # proof writing, to be used.
@@ -1677,15 +1712,6 @@ pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.ARGProofCheckerStrategy"
 
 # number of cpus/cores which should be used in parallel for proof checking
 pcc.useCores = 1
-
-# If enabled uses the number of nodes saved in certificate size to compute
-# partition number otherwise the size of certificate
-pcc.useGraphSizeToComputePartitionNumber = false
-
-# The number of cores used exclusively for proof reading. Must be less than
-# pcc.useCores and may not be negative. Value 0 means that the cores used for
-# reading and checking are shared
-pcc.useReadCores = 0
 
 # print reached set to text file
 reachedSet.export = true

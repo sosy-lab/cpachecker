@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Writer;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,6 +37,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -53,14 +55,15 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -76,18 +79,17 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 
 @Options(prefix="cpa.value.refinement")
-public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProvider {
+public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, StatisticsProvider {
 
   @Option(description="whether or not to do lazy-abstraction", name="restart", toUppercase = true)
   private RestartStrategy restartStrategy = RestartStrategy.TOP;
@@ -102,23 +104,37 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
       values={"NEVER", "FINAL", "ALWAYS"})
   private String exportInterpolationTree = "NEVER";
 
+  @Option(description="forceRestart")
+  private int forceRestart = 0;
+
   ValueAnalysisInterpolationBasedRefiner interpolatingRefiner;
   ValueAnalysisFeasibilityChecker checker;
 
   private final LogManager logger;
+
+  private Map<Integer, Integer> uniqueTargetTraceCounter = new HashMap<>();
 
   // statistics
   private int totalRefinements  = 0;
   private int totalTargetsFound = 0;
   private final Timer totalTime = new Timer();
 
-  private ValueAnalysisPrecision singletonPrec = null;
+  private ValueAnalysisPrecision globalPrecision = null;
+
+  private Set<ARGState> strengthendStates = new HashSet<>();
+
+  private static ARGCPA argCpa = null;
 
   public static ValueAnalysisImpactGlobalRefiner create(final ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     final ValueAnalysisCPA valueAnalysisCpa = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
+
+    argCpa = CPAs.retrieveCPA(pCpa, ARGCPA.class);
+
     if (valueAnalysisCpa == null) {
       throw new InvalidConfigurationException(ValueAnalysisImpactGlobalRefiner.class.getSimpleName() + " needs a ValueAnalysisCPA");
     }
+
+    valueAnalysisCpa.injectRefinablePrecision();
 
     ValueAnalysisImpactGlobalRefiner refiner = new ValueAnalysisImpactGlobalRefiner(valueAnalysisCpa.getConfiguration(),
                                     valueAnalysisCpa.getLogger(),
@@ -126,7 +142,6 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
                                     valueAnalysisCpa.getCFA());
 
     valueAnalysisCpa.getStats().addRefiner(refiner);
-
 
     return refiner;
   }
@@ -145,29 +160,46 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
   @Override
   public boolean performRefinement(final ReachedSet pReached) throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "performing global refinement ...");
+
     totalTime.start();
     totalRefinements++;
 
+    timerErrors.start();
     List<ARGState> targets  = getErrorStates(pReached);
     totalTargetsFound       = totalTargetsFound + targets.size();
-
+    timerErrors.stop();
+//System.out.println("number of targets: " + targets.size());
     // stop once any feasible counterexample is found
     if(isAnyPathFeasible(new ARGReachedSet(pReached), getErrorPaths(targets))) {
       totalTime.stop();
       return false;
     }
 
-    InterpolationTree interpolationTree = new InterpolationTree(logger, targets, useTopDownInterpolationStrategy);
+    logger.log(Level.FINEST, "-------------------------------- new refinement [" + totalRefinements + "] --------------------------------");
 
+    timerItpTree.start();
+    InterpolationTree interpolationTree = new InterpolationTree(logger, targets, useTopDownInterpolationStrategy);
+    timerItpTree.stop();
+
+    timerItp.start();
     int i = 0;
+    ARGPath lastErrorPath = null;
     while(interpolationTree.hasNextPathForInterpolation()) {
       i++;
 
       ARGPath errorPath = interpolationTree.getNextPathForInterpolation();
 
+//System.out.println(totalRefinements + " ->  errorPath |" + errorPath.size() + "|: " + errorPath.toString().hashCode() + "(" + uniqueTargetTraceCounter.containsKey(errorPath.toString().hashCode()) + ")");
       if(errorPath.isEmpty()) {
         logger.log(Level.FINEST, "skipping interpolation, error path is empty, because initial interpolant is already false");
         continue;
+      }
+//System.out.println(ARGUtils.getOnePathTo(errorPath.getLast().getFirst()).toString().hashCode());
+
+      lastErrorPath = errorPath;
+
+      if(i == 1) {
+        incrementUniqueTargetTraceCounter(errorPath);
       }
 
       ValueAnalysisInterpolant initialItp = interpolationTree.getInitialInterpolantForPath(errorPath);
@@ -188,48 +220,199 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
       logger.log(Level.FINEST, "finished interpolation #", i);
     }
 
+    timerItp.stop();
+
     if(exportInterpolationTree.equals("FINAL") && !exportInterpolationTree.equals("ALWAYS")) {
       interpolationTree.exportToDot(totalRefinements, i);
     }
 
-    Map<ARGState, ValueAnalysisPrecision> refinementInformation = new HashMap<>();
-    for(ARGState root : interpolationTree.obtainRefinementRoots()) {
+    // construct a global precision, needed for full restart at initial node
+    timerGlobalPrec.start();
+    createGlobalPrecision(pReached, interpolationTree);
+    timerGlobalPrec.stop();
+
+    if(forceRestart != 0 && totalRefinements % forceRestart == 0) {
+      new ARGReachedSet(pReached).removeSubtree(((ARGState)pReached.getFirstState()).getChildren().iterator().next(),
+          globalPrecision, ValueAnalysisPrecision.class);
+
+      totalTime.stop();
+      return true;
+    }
+
+    // debugging only
+    dumpArgToDot(pReached, "before", interpolationTree.getErrorPathEdges());
+
+    timerStrengthen.start();
+    strengthenArg(interpolationTree);
+    timerStrengthen.stop();
+
+    ARGReachedSet reached       = new ARGReachedSet(pReached, argCpa);
+    Set<ARGState> weakSiblings  = new HashSet<>();
+
+    tryToCoverArg(lastErrorPath, reached);
+
+    timerObtainPrecision.start();
+
+    for (Map.Entry<ARGState, ValueAnalysisInterpolant> itp : interpolationTree.interpolants.entrySet()) {
+      ARGState currentState = itp.getKey();
+
+      if (interpolationTree.interpolants.containsKey(currentState) && interpolationTree.interpolants.get(currentState).isTrivial()) {
+        continue;
+      }
+
+      if(strengthendStates.contains(currentState) && currentState.getChildren().size() > 1) {
+        ValueAnalysisPrecision currentPrecision = extractPrecision(pReached, currentState);
+
+        Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
+        for (MemoryLocation memoryLocation : interpolationTree.interpolants.get(currentState).getMemoryLocations()) {
+          increment.put(new CFANode("dummy"), memoryLocation);
+        }
+
+        timerReaddToWaitlist.start();
+
+        if(!currentState.isCovered()) {
+          reached.readdToWaitlist(currentState, new ValueAnalysisPrecision(currentPrecision, increment), ValueAnalysisPrecision.class);
+        }
+
+        timerReaddToWaitlist.stop();
+
+        weakSiblings.addAll(currentState.getChildren());
+      }
+    }
+    timerObtainPrecision.stop();
+
+    timerRemoveInfeasible.start();
+    removeInfeasiblePartsOfArg(interpolationTree, reached);
+    timerRemoveInfeasible.stop();
+
+    for(ARGState leave : weakSiblings) {
+      // do not remove the sibling that was strengthened, it's not weak after all
+      if(strengthendStates.contains(leave)) {
+        continue;
+      }
+
+      if(leave.isDestroyed()) {
+        continue;
+      }
+
+      reached.cutOffSubtree(leave);
+    }
+
+    // debugging only
+    dumpArgToDot(pReached, "after", interpolationTree.getErrorPathEdges());
+
+    totalTime.stop();
+    return true;
+  }
+
+  private void tryToCoverArg(ARGPath pLastErrorPath, ARGReachedSet reached) {
+    ARGState coverageRoot = null;
+
+    // traverse path top-to-bottom, trying to find a state covering a strengthened state in the error path ...
+    for(int i = 0; i < pLastErrorPath.size(); i++) {
+      Pair<ARGState, CFAEdge> elem = pLastErrorPath.get(i);
+
+      ARGState state = elem.getFirst();
+
+      if(strengthendStates.contains(state)) {
+        try {
+
+          if(reached.tryToCover(state, true)) {
+//System.out.println("detected coverage for state " + state.getStateId());
+            coverageRoot = state;
+            break;
+          }
+        } catch (CPAException | InterruptedException e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
+        }
+      }
+    }
+
+    // ... and if one was found, also set its subtree as covered
+    if(coverageRoot != null) {
+      for(ARGState toCover : coverageRoot.getSubgraph()) {
+        if(!toCover.isCovered()) {
+          toCover.setCovered(coverageRoot);
+        }
+      }
+    }
+  }
+
+  @Override
+  public ValueAnalysisPrecision getGlobalPrecision() {
+    return globalPrecision;
+  }
+
+  // debugging/stats only
+  private void incrementUniqueTargetTraceCounter(ARGPath errorPath) {
+    Integer hash = errorPath.toString().hashCode();
+
+    if(!uniqueTargetTraceCounter.containsKey(hash)) {
+      uniqueTargetTraceCounter.put(hash, 0);
+    }
+    uniqueTargetTraceCounter.put(hash, uniqueTargetTraceCounter.get(hash) + 1);
+  }
+
+  Timer timerItp = new Timer();
+  Timer timerGlobalPrec = new Timer();
+  Timer timerRemoveInfeasible = new Timer();
+  Timer timerStrengthen = new Timer();
+  Timer timerObtainPrecision = new Timer();
+  Timer timerReaddToWaitlist = new Timer();
+  Timer timerItpTree = new Timer();
+  Timer timerErrors = new Timer();
+
+  private void dumpArgToDot(final ReachedSet pReached, String currentPhase, Collection<Pair<ARGState, ARGState>> errorPaths) {
+    if(exportInterpolationTree.equals("ALWAYS")) {
+      try (Writer w = Files.openOutputFile(Paths.get(currentPhase + "_" + totalRefinements + ".dot"))) {
+        //ARGUtils.writeARGAsDot(w, (ARGState)pReached.getFirstState(), Predicates.in(errorPaths));
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+      }
+    }
+  }
+
+  private void strengthenArg(InterpolationTree interpolationTree) {
+    strengthendStates.clear();
+
+    for (Map.Entry<ARGState, ValueAnalysisInterpolant> entry : interpolationTree.interpolants.entrySet()) {
+      if (!entry.getValue().isTrivial()) {
+
+        ARGState state                = entry.getKey();
+        ValueAnalysisInterpolant itp  = entry.getValue();
+        ValueAnalysisState valueState = AbstractStates.extractStateByType(state, ValueAnalysisState.class);
+
+        if(itp.strengthen(valueState, state)) {
+          strengthendStates.add(state);
+        }
+      }
+    }
+  }
+
+  private void removeInfeasiblePartsOfArg(InterpolationTree interpolationTree, ARGReachedSet reached) {
+    for (ARGState root : interpolationTree.obtainCutOffRoots()) {
+      reached.cutOffSubtree(root);
+    }
+  }
+
+  private void createGlobalPrecision(final ReachedSet pReached, InterpolationTree interpolationTree) {
+    for (ARGState root : interpolationTree.obtainRefinementRoots()) {
       Collection<ARGState> targetsReachableFromRoot = interpolationTree.getTargetsInSubtree(root);
 
       // join the precisions of the subtree of this roots into a single precision
       final ValueAnalysisPrecision subTreePrecision = joinSubtreePrecisions(pReached, targetsReachableFromRoot);
 
-      ValueAnalysisPrecision prec = new ValueAnalysisPrecision(subTreePrecision, interpolationTree.extractPrecisionIncrement(root));
+      Multimap<CFANode, MemoryLocation> extractPrecisionIncrement = interpolationTree.extractPrecisionIncrement(root);
+//System.out.println(new TreeSet<>(extractPrecisionIncrement.values()));
+      ValueAnalysisPrecision currentPrecision = new ValueAnalysisPrecision(subTreePrecision, extractPrecisionIncrement);
 
-      if(singletonPrec != null) {
-        prec.getRefinablePrecision().join(singletonPrec.getRefinablePrecision());
+      if (globalPrecision != null) {
+        currentPrecision.getRefinablePrecision().join(globalPrecision.getRefinablePrecision());
       }
 
-      singletonPrec = prec;
-
-      refinementInformation.put(root, prec);
+      globalPrecision = currentPrecision;
     }
-
-    ARGReachedSet reached = new ARGReachedSet(pReached);
-
-    for(ARGState root : interpolationTree.obtainCutOffRoots()) {
-      reached.removeSubtree(root);
-    }
-
-    for(Map.Entry<ARGState, ValueAnalysisPrecision> info : refinementInformation.entrySet()) {
-      reached.updatePrecisionGlobally(info.getValue(), ValueAnalysisPrecision.class);
-    }
-
-    for(Map.Entry<ARGState, ValueAnalysisInterpolant> entry : interpolationTree.interpolants.entrySet()) {
-      if(!entry.getValue().isTrivial()) {
-        ValueAnalysisState valueState = AbstractStates.extractStateByType(entry.getKey(), ValueAnalysisState.class);
-
-        entry.getValue().strengthen(valueState, entry.getKey());
-      }
-    }
-
-    totalTime.stop();
-    return true;
   }
 
   private boolean initialInterpolantIsTooWeak(ARGState root, ValueAnalysisInterpolant initialItp, ARGPath errorPath)
@@ -241,13 +424,7 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
     }
 
     // for all other cases, check if the path is feasible when using the interpolant as initial state
-    try {
-      return checker.isFeasible(errorPath,
-          new ValueAnalysisPrecision("", Configuration.builder().build(), Optional.<VariableClassification>absent()),
-          initialItp.createValueAnalysisState());
-    } catch (InvalidConfigurationException e) {
-      throw new CPAException("Configuring ValueAnalysisImpactGlobalRefiner failed: " + e.getMessage(), e);
-    }
+    return checker.isFeasible(errorPath, initialItp.createValueAnalysisState());
   }
 
   private ValueAnalysisPrecision joinSubtreePrecisions(final ReachedSet pReached,
@@ -325,6 +502,10 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
   }
 
   private List<ARGState> getErrorStates(final ReachedSet pReached) {
+    if(((ARGState)pReached.getLastState()).isTarget()) {
+      return Lists.newArrayList(((ARGState)pReached.getLastState()));
+    }
+
     List<ARGState> targets = from(pReached)
         .transform(AbstractStates.toState(ARGState.class))
         .filter(AbstractStates.IS_TARGET_STATE)
@@ -357,6 +538,24 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
       out.println("Total number of refinements:      " + String.format(Locale.US, "%9d", totalRefinements));
       out.println("Total number of targets found:    " + String.format(Locale.US, "%9d", totalTargetsFound));
       out.println("Total time for global refinement:     " + totalTime);
+
+      out.println("timerItp: " + timerItp);
+      out.println("timerGlobalPrec: " + timerGlobalPrec);
+      out.println("timerRemoveInfeasible: " + timerRemoveInfeasible);
+      out.println("timerStrengthen: " + timerStrengthen);
+      out.println("timerObtainPrecision: " + timerObtainPrecision);
+      out.println("timerReaddToWaitlist: " + timerReaddToWaitlist);
+
+      out.println("timerItpTree: " + timerItpTree);
+      out.println("timerErrors: " + timerErrors);
+
+      out.println("numberOfUniqueTargets: " + uniqueTargetTraceCounter.size());
+
+      int max = 0;
+      for(Integer i : uniqueTargetTraceCounter.values()) {
+        max = Math.max(max, i);
+      }
+      out.println("MaxNumberOfIdenticalPaths: " + max);
 
       interpolatingRefiner.printStatistics(out, pResult, pReached);
     }
@@ -399,7 +598,7 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
     /**
      * the mapping from state to the identified interpolants
      */
-    private final Map<ARGState, ValueAnalysisInterpolant> interpolants = new HashMap<>();
+    private final Map<ARGState, ValueAnalysisInterpolant> interpolants = new LinkedHashMap<>();
 
     /**
      * the root of the tree
@@ -435,6 +634,16 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
       } else {
         strategy = new BottomUpInterpolationStrategy();
       }
+    }
+
+    public Collection<Pair<ARGState, ARGState>> getErrorPathEdges() {
+      Set<Pair<ARGState, ARGState>> edges = new HashSet<>();
+
+      for(Map.Entry<ARGState, ARGState> entry : successorRelation.entries()) {
+        edges.add(Pair.<ARGState, ARGState>getPairFomMapEntry().apply(entry));
+      }
+
+      return edges;
     }
 
     /**
@@ -487,15 +696,15 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
         if(interpolants.containsKey(current.getKey())) {
           StringBuilder sb = new StringBuilder();
 
-          sb.append("itp is " + interpolants.get(current.getKey()));
+          sb.append(interpolants.get(current.getKey()));
 
           result.append(current.getKey().getStateId() + " [label=\"" + (current.getKey().getStateId() + " / " + AbstractStates.extractLocation(current.getKey())) + " has itp " + (sb.toString()) + "\"]" + "\n");
-          result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");// + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
+          result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "").replace("\"", "'") + "\"]\n");
         }
 
         else {
           result.append(current.getKey().getStateId() + " [label=\"" + current.getKey().getStateId() + " has itp NA\"]" + "\n");
-          result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");// + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
+          result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "").replace("\"", "'") + "\"]\n");
         }
 
         if(current.getValue().isTarget()) {
@@ -541,13 +750,16 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
      * @param newItps the new mapping to add
      */
     private void addInterpolants(Map<ARGState, ValueAnalysisInterpolant> newItps) {
+
       for (Map.Entry<ARGState, ValueAnalysisInterpolant> entry : newItps.entrySet()) {
         ARGState state                = entry.getKey();
         ValueAnalysisInterpolant itp  = entry.getValue();
 
         if(interpolants.containsKey(state)) {
           interpolants.put(state, interpolants.get(state).join(itp));
-        } else {
+        }
+
+        else {
           interpolants.put(state, itp);
         }
       }
@@ -576,6 +788,7 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
         Set<ARGState> successors = successorRelation.get(currentState);
         todo.addAll(successors);
       }
+//System.out.println(new TreeSet<>(increment.values()));
       return increment;
     }
 
@@ -738,7 +951,7 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
       @Override
       public ValueAnalysisInterpolant getInitialInterpolantForRoot(ARGState root) {
 
-        ValueAnalysisInterpolant initialInterpolant = interpolants.get(predecessorRelation.get(root));
+        ValueAnalysisInterpolant initialInterpolant = interpolants.get(root);
 
         if(initialInterpolant == null) {
           initialInterpolant = ValueAnalysisInterpolant.createInitial();
@@ -797,4 +1010,5 @@ public class ValueAnalysisImpactGlobalRefiner implements Refiner, StatisticsProv
     }
   }
 }
+
 

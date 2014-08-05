@@ -84,6 +84,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
+import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.value.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -96,7 +100,7 @@ import com.google.common.primitives.UnsignedLongs;
  * defined as simply typed iff it is not an
  * array type (vgl {@link CArrayType}), a struct or
  * union type (vgl {@link CComplexType}),
- * a imaginary type (vgl {@link CImaginaryLiteralExpression}),
+ * an imaginary type (vgl {@link CImaginaryLiteralExpression}),
  * or a pointer type (vgl {@link CPointerType}).
  * The key distinction between these types and simply typed types is,
  * that a value of simply typed types can be represented as a numerical
@@ -635,6 +639,9 @@ public abstract class AbstractExpressionValueVisitor
     if (unaryOperator == UnaryOperator.SIZEOF) {
       return new NumericValue(machineModel.getSizeof(unaryOperand.getExpressionType()));
     }
+    if (unaryOperator == UnaryOperator.ALIGNOF) {
+      return new NumericValue(machineModel.getAlignof(unaryOperand.getExpressionType()));
+    }
     if (unaryOperator == UnaryOperator.AMPER) {
       return Value.UnknownValue.getInstance();
     }
@@ -687,22 +694,78 @@ public abstract class AbstractExpressionValueVisitor
   @Override
   public Value visit(JBinaryExpression pE) {
 
-    org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator binaryOperator = pE.getOperator();
+    JBinaryExpression.BinaryOperator binaryOperator = pE.getOperator();
     JExpression lVarInBinaryExp = pE.getOperand1();
     JExpression rVarInBinaryExp = pE.getOperand2();
+    JType lValType = lVarInBinaryExp.getExpressionType();
+    JType rValType = rVarInBinaryExp.getExpressionType();
 
+    // TODO: for logical expressions, work with unknown values (for example 'true || unknown' is 'true')
+    // Get the concrete values of the lefthandside and righthandside
     final Value lValue = lVarInBinaryExp.accept(this);
-    if (lValue.isUnknown() || !lValue.isNumericValue()) {
+    if (lValue.isUnknown()) {
       return UnknownValue.getInstance();
     }
 
     final Value rValue = rVarInBinaryExp.accept(this);
-    if (rValue.isUnknown() || !rValue.isNumericValue()) {
+    if (rValue.isUnknown()) {
       return UnknownValue.getInstance();
     }
 
-    final long lVal = ((NumericValue) lValue).longValue();
-    final long rVal = ((NumericValue) rValue).longValue();
+    // Calculate the result of the expression
+    if (lValue instanceof NumericValue && rValue instanceof NumericValue) {
+
+      // calculate the result for double values
+      if (isFloatType(lValType) || isFloatType(rValType)) {
+        final double lVal = ((NumericValue) lValue).doubleValue();
+        final double rVal = ((NumericValue) rValue).doubleValue();
+
+        return calculateBinaryOperation(lVal, rVal, binaryOperator);
+
+      // calculate the result for integer values
+      } else {
+        final long lVal = ((NumericValue) lValue).longValue();
+        final long rVal = ((NumericValue) rValue).longValue();
+
+        return calculateBinaryOperation(lVal, rVal, binaryOperator);
+      }
+
+    // calculate the result for enum constant and null values
+    } else if (isEnumType(lValue)) {
+
+      assert isEnumType(rValue);
+      assert binaryOperator.equals(JBinaryExpression.BinaryOperator.EQUALS)
+        || binaryOperator.equals(JBinaryExpression.BinaryOperator.NOT_EQUALS);
+
+      if (binaryOperator.equals(JBinaryExpression.BinaryOperator.EQUALS)) {
+        if (lValue.equals(rValue)) {
+          return BooleanValue.valueOf(true);
+
+        } else {
+          return BooleanValue.valueOf(false);
+        }
+
+      // binary operator has to be NOT_EQUALS since no other operators are allowed for enums
+      } else if (lValue.equals(rValue)) {
+          return BooleanValue.valueOf(false);
+
+      } else {
+          return BooleanValue.valueOf(true);
+      }
+    } else if (lValue instanceof BooleanValue) {
+      assert rValue instanceof BooleanValue;
+
+      boolean lVal = ((BooleanValue) lValue).isTrue();
+      boolean rVal = ((BooleanValue) rValue).isTrue();
+
+      return calculateBinaryOperation(lVal, rVal, binaryOperator);
+
+    } else {
+      return UnknownValue.getInstance();
+    }
+  }
+
+  private Value calculateBinaryOperation(long lVal, long rVal, JBinaryExpression.BinaryOperator binaryOperator) {
 
     switch (binaryOperator) {
     case PLUS:
@@ -803,6 +866,114 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
+  private Value calculateBinaryOperation(double lVal, double rVal, JBinaryExpression.BinaryOperator binaryOperator) {
+
+    switch (binaryOperator) {
+    case PLUS:
+    case MINUS:
+    case DIVIDE:
+    case MULTIPLY:
+    case MODULO: {
+
+      switch (binaryOperator) {
+      case PLUS:
+        return new NumericValue(lVal + rVal);
+
+      case MINUS:
+        return new NumericValue(lVal - rVal);
+
+      case DIVIDE:
+        if (rVal == 0) {
+          logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", lVal, rVal);
+          return UnknownValue.getInstance();
+        }
+        return new NumericValue(lVal / rVal);
+
+      case MULTIPLY:
+        return new NumericValue(lVal * rVal);
+
+      case MODULO:
+        return new NumericValue(lVal % rVal);
+
+      default:
+        throw new AssertionError("Unsupported binary operation " + binaryOperator.toString() + " on double values");
+      }
+    }
+
+    case EQUALS:
+    case NOT_EQUALS:
+    case GREATER_THAN:
+    case GREATER_EQUAL:
+    case LESS_THAN:
+    case LESS_EQUAL: {
+
+      final double l = lVal;
+      final double r = rVal;
+
+      final boolean result;
+      switch (binaryOperator) {
+      case EQUALS:
+        result = (l == r);
+        break;
+      case NOT_EQUALS:
+        result = (l != r);
+        break;
+      case GREATER_THAN:
+        result = (l > r);
+        break;
+      case GREATER_EQUAL:
+        result = (l >= r);
+        break;
+      case LESS_THAN:
+        result = (l < r);
+        break;
+      case LESS_EQUAL:
+        result = (l <= r);
+        break;
+
+      default:
+        throw new AssertionError("Unsupported binary operation " + binaryOperator.toString() + " on double values");
+      }
+
+      // return 1 if expression holds, 0 otherwise
+      return (result ? new NumericValue(1L) : new NumericValue(0L));
+    }
+    default:
+      // TODO check which cases can be handled
+      return UnknownValue.getInstance();
+    }
+  }
+
+  private Value calculateBinaryOperation(boolean lVal, boolean rVal, JBinaryExpression.BinaryOperator operator) {
+
+    switch (operator) {
+    case CONDITIONAL_AND:
+    case LOGICAL_AND:
+      // we do not care about sideeffects through evaluation of the righthandside at this point - this must be handled
+      // earlier
+      return BooleanValue.valueOf(lVal && rVal);
+
+    case CONDITIONAL_OR:
+    case LOGICAL_OR:
+      // we do not care about sideeffects through evaluation of the righthandside at this point
+      return BooleanValue.valueOf(lVal || rVal);
+
+    case LOGICAL_XOR:
+      return BooleanValue.valueOf(lVal ^ rVal);
+
+    case EQUALS:
+      return BooleanValue.valueOf(lVal == rVal);
+    case NOT_EQUALS:
+      return BooleanValue.valueOf(lVal != rVal);
+    default:
+      throw new AssertionError("Unhandled operator " + operator + " for boolean expression");
+    }
+  }
+
+  private boolean isEnumType(Value value) {
+    return value instanceof NullValue || value instanceof EnumConstantValue;
+  }
+
   @Override
   public Value visit(JIdExpression idExp) {
 
@@ -827,25 +998,75 @@ public abstract class AbstractExpressionValueVisitor
     JExpression unaryOperand = unaryExpression.getOperand();
     final Value valueObject = unaryOperand.accept(this);
 
-    if (valueObject.isUnknown() || !valueObject.isNumericValue()) {
+    // possible error msg if no case fits
+    final String errorMsg
+      = "Invalid argument [" + valueObject + "] for unary operator [" + unaryOperator + "].";
+
+    if (valueObject.isUnknown()) {
+      return UnknownValue.getInstance();
+
+    } else if (valueObject.isNumericValue()) {
+      NumericValue value = (NumericValue) valueObject;
+
+      switch (unaryOperator) {
+        case MINUS:
+          return value.negate();
+
+        case COMPLEMENT:
+          return evaluateComplement(unaryOperand, value);
+
+        case PLUS:
+          return value;
+
+        default:
+          logger.log(Level.FINE, errorMsg);
+          return UnknownValue.getInstance();
+      }
+
+    } else if (valueObject instanceof BooleanValue && unaryOperator.equals(JUnaryExpression.UnaryOperator.NOT)) {
+      return ((BooleanValue) valueObject).negate();
+
+    } else {
+      logger.logf(Level.FINE, errorMsg);
       return UnknownValue.getInstance();
     }
+  }
 
-    long value = ((NumericValue) valueObject).longValue();
+  private Value evaluateComplement(JExpression pExpression, NumericValue value) {
+    JType type = pExpression.getExpressionType();
 
-    switch (unaryOperator) {
-      case MINUS:
-        return new NumericValue(-value);
-      case NOT:
-        // if the value is 0, return 1, if it is anything other than 0, return 0
-        return (value == 0L) ? new NumericValue(1L) : new NumericValue(0L);
-      case COMPLEMENT:
-        return new NumericValue(~value);
-      case PLUS:
-        return new NumericValue(value);
-      default:
-        throw new AssertionError("unhandled operator: " + unaryOperator);
+    if (isIntegerType(type)) {
+        return new NumericValue(~value.longValue());
+
+    } else {
+      logger.logf(Level.FINE, "Invalid argument %s for unary operator ~.", value);
+      return Value.UnknownValue.getInstance();
     }
+  }
+
+  private static boolean isIntegerType(JType type) {
+    if (!(type instanceof JSimpleType)) {
+      return false;
+    }
+
+    JBasicType concreteType = ((JSimpleType) type).getType();
+
+    return concreteType.equals(JBasicType.BYTE)
+      || concreteType.equals(JBasicType.CHAR)
+      || concreteType.equals(JBasicType.INT)
+      || concreteType.equals(JBasicType.LONG)
+      || concreteType.equals(JBasicType.SHORT);
+  }
+
+  private static boolean isFloatType(JType type) {
+    if (!(type instanceof JSimpleType)) {
+      return false;
+    }
+
+    JBasicType concreteType = ((JSimpleType) type).getType();
+
+    return concreteType.equals(JBasicType.FLOAT)
+        || concreteType.equals(JBasicType.DOUBLE);
   }
 
   @Override
@@ -855,7 +1076,7 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(JBooleanLiteralExpression pE) {
-    return ((pE.getValue()) ? new NumericValue(1l) : new NumericValue(0l));
+    return BooleanValue.valueOf(pE.getValue());
   }
 
   @Override
@@ -865,13 +1086,18 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(JEnumConstantExpression pJEnumConstantExpression) {
-    missingEnumComparisonInformation = true;
-    return UnknownValue.getInstance();
+    JClassType enumType = pJEnumConstantExpression.getExpressionType();
+    String fullName = pJEnumConstantExpression.getConstantName();
+
+    return new EnumConstantValue(enumType, fullName);
   }
 
   @Override
   public Value visit(JCastExpression pJCastExpression) {
-    return pJCastExpression.getOperand().accept(this);
+    JExpression operand = pJCastExpression.getOperand();
+    JType castType = pJCastExpression.getCastType();
+
+    return castJValue(operand.accept(this), operand.getExpressionType(), castType, logger, pJCastExpression.getFileLocation());
   }
 
   @Override
@@ -891,7 +1117,7 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(JFloatLiteralExpression pJBooleanLiteralExpression) throws RuntimeException {
-    return UnknownValue.getInstance();
+    return new NumericValue(pJBooleanLiteralExpression.getValue());
   }
 
   @Override
@@ -916,7 +1142,7 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(JNullLiteralExpression pJNullLiteralExpression) throws RuntimeException {
-    return UnknownValue.getInstance();
+    return NullValue.getInstance();
   }
 
   @Override
@@ -987,7 +1213,7 @@ public abstract class AbstractExpressionValueVisitor
    * This method is called, when an value of type 'integer'
    * is assigned to a variable of type 'char'.
    *
-   * @param value will be casted. If value is null, null is returned.
+   * @param value will be casted.
    * @param sourceType the type of the input value
    * @param targetType value will be casted to targetType.
    * @param machineModel contains information about types
@@ -1120,6 +1346,103 @@ public abstract class AbstractExpressionValueVisitor
 
     } else {
       return value; // pointer like (void)*, (struct s)*, ...
+    }
+  }
+
+  /**
+   * TODO
+   * @param value
+   * @param sourceType
+   * @param targetType
+   * @param logger
+   * @param fileLocation
+   * @return
+   */
+  public static Value castJValue(@Nonnull final Value value, JType sourceType,
+      JType targetType, final LogManagerWithoutDuplicates logger, final FileLocation fileLocation) {
+
+    // If we don't know the value explicitly, just return it.
+    if (!value.isExplicitlyKnown()) { return value; }
+
+    // For now can only cast numeric value's
+    if (!value.isNumericValue()) {
+      logger.logf(Level.FINE, "Can not cast Java value %s to %s", value.toString(), targetType.toString());
+      return value;
+    }
+
+    NumericValue numericValue = (NumericValue) value;
+
+    if (targetType instanceof JSimpleType) {
+      final JSimpleType st = (JSimpleType) targetType;
+
+      if (isIntegerType(sourceType)) {
+        long longValue = numericValue.longValue();
+
+        return createValue(longValue, st.getType());
+
+      } else if (isFloatType(sourceType)) {
+        double doubleValue = numericValue.doubleValue();
+
+        return createValue(doubleValue, st.getType());
+
+      } else {
+        throw new AssertionError("Cast from " + sourceType.toString() + " to "
+            + targetType.toString() + " not possible.");
+      }
+    } else {
+      return value; // TODO handle casts between object types
+    }
+  }
+
+  private static Value createValue(long value, JBasicType targetType) {
+    switch (targetType) {
+    case BYTE:
+      return new NumericValue((byte) value);
+
+    case CHAR:
+    case SHORT:
+      return new NumericValue((short) value);
+
+    case INT:
+      return new NumericValue((int) value);
+
+    case LONG:
+      return new NumericValue(value);
+
+    case FLOAT:
+      return new NumericValue((float) value);
+
+    case DOUBLE:
+      return new NumericValue((double) value);
+
+    default:
+      throw new AssertionError("Trying to cast to unsupported type " + targetType);
+    }
+  }
+
+  private static Value createValue(double value, JBasicType targetType) {
+    switch (targetType) {
+    case BYTE:
+      return new NumericValue((byte) value);
+
+    case CHAR:
+    case SHORT:
+      return new NumericValue((short) value);
+
+    case INT:
+      return new NumericValue((int) value);
+
+    case LONG:
+      return new NumericValue(value);
+
+    case FLOAT:
+      return new NumericValue((float) value);
+
+    case DOUBLE:
+      return new NumericValue(value);
+
+    default:
+      throw new AssertionError("Trying to cast to unsupported type " + targetType);
     }
   }
 

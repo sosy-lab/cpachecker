@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
@@ -166,7 +167,7 @@ public class EclipseCParser implements CParser {
   }
 
   @Override
-  public CAstNode parseSingleStatement(String pCode) throws CParserException, InvalidConfigurationException {
+  public CAstNode parseSingleStatement(String pCode, Scope scope) throws CParserException, InvalidConfigurationException {
     // parse
     IASTTranslationUnit ast = parse(wrapCode("", pCode));
 
@@ -191,12 +192,12 @@ public class EclipseCParser implements CParser {
 
     Sideassignments sa = new Sideassignments();
     sa.enterBlock();
-    return new ASTConverter(config, new FunctionScope(), new LogManagerWithoutDuplicates(logger), Functions.<String>identity(), new CSourceOriginMapping(), machine, "", sa)
+    return new ASTConverter(config, scope, new LogManagerWithoutDuplicates(logger), Functions.<String>identity(), new CSourceOriginMapping(), machine, "", sa)
         .convert(statements[0]);
   }
 
   @Override
-  public List<CAstNode> parseStatements(String pCode) throws CParserException, InvalidConfigurationException {
+  public List<CAstNode> parseStatements(String pCode, Scope scope) throws CParserException, InvalidConfigurationException {
     // parse
     IASTTranslationUnit ast = parse(wrapCode("", pCode));
 
@@ -222,7 +223,7 @@ public class EclipseCParser implements CParser {
     Sideassignments sa = new Sideassignments();
     sa.enterBlock();
 
-    ASTConverter converter = new ASTConverter(config, new FunctionScope(), new LogManagerWithoutDuplicates(logger),
+    ASTConverter converter = new ASTConverter(config, scope, new LogManagerWithoutDuplicates(logger),
         Functions.<String>identity(), new CSourceOriginMapping(), machine, "", sa);
 
     List<CAstNode> nodeList = new ArrayList<>(statements.length);

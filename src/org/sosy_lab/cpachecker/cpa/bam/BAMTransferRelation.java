@@ -64,7 +64,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
@@ -147,7 +146,6 @@ public class BAMTransferRelation implements TransferRelation {
 
   void setBlockPartitioning(BlockPartitioning pManager) {
     partitioning = pManager;
-    currentBlock = partitioning.getMainBlock();
   }
 
   public BlockPartitioning getBlockPartitioning() {
@@ -171,34 +169,26 @@ public class BAMTransferRelation implements TransferRelation {
 
     if (edge != null) {
       // TODO when does this happen?
-      return getAbstractSuccessors0(pState, pPrecision, edge);
+      return wrappedTransfer.getAbstractSuccessors(pState, pPrecision, edge);
     }
 
     CFANode node = extractLocation(pState);
 
-    if (!partitioning.isCallNode(node)) {
-      // the easy case: we are in the middle of a block, so just forward to wrapped CPAs
-      List<AbstractState> result = new ArrayList<>();
-      for (CFAEdge e : CFAUtils.leavingEdges(node)) {
-        result.addAll(getAbstractSuccessors0(pState, pPrecision, e));
-      }
-      return result;
+    if (currentBlock != null && currentBlock.isReturnNode(node)) {
+      // we are leaving the block, do not perform analysis beyond the current block.
+      // special case: returning from a recursive function is only allowed once per state.
+      return Collections.emptySet();
     }
 
-    if (partitioning.getBlockForCallNode(node).equals(currentBlock)) {
-      // we are already in same context
-      // thus we already did the recursive call or we have a recursion in the cachedSubtrees
-      // the latter is not supported yet, but in the the former case we can classically do the post operation
-      return wrappedTransfer.getAbstractSuccessors(pState, pPrecision, null); // edge is null
+    if (partitioning.isCallNode(node)
+            && !partitioning.getBlockForCallNode(node).equals(currentBlock)) {
+      // we are at the entryNode of a new block and we are in a new context.
+      return doRecursiveAnalysis(pState, pPrecision, node);
     }
 
-    if (isHeadOfMainFunction(node)) {
-      // skip main function, TODO Why?
-      return wrappedTransfer.getAbstractSuccessors(pState, pPrecision, null); // edge is null
-    }
-
-    // we are a the entryNode of a new block, so we have to start a recursive analysis
-    return doRecursiveAnalysis(pState, pPrecision, node);
+    // the easy case: we are in the middle of a block, so just forward to wrapped CPAs.
+    // if there are several leaving edges, the wrapped CPA should handle all of them.
+    return wrappedTransfer.getAbstractSuccessors(pState, pPrecision, null);
   }
 
   /** Enters a new block and performs a new analysis or returns result from cache. */
@@ -248,28 +238,6 @@ public class BAMTransferRelation implements TransferRelation {
     return expandedResult;
   }
 
-  private Collection<? extends AbstractState> getAbstractSuccessors0(AbstractState pElement, Precision pPrecision,
-      CFAEdge edge) throws CPATransferException, InterruptedException {
-    assert edge != null;
-
-    CFANode currentNode = edge.getPredecessor();
-
-    Block currentNodeBlock = partitioning.getBlockForReturnNode(currentNode);
-    if (currentNodeBlock != null && !currentBlock.equals(currentNodeBlock)
-        && currentNodeBlock.getNodes().contains(edge.getSuccessor())) {
-      // we are not analyzing the block corresponding to currentNode (currentNodeBlock) but the currentNodeBlock is inside of this block
-      // avoid a reanalysis
-      return Collections.emptySet();
-    }
-
-    if (currentBlock.isReturnNode(currentNode) && !currentBlock.getNodes().contains(edge.getSuccessor())) {
-      // do not perform analysis beyond the current block
-      return Collections.emptySet();
-    }
-    return wrappedTransfer.getAbstractSuccessors(pElement, pPrecision, edge);
-  }
-
-
   static boolean isHeadOfMainFunction(CFANode currentNode) {
     return currentNode instanceof FunctionEntryNode && currentNode.getNumEnteringEdges() == 0;
   }
@@ -287,6 +255,7 @@ public class BAMTransferRelation implements TransferRelation {
       expandedToReducedCache.put(expandedState, reducedState);
 
       Precision expandedPrecision =
+              outerSubtree == null ? reducedPrecision : // special case: return from main
               wrappedReducer.getVariableExpandedPrecision(precision, outerSubtree, reducedPrecision);
 
       ((ARGState)expandedState).addParent((ARGState) state);
@@ -302,7 +271,7 @@ public class BAMTransferRelation implements TransferRelation {
    * otherwise a recursive CPAAlgorithm is started. */
   private Collection<Pair<AbstractState, Precision>> performCompositeAnalysis(
           final AbstractState initialState, final Precision initialPrecision, final CFANode node)
-          throws InterruptedException, RecursiveAnalysisFailedException {
+          throws InterruptedException, CPATransferException {
 
     logger.log(Level.FINEST, "Reducing state", initialState);
     final AbstractState reducedInitialState = wrappedReducer.getVariableReducedState(initialState, currentBlock, node);
@@ -314,13 +283,19 @@ public class BAMTransferRelation implements TransferRelation {
     ReachedSet reached = pair.getFirst();
     final Collection<AbstractState> returnStates = pair.getSecond();
 
-    final Collection<Pair<AbstractState, Precision>> result;
+    final Collection<AbstractState> result;
 
     if (returnStates != null) {
       assert reached != null;
+      assert !reached.hasWaitingState() ||
+              (returnStates.size() == 1
+                        && Iterables.getOnlyElement(returnStates) == reached.getLastState()
+                        && ((ARGState)reached.getLastState()).isTarget()) :
+              "cache hit only allowed for finished reached-sets or target-states";
+
       // cache hit, return element from cache
       logger.log(Level.FINEST, "Cache hit");
-      result = imbueAbstractStatesWithPrecision(reached, returnStates);
+      result = returnStates;
 
     } else {
       if (reached == null) {
@@ -334,21 +309,31 @@ public class BAMTransferRelation implements TransferRelation {
       }
 
       try {
-        result = performCompositeAnalysisWithCPAAlgorithm(reached, reducedInitialState, reducedInitialPrecision);
+        result = performCompositeAnalysisWithCPAAlgorithm(reached, reducedInitialState);
       } catch (CPAException e) {
         throw new RecursiveAnalysisFailedException(e);
       }
     }
 
+    ARGState rootOfBlock = null;
+    if (PCCInformation.isPCCEnabled()) {
+      if (!(reached.getFirstState() instanceof ARGState)) {
+        throw new CPATransferException("Cannot build proof, ARG, for BAM analysis.");
+      }
+      rootOfBlock = BAMARGUtils.copyARG((ARGState) reached.getFirstState());
+    }
+    argCache.put(reducedInitialState, reached.getPrecision(reached.getFirstState()), currentBlock, result, rootOfBlock);
+
     abstractStateToReachedSet.put(initialState, reached);
-    return result;
+
+    return imbueAbstractStatesWithPrecision(reached, result);
   }
 
 
   /** Analyse the block with a 'recursive' call to the CPAAlgorithm.
    * Then analyse the result and get the returnStates. */
-  private Collection<Pair<AbstractState, Precision>> performCompositeAnalysisWithCPAAlgorithm(
-          final ReachedSet reached, final AbstractState reducedInitialState, final Precision reducedInitialPrecision)
+  private Collection<AbstractState> performCompositeAnalysisWithCPAAlgorithm(
+          final ReachedSet reached, final AbstractState reducedInitialState)
           throws InterruptedException, CPAException {
 
     // CPAAlgorithm is not re-entrant due to statistics
@@ -367,22 +352,13 @@ public class BAMTransferRelation implements TransferRelation {
       //no target state, but waiting elements
       //analysis failed -> also break this analysis
       breakAnalysis = true;
-      return Collections.singletonList(Pair.of(reducedInitialState, reducedInitialPrecision));
+      returnStates =  Collections.singletonList(lastState);
+
     } else {
       returnStates = AbstractStates.filterLocations(reached, currentBlock.getReturnNodes()).toList();
     }
 
-    ARGState rootOfBlock = null;
-    if (PCCInformation.isPCCEnabled()) {
-      if (!(reached.getFirstState() instanceof ARGState)) {
-        throw new CPATransferException("Cannot build proof, ARG, for BAM analysis.");
-      }
-      rootOfBlock = BAMARGUtils.copyARG((ARGState) reached.getFirstState());
-    }
-    argCache.put(reducedInitialState, reached.getPrecision(reached.getFirstState()),
-                 currentBlock, returnStates, rootOfBlock);
-
-    return imbueAbstractStatesWithPrecision(reached, returnStates);
+    return returnStates;
   }
 
   private List<Pair<AbstractState, Precision>> imbueAbstractStatesWithPrecision(
@@ -516,7 +492,7 @@ public class BAMTransferRelation implements TransferRelation {
 
     CFANode node = extractLocation(pState);
 
-    if (partitioning.isCallNode(node) && !isHeadOfMainFunction(node)
+    if (partitioning.isCallNode(node)
         && !partitioning.getBlockForCallNode(node).equals(currentBlock)) {
       // do not support nodes which are call nodes of multiple blocks
       Block analyzedBlock = partitioning.getBlockForCallNode(node);

@@ -159,6 +159,15 @@ public class CompoundInterval {
   }
 
   /**
+   * Gets the number of intervals.
+   *
+   * @return the number of intervals.
+   */
+  public int getNumberOfIntervals() {
+    return this.intervals.length;
+  }
+
+  /**
    * Gets an unmodifiable list containing the intervals this compound
    * state consists of.
    *

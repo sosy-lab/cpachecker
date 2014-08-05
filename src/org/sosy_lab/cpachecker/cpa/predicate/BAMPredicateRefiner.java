@@ -132,6 +132,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
                                           logger);
 
     PathChecker pathChecker = new PathChecker(logger,
+                                          predicateCpa.getShutdownNotifier(),
                                           predicateCpa.getPathFormulaManager(),
                                           predicateCpa.getSolver(),
                                           predicateCpa.getMachineModel());

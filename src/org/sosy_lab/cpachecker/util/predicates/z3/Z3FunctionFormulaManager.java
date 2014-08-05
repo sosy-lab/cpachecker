@@ -66,8 +66,6 @@ public class Z3FunctionFormulaManager extends AbstractFunctionFormulaManager<Lon
         String pName,
         FormulaType<T> pReturnType,
         List<FormulaType<?>> pArgs) {
-    FunctionFormulaType<T> formulaType
-      = super.createFunction(pName, pReturnType, pArgs);
 
     long symbol = mk_string_symbol(z3context, pName);
     long[] sorts = new long[pArgs.size()];
@@ -80,7 +78,7 @@ public class Z3FunctionFormulaManager extends AbstractFunctionFormulaManager<Lon
 
     smtLogger.logFunctionDeclaration(symbol, sorts, returnType);
 
-    return new Z3FunctionType<>(formulaType.getReturnType(), formulaType.getArgumentTypes(), func);
+    return new Z3FunctionType<>(pReturnType, pArgs, func);
   }
 
   @Override

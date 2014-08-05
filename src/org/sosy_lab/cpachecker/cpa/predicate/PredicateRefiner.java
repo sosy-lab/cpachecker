@@ -62,7 +62,7 @@ public abstract class PredicateRefiner implements Refiner {
         predicateCpa.getShutdownNotifier(),
         logger);
 
-    PathChecker pathChecker = new PathChecker(logger, pfmgr, solver, machineModel);
+    PathChecker pathChecker = new PathChecker(logger, predicateCpa.getShutdownNotifier(), pfmgr, solver, machineModel);
 
     RefinementStrategy strategy = new PredicateAbstractionRefinementStrategy(
         config,

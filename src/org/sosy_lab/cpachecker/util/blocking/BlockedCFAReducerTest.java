@@ -29,13 +29,12 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 import com.google.common.io.CharStreams;
@@ -43,51 +42,11 @@ import com.google.common.io.CharStreams;
 @SuppressWarnings("unused")
 public class BlockedCFAReducerTest {
 
-  private static class LoggerForTest implements LogManager {
-
-    @Override
-    public void close() {
-    }
-
-    @Override
-    public void flush() {
-    }
-
-    @Override
-    public void log(Level pArg0, Object... pArg1) {
-    }
-
-    @Override
-    public void logDebugException(Throwable pArg0) {
-    }
-
-    @Override
-    public void logDebugException(Throwable pArg0, String pArg1) {
-    }
-
-    @Override
-    public void logException(Level pArg0, Throwable pArg1, String pArg2) {
-    }
-
-    @Override
-    public void logUserException(Level pArg0, Throwable pArg1, String pArg2) {
-    }
-
-    @Override
-    public void logf(Level pArg0, String pArg1, Object... pArg2) {
-    }
-
-    @Override
-    public boolean wouldBeLogged(Level pArg0) {
-      return false;
-    }
-  }
-
   private BlockedCFAReducer reducer;
 
   @Before
   public void setUp() throws InvalidConfigurationException {
-    reducer = new BlockedCFAReducer(Configuration.defaultConfiguration(), new LoggerForTest());
+    reducer = new BlockedCFAReducer(Configuration.defaultConfiguration(), TestLogManager.getInstance());
   }
 
   private void assertCfaIsEmpty(Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa) {

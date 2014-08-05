@@ -26,12 +26,14 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
+import com.google.common.base.Optional;
+
 public class CReturnStatement extends AReturnStatement implements CAstNode {
 
 
 
   public CReturnStatement(final FileLocation pFileLocation,
-                             final CExpression pExpression) {
+                             final Optional<CExpression> pExpression) {
     super(pFileLocation, pExpression);
   }
 
@@ -40,9 +42,10 @@ public class CReturnStatement extends AReturnStatement implements CAstNode {
     return pV.visit(this);
   }
 
+  @SuppressWarnings("unchecked") // safe because Optional is covariant
   @Override
-  public CExpression getReturnValue() {
-    return (CExpression) super.getReturnValue();
+  public Optional<CExpression> getReturnValue() {
+    return (Optional<CExpression>) super.getReturnValue();
   }
 
   @Override
