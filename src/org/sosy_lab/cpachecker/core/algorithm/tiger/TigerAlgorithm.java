@@ -202,7 +202,7 @@ public class TigerAlgorithm implements Algorithm {
 
     @Override
     public String toString() {
-      return inputs.toString();
+      return inputs.toString() + " with configurations " + bddCpaNamedRegionManager.dumpRegion(pc);
     }
 
     @Override
@@ -259,11 +259,15 @@ public class TigerAlgorithm implements Algorithm {
       StringBuffer str = new StringBuffer();
 
       for (Map.Entry<TestCase, List<Goal>> entry : mapping.entrySet()) {
+        str.append("Testcase ");
         str.append(entry.getKey().toString());
-        str.append("\n");
+        str.append(" covers\n");
 
         for (Goal goal : entry.getValue()) {
+          str.append("Goal ");
           str.append(goal.getIndex());
+          str.append(" with PC ");
+          str.append(bddCpaNamedRegionManager.dumpRegion(goal.getPresenceCondition()));
           str.append("\n");
         }
 
