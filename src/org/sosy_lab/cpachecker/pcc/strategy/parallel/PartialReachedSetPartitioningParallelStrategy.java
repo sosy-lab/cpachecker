@@ -57,13 +57,13 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 
-public class PartialReachedSetPartitioningParallel extends AbstractStrategy{
+public class PartialReachedSetPartitioningParallelStrategy extends AbstractStrategy{
 
   private final PartitioningIOHelper ioHelper;
   private final PropertyCheckerCPA cpa;
   private final ShutdownNotifier shutdownNotifier;
 
-  public PartialReachedSetPartitioningParallel(final Configuration pConfig, final LogManager pLogger,
+  public PartialReachedSetPartitioningParallelStrategy(final Configuration pConfig, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final PropertyCheckerCPA pCpa)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
