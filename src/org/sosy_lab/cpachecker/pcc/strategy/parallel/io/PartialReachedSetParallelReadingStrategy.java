@@ -78,6 +78,7 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
     ioHelper = new PartitioningIOHelper(pConfig, pLogger, pShutdownNotifier, pCpa);
     shutdownNotifier = pShutdownNotifier;
     cpa = pCpa;
+    addPCCStatistic(ioHelper.getPartitioningStatistc());
   }
 
   @Override

@@ -72,6 +72,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
     ioHelper = new PartitioningIOHelper(pConfig, pLogger, pShutdownNotifier, pCpa);
     cpa = pCpa;
     shutdownNotifier = pShutdownNotifier;
+    addPCCStatistic(ioHelper.getPartitioningStatistc());
   }
 
   @Override

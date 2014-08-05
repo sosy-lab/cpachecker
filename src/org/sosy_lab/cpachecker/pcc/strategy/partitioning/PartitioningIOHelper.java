@@ -26,8 +26,10 @@ package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.logging.Level;
@@ -40,11 +42,14 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.BalancedGraphPartitioner;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PartialReachedConstructionAlgorithm;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy.PCStrategyStatistics;
@@ -233,5 +238,52 @@ public class PartitioningIOHelper {
     for (Set<Integer> partition : partitionDescription.getSecond()) {
       writePartition(pOut, partition, partitionDescription.getFirst());
     }
+  }
+
+  public Statistics getPartitioningStatistc(){
+    return new PartitioningStatistics();
+  }
+
+  private class PartitioningStatistics implements Statistics {
+
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+      if (numPartitions > 0 && partitions != null) {
+        pOut.format("Number of partitions: %d\n", numPartitions);
+        pOut.format("The following numbers are given in number of states.\n");
+        computeAndPrintDetailedPartitioningStats(pOut);
+      }
+    }
+
+    private void computeAndPrintDetailedPartitioningStats(PrintStream pOut) {
+      int maxP=0, maxO=0, minP=Integer.MAX_VALUE, minO = Integer.MAX_VALUE, totalO = 0, totalS = 0, current;
+
+      for (Pair<AbstractState[], AbstractState[]> partition : partitions) {
+        current = partition.getSecond().length;
+        maxO=Math.max(maxO, current);
+        minO=Math.min(minO, current);
+        totalO+=current;
+
+        current+=partition.getFirst().length;
+        maxP=Math.max(maxP, current);
+        minP=Math.min(minP, current);
+        totalS+=current;
+      }
+
+      pOut.format("Certificate size: %d \n", totalS);
+      pOut.format("Total overhead:  %d\n", totalO);
+      pOut.format(Locale.ENGLISH,"Avg. partition size:  %.2e\n", ((double)totalS)/numPartitions);
+      pOut.format(Locale.ENGLISH,"Avg. partition overhead: %.2e\n", ((double)totalO)/numPartitions);
+      pOut.format("Max partition size: %d\n", maxP);
+      pOut.format("Max partition overhead: %d\n", maxO);
+      pOut.format("Min partition size: %d\n", minP);
+      pOut.format("Min partition overhead: %d\n", minO);
+    }
+
+    @Override
+    public String getName() {
+      return "PCC Partitioning Statistic";
+    }
+
   }
 }
