@@ -32,8 +32,9 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
-import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 import com.google.common.collect.Lists;
 
@@ -41,7 +42,7 @@ public class BitvectorManagerTest {
 
   private LogManager logger;
 
-  private BDDRegionManager rmgr;
+  private RegionManager rmgr;
   private BitvectorManager bvmgr;
   private Region[] zero;
   private Region[] one;
@@ -54,7 +55,7 @@ public class BitvectorManagerTest {
     Configuration config = Configuration.defaultConfiguration();
     logger = TestLogManager.getInstance();
 
-    rmgr = BDDRegionManager.getInstance(config, logger);
+    rmgr = new BDDManagerFactory(config, logger).createRegionManager();
     bvmgr = new BitvectorManager(config, rmgr);
 
     zero = bvmgr.makeNumber(BigInteger.ZERO, 4);

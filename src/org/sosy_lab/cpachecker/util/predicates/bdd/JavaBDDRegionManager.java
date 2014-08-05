@@ -69,31 +69,19 @@ import com.google.common.collect.Maps;
  * This class is not thread-safe, but it could be easily made so by synchronizing
  * the {@link #createNewVar()} method (assuming the BDDFactory is thread-safe).
  */
-@Options(prefix = "bdd")
-public class BDDRegionManager implements RegionManager {
+@Options(prefix = "bdd.javabdd")
+class JavaBDDRegionManager implements RegionManager {
 
   private static final Level LOG_LEVEL = Level.FINE;
 
-  @Option(name="package",
-      description = "Which BDD package should be used?"
-      + "\n- java:  JavaBDD (default, no dependencies, many features)"
-      + "\n- cudd:  CUDD (native library required, reordering not supported)"
-      + "\n- micro: MicroFactory (maximum number of BDD variables is 1024, slow, but less memory-comsumption)"
-      + "\n- buddy: Buddy (native library required)"
-      + "\n- cal:   CAL (native library required)"
-      + "\n- jdd:   JDD",
-      values = {"java", "cudd", "micro", "buddy", "cal", "jdd"})
-  // documentation of the packages can be found at source of BDDFactory.init()
-  private String bddPackage = "java";
-
   @Option(description="Initial size of the BDD node table.")
-  private int initBddNodeTableSize = 10000;
+  private int initTableSize = 10000;
 
   @Option(description="Size of the BDD cache if cache ratio is not used.")
-  private int bddCacheSize = 1000;
+  private int cacheSize = 1000;
 
   @Option(description="Size of the BDD cache in relation to the node table size (set to 0 to use fixed BDD cache size).")
-  private double bddCacheRatio = 0.1;
+  private double cacheRatio = 0.1;
 
   // Statistics
   private final StatInt cleanupQueueSize = new StatInt(StatKind.AVG, "Size of BDD node cleanup queue");
@@ -107,22 +95,22 @@ public class BDDRegionManager implements RegionManager {
   private int nextvar = 0;
   private int varcount = 100;
 
-  private BDDRegionManager(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+  JavaBDDRegionManager(String bddPackage, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
-    factory = BDDFactory.init(bddPackage, initBddNodeTableSize, bddCacheSize);
+    factory = BDDFactory.init(bddPackage.toLowerCase(), initTableSize, cacheSize);
 
     // register callbacks for logging
     try {
-      Method gcCallback = BDDRegionManager.class.getDeclaredMethod("gcCallback", new Class[]{Integer.class, BDDFactory.GCStats.class});
+      Method gcCallback = JavaBDDRegionManager.class.getDeclaredMethod("gcCallback", new Class[]{Integer.class, BDDFactory.GCStats.class});
       gcCallback.setAccessible(true);
       factory.registerGCCallback(this, gcCallback);
 
-      Method resizeCallback = BDDRegionManager.class.getDeclaredMethod("resizeCallback", new Class[]{Integer.class, Integer.class});
+      Method resizeCallback = JavaBDDRegionManager.class.getDeclaredMethod("resizeCallback", new Class[]{Integer.class, Integer.class});
       resizeCallback.setAccessible(true);
       factory.registerResizeCallback(this, resizeCallback);
 
-      Method reorderCallback = BDDRegionManager.class.getDeclaredMethod("reorderCallback", new Class[]{Integer.class, BDDFactory.ReorderStats.class});
+      Method reorderCallback = JavaBDDRegionManager.class.getDeclaredMethod("reorderCallback", new Class[]{Integer.class, BDDFactory.ReorderStats.class});
       reorderCallback.setAccessible(true);
       factory.registerReorderCallback(this, reorderCallback);
 
@@ -141,15 +129,10 @@ public class BDDRegionManager implements RegionManager {
     }
 
     factory.setVarNum(varcount);
-    factory.setCacheRatio(bddCacheRatio);
+    factory.setCacheRatio(cacheRatio);
 
-    trueFormula = new BDDRegion(factory.one());
-    falseFormula = new BDDRegion(factory.zero());
-  }
-
-  /** Instantiate a new BDDRegionManager */
-  public static BDDRegionManager getInstance(Configuration config, LogManager logger) throws InvalidConfigurationException {
-    return new BDDRegionManager(config, logger);
+    trueFormula = new JavaBDDRegion(factory.one());
+    falseFormula = new JavaBDDRegion(factory.zero());
   }
 
   @SuppressWarnings("unused")
@@ -198,7 +181,7 @@ public class BDDRegionManager implements RegionManager {
         .put("Number of BDD nodes", factory.getNodeNum())
         .put("Size of BDD node table", factory.getNodeTableSize())
 
-        // Cache size is currently always equal to bddCacheSize,
+        // Cache size is currently always equal to cacheSize,
         // unfortunately the library does not update it on cache resizes.
         //.put("Size of BDD cache", factory.getCacheSize())
 
@@ -227,7 +210,7 @@ public class BDDRegionManager implements RegionManager {
   }
 
   @Override
-  public BDDRegion createPredicate() {
+  public JavaBDDRegion createPredicate() {
     cleanupReferences();
     return wrap(createNewVar());
   }
@@ -236,16 +219,16 @@ public class BDDRegionManager implements RegionManager {
   // When a Java object is freed, we need to tell the library.
   // The method with PhantomReferences is a better way then using finalize().
   // In order for this to work, two invariants must hold:
-  // - No two BDDRegion objects point to the same BDD instance.
-  // - All BDDRegion objects get created by the wrap(BBD) method.
-  // For all BDD objects which do not get wrapped in a BDDRegion,
+  // - No two JavaBDDRegion objects point to the same BDD instance.
+  // - All JavaBDDRegion objects get created by the wrap(BBD) method.
+  // For all BDD objects which do not get wrapped in a JavaBDDRegion,
   // free() must be called manually.
 
   // The reference objects will appear in this queue as soon as their target object was GCed.
-  private final ReferenceQueue<BDDRegion> referenceQueue = new ReferenceQueue<>();
+  private final ReferenceQueue<JavaBDDRegion> referenceQueue = new ReferenceQueue<>();
 
-  // In this map we store the info which BDD to free after a BDDRegion object was GCed.
-  private final Map<PhantomReference<BDDRegion>, BDD> referenceMap = Maps.newIdentityHashMap();
+  // In this map we store the info which BDD to free after a JavaBDDRegion object was GCed.
+  private final Map<PhantomReference<JavaBDDRegion>, BDD> referenceMap = Maps.newIdentityHashMap();
 
   /**
    * Cleanup all references to BDDs that are no longer needed.
@@ -258,8 +241,8 @@ public class BDDRegionManager implements RegionManager {
     cleanupTimer.start();
     try {
       int count = 0;
-      PhantomReference<? extends BDDRegion> ref;
-      while ((ref = (PhantomReference<? extends BDDRegion>)referenceQueue.poll()) != null) {
+      PhantomReference<? extends JavaBDDRegion> ref;
+      while ((ref = (PhantomReference<? extends JavaBDDRegion>)referenceQueue.poll()) != null) {
         count++;
 
         BDD bdd = referenceMap.remove(ref);
@@ -273,21 +256,21 @@ public class BDDRegionManager implements RegionManager {
   }
 
   /**
-   * Wrap a BDD object in a BDDRegion and register it so that we can free the
-   * BDD after the BDDRegion was garbage collected.
-   * Always use this method, and never the BDDRegion constructor directly.
+   * Wrap a BDD object in a JavaBDDRegion and register it so that we can free the
+   * BDD after the JavaBDDRegion was garbage collected.
+   * Always use this method, and never the JavaBDDRegion constructor directly.
    */
-  private BDDRegion wrap(BDD bdd) {
-    BDDRegion region = new BDDRegion(bdd);
+  private JavaBDDRegion wrap(BDD bdd) {
+    JavaBDDRegion region = new JavaBDDRegion(bdd);
 
-    PhantomReference<BDDRegion> ref = new PhantomReference<>(region, referenceQueue);
+    PhantomReference<JavaBDDRegion> ref = new PhantomReference<>(region, referenceQueue);
     referenceMap.put(ref, bdd);
 
     return region;
   }
 
   private BDD unwrap(Region region) {
-    return ((BDDRegion) region).getBDD();
+    return ((JavaBDDRegion) region).getBDD();
   }
 
   @Override
@@ -452,14 +435,14 @@ public class BDDRegionManager implements RegionManager {
     public void addPositiveRegion(Region r) {
       checkState(currentCube != null);
       // call id() for copy
-      currentCube.andWith(((BDDRegion)r).getBDD().id());
+      currentCube.andWith(((JavaBDDRegion)r).getBDD().id());
     }
 
     @Override
     public void addNegativeRegion(Region r) {
       checkState(currentCube != null);
       // not() creates new BDD
-      currentCube.andWith(((BDDRegion)r).getBDD().not());
+      currentCube.andWith(((JavaBDDRegion)r).getBDD().not());
     }
 
     @Override
@@ -544,7 +527,7 @@ public class BDDRegionManager implements RegionManager {
   /**
    * Class for creating BDDs out of a formula.
    * This class directly uses the BDD objects and their manual reference counting,
-   * because for large formulas, the performance impact of creating BDDRegion
+   * because for large formulas, the performance impact of creating JavaBDDRegion
    * objects, putting them into the referenceMap and referenceQueue,
    * gc'ing the BDDRegions again, and calling cleanupReferences() would be too big.
    */
@@ -572,7 +555,7 @@ public class BDDRegionManager implements RegionManager {
 
     @Override
     public BDD visitAtom(BooleanFormula pAtom) {
-      return ((BDDRegion)atomToRegion.apply(pAtom)).getBDD().id();
+      return ((JavaBDDRegion)atomToRegion.apply(pAtom)).getBDD().id();
     }
 
     private BDD convert(BooleanFormula pOperand) {
@@ -660,7 +643,7 @@ public class BDDRegionManager implements RegionManager {
     }
   }
 
-
+  @Override
   public String getVersion() {
     return factory.getVersion();
   }

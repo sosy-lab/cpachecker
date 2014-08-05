@@ -189,24 +189,37 @@ assumptions.file = "assumptions.txt"
 
 # Size of the BDD cache in relation to the node table size (set to 0 to use
 # fixed BDD cache size).
-bdd.bddCacheRatio = 0.1
+bdd.javabdd.cacheRatio = 0.1
 
 # Size of the BDD cache if cache ratio is not used.
-bdd.bddCacheSize = 1000
+bdd.javabdd.cacheSize = 1000
 
 # Initial size of the BDD node table.
-bdd.initBddNodeTableSize = 10000
+bdd.javabdd.initTableSize = 10000
 
 # Which BDD package should be used?
-# - java:  JavaBDD (default, no dependencies, many features)
-# - cudd:  CUDD (native library required, reordering not supported)
-# - micro: MicroFactory (maximum number of BDD variables is 1024, slow, but
+# - java:   JavaBDD (default, no dependencies, many features)
+# - sylvan: Sylvan (only 64bit Linux, uses multiple threads)
+# - cudd:   CUDD (native library required, reordering not supported)
+# - micro:  MicroFactory (maximum number of BDD variables is 1024, slow, but
 # less memory-comsumption)
-# - buddy: Buddy (native library required)
-# - cal:   CAL (native library required)
-# - jdd:   JDD
-bdd.package = "java"
-  allowed values: [java, cudd, micro, buddy, cal, jdd]
+# - buddy:  Buddy (native library required)
+# - cal:    CAL (native library required)
+# - jdd:    JDD
+bdd.package = "JAVA"
+  allowed values: [JAVA, SYLVAN, CUDD, MICRO, BUDDY, CAL, JDD]
+
+# Granularity of the Sylvan BDD operations cache (recommended values 4-8).
+bdd.sylvan.cacheGranularity = 4
+
+# Log2 size of the BDD cache.
+bdd.sylvan.cacheSize = 24
+
+# Log2 size of the BDD node table.
+bdd.sylvan.tableSize = 26
+
+# Number of worker threads, 0 for automatic.
+bdd.sylvan.threads = 0
 
 # Allow reduction of function entries; calculate abstractions alwasy at
 # function entries?
@@ -895,7 +908,7 @@ cpa.predicate.abstraction.reuseAbstractionsFrom = no default value
 
 # What to use for storing abstractions
 cpa.predicate.abstraction.type = "BDD"
-  allowed values: [BDD, FORMULA]
+  allowed values: [BDD, SYLVAN, FORMULA]
 
 # file that consists of one abstraction formula for each abstraction state
 cpa.predicate.abstractions.file = "abstractions.txt"
@@ -1521,9 +1534,15 @@ cpa.value.precisionFile = no default value
 cpa.value.refinement.exportInterpolationTree = "NEVER"
   allowed values: [NEVER, FINAL, ALWAYS]
 
+# forceRestart
+cpa.value.refinement.forceRestart = 0
+
 # whether or not to do lazy-abstraction
 cpa.value.refinement.restart = TOP
   enum:     [TOP, BOTTOM, COMMON]
+
+# globalPrec
+cpa.value.refinement.useGlobalPrecision = false
 
 # whether to use the top-down interpolation strategy or the bottom-up
 # interpolation strategy
