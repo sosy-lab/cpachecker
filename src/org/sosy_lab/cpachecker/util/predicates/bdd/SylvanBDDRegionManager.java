@@ -294,16 +294,10 @@ class SylvanBDDRegionManager implements RegionManager {
 
   @Override
   public RegionBuilder builder(ShutdownNotifier pShutdownNotifier) {
-    return new SylvanBDDRegionBuilder(pShutdownNotifier);
+    return new SylvanBDDRegionBuilder();
   }
 
   private class SylvanBDDRegionBuilder implements RegionBuilder {
-
-    private final ShutdownNotifier shutdownNotifier;
-
-    private SylvanBDDRegionBuilder(ShutdownNotifier pShutdownNotifier) {
-      shutdownNotifier = pShutdownNotifier;
-    }
 
     // Invariant: currentCube and everything in cubes
     // is ref'ed and allowed to be deref'ed.
@@ -392,23 +386,6 @@ class SylvanBDDRegionManager implements RegionManager {
         cubes.add(result);
         return wrap(result);
       }
-    }
-
-    private void buildBalancedOr() throws InterruptedException {
-      long result = ref(JSylvan.getFalse());
-
-      for (Long cube : cubes) {
-        if (cube != null) {
-          shutdownNotifier.shutdownIfNecessary();
-          long newResult = ref(JSylvan.makeOr(result, cube));
-          deref(result);
-          deref(cube);
-          result = newResult;
-        }
-      }
-      cubes.clear();
-      cubes.add(result);
-      assert (cubes.size() == 1);
     }
 
     @Override
