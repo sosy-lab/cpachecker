@@ -28,13 +28,13 @@ import net.sf.javabdd.BDD;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 /**
- * Regions represented using BDDs
+ * Regions represented using BDDs from JavaBDD.
  */
-public class BDDRegion implements Region {
+class JavaBDDRegion implements Region {
 
   private final BDD bddRepr;
 
-  BDDRegion(BDD pBDD) {
+  JavaBDDRegion(BDD pBDD) {
     bddRepr = pBDD;
   }
 
@@ -54,8 +54,8 @@ public class BDDRegion implements Region {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof BDDRegion) {
-      return bddRepr.equals(((BDDRegion)o).bddRepr);
+    if (o instanceof JavaBDDRegion) {
+      return bddRepr.equals(((JavaBDDRegion)o).bddRepr);
     }
     return false;
   }

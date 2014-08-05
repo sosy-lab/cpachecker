@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.bdd.JavaBDDRegionManager;
 
 public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
 
@@ -70,7 +70,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
 
   private BDDCPA(CFA cfa, Configuration config, LogManager logger)
       throws InvalidConfigurationException {
-    BDDRegionManager rmgr = BDDRegionManager.getInstance(config, logger);
+    JavaBDDRegionManager rmgr = JavaBDDRegionManager.getInstance(config, logger);
     manager = new NamedRegionManager(rmgr);
     bvmgr = new BitvectorManager(config, rmgr);
     abstractDomain = new BDDDomain();
