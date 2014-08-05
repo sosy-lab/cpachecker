@@ -70,21 +70,9 @@ import com.google.common.collect.Maps;
  * the {@link #createNewVar()} method (assuming the BDDFactory is thread-safe).
  */
 @Options(prefix = "bdd")
-public class JavaBDDRegionManager implements RegionManager {
+class JavaBDDRegionManager implements RegionManager {
 
   private static final Level LOG_LEVEL = Level.FINE;
-
-  @Option(name="package",
-      description = "Which BDD package should be used?"
-      + "\n- java:  JavaBDD (default, no dependencies, many features)"
-      + "\n- cudd:  CUDD (native library required, reordering not supported)"
-      + "\n- micro: MicroFactory (maximum number of BDD variables is 1024, slow, but less memory-comsumption)"
-      + "\n- buddy: Buddy (native library required)"
-      + "\n- cal:   CAL (native library required)"
-      + "\n- jdd:   JDD",
-      values = {"java", "cudd", "micro", "buddy", "cal", "jdd"})
-  // documentation of the packages can be found at source of BDDFactory.init()
-  private String bddPackage = "java";
 
   @Option(description="Initial size of the BDD node table.")
   private int initBddNodeTableSize = 10000;
@@ -107,10 +95,10 @@ public class JavaBDDRegionManager implements RegionManager {
   private int nextvar = 0;
   private int varcount = 100;
 
-  private JavaBDDRegionManager(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+  JavaBDDRegionManager(String bddPackage, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
-    factory = BDDFactory.init(bddPackage, initBddNodeTableSize, bddCacheSize);
+    factory = BDDFactory.init(bddPackage.toLowerCase(), initBddNodeTableSize, bddCacheSize);
 
     // register callbacks for logging
     try {
@@ -145,11 +133,6 @@ public class JavaBDDRegionManager implements RegionManager {
 
     trueFormula = new JavaBDDRegion(factory.one());
     falseFormula = new JavaBDDRegion(factory.zero());
-  }
-
-  /** Instantiate a new JavaBDDRegionManager */
-  public static JavaBDDRegionManager getInstance(Configuration config, LogManager logger) throws InvalidConfigurationException {
-    return new JavaBDDRegionManager(config, logger);
   }
 
   @SuppressWarnings("unused")
@@ -660,7 +643,7 @@ public class JavaBDDRegionManager implements RegionManager {
     }
   }
 
-
+  @Override
   public String getVersion() {
     return factory.getVersion();
   }

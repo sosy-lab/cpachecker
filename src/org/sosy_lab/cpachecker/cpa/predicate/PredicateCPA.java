@@ -63,8 +63,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.bdd.JavaBDDRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.bdd.SylvanBDDRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
@@ -158,13 +157,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     RegionManager regionManager;
     if (abstractionType.equals("FORMULA")) {
       regionManager = new SymbolicRegionManager(formulaManager, solver);
-    } else if (abstractionType.equals("BDD")) {
-      regionManager = JavaBDDRegionManager.getInstance(config, logger);
-      libraries += " and " + ((JavaBDDRegionManager)regionManager).getVersion();
     } else {
-      assert abstractionType.equals("SYLVAN");
-      regionManager = new SylvanBDDRegionManager(config, logger);
-      libraries += " and " + ((SylvanBDDRegionManager)regionManager).getVersion();
+      assert abstractionType.equals("BDD");
+      regionManager = new BDDManagerFactory(config, logger).createRegionManager();
+      libraries += " and " + regionManager.getVersion();
     }
     logger.log(Level.INFO, "Using predicate analysis with", libraries + ".");
 

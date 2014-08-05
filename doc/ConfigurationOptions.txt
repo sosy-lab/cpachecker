@@ -198,15 +198,16 @@ bdd.bddCacheSize = 1000
 bdd.initBddNodeTableSize = 10000
 
 # Which BDD package should be used?
-# - java:  JavaBDD (default, no dependencies, many features)
-# - cudd:  CUDD (native library required, reordering not supported)
-# - micro: MicroFactory (maximum number of BDD variables is 1024, slow, but
+# - java:   JavaBDD (default, no dependencies, many features)
+# - sylvan: Sylvan (only 64bit Linux, uses multiple threads)
+# - cudd:   CUDD (native library required, reordering not supported)
+# - micro:  MicroFactory (maximum number of BDD variables is 1024, slow, but
 # less memory-comsumption)
-# - buddy: Buddy (native library required)
-# - cal:   CAL (native library required)
-# - jdd:   JDD
-bdd.package = "java"
-  allowed values: [java, cudd, micro, buddy, cal, jdd]
+# - buddy:  Buddy (native library required)
+# - cal:    CAL (native library required)
+# - jdd:    JDD
+bdd.package = "JAVA"
+  allowed values: [JAVA, SYLVAN, CUDD, MICRO, BUDDY, CAL, JDD]
 
 # Granularity of the Sylvan BDD operations cache (recommended values 4-8).
 bdd.sylvan.cacheGranularity = 4

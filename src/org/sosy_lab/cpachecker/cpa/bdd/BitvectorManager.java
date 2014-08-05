@@ -27,14 +27,14 @@ import java.math.BigInteger;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.util.predicates.bdd.JavaBDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 public class BitvectorManager {
 
-  private JavaBDDRegionManager rmgr;
+  private final RegionManager rmgr;
 
-  public BitvectorManager(Configuration config, JavaBDDRegionManager pRmgr)
+  public BitvectorManager(Configuration config, RegionManager pRmgr)
           throws InvalidConfigurationException {
     this.rmgr = pRmgr;
   }

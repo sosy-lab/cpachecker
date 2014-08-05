@@ -67,7 +67,7 @@ import com.google.common.primitives.Longs;
  * using the Java bindings JSylvan (https://github.com/trolando/jsylvan).
  */
 @Options(prefix = "bdd.sylvan")
-public class SylvanBDDRegionManager implements RegionManager {
+class SylvanBDDRegionManager implements RegionManager {
 
   private static final int SYLVAN_MAX_THREADS = 64;
 
@@ -546,7 +546,7 @@ public class SylvanBDDRegionManager implements RegionManager {
     }
   }
 
-
+  @Override
   public String getVersion() {
     return String.format("Sylvan (%d threads)", threads);
   }
