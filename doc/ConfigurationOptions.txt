@@ -189,13 +189,13 @@ assumptions.file = "assumptions.txt"
 
 # Size of the BDD cache in relation to the node table size (set to 0 to use
 # fixed BDD cache size).
-bdd.bddCacheRatio = 0.1
+bdd.javabdd.cacheRatio = 0.1
 
 # Size of the BDD cache if cache ratio is not used.
-bdd.bddCacheSize = 1000
+bdd.javabdd.cacheSize = 1000
 
 # Initial size of the BDD node table.
-bdd.initBddNodeTableSize = 10000
+bdd.javabdd.initTableSize = 10000
 
 # Which BDD package should be used?
 # - java:   JavaBDD (default, no dependencies, many features)

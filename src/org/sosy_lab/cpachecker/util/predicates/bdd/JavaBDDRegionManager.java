@@ -69,19 +69,19 @@ import com.google.common.collect.Maps;
  * This class is not thread-safe, but it could be easily made so by synchronizing
  * the {@link #createNewVar()} method (assuming the BDDFactory is thread-safe).
  */
-@Options(prefix = "bdd")
+@Options(prefix = "bdd.javabdd")
 class JavaBDDRegionManager implements RegionManager {
 
   private static final Level LOG_LEVEL = Level.FINE;
 
   @Option(description="Initial size of the BDD node table.")
-  private int initBddNodeTableSize = 10000;
+  private int initTableSize = 10000;
 
   @Option(description="Size of the BDD cache if cache ratio is not used.")
-  private int bddCacheSize = 1000;
+  private int cacheSize = 1000;
 
   @Option(description="Size of the BDD cache in relation to the node table size (set to 0 to use fixed BDD cache size).")
-  private double bddCacheRatio = 0.1;
+  private double cacheRatio = 0.1;
 
   // Statistics
   private final StatInt cleanupQueueSize = new StatInt(StatKind.AVG, "Size of BDD node cleanup queue");
@@ -98,7 +98,7 @@ class JavaBDDRegionManager implements RegionManager {
   JavaBDDRegionManager(String bddPackage, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
-    factory = BDDFactory.init(bddPackage.toLowerCase(), initBddNodeTableSize, bddCacheSize);
+    factory = BDDFactory.init(bddPackage.toLowerCase(), initTableSize, cacheSize);
 
     // register callbacks for logging
     try {
@@ -129,7 +129,7 @@ class JavaBDDRegionManager implements RegionManager {
     }
 
     factory.setVarNum(varcount);
-    factory.setCacheRatio(bddCacheRatio);
+    factory.setCacheRatio(cacheRatio);
 
     trueFormula = new JavaBDDRegion(factory.one());
     falseFormula = new JavaBDDRegion(factory.zero());
@@ -181,7 +181,7 @@ class JavaBDDRegionManager implements RegionManager {
         .put("Number of BDD nodes", factory.getNodeNum())
         .put("Size of BDD node table", factory.getNodeTableSize())
 
-        // Cache size is currently always equal to bddCacheSize,
+        // Cache size is currently always equal to cacheSize,
         // unfortunately the library does not update it on cache resizes.
         //.put("Size of BDD cache", factory.getCacheSize())
 
